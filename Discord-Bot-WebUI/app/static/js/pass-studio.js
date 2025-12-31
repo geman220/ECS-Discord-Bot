@@ -778,12 +778,31 @@ export const PassStudio = {
 // Export to window for ES module compatibility
 window.PassStudio = PassStudio;
 
-// Initialize on DOM ready
-document.addEventListener('DOMContentLoaded', () => {
+import { InitSystem } from './init-system.js';
+
+let _passStudioInitialized = false;
+
+function initPassStudio() {
+    if (_passStudioInitialized) return;
+
     // Get pass type code from script tag data attribute
     const initScript = document.querySelector('script[data-pass-type-code]');
-    if (initScript) {
-        const passTypeCode = initScript.dataset.passTypeCode;
-        window.PassStudio.init(passTypeCode);
-    }
+    if (!initScript) return;
+
+    _passStudioInitialized = true;
+    const passTypeCode = initScript.dataset.passTypeCode;
+    window.PassStudio.init(passTypeCode);
+}
+
+InitSystem.register('pass-studio', initPassStudio, {
+    priority: 30,
+    reinitializable: false,
+    description: 'Pass studio wallet management'
 });
+
+// Fallback for non-bundled usage
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPassStudio);
+} else {
+    initPassStudio();
+}

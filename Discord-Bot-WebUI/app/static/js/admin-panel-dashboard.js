@@ -20,24 +20,25 @@
  *
  * ============================================================================
  */
-// ES Module
 'use strict';
 
 import { InitSystem } from './init-system.js';
 import { EventDelegation } from './event-delegation/core.js';
+
 let _initialized = false;
+let _navCardsSetup = false;
 
-  // ============================================================================
-  // INITIALIZATION
-  // ============================================================================
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
 
-  function init() {
+function init() {
     // Guard against duplicate initialization
     if (_initialized) return;
 
     // Only initialize if we're on the admin dashboard page
     if (!document.querySelector('.admin-panel-dashboard, [data-page="admin-dashboard"]')) {
-      return;
+        return;
     }
 
     _initialized = true;
@@ -47,84 +48,82 @@ let _initialized = false;
     setupNavigationCards();
 
     console.log('[AdminDashboard] Initialized');
-  }
+}
 
-  // ============================================================================
-  // EVENT REGISTRATION - Now a no-op, handlers registered at module scope
-  // ============================================================================
+// ============================================================================
+// EVENT REGISTRATION - Now a no-op, handlers registered at module scope
+// ============================================================================
 
-  function registerEventHandlers() {
+function registerEventHandlers() {
     // Handlers are now registered at module scope for proper timing
     // See bottom of file for EventDelegation.register() calls
-  }
+}
 
-  let _navCardsSetup = false;
-
-  function setupNavigationCards() {
+function setupNavigationCards() {
     if (_navCardsSetup) return;
     _navCardsSetup = true;
 
     // Add pointer cursor to navigation cards
     document.querySelectorAll('[data-action="navigate"]').forEach(card => {
-      card.style.cursor = 'pointer';
+        card.style.cursor = 'pointer';
     });
-  }
+}
 
-  // ============================================================================
-  // NAVIGATION
-  // ============================================================================
+// ============================================================================
+// NAVIGATION
+// ============================================================================
 
-  function handleNavigate(element) {
+function handleNavigate(element) {
     const url = element.dataset.url;
     if (url) {
-      window.location.href = url;
+        window.location.href = url;
     }
-  }
+}
 
-  function highlightActiveNav() {
+function highlightActiveNav() {
     const currentPath = window.location.pathname;
     const navLinks = document.querySelectorAll('.nav-pills .nav-link');
 
     navLinks.forEach(link => {
-      if (currentPath.includes(link.getAttribute('href'))) {
-        link.classList.add('active');
-      }
+        if (currentPath.includes(link.getAttribute('href'))) {
+            link.classList.add('active');
+        }
     });
-  }
+}
 
-  // ============================================================================
-  // MODAL: NAVIGATION SETTINGS
-  // ============================================================================
+// ============================================================================
+// MODAL: NAVIGATION SETTINGS
+// ============================================================================
 
-  function openNavigationSettings() {
+function openNavigationSettings() {
     if (typeof window.Swal === 'undefined') {
-      alert('SweetAlert2 is required for this feature');
-      return;
+        alert('SweetAlert2 is required for this feature');
+        return;
     }
 
     window.Swal.fire({
-      title: 'Navigation Settings',
-      html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading navigation settings...</p></div>',
-      showConfirmButton: false,
-      allowOutsideClick: false
+        title: 'Navigation Settings',
+        html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading navigation settings...</p></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false
     });
 
     fetch('/admin-panel/api/navigation-settings')
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showNavigationSettingsModal(data.settings);
-        } else {
-          window.Swal.fire('Error', data.message || 'Failed to load navigation settings', 'error');
-        }
-      })
-      .catch(error => {
-        console.error('Navigation settings error:', error);
-        window.Swal.fire('Error', 'Failed to load navigation settings', 'error');
-      });
-  }
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNavigationSettingsModal(data.settings);
+            } else {
+                window.Swal.fire('Error', data.message || 'Failed to load navigation settings', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Navigation settings error:', error);
+            window.Swal.fire('Error', 'Failed to load navigation settings', 'error');
+        });
+}
 
-  function showNavigationSettingsModal(settings) {
+function showNavigationSettingsModal(settings) {
     const html = `
       <div class="text-start">
         <p class="text-info mb-3"><i class="ti ti-info-circle me-1"></i>Control which navigation items are visible to non-admin users. Admins can always see all navigation items.</p>
@@ -147,92 +146,92 @@ let _initialized = false;
     `;
 
     window.Swal.fire({
-      title: 'Navigation Settings',
-      html: html,
-      width: '800px',
-      showCancelButton: true,
-      confirmButtonText: 'Save Settings',
-      cancelButtonText: 'Cancel',
-      showLoaderOnConfirm: true,
-      preConfirm: () => saveNavigationSettings(),
-      allowOutsideClick: () => !window.Swal.isLoading()
+        title: 'Navigation Settings',
+        html: html,
+        width: '800px',
+        showCancelButton: true,
+        confirmButtonText: 'Save Settings',
+        cancelButtonText: 'Cancel',
+        showLoaderOnConfirm: true,
+        preConfirm: () => saveNavigationSettings(),
+        allowOutsideClick: () => !window.Swal.isLoading()
     }).then((result) => {
-      if (result.isConfirmed) {
-        window.Swal.fire({
-          title: 'Settings Saved!',
-          text: 'Navigation settings have been updated successfully. Changes will take effect immediately.',
-          icon: 'success'
-        }).then(() => {
-          location.reload();
-        });
-      }
+        if (result.isConfirmed) {
+            window.Swal.fire({
+                title: 'Settings Saved!',
+                text: 'Navigation settings have been updated successfully. Changes will take effect immediately.',
+                icon: 'success'
+            }).then(() => {
+                location.reload();
+            });
+        }
     });
-  }
+}
 
-  function saveNavigationSettings() {
+function saveNavigationSettings() {
     const formData = {
-      teams_navigation_enabled: document.getElementById('teamsNav').checked,
-      store_navigation_enabled: document.getElementById('storeNav').checked,
-      matches_navigation_enabled: document.getElementById('matchesNav').checked,
-      leagues_navigation_enabled: document.getElementById('leaguesNav').checked,
-      drafts_navigation_enabled: document.getElementById('draftsNav').checked,
-      players_navigation_enabled: document.getElementById('playersNav').checked,
-      messaging_navigation_enabled: document.getElementById('messagingNav').checked,
-      mobile_features_navigation_enabled: document.getElementById('mobileFeaturesNav').checked
+        teams_navigation_enabled: document.getElementById('teamsNav').checked,
+        store_navigation_enabled: document.getElementById('storeNav').checked,
+        matches_navigation_enabled: document.getElementById('matchesNav').checked,
+        leagues_navigation_enabled: document.getElementById('leaguesNav').checked,
+        drafts_navigation_enabled: document.getElementById('draftsNav').checked,
+        players_navigation_enabled: document.getElementById('playersNav').checked,
+        messaging_navigation_enabled: document.getElementById('messagingNav').checked,
+        mobile_features_navigation_enabled: document.getElementById('mobileFeaturesNav').checked
     };
 
     return fetch('/admin-panel/api/navigation-settings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCSRFToken()
-      },
-      body: JSON.stringify(formData)
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify(formData)
     })
     .then(response => response.json())
     .then(data => {
-      if (!data.success) {
-        throw new Error(data.message);
-      }
-      return data;
+        if (!data.success) {
+            throw new Error(data.message);
+        }
+        return data;
     });
-  }
+}
 
-  // ============================================================================
-  // MODAL: REGISTRATION SETTINGS
-  // ============================================================================
+// ============================================================================
+// MODAL: REGISTRATION SETTINGS
+// ============================================================================
 
-  function openRegistrationSettings() {
+function openRegistrationSettings() {
     if (typeof window.Swal === 'undefined') {
-      alert('SweetAlert2 is required for this feature');
-      return;
+        alert('SweetAlert2 is required for this feature');
+        return;
     }
 
     window.Swal.fire({
-      title: 'Registration Settings',
-      html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading registration settings...</p></div>',
-      showConfirmButton: false,
-      allowOutsideClick: false
+        title: 'Registration Settings',
+        html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading registration settings...</p></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false
     });
 
     fetch('/admin-panel/api/registration-settings')
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showRegistrationSettingsModal(data.settings, data.available_roles);
-        } else {
-          window.Swal.fire('Error', data.message || 'Failed to load registration settings', 'error');
-        }
-      })
-      .catch(error => {
-        console.error('Registration settings error:', error);
-        window.Swal.fire('Error', 'Failed to load registration settings', 'error');
-      });
-  }
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showRegistrationSettingsModal(data.settings, data.available_roles);
+            } else {
+                window.Swal.fire('Error', data.message || 'Failed to load registration settings', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Registration settings error:', error);
+            window.Swal.fire('Error', 'Failed to load registration settings', 'error');
+        });
+}
 
-  function showRegistrationSettingsModal(settings, roles) {
+function showRegistrationSettingsModal(settings, roles) {
     const roleOptions = roles.map(role =>
-      `<option value="${role.name}" ${settings.default_user_role === role.name ? 'selected' : ''}>${role.name}</option>`
+        `<option value="${role.name}" ${settings.default_user_role === role.name ? 'selected' : ''}>${role.name}</option>`
     ).join('');
 
     const html = `
@@ -274,95 +273,95 @@ let _initialized = false;
     `;
 
     window.Swal.fire({
-      title: 'Registration Settings',
-      html: html,
-      width: '900px',
-      showCancelButton: true,
-      confirmButtonText: 'Save Settings',
-      cancelButtonText: 'Cancel',
-      showLoaderOnConfirm: true,
-      preConfirm: () => saveRegistrationSettings(),
-      allowOutsideClick: () => !window.Swal.isLoading()
+        title: 'Registration Settings',
+        html: html,
+        width: '900px',
+        showCancelButton: true,
+        confirmButtonText: 'Save Settings',
+        cancelButtonText: 'Cancel',
+        showLoaderOnConfirm: true,
+        preConfirm: () => saveRegistrationSettings(),
+        allowOutsideClick: () => !window.Swal.isLoading()
     }).then((result) => {
-      if (result.isConfirmed) {
-        window.Swal.fire({
-          title: 'Settings Saved!',
-          text: 'Registration settings have been updated successfully. Changes will affect new registrations immediately.',
-          icon: 'success'
-        });
-      }
+        if (result.isConfirmed) {
+            window.Swal.fire({
+                title: 'Settings Saved!',
+                text: 'Registration settings have been updated successfully. Changes will affect new registrations immediately.',
+                icon: 'success'
+            });
+        }
     });
-  }
+}
 
-  function saveRegistrationSettings() {
+function saveRegistrationSettings() {
     const formData = {
-      registration_enabled: document.getElementById('registrationEnabled').checked,
-      waitlist_registration_enabled: document.getElementById('waitlistEnabled').checked,
-      admin_approval_required: document.getElementById('adminApproval').checked,
-      discord_only_login: true,
-      default_user_role: document.getElementById('defaultRole').value,
-      require_real_name: document.getElementById('requireRealName').checked,
-      require_email: document.getElementById('requireEmail').checked,
-      require_phone: document.getElementById('requirePhone').checked,
-      require_location: document.getElementById('requireLocation').checked,
-      require_jersey_size: document.getElementById('requireJerseySize').checked,
-      require_position_preferences: document.getElementById('requirePositions').checked,
-      require_availability: document.getElementById('requireAvailability').checked,
-      require_referee_willingness: document.getElementById('requireReferee').checked
+        registration_enabled: document.getElementById('registrationEnabled').checked,
+        waitlist_registration_enabled: document.getElementById('waitlistEnabled').checked,
+        admin_approval_required: document.getElementById('adminApproval').checked,
+        discord_only_login: true,
+        default_user_role: document.getElementById('defaultRole').value,
+        require_real_name: document.getElementById('requireRealName').checked,
+        require_email: document.getElementById('requireEmail').checked,
+        require_phone: document.getElementById('requirePhone').checked,
+        require_location: document.getElementById('requireLocation').checked,
+        require_jersey_size: document.getElementById('requireJerseySize').checked,
+        require_position_preferences: document.getElementById('requirePositions').checked,
+        require_availability: document.getElementById('requireAvailability').checked,
+        require_referee_willingness: document.getElementById('requireReferee').checked
     };
 
     return fetch('/admin-panel/api/registration-settings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCSRFToken()
-      },
-      body: JSON.stringify(formData)
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        },
+        body: JSON.stringify(formData)
     })
     .then(response => response.json())
     .then(data => {
-      if (!data.success) {
-        throw new Error(data.message);
-      }
-      return data;
+        if (!data.success) {
+            throw new Error(data.message);
+        }
+        return data;
     });
-  }
+}
 
-  // ============================================================================
-  // MODAL: TASK MONITOR
-  // ============================================================================
+// ============================================================================
+// MODAL: TASK MONITOR
+// ============================================================================
 
-  function openTaskMonitor() {
+function openTaskMonitor() {
     if (typeof window.Swal === 'undefined') {
-      alert('SweetAlert2 is required for this feature');
-      return;
+        alert('SweetAlert2 is required for this feature');
+        return;
     }
 
     window.Swal.fire({
-      title: 'Task Monitor',
-      html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading task information...</p></div>',
-      width: '800px',
-      showConfirmButton: false,
-      allowOutsideClick: false
+        title: 'Task Monitor',
+        html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading task information...</p></div>',
+        width: '800px',
+        showConfirmButton: false,
+        allowOutsideClick: false
     });
 
     fetch('/admin-panel/api/task-monitor')
-      .then(response => response.json())
-      .then(data => {
-        showTaskMonitorModal(data);
-      })
-      .catch(error => {
-        console.error('Error loading task monitor:', error);
-        window.Swal.fire('Error', 'Failed to load task monitor data', 'error');
-      });
-  }
+        .then(response => response.json())
+        .then(data => {
+            showTaskMonitorModal(data);
+        })
+        .catch(error => {
+            console.error('Error loading task monitor:', error);
+            window.Swal.fire('Error', 'Failed to load task monitor data', 'error');
+        });
+}
 
-  function showTaskMonitorModal(data) {
+function showTaskMonitorModal(data) {
     let tasksHtml = '';
     if (data.tasks && data.tasks.length > 0) {
-      data.tasks.forEach(task => {
-        const statusClass = task.status === 'active' ? 'success' : 'secondary';
-        tasksHtml += `
+        data.tasks.forEach(task => {
+            const statusClass = task.status === 'active' ? 'success' : 'secondary';
+            tasksHtml += `
           <tr>
             <td>${task.name}</td>
             <td><span class="badge bg-${statusClass}">${task.status}</span></td>
@@ -371,9 +370,9 @@ let _initialized = false;
             <td class="text-truncate">${task.args || '-'}</td>
           </tr>
         `;
-      });
+        });
     } else {
-      tasksHtml = '<tr><td colspan="5" class="text-center text-muted">No active tasks found</td></tr>';
+        tasksHtml = '<tr><td colspan="5" class="text-center text-muted">No active tasks found</td></tr>';
     }
 
     const html = `
@@ -426,43 +425,43 @@ let _initialized = false;
     `;
 
     window.Swal.fire({
-      title: 'Task Monitor',
-      html: html,
-      width: '900px',
-      confirmButtonText: 'Close'
+        title: 'Task Monitor',
+        html: html,
+        width: '900px',
+        confirmButtonText: 'Close'
     });
-  }
+}
 
-  // ============================================================================
-  // MODAL: DATABASE MONITOR
-  // ============================================================================
+// ============================================================================
+// MODAL: DATABASE MONITOR
+// ============================================================================
 
-  function openDatabaseMonitor() {
+function openDatabaseMonitor() {
     if (typeof window.Swal === 'undefined') {
-      alert('SweetAlert2 is required for this feature');
-      return;
+        alert('SweetAlert2 is required for this feature');
+        return;
     }
 
     window.Swal.fire({
-      title: 'Database Monitor',
-      html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading system information...</p></div>',
-      width: '900px',
-      showConfirmButton: false,
-      allowOutsideClick: false
+        title: 'Database Monitor',
+        html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading system information...</p></div>',
+        width: '900px',
+        showConfirmButton: false,
+        allowOutsideClick: false
     });
 
     fetch('/admin-panel/api/system-status')
-      .then(response => response.json())
-      .then(data => {
-        showDatabaseMonitorModal(data);
-      })
-      .catch(error => {
-        console.error('Error loading database monitor:', error);
-        window.Swal.fire('Error', 'Failed to load system monitor data', 'error');
-      });
-  }
+        .then(response => response.json())
+        .then(data => {
+            showDatabaseMonitorModal(data);
+        })
+        .catch(error => {
+            console.error('Error loading database monitor:', error);
+            window.Swal.fire('Error', 'Failed to load system monitor data', 'error');
+        });
+}
 
-  function showDatabaseMonitorModal(data) {
+function showDatabaseMonitorModal(data) {
     const html = `
       <div class="text-start">
         <div class="row mb-3">
@@ -504,26 +503,26 @@ let _initialized = false;
     `;
 
     window.Swal.fire({
-      title: 'System Monitor',
-      html: html,
-      width: '900px',
-      confirmButtonText: 'Close'
+        title: 'System Monitor',
+        html: html,
+        width: '900px',
+        confirmButtonText: 'Close'
     });
-  }
+}
 
-  // ============================================================================
-  // MODAL: MATCH REPORTS
-  // ============================================================================
+// ============================================================================
+// MODAL: MATCH REPORTS
+// ============================================================================
 
-  function openMatchReports() {
+function openMatchReports() {
     if (typeof window.Swal === 'undefined') {
-      alert('SweetAlert2 is required for this feature');
-      return;
+        alert('SweetAlert2 is required for this feature');
+        return;
     }
 
     window.Swal.fire({
-      title: 'Match Reports',
-      html: `
+        title: 'Match Reports',
+        html: `
         <div class="text-start">
           <p class="text-info mb-3"><i class="ti ti-info-circle me-1"></i>Generate comprehensive match reports with various options.</p>
           <div class="alert alert-warning">
@@ -531,20 +530,20 @@ let _initialized = false;
           </div>
         </div>
       `,
-      width: '600px',
-      confirmButtonText: 'Close'
+        width: '600px',
+        confirmButtonText: 'Close'
     });
-  }
+}
 
-  function generateReport() {
+function generateReport() {
     console.log('Generate report functionality coming soon');
-  }
+}
 
-  // ============================================================================
-  // UTILITIES
-  // ============================================================================
+// ============================================================================
+// UTILITIES
+// ============================================================================
 
-  function createToggle(id, label, description, checked, disabled = false) {
+function createToggle(id, label, description, checked, disabled = false) {
     return `
       <div class="mb-3">
         <div class="form-check form-switch">
@@ -556,109 +555,93 @@ let _initialized = false;
         </div>
       </div>
     `;
-  }
+}
 
-  function getCSRFToken() {
+function getCSRFToken() {
     const metaToken = document.querySelector('meta[name="csrf-token"]');
     if (metaToken) {
-      return metaToken.getAttribute('content');
+        return metaToken.getAttribute('content');
     }
 
     const formToken = document.querySelector('input[name="csrf_token"]');
     if (formToken) {
-      return formToken.value;
+        return formToken.value;
     }
 
     console.error('CSRF token not found');
     return '';
-  }
+}
 
-  // ============================================================================
-  // EVENT DELEGATION - Registered at module scope
-  // ============================================================================
-  // MUST use EventDelegation to avoid TDZ errors in bundled code
+// ============================================================================
+// EVENT DELEGATION - Registered at module scope
+// ============================================================================
 
-  EventDelegation.register('navigate', handleNavigate);
-  EventDelegation.register('open-navigation-settings', openNavigationSettings, { preventDefault: true });
-  EventDelegation.register('open-registration-settings', openRegistrationSettings, { preventDefault: true });
-  EventDelegation.register('open-task-monitor', openTaskMonitor, { preventDefault: true });
-  EventDelegation.register('open-database-monitor', openDatabaseMonitor, { preventDefault: true });
-  EventDelegation.register('open-match-reports', openMatchReports, { preventDefault: true });
-  EventDelegation.register('generate-report', generateReport, { preventDefault: true });
+EventDelegation.register('navigate', handleNavigate);
+EventDelegation.register('open-navigation-settings', openNavigationSettings, { preventDefault: true });
+EventDelegation.register('open-registration-settings', openRegistrationSettings, { preventDefault: true });
+EventDelegation.register('open-task-monitor', openTaskMonitor, { preventDefault: true });
+EventDelegation.register('open-database-monitor', openDatabaseMonitor, { preventDefault: true });
+EventDelegation.register('open-match-reports', openMatchReports, { preventDefault: true });
+EventDelegation.register('generate-report', generateReport, { preventDefault: true });
 
-  // ============================================================================
-  // AUTO-INITIALIZE
-  // ============================================================================
+// ============================================================================
+// AUTO-INITIALIZE
+// ============================================================================
 
-  // Register with InitSystem (primary)
-  if (true && InitSystem.register) {
-    InitSystem.register('admin-panel-dashboard', init, {
-      priority: 30,
-      reinitializable: true,
-      description: 'Admin panel dashboard'
-    });
-  }
+// Register with InitSystem
+InitSystem.register('admin-panel-dashboard', init, {
+    priority: 30,
+    reinitializable: true,
+    description: 'Admin panel dashboard'
+});
 
-  // Fallback
-  if (document.readyState === 'loading') {
+// Fallback
+if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
-  } else {
+} else {
     init();
-  }
+}
 
-// Backward compatibility
+// Backward compatibility exports
 window.init = init;
-
-// Backward compatibility
 window.registerEventHandlers = registerEventHandlers;
-
-// Backward compatibility
 window.setupNavigationCards = setupNavigationCards;
-
-// Backward compatibility
 window.handleNavigate = handleNavigate;
-
-// Backward compatibility
 window.highlightActiveNav = highlightActiveNav;
-
-// Backward compatibility
 window.openNavigationSettings = openNavigationSettings;
-
-// Backward compatibility
 window.showNavigationSettingsModal = showNavigationSettingsModal;
-
-// Backward compatibility
 window.saveNavigationSettings = saveNavigationSettings;
-
-// Backward compatibility
 window.openRegistrationSettings = openRegistrationSettings;
-
-// Backward compatibility
 window.showRegistrationSettingsModal = showRegistrationSettingsModal;
-
-// Backward compatibility
 window.saveRegistrationSettings = saveRegistrationSettings;
-
-// Backward compatibility
 window.openTaskMonitor = openTaskMonitor;
-
-// Backward compatibility
 window.showTaskMonitorModal = showTaskMonitorModal;
-
-// Backward compatibility
 window.openDatabaseMonitor = openDatabaseMonitor;
-
-// Backward compatibility
 window.showDatabaseMonitorModal = showDatabaseMonitorModal;
-
-// Backward compatibility
 window.openMatchReports = openMatchReports;
-
-// Backward compatibility
 window.generateReport = generateReport;
-
-// Backward compatibility
 window.createToggle = createToggle;
-
-// Backward compatibility
 window.getCSRFToken = getCSRFToken;
+
+// Named exports for ES modules
+export {
+    init,
+    registerEventHandlers,
+    setupNavigationCards,
+    handleNavigate,
+    highlightActiveNav,
+    openNavigationSettings,
+    showNavigationSettingsModal,
+    saveNavigationSettings,
+    openRegistrationSettings,
+    showRegistrationSettingsModal,
+    saveRegistrationSettings,
+    openTaskMonitor,
+    showTaskMonitorModal,
+    openDatabaseMonitor,
+    showDatabaseMonitorModal,
+    openMatchReports,
+    generateReport,
+    createToggle,
+    getCSRFToken
+};

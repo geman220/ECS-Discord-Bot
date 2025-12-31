@@ -16,124 +16,138 @@
  * Phase 2.4 - Batch 1 Migration
  * Migrated: 2025-12-16
  */
+import { InitSystem } from '../js/init-system.js';
 
-/*
-// ORIGINAL CODE - NOW REGISTERED WITH InitSystem
-document.addEventListener('DOMContentLoaded', function() {
-  // References to key elements
-  const layoutMenu = document.getElementById('layout-menu');
-  const menuToggleIcon = document.getElementById('menu-toggle-icon');
-  const closeIcon = document.getElementById('close-icon');
-  const layoutOverlay = document.querySelector('.layout-overlay');
-  
-  // Create layout overlay if it doesn't exist
-  if (!layoutOverlay) {
-    const overlayDiv = document.createElement('div');
-    overlayDiv.className = 'layout-overlay';
-    document.body.appendChild(overlayDiv);
-  }
+let _initialized = false;
+let layoutMenu;
+let closeIcon;
 
-  // Function to open menu
-  function openMenu() {
+function openMenu() {
     document.documentElement.classList.add('layout-menu-expanded');
     document.body.classList.add('layout-menu-expanded');
     if (layoutMenu) {
-      layoutMenu.classList.add('menu-open');
+        layoutMenu.classList.add('menu-open');
     }
     if (closeIcon) {
-      closeIcon.classList.remove('d-none');
+        closeIcon.classList.remove('d-none');
     }
-  }
+}
 
-  // Function to close menu
-  function closeMenu() {
+function closeMenu() {
     document.documentElement.classList.remove('layout-menu-expanded');
     document.body.classList.remove('layout-menu-expanded');
     if (layoutMenu) {
-      layoutMenu.classList.remove('menu-open');
+        layoutMenu.classList.remove('menu-open');
     }
     if (closeIcon) {
-      closeIcon.classList.add('d-none');
+        closeIcon.classList.add('d-none');
     }
-  }
+}
 
-  // Toggle menu function
-  function toggleMenu() {
+function toggleMenu() {
     if (document.documentElement.classList.contains('layout-menu-expanded')) {
-      closeMenu();
+        closeMenu();
     } else {
-      openMenu();
+        openMenu();
     }
-  }
+}
 
-  // Event listeners for menu toggle
-  const menuToggles = document.querySelectorAll('.layout-menu-toggle');
-  menuToggles.forEach(toggle => {
-    toggle.addEventListener('click', function(e) {
-      e.preventDefault();
-      toggleMenu();
-    });
-  });
+function init() {
+    if (_initialized) return;
+    _initialized = true;
 
-  // Close when clicking the X icon
-  if (closeIcon) {
-    closeIcon.addEventListener('click', function(e) {
-      e.preventDefault();
-      closeMenu();
-    });
-  }
+    // References to key elements
+    layoutMenu = document.getElementById('layout-menu');
+    const menuToggleIcon = document.getElementById('menu-toggle-icon');
+    closeIcon = document.getElementById('close-icon');
+    const layoutOverlay = document.querySelector('.layout-overlay');
 
-  // Close when clicking the overlay
-  document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('layout-overlay') && 
-        document.documentElement.classList.contains('layout-menu-expanded')) {
-      closeMenu();
+    // Create layout overlay if it doesn't exist
+    if (!layoutOverlay) {
+        const overlayDiv = document.createElement('div');
+        overlayDiv.className = 'layout-overlay';
+        document.body.appendChild(overlayDiv);
     }
-  });
 
-  // Fix for any inert attributes on menu items
-  const menuItems = document.querySelectorAll('.menu-item a');
-  menuItems.forEach(item => {
-    item.removeAttribute('inert');
-    item.classList.add('pointer-events-auto');
-  });
+    // Event listeners for menu toggle
+    const menuToggles = document.querySelectorAll('.layout-menu-toggle');
+    menuToggles.forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleMenu();
+        });
+    });
 
-  // Remove problematic attributes from the menu
-  if (layoutMenu) {
-    layoutMenu.removeAttribute('inert');
-    layoutMenu.classList.add('pointer-events-auto', 'user-select-auto', 'touch-action-auto');
-  }
+    // Close when clicking the X icon
+    if (closeIcon) {
+        closeIcon.addEventListener('click', function(e) {
+            e.preventDefault();
+            closeMenu();
+        });
+    }
 
-  // iOS specific fixes
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  
-  if (isIOS) {
-    // Extra iOS fixes
-    document.documentElement.classList.add('ios-device');
+    // Close when clicking the overlay
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('layout-overlay') &&
+            document.documentElement.classList.contains('layout-menu-expanded')) {
+            closeMenu();
+        }
+    });
 
-    // Fix scrolling in menu for iOS
+    // Fix for any inert attributes on menu items
+    const menuItems = document.querySelectorAll('.menu-item a');
+    menuItems.forEach(item => {
+        item.removeAttribute('inert');
+        item.classList.add('pointer-events-auto');
+    });
+
+    // Remove problematic attributes from the menu
     if (layoutMenu) {
-      layoutMenu.classList.add('ios-overflow-scrolling');
+        layoutMenu.removeAttribute('inert');
+        layoutMenu.classList.add('pointer-events-auto', 'user-select-auto', 'touch-action-auto');
     }
 
-    // Additional handling for iOS gesture conflicts
-    const menuLinks = document.querySelectorAll('.menu-link, .menu-toggle');
-    menuLinks.forEach(link => {
-      link.addEventListener('touchstart', function(e) {
-        // Ensure links are touchable
-        e.stopPropagation();
-      }, { passive: true });
+    // iOS specific fixes
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    if (isIOS) {
+        // Extra iOS fixes
+        document.documentElement.classList.add('ios-device');
+
+        // Fix scrolling in menu for iOS
+        if (layoutMenu) {
+            layoutMenu.classList.add('ios-overflow-scrolling');
+        }
+
+        // Additional handling for iOS gesture conflicts
+        const menuLinks = document.querySelectorAll('.menu-link, .menu-toggle');
+        menuLinks.forEach(link => {
+            link.addEventListener('touchstart', function(e) {
+                // Ensure links are touchable
+                e.stopPropagation();
+            }, { passive: true });
+        });
+    }
+}
+
+// Register with InitSystem (primary)
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('mobile-menu-fix', init, {
+        priority: 30,
+        reinitializable: false,
+        description: 'Enhance mobile menu interactions and iOS compatibility'
     });
-  }
-});
-*/
+}
+
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
 
 // Backward compatibility
 window.openMenu = openMenu;
-
-// Backward compatibility
 window.closeMenu = closeMenu;
-
-// Backward compatibility
 window.toggleMenu = toggleMenu;

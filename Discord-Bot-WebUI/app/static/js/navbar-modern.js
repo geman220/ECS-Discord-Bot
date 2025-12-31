@@ -1,5 +1,4 @@
-import { InitSystem } from './init-system.js';
-import { EventDelegation } from './event-delegation/core.js';
+'use strict';
 
 /**
  * ============================================================================
@@ -29,6 +28,9 @@ import { EventDelegation } from './event-delegation/core.js';
  *
  * ============================================================================
  */
+
+import { InitSystem } from './init-system.js';
+import { EventDelegation } from './event-delegation/core.js';
 
 export class ModernNavbarController {
   constructor() {
@@ -1235,26 +1237,26 @@ export class ModernNavbarController {
    * Attach event listeners directly to socket (fallback when SocketManager not available)
    */
   attachSocketListenersDirect(socket) {
-    window.socket.on('connect', () => {
+    socket.on('connect', () => {
       this.updateOnlineStatus(true);
       console.debug('Presence socket connected');
     });
 
-    window.socket.on('disconnect', () => {
+    socket.on('disconnect', () => {
       this.updateOnlineStatus(false);
       console.debug('Presence socket disconnected');
     });
 
-    window.socket.on('authentication_success', (data) => {
+    socket.on('authentication_success', (data) => {
       this.updateOnlineStatus(true);
       console.debug('Presence authenticated:', data.username);
     });
 
-    window.socket.on('authentication_failed', () => {
+    socket.on('authentication_failed', () => {
       this.updateOnlineStatus(true);
     });
 
-    window.socket.on('connect_error', (error) => {
+    socket.on('connect_error', (error) => {
       console.warn('Presence socket connection error:', error.message);
       this.updateOnlineStatus(false);
     });
@@ -1335,27 +1337,20 @@ function initNavbar() {
   }
 }
 
-// Register with InitSystem if available
-if (true && InitSystem.register) {
-  InitSystem.register('navbar-modern', initNavbar, {
-    priority: 80,
-    description: 'Modern navbar controller (search, dropdowns, mobile menu)',
-    reinitializable: false
-  });
-}
+// Register with InitSystem
+InitSystem.register('navbar-modern', initNavbar, {
+  priority: 80,
+  description: 'Modern navbar controller (search, dropdowns, mobile menu)',
+  reinitializable: false
+});
 
-// ALSO run fallback to ensure initialization even if InitSystem fails to run
+// Fallback to ensure initialization even if InitSystem fails to run
 // The guard prevents double initialization
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initNavbar);
 } else {
   // DOM already ready - initialize now
   initNavbar();
-}
-
-// Export for module usage
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = ModernNavbarController;
 }
 
 // ============================================================================
@@ -1462,3 +1457,6 @@ function registerNavbarEventHandlers() {
 
 // Register handlers - EventDelegation is guaranteed available (loaded before this module)
 registerNavbarEventHandlers();
+
+// Backward compatibility
+window.ModernNavbarController = ModernNavbarController;

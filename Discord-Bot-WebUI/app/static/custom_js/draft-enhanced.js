@@ -14,17 +14,18 @@
 
 import { InitSystem } from '../js/init-system.js';
 import { ModalManager } from '../js/modal-manager.js';
+
 let _initialized = false;
 
-    // JavaScript version of format_position function
-    function formatPosition(position) {
-        if (!position) return position;
-        return position.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    }
+// JavaScript version of format_position function
+function formatPosition(position) {
+    if (!position) return position;
+    return position.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
 
-    function init() {
-        if (_initialized) return;
-        _initialized = true;
+function init() {
+    if (_initialized) return;
+    _initialized = true;
 
     // Add performance optimizations - using event delegation for lazy-load images
     // Note: Image load events don't bubble, so we use capture phase
@@ -44,33 +45,33 @@ let _initialized = false;
         }
     });
 
-    console.log('🎉 Draft System v2 loaded successfully');
+    console.log('Draft System v2 loaded successfully');
 
     // Update team counts on page load
-    window.updateAllTeamCounts();
+    updateAllTeamCounts();
 
     // Setup live search functionality
-    window.setupLiveSearch();
+    setupLiveSearch();
 
     // Set initial available player count
     const initialCount = document.querySelectorAll('#available-players .player-card').length;
-    window.updateAvailablePlayerCount(initialCount);
+    updateAvailablePlayerCount(initialCount);
 
     // Setup event delegation for buttons
-    window.setupEventDelegation();
+    setupEventDelegation();
 
     // Setup image error handlers using delegation
-    window.setupImageErrorHandlers();
+    setupImageErrorHandlers();
 
     // Listen for socket events to update team counts
-    window.setupDraftEnhancedSocket();
-    }
+    setupDraftEnhancedSocket();
+}
 
 /**
  * Setup socket connection for draft enhanced page
  * REFACTORED: Uses SocketManager instead of creating own socket
  */
-export function setupDraftEnhancedSocket() {
+function setupDraftEnhancedSocket() {
     // Use SocketManager if available (preferred)
     if (typeof window.SocketManager !== 'undefined') {
         console.log('[DraftEnhanced] Using SocketManager');
@@ -114,7 +115,7 @@ export function setupDraftEnhancedSocket() {
 }
 
 // Extracted event handlers for reuse
-export function handlePlayerDraftedEvent(data) {
+function handlePlayerDraftedEvent(data) {
     if (window.draftSystemInstance && typeof window.draftSystemInstance.handlePlayerDrafted === 'function') {
         window.draftSystemInstance.handlePlayerDrafted(data);
     } else {
@@ -124,27 +125,27 @@ export function handlePlayerDraftedEvent(data) {
                 const column = playerCard.closest('[data-component="player-column"]');
                 if (column) {
                     column.remove();
-                    window.updateAvailablePlayerCount(document.querySelectorAll('#available-players .player-card').length);
+                    updateAvailablePlayerCount(document.querySelectorAll('#available-players .player-card').length);
                 }
             }
         }
         if (data.team_id) {
-            setTimeout(() => window.updateTeamCount(data.team_id), 100);
+            setTimeout(() => updateTeamCount(data.team_id), 100);
         }
     }
 }
 
-export function handlePlayerRemovedEvent(data) {
+function handlePlayerRemovedEvent(data) {
     if (window.draftSystemInstance && typeof window.draftSystemInstance.handlePlayerRemoved === 'function') {
         window.draftSystemInstance.handlePlayerRemoved(data);
     } else {
         if (data.team_id) {
-            setTimeout(() => window.updateTeamCount(data.team_id), 100);
+            setTimeout(() => updateTeamCount(data.team_id), 100);
         }
     }
 }
 
-export function handleDraftError(data) {
+function handleDraftError(data) {
     if (window.draftSystemInstance && typeof window.draftSystemInstance.showToast === 'function') {
         window.draftSystemInstance.showToast(data.message, 'error');
     } else if (typeof window.Swal !== 'undefined') {
@@ -168,7 +169,7 @@ if (typeof window._draftEnhancedEventDelegationSetup === 'undefined') {
 /**
  * Setup event delegation for all button clicks
  */
-export function setupEventDelegation() {
+function setupEventDelegation() {
     // Guard against duplicate setup
     if (window._draftEnhancedEventDelegationSetup) return;
     window._draftEnhancedEventDelegationSetup = true;
@@ -184,14 +185,14 @@ export function setupEventDelegation() {
             // Get existing teams from the player card
             const playerCard = btn.closest('.player-card');
             const existingTeams = playerCard?.dataset.existingTeams || '';
-            window.confirmDraftPlayer(playerId, playerName, isMultiTeam, existingTeams);
+            confirmDraftPlayer(playerId, playerName, isMultiTeam, existingTeams);
         }
 
         // View player profile button
         if (e.target.closest('.js-view-player-profile')) {
             const btn = e.target.closest('.js-view-player-profile');
             const playerId = btn.dataset.playerId;
-            window.openPlayerModal(playerId);
+            openPlayerModal(playerId);
         }
 
         // Remove player button
@@ -201,12 +202,12 @@ export function setupEventDelegation() {
             const teamId = btn.dataset.teamId;
             const playerName = btn.dataset.playerName;
             const teamName = btn.dataset.teamName;
-            window.confirmRemovePlayer(playerId, teamId, playerName, teamName);
+            confirmRemovePlayer(playerId, teamId, playerName, teamName);
         }
     });
 
     // Setup drag and drop event delegation
-    window.setupDragAndDrop();
+    setupDragAndDrop();
 }
 
 // Guard against redeclaration
@@ -217,7 +218,7 @@ if (typeof window._draftEnhancedDragDropSetup === 'undefined') {
 /**
  * Setup drag and drop functionality for player cards and drop zones
  */
-export function setupDragAndDrop() {
+function setupDragAndDrop() {
     // Guard against duplicate setup
     if (window._draftEnhancedDragDropSetup) return;
     window._draftEnhancedDragDropSetup = true;
@@ -297,7 +298,7 @@ export function setupDragAndDrop() {
                 handleDropOnTeam(playerId, teamId, dropZone);
             } else if (dropTarget === 'available') {
                 // Dropping back to available pool - undraft the player
-                window.handleDropToAvailable(playerId);
+                handleDropToAvailable(playerId);
             }
         }
     });
@@ -306,7 +307,7 @@ export function setupDragAndDrop() {
 /**
  * Handle dropping a player onto a team
  */
-export function handleDropOnTeam(playerId, teamId, dropZone) {
+function handleDropOnTeam(playerId, teamId, dropZone) {
     // Check if player is already on this team
     const teamSection = document.getElementById(`teamPlayers${teamId}`);
     if (teamSection && teamSection.querySelector(`[data-player-id="${playerId}"]`)) {
@@ -338,7 +339,7 @@ export function handleDropOnTeam(playerId, teamId, dropZone) {
     // Try SocketManager first (most reliable)
     if (typeof window.SocketManager !== 'undefined' && window.SocketManager.isConnected()) {
         const socket = window.SocketManager.getSocket();
-        window.socket.emit('draft_player_enhanced', {
+        socket.emit('draft_player_enhanced', {
             player_id: parseInt(playerId),
             team_id: parseInt(teamId),
             league_name: leagueName,
@@ -362,8 +363,8 @@ export function handleDropOnTeam(playerId, teamId, dropZone) {
 
     // Fallback to global socket
     const socket = window.draftEnhancedSocket || window.socket;
-    if (socket && window.socket.connected) {
-        window.socket.emit('draft_player_enhanced', {
+    if (socket && socket.connected) {
+        socket.emit('draft_player_enhanced', {
             player_id: parseInt(playerId),
             team_id: parseInt(teamId),
             league_name: leagueName,
@@ -394,7 +395,7 @@ export function handleDropOnTeam(playerId, teamId, dropZone) {
 /**
  * Handle dropping a player back to the available pool (undraft)
  */
-export function handleDropToAvailable(playerId) {
+function handleDropToAvailable(playerId) {
     // Find which team the player is currently on
     const playerCard = document.querySelector(`[data-player-id="${playerId}"]`);
     if (!playerCard) {
@@ -449,8 +450,8 @@ export function handleDropToAvailable(playerId) {
 
     // Fallback to global socket
     const socket = window.draftEnhancedSocket || window.socket;
-    if (socket && window.socket.connected) {
-        window.socket.emit('remove_player_enhanced', emitData);
+    if (socket && socket.connected) {
+        socket.emit('remove_player_enhanced', emitData);
         console.log(`[DraftEnhanced] Undrafting player ${playerId} from team ${teamId} via global socket`);
     } else {
         console.error('[DraftEnhanced] No connected socket available - cannot undraft');
@@ -480,7 +481,8 @@ export function handleDropToAvailable(playerId) {
 if (typeof window._draftEnhancedImageHandlersSetup === 'undefined') {
     window._draftEnhancedImageHandlersSetup = false;
 }
-export function setupImageErrorHandlers() {
+
+function setupImageErrorHandlers() {
     // Only set up listeners once - they handle all current and future images
     if (window._draftEnhancedImageHandlersSetup) return;
     window._draftEnhancedImageHandlersSetup = true;
@@ -503,7 +505,7 @@ export function setupImageErrorHandlers() {
         console.log('Image loaded successfully:', e.target.src);
         // Apply smart cropping if function exists
         if (typeof smartCropImage === 'function') {
-            window.smartCropImage(e.target);
+            smartCropImage(e.target);
         }
     }, true); // Use capture phase - load events don't bubble
 }
@@ -511,17 +513,17 @@ export function setupImageErrorHandlers() {
 /**
  * Confirm removal of player from team
  */
-export function confirmRemovePlayer(playerId, teamId, playerName, teamName) {
+function confirmRemovePlayer(playerId, teamId, playerName, teamName) {
     if (confirm(`Remove ${playerName} from ${teamName}?`)) {
         // Execute removal via socket or API
         const socket = window.draftEnhancedSocket || window.socket;
-        if (socket && window.socket.connected) {
+        if (socket && socket.connected) {
             // Get league name from the page (same way confirmDraftPlayer does)
             const leagueNameScript = document.querySelector('script[data-league-name]');
             const leagueName = leagueNameScript ? leagueNameScript.getAttribute('data-league-name') :
                                (window.draftSystemInstance ? window.draftSystemInstance.leagueName : '');
 
-            window.socket.emit('remove_player_enhanced', {
+            socket.emit('remove_player_enhanced', {
                 player_id: parseInt(playerId),
                 team_id: parseInt(teamId),
                 league_name: leagueName
@@ -534,7 +536,7 @@ export function confirmRemovePlayer(playerId, teamId, playerName, teamName) {
 /**
  * Live search functionality
  */
-export function setupLiveSearch() {
+function setupLiveSearch() {
     const searchInput = document.getElementById('playerSearch');
     const positionFilter = document.getElementById('positionFilter');
     const sortBy = document.getElementById('sortBy');
@@ -553,7 +555,7 @@ export function setupLiveSearch() {
 /**
  * Filter players in real-time
  */
-export function filterPlayers() {
+function filterPlayers() {
     const searchTerm = document.getElementById('playerSearch')?.value.toLowerCase() || '';
     const positionFilter = document.getElementById('positionFilter')?.value.toLowerCase() || '';
     const sortBy = document.getElementById('sortBy')?.value || 'name';
@@ -609,7 +611,7 @@ export function filterPlayers() {
     }
 
     // Update both counters
-    window.updateAvailablePlayerCount(visibleCount);
+    updateAvailablePlayerCount(visibleCount);
 
     // Show/hide empty state
     const emptyState = document.getElementById('emptyState');
@@ -623,7 +625,7 @@ export function filterPlayers() {
 /**
  * Sort players based on selected criteria
  */
-export function sortPlayers(players, sortBy) {
+function sortPlayers(players, sortBy) {
     const container = document.getElementById('available-players');
     if (!container) return;
 
@@ -650,7 +652,7 @@ export function sortPlayers(players, sortBy) {
 /**
  * Update available player count in both locations
  */
-export function updateAvailablePlayerCount(count) {
+function updateAvailablePlayerCount(count) {
     const availableCount = document.getElementById('availableCount');
     const availablePlayersCount = document.getElementById('available-players-count');
 
@@ -665,7 +667,7 @@ export function updateAvailablePlayerCount(count) {
 /**
  * Function to update team player counts
  */
-export function updateTeamCount(teamId) {
+function updateTeamCount(teamId) {
     const teamSection = document.getElementById(`teamPlayers${teamId}`);
     const teamCountBadge = document.getElementById(`teamCount${teamId}`);
 
@@ -682,11 +684,11 @@ export function updateTeamCount(teamId) {
 /**
  * Function to update all team counts
  */
-export function updateAllTeamCounts() {
+function updateAllTeamCounts() {
     // Find all team sections and update their counts
     document.querySelectorAll('[id^="teamPlayers"]').forEach(teamSection => {
         const teamId = teamSection.id.replace('teamPlayers', '');
-        window.updateTeamCount(teamId);
+        updateTeamCount(teamId);
     });
 }
 
@@ -697,7 +699,7 @@ export function updateAllTeamCounts() {
  * @param {boolean} isMultiTeam - Whether this player is already on an ECS FC team
  * @param {string} existingTeams - Comma-separated list of teams the player is already on
  */
-export function confirmDraftPlayer(playerId, playerName, isMultiTeam = false, existingTeams = '') {
+function confirmDraftPlayer(playerId, playerName, isMultiTeam = false, existingTeams = '') {
     // For multi-team players, show confirmation first
     if (isMultiTeam && existingTeams) {
         // Use SweetAlert2 for the confirmation if available, otherwise use native confirm
@@ -735,7 +737,7 @@ export function confirmDraftPlayer(playerId, playerName, isMultiTeam = false, ex
 /**
  * Show the team selection modal for drafting
  */
-export function showDraftTeamSelection(playerId, playerName, existingTeams = '') {
+function showDraftTeamSelection(playerId, playerName, existingTeams = '') {
     // Populate the message
     let message = `Select a team for <strong>${playerName}</strong>:`;
     if (existingTeams) {
@@ -777,8 +779,8 @@ export function showDraftTeamSelection(playerId, playerName, existingTeams = '')
 
         // Execute the draft via socket or API
         const socket = window.draftEnhancedSocket || window.socket;
-        if (socket && window.socket.connected) {
-            window.socket.emit('draft_player_enhanced', {
+        if (socket && socket.connected) {
+            socket.emit('draft_player_enhanced', {
                 player_id: parseInt(playerId),
                 team_id: parseInt(selectedTeamId),
                 league_name: leagueName
@@ -795,7 +797,7 @@ export function showDraftTeamSelection(playerId, playerName, existingTeams = '')
 /**
  * Enhanced Player Profile Modal Functions
  */
-export function openPlayerModal(playerId) {
+function openPlayerModal(playerId) {
     // Show loading state
     const profileLoading = document.getElementById('profileLoading');
     profileLoading.classList.add('d-block');
@@ -810,7 +812,7 @@ export function openPlayerModal(playerId) {
     fetch(`/players/api/player_profile/${playerId}`)
         .then(response => response.json())
         .then(data => {
-            window.displayPlayerProfile(data, playerId);
+            displayPlayerProfile(data, playerId);
         })
         .catch(error => {
             console.error('Error loading player profile:', error);
@@ -827,7 +829,7 @@ export function openPlayerModal(playerId) {
 /**
  * Display player profile in modal
  */
-export function displayPlayerProfile(data, playerId) {
+function displayPlayerProfile(data, playerId) {
     const profileLoading = document.getElementById('profileLoading');
     profileLoading.classList.add('d-none');
     profileLoading.classList.remove('d-block');
@@ -878,7 +880,7 @@ export function displayPlayerProfile(data, playerId) {
                         ${data.other_positions ? `
                         <div class="mb-2">
                             <strong class="draft-profile-label">Other Positions:</strong>
-                            <small class="draft-profile-value">${Array.isArray(data.other_positions) ? data.other_positions.map(pos => window.formatPosition(pos)).join(', ') : data.other_positions}</small>
+                            <small class="draft-profile-value">${Array.isArray(data.other_positions) ? data.other_positions.map(pos => formatPosition(pos)).join(', ') : data.other_positions}</small>
                         </div>
                         ` : ''}
                         ${data.positions_to_avoid ? `
@@ -931,7 +933,7 @@ export function displayPlayerProfile(data, playerId) {
     document.getElementById('profileData').classList.add('is-visible');
 
     // Re-setup image error handlers for dynamically added images
-    window.setupImageErrorHandlers();
+    setupImageErrorHandlers();
 
     // Show draft button and set up click handler
     const draftButton = document.getElementById('draftFromModal');
@@ -939,59 +941,74 @@ export function displayPlayerProfile(data, playerId) {
     draftButton.onclick = () => {
         // Close modal and trigger draft
         window.bootstrap.Modal.getInstance(document.getElementById('playerProfileModal')).hide();
-        window.confirmDraftPlayer(playerId, data.name);
+        confirmDraftPlayer(playerId, data.name);
     };
 }
 
-    // Export functions for template compatibility
-    window.formatPosition = formatPosition;
-    window.setupDraftEnhancedSocket = setupDraftEnhancedSocket;
-    window.setupEventDelegation = setupEventDelegation;
-    window.setupDragAndDrop = setupDragAndDrop;
-    window.setupImageErrorHandlers = setupImageErrorHandlers;
-    window.setupLiveSearch = setupLiveSearch;
-    window.filterPlayers = filterPlayers;
-    window.updateAvailablePlayerCount = updateAvailablePlayerCount;
-    window.updateTeamCount = updateTeamCount;
-    window.updateAllTeamCounts = updateAllTeamCounts;
-    window.confirmDraftPlayer = confirmDraftPlayer;
-    window.confirmRemovePlayer = confirmRemovePlayer;
-    window.openPlayerModal = openPlayerModal;
-    window.displayPlayerProfile = displayPlayerProfile;
+// ========================================================================
+// EXPORTS
+// ========================================================================
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('draft-enhanced', init, {
-            priority: 40,
-            reinitializable: false,
-            description: 'Draft enhanced page functionality'
-        });
-    }
+export {
+    init,
+    formatPosition,
+    setupDraftEnhancedSocket,
+    handlePlayerDraftedEvent,
+    handlePlayerRemovedEvent,
+    handleDraftError,
+    setupEventDelegation,
+    setupDragAndDrop,
+    handleDropOnTeam,
+    handleDropToAvailable,
+    setupImageErrorHandlers,
+    confirmRemovePlayer,
+    setupLiveSearch,
+    filterPlayers,
+    sortPlayers,
+    updateAvailablePlayerCount,
+    updateTeamCount,
+    updateAllTeamCounts,
+    confirmDraftPlayer,
+    showDraftTeamSelection,
+    openPlayerModal,
+    displayPlayerProfile
+};
 
-    // Fallback
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-
-// Backward compatibility
+// Export functions for template compatibility
+window.formatPosition = formatPosition;
+window.setupDraftEnhancedSocket = setupDraftEnhancedSocket;
+window.setupEventDelegation = setupEventDelegation;
+window.setupDragAndDrop = setupDragAndDrop;
+window.setupImageErrorHandlers = setupImageErrorHandlers;
+window.setupLiveSearch = setupLiveSearch;
+window.filterPlayers = filterPlayers;
+window.updateAvailablePlayerCount = updateAvailablePlayerCount;
+window.updateTeamCount = updateTeamCount;
+window.updateAllTeamCounts = updateAllTeamCounts;
+window.confirmDraftPlayer = confirmDraftPlayer;
+window.confirmRemovePlayer = confirmRemovePlayer;
+window.openPlayerModal = openPlayerModal;
+window.displayPlayerProfile = displayPlayerProfile;
 window.handlePlayerDraftedEvent = handlePlayerDraftedEvent;
-
-// Backward compatibility
 window.handlePlayerRemovedEvent = handlePlayerRemovedEvent;
-
-// Backward compatibility
 window.handleDraftError = handleDraftError;
-
-// Backward compatibility
 window.handleDropOnTeam = handleDropOnTeam;
-
-// Backward compatibility
 window.handleDropToAvailable = handleDropToAvailable;
-
-// Backward compatibility
 window.sortPlayers = sortPlayers;
-
-// Backward compatibility
 window.showDraftTeamSelection = showDraftTeamSelection;
+
+// Register with InitSystem (primary)
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('draft-enhanced', init, {
+        priority: 40,
+        reinitializable: false,
+        description: 'Draft enhanced page functionality'
+    });
+}
+
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

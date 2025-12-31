@@ -137,7 +137,7 @@
                             <form action="{{ url_for('admin.cleanup_old_messages_route') }}" method="post" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <input type="hidden" name="days_old" value="7">
-                                <button type="submit" class="c-btn c-btn--outline-danger">
+                                <button type="submit" class="c-btn c-btn--outline-danger" data-action="cleanup-old-messages">
                                     <i class="ti ti-trash me-1"></i> Clean Up Old Messages
                                 </button>
                             </form>
@@ -160,13 +160,13 @@
                         <span id="filterText">All Leagues</span>
                     </button>
                     <div class="dropdown-menu" aria-labelledby="leagueFilter" data-dropdown-menu>
-                        <button class="dropdown-item filter-option" data-filter="all">
+                        <button class="dropdown-item" data-action="filter-by-league" data-filter="all">
                             <i class="ti ti-list me-1"></i> All Leagues
                         </button>
-                        <button class="dropdown-item filter-option" data-filter="pub_league">
+                        <button class="dropdown-item" data-action="filter-by-league" data-filter="pub_league">
                             <i class="ti ti-soccer-field me-1"></i> Pub League
                         </button>
-                        <button class="dropdown-item filter-option" data-filter="ecs_fc">
+                        <button class="dropdown-item" data-action="filter-by-league" data-filter="ecs_fc">
                             <i class="ti ti-trophy me-1"></i> ECS FC
                         </button>
                     </div>
@@ -175,16 +175,16 @@
                 <div class="dropdown">
                     <button class="c-btn c-btn--outline-secondary c-btn--icon-only dropdown-toggle hide-arrow" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                     <div class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown" data-dropdown-menu>
-                        <button class="dropdown-item export-copy">
+                        <button class="dropdown-item" data-action="export-copy">
                             <i class="ti ti-copy me-1"></i> Copy
                         </button>
-                        <button class="dropdown-item export-excel">
+                        <button class="dropdown-item" data-action="export-excel">
                             <i class="ti ti-file-spreadsheet me-1"></i> Excel
                         </button>
-                        <button class="dropdown-item export-csv">
+                        <button class="dropdown-item" data-action="export-csv">
                             <i class="ti ti-file-text me-1"></i> CSV
                         </button>
-                        <button class="dropdown-item export-pdf">
+                        <button class="dropdown-item" data-action="export-pdf">
                             <i class="ti ti-file-description me-1"></i> PDF
                         </button>
                     </div>
@@ -282,9 +282,9 @@
                                     </a>
                                     {% endif %}
                                     {% endif %}
-                                    <form action="{{ url_for('admin.delete_message', message_id=message.id) }}" method="post" class="delete-message-form">
+                                    <form action="{{ url_for('admin.delete_message', message_id=message.id) }}" method="post">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="c-btn c-btn--sm c-btn--icon-only c-btn--danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Message">
+                                        <button type="submit" class="c-btn c-btn--sm c-btn--icon-only c-btn--danger" data-action="delete-message" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Message">
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </form>
@@ -302,30 +302,19 @@
 
 {% block custom_js %}
 <script>
-// Add datetime sorting capability
+// DataTable datetime sorting capability - page specific initialization
 $.fn.dataTable.moment = function(format) {
     var types = $.fn.dataTable.ext.type;
-    
-    // Add type detection
     types.detect.unshift(function(d) {
-        // Strip HTML tags if present
-        if (d && typeof d === 'string') {
-            // If there's a data-sort attribute, use that instead
-            if ($(d).attr('data-sort')) {
-                return 'moment-' + format;
-            }
+        if (d && typeof d === 'string' && $(d).attr('data-sort')) {
+            return 'moment-' + format;
         }
         return null;
     });
-    
-    // Add sorting method
     types.order['moment-' + format + '-pre'] = function(d) {
         if (d && typeof d === 'string') {
-            // Check if there's a data-sort attribute
             var dataSort = $(d).attr('data-sort');
-            if (dataSort) {
-                return new Date(dataSort).getTime();
-            }
+            if (dataSort) return new Date(dataSort).getTime();
         }
         return 0;
     };
@@ -334,161 +323,42 @@ $.fn.dataTable.moment = function(format) {
 $(document).ready(function() {
     // Initialize moment-based date sorting
     $.fn.dataTable.moment('YYYY-MM-DD');
-    
+
     // Initialize tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-    
-    // Add confirmation for message deletion
-    $('.delete-message-form').on('submit', function(e) {
-        e.preventDefault();
-        if (confirm('Are you sure you want to delete this message?')) {
-            this.submit();
-        }
-    });
-    
-    // Add confirmation for bulk cleanup
-    $('form[action$="cleanup_old_messages_route"]').on('submit', function(e) {
-        e.preventDefault();
-        const days = $(this).find('input[name="days_old"]').val();
-        if (confirm(`Are you sure you want to delete all sent and failed messages older than ${days} days?`)) {
-            this.submit();
-        }
-    });
-    
-    // Initialize DataTable
-    const table = $('#scheduledMessagesTable').DataTable({
+    tooltipTriggerList.map(function(el) { return new bootstrap.Tooltip(el); });
+
+    // Initialize DataTable with export buttons (hidden, triggered by data-action handlers)
+    $('#scheduledMessagesTable').DataTable({
         responsive: true,
         pageLength: 10,
         lengthMenu: [5, 10, 25, 50],
-        language: {
-            search: "",
-            searchPlaceholder: "Search messages...",
-        },
-        dom: '<"row d-flex justify-content-between align-items-center m-1"' +
-             '<"col-lg-6 d-flex align-items-center"l<"dt-action-buttons text-xl-end text-lg-start text-md-end text-start mt-md-0 mt-3"B>>' +
-             '<"col-lg-6 d-flex align-items-center justify-content-lg-end flex-lg-nowrap flex-wrap pe-lg-1 p-0"f<"invoice_status ms-sm-2">>' +
-             '>t<"d-flex justify-content-between mx-2 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
-        buttons: [
-            {
-                extend: 'collection',
-                className: 'd-none',
-                text: 'Export',
-                buttons: [
-                    {
-                        extend: 'copy',
-                        className: 'dropdown-item',
-                        text: '<i class="ti ti-copy me-1"></i>Copy',
-                        exportOptions: { columns: [0, 1, 2, 3, 4, 5] }
-                    },
-                    {
-                        extend: 'excel',
-                        className: 'dropdown-item',
-                        text: '<i class="ti ti-file-spreadsheet me-1"></i>Excel',
-                        exportOptions: { columns: [0, 1, 2, 3, 4, 5] }
-                    },
-                    {
-                        extend: 'csv',
-                        className: 'dropdown-item',
-                        text: '<i class="ti ti-file-text me-1"></i>CSV',
-                        exportOptions: { columns: [0, 1, 2, 3, 4, 5] }
-                    },
-                    {
-                        extend: 'pdf',
-                        className: 'dropdown-item',
-                        text: '<i class="ti ti-file-description me-1"></i>PDF',
-                        exportOptions: { columns: [0, 1, 2, 3, 4, 5] }
-                    }
-                ]
-            }
-        ],
+        language: { search: "", searchPlaceholder: "Search messages..." },
+        dom: '<"row d-flex justify-content-between align-items-center m-1"<"col-lg-6 d-flex align-items-center"l<"dt-action-buttons text-xl-end text-lg-start text-md-end text-start mt-md-0 mt-3"B>><"col-lg-6 d-flex align-items-center justify-content-lg-end flex-lg-nowrap flex-wrap pe-lg-1 p-0"f>>t<"d-flex justify-content-between mx-2 row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
+        buttons: [{
+            extend: 'collection',
+            className: 'd-none',
+            text: 'Export',
+            buttons: [
+                { extend: 'copy', className: 'dropdown-item', exportOptions: { columns: [0, 1, 2, 3, 4, 5] } },
+                { extend: 'excel', className: 'dropdown-item', exportOptions: { columns: [0, 1, 2, 3, 4, 5] } },
+                { extend: 'csv', className: 'dropdown-item', exportOptions: { columns: [0, 1, 2, 3, 4, 5] } },
+                { extend: 'pdf', className: 'dropdown-item', exportOptions: { columns: [0, 1, 2, 3, 4, 5] } }
+            ]
+        }],
         columnDefs: [
-            {
-                targets: 1, // Match Date column
-                type: 'date',
-                render: function(data, type, row) {
-                    if (type === 'sort') {
-                        // Extract the ISO date from the data-sort attribute
-                        return $(data).attr('data-sort');
-                    }
-                    return data;
-                }
-            },
-            {
-                targets: 2, // Scheduled Send column
-                type: 'date',
-                render: function(data, type, row) {
-                    if (type === 'sort') {
-                        // Extract the ISO date from the data-sort attribute
-                        return $(data).attr('data-sort');
-                    }
-                    return data;
-                }
-            }
+            { targets: 1, type: 'date', render: function(data, type) { return type === 'sort' ? $(data).attr('data-sort') : data; } },
+            { targets: 2, type: 'date', render: function(data, type) { return type === 'sort' ? $(data).attr('data-sort') : data; } }
         ],
-        order: [[2, 'asc']] // Sort by scheduled send time
+        order: [[2, 'asc']]
     });
-    
-    // Handle custom export buttons
-    $('.export-copy').on('click', function() {
-        $('.buttons-copy').click();
-    });
-    
-    $('.export-excel').on('click', function() {
-        $('.buttons-excel').click();
-    });
-    
-    $('.export-csv').on('click', function() {
-        $('.buttons-csv').click();
-    });
-    
-    $('.export-pdf').on('click', function() {
-        $('.buttons-pdf').click();
-    });
-    
-    // Make search input look nicer
+
+    // Style DataTable inputs
     $('.dataTables_filter .form-control').removeClass('form-control-sm');
     $('.dataTables_length .form-select').removeClass('form-select-sm');
-    
-    // Add proper Bootstrap styling
     $('.dataTables_filter input').addClass('rounded-pill');
     $('.dataTables_length select').addClass('rounded-pill');
-    
-    // Handle row hover to highlight action buttons
-    $('#scheduledMessagesTable tbody').on('mouseenter', 'tr', function() {
-        $(this).find('.btn-icon').addClass('btn-pulse');
-    }).on('mouseleave', 'tr', function() {
-        $(this).find('.btn-icon').removeClass('btn-pulse');
-    });
-    
-    // Handle league filtering
-    $('.filter-option').on('click', function(e) {
-        e.preventDefault();
-        const filter = $(this).data('filter');
-        const filterText = $(this).text().trim();
-        
-        // Update filter button text
-        $('#filterText').text(filterText);
-        
-        // Filter table rows
-        if (filter === 'all') {
-            table.rows().nodes().to$().show();
-        } else {
-            table.rows().nodes().to$().each(function() {
-                const leagueType = $(this).data('league');
-                if (leagueType === filter) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
-            });
-        }
-        
-        // Redraw table to update pagination and info
-        table.draw(false);
-    });
 });
+// Event delegation handlers in admin-scheduled-messages.js handle delete, cleanup, filter, and export actions
 </script>
 {% endblock %}

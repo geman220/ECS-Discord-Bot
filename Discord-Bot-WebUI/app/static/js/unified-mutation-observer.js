@@ -30,18 +30,18 @@
 'use strict';
 
 // Singleton state
-  let _initialized = false;
-  let _observer = null;
-  let _isProcessing = false;
-  let _debounceTimer = null;
-  let _pendingMutations = [];
+let _initialized = false;
+let _observer = null;
+let _isProcessing = false;
+let _debounceTimer = null;
+let _pendingMutations = [];
 
-  const DEBOUNCE_MS = 16; // ~1 frame at 60fps
+const DEBOUNCE_MS = 16; // ~1 frame at 60fps
 
-  // Handler registry
-  const _handlers = new Map();
+// Handler registry
+const _handlers = new Map();
 
-  const UnifiedMutationObserver = {
+export const UnifiedMutationObserver = {
     /**
      * Register a handler for DOM mutations
      *
@@ -53,19 +53,19 @@
      * @param {number} [config.priority] - Lower numbers run first (default: 100)
      */
     register: function(id, config) {
-      if (_handlers.has(id)) {
-        console.warn(`[window.UnifiedMutationObserver] Handler "${id}" already registered, replacing`);
-      }
+        if (_handlers.has(id)) {
+            console.warn(`[UnifiedMutationObserver] Handler "${id}" already registered, replacing`);
+        }
 
-      _handlers.set(id, {
-        onAddedNodes: config.onAddedNodes || null,
-        onRemovedNodes: config.onRemovedNodes || null,
-        filter: config.filter || (() => true),
-        priority: config.priority || 100
-      });
+        _handlers.set(id, {
+            onAddedNodes: config.onAddedNodes || null,
+            onRemovedNodes: config.onRemovedNodes || null,
+            filter: config.filter || (() => true),
+            priority: config.priority || 100
+        });
 
-      // Ensure observer is running
-      this.init();
+        // Ensure observer is running
+        this.init();
     },
 
     /**
@@ -73,7 +73,7 @@
      * @param {string} id - Handler identifier
      */
     unregister: function(id) {
-      _handlers.delete(id);
+        _handlers.delete(id);
     },
 
     /**
@@ -84,13 +84,13 @@
      * @returns {*} Return value of callback
      */
     skipDuring: function(callback) {
-      const wasProcessing = _isProcessing;
-      _isProcessing = true;
-      try {
-        return callback();
-      } finally {
-        _isProcessing = wasProcessing;
-      }
+        const wasProcessing = _isProcessing;
+        _isProcessing = true;
+        try {
+            return callback();
+        } finally {
+            _isProcessing = wasProcessing;
+        }
     },
 
     /**
@@ -98,33 +98,34 @@
      * Called automatically when first handler is registered
      */
     init: function() {
-      if (_initialized) return;
-      _initialized = true;
+        if (_initialized) return;
+        _initialized = true;
 
-      _observer = new MutationObserver((mutations) => {
-        // Skip if we're already processing (prevents cascade)
-        if (_isProcessing) return;
+        const self = this;
+        _observer = new MutationObserver((mutations) => {
+            // Skip if we're already processing (prevents cascade)
+            if (_isProcessing) return;
 
-        // Accumulate mutations for debounced processing
-        _pendingMutations.push(...mutations);
+            // Accumulate mutations for debounced processing
+            _pendingMutations.push(...mutations);
 
-        // Debounce processing
-        if (_debounceTimer) {
-          clearTimeout(_debounceTimer);
-        }
+            // Debounce processing
+            if (_debounceTimer) {
+                clearTimeout(_debounceTimer);
+            }
 
-        _debounceTimer = setTimeout(() => {
-          this._processMutations();
-        }, DEBOUNCE_MS);
-      });
+            _debounceTimer = setTimeout(() => {
+                self._processMutations();
+            }, DEBOUNCE_MS);
+        });
 
-      // Start observing with minimal config that covers all use cases
-      _observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
+        // Start observing with minimal config that covers all use cases
+        _observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
 
-      console.log('[UnifiedMutationObserver] Initialized');
+        console.log('[UnifiedMutationObserver] Initialized');
     },
 
     /**
@@ -132,99 +133,98 @@
      * @private
      */
     _processMutations: function() {
-      if (_pendingMutations.length === 0) return;
+        if (_pendingMutations.length === 0) return;
 
-      _isProcessing = true;
+        _isProcessing = true;
 
-      try {
-        // Collect all added and removed nodes
-        const addedNodes = [];
-        const removedNodes = [];
+        try {
+            // Collect all added and removed nodes
+            const addedNodes = [];
+            const removedNodes = [];
 
-        _pendingMutations.forEach(mutation => {
-          mutation.addedNodes.forEach(node => {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              addedNodes.push(node);
+            _pendingMutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        addedNodes.push(node);
+                    }
+                });
+                mutation.removedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        removedNodes.push(node);
+                    }
+                });
+            });
+
+            // Clear pending mutations
+            _pendingMutations = [];
+
+            // Nothing to process
+            if (addedNodes.length === 0 && removedNodes.length === 0) {
+                return;
             }
-          });
-          mutation.removedNodes.forEach(node => {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              removedNodes.push(node);
-            }
-          });
-        });
 
-        // Clear pending mutations
-        _pendingMutations = [];
+            // Sort handlers by priority
+            const sortedHandlers = Array.from(_handlers.entries())
+                .sort((a, b) => a[1].priority - b[1].priority);
 
-        // Nothing to process
-        if (addedNodes.length === 0 && removedNodes.length === 0) {
-          return;
+            // Process each handler
+            sortedHandlers.forEach(([id, handler]) => {
+                try {
+                    // Process added nodes
+                    if (handler.onAddedNodes && addedNodes.length > 0) {
+                        const filtered = addedNodes.filter(handler.filter);
+                        if (filtered.length > 0) {
+                            handler.onAddedNodes(filtered);
+                        }
+                    }
+
+                    // Process removed nodes
+                    if (handler.onRemovedNodes && removedNodes.length > 0) {
+                        const filtered = removedNodes.filter(handler.filter);
+                        if (filtered.length > 0) {
+                            handler.onRemovedNodes(filtered);
+                        }
+                    }
+                } catch (e) {
+                    console.error(`[UnifiedMutationObserver] Error in handler "${id}":`, e);
+                }
+            });
+
+        } finally {
+            _isProcessing = false;
         }
-
-        // Sort handlers by priority
-        const sortedHandlers = Array.from(_handlers.entries())
-          .sort((a, b) => a[1].priority - b[1].priority);
-
-        // Process each handler
-        sortedHandlers.forEach(([id, handler]) => {
-          try {
-            // Process added nodes
-            if (handler.onAddedNodes && addedNodes.length > 0) {
-              const filtered = addedNodes.filter(handler.filter);
-              if (filtered.length > 0) {
-                handler.onAddedNodes(filtered);
-              }
-            }
-
-            // Process removed nodes
-            if (handler.onRemovedNodes && removedNodes.length > 0) {
-              const filtered = removedNodes.filter(handler.filter);
-              if (filtered.length > 0) {
-                handler.onRemovedNodes(filtered);
-              }
-            }
-          } catch (e) {
-            console.error(`[window.UnifiedMutationObserver] Error in handler "${id}":`, e);
-          }
-        });
-
-      } finally {
-        _isProcessing = false;
-      }
     },
 
     /**
      * Disconnect the observer (for cleanup/testing)
      */
     disconnect: function() {
-      if (_observer) {
-        _observer.disconnect();
-        _observer = null;
-      }
-      if (_debounceTimer) {
-        clearTimeout(_debounceTimer);
-        _debounceTimer = null;
-      }
-      _handlers.clear();
-      _pendingMutations = [];
-      _initialized = false;
-      _isProcessing = false;
+        if (_observer) {
+            _observer.disconnect();
+            _observer = null;
+        }
+        if (_debounceTimer) {
+            clearTimeout(_debounceTimer);
+            _debounceTimer = null;
+        }
+        _handlers.clear();
+        _pendingMutations = [];
+        _initialized = false;
+        _isProcessing = false;
     },
 
     /**
      * Get debugging info
      */
     getDebugInfo: function() {
-      return {
-        initialized: _initialized,
-        isProcessing: _isProcessing,
-        pendingMutations: _pendingMutations.length,
-        handlers: Array.from(_handlers.keys())
-      };
+        return {
+            initialized: _initialized,
+            isProcessing: _isProcessing,
+            pendingMutations: _pendingMutations.length,
+            handlers: Array.from(_handlers.keys())
+        };
     }
-  };
+};
 
-  // Expose globally
-  window.UnifiedMutationObserver = UnifiedMutationObserver;
-
+// Expose globally
+window.UnifiedMutationObserver = UnifiedMutationObserver;

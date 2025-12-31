@@ -10,10 +10,10 @@
  * - All empty state icons use consistent sizing via utility classes
  * - 100% reduction in inline style usage (4 instances removed, 0 remaining)
  */
-// ES Module
 'use strict';
 
 import { InitSystem } from '../js/init-system.js';
+
 let _initialized = false;
 
 // Utility functions
@@ -24,7 +24,7 @@ export function getTimeSince(dateString) {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
@@ -59,15 +59,15 @@ export function openLeagueManagementModal(league) {
         'Classic': { name: 'Classic Division', icon: 'fas fa-trophy', color: successColor },
         'Premier': { name: 'Premier Division', icon: 'fas fa-crown', color: dangerColor }
     };
-    
+
     const config = leagueConfigs[league] || leagueConfigs['ECS FC'];
-    
+
     window.$('#leagueIcon').attr('class', config.icon + ' me-2');
     window.$('#leagueTitle').text(config.name);
-    
+
     // Load league statistics
     window.loadLeagueStatistics(league);
-    
+
     // Store current league for modal actions
     window.$('#leagueManagementModal').data('current-league', league);
 }
@@ -76,10 +76,10 @@ export function loadLeagueStatistics(league) {
     // Get stats from the main page
     const activeCount = $(`#active-count-${league}`).text() || '0';
     const pendingCount = $(`#pending-count-${league}`).text() || '0';
-    
+
     window.$('#modalTotalActive').text(activeCount);
     window.$('#modalPendingApproval').text(pendingCount);
-    
+
     // Load additional statistics via AJAX
     window.$.ajax({
         url: `/admin/substitute-pools/${league}/statistics`,
@@ -95,10 +95,10 @@ export function loadLeagueStatistics(league) {
             console.warn('Could not load detailed statistics');
         }
     });
-    
+
     // Load recent activity
     window.loadRecentActivity(league);
-    
+
     // Load substitute requests
     window.loadSubstituteRequests(league);
 }
@@ -115,7 +115,7 @@ export function loadRecentActivity(league) {
             </td>
         </tr>
     `);
-    
+
     window.$.ajax({
         url: `/admin/substitute-pools/${league}/history`,
         method: 'GET',
@@ -133,7 +133,7 @@ export function loadRecentActivity(league) {
         error: function(xhr, status, error) {
             console.error('Error loading activity:', error, xhr.responseText);
             let errorMessage = 'Unable to load activity history';
-            
+
             if (status === 'timeout') {
                 errorMessage = 'Request timed out - server may be slow';
             } else if (xhr.status === 404) {
@@ -143,7 +143,7 @@ export function loadRecentActivity(league) {
             } else if (xhr.status === 500) {
                 errorMessage = 'Server error loading history';
             }
-            
+
             window.$('#recentActivityTable').html(`
                 <tr>
                     <td colspan="4" class="text-center">
@@ -165,7 +165,7 @@ export function loadRecentActivity(league) {
 export function displayRecentActivity(activities) {
     const tbody = window.$('#recentActivityTable');
     tbody.empty();
-    
+
     if (!activities || activities.length === 0) {
         tbody.html(`
             <tr>
@@ -179,14 +179,14 @@ export function displayRecentActivity(activities) {
         `);
         return;
     }
-    
+
     activities.forEach(activity => {
         // Format the action badge color based on action type
         let badgeClass = 'bg-secondary';
         if (activity.action === 'ADDED' || activity.action === 'APPROVED') badgeClass = 'bg-success';
         if (activity.action === 'REMOVED') badgeClass = 'bg-danger';
         if (activity.action === 'UPDATED') badgeClass = 'bg-info';
-        
+
         const row = `
             <tr>
                 <td><small>${formatDateTime(activity.performed_at)}</small></td>
@@ -211,7 +211,7 @@ export function loadSubstituteRequests(league) {
             </td>
         </tr>
     `);
-    
+
     window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests`,
         method: 'GET',
@@ -245,7 +245,7 @@ export function loadSubstituteRequests(league) {
 export function displaySubstituteRequests(requests) {
     const tbody = window.$('#substituteRequestsTable');
     tbody.empty();
-    
+
     if (!requests || requests.length === 0) {
         tbody.html(`
             <tr>
@@ -259,17 +259,17 @@ export function displaySubstituteRequests(requests) {
         `);
         return;
     }
-    
+
     requests.forEach(request => {
         let statusBadge = 'bg-secondary';
         let statusText = request.status;
-        
+
         // Show assignment progress instead of just status
         if (request.status === 'OPEN' || request.status === 'FILLED') {
             const assignedCount = request.assigned_count || 0;
             const substitutesNeeded = request.substitutes_needed || 1;
             const assignmentsRemaining = request.assignments_remaining || substitutesNeeded;
-            
+
             if (assignedCount === 0) {
                 statusBadge = 'bg-warning';
                 statusText = `0 of ${substitutesNeeded} assigned`;
@@ -284,12 +284,12 @@ export function displaySubstituteRequests(requests) {
             statusBadge = 'bg-danger';
             statusText = 'Cancelled';
         }
-        
+
         const timeSinceCreated = getTimeSince(request.created_at);
         const canResend = request.status === 'OPEN';
         const canCancel = request.status === 'OPEN';
         const canDelete = request.status === 'CANCELLED';
-        
+
         const row = `
             <tr>
                 <td>
@@ -314,8 +314,8 @@ export function displaySubstituteRequests(requests) {
                 <td>
                     <div data-component="action-buttons">
                         ${canResend ? `
-                            <button data-action="resend-request" 
-                                    data-request-id="${request.id}" 
+                            <button data-action="resend-request"
+                                    data-request-id="${request.id}"
                                     data-league="${request.league_type}"
                                     data-team="${request.team_name}"
                                     data-created="${request.created_at}"
@@ -324,8 +324,8 @@ export function displaySubstituteRequests(requests) {
                             </button>
                         ` : ''}
                         ${canCancel ? `
-                            <button data-action="cancel-request" 
-                                    data-request-id="${request.id}" 
+                            <button data-action="cancel-request"
+                                    data-request-id="${request.id}"
                                     data-league="${request.league_type}"
                                     data-team="${request.team_name}"
                                     title="Cancel request">
@@ -341,8 +341,8 @@ export function displaySubstituteRequests(requests) {
                                 <i class="ti ti-trash"></i>
                             </button>
                         ` : ''}
-                        <button data-action="view-request-details" 
-                                data-request-id="${request.id}" 
+                        <button data-action="view-request-details"
+                                data-request-id="${request.id}"
                                 title="View details">
                             <i class="ti ti-eye"></i>
                         </button>
@@ -359,11 +359,11 @@ export function resendSubstituteRequest(requestId, league, teamName, createdAt) 
     const now = new Date();
     const created = new Date(createdAt);
     const diffMins = Math.floor((now - created) / 60000);
-    
+
     // Show warning if sent recently
     if (diffMins < 30) {
         const confirmMessage = `This substitute request for ${teamName} was sent only ${diffMins} minutes ago. Are you sure you want to send notifications again?`;
-        
+
         // Use SweetAlert2 if available, fallback to confirm
         if (typeof window.Swal !== 'undefined') {
             window.Swal.fire({
@@ -391,10 +391,10 @@ export function resendSubstituteRequest(requestId, league, teamName, createdAt) 
 export function performResendRequest(requestId, league) {
     const btn = $(`[data-action="resend-request"][data-request-id="${requestId}"]`);
     const originalText = btn.html();
-    
+
     btn.prop('disabled', true);
     btn.html('<i class="ti ti-loader spinner-border spinner-border-sm"></i>');
-    
+
     window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests/${requestId}/resend`,
         method: 'POST',
@@ -446,10 +446,10 @@ export function cancelSubstituteRequest(requestId, league, teamName) {
 
     const btn = $(`[data-action="cancel-request"][data-request-id="${requestId}"]`);
     const originalText = btn.html();
-    
+
     btn.prop('disabled', true);
     btn.html('<i class="ti ti-loader spinner-border spinner-border-sm"></i>');
-    
+
     window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests/${requestId}/cancel`,
         method: 'POST',
@@ -477,7 +477,7 @@ export function loadMatchSubstituteRequests(matchId) {
         console.warn('No match ID provided for loading substitute requests');
         return;
     }
-    
+
     window.$('#matchSubstituteRequestsTable').html(`
         <tr>
             <td colspan="5" class="text-center">
@@ -488,7 +488,7 @@ export function loadMatchSubstituteRequests(matchId) {
             </td>
         </tr>
     `);
-    
+
     window.$.ajax({
         url: `/admin/substitute-pools/match/${matchId}/requests`,
         method: 'GET',
@@ -522,7 +522,7 @@ export function loadMatchSubstituteRequests(matchId) {
 export function displayMatchSubstituteRequests(requests) {
     const tbody = window.$('#matchSubstituteRequestsTable');
     tbody.empty();
-    
+
     if (!requests || requests.length === 0) {
         tbody.html(`
             <tr>
@@ -536,17 +536,17 @@ export function displayMatchSubstituteRequests(requests) {
         `);
         return;
     }
-    
+
     requests.forEach(request => {
         let statusBadge = 'bg-secondary';
         let statusText = request.status;
-        
+
         // Show assignment progress instead of just status
         if (request.status === 'OPEN' || request.status === 'FILLED') {
             const assignedCount = request.assigned_count || 0;
             const substitutesNeeded = request.substitutes_needed || 1;
             const assignmentsRemaining = request.assignments_remaining || substitutesNeeded;
-            
+
             if (assignedCount === 0) {
                 statusBadge = 'bg-warning';
                 statusText = `0 of ${substitutesNeeded} assigned`;
@@ -561,12 +561,12 @@ export function displayMatchSubstituteRequests(requests) {
             statusBadge = 'bg-danger';
             statusText = 'Cancelled';
         }
-        
+
         const timeSinceCreated = getTimeSince(request.created_at);
         const canResend = request.status === 'OPEN';
         const canCancel = request.status === 'OPEN';
         const canDelete = request.status === 'CANCELLED';
-        
+
         const row = `
             <tr>
                 <td>
@@ -591,8 +591,8 @@ export function displayMatchSubstituteRequests(requests) {
                 <td>
                     <div data-component="action-buttons">
                         ${canResend ? `
-                            <button data-action="resend-match-request" 
-                                    data-request-id="${request.id}" 
+                            <button data-action="resend-match-request"
+                                    data-request-id="${request.id}"
                                     data-league="${request.league_type}"
                                     data-team="${request.team_name}"
                                     data-created="${request.created_at}"
@@ -601,8 +601,8 @@ export function displayMatchSubstituteRequests(requests) {
                             </button>
                         ` : ''}
                         ${canCancel ? `
-                            <button data-action="cancel-match-request" 
-                                    data-request-id="${request.id}" 
+                            <button data-action="cancel-match-request"
+                                    data-request-id="${request.id}"
                                     data-league="${request.league_type}"
                                     data-team="${request.team_name}"
                                     title="Cancel request">
@@ -618,8 +618,8 @@ export function displayMatchSubstituteRequests(requests) {
                                 <i class="ti ti-trash"></i>
                             </button>
                         ` : ''}
-                        <button data-action="view-match-request-details" 
-                                data-request-id="${request.id}" 
+                        <button data-action="view-match-request-details"
+                                data-request-id="${request.id}"
                                 title="View details">
                             <i class="ti ti-eye"></i>
                         </button>
@@ -701,11 +701,11 @@ export function resendMatchSubstituteRequest(requestId, league, teamName, create
     const now = new Date();
     const created = new Date(createdAt);
     const diffMins = Math.floor((now - created) / 60000);
-    
+
     // Show warning if sent recently
     if (diffMins < 30) {
         const confirmMessage = `This substitute request for ${teamName} was sent only ${diffMins} minutes ago. Are you sure you want to send notifications again?`;
-        
+
         // Use SweetAlert2 if available, fallback to confirm
         if (typeof window.Swal !== 'undefined') {
             window.Swal.fire({
@@ -726,17 +726,17 @@ export function resendMatchSubstituteRequest(requestId, league, teamName, create
             return;
         }
     }
-    
+
     performMatchResendRequest(requestId, league);
 }
 
 export function performMatchResendRequest(requestId, league) {
     const btn = $(`[data-action="resend-match-request"][data-request-id="${requestId}"]`);
     const originalText = btn.html();
-    
+
     btn.prop('disabled', true);
     btn.html('<i class="ti ti-loader spinner-border spinner-border-sm"></i>');
-    
+
     window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests/${requestId}/resend`,
         method: 'POST',
@@ -789,10 +789,10 @@ export function cancelMatchSubstituteRequest(requestId, league, teamName) {
 
     const btn = $(`[data-action="cancel-match-request"][data-request-id="${requestId}"]`);
     const originalText = btn.html();
-    
+
     btn.prop('disabled', true);
     btn.html('<i class="ti ti-loader spinner-border spinner-border-sm"></i>');
-    
+
     window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests/${requestId}/cancel`,
         method: 'POST',
@@ -895,7 +895,7 @@ window.$(document).on('click', '#bulkApproveBtn', function() {
         subRequestShowNotification('info', 'No pending players to approve');
         return;
     }
-    
+
     if (confirm(`Are you sure you want to approve all ${pendingCount} pending players for this league?`)) {
         bulkApproveAllPending(league);
     }
@@ -904,11 +904,11 @@ window.$(document).on('click', '#bulkApproveBtn', function() {
 window.$(document).on('click', '#exportPoolBtn', function() {
     const league = window.$('#leagueManagementModal').data('current-league');
     const btn = window.$(this);
-    
+
     // Disable button and show loading
     btn.prop('disabled', true);
     btn.html('<i class="ti ti-loader me-2 spinner-border spinner-border-sm"></i>Exporting...');
-    
+
     // Simulate export (replace with actual implementation)
     setTimeout(function() {
         btn.prop('disabled', false);
@@ -935,18 +935,18 @@ window.$(document).on('click', '#savePoolSettings', function() {
     const league = window.$('#leagueManagementModal').data('current-league');
     const maxMatches = window.$('#defaultMaxMatches').val();
     const autoApproval = window.$('#autoApprovalSwitch').is(':checked');
-    
+
     // Show saving state
     const btn = window.$(this);
     btn.prop('disabled', true);
     btn.text('Saving...');
-    
+
     // Simulate save (replace with actual AJAX call)
     setTimeout(function() {
         btn.prop('disabled', false);
         btn.text('Save Settings');
         subRequestShowNotification('success', 'Pool settings saved successfully');
-        
+
         // Log the activity
         console.log('Saving settings for', league, {
             defaultMaxMatches: maxMatches,
@@ -960,14 +960,14 @@ export function bulkApproveAllPending(league) {
     // Get all pending player IDs for this league
     const pendingCards = $(`[data-component="player-item"][data-league="${league}"][data-status="pending"]`);
     const playerIds = [];
-    
+
     pendingCards.each(function() {
         const playerId = window.$(this).data('player-id');
         if (playerId) {
             playerIds.push(playerId);
         }
     });
-    
+
     if (playerIds.length === 0) {
         subRequestShowNotification('info', 'No pending players to approve');
         return;
@@ -988,7 +988,7 @@ export function bulkApproveAllPending(league) {
     });
 }
 
-// Export pool data function  
+// Export pool data function
 export function exportPoolData(league) {
     window.open(`/admin/substitute-pools/${league}/export`, '_blank');
 }
@@ -1016,9 +1016,9 @@ export function displayRequestDetailsModal(request) {
     const available = request.responses.filter(r => r.is_available);
     const unavailable = request.responses.filter(r => !r.is_available);
     const noResponse = request.total_responses === 0;
-    
+
     let responsesHtml = '';
-    
+
     if (noResponse) {
         responsesHtml = `
             <div class="alert alert-info">
@@ -1049,8 +1049,8 @@ export function displayRequestDetailsModal(request) {
                         </div>
                         <div>
                             ${canAssign ? `
-                                <button data-action="assign-substitute" 
-                                        data-request-id="${request.id}" 
+                                <button data-action="assign-substitute"
+                                        data-request-id="${request.id}"
                                         data-player-id="${response.player_id}"
                                         data-player-name="${response.player_name}"
                                         data-league="${request.league_type}">
@@ -1063,7 +1063,7 @@ export function displayRequestDetailsModal(request) {
             });
             responsesHtml += `</div></div>`;
         }
-        
+
         // Unavailable responses
         if (unavailable.length > 0) {
             responsesHtml += `
@@ -1086,7 +1086,7 @@ export function displayRequestDetailsModal(request) {
             responsesHtml += `</div></div>`;
         }
     }
-    
+
     // Assignments
     let assignmentsHtml = '';
     if (request.assignments.length > 0) {
@@ -1115,7 +1115,7 @@ export function displayRequestDetailsModal(request) {
         });
         assignmentsHtml += `</div></div>`;
     }
-    
+
     const modalHtml = `
         <div class="modal fade" id="requestDetailsModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
@@ -1138,7 +1138,7 @@ export function displayRequestDetailsModal(request) {
                                     const substitutesNeeded = request.substitutes_needed || 1;
                                     let statusBadge = 'bg-secondary';
                                     let statusText = request.status;
-                                    
+
                                     if (request.status === 'OPEN' || request.status === 'FILLED') {
                                         if (assignedCount === 0) {
                                             statusBadge = 'bg-warning';
@@ -1154,7 +1154,7 @@ export function displayRequestDetailsModal(request) {
                                         statusBadge = 'bg-danger';
                                         statusText = 'Cancelled';
                                     }
-                                    
+
                                     return `<span class="badge ${statusBadge}">${statusText}</span>`;
                                 })()}</p>
                                 <p><strong>Created:</strong> ${formatDateTime(request.created_at)}</p>
@@ -1170,15 +1170,15 @@ export function displayRequestDetailsModal(request) {
                                 <p><strong>Response Rate:</strong> ${request.response_rate}</p>
                             </div>
                         </div>
-                        
+
                         ${assignmentsHtml}
                         ${responsesHtml}
                     </div>
                     <div class="modal-footer">
                         <button type="button" data-action="close-modal" data-bs-dismiss="modal">Close</button>
                         ${request.status === 'OPEN' ? `
-                            <button type="button" data-action="resend-from-details" 
-                                    data-request-id="${request.id}" 
+                            <button type="button" data-action="resend-from-details"
+                                    data-request-id="${request.id}"
                                     data-league="${request.league_type}"
                                     data-team="${request.team_name}"
                                     data-created="${request.created_at}">
@@ -1190,10 +1190,10 @@ export function displayRequestDetailsModal(request) {
             </div>
         </div>
     `;
-    
+
     // Remove existing modal if any
     window.$('#requestDetailsModal').remove();
-    
+
     // Add modal to body and show it
     window.$('body').append(modalHtml);
     window.$('#requestDetailsModal').modal('show');
@@ -1205,7 +1205,7 @@ window.$(document).on('click', '[data-action="assign-substitute"]', function() {
     const playerId = window.$(this).data('player-id');
     const playerName = window.$(this).data('player-name');
     const league = window.$(this).data('league');
-    
+
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire({
             title: 'Assign Substitute',
@@ -1276,88 +1276,54 @@ window.$(document).on('click', '[data-action="resend-from-details"]', function()
     window.resendSubstituteRequest(requestId, league, teamName, createdAt);
 });
 
-    // Export functions to window for template compatibility
-    window.openLeagueManagementModal = openLeagueManagementModal;
-    window.loadLeagueStatistics = loadLeagueStatistics;
-    window.loadRecentActivity = loadRecentActivity;
-    window.loadSubstituteRequests = loadSubstituteRequests;
-    window.loadMatchSubstituteRequests = loadMatchSubstituteRequests;
-    window.resendSubstituteRequest = resendSubstituteRequest;
-    window.cancelSubstituteRequest = cancelSubstituteRequest;
-    window.viewRequestDetails = viewRequestDetails;
+// Initialize function
+function init() {
+    if (_initialized) return;
+    _initialized = true;
 
-    // Initialize function
-    function init() {
-        if (_initialized) return;
-        _initialized = true;
+    // Substitute request management is event-driven via jQuery delegation
+    // All handlers are set up above at the module level
+}
 
-        // Substitute request management is event-driven via jQuery delegation
-        // All handlers are set up above at the module level
-    }
+// Register with InitSystem (primary)
+if (InitSystem.register) {
+    InitSystem.register('substitute-request-management', init, {
+        priority: 40,
+        reinitializable: false,
+        description: 'Substitute request management'
+    });
+}
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('substitute-request-management', init, {
-            priority: 40,
-            reinitializable: false,
-            description: 'Substitute request management'
-        });
-    }
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
 
-    // Fallback
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-
-// Backward compatibility
+// Export functions to window for template compatibility
+window.openLeagueManagementModal = openLeagueManagementModal;
+window.loadLeagueStatistics = loadLeagueStatistics;
+window.loadRecentActivity = loadRecentActivity;
+window.loadSubstituteRequests = loadSubstituteRequests;
+window.loadMatchSubstituteRequests = loadMatchSubstituteRequests;
+window.resendSubstituteRequest = resendSubstituteRequest;
+window.cancelSubstituteRequest = cancelSubstituteRequest;
+window.viewRequestDetails = viewRequestDetails;
 window.getTimeSince = getTimeSince;
-
-// Backward compatibility
 window.formatDateTime = formatDateTime;
-
-// Backward compatibility
 window.subRequestShowNotification = subRequestShowNotification;
-
-// Backward compatibility
 window.displayRecentActivity = displayRecentActivity;
-
-// Backward compatibility
 window.displaySubstituteRequests = displaySubstituteRequests;
-
-// Backward compatibility
 window.performResendRequest = performResendRequest;
-
-// Backward compatibility
 window.displayMatchSubstituteRequests = displayMatchSubstituteRequests;
-
-// Backward compatibility
 window.resendMatchSubstituteRequest = resendMatchSubstituteRequest;
-
-// Backward compatibility
 window.performMatchResendRequest = performMatchResendRequest;
-
-// Backward compatibility
 window.cancelMatchSubstituteRequest = cancelMatchSubstituteRequest;
-
-// Backward compatibility
 window.deleteSubstituteRequest = deleteSubstituteRequest;
-
-// Backward compatibility
 window.performDeleteRequest = performDeleteRequest;
-
-// Backward compatibility
 window.bulkApproveAllPending = bulkApproveAllPending;
-
-// Backward compatibility
 window.exportPoolData = exportPoolData;
-
-// Backward compatibility
 window.displayRequestDetailsModal = displayRequestDetailsModal;
-
-// Backward compatibility
 window.assignSubstitute = assignSubstitute;
-
-// Backward compatibility
 window.init = init;

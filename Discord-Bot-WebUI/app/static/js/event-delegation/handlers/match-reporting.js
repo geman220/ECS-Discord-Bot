@@ -1,10 +1,9 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 
 /**
  * Match Reporting Action Handlers
  * Handles goals, assists, cards, and match events
  */
-// Uses global EventDelegation from core.js
 
 // MATCH REPORTING ACTIONS
 // ============================================================================

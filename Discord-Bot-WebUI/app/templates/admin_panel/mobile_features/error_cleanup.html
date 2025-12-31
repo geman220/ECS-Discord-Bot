@@ -175,7 +175,7 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                    <button class="c-btn c-btn--danger" id="cleanupBtn" data-action="execute-cleanup" disabled>
+                    <button class="c-btn c-btn--danger" id="cleanupBtn" data-action="execute-cleanup" data-cleanup-url="{{ url_for('admin_panel.mobile_error_cleanup') }}" disabled>
                         <i class="ti ti-trash me-1"></i>Execute Cleanup
                     </button>
                     <a href="{{ url_for('admin_panel.mobile_error_analytics') }}" class="c-btn c-btn--outline-secondary">
@@ -190,82 +190,28 @@
 
 {% block custom_js %}
 {{ super() }}
+{# Event handlers managed by mobile-features-handlers.js via EventDelegation #}
 <script>
-const confirmCheckbox = document.getElementById('confirmCleanup');
-const cleanupBtn = document.getElementById('cleanupBtn');
+(function() {
+    'use strict';
 
-confirmCheckbox.addEventListener('change', function() {
-    cleanupBtn.disabled = !this.checked;
-});
-
-cleanupBtn.addEventListener('click', executeCleanup);
-
-async function executeCleanup() {
-    const result = await Swal.fire({
-        title: 'Execute Cleanup?',
-        html: `
-            <p>This will permanently delete:</p>
-            <ul class="text-start">
-                <li>{{ preview.errors.to_delete or 0 }} error records</li>
-                <li>{{ preview.logs.to_delete or 0 }} log entries</li>
-                <li>{{ preview.patterns.to_delete or 0 }} error patterns</li>
-            </ul>
-            <p class="text-danger"><strong>This action cannot be undone!</strong></p>
-        `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        confirmButtonText: 'Yes, delete data',
-        cancelButtonText: 'Cancel'
-    });
-
-    if (!result.isConfirmed) return;
-
-    // Show loading
-    Swal.fire({
-        title: 'Executing Cleanup...',
-        text: 'Please wait while old data is being deleted',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-
-    try {
-        const _csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const response = await fetch('{{ url_for("admin_panel.mobile_error_cleanup") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': _csrfToken
-            },
-            body: JSON.stringify({ confirmed: true })
-        });
-
-        const data = await response.json();
-
-        if (data.status === 'success') {
-            await Swal.fire({
-                icon: 'success',
-                title: 'Cleanup Complete',
-                html: `
-                    <p>Successfully deleted:</p>
-                    <ul class="text-start">
-                        <li>${data.deleted_errors || 0} error records</li>
-                        <li>${data.deleted_logs || 0} log entries</li>
-                        <li>${data.deleted_patterns || 0} error patterns</li>
-                    </ul>
-                `,
-                confirmButtonText: 'OK'
-            });
-            location.reload();
-        } else {
-            Swal.fire('Error', data.error || 'Cleanup failed', 'error');
-        }
-    } catch (error) {
-        console.error('Cleanup error:', error);
-        Swal.fire('Error', 'Failed to execute cleanup. Please try again.', 'error');
+    // Register initialization with InitSystem
+    if (typeof InitSystem !== 'undefined') {
+        InitSystem.register('error-cleanup', initErrorCleanup);
+    } else {
+        document.addEventListener('DOMContentLoaded', initErrorCleanup);
     }
-}
+
+    function initErrorCleanup() {
+        const confirmCheckbox = document.getElementById('confirmCleanup');
+        const cleanupBtn = document.getElementById('cleanupBtn');
+
+        if (confirmCheckbox && cleanupBtn) {
+            confirmCheckbox.addEventListener('change', function() {
+                cleanupBtn.disabled = !this.checked;
+            });
+        }
+    }
+})();
 </script>
 {% endblock %}

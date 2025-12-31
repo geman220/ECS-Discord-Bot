@@ -260,7 +260,7 @@
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th width="40" scope="col">
-                                        <input type="checkbox" id="manage-users-selectAll" class="js-toggle-all-users" onchange="toggleAllUsers(this)">
+                                        <input type="checkbox" id="manage-users-selectAll" class="js-toggle-all-users" data-action="toggle-select-all" data-target=".user-select-checkbox">
                                     </th>
                                     <th scope="col">User</th>
                                     <th scope="col">Email</th>
@@ -337,7 +337,7 @@
                                             <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-boundary="viewport" data-dropdown-trigger aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                             <ul class="dropdown-menu c-dropdown__menu dropdown-menu-end" data-dropdown-menu>
                                                 <li>
-                                                    <a class="dropdown-item c-dropdown__item js-edit-user" href="#" data-user-id="{{ user.id }}">
+                                                    <a class="dropdown-item c-dropdown__item" href="#" data-action="edit-user" data-user-id="{{ user.id }}">
                                                         <i class="ti ti-edit c-dropdown__item-icon"></i>Edit User
                                                     </a>
                                                 </li>
@@ -350,27 +350,27 @@
                                                 {% endif %}
                                                 {% if not user.is_approved %}
                                                 <li>
-                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--success js-approve-user" href="#" data-user-id="{{ user.id }}">
+                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--success" href="#" data-action="approve-user" data-user-id="{{ user.id }}">
                                                         <i class="ti ti-user-check c-dropdown__item-icon"></i>Approve
                                                     </a>
                                                 </li>
                                                 {% endif %}
                                                 {% if user.is_active %}
                                                 <li>
-                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--warning js-deactivate-user" href="#" data-user-id="{{ user.id }}">
+                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--warning" href="#" data-action="deactivate-user" data-user-id="{{ user.id }}">
                                                         <i class="ti ti-user-off c-dropdown__item-icon"></i>Deactivate
                                                     </a>
                                                 </li>
                                                 {% else %}
                                                 <li>
-                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--success js-activate-user" href="#" data-user-id="{{ user.id }}">
+                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--success" href="#" data-action="activate-user" data-user-id="{{ user.id }}">
                                                         <i class="ti ti-user-bolt c-dropdown__item-icon"></i>Activate
                                                     </a>
                                                 </li>
                                                 {% endif %}
                                                 <li><hr class="dropdown-divider c-dropdown__divider"></li>
                                                 <li>
-                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--danger js-delete-user" href="#" data-user-id="{{ user.id }}">
+                                                    <a class="dropdown-item c-dropdown__item c-dropdown__item--danger" href="#" data-action="delete-user" data-user-id="{{ user.id }}">
                                                         <i class="ti ti-trash c-dropdown__item-icon"></i>Delete User
                                                     </a>
                                                 </li>
@@ -650,501 +650,31 @@
 <script src="{{ url_for('static', filename='custom_js/user-management-ecs-fc.js') }}"></script>
 {% endif %}
 <script>
-let editUserModal, editUserForm;
+// Configuration for user management comprehensive handlers
+window.USER_MGMT_CONFIG = {
+    csrfToken: '{{ csrf_token() }}',
+    userDetailsUrl: '{{ url_for("admin_panel.user_details_api", user_id=0) }}',
+    editUserUrl: '{{ url_for("admin_panel.edit_user_comprehensive", user_id=0) }}',
+    approveUserUrl: '{{ url_for("admin_panel.approve_user_comprehensive", user_id=0) }}',
+    deactivateUserUrl: '{{ url_for("admin_panel.deactivate_user_comprehensive", user_id=0) }}',
+    activateUserUrl: '{{ url_for("admin_panel.activate_user_comprehensive", user_id=0) }}',
+    deleteUserUrl: '{{ url_for("admin_panel.delete_user_comprehensive", user_id=0) }}',
+    bulkActionsUrl: '{{ url_for("admin_panel.bulk_user_comprehensive_actions") }}'
+};
 
+// Real-time search (page-specific initialization)
 document.addEventListener('DOMContentLoaded', function() {
-    editUserModal = ModalManager.getInstance('editUserModal');
-    editUserForm = document.getElementById('editUserForm');
-
-    // Bulk Approve
-    document.querySelectorAll('.js-bulk-approve').forEach(btn => {
-        btn.addEventListener('click', function() {
-            bulkApprove();
-        });
-    });
-
-    // Export Users
-    document.querySelectorAll('.js-export-users').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const exportType = this.dataset.exportType;
-            exportUsers(exportType);
-        });
-    });
-
-    // Sync Users
-    document.querySelectorAll('.js-sync-users').forEach(btn => {
-        btn.addEventListener('click', function() {
-            syncUsers();
-        });
-    });
-
-    // Create User
-    document.querySelectorAll('.js-create-user').forEach(btn => {
-        btn.addEventListener('click', function() {
-            createUser();
-        });
-    });
-
-    // Bulk Actions
-    document.querySelectorAll('.js-bulk-action').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const bulkType = this.dataset.bulkType;
-            bulkAction(bulkType);
-        });
-    });
-
-    // Toggle All Users
-    document.querySelectorAll('.js-toggle-all-users').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            toggleAllUsers(this);
-        });
-    });
-
-    // Edit User
-    document.querySelectorAll('.js-edit-user').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const userId = this.dataset.userId;
-            editUser(userId);
-        });
-    });
-
-    // Approve User
-    document.querySelectorAll('.js-approve-user').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const userId = this.dataset.userId;
-            approveUser(userId);
-        });
-    });
-
-    // Deactivate User
-    document.querySelectorAll('.js-deactivate-user').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const userId = this.dataset.userId;
-            deactivateUser(userId);
-        });
-    });
-
-    // Activate User
-    document.querySelectorAll('.js-activate-user').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const userId = this.dataset.userId;
-            activateUser(userId);
-        });
-    });
-
-    // Delete User
-    document.querySelectorAll('.js-delete-user').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const userId = this.dataset.userId;
-            deleteUser(userId);
-        });
-    });
-
-    // Handle form submission
-    editUserForm.addEventListener('submit', handleEditUserSubmit);
-
-    // Real-time search
     const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
+    const filterForm = document.getElementById('manage-users-filterForm');
+    if (searchInput && filterForm) {
         let searchTimeout;
         searchInput.addEventListener('input', function() {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
-                document.getElementById('filterForm').submit();
+                filterForm.submit();
             }, 500);
         });
     }
-
-    // League change handlers to filter teams
-    setupLeagueTeamFiltering();
 });
-
-function setupLeagueTeamFiltering() {
-    const leagueSelect = document.getElementById('editLeague');
-    const teamSelect = document.getElementById('editTeam');
-    const secondaryLeagueSelect = document.getElementById('editSecondaryLeague');
-    const secondaryTeamSelect = document.getElementById('editSecondaryTeam');
-
-    // Filter primary teams when primary league changes
-    if (leagueSelect && teamSelect) {
-        leagueSelect.addEventListener('change', function() {
-            filterTeamsByLeague(this.value, teamSelect);
-        });
-    }
-
-    // Filter secondary teams when secondary league changes
-    if (secondaryLeagueSelect && secondaryTeamSelect) {
-        secondaryLeagueSelect.addEventListener('change', function() {
-            filterTeamsByLeague(this.value, secondaryTeamSelect, true);
-        });
-    }
-}
-
-function filterTeamsByLeague(leagueId, teamSelect, showLeagueName = false) {
-    const currentValue = teamSelect.value;
-    const allOptions = teamSelect.querySelectorAll('option[data-league]');
-
-    // Show/hide options based on league
-    allOptions.forEach(option => {
-        if (!leagueId || option.dataset.league === leagueId) {
-            option.style.display = '';
-        } else {
-            option.style.display = 'none';
-        }
-    });
-
-    // Reset selection if current selection is now hidden
-    const currentOption = teamSelect.querySelector(`option[value="${currentValue}"]`);
-    if (currentOption && currentOption.style.display === 'none') {
-        teamSelect.value = '';
-    }
-}
-
-function editUser(userId) {
-    // Show loading
-    Swal.fire({
-        title: 'Loading User Data',
-        html: '<div class="text-center"><div class="spinner-border text-primary" role="status" data-spinner></div></div>',
-        allowOutsideClick: false,
-        showConfirmButton: false
-    });
-
-    // Fetch user data
-    fetch(`{{ url_for('admin_panel.user_details_api', user_id=0) }}`.replace('/0', '/' + userId))
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                populateEditForm(data.user);
-                Swal.close();
-                editUserModal.show();
-            } else {
-                throw new Error(data.error || 'Failed to load user');
-            }
-        })
-        .catch(error => {
-            Swal.close();
-            Swal.fire('Error', error.message || 'Failed to load user data', 'error');
-        });
-}
-
-function populateEditForm(user) {
-    // Basic user info
-    document.getElementById('editUserId').value = user.id;
-    document.getElementById('editUsername').value = user.username || '';
-    document.getElementById('editEmail').value = user.email || '';
-    document.getElementById('editRealName').value = user.real_name || '';
-    document.getElementById('editIsApproved').checked = user.is_approved;
-    document.getElementById('editIsActive').checked = user.is_active;
-
-    // Set selected roles - pre-select user's current roles using checkboxes
-    const rolesContainer = document.getElementById('editRolesContainer');
-    const userRoleIds = user.roles || [];
-    rolesContainer.querySelectorAll('[data-role-checkbox]').forEach(checkbox => {
-        checkbox.checked = userRoleIds.includes(parseInt(checkbox.value));
-    });
-
-    // Player profile section
-    const playerFields = document.getElementById('playerFields');
-    const noPlayerMessage = document.getElementById('noPlayerMessage');
-    const isCurrentPlayerCheckbox = document.getElementById('editIsCurrentPlayer');
-
-    if (user.has_player && user.player) {
-        // Show player fields, hide no-player message
-        playerFields.classList.remove('d-none');
-        noPlayerMessage.classList.add('d-none');
-
-        // Set active player status
-        isCurrentPlayerCheckbox.checked = user.player.is_current_player || false;
-        isCurrentPlayerCheckbox.disabled = false;
-
-        // Primary league and team
-        const leagueSelect = document.getElementById('editLeague');
-        const teamSelect = document.getElementById('editTeam');
-
-        leagueSelect.value = user.player.league_id || '';
-        leagueSelect.disabled = false;
-
-        // Filter teams first, then set value
-        filterTeamsByLeague(user.player.league_id ? user.player.league_id.toString() : '', teamSelect);
-        teamSelect.value = user.player.team_id || '';
-        teamSelect.disabled = false;
-
-        // Secondary league and team
-        const secondaryLeagueSelect = document.getElementById('editSecondaryLeague');
-        const secondaryTeamSelect = document.getElementById('editSecondaryTeam');
-
-        if (secondaryLeagueSelect) {
-            secondaryLeagueSelect.value = user.player.secondary_league_id || '';
-            secondaryLeagueSelect.disabled = false;
-        }
-
-        if (secondaryTeamSelect) {
-            filterTeamsByLeague(user.player.secondary_league_id ? user.player.secondary_league_id.toString() : '', secondaryTeamSelect, true);
-            secondaryTeamSelect.value = user.player.secondary_team_id || '';
-            secondaryTeamSelect.disabled = false;
-        }
-    } else {
-        // Hide player fields, show no-player message
-        playerFields.classList.add('d-none');
-        noPlayerMessage.classList.remove('d-none');
-
-        // Disable all player-related fields
-        isCurrentPlayerCheckbox.checked = false;
-        isCurrentPlayerCheckbox.disabled = true;
-
-        ['editLeague', 'editTeam', 'editSecondaryLeague', 'editSecondaryTeam'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.value = '';
-                el.disabled = true;
-            }
-        });
-    }
-
-    // Set form action
-    editUserForm.action = `{{ url_for('admin_panel.edit_user_comprehensive', user_id=0) }}`.replace('/0', '/' + user.id);
-}
-
-function handleEditUserSubmit(e) {
-    e.preventDefault();
-
-    const formData = new FormData(editUserForm);
-
-    // Show saving indicator
-    Swal.fire({
-        title: 'Saving...',
-        html: '<div class="spinner-border text-primary" role="status" data-spinner></div>',
-        allowOutsideClick: false,
-        showConfirmButton: false
-    });
-
-    fetch(editUserForm.action, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        // Check if response is JSON or redirect
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            return response.json();
-        }
-        // If it's a redirect (form submission success), reload
-        if (response.redirected || response.ok) {
-            return { success: true, message: 'User updated successfully' };
-        }
-        throw new Error('Update failed');
-    })
-    .then(data => {
-        editUserModal.hide();
-        Swal.fire('Success', data.message || 'User updated successfully', 'success').then(() => {
-            location.reload();
-        });
-    })
-    .catch(error => {
-        Swal.fire('Error', error.message || 'Failed to update user', 'error');
-    });
-}
-
-function approveUser(userId) {
-    Swal.fire({
-        title: 'Approve User?',
-        text: 'This will approve the user and allow them to access the system.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Approve',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`{{ url_for('admin_panel.approve_user_comprehensive', user_id=0) }}`.replace('0', userId), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Approved!', data.message, 'success').then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire('Error', data.message, 'error');
-                }
-            });
-        }
-    });
-}
-
-function deactivateUser(userId) {
-    Swal.fire({
-        title: 'Deactivate User?',
-        text: 'This will prevent the user from accessing the system.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Deactivate',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`{{ url_for('admin_panel.deactivate_user_comprehensive', user_id=0) }}`.replace('0', userId), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Deactivated!', data.message, 'success').then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire('Error', data.message, 'error');
-                }
-            });
-        }
-    });
-}
-
-function activateUser(userId) {
-    Swal.fire({
-        title: 'Activate User?',
-        text: 'This will allow the user to access the system.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Activate',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`{{ url_for('admin_panel.activate_user_comprehensive', user_id=0) }}`.replace('0', userId), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Activated!', data.message, 'success').then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire('Error', data.message, 'error');
-                }
-            });
-        }
-    });
-}
-
-function deleteUser(userId) {
-    Swal.fire({
-        title: 'Delete User?',
-        text: 'This will permanently delete the user. This action cannot be undone!',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Delete',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`{{ url_for('admin_panel.delete_user_comprehensive', user_id=0) }}`.replace('0', userId), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Deleted!', data.message, 'success').then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire('Error', data.message, 'error');
-                }
-            });
-        }
-    });
-}
-
-function toggleAllUsers(checkbox) {
-    document.querySelectorAll('.user-checkbox').forEach(cb => {
-        cb.checked = checkbox.checked;
-    });
-}
-
-function bulkAction(action) {
-    const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
-    
-    if (selectedUsers.length === 0) {
-        Swal.fire('No Selection', 'Please select users to perform bulk actions on.', 'warning');
-        return;
-    }
-
-    let actionText = action.charAt(0).toUpperCase() + action.slice(1);
-    Swal.fire({
-        title: `${actionText} Selected Users?`,
-        text: `This will ${action} ${selectedUsers.length} selected users.`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: `Yes, ${actionText}`,
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const formData = new FormData();
-            formData.append('action', action);
-            formData.append('csrf_token', '{{ csrf_token() }}');
-            selectedUsers.forEach(userId => {
-                formData.append('user_ids', userId);
-            });
-
-            fetch('{{ url_for("admin_panel.bulk_user_comprehensive_actions") }}', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Success!', data.message, 'success').then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire('Error', data.message, 'error');
-                }
-            });
-        }
-    });
-}
-
-function viewPlayerProfile(playerId) {
-    // Redirect to player profile page
-    window.location.href = `/players/profile/${playerId}`;
-}
-
-function createUser() {
-    Swal.fire('Feature Coming Soon', 'User creation functionality will be added soon.', 'info');
-}
-
-function exportUsers(type = 'all') {
-    Swal.fire('Feature Coming Soon', 'User export functionality will be added soon.', 'info');
-}
-
-function syncUsers() {
-    Swal.fire('Feature Coming Soon', 'WooCommerce sync functionality will be added soon.', 'info');
-}
-
-function bulkApprove() {
-    bulkAction('approve');
-}
 </script>
 {% endblock %}

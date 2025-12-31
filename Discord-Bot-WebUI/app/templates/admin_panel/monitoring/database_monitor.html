@@ -326,7 +326,7 @@
                     <h5 class="c-card__title mb-0">
                         <i class="ti ti-health-recognition me-2"></i>Database Health Check
                     </h5>
-                    <button class="c-btn c-btn--outline-primary c-btn--sm" data-action="run-health-check">
+                    <button class="c-btn c-btn--outline-primary c-btn--sm" data-action="run-health-check" data-health-check-url="{{ url_for('admin_panel.run_db_health_check') }}">
                         <i class="ti ti-refresh me-1"></i>Run Check
                     </button>
                 </div>
@@ -470,149 +470,26 @@
 
 {% block custom_js %}
 {{ super() }}
+{# Event handlers managed by monitoring-handlers.js via EventDelegation #}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Event delegation for all database actions
-    document.addEventListener('click', function(e) {
-        const action = e.target.closest('[data-action]')?.dataset.action;
-        if (!action) return;
+(function() {
+    'use strict';
 
-        switch(action) {
-            case 'run-health-check':
-                runHealthCheck(e.target.closest('button'));
-                break;
-            case 'refresh-connections':
-                refreshConnections();
-                break;
-            case 'flush-query-cache':
-                flushQueryCache();
-                break;
-            case 'analyze-performance':
-                analyzePerformance();
-                break;
-            case 'optimize-database':
-                optimizeDatabase();
-                break;
-        }
-    });
-});
+    // Register initialization with InitSystem
+    if (typeof InitSystem !== 'undefined') {
+        InitSystem.register('database-monitor', initDatabaseMonitor);
+    } else {
+        document.addEventListener('DOMContentLoaded', initDatabaseMonitor);
+    }
 
-function runHealthCheck(button) {
-    const originalText = button.innerHTML;
-    button.innerHTML = '<i class="ti ti-loader me-1"></i>Running...';
-    button.disabled = true;
-
-    fetch('{{ url_for("admin_panel.run_db_health_check") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire('Success', 'Database health check completed successfully!', 'success');
-            setTimeout(() => window.location.reload(), 2000);
-        } else {
-            Swal.fire('Error', 'Health check failed: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        Swal.fire('Error', 'Failed to run health check', 'error');
-    })
-    .finally(() => {
-        button.innerHTML = originalText;
-        button.disabled = false;
-    });
-}
-
-function refreshConnections() {
-    Swal.fire({
-        title: 'Refresh Connections?',
-        text: 'This will reset all idle database connections.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-info').trim() || '#17a2b8',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
-        confirmButtonText: 'Yes, refresh!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Implement connection refresh
-            Swal.fire('Success', 'Database connections refreshed!', 'success');
-        }
-    });
-}
-
-function flushQueryCache() {
-    Swal.fire({
-        title: 'Flush Query Cache?',
-        text: 'This will clear all cached query results.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-warning').trim() || '#ffc107',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
-        confirmButtonText: 'Yes, flush cache!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Implement cache flush
-            Swal.fire('Success', 'Query cache flushed!', 'success');
-        }
-    });
-}
-
-function analyzePerformance() {
-    Swal.fire({
-        title: 'Analyze Performance?',
-        text: 'This will run a comprehensive performance analysis.',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-primary').trim() || '#007bff',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
-        confirmButtonText: 'Yes, analyze!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Implement performance analysis
-            Swal.fire('Info', 'Performance analysis started. Results will be available shortly.', 'info');
-        }
-    });
-}
-
-function optimizeDatabase() {
-    Swal.fire({
-        title: 'Optimize Database?',
-        text: 'This will run database optimization routines. This may take a few minutes.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-success').trim() || '#28a745',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d',
-        confirmButtonText: 'Yes, optimize!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Implement database optimization
-            Swal.fire('Success', 'Database optimization completed!', 'success');
-        }
-    });
-}
-
-// Auto-refresh database stats every 30 seconds
-setInterval(() => {
-    // Add subtle visual indicator for auto-refresh
-    const statsCards = document.querySelectorAll('.card.bg-success, .card.bg-danger, .card.bg-primary, .card.bg-info, .card.bg-warning');
-    statsCards.forEach(card => {
-        card.style.opacity = '0.8';
-        setTimeout(() => {
-            card.style.opacity = '1';
-        }, 200);
-    });
-}, 30000);
-
-// Handle performance period filter
-document.querySelectorAll('input[name="perf_period"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-        // In a real implementation, this would trigger an AJAX request to load data for the selected period
-        console.log('Performance period changed to:', this.id.replace('perf_', ''));
-    });
-});
+    function initDatabaseMonitor() {
+        // Handle performance period filter
+        document.querySelectorAll('input[name="perf_period"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                console.log('Performance period changed to:', this.id.replace('perf_', ''));
+            });
+        });
+    }
+})();
 </script>
 {% endblock %}

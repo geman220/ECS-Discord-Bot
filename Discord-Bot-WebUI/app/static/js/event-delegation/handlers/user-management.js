@@ -1,4 +1,4 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 
 /**
  * User Management Action Handlers
@@ -12,8 +12,6 @@ import { EventDelegation } from '../../event-delegation/core.js';
  * @version 1.0.0
  * @created 2025-12-27
  */
-
-// Uses global EventDelegation from core.js
 
 // ============================================================================
 // EDIT USER ACTION

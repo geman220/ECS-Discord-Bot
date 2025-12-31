@@ -1,11 +1,10 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 import { ModalManager } from '../../modal-manager.js';
 
 /**
  * Security Dashboard Action Handlers
  * Handles IP banning and security monitoring
  */
-// Uses global EventDelegation from core.js
 
 // SECURITY DASHBOARD ACTIONS
 // ============================================================================

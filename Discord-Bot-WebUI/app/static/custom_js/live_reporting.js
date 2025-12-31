@@ -5,21 +5,19 @@
  * reporting system. It handles WebSocket communication, UI updates, and
  * synchronization of match data between multiple reporters.
  */
-// ES Module
-'use strict';
-
 import { InitSystem } from '../js/init-system.js';
+
 let _initialized = false;
 
-    // Initialize SocketIO with the live reporting namespace
-    let socket;
-    let matchId;
-    let teamId;
-    let matchState;
-    let activeReporters = [];
-    let playerShifts = [];
-    let timerInterval;
-    let isTimerRunning = false;
+// Initialize SocketIO with the live reporting namespace
+let socket;
+let matchId;
+let teamId;
+let matchState;
+let activeReporters = [];
+let playerShifts = [];
+let timerInterval;
+let isTimerRunning = false;
 
 /**
  * Initialize the live reporting module
@@ -31,17 +29,17 @@ let _initialized = false;
 export function initLiveReporting(config) {
     matchId = config.matchId;
     teamId = config.teamId;
-    
+
     // Connect to SocketIO server
     const socketUrl = config.socketUrl || window.location.origin;
     socket = window.io(socketUrl + '/live');
-    
+
     // Setup event listeners
     setupSocketListeners();
     setupUIListeners();
-    
+
     // Join the match room when connected
-    window.socket.on('connect', () => {
+    socket.on('connect', () => {
         // Connected to live reporting server
         joinMatch();
     });
@@ -52,76 +50,76 @@ export function initLiveReporting(config) {
  */
 export function setupSocketListeners() {
     // Connection events
-    window.socket.on('disconnect', () => {
+    socket.on('disconnect', () => {
         // Disconnected from live reporting server
         liveReportingShowNotification('Connection lost. Attempting to reconnect...', 'warning');
-        
+
         // Stop the timer if it's running
         if (timerInterval) {
             clearInterval(timerInterval);
             timerInterval = null;
         }
     });
-    
-    window.socket.on('error', (error) => {
+
+    socket.on('error', (error) => {
         // Socket error
         liveReportingShowNotification('Error: ' + error.message, 'danger');
     });
-    
+
     // Match state events
-    window.socket.on('match_state', (state) => {
+    socket.on('match_state', (state) => {
         // Received match state
         matchState = state;
         updateMatchUI(state);
     });
-    
-    window.socket.on('active_reporters', (reporters) => {
+
+    socket.on('active_reporters', (reporters) => {
         // Active reporters
         activeReporters = reporters;
         updateReportersUI(reporters);
     });
-    
-    window.socket.on('player_shifts', (shifts) => {
+
+    socket.on('player_shifts', (shifts) => {
         // Player shifts
         playerShifts = shifts;
         updateShiftsUI(shifts);
     });
-    
+
     // Live updates
-    window.socket.on('reporter_joined', (data) => {
+    socket.on('reporter_joined', (data) => {
         // Reporter joined
         liveReportingShowNotification(`${data.username} joined as a reporter for ${data.team_name}`, 'info');
-        
+
         // Add to active reporters if not already present
         if (!activeReporters.find(r => r.user_id === data.user_id)) {
             activeReporters.push(data);
             updateReportersUI(activeReporters);
         }
     });
-    
-    window.socket.on('reporter_left', (data) => {
+
+    socket.on('reporter_left', (data) => {
         // Reporter left
         liveReportingShowNotification(`${data.username} is no longer reporting`, 'info');
-        
+
         // Remove from active reporters
         activeReporters = activeReporters.filter(r => r.user_id !== data.user_id);
         updateReportersUI(activeReporters);
     });
-    
-    window.socket.on('score_updated', (data) => {
+
+    socket.on('score_updated', (data) => {
         // Score updated
-        
+
         // Update match state
         if (matchState) {
             matchState.home_score = data.home_score;
             matchState.away_score = data.away_score;
             updateScoreUI(data.home_score, data.away_score);
         }
-        
+
         liveReportingShowNotification(`Score updated to ${data.home_score}-${data.away_score} by ${data.updated_by_name}`, 'success');
     });
 
-    window.socket.on('timer_updated', (data) => {
+    socket.on('timer_updated', (data) => {
         // Timer updated
 
         // Update match state
@@ -137,17 +135,17 @@ export function setupSocketListeners() {
 
         liveReportingShowNotification(`Timer updated by ${data.updated_by_name}`, 'info');
     });
-    
-    window.socket.on('event_added', (data) => {
+
+    socket.on('event_added', (data) => {
         // Event added
         const event = data.event;
-        
+
         // Add to match events
         if (matchState && matchState.events) {
             matchState.events.push(event);
             updateEventsUI(matchState.events);
         }
-        
+
         let eventMessage = `${event.event_type}`;
         if (event.player_name) {
             eventMessage += ` by ${event.player_name}`;
@@ -158,11 +156,11 @@ export function setupSocketListeners() {
         if (event.minute) {
             eventMessage += ` at ${event.minute}'`;
         }
-        
+
         liveReportingShowNotification(`New event: ${eventMessage}`, 'success');
     });
 
-    window.socket.on('player_shift_updated', (data) => {
+    socket.on('player_shift_updated', (data) => {
         // Player shift updated
 
         // Only process shift updates for our team
@@ -186,17 +184,17 @@ export function setupSocketListeners() {
             liveReportingShowNotification(`Player ${data.player_name} shift ${data.is_active ? 'started' : 'ended'}`, 'info');
         }
     });
-    
-    window.socket.on('report_submitted', (data) => {
+
+    socket.on('report_submitted', (data) => {
         // Report submitted
-        
+
         // Update match state
         if (matchState) {
             matchState.report_submitted = true;
             matchState.report_submitted_by = data.submitted_by;
             updateMatchStatusUI('completed');
         }
-        
+
         liveReportingShowNotification(`Final report submitted by ${data.submitted_by_name}`, 'success');
 
         // Disable reporting controls
@@ -206,7 +204,7 @@ export function setupSocketListeners() {
         window.$('#reportCompleteMessage').removeClass('u-hidden');
     });
 
-    window.socket.on('report_submission_error', (data) => {
+    socket.on('report_submission_error', (data) => {
         // Report submission error
         liveReportingShowNotification(`Error submitting report: ${data.message}`, 'danger');
     });
@@ -219,88 +217,88 @@ export function setupUIListeners() {
     // Score controls
     window.$('#increaseHomeScore').on('click', function() {
         if (!matchState) return;
-        
+
         const newScore = matchState.home_score + 1;
         updateScore(newScore, matchState.away_score);
     });
-    
+
     window.$('#decreaseHomeScore').on('click', function() {
         if (!matchState || matchState.home_score <= 0) return;
-        
+
         const newScore = matchState.home_score - 1;
         updateScore(newScore, matchState.away_score);
     });
-    
+
     window.$('#increaseAwayScore').on('click', function() {
         if (!matchState) return;
-        
+
         const newScore = matchState.away_score + 1;
         updateScore(matchState.home_score, newScore);
     });
-    
+
     window.$('#decreaseAwayScore').on('click', function() {
         if (!matchState || matchState.away_score <= 0) return;
-        
+
         const newScore = matchState.away_score - 1;
         updateScore(matchState.home_score, newScore);
     });
-    
+
     // Timer controls
     window.$('#startStopTimer').on('click', function() {
         if (!matchState) return;
-        
+
         const newTimerState = !isTimerRunning;
         toggleTimer(newTimerState);
     });
-    
+
     window.$('#resetTimer').on('click', function() {
         if (!matchState) return;
-        
+
         // Ask for confirmation before resetting
         if (confirm('Are you sure you want to reset the timer to 0?')) {
             updateTimer(0, isTimerRunning);
         }
     });
-    
+
     // Period selection
     window.$('#periodSelector').on('change', function() {
         if (!matchState) return;
-        
+
         const newPeriod = window.$(this).val();
         updatePeriod(newPeriod);
     });
-    
+
     // Event form
     window.$('#addEventForm').on('submit', function(e) {
         e.preventDefault();
-        
+
         const eventType = window.$('#eventType').val();
         const eventTeamId = window.$('#eventTeam').val();
         const eventPlayerId = window.$('#eventPlayer').val();
         const eventMinute = window.$('#eventMinute').val();
-        
-        window.addEvent({
+
+        addEvent({
             event_type: eventType,
             team_id: parseInt(eventTeamId),
             player_id: eventPlayerId ? parseInt(eventPlayerId) : null,
             minute: eventMinute ? parseInt(eventMinute) : null,
             period: matchState ? matchState.period : null
         });
-        
+
         // Reset form
         this.reset();
-        
+
         // Update player dropdown based on team selection
         const defaultTeam = window.$('#eventTeam option:first').val();
         updatePlayerDropdown(defaultTeam);
     });
-    
+
     // Team selection changes player dropdown
     window.$('#eventTeam').on('change', function() {
         const selectedTeamId = window.$(this).val();
         updatePlayerDropdown(selectedTeamId);
     });
-    
+
     // Player shift toggles
     window.$('#playerShiftsContainer').on('click', '.js-player-shift-toggle', function() {
         const playerId = window.$(this).data('player-id');
@@ -309,17 +307,17 @@ export function setupUIListeners() {
         // Toggle the active state
         togglePlayerShift(playerId, isActive);
     });
-    
+
     // Submit report button
     window.$('#submitReportBtn').on('click', function() {
         if (!matchState) return;
-        
+
         // Ask for confirmation
         if (confirm('Are you sure you want to submit the final match report? This action cannot be undone.')) {
             submitFinalReport();
         }
     });
-    
+
     // Event type changes UI elements shown
     window.$('#eventType').on('change', function() {
         const eventType = window.$(this).val();
@@ -344,7 +342,7 @@ export function setupUIListeners() {
  * Join a match room
  */
 export function joinMatch() {
-    window.socket.emit('join_match', {
+    socket.emit('join_match', {
         match_id: matchId,
         team_id: teamId
     });
@@ -354,7 +352,7 @@ export function joinMatch() {
  * Leave a match room
  */
 export function leaveMatch() {
-    window.socket.emit('leave_match', {
+    socket.emit('leave_match', {
         match_id: matchId
     });
 }
@@ -363,7 +361,7 @@ export function leaveMatch() {
  * Update the match score
  */
 export function updateScore(homeScore, awayScore) {
-    window.socket.emit('update_score', {
+    socket.emit('update_score', {
         match_id: matchId,
         home_score: homeScore,
         away_score: awayScore
@@ -379,12 +377,12 @@ export function updateTimer(elapsedSeconds, isRunning, period = null) {
         elapsed_seconds: elapsedSeconds,
         is_running: isRunning
     };
-    
+
     if (period) {
         data.period = period;
     }
-    
-    window.socket.emit('update_timer', data);
+
+    socket.emit('update_timer', data);
 }
 
 /**
@@ -402,17 +400,17 @@ export function updatePeriod(period) {
  */
 export function toggleTimer(shouldRun) {
     if (!matchState) return;
-    
+
     if (shouldRun !== isTimerRunning) {
         isTimerRunning = shouldRun;
-        
+
         if (shouldRun) {
             // Start the timer locally
             startTimerInterval();
-            
+
             // Update the server
             updateTimer(matchState.elapsed_seconds, true);
-            
+
             // Update UI
             window.$('#startStopTimer').text('Pause Timer');
             window.$('#startStopTimer').removeClass('timer-stopped').addClass('timer-running');
@@ -440,7 +438,7 @@ export function startTimerInterval() {
     if (timerInterval) {
         clearInterval(timerInterval);
     }
-    
+
     // Update every second
     timerInterval = setInterval(() => {
         if (matchState && isTimerRunning) {
@@ -454,7 +452,7 @@ export function startTimerInterval() {
  * Add a match event
  */
 export function addEvent(eventData) {
-    window.socket.emit('add_event', {
+    socket.emit('add_event', {
         match_id: matchId,
         event: eventData
     });
@@ -464,7 +462,7 @@ export function addEvent(eventData) {
  * Toggle a player's shift status
  */
 export function togglePlayerShift(playerId, isActive) {
-    window.socket.emit('update_player_shift', {
+    socket.emit('update_player_shift', {
         match_id: matchId,
         player_id: playerId,
         is_active: isActive,
@@ -477,8 +475,8 @@ export function togglePlayerShift(playerId, isActive) {
  */
 export function submitFinalReport() {
     const notes = window.$('#matchNotes').val();
-    
-    window.socket.emit('submit_report', {
+
+    socket.emit('submit_report', {
         match_id: matchId,
         report_data: {
             notes: notes
@@ -492,20 +490,20 @@ export function submitFinalReport() {
 export function updateMatchUI(state) {
     // Update score
     updateScoreUI(state.home_score, state.away_score);
-    
+
     // Update timer
     updateTimerUI(state.elapsed_seconds, state.timer_running, state.period);
-    
+
     // Update events
     updateEventsUI(state.events);
-    
+
     // Update match status
     updateMatchStatusUI(state.status);
-    
+
     // Update team names
     window.$('#homeTeamName').text(state.home_team_name);
     window.$('#awayTeamName').text(state.away_team_name);
-    
+
     // If report is already submitted, disable controls
     if (state.report_submitted) {
         disableReportingControls();
@@ -529,10 +527,10 @@ export function updateTimerUI(elapsedSeconds, isRunning, period) {
     if (period && window.$('#periodSelector').val() !== period) {
         window.$('#periodSelector').val(period);
     }
-    
+
     // Update timer display
     updateTimerDisplay(elapsedSeconds);
-    
+
     // Update timer state
     if (isRunning !== isTimerRunning) {
         toggleTimer(isRunning);
@@ -545,7 +543,7 @@ export function updateTimerUI(elapsedSeconds, isRunning, period) {
 export function updateTimerDisplay(elapsedSeconds) {
     const minutes = Math.floor(elapsedSeconds / 60);
     const seconds = elapsedSeconds % 60;
-    
+
     window.$('#timerDisplay').text(
         `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
     );
@@ -651,7 +649,7 @@ export function timeSinceLastActive(lastActive) {
     const now = new Date();
     const diffMs = now - lastActive;
     const diffSec = Math.floor(diffMs / 1000);
-    
+
     if (diffSec < 60) {
         return 'just now';
     } else if (diffSec < 3600) {
@@ -669,16 +667,16 @@ export function timeSinceLastActive(lastActive) {
 export function updateShiftsUI(shifts) {
     const $shiftsContainer = window.$('#playerShiftsContainer');
     $shiftsContainer.empty();
-    
+
     if (!shifts || shifts.length === 0) {
         $shiftsContainer.append('<p>No player shifts recorded</p>');
         return;
     }
-    
+
     // Group shifts by active/inactive
     const activeShifts = shifts.filter(s => s.is_active);
     const inactiveShifts = shifts.filter(s => !s.is_active);
-    
+
     // Add active players section
     $shiftsContainer.append('<h5 class="mt-3">Active Players</h5>');
     if (activeShifts.length === 0) {
@@ -727,25 +725,25 @@ export function updateShiftsUI(shifts) {
 /**
  * Update the player dropdown based on selected team
  */
-export function updatePlayerDropdown(teamId) {
+export function updatePlayerDropdown(selectedTeamId) {
     if (!matchState) return;
-    
+
     const $playerSelect = window.$('#eventPlayer');
     $playerSelect.empty();
-    
+
     // Add empty option
     $playerSelect.append('<option value="">Select Player</option>');
-    
+
     // Determine which team's players to show
     let players = [];
-    if (parseInt(teamId) === matchState.home_team_id) {
+    if (parseInt(selectedTeamId) === matchState.home_team_id) {
         // Show home team players
         players = window.$('#homeTeamPlayers').data('players') || [];
-    } else if (parseInt(teamId) === matchState.away_team_id) {
+    } else if (parseInt(selectedTeamId) === matchState.away_team_id) {
         // Show away team players
         players = window.$('#awayTeamPlayers').data('players') || [];
     }
-    
+
     // Add players to dropdown
     players.forEach(player => {
         $playerSelect.append(`<option value="${player.id}">${player.name}</option>`);
@@ -758,19 +756,19 @@ export function updatePlayerDropdown(teamId) {
 export function disableReportingControls() {
     // Disable score controls
     window.$('#increaseHomeScore, #decreaseHomeScore, #increaseAwayScore, #decreaseAwayScore').prop('disabled', true);
-    
+
     // Disable timer controls
     window.$('#startStopTimer, #resetTimer, #periodSelector').prop('disabled', true);
-    
+
     // Disable event form
     window.$('#addEventForm :input').prop('disabled', true);
-    
+
     // Disable player shifts
     window.$('.js-player-shift-toggle').prop('disabled', true);
-    
+
     // Disable submit report button
     window.$('#submitReportBtn').prop('disabled', true);
-    
+
     // Stop timer if running
     if (timerInterval) {
         clearInterval(timerInterval);
@@ -784,130 +782,79 @@ export function disableReportingControls() {
  */
 export function liveReportingShowNotification(message, type = 'info') {
     const $notifications = window.$('#notifications');
-    
+
     // Create notification element
-    const $notification = $(`
+    const $notification = window.$(`
         <div class="alert alert-${type} alert-dismissible fade show" role="alert">
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     `);
-    
+
     // Add to notifications container
     $notifications.append($notification);
-    
+
     // Auto-remove after 5 seconds
     setTimeout(() => {
         $notification.alert('close');
     }, 5000);
 }
 
-    // Export module functions
-    window.LiveReporting = {
-        init: initLiveReporting,
-        join: joinMatch,
-        leave: leaveMatch
-    };
+// Export module functions
+window.LiveReporting = {
+    init: initLiveReporting,
+    join: joinMatch,
+    leave: leaveMatch
+};
 
-    // Initialize function
-    function init() {
-        if (_initialized) return;
-        _initialized = true;
+// Initialize function
+function init() {
+    if (_initialized) return;
+    _initialized = true;
 
-        // LiveReporting is initialized manually via window.LiveReporting.init(config)
-        // when the page provides the required configuration
-    }
+    // LiveReporting is initialized manually via window.LiveReporting.init(config)
+    // when the page provides the required configuration
+}
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('live-reporting', init, {
-            priority: 45,
-            reinitializable: false,
-            description: 'Live match reporting client'
-        });
-    }
+// Register with InitSystem (primary)
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('live-reporting', init, {
+        priority: 45,
+        reinitializable: false,
+        description: 'Live match reporting client'
+    });
+}
 
-    // Fallback
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
 
 // Backward compatibility
 window.initLiveReporting = initLiveReporting;
-
-// Backward compatibility
 window.setupSocketListeners = setupSocketListeners;
-
-// Backward compatibility
 window.setupUIListeners = setupUIListeners;
-
-// Backward compatibility
 window.joinMatch = joinMatch;
-
-// Backward compatibility
 window.leaveMatch = leaveMatch;
-
-// Backward compatibility
 window.updateScore = updateScore;
-
-// Backward compatibility
 window.updateTimer = updateTimer;
-
-// Backward compatibility
 window.updatePeriod = updatePeriod;
-
-// Backward compatibility
 window.toggleTimer = toggleTimer;
-
-// Backward compatibility
 window.startTimerInterval = startTimerInterval;
-
-// Backward compatibility
 window.addEvent = addEvent;
-
-// Backward compatibility
 window.togglePlayerShift = togglePlayerShift;
-
-// Backward compatibility
 window.submitFinalReport = submitFinalReport;
-
-// Backward compatibility
 window.updateMatchUI = updateMatchUI;
-
-// Backward compatibility
 window.updateScoreUI = updateScoreUI;
-
-// Backward compatibility
 window.updateTimerUI = updateTimerUI;
-
-// Backward compatibility
 window.updateTimerDisplay = updateTimerDisplay;
-
-// Backward compatibility
 window.updateEventsUI = updateEventsUI;
-
-// Backward compatibility
 window.updateMatchStatusUI = updateMatchStatusUI;
-
-// Backward compatibility
 window.updateReportersUI = updateReportersUI;
-
-// Backward compatibility
 window.timeSinceLastActive = timeSinceLastActive;
-
-// Backward compatibility
 window.updateShiftsUI = updateShiftsUI;
-
-// Backward compatibility
 window.updatePlayerDropdown = updatePlayerDropdown;
-
-// Backward compatibility
 window.disableReportingControls = disableReportingControls;
-
-// Backward compatibility
 window.liveReportingShowNotification = liveReportingShowNotification;
-
-// Backward compatibility
-window.init = init;

@@ -24,313 +24,299 @@
  *
  * ============================================================================
  */
-// ES Module
 'use strict';
 
 import { EventDelegation } from '../event-delegation/core.js';
 import { ModalManager } from '../modal-manager.js';
-// ========================================================================
-    // CONFIGURATION
-    // ========================================================================
 
-    const CONFIG = {
-        ENDPOINTS: {
-            MESSAGE_DETAILS: '/admin-panel/communication/scheduled-messages/{id}/details',
-            MESSAGE_UPDATE: '/admin-panel/communication/scheduled-messages/{id}/update'
-        }
-    };
+/* ========================================================================
+   CONFIGURATION
+   ======================================================================== */
 
-    // ========================================================================
-    // MESSAGE PREVIEW
-    // ========================================================================
+const CONFIG = {
+    ENDPOINTS: {
+        MESSAGE_DETAILS: '/admin-panel/communication/scheduled-messages/{id}/details',
+        MESSAGE_UPDATE: '/admin-panel/communication/scheduled-messages/{id}/update'
+    }
+};
 
-    /**
-     * Preview message before scheduling
-     */
-    function previewMessage() {
-        const title = document.getElementById('message_title')?.value;
-        const content = document.getElementById('message_content')?.value;
-        const type = document.getElementById('message_type')?.value;
-        const channel = document.getElementById('target_channel')?.value;
-        const scheduleDate = document.getElementById('schedule_date')?.value;
+/* ========================================================================
+   MESSAGE PREVIEW
+   ======================================================================== */
 
-        if (!title || !content || !type || !channel) {
-            window.Swal.fire('Error', 'Please fill in all required fields before previewing', 'error');
-            return;
-        }
+/**
+ * Preview message before scheduling
+ */
+function previewMessage() {
+    const title = document.getElementById('message_title')?.value;
+    const content = document.getElementById('message_content')?.value;
+    const type = document.getElementById('message_type')?.value;
+    const channel = document.getElementById('target_channel')?.value;
+    const scheduleDate = document.getElementById('schedule_date')?.value;
 
-        // Update preview modal content
-        const previewTitle = document.getElementById('preview_title');
-        const previewContent = document.getElementById('preview_content');
-        const previewType = document.getElementById('preview_type');
-        const previewChannel = document.getElementById('preview_channel');
-        const previewSchedule = document.getElementById('preview_schedule');
-
-        if (previewTitle) previewTitle.textContent = title;
-        if (previewContent) previewContent.textContent = content;
-        if (previewType) previewType.textContent = type;
-        if (previewChannel) previewChannel.textContent = channel;
-        if (previewSchedule) previewSchedule.textContent = scheduleDate || 'Not set';
-
-        // Show modal
-        const modalEl = document.getElementById('messagePreviewModal');
-        if (modalEl) {
-            ModalManager.show('messagePreviewModal');
-        }
+    if (!title || !content || !type || !channel) {
+        window.Swal.fire('Error', 'Please fill in all required fields before previewing', 'error');
+        return;
     }
 
-    // ========================================================================
-    // VIEW MESSAGE DETAILS
-    // ========================================================================
+    // Update preview modal content
+    const previewTitle = document.getElementById('preview_title');
+    const previewContent = document.getElementById('preview_content');
+    const previewType = document.getElementById('preview_type');
+    const previewChannel = document.getElementById('preview_channel');
+    const previewSchedule = document.getElementById('preview_schedule');
 
-    /**
-     * View details of a scheduled message
-     * @param {number} messageId - The message ID
-     * @param {string} messageTitle - The message title for display
-     */
-    function viewScheduledMessage(messageId, messageTitle) {
-        const titleEl = document.getElementById('message_details_title');
-        const contentEl = document.getElementById('message_details_content');
+    if (previewTitle) previewTitle.textContent = title;
+    if (previewContent) previewContent.textContent = content;
+    if (previewType) previewType.textContent = type;
+    if (previewChannel) previewChannel.textContent = channel;
+    if (previewSchedule) previewSchedule.textContent = scheduleDate || 'Not set';
 
-        if (titleEl) {
-            titleEl.textContent = `Details for "${messageTitle}"`;
-        }
+    // Show modal
+    const modalEl = document.getElementById('messagePreviewModal');
+    if (modalEl) {
+        ModalManager.show('messagePreviewModal');
+    }
+}
 
-        if (contentEl) {
-            contentEl.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
-        }
+/* ========================================================================
+   VIEW MESSAGE DETAILS
+   ======================================================================== */
 
-        // Show modal
-        const modalEl = document.getElementById('messageDetailsModal');
-        if (modalEl) {
-            ModalManager.show('messageDetailsModal');
-        }
+/**
+ * View details of a scheduled message
+ * @param {number} messageId - The message ID
+ * @param {string} messageTitle - The message title for display
+ */
+function viewScheduledMessage(messageId, messageTitle) {
+    const titleEl = document.getElementById('message_details_title');
+    const contentEl = document.getElementById('message_details_content');
 
-        // Load message details via AJAX
-        const url = CONFIG.ENDPOINTS.MESSAGE_DETAILS.replace('{id}', messageId);
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && contentEl) {
-                    contentEl.innerHTML = data.html;
-                } else if (contentEl) {
-                    contentEl.innerHTML = '<div class="alert alert-danger">Error loading message details</div>';
-                }
-            })
-            .catch(() => {
-                if (contentEl) {
-                    contentEl.innerHTML = '<div class="alert alert-danger">Error loading message details</div>';
-                }
-            });
+    if (titleEl) {
+        titleEl.textContent = `Details for "${messageTitle}"`;
     }
 
-    // ========================================================================
-    // EDIT MESSAGE
-    // ========================================================================
+    if (contentEl) {
+        contentEl.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    }
 
-    /**
-     * Edit a scheduled message
-     * @param {number} messageId - The message ID
-     */
-    function editScheduledMessage(messageId) {
-        // Fetch message details first
-        const url = CONFIG.ENDPOINTS.MESSAGE_DETAILS.replace('{id}', messageId);
+    // Show modal
+    const modalEl = document.getElementById('messageDetailsModal');
+    if (modalEl) {
+        ModalManager.show('messageDetailsModal');
+    }
 
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const message = data.message;
-                    const scheduledTime = message.scheduled_send_time ? message.scheduled_send_time.slice(0, 16) : '';
+    // Load message details via AJAX
+    const url = CONFIG.ENDPOINTS.MESSAGE_DETAILS.replace('{id}', messageId);
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && contentEl) {
+                contentEl.innerHTML = data.html;
+            } else if (contentEl) {
+                contentEl.innerHTML = '<div class="alert alert-danger">Error loading message details</div>';
+            }
+        })
+        .catch(() => {
+            if (contentEl) {
+                contentEl.innerHTML = '<div class="alert alert-danger">Error loading message details</div>';
+            }
+        });
+}
 
-                    window.Swal.fire({
-                        title: 'Edit Scheduled Message',
-                        html: `
-                            <div class="text-start">
-                                <div class="mb-3">
-                                    <label class="form-label">Message Type</label>
-                                    <select id="editMessageType" class="form-select">
-                                        <option value="standard" ${message.message_type === 'standard' ? 'selected' : ''}>Standard</option>
-                                        <option value="announcement" ${message.message_type === 'announcement' ? 'selected' : ''}>Announcement</option>
-                                        <option value="reminder" ${message.message_type === 'reminder' ? 'selected' : ''}>Reminder</option>
-                                        <option value="notification" ${message.message_type === 'notification' ? 'selected' : ''}>Notification</option>
-                                        <option value="alert" ${message.message_type === 'alert' ? 'selected' : ''}>Alert</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Scheduled Time <span class="text-danger">*</span></label>
-                                    <input type="datetime-local" id="editScheduledTime" class="form-control" value="${scheduledTime}">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Match ID</label>
-                                    <input type="text" class="form-control" value="${message.match_id || 'N/A'}" disabled>
-                                    <small class="text-muted">Match ID cannot be changed</small>
-                                </div>
+/* ========================================================================
+   EDIT MESSAGE
+   ======================================================================== */
+
+/**
+ * Edit a scheduled message
+ * @param {number} messageId - The message ID
+ */
+function editScheduledMessage(messageId) {
+    // Fetch message details first
+    const url = CONFIG.ENDPOINTS.MESSAGE_DETAILS.replace('{id}', messageId);
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const message = data.message;
+                const scheduledTime = message.scheduled_send_time ? message.scheduled_send_time.slice(0, 16) : '';
+
+                window.Swal.fire({
+                    title: 'Edit Scheduled Message',
+                    html: `
+                        <div class="text-start">
+                            <div class="mb-3">
+                                <label class="form-label">Message Type</label>
+                                <select id="editMessageType" class="form-select">
+                                    <option value="standard" ${message.message_type === 'standard' ? 'selected' : ''}>Standard</option>
+                                    <option value="announcement" ${message.message_type === 'announcement' ? 'selected' : ''}>Announcement</option>
+                                    <option value="reminder" ${message.message_type === 'reminder' ? 'selected' : ''}>Reminder</option>
+                                    <option value="notification" ${message.message_type === 'notification' ? 'selected' : ''}>Notification</option>
+                                    <option value="alert" ${message.message_type === 'alert' ? 'selected' : ''}>Alert</option>
+                                </select>
                             </div>
-                        `,
-                        showCancelButton: true,
-                        confirmButtonText: 'Save Changes',
-                        cancelButtonText: 'Cancel',
-                        preConfirm: () => {
-                            const scheduledTime = document.getElementById('editScheduledTime')?.value;
-                            if (!scheduledTime) {
-                                window.Swal.showValidationMessage('Scheduled time is required');
-                                return false;
+                            <div class="mb-3">
+                                <label class="form-label">Scheduled Time <span class="text-danger">*</span></label>
+                                <input type="datetime-local" id="editScheduledTime" class="form-control" value="${scheduledTime}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Match ID</label>
+                                <input type="text" class="form-control" value="${message.match_id || 'N/A'}" disabled>
+                                <small class="text-muted">Match ID cannot be changed</small>
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Save Changes',
+                    cancelButtonText: 'Cancel',
+                    preConfirm: () => {
+                        const scheduledTime = document.getElementById('editScheduledTime')?.value;
+                        if (!scheduledTime) {
+                            window.Swal.showValidationMessage('Scheduled time is required');
+                            return false;
+                        }
+                        return {
+                            message_type: document.getElementById('editMessageType')?.value,
+                            scheduled_time: scheduledTime
+                        };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const formData = new FormData();
+                        formData.append('message_type', result.value.message_type);
+                        formData.append('scheduled_time', result.value.scheduled_time);
+
+                        const updateUrl = CONFIG.ENDPOINTS.MESSAGE_UPDATE.replace('{id}', messageId);
+                        fetch(updateUrl, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                window.Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                            } else {
+                                window.Swal.fire('Error', data.message, 'error');
                             }
-                            return {
-                                message_type: document.getElementById('editMessageType')?.value,
-                                scheduled_time: scheduledTime
-                            };
-                        }
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            const formData = new FormData();
-                            formData.append('message_type', result.value.message_type);
-                            formData.append('scheduled_time', result.value.scheduled_time);
-
-                            const updateUrl = CONFIG.ENDPOINTS.MESSAGE_UPDATE.replace('{id}', messageId);
-                            fetch(updateUrl, {
-                                method: 'POST',
-                                body: formData
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    window.Swal.fire('Success', data.message, 'success').then(() => location.reload());
-                                } else {
-                                    window.Swal.fire('Error', data.message, 'error');
-                                }
-                            })
-                            .catch(() => window.Swal.fire('Error', 'Failed to update message', 'error'));
-                        }
-                    });
-                } else {
-                    window.Swal.fire('Error', data.message, 'error');
-                }
-            })
-            .catch(() => window.Swal.fire('Error', 'Failed to load message details', 'error'));
-    }
-
-    // ========================================================================
-    // CANCEL MESSAGE
-    // ========================================================================
-
-    /**
-     * Cancel a scheduled message
-     * @param {number} messageId - The message ID
-     * @param {string} messageTitle - The message title for display
-     * @param {string} cancelUrl - URL to submit cancel request
-     * @param {string} csrfToken - CSRF token for form submission
-     */
-    function cancelScheduledMessage(messageId, messageTitle, cancelUrl, csrfToken) {
-        window.Swal.fire({
-            title: 'Cancel Scheduled Message?',
-            text: `Cancel the scheduled message "${messageTitle}"? This action cannot be undone.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : 'var(--ecs-danger)',
-            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('secondary') : '#6c757d',
-            confirmButtonText: 'Yes, cancel it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Create form and submit
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = cancelUrl;
-
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = 'csrf_token';
-                csrfInput.value = csrfToken;
-
-                const messageIdInput = document.createElement('input');
-                messageIdInput.type = 'hidden';
-                messageIdInput.name = 'message_id';
-                messageIdInput.value = messageId;
-
-                form.appendChild(csrfInput);
-                form.appendChild(messageIdInput);
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-    }
-
-    // ========================================================================
-    // RETRY FAILED MESSAGE
-    // ========================================================================
-
-    /**
-     * Retry sending a failed message
-     * @param {number} messageId - The message ID
-     * @param {string} messageTitle - The message title for display
-     * @param {string} retryUrl - URL to submit retry request
-     * @param {string} csrfToken - CSRF token for form submission
-     */
-    function retryScheduledMessage(messageId, messageTitle, retryUrl, csrfToken) {
-        window.Swal.fire({
-            title: 'Retry Scheduled Message?',
-            text: `Retry sending the failed message "${messageTitle}"?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : 'var(--ecs-success)',
-            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('secondary') : '#6c757d',
-            confirmButtonText: 'Yes, retry!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Create form and submit
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = retryUrl;
-
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = 'csrf_token';
-                csrfInput.value = csrfToken;
-
-                const messageIdInput = document.createElement('input');
-                messageIdInput.type = 'hidden';
-                messageIdInput.name = 'message_id';
-                messageIdInput.value = messageId;
-
-                form.appendChild(csrfInput);
-                form.appendChild(messageIdInput);
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-    }
-
-    // ========================================================================
-    // RECURRING MESSAGE TOGGLE
-    // ========================================================================
-
-    /**
-     * Initialize recurring message checkbox handler
-     */
-    function initRecurringToggle() {
-        const recurringCheckbox = document.getElementById('is_recurring');
-        const recurrenceOptions = document.getElementById('recurrence_options');
-        const recurrencePattern = document.getElementById('recurrence_pattern');
-
-        if (!recurringCheckbox || !recurrenceOptions) return;
-
-        recurringCheckbox.addEventListener('change', function() {
-            if (this.checked) {
-                recurrenceOptions.classList.remove('u-hidden');
-                if (recurrencePattern) {
-                    recurrencePattern.required = true;
-                }
+                        })
+                        .catch(() => window.Swal.fire('Error', 'Failed to update message', 'error'));
+                    }
+                });
             } else {
-                recurrenceOptions.classList.add('u-hidden');
-                if (recurrencePattern) {
-                    recurrencePattern.required = false;
-                }
+                window.Swal.fire('Error', data.message, 'error');
             }
-        });
+        })
+        .catch(() => window.Swal.fire('Error', 'Failed to load message details', 'error'));
+}
 
-        // Set initial state
-        if (recurringCheckbox.checked) {
+/* ========================================================================
+   CANCEL MESSAGE
+   ======================================================================== */
+
+/**
+ * Cancel a scheduled message
+ * @param {number} messageId - The message ID
+ * @param {string} messageTitle - The message title for display
+ * @param {string} cancelUrl - URL to submit cancel request
+ * @param {string} csrfToken - CSRF token for form submission
+ */
+function cancelScheduledMessage(messageId, messageTitle, cancelUrl, csrfToken) {
+    window.Swal.fire({
+        title: 'Cancel Scheduled Message?',
+        text: `Cancel the scheduled message "${messageTitle}"? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : 'var(--ecs-danger)',
+        cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('secondary') : '#6c757d',
+        confirmButtonText: 'Yes, cancel it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = cancelUrl;
+
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken;
+
+            const messageIdInput = document.createElement('input');
+            messageIdInput.type = 'hidden';
+            messageIdInput.name = 'message_id';
+            messageIdInput.value = messageId;
+
+            form.appendChild(csrfInput);
+            form.appendChild(messageIdInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+/* ========================================================================
+   RETRY FAILED MESSAGE
+   ======================================================================== */
+
+/**
+ * Retry sending a failed message
+ * @param {number} messageId - The message ID
+ * @param {string} messageTitle - The message title for display
+ * @param {string} retryUrl - URL to submit retry request
+ * @param {string} csrfToken - CSRF token for form submission
+ */
+function retryScheduledMessage(messageId, messageTitle, retryUrl, csrfToken) {
+    window.Swal.fire({
+        title: 'Retry Scheduled Message?',
+        text: `Retry sending the failed message "${messageTitle}"?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : 'var(--ecs-success)',
+        cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('secondary') : '#6c757d',
+        confirmButtonText: 'Yes, retry!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = retryUrl;
+
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken;
+
+            const messageIdInput = document.createElement('input');
+            messageIdInput.type = 'hidden';
+            messageIdInput.name = 'message_id';
+            messageIdInput.value = messageId;
+
+            form.appendChild(csrfInput);
+            form.appendChild(messageIdInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+
+/* ========================================================================
+   RECURRING MESSAGE TOGGLE
+   ======================================================================== */
+
+/**
+ * Initialize recurring message checkbox handler
+ */
+function initRecurringToggle() {
+    const recurringCheckbox = document.getElementById('is_recurring');
+    const recurrenceOptions = document.getElementById('recurrence_options');
+    const recurrencePattern = document.getElementById('recurrence_pattern');
+
+    if (!recurringCheckbox || !recurrenceOptions) return;
+
+    recurringCheckbox.addEventListener('change', function() {
+        if (this.checked) {
             recurrenceOptions.classList.remove('u-hidden');
             if (recurrencePattern) {
                 recurrencePattern.required = true;
@@ -341,225 +327,248 @@ import { ModalManager } from '../modal-manager.js';
                 recurrencePattern.required = false;
             }
         }
+    });
+
+    // Set initial state
+    if (recurringCheckbox.checked) {
+        recurrenceOptions.classList.remove('u-hidden');
+        if (recurrencePattern) {
+            recurrencePattern.required = true;
+        }
+    } else {
+        recurrenceOptions.classList.add('u-hidden');
+        if (recurrencePattern) {
+            recurrencePattern.required = false;
+        }
     }
+}
 
-    // ========================================================================
-    // QUEUE FILTERING
-    // ========================================================================
+/* ========================================================================
+   QUEUE FILTERING
+   ======================================================================== */
 
-    /**
-     * Initialize queue filtering radio buttons
-     */
-    function initQueueFiltering() {
-        const filterRadios = document.querySelectorAll('input[name="queue_filter"]');
+/**
+ * Initialize queue filtering radio buttons
+ */
+function initQueueFiltering() {
+    const filterRadios = document.querySelectorAll('input[name="queue_filter"]');
 
-        filterRadios.forEach(radio => {
-            radio.addEventListener('change', function() {
-                const filterValue = this.id.replace('filter_', '');
-                const rows = document.querySelectorAll('.message-row');
+    filterRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const filterValue = this.id.replace('filter_', '');
+            const rows = document.querySelectorAll('.message-row');
 
-                rows.forEach(row => {
-                    const status = row.dataset.status;
+            rows.forEach(row => {
+                const status = row.dataset.status;
 
-                    if (filterValue === 'all') {
-                        row.classList.remove('u-hidden');
-                    } else if (status === filterValue) {
-                        row.classList.remove('u-hidden');
-                    } else {
-                        row.classList.add('u-hidden');
-                    }
-                });
+                if (filterValue === 'all') {
+                    row.classList.remove('u-hidden');
+                } else if (status === filterValue) {
+                    row.classList.remove('u-hidden');
+                } else {
+                    row.classList.add('u-hidden');
+                }
             });
         });
+    });
+}
+
+/* ========================================================================
+   MINIMUM DATETIME SETUP
+   ======================================================================== */
+
+/**
+ * Set minimum date/time for scheduling input to current time
+ */
+function initMinDateTime() {
+    const scheduleDateInput = document.getElementById('schedule_date');
+    if (!scheduleDateInput) return;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+
+    const minDateTime = `${year}-${month}-${day}T${hour}:${minute}`;
+    scheduleDateInput.min = minDateTime;
+}
+
+/* ========================================================================
+   ACTION HANDLERS
+   ======================================================================== */
+
+/**
+ * Handle go back action
+ * @param {Event} e - The event object
+ */
+function handleGoBack(e) {
+    window.history.back();
+}
+
+/**
+ * Handle preview message action
+ * @param {Event} e - The event object
+ */
+function handlePreviewMessage(e) {
+    previewMessage();
+}
+
+/**
+ * Handle view scheduled message action
+ * @param {Event} e - The event object
+ */
+function handleViewScheduledMessage(e) {
+    const viewId = e.target.dataset.messageId;
+    const viewTitle = e.target.dataset.title;
+    viewScheduledMessage(viewId, viewTitle);
+}
+
+/**
+ * Handle edit scheduled message action
+ * @param {Event} e - The event object
+ */
+function handleEditScheduledMessage(e) {
+    const editId = e.target.dataset.messageId;
+    editScheduledMessage(editId);
+}
+
+/**
+ * Handle cancel scheduled message action
+ * @param {Event} e - The event object
+ */
+function handleCancelScheduledMessage(e) {
+    const cancelId = e.target.dataset.messageId;
+    const cancelTitle = e.target.dataset.title;
+    const cancelUrl = e.target.dataset.cancelUrl;
+    const cancelCsrf = e.target.dataset.csrfToken;
+    cancelScheduledMessage(cancelId, cancelTitle, cancelUrl, cancelCsrf);
+}
+
+/**
+ * Handle retry scheduled message action
+ * @param {Event} e - The event object
+ */
+function handleRetryScheduledMessage(e) {
+    const retryId = e.target.dataset.messageId;
+    const retryTitle = e.target.dataset.title;
+    const retryUrl = e.target.dataset.retryUrl;
+    const retryCsrf = e.target.dataset.csrfToken;
+    retryScheduledMessage(retryId, retryTitle, retryUrl, retryCsrf);
+}
+
+/* ========================================================================
+   INITIALIZATION
+   ======================================================================== */
+
+/**
+ * Initialize all scheduled message functionality
+ */
+function init() {
+    // Page guard: only run on scheduled messages page
+    if (!document.getElementById('messagePreviewModal') && !document.getElementById('messageDetailsModal')) {
+        return;
     }
 
-    // ========================================================================
-    // MINIMUM DATETIME SETUP
-    // ========================================================================
+    console.log('[Scheduled Messages] Initializing...');
 
-    /**
-     * Set minimum date/time for scheduling input to current time
-     */
-    function initMinDateTime() {
-        const scheduleDateInput = document.getElementById('schedule_date');
-        if (!scheduleDateInput) return;
+    initRecurringToggle();
+    initQueueFiltering();
+    initMinDateTime();
+    // EventDelegation handlers are registered at module scope below
 
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hour = String(now.getHours()).padStart(2, '0');
-        const minute = String(now.getMinutes()).padStart(2, '0');
+    console.log('[Scheduled Messages] Initialization complete');
+}
 
-        const minDateTime = `${year}-${month}-${day}T${hour}:${minute}`;
-        scheduleDateInput.min = minDateTime;
-    }
+/* ========================================================================
+   EVENT DELEGATION - Registered at module scope
+   ======================================================================== */
 
-    // ========================================================================
-    // ACTION HANDLERS
-    // ========================================================================
+EventDelegation.register('go-back-scheduled', handleGoBack, { preventDefault: true });
+EventDelegation.register('preview-message', handlePreviewMessage, { preventDefault: true });
+EventDelegation.register('view-scheduled-message', handleViewScheduledMessage, { preventDefault: true });
+EventDelegation.register('edit-scheduled-message', handleEditScheduledMessage, { preventDefault: true });
+EventDelegation.register('cancel-scheduled-message', handleCancelScheduledMessage, { preventDefault: true });
+EventDelegation.register('retry-scheduled-message', handleRetryScheduledMessage, { preventDefault: true });
 
-    /**
-     * Handle go back action
-     * @param {Event} e - The event object
-     */
-    function handleGoBack(e) {
-        window.history.back();
-    }
+/* ========================================================================
+   REGISTER WITH INITSYSTEM
+   ======================================================================== */
 
-    /**
-     * Handle preview message action
-     * @param {Event} e - The event object
-     */
-    function handlePreviewMessage(e) {
-        window.previewMessage();
-    }
+import { InitSystem } from '../init-system.js';
 
-    /**
-     * Handle view scheduled message action
-     * @param {Event} e - The event object
-     */
-    function handleViewScheduledMessage(e) {
-        const viewId = e.target.dataset.messageId;
-        const viewTitle = e.target.dataset.title;
-        viewScheduledMessage(viewId, viewTitle);
-    }
+let _initialized = false;
 
-    /**
-     * Handle edit scheduled message action
-     * @param {Event} e - The event object
-     */
-    function handleEditScheduledMessage(e) {
-        const editId = e.target.dataset.messageId;
-        editScheduledMessage(editId);
-    }
+function initWithGuard() {
+    if (_initialized) return;
+    _initialized = true;
+    init();
+}
 
-    /**
-     * Handle cancel scheduled message action
-     * @param {Event} e - The event object
-     */
-    function handleCancelScheduledMessage(e) {
-        const cancelId = e.target.dataset.messageId;
-        const cancelTitle = e.target.dataset.title;
-        const cancelUrl = e.target.dataset.cancelUrl;
-        const cancelCsrf = e.target.dataset.csrfToken;
-        cancelScheduledMessage(cancelId, cancelTitle, cancelUrl, cancelCsrf);
-    }
+InitSystem.register('scheduled-messages', initWithGuard, {
+    priority: 30,
+    reinitializable: false,
+    description: 'Scheduled messages management'
+});
 
-    /**
-     * Handle retry scheduled message action
-     * @param {Event} e - The event object
-     */
-    function handleRetryScheduledMessage(e) {
-        const retryId = e.target.dataset.messageId;
-        const retryTitle = e.target.dataset.title;
-        const retryUrl = e.target.dataset.retryUrl;
-        const retryCsrf = e.target.dataset.csrfToken;
-        retryScheduledMessage(retryId, retryTitle, retryUrl, retryCsrf);
-    }
+// Fallback for non-bundled usage
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initWithGuard);
+} else {
+    initWithGuard();
+}
 
-    // ========================================================================
-    // INITIALIZATION
-    // ========================================================================
+/* ========================================================================
+   PUBLIC API
+   ======================================================================== */
 
-    /**
-     * Initialize all scheduled message functionality
-     */
-    function init() {
-        // Page guard: only run on scheduled messages page
-        if (!document.getElementById('messagePreviewModal') && !document.getElementById('messageDetailsModal')) {
-            return;
-        }
+const ScheduledMessages = {
+    version: '1.0.0',
+    previewMessage,
+    viewScheduledMessage,
+    editScheduledMessage,
+    cancelScheduledMessage,
+    retryScheduledMessage,
+    init
+};
 
-        console.log('[Scheduled Messages] Initializing...');
-
-        initRecurringToggle();
-        initQueueFiltering();
-        initMinDateTime();
-        // EventDelegation handlers are registered at module scope below
-
-        console.log('[Scheduled Messages] Initialization complete');
-    }
-
-    // ========================================================================
-    // EVENT DELEGATION - Registered at module scope
-    // ========================================================================
-    // Handlers registered when IIFE executes, ensuring EventDelegation is available
-
-    EventDelegation.register('go-back-scheduled', handleGoBack, { preventDefault: true });
-    EventDelegation.register('preview-message', handlePreviewMessage, { preventDefault: true });
-    EventDelegation.register('view-scheduled-message', handleViewScheduledMessage, { preventDefault: true });
-    EventDelegation.register('edit-scheduled-message', handleEditScheduledMessage, { preventDefault: true });
-    EventDelegation.register('cancel-scheduled-message', handleCancelScheduledMessage, { preventDefault: true });
-    EventDelegation.register('retry-scheduled-message', handleRetryScheduledMessage, { preventDefault: true });
-
-    // ========================================================================
-    // DOM READY
-    // ========================================================================
-
-    // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        // DOM already loaded
-        init();
-    }
-
-    // Expose public API
-    window.ScheduledMessages = {
-        version: '1.0.0',
-        previewMessage,
-        viewScheduledMessage,
-        editScheduledMessage,
-        cancelScheduledMessage,
-        retryScheduledMessage,
-        init
-    };
+// Expose public API
+window.ScheduledMessages = ScheduledMessages;
 
 // Backward compatibility
 window.CONFIG = CONFIG;
-
-// Backward compatibility
 window.previewMessage = previewMessage;
-
-// Backward compatibility
 window.viewScheduledMessage = viewScheduledMessage;
-
-// Backward compatibility
 window.editScheduledMessage = editScheduledMessage;
-
-// Backward compatibility
 window.cancelScheduledMessage = cancelScheduledMessage;
-
-// Backward compatibility
 window.retryScheduledMessage = retryScheduledMessage;
-
-// Backward compatibility
 window.initRecurringToggle = initRecurringToggle;
-
-// Backward compatibility
 window.initQueueFiltering = initQueueFiltering;
-
-// Backward compatibility
 window.initMinDateTime = initMinDateTime;
-
-// Backward compatibility
 window.handleGoBack = handleGoBack;
-
-// Backward compatibility
 window.handlePreviewMessage = handlePreviewMessage;
-
-// Backward compatibility
 window.handleViewScheduledMessage = handleViewScheduledMessage;
-
-// Backward compatibility
 window.handleEditScheduledMessage = handleEditScheduledMessage;
-
-// Backward compatibility
 window.handleCancelScheduledMessage = handleCancelScheduledMessage;
-
-// Backward compatibility
 window.handleRetryScheduledMessage = handleRetryScheduledMessage;
 
-// Backward compatibility
-window.init = init;
+export {
+    ScheduledMessages,
+    CONFIG,
+    previewMessage,
+    viewScheduledMessage,
+    editScheduledMessage,
+    cancelScheduledMessage,
+    retryScheduledMessage,
+    initRecurringToggle,
+    initQueueFiltering,
+    initMinDateTime,
+    handleGoBack,
+    handlePreviewMessage,
+    handleViewScheduledMessage,
+    handleEditScheduledMessage,
+    handleCancelScheduledMessage,
+    handleRetryScheduledMessage,
+    init
+};

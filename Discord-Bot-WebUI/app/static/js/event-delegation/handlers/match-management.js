@@ -1,10 +1,9 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 
 /**
  * Match Management Action Handlers
  * Handles task scheduling, match verification, and match editing
  */
-// Uses global EventDelegation from core.js
 
 // MATCH MANAGEMENT ACTIONS
 // ============================================================================
@@ -272,6 +271,29 @@ EventDelegation.register('auto-assign-playoffs', function(element, e) {
     if (typeof window.autoAssignPlayoffs === 'function') {
         window.autoAssignPlayoffs(leagueId);
     }
+}, { preventDefault: true });
+
+// ============================================================================
+// SORTING AND FILTERING ACTIONS
+// ============================================================================
+
+/**
+ * Change Sort Action
+ * Updates URL with sort parameter and reloads page
+ * Usage: <a data-action="change-sort" data-sort-type="name">Sort by Name</a>
+ */
+EventDelegation.register('change-sort', function(element, e) {
+    e.preventDefault();
+    const sortType = element.dataset.sortType;
+    const currentUrl = new URL(window.location.href);
+
+    if (sortType === 'default') {
+        currentUrl.searchParams.delete('sort');
+    } else {
+        currentUrl.searchParams.set('sort', sortType);
+    }
+
+    window.location.href = currentUrl.toString();
 }, { preventDefault: true });
 
 // ============================================================================

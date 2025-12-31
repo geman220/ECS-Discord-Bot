@@ -4,13 +4,11 @@
  *
  * Dependencies: jQuery, Bootstrap 5, SweetAlert2
  */
-// ES Module
-'use strict';
-
 import { InitSystem } from '../js/init-system.js';
 import { ModalManager } from '../js/modal-manager.js';
+
 let _initialized = false;
-    let csrfToken = '';
+let csrfToken = '';
 
 // Initialize CSRF token
 export function initializeCSRFToken() {
@@ -59,7 +57,7 @@ export function updateMatchRow(match) {
     }
 
     // Update task details with real-time data
-    window.loadMatchTaskDetails(match.id);
+    loadMatchTaskDetails(match.id);
 }
 
 // Load detailed task information for a specific match
@@ -78,38 +76,38 @@ export function loadMatchTaskDetails(matchId) {
 // Update the task details display for a match
 export function updateMatchTaskDetails(matchId, data) {
     const container = document.getElementById(`task-details-${matchId}`);
-    
+
     if (!container) {
         console.error(`No container found for task-details-${matchId}`);
         return;
     }
-    
+
     if (!data.success) {
         showTaskError(matchId, data.error || 'Failed to load task details');
         return;
     }
-    
+
     const tasks = data.tasks || {};
     let html = '';
-    
+
     // Thread Creation Task
     if (tasks.thread) {
         html += createTaskCard('thread', tasks.thread, matchId);
     } else {
         html += createNoTaskCard('Thread Creation', 'No thread task scheduled');
     }
-    
-    // Live Reporting Task  
+
+    // Live Reporting Task
     if (tasks.reporting) {
         html += createTaskCard('reporting', tasks.reporting, matchId);
     } else {
         html += createNoTaskCard('Live Reporting', 'No reporting task scheduled');
     }
-    
+
     if (!html) {
         html = '<small class="text-muted">No tasks scheduled</small>';
     }
-    
+
     container.innerHTML = html;
 }
 
@@ -208,7 +206,7 @@ export function createNoTaskCard(taskName, message) {
 export function showTaskError(matchId, error) {
     const container = document.getElementById(`task-details-${matchId}`);
     if (!container) return;
-    
+
     // Show better display when Redis is unavailable
     if (error === 'Redis not available') {
         container.innerHTML = `
@@ -230,7 +228,7 @@ export function showTaskError(matchId, error) {
 export function getStatusColor(status) {
     const statusColors = {
         'PENDING': 'warning',
-        'STARTED': 'info', 
+        'STARTED': 'info',
         'SUCCESS': 'success',
         'FAILURE': 'danger',
         'RETRY': 'warning',
@@ -303,7 +301,7 @@ export function revokeTask(taskId, matchId, taskType) {
             .then(data => {
                 if (data.success) {
                     window.Swal.fire('Revoked!', data.message, 'success');
-                    window.loadMatchTaskDetails(matchId);
+                    loadMatchTaskDetails(matchId);
                 } else {
                     window.Swal.fire('Error!', data.error, 'error');
                 }
@@ -327,7 +325,7 @@ export function rescheduleTask(matchId, taskType) {
     }).then((result) => {
         if (result.isConfirmed) {
             // Use existing schedule match functionality
-            window.matchMgmtScheduleMatch(matchId);
+            matchMgmtScheduleMatch(matchId);
         }
     });
 }
@@ -339,7 +337,7 @@ export function showTaskInfo(taskId, taskType, taskData) {
     } catch (e) {
         taskObj = { error: 'Failed to parse task data', raw: taskData };
     }
-    
+
     const modalHtml = `
         <div class="task-info-details">
             <h6><i class="fas fa-info-circle"></i> ${taskType}</h6>
@@ -353,7 +351,7 @@ export function showTaskInfo(taskId, taskType, taskData) {
             </table>
         </div>
     `;
-    
+
     window.Swal.fire({
         title: 'Task Information',
         html: modalHtml,
@@ -370,7 +368,7 @@ export function loadAllTaskDetails() {
     matchRows.forEach(row => {
         const matchId = row.getAttribute('data-match-id');
         if (matchId) {
-            window.loadMatchTaskDetails(matchId);
+            loadMatchTaskDetails(matchId);
         }
     });
 
@@ -381,27 +379,24 @@ export function loadAllTaskDetails() {
         historicalRows.forEach(row => {
             const matchId = row.getAttribute('data-match-id');
             if (matchId) {
-                window.loadMatchTaskDetails(matchId);
+                loadMatchTaskDetails(matchId);
             }
         });
     }
 }
 
-
-
-
 export function formatTaskETA(etaString) {
     if (!etaString) return 'Unknown';
-    
+
     try {
         const etaDate = new Date(etaString);
         const now = new Date();
         const diff = etaDate - now;
-        
+
         if (diff > 0) {
             const minutes = Math.floor(diff / (1000 * 60));
             const hours = Math.floor(minutes / 60);
-            
+
             if (hours > 0) {
                 return `${hours}h ${minutes % 60}m`;
             } else {
@@ -417,10 +412,10 @@ export function formatTaskETA(etaString) {
 
 export function formatTTL(seconds) {
     if (!seconds || seconds <= 0) return 'No limit';
-    
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    
+
     if (hours > 0) {
         return `${hours}h ${minutes}m`;
     } else if (minutes > 0) {
@@ -430,19 +425,18 @@ export function formatTTL(seconds) {
     }
 }
 
-
 export function formatScheduledTime(isoString) {
     if (!isoString) return 'Unknown';
-    
+
     try {
         const date = new Date(isoString);
         const now = new Date();
         const diff = date - now;
-        
+
         if (diff > 0) {
             const hours = Math.floor(diff / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            
+
             if (hours > 24) {
                 const days = Math.floor(hours / 24);
                 const remainingHours = hours % 24;
@@ -497,7 +491,7 @@ export function getStatusDisplay(status) {
         'not_started': 'Not Started',
         'scheduled': 'Scheduled',
         'running': 'Running',
-        'completed': 'Completed', 
+        'completed': 'Completed',
         'stopped': 'Stopped',
         'failed': 'Failed'
     };
@@ -517,7 +511,7 @@ export function matchMgmtScheduleMatch(matchId) {
     .then(data => {
         if (data.success) {
             window.Swal.fire('Success!', data.message, 'success');
-            window.refreshStatuses();
+            refreshStatuses();
         } else {
             window.Swal.fire('Error!', data.message, 'error');
         }
@@ -540,7 +534,7 @@ export function createThreadNow(matchId) {
     .then(data => {
         if (data.success) {
             window.Swal.fire('Success!', data.message, 'success');
-            window.refreshStatuses();
+            refreshStatuses();
         } else {
             window.Swal.fire('Error!', data.message, 'error');
         }
@@ -563,7 +557,7 @@ export function startLiveReporting(matchId) {
     .then(data => {
         if (data.success) {
             window.Swal.fire('Success!', data.message, 'success');
-            window.refreshStatuses();
+            refreshStatuses();
         } else {
             window.Swal.fire('Error!', data.message, 'error');
         }
@@ -586,7 +580,7 @@ export function stopLiveReporting(matchId) {
     .then(data => {
         if (data.success) {
             window.Swal.fire('Success!', data.message, 'success');
-            window.refreshStatuses();
+            refreshStatuses();
         } else {
             window.Swal.fire('Error!', data.message, 'error');
         }
@@ -628,27 +622,27 @@ export function addMatchByDate() {
     const competitionInput = document.getElementById('matchCompetition');
     const date = dateInput.value;
     const competition = competitionInput.value;
-    
+
     console.log('Selected competition:', competition);
     console.log('Competition dropdown options:', competitionInput.options);
     console.log('Selected index:', competitionInput.selectedIndex);
-    
+
     if (!date) {
         window.Swal.fire('Error!', 'Please select a date.', 'error');
         return;
     }
-    
+
     if (!competition) {
         window.Swal.fire('Error!', 'Please select a competition.', 'error');
         return;
     }
-    
+
     const formData = new FormData();
     formData.append('date', date);
     formData.append('competition', competition);
-    
+
     console.log('Sending competition to server:', competition);
-    
+
     fetch('/admin/match_management/add-by-date', {
         method: 'POST',
         headers: {
@@ -691,7 +685,7 @@ export function scheduleAllMatches() {
             .then(data => {
                 if (data.success) {
                     window.Swal.fire('Success!', data.message, 'success');
-                    window.refreshStatuses();
+                    refreshStatuses();
                 } else {
                     window.Swal.fire('Error!', data.message, 'error');
                 }
@@ -721,7 +715,7 @@ export function fetchAllFromESPN() {
                     window.Swal.showLoading();
                 }
             });
-            
+
             fetch('/admin/match_management/fetch-all-from-espn', {
                 method: 'POST',
                 headers: {
@@ -822,7 +816,7 @@ export function removeMatch(matchId) {
 // Queue management functions
 export function matchMgmtShowQueueStatus() {
     window.$('#queueStatusModal').modal('show');
-    window.refreshQueueStatus();
+    refreshQueueStatus();
 }
 
 export function refreshQueueStatus() {
@@ -832,26 +826,26 @@ export function refreshQueueStatus() {
             if (data.success) {
                 displayQueueStatus(data);
             } else {
-                document.getElementById('queueStatusContent').innerHTML = 
+                document.getElementById('queueStatusContent').innerHTML =
                     '<div class="alert alert-danger">Failed to load queue status</div>';
             }
         })
         .catch(error => {
             console.error('Error loading queue status:', error);
-            document.getElementById('queueStatusContent').innerHTML = 
+            document.getElementById('queueStatusContent').innerHTML =
                 '<div class="alert alert-danger">Error loading queue status</div>';
         });
 }
 
 export function displayQueueStatus(data) {
     let html = '';
-    
+
     // Active tasks
     if (data.active_tasks && data.active_tasks.length > 0) {
         html += '<h6>Active Tasks</h6>';
         html += '<div class="table-responsive"><table class="table table-sm">';
         html += '<thead><tr><th>Task ID</th><th>Name</th><th>State</th><th>Worker</th><th>ETA</th></tr></thead><tbody>';
-        
+
         data.active_tasks.forEach(task => {
             html += `
                 <tr>
@@ -863,16 +857,16 @@ export function displayQueueStatus(data) {
                 </tr>
             `;
         });
-        
+
         html += '</tbody></table></div>';
     }
-    
+
     // Scheduled tasks
     if (data.scheduled_tasks && data.scheduled_tasks.length > 0) {
         html += '<h6 class="mt-3">Scheduled Tasks</h6>';
         html += '<div class="table-responsive"><table class="table table-sm">';
         html += '<thead><tr><th>Task ID</th><th>Name</th><th>ETA</th></tr></thead><tbody>';
-        
+
         data.scheduled_tasks.forEach(task => {
             html += `
                 <tr>
@@ -882,15 +876,15 @@ export function displayQueueStatus(data) {
                 </tr>
             `;
         });
-        
+
         html += '</tbody></table></div>';
     }
-    
+
     // Worker stats
     if (data.worker_stats) {
         html += '<h6 class="mt-3">Worker Statistics</h6>';
         html += '<div class="row">';
-        
+
         Object.entries(data.worker_stats).forEach(([worker, stats]) => {
             html += `
                 <div class="col-md-6 mb-2">
@@ -906,14 +900,14 @@ export function displayQueueStatus(data) {
                 </div>
             `;
         });
-        
+
         html += '</div>';
     }
-    
+
     if (!html) {
         html = '<div class="alert alert-info">No active or scheduled tasks</div>';
     }
-    
+
     document.getElementById('queueStatusContent').innerHTML = html;
 }
 
@@ -936,29 +930,29 @@ export function debugMatchTasks(matchId) {
 
 export function showDebugModal(debugInfo) {
     let html = '<div class="text-start">';
-    
+
     if (debugInfo.match_info) {
         html += '<h6>Match Information</h6>';
         html += '<pre class="bg-light p-2 rounded">' + JSON.stringify(debugInfo.match_info, null, 2) + '</pre>';
     }
-    
+
     if (debugInfo.scheduled_tasks) {
         html += '<h6>Scheduled Tasks</h6>';
         html += '<pre class="bg-light p-2 rounded">' + JSON.stringify(debugInfo.scheduled_tasks, null, 2) + '</pre>';
     }
-    
+
     if (debugInfo.active_tasks) {
         html += '<h6>Active Tasks</h6>';
         html += '<pre class="bg-light p-2 rounded">' + JSON.stringify(debugInfo.active_tasks, null, 2) + '</pre>';
     }
-    
+
     if (debugInfo.celery_status) {
         html += '<h6>Celery Status</h6>';
         html += '<pre class="bg-light p-2 rounded">' + JSON.stringify(debugInfo.celery_status, null, 2) + '</pre>';
     }
-    
+
     html += '</div>';
-    
+
     window.Swal.fire({
         title: 'Debug Information',
         html: html,
@@ -987,7 +981,7 @@ export function forceScheduleMatch(matchId) {
             .then(data => {
                 if (data.success) {
                     window.Swal.fire('Success!', data.message, 'success');
-                    window.refreshStatuses();
+                    refreshStatuses();
                 } else {
                     window.Swal.fire('Error!', data.message, 'error');
                 }
@@ -1000,53 +994,53 @@ export function forceScheduleMatch(matchId) {
     });
 }
 
-    // Initialize function
-    function init() {
-        if (_initialized) return;
-        _initialized = true;
+// Initialize function
+function init() {
+    if (_initialized) return;
+    _initialized = true;
 
-        // Initialize CSRF token
-        initializeCSRFToken();
+    // Initialize CSRF token
+    initializeCSRFToken();
 
-        // Format scheduled times on initial page load
-        formatScheduledTimes();
+    // Format scheduled times on initial page load
+    formatScheduledTimes();
 
-        // Load task details for all matches after a short delay
-        setTimeout(loadAllTaskDetails, 1000);
+    // Load task details for all matches after a short delay
+    setTimeout(loadAllTaskDetails, 1000);
 
-        // With background cache, we can refresh less frequently
-        // Refresh task details every 60 seconds (cache updates every 3 minutes)
-        setInterval(loadAllTaskDetails, 60000);
+    // With background cache, we can refresh less frequently
+    // Refresh task details every 60 seconds (cache updates every 3 minutes)
+    setInterval(loadAllTaskDetails, 60000);
 
-        // Auto-refresh every 60 seconds
-        setInterval(refreshStatuses, 60000);
+    // Auto-refresh every 60 seconds
+    setInterval(refreshStatuses, 60000);
 
-        // Handle historical matches toggle
-        const historicalToggle = document.getElementById('historicalMatches');
-        const historicalToggleIcon = document.getElementById('historicalToggleIcon');
+    // Handle historical matches toggle
+    const historicalToggle = document.getElementById('historicalMatches');
+    const historicalToggleIcon = document.getElementById('historicalToggleIcon');
 
-        if (historicalToggle && historicalToggleIcon) {
-            historicalToggle.addEventListener('show.bs.collapse', function () {
-                historicalToggleIcon.classList.remove('ti-chevron-down');
-                historicalToggleIcon.classList.add('ti-chevron-up');
+    if (historicalToggle && historicalToggleIcon) {
+        historicalToggle.addEventListener('show.bs.collapse', function () {
+            historicalToggleIcon.classList.remove('ti-chevron-down');
+            historicalToggleIcon.classList.add('ti-chevron-up');
 
-                // Load task details for historical matches when expanded
-                setTimeout(() => {
-                    document.querySelectorAll('[data-match-type="historical"][data-match-id]').forEach(card => {
-                        const matchId = card.dataset.matchId;
-                        if (matchId) {
-                            window.loadMatchTaskDetails(matchId);
-                        }
-                    });
-                }, 100);
-            });
+            // Load task details for historical matches when expanded
+            setTimeout(() => {
+                document.querySelectorAll('[data-match-type="historical"][data-match-id]').forEach(card => {
+                    const matchId = card.dataset.matchId;
+                    if (matchId) {
+                        loadMatchTaskDetails(matchId);
+                    }
+                });
+            }, 100);
+        });
 
-            historicalToggle.addEventListener('hide.bs.collapse', function () {
-                historicalToggleIcon.classList.remove('ti-chevron-up');
-                historicalToggleIcon.classList.add('ti-chevron-down');
-            });
-        }
+        historicalToggle.addEventListener('hide.bs.collapse', function () {
+            historicalToggleIcon.classList.remove('ti-chevron-up');
+            historicalToggleIcon.classList.add('ti-chevron-down');
+        });
     }
+}
 
 // Show cache status
 export function showCacheStatus() {
@@ -1116,7 +1110,7 @@ export function showCacheStatus() {
                                     </div>
                                     <div class="alert alert-info">
                                         <i class="ti ti-info-circle me-2"></i>
-                                        Cache is updated automatically every 3 minutes by background tasks. 
+                                        Cache is updated automatically every 3 minutes by background tasks.
                                         High coverage and health scores indicate optimal performance.
                                     </div>
                                 </div>
@@ -1127,24 +1121,24 @@ export function showCacheStatus() {
                         </div>
                     </div>
                 `;
-                
+
                 // Remove existing modal if present
                 const existingModal = document.getElementById('cacheStatusModal');
                 if (existingModal) {
                     existingModal.remove();
                 }
-                
+
                 // Add modal to body
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
-                
+
                 // Show modal
                 ModalManager.show('cacheStatusModal');
-                
+
                 // Clean up when modal is hidden
                 document.getElementById('cacheStatusModal').addEventListener('hidden.bs.modal', function () {
                     this.remove();
                 });
-                
+
             } else {
                 alert('Failed to load cache status: ' + data.error);
             }
@@ -1155,102 +1149,64 @@ export function showCacheStatus() {
         });
 }
 
-    // Export functions for template compatibility
-    window.refreshStatuses = refreshStatuses;
-    window.loadMatchTaskDetails = loadMatchTaskDetails;
-    window.loadAllTaskDetails = loadAllTaskDetails;
-    window.revokeTask = revokeTask;
-    window.rescheduleTask = rescheduleTask;
-    window.showTaskInfo = showTaskInfo;
-    window.matchMgmtScheduleMatch = matchMgmtScheduleMatch;
-    window.createThreadNow = createThreadNow;
-    window.startLiveReporting = startLiveReporting;
-    window.stopLiveReporting = stopLiveReporting;
-    window.showTaskDetails = showTaskDetails;
-    window.addMatchByDate = addMatchByDate;
-    window.scheduleAllMatches = scheduleAllMatches;
-    window.fetchAllFromESPN = fetchAllFromESPN;
-    window.clearAllMatches = clearAllMatches;
-    window.matchMgmtEditMatch = matchMgmtEditMatch;
-    window.removeMatch = removeMatch;
-    window.matchMgmtShowQueueStatus = matchMgmtShowQueueStatus;
-    window.refreshQueueStatus = refreshQueueStatus;
-    window.debugMatchTasks = debugMatchTasks;
-    window.forceScheduleMatch = forceScheduleMatch;
-    window.showCacheStatus = showCacheStatus;
+// Export functions for template compatibility
+window.refreshStatuses = refreshStatuses;
+window.loadMatchTaskDetails = loadMatchTaskDetails;
+window.loadAllTaskDetails = loadAllTaskDetails;
+window.revokeTask = revokeTask;
+window.rescheduleTask = rescheduleTask;
+window.showTaskInfo = showTaskInfo;
+window.matchMgmtScheduleMatch = matchMgmtScheduleMatch;
+window.createThreadNow = createThreadNow;
+window.startLiveReporting = startLiveReporting;
+window.stopLiveReporting = stopLiveReporting;
+window.showTaskDetails = showTaskDetails;
+window.addMatchByDate = addMatchByDate;
+window.scheduleAllMatches = scheduleAllMatches;
+window.fetchAllFromESPN = fetchAllFromESPN;
+window.clearAllMatches = clearAllMatches;
+window.matchMgmtEditMatch = matchMgmtEditMatch;
+window.removeMatch = removeMatch;
+window.matchMgmtShowQueueStatus = matchMgmtShowQueueStatus;
+window.refreshQueueStatus = refreshQueueStatus;
+window.debugMatchTasks = debugMatchTasks;
+window.forceScheduleMatch = forceScheduleMatch;
+window.showCacheStatus = showCacheStatus;
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('match-management', init, {
-            priority: 40,
-            reinitializable: false,
-            description: 'Match management admin page'
-        });
-    }
+// Register with InitSystem (primary)
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('match-management', init, {
+        priority: 40,
+        reinitializable: false,
+        description: 'Match management admin page'
+    });
+}
 
-    // Fallback
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
 
 // Backward compatibility
 window.initializeCSRFToken = initializeCSRFToken;
-
-// Backward compatibility
 window.updateMatchRow = updateMatchRow;
-
-// Backward compatibility
 window.updateMatchTaskDetails = updateMatchTaskDetails;
-
-// Backward compatibility
 window.createTaskCard = createTaskCard;
-
-// Backward compatibility
 window.createNoTaskCard = createNoTaskCard;
-
-// Backward compatibility
 window.showTaskError = showTaskError;
-
-// Backward compatibility
 window.getStatusColor = getStatusColor;
-
-// Backward compatibility
 window.getStatusIcon = getStatusIcon;
-
-// Backward compatibility
 window.formatDuration = formatDuration;
-
-// Backward compatibility
 window.formatTaskETA = formatTaskETA;
-
-// Backward compatibility
 window.formatTTL = formatTTL;
-
-// Backward compatibility
 window.formatScheduledTime = formatScheduledTime;
-
-// Backward compatibility
 window.formatScheduledTimes = formatScheduledTimes;
-
-// Backward compatibility
 window.getScheduleStatusColor = getScheduleStatusColor;
-
-// Backward compatibility
 window.getScheduleStatusIcon = getScheduleStatusIcon;
-
-// Backward compatibility
 window.getStatusDisplay = getStatusDisplay;
-
-// Backward compatibility
 window.getTaskStatusColor = getTaskStatusColor;
-
-// Backward compatibility
 window.displayQueueStatus = displayQueueStatus;
-
-// Backward compatibility
 window.showDebugModal = showDebugModal;
-
-// Backward compatibility
 window.init = init;

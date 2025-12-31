@@ -116,15 +116,10 @@
         flex-shrink: 0 !important;
     }
     </style>
-    {# ========================================================================
-       DEPRECATED: Flask-Assets CSS Production Mode
-       Disabled 2024-12-29 - Now using Vite for all production builds
-       ========================================================================
-    {% elif config.get('ASSETS_PRODUCTION_MODE') %}
-    <!-- FLASK-ASSETS PRODUCTION MODE: Single Bundle -->
-    {% assets "production_css" %}
-        <link rel="stylesheet" href="{{ ASSET_URL }}" />
-    {% endassets %}
+
+    {% elif vite_dev_mode is defined and vite_dev_mode() %}
+    <!-- VITE DEV MODE: CSS served by Vite dev server (npm run dev) -->
+    {{ vite_asset('css/main-entry.css') }}
 
     <!-- Critical navbar layout fix (prevents Bootstrap flex-wrap override) -->
     <style id="navbar-layout-fix">
@@ -144,9 +139,9 @@
         flex-shrink: 0 !important;
     }
     </style>
-    #}
+
     {% else %}
-    <!-- DEVELOPMENT MODE: Modular Bundles -->
+    <!-- FLASK-ASSETS DEVELOPMENT MODE: Modular Bundles (legacy fallback) -->
 
     <!-- 1. CORE TOKENS (CRITICAL - Load first)
          Design system foundation: CSS variables for colors, spacing, typography
@@ -156,7 +151,7 @@
     {% endassets %}
     {% endif %}
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- 3. FOUNDATION (Bootstrap + ECS Core)
          Base framework styles: Bootstrap 5.3.3 + vendor overrides
          Establishes grid, typography, form controls, and base components -->
@@ -177,9 +172,7 @@
     {% assets "utilities_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
-    {% endif %}
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
     <!-- 6. LAYOUT & MOBILE (Responsive Structure) -->
     {% assets "layout_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
@@ -218,8 +211,7 @@
     <!-- Shepherd.js - Guided tours (loaded in all modes - not in Vite bundle) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.css') }}">
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- 7. FEATURES (Feature-Specific Styles)
          Feature-specific CSS: draft, pitch view, profiles, playoffs, etc.
          Commonly used features across the application -->
@@ -406,7 +398,7 @@
         });
     </script>
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- Minimal Helpers (replaces Sneat helpers.js - NO layout manipulation) -->
     <script src="{{ url_for('static', filename='js/helpers-minimal.js') }}"></script>
     <!-- Simple theme switcher (replaces TemplateCustomizer) -->
@@ -419,7 +411,7 @@
     <!-- CSRF Token for Forms -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- Flatpickr JavaScript (DEV only - bundled in Vite production) -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     {% endif %}
@@ -506,7 +498,22 @@
     <!-- / Layout wrapper -->
 
     <!-- ============================================
-         JAVASCRIPT LOADING: Vite vs Flask-Assets vs Development
+         JAVASCRIPT LOADING: Vite Production vs Vite Dev vs Flask-Assets
+         ============================================
+
+         Loading Modes:
+         1. VITE PRODUCTION: Bundled, minified assets from vite-dist/
+            - Triggered when: vite_production_mode() = True
+            - Use case: Production deployment
+
+         2. VITE DEV SERVER: ES modules served by `npm run dev`
+            - Triggered when: vite_dev_mode() = True (FLASK_DEBUG or VITE_DEV_MODE=True)
+            - Use case: Active development with HMR
+            - Requires: npm run dev running on localhost:5173
+
+         3. FLASK-ASSETS DEV: Individual script tags (legacy fallback)
+            - Triggered when: Neither Vite mode active
+            - Use case: Development without Vite dev server
          ============================================ -->
 
     {% if vite_production_mode is defined and vite_production_mode() %}
@@ -515,19 +522,20 @@
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     {{ vite_asset('js/main-entry.js') }}
-    {# ========================================================================
-       DEPRECATED: Flask-Assets Production Mode
-       Disabled 2024-12-29 - Now using Vite for all production builds
-       To re-enable if needed, uncomment the block below and remove this comment
-       ========================================================================
-    {% elif config.get('ASSETS_PRODUCTION_MODE') %}
-    <!-- FLASK-ASSETS PRODUCTION MODE: Single minified bundle -->
-    {% assets "production_js" %}
-        <script src="{{ ASSET_URL }}"></script>
-    {% endassets %}
-    #}
+
+    {% elif vite_dev_mode is defined and vite_dev_mode() %}
+    <!-- VITE DEV MODE: ES Modules served by Vite dev server (npm run dev) -->
+    <!-- CDN dependencies (not bundled by Vite) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Vite HMR client + main entry (ES modules) -->
+    {{ vite_asset('js/main-entry.js') }}
+
     {% else %}
-    <!-- DEVELOPMENT MODE: Individual files -->
+    <!-- FLASK-ASSETS DEVELOPMENT MODE: Individual files (legacy fallback) -->
+    <!-- Use this mode when Vite dev server is not running -->
     <!-- CSRF Token Auto-Injection for Fetch Requests -->
     <script src="{{ url_for('static', filename='js/csrf-fetch.js') }}"></script>
     <!-- Core JS -->
@@ -583,7 +591,7 @@
     <!-- Config - Defines templateName global (required by main.js) -->
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
     {% endif %}
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- DISABLED: waves-css-override.js - Waves.Effect is not exposed in node-waves API -->
     {# <script src="{{ url_for('static', filename='custom_js/waves-css-override.js') }}"></script> #}
 
@@ -601,12 +609,12 @@
     <script src="{{ url_for('static', filename='js/profile-verification.js') }}"></script>
     {% endif %}
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- SweetAlert2 for nice notifications (DEV only - bundled in Vite production) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     {% endif %}
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- SweetAlert Contextual Helper - Smart button text based on action type -->
     <script src="{{ url_for('static', filename='js/swal-contextual.js') }}"></script>
     {% endif %}
@@ -649,7 +657,7 @@
         });
     </script>
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- Unified Responsive System JS - replacing all previous mobile helpers -->
     <script src="{{ url_for('static', filename='js/responsive-system.js') }}"></script>
 
@@ -768,17 +776,17 @@
 
     <!-- No JavaScript needed for z-index - CSS handles it! -->
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- Other JS files (only in development - bundled in production) -->
     <script src="{{ url_for('static', filename='assets/js/main.js') }}"></script>
     {% endif %}
 
     <!-- Select2 JS (development only - Vite bundle includes it in production) -->
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     {% endif %}
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- DEV ONLY: These are bundled in Vite production -->
     <!-- Cropper.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
@@ -793,7 +801,7 @@
     <!-- FullCalendar JS (NOT bundled - large calendar library) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.15/index.global.min.js"></script>
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- Shepherd.js for guided tours (bundled in production) -->
     <script src="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.js') }}"></script>
     {% endif %}
@@ -801,7 +809,7 @@
     <!-- Include Fancybox JS (NOT bundled - jQuery plugin) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.js"></script>
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- DataTables JS (DEV only - bundled in Vite production) -->
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.js"></script>
     {% endif %}
@@ -975,7 +983,7 @@
     {% block custom_js %}
     {% endblock %}
 
-    {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- Mobile menu fix for iOS and other mobile devices (bundled in production) -->
     <script src="{{ url_for('static', filename='custom_js/mobile-menu-fix.js') }}"></script>
 

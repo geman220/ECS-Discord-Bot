@@ -1,10 +1,9 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 
 /**
  * Onboarding Wizard Action Handlers
  * Handles new user onboarding flow
  */
-// Uses global EventDelegation from core.js
 
 // ONBOARDING WIZARD ACTIONS
 // ============================================================================
@@ -168,6 +167,89 @@ EventDelegation.register('onboarding-toggle-sms', function(element, e) {
         window.OnboardingWizard.handleSmsToggle(element);
     } else {
         console.error('[onboarding-toggle-sms] SMS toggle handler not available');
+    }
+});
+
+/**
+ * Toggle SMS Consent Section
+ * Shows/hides SMS verification workflow when consent checkbox changes
+ * Usage: <input data-action="toggle-sms-consent">
+ */
+EventDelegation.register('toggle-sms-consent', function(element, e) {
+    if (typeof window.toggleSmsConsent === 'function') {
+        window.toggleSmsConsent(element.checked);
+    } else {
+        // Fallback implementation
+        const smsOptInSection = document.getElementById('smsOptInSection');
+        if (smsOptInSection) {
+            smsOptInSection.classList.toggle('u-hidden', !element.checked);
+        }
+        // If unchecking, also hide verification section
+        if (!element.checked) {
+            const smsVerificationSection = document.getElementById('smsVerificationSection');
+            if (smsVerificationSection) {
+                smsVerificationSection.classList.add('u-hidden');
+            }
+        }
+    }
+});
+
+/**
+ * Toggle SMS Verification Section
+ * Shows/hides SMS verification workflow when consent checkbox changes
+ * Usage: <input data-action="toggle-sms-verification">
+ */
+EventDelegation.register('toggle-sms-verification', function(element, e) {
+    if (typeof window.toggleSmsVerification === 'function') {
+        window.toggleSmsVerification(element.checked);
+    } else {
+        // Fallback implementation
+        const smsVerificationSection = document.getElementById('smsVerificationSection');
+        if (smsVerificationSection) {
+            smsVerificationSection.classList.toggle('u-hidden', !element.checked);
+        }
+    }
+});
+
+/**
+ * Send SMS Verification Code
+ * Sends a verification code to the user's phone
+ * Usage: <button data-action="send-code">
+ */
+EventDelegation.register('send-code', function(element, e) {
+    e.preventDefault();
+    if (typeof window.sendVerificationCode === 'function') {
+        window.sendVerificationCode();
+    } else {
+        console.error('[send-code] sendVerificationCode function not available');
+    }
+});
+
+/**
+ * Resend SMS Verification Code
+ * Resends a verification code to the user's phone
+ * Usage: <button data-action="resend-code">
+ */
+EventDelegation.register('resend-code', function(element, e) {
+    e.preventDefault();
+    if (typeof window.sendVerificationCode === 'function') {
+        window.sendVerificationCode();
+    } else {
+        console.error('[resend-code] sendVerificationCode function not available');
+    }
+});
+
+/**
+ * Verify SMS Code
+ * Verifies the entered SMS code
+ * Usage: <button data-action="verify-code">
+ */
+EventDelegation.register('verify-code', function(element, e) {
+    e.preventDefault();
+    if (typeof window.verifyCode === 'function') {
+        window.verifyCode();
+    } else {
+        console.error('[verify-code] verifyCode function not available');
     }
 });
 

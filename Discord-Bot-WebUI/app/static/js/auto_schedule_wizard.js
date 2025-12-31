@@ -1,4 +1,5 @@
 import { ModalManager } from './modal-manager.js';
+import { InitSystem } from './init-system.js';
 
 /**
  * Auto Schedule Wizard JavaScript
@@ -2307,11 +2308,17 @@ export function getEnabledSpecialWeeksCount() {
  */
 
 // Initialize on page load if needed
+let _initialized = false;
+
 export function initAutoScheduleWizard() {
     // Page guard - only run on auto schedule wizard page
     if (!document.getElementById('totalSeasonWeeks')) {
         return; // Not on auto schedule wizard page
     }
+
+    // Guard against multiple initialization
+    if (_initialized) return;
+    _initialized = true;
 
     // Initialize field remove button states
     updateWizardFieldRemoveButtons();
@@ -2321,10 +2328,17 @@ export function initAutoScheduleWizard() {
     updateWizardPracticeWeekOptions();
 }
 
+// Register with InitSystem
+InitSystem.register('auto-schedule-wizard', initAutoScheduleWizard, {
+    priority: 30,
+    reinitializable: false,
+    description: 'Auto schedule wizard functionality'
+});
+
+// Fallback for non-bundled usage
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAutoScheduleWizard);
 } else {
-    // DOM already loaded
     initAutoScheduleWizard();
 }
 

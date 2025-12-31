@@ -1,5 +1,4 @@
-import { InitSystem } from './init-system.js';
-import { EventDelegation } from './event-delegation/core.js';
+'use strict';
 
 /**
  * Simple Theme Switcher - Replaces TemplateCustomizer
@@ -11,6 +10,9 @@ import { EventDelegation } from './event-delegation/core.js';
  * @version 1.1.0
  * @updated 2025-12-26 - Refactored to use EventDelegation
  */
+
+import { InitSystem } from './init-system.js';
+import { EventDelegation } from './event-delegation/core.js';
 
 export class SimpleThemeSwitcher {
   constructor() {
@@ -349,7 +351,7 @@ export class SimpleThemeSwitcher {
 // Initialize theme switcher
 function initThemeSwitcher() {
   // Create global instance
-  window.themeSwitcher = new window.SimpleThemeSwitcher();
+  window.themeSwitcher = new SimpleThemeSwitcher();
 
   // Check if theme sync is needed (set by early script)
   if (window._themeNeedsSync) {
@@ -381,14 +383,12 @@ function initThemeSwitcher() {
   // No need to call setTheme() - theme is already applied correctly
 }
 
-// Register with InitSystem (primary)
-if (true && InitSystem.register) {
-  InitSystem.register('simple-theme-switcher', initThemeSwitcher, {
-    priority: 75,
-    reinitializable: false,
-    description: 'Theme switcher (light/dark mode)'
-  });
-}
+// Register with InitSystem
+InitSystem.register('simple-theme-switcher', initThemeSwitcher, {
+  priority: 75,
+  reinitializable: false,
+  description: 'Theme switcher (light/dark mode)'
+});
 
 // Fallback: Initialize when DOM is ready
 if (document.readyState === 'loading') {
@@ -397,7 +397,7 @@ if (document.readyState === 'loading') {
   initThemeSwitcher();
 }
 
-// Expose for debugging
+// Backward compatibility
 window.SimpleThemeSwitcher = SimpleThemeSwitcher;
 
 // ============================================================================

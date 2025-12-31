@@ -16,7 +16,7 @@
 /**
    * Haptics controller with various vibration patterns
    */
-  const Haptics = {
+export const Haptics = {
     /**
      * Check if Vibration API is supported
      * @returns {boolean}

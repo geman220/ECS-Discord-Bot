@@ -28,8 +28,35 @@
  * Previous Line Count: 282 lines
  * New Line Count: ~30 lines (documentation only)
  */
+// ES Module
+'use strict';
+
+import { InitSystem } from '../js/init-system.js';
 
 // This file intentionally left minimal - all functionality moved to event delegation system
 // No initialization required - EventDelegation.init() is called automatically
 
-console.log('[admin-discord-management] Loaded - using event delegation system');
+function init() {
+    console.log('[admin-discord-management] Loaded - using event delegation system');
+}
+
+export { init };
+
+// Register with InitSystem
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('admin-discord-management', init, {
+        priority: 30,
+        reinitializable: true,
+        description: 'Admin Discord management (event delegation)'
+    });
+}
+
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+// Backward compatibility
+window.adminDiscordManagementInit = init;

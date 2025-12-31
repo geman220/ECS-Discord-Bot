@@ -1,25 +1,21 @@
 /**
- * MIGRATED TO CENTRALIZED INIT SYSTEM
- * ====================================
+ * Waitlist Register Focus Handler
+ * Auto-focuses Discord registration button and shows membership prompts
  *
- * This component is now registered in /app/static/js/app-init-registration.js
- * using InitSystem with priority 20.
- *
- * Original DOMContentLoaded logic has been moved to centralized registration.
- * This file is kept for reference but the init logic is no longer executed here.
- *
+ * This component is registered in InitSystem via app-init-registration.js
  * Component Name: waitlist-register-focus
  * Priority: 20 (Enhancements)
- * Reinitializable: false
- * Description: Auto-focus Discord registration button and show membership prompts
- *
- * Phase 2.4 - Batch 1 Migration
- * Migrated: 2025-12-16
  */
+'use strict';
 
-/*
-// ORIGINAL CODE - NOW REGISTERED WITH InitSystem
-document.addEventListener('DOMContentLoaded', function() {
+import { InitSystem } from '../js/init-system.js';
+
+let _initialized = false;
+
+export function init() {
+    if (_initialized) return;
+    _initialized = true;
+
     // Auto-focus on Discord registration button
     const discordBtn = document.querySelector('a[href*="waitlist_discord_register"]');
     if (discordBtn) {
@@ -31,11 +27,29 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof window.DiscordMembershipChecker !== 'undefined') {
         setTimeout(() => {
             window.DiscordMembershipChecker.showJoinPrompt({
-                title: '💡 Pro Tip: Join Discord First!',
+                title: 'Pro Tip: Join Discord First!',
                 urgency: 'info',
                 showUrgentPopup: true
             });
         }, 2000); // Show after 2 seconds
     }
-});
-*/
+}
+
+// Register with InitSystem (primary)
+if (InitSystem.register) {
+    InitSystem.register('waitlist-register-focus', init, {
+        priority: 20,
+        reinitializable: false,
+        description: 'Waitlist register focus and Discord prompt'
+    });
+}
+
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+// Backward compatibility
+window.init = init;

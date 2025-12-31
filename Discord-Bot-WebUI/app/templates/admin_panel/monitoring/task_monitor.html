@@ -150,17 +150,20 @@
                                             <button class="c-btn c-btn--outline-info"
                                                     data-action="view-task-details"
                                                     data-task-id="{{ task.id }}"
-                                                    data-task-name="{{ task.name }}" aria-label="View"><i class="ti ti-eye"></i></button>
+                                                    data-task-name="{{ task.name }}"
+                                                    data-task-details-url="{{ url_for('admin_panel.get_task_details') }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                             {% if task.status in ['running', 'queued'] %}
                                             <button class="c-btn c-btn--outline-danger"
                                                     data-action="cancel-task"
                                                     data-task-id="{{ task.id }}"
-                                                    data-task-name="{{ task.name }}" aria-label="Button"><i class="ti ti-x"></i></button>
+                                                    data-task-name="{{ task.name }}"
+                                                    data-cancel-url="{{ url_for('admin_panel.cancel_task') }}" aria-label="Button"><i class="ti ti-x"></i></button>
                                             {% endif %}
                                             <button class="c-btn c-btn--outline-secondary"
                                                     data-action="view-task-logs"
                                                     data-task-id="{{ task.id }}"
-                                                    data-task-name="{{ task.name }}" aria-label="File"><i class="ti ti-file-text"></i></button>
+                                                    data-task-name="{{ task.name }}"
+                                                    data-task-logs-url="{{ url_for('admin_panel.get_task_logs') }}" aria-label="File"><i class="ti ti-file-text"></i></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -394,132 +397,5 @@
 
 {% block custom_js %}
 {{ super() }}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Event delegation for all task monitor actions
-    document.addEventListener('click', function(e) {
-        const target = e.target.closest('[data-action]');
-        if (!target) return;
-
-        const action = target.dataset.action;
-        const taskId = target.dataset.taskId;
-        const taskName = target.dataset.taskName;
-
-        switch(action) {
-            case 'refresh-tasks':
-                refreshTasks(target);
-                break;
-            case 'view-task-details':
-                viewTaskDetails(taskId, taskName);
-                break;
-            case 'view-task-logs':
-                viewTaskLogs(taskId, taskName);
-                break;
-            case 'cancel-task':
-                cancelTask(taskId, taskName);
-                break;
-        }
-    });
-});
-
-function refreshTasks(button) {
-    // Show loading state
-    const originalText = button.innerHTML;
-    button.innerHTML = '<i class="ti ti-loader me-1"></i>Refreshing...';
-    button.disabled = true;
-
-    // Simulate refresh (in real implementation, this would be an AJAX call)
-    setTimeout(() => {
-        window.location.reload();
-    }, 1000);
-}
-
-function viewTaskDetails(taskId, taskName) {
-    document.getElementById('task_details_title').textContent = `Details for ${taskName}`;
-    document.getElementById('task_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
-
-    ModalManager.show('taskDetailsModal');
-    
-    // Load task details via AJAX
-    fetch(`{{ url_for('admin_panel.get_task_details') }}?task_id=${taskId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('task_details_content').innerHTML = data.html;
-            } else {
-                document.getElementById('task_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading task details</div>';
-            }
-        })
-        .catch(error => {
-            document.getElementById('task_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading task details</div>';
-        });
-}
-
-function viewTaskLogs(taskId, taskName) {
-    document.getElementById('task_logs_title').textContent = `Logs for ${taskName}`;
-    document.getElementById('task_logs_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
-
-    ModalManager.show('taskLogsModal');
-    
-    // Load task logs via AJAX
-    fetch(`{{ url_for('admin_panel.get_task_logs') }}?task_id=${taskId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('task_logs_content').innerHTML = `<pre class="bg-dark text-light p-3 rounded">${data.logs}</pre>`;
-            } else {
-                document.getElementById('task_logs_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading task logs</div>';
-            }
-        })
-        .catch(error => {
-            document.getElementById('task_logs_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading task logs</div>';
-        });
-}
-
-function cancelTask(taskId, taskName) {
-    Swal.fire({
-        title: 'Cancel Task?',
-        text: `Cancel the running task "${taskName}"? This action cannot be undone.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-        confirmButtonText: 'Yes, cancel it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Create form and submit
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ url_for("admin_panel.cancel_task") }}';
-            
-            const _csrfToken = document.createElement('input');
-            _csrfToken.type = 'hidden';
-            _csrfToken.name = 'csrf_token';
-            _csrfToken.value = '{{ csrf_token() }}';
-            
-            const taskIdInput = document.createElement('input');
-            taskIdInput.type = 'hidden';
-            taskIdInput.name = 'task_id';
-            taskIdInput.value = taskId;
-            
-            form.appendChild(_csrfToken);
-            form.appendChild(taskIdInput);
-            document.body.appendChild(form);
-            form.submit();
-        }
-    });
-}
-
-// Auto-refresh every 10 seconds
-setInterval(() => {
-    // Add subtle visual indicator for auto-refresh
-    const activeTasksTable = document.querySelector('.table-responsive table');
-    if (activeTasksTable) {
-        activeTasksTable.style.opacity = '0.8';
-        setTimeout(() => {
-            activeTasksTable.style.opacity = '1';
-        }, 200);
-    }
-}, 10000);
-</script>
+{# Event handlers managed by monitoring-handlers.js via EventDelegation #}
 {% endblock %}

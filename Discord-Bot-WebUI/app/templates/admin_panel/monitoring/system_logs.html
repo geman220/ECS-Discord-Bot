@@ -141,16 +141,16 @@
                         <small class="text-muted">Showing {{ logs|length }} log entries</small>
                     </div>
                     <div class="btn-group">
-                        <button class="c-btn c-btn--outline-primary js-refresh-logs" data-action="refresh-logs">
+                        <button class="c-btn c-btn--outline-primary" data-action="refresh-logs">
                             <i class="ti ti-refresh me-1"></i>Refresh
                         </button>
-                        <button class="c-btn c-btn--outline-info js-export-logs" data-action="export-logs">
+                        <button class="c-btn c-btn--outline-info" data-action="export-logs">
                             <i class="ti ti-download me-1"></i>Export
                         </button>
-                        <button class="c-btn c-btn--outline-warning js-clear-old-logs" data-action="clear-old-logs">
+                        <button class="c-btn c-btn--outline-warning" data-action="clear-old-logs">
                             <i class="ti ti-trash me-1"></i>Clear Old
                         </button>
-                        <button class="c-btn c-btn--outline-success js-start-tail" data-action="start-tail">
+                        <button class="c-btn c-btn--outline-success" data-action="start-tail">
                             <i class="ti ti-eye me-1"></i>Live Tail
                         </button>
                     </div>
@@ -213,7 +213,7 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <button class="c-btn c-btn--sm c-btn--outline-info js-view-log-details" data-action="view-log-details" data-log-id="{{ log.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
+                                    <button class="c-btn c-btn--sm c-btn--outline-info" data-action="view-log-details" data-log-id="{{ log.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -225,7 +225,7 @@
                 <div id="liveTailArea" class="p-3 bg-dark text-light font-monospace u-hidden u-h-300 u-overflow-y-auto">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <small class="text-success">● Live tail active</small>
-                        <button class="c-btn c-btn--sm c-btn--outline-light js-stop-tail" data-action="stop-tail">Stop</button>
+                        <button class="c-btn c-btn--sm c-btn--outline-light" data-action="stop-tail">Stop</button>
                     </div>
                     <div id="liveTailContent"></div>
                 </div>
@@ -278,136 +278,5 @@
 
 {% block custom_js %}
 {{ super() }}
-<script>
-let liveTailActive = false;
-let liveTailInterval = null;
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Refresh logs button
-    document.querySelectorAll('.js-refresh-logs').forEach(btn => {
-        btn.addEventListener('click', function() {
-            refreshLogs();
-        });
-    });
-
-    // Export logs button
-    document.querySelectorAll('.js-export-logs').forEach(btn => {
-        btn.addEventListener('click', function() {
-            exportLogs();
-        });
-    });
-
-    // Clear old logs button
-    document.querySelectorAll('.js-clear-old-logs').forEach(btn => {
-        btn.addEventListener('click', function() {
-            clearOldLogs();
-        });
-    });
-
-    // Start tail button
-    document.querySelectorAll('.js-start-tail').forEach(btn => {
-        btn.addEventListener('click', function() {
-            startTail();
-        });
-    });
-
-    // Stop tail button
-    document.querySelectorAll('.js-stop-tail').forEach(btn => {
-        btn.addEventListener('click', function() {
-            stopTail();
-        });
-    });
-
-    // View log details buttons
-    document.querySelectorAll('.js-view-log-details').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const logId = this.dataset.logId;
-            viewLogDetails(logId);
-        });
-    });
-});
-
-function refreshLogs() {
-    location.reload();
-}
-
-function exportLogs() {
-    const params = new URLSearchParams(window.location.search);
-    params.set('export', 'true');
-    window.open(`${window.location.pathname}?${params.toString()}`, '_blank');
-}
-
-function clearOldLogs() {
-    Swal.fire({
-        title: 'Clear Old Logs?',
-        text: 'This will delete log entries older than 30 days',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Clear Old Logs'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Implement old log clearing
-            Swal.fire('Logs Cleared!', 'Old log entries have been removed.', 'success');
-        }
-    });
-}
-
-function startTail() {
-    if (liveTailActive) return;
-
-    liveTailActive = true;
-    document.getElementById('liveTailArea').classList.remove('u-hidden');
-
-    // Simulate live tail
-    liveTailInterval = setInterval(() => {
-        const tailContent = document.getElementById('liveTailContent');
-        const timestamp = new Date().toISOString();
-        tailContent.innerHTML += `${timestamp} [INFO] Live log entry example\n`;
-        tailContent.scrollTop = tailContent.scrollHeight;
-    }, 2000);
-}
-
-function stopTail() {
-    liveTailActive = false;
-    if (liveTailInterval) {
-        clearInterval(liveTailInterval);
-        liveTailInterval = null;
-    }
-    document.getElementById('liveTailArea').classList.add('u-hidden');
-}
-
-function viewLogDetails(logId) {
-    // Make AJAX request to get log details
-    Swal.fire({
-        title: 'Log Entry Details',
-        html: `
-            <div class="text-start">
-                <div class="mb-3">
-                    <strong>Timestamp:</strong> 2024-01-31 12:00:00<br>
-                    <strong>Level:</strong> <span class="badge bg-danger" data-badge>ERROR</span><br>
-                    <strong>Component:</strong> app.admin_panel<br>
-                    <strong>Thread:</strong> MainThread
-                </div>
-                <div class="mb-3">
-                    <strong>Message:</strong><br>
-                    <pre class="bg-light p-2 rounded">Sample error message with details about what went wrong in the system.</pre>
-                </div>
-                <div class="mb-3">
-                    <strong>Stack Trace:</strong><br>
-                    <pre class="bg-dark text-light p-2 rounded" class="u-max-h-200-scroll">
-Traceback (most recent call last):
-  File "app.py", line 123, in handle_request
-    result = process_data(data)
-  File "handlers.py", line 45, in process_data
-    return transform(data)
-Exception: Sample error occurred
-                    </pre>
-                </div>
-            </div>
-        `,
-        width: '800px',
-        confirmButtonText: 'Close'
-    });
-}
-</script>
+{# Event handlers managed by monitoring-handlers.js via EventDelegation #}
 {% endblock %}

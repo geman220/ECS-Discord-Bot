@@ -1,10 +1,9 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 
 /**
  * ECS FC Management Action Handlers
  * Handles match CRUD, opponent selection, CSV import for ECS FC teams
  */
-// Uses global EventDelegation from core.js
 
 // ECS FC MANAGEMENT ACTIONS
 // ============================================================================

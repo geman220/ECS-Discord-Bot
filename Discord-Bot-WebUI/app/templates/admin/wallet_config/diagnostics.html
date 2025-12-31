@@ -60,7 +60,7 @@
                     <a href="{{ url_for('wallet_admin.wallet_management') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-arrow-left me-1"></i> Back to Dashboard
                     </a>
-                    <button class="c-btn c-btn--outline-primary ms-2 js-print-report" data-action="print-page">
+                    <button class="c-btn c-btn--outline-primary ms-2" data-action="print-page">
                         <i class="ti ti-printer me-1"></i> Print Report
                     </button>
                 </div>
@@ -219,7 +219,7 @@
                                     </div>
                                     {% if diagnostics.database_checks['Pass Types'].ecs_type.exists %}
                                         <div class="c-card__body">
-                                            <div class="detail-toggle js-toggle-detail" data-action="toggle-detail" data-detail-id="ecs-details">
+                                            <div class="detail-toggle" data-action="toggle-detail" data-detail-id="ecs-details">
                                                 <i class="ti ti-chevron-down me-1"></i> View Details
                                             </div>
                                             <div id="ecs-details" class="detail-content d-none">
@@ -276,7 +276,7 @@
                                     </div>
                                     {% if diagnostics.database_checks['Pass Types'].pub_type.exists %}
                                         <div class="c-card__body">
-                                            <div class="detail-toggle js-toggle-detail" data-action="toggle-detail" data-detail-id="pub-details">
+                                            <div class="detail-toggle" data-action="toggle-detail" data-detail-id="pub-details">
                                                 <i class="ti ti-chevron-down me-1"></i> View Details
                                             </div>
                                             <div id="pub-details" class="detail-content d-none">
@@ -343,7 +343,7 @@
                             </div>
                             <div class="c-card__body">
                                 {% if diagnostics.database_checks['Certificates'].apple %}
-                                    <div class="detail-toggle js-toggle-detail" data-action="toggle-detail" data-detail-id="cert-details">
+                                    <div class="detail-toggle " data-action="toggle-detail" data-detail-id="cert-details">
                                         <i class="ti ti-chevron-down me-1"></i> View Certificate Details
                                     </div>
                                     <div id="cert-details" class="detail-content d-none">
@@ -409,7 +409,7 @@
                                     </div>
                                     <div class="c-card__body">
                                         {% if diagnostics.database_checks['Assets'].ecs_assets %}
-                                            <div class="detail-toggle js-toggle-detail" data-action="toggle-detail" data-detail-id="ecs-assets-details">
+                                            <div class="detail-toggle " data-action="toggle-detail" data-detail-id="ecs-assets-details">
                                                 <i class="ti ti-chevron-down me-1"></i> View Asset Details
                                             </div>
                                             <div id="ecs-assets-details" class="detail-content d-none">
@@ -462,7 +462,7 @@
                                     </div>
                                     <div class="c-card__body">
                                         {% if diagnostics.database_checks['Assets'].pub_assets %}
-                                            <div class="detail-toggle js-toggle-detail" data-action="toggle-detail" data-detail-id="pub-assets-details">
+                                            <div class="detail-toggle " data-action="toggle-detail" data-detail-id="pub-assets-details">
                                                 <i class="ti ti-chevron-down me-1"></i> View Asset Details
                                             </div>
                                             <div id="pub-assets-details" class="detail-content d-none">
@@ -526,7 +526,7 @@
                                     </div>
                                     <div class="c-card__body">
                                         {% if diagnostics.database_checks['Templates'].ecs_templates %}
-                                            <div class="detail-toggle js-toggle-detail" data-action="toggle-detail" data-detail-id="ecs-templates-list">
+                                            <div class="detail-toggle " data-action="toggle-detail" data-detail-id="ecs-templates-list">
                                                 <i class="ti ti-chevron-down me-1"></i> View Templates ({{ diagnostics.database_checks['Templates'].ecs_templates|length }})
                                             </div>
                                             <div id="ecs-templates-list" class="detail-content d-none">
@@ -589,7 +589,7 @@
                                     </div>
                                     <div class="c-card__body">
                                         {% if diagnostics.database_checks['Templates'].pub_templates %}
-                                            <div class="detail-toggle js-toggle-detail" data-action="toggle-detail" data-detail-id="pub-templates-list">
+                                            <div class="detail-toggle " data-action="toggle-detail" data-detail-id="pub-templates-list">
                                                 <i class="ti ti-chevron-down me-1"></i> View Templates ({{ diagnostics.database_checks['Templates'].pub_templates|length }})
                                             </div>
                                             <div id="pub-templates-list" class="detail-content d-none">
@@ -669,7 +669,7 @@
                             <h5>Reinitialize Pass Types</h5>
                             <p class="small mb-3">Recreate the basic pass type configuration if it's missing or corrupted.</p>
                             <div class="d-grid">
-                                <button class="c-btn c-btn--primary js-run-command" data-action="run-admin-command" data-command="flask wallet init_types">
+                                <button class="c-btn c-btn--primary" data-action="run-admin-command" data-command="flask wallet init_types">
                                     Run Command
                                 </button>
                             </div>

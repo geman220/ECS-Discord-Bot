@@ -136,16 +136,16 @@
                         <small class="text-muted">{{ device_tokens|length or 0 }} subscriptions shown</small>
                     </div>
                     <div class="btn-group">
-                        <button class="c-btn c-btn--outline-success js-bulk-activate" data-action="bulk-activate">
+                        <button class="c-btn c-btn--outline-success" data-action="bulk-activate">
                             <i class="ti ti-check me-1"></i>Bulk Activate
                         </button>
-                        <button class="c-btn c-btn--outline-warning js-bulk-deactivate" data-action="bulk-deactivate">
+                        <button class="c-btn c-btn--outline-warning" data-action="bulk-deactivate">
                             <i class="ti ti-x me-1"></i>Bulk Deactivate
                         </button>
-                        <button class="c-btn c-btn--outline-danger js-cleanup-inactive" data-action="cleanup-inactive">
+                        <button class="c-btn c-btn--outline-danger" data-action="cleanup-inactive">
                             <i class="ti ti-trash me-1"></i>Cleanup Inactive
                         </button>
-                        <button class="c-btn c-btn--outline-info js-export-subscriptions" data-action="export-subscriptions">
+                        <button class="c-btn c-btn--outline-info" data-action="export-subscriptions">
                             <i class="ti ti-download me-1"></i>Export
                         </button>
                     </div>
@@ -209,7 +209,7 @@
                                 </td>
                                 <td>
                                     <code class="small">{{ token.token[:20] }}...{{ token.token[-10:] if token.token|length > 30 else token.token }}</code>
-                                    <button class="c-btn c-btn--sm c-btn--outline-secondary ms-1 js-copy-token" data-action="copy-token" data-token="{{ token.token }}" aria-label="Copy"><i class="ti ti-copy"></i></button>
+                                    <button class="c-btn c-btn--sm c-btn--outline-secondary ms-1" data-action="copy-token" data-token="{{ token.token }}" aria-label="Copy"><i class="ti ti-copy"></i></button>
                                 </td>
                                 <td>
                                     {% set platform = 'iOS' if 'iOS' in token.token or token.platform == 'iOS' else 'Android' %}
@@ -237,14 +237,14 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="c-btn c-btn--outline-info js-view-token" data-action="view-token" data-token-id="{{ token.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
-                                        <button class="c-btn c-btn--outline-primary js-test-notification" data-action="test-notification" data-token-id="{{ token.id }}" aria-label="Send"><i class="ti ti-send"></i></button>
+                                        <button class="c-btn c-btn--outline-info" data-action="view-token" data-token-id="{{ token.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
+                                        <button class="c-btn c-btn--outline-primary" data-action="test-notification" data-token-id="{{ token.id }}" aria-label="Send"><i class="ti ti-send"></i></button>
                                         {% if token.is_active %}
-                                        <button class="c-btn c-btn--outline-warning js-deactivate-token" data-action="deactivate-token" data-token-id="{{ token.id }}" aria-label="Block"><i class="ti ti-ban"></i></button>
+                                        <button class="c-btn c-btn--outline-warning" data-action="deactivate-token" data-token-id="{{ token.id }}" data-deactivate-url="{{ url_for('admin_panel.deactivate_device_token') }}" aria-label="Block"><i class="ti ti-ban"></i></button>
                                         {% else %}
-                                        <button class="c-btn c-btn--outline-success js-activate-token" data-action="activate-token" data-token-id="{{ token.id }}" aria-label="Confirm"><i class="ti ti-check"></i></button>
+                                        <button class="c-btn c-btn--outline-success" data-action="activate-token" data-token-id="{{ token.id }}" aria-label="Confirm"><i class="ti ti-check"></i></button>
                                         {% endif %}
-                                        <button class="c-btn c-btn--outline-danger js-delete-token" data-action="delete-token" data-token-id="{{ token.id }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
+                                        <button class="c-btn c-btn--outline-danger" data-action="delete-token" data-token-id="{{ token.id }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -271,366 +271,29 @@
 
 {% block custom_js %}
 {{ super() }}
+{# Event handlers managed by mobile-features-handlers.js via EventDelegation #}
 <script>
-// Event delegation for action buttons
-document.addEventListener('DOMContentLoaded', function() {
-    // Select all functionality
-    document.getElementById('selectAll').addEventListener('change', function() {
-        const checkboxes = document.querySelectorAll('.token-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
-        });
-    });
+(function() {
+    'use strict';
 
-    // Bulk activate
-    document.querySelectorAll('.js-bulk-activate').forEach(btn => {
-        btn.addEventListener('click', function() {
-            bulkActivate();
-        });
-    });
+    // Register initialization with InitSystem
+    if (typeof InitSystem !== 'undefined') {
+        InitSystem.register('push-subscriptions', initPushSubscriptions);
+    } else {
+        document.addEventListener('DOMContentLoaded', initPushSubscriptions);
+    }
 
-    // Bulk deactivate
-    document.querySelectorAll('.js-bulk-deactivate').forEach(btn => {
-        btn.addEventListener('click', function() {
-            bulkDeactivate();
-        });
-    });
-
-    // Cleanup inactive
-    document.querySelectorAll('.js-cleanup-inactive').forEach(btn => {
-        btn.addEventListener('click', function() {
-            cleanupInactive();
-        });
-    });
-
-    // Export subscriptions
-    document.querySelectorAll('.js-export-subscriptions').forEach(btn => {
-        btn.addEventListener('click', function() {
-            exportSubscriptions();
-        });
-    });
-
-    // Copy token
-    document.querySelectorAll('.js-copy-token').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const token = this.dataset.token;
-            copyToken(token);
-        });
-    });
-
-    // View token details
-    document.querySelectorAll('.js-view-token').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tokenId = this.dataset.tokenId;
-            viewTokenDetails(tokenId);
-        });
-    });
-
-    // Test notification
-    document.querySelectorAll('.js-test-notification').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tokenId = this.dataset.tokenId;
-            testNotification(tokenId);
-        });
-    });
-
-    // Activate token
-    document.querySelectorAll('.js-activate-token').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tokenId = this.dataset.tokenId;
-            activateToken(tokenId);
-        });
-    });
-
-    // Deactivate token
-    document.querySelectorAll('.js-deactivate-token').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tokenId = this.dataset.tokenId;
-            deactivateToken(tokenId);
-        });
-    });
-
-    // Delete token
-    document.querySelectorAll('.js-delete-token').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tokenId = this.dataset.tokenId;
-            deleteToken(tokenId);
-        });
-    });
-});
-
-function viewTokenDetails(tokenId) {
-    Swal.fire({
-        title: `Device Token Details`,
-        html: `
-            <div class="text-start">
-                <div class="mb-3">
-                    <strong>Token ID:</strong> ${tokenId}<br>
-                    <strong>Platform:</strong> iOS<br>
-                    <strong>Status:</strong> <span class="badge bg-success" data-badge>Active</span><br>
-                    <strong>Created:</strong> 2024-01-15 10:30:00
-                </div>
-                <div class="mb-3">
-                    <strong>Device Information:</strong><br>
-                    • Device Model: iPhone 12 Pro<br>
-                    • OS Version: iOS 17.2<br>
-                    • App Version: 1.2.0<br>
-                    • Last Active: 2024-01-31 14:25:00
-                </div>
-                <div class="mb-3">
-                    <strong>Notification History:</strong><br>
-                    • Total Sent: 45 notifications<br>
-                    • Successfully Delivered: 43 (95.6%)<br>
-                    • Opened: 32 (71.1%)<br>
-                    • Last Notification: 2024-01-30 18:00:00
-                </div>
-                <div class="mb-3">
-                    <strong>Token String:</strong><br>
-                    <textarea class="form-control font-monospace small" rows="3" readonly data-form-control>a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2g3h4i5j6k7l8m9n0o1p2</textarea>
-                </div>
-            </div>
-        `,
-        width: '600px',
-        confirmButtonText: 'Close'
-    });
-}
-
-function testNotification(tokenId) {
-    Swal.fire({
-        title: 'Send Test Notification',
-        html: `
-            <div class="text-start">
-                <div class="mb-3">
-                    <label class="form-label">Test Message</label>
-                    <input type="text" class="form-control" id="testMessage" value="Test notification from admin panel" maxlength="160" data-form-control>
-                    <div class="form-text">
-                        <span id="testMessageCounter">37</span>/160 characters
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="testHighPriority">
-                        <label class="form-check-label" for="testHighPriority">
-                            High Priority Notification
-                        </label>
-                    </div>
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Send Test',
-        width: '400px',
-        preConfirm: () => {
-            const message = document.getElementById('testMessage').value;
-            if (!message.trim()) {
-                Swal.showValidationMessage('Please enter a test message');
-                return false;
-            }
-            return {
-                message: message,
-                highPriority: document.getElementById('testHighPriority').checked
-            };
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire('Test Sent!', 'Test notification has been sent to the device.', 'success');
-        }
-    });
-    
-    // Add character counter
-    setTimeout(() => {
-        const input = document.getElementById('testMessage');
-        const counter = document.getElementById('testMessageCounter');
-        
-        input.addEventListener('input', function() {
-            counter.textContent = this.value.length;
-            if (this.value.length > 160) {
-                counter.classList.add('text-danger');
-            } else {
-                counter.classList.remove('text-danger');
-            }
-        });
-    }, 100);
-}
-
-function copyToken(token) {
-    navigator.clipboard.writeText(token).then(() => {
-        Swal.fire({
-            icon: 'success',
-            title: 'Token Copied!',
-            text: 'Device token has been copied to clipboard',
-            showConfirmButton: false,
-            timer: 2000
-        });
-    }).catch(() => {
-        // Fallback for older browsers
-        const textarea = document.createElement('textarea');
-        textarea.value = token;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        
-        Swal.fire({
-            icon: 'success',
-            title: 'Token Copied!',
-            text: 'Device token has been copied to clipboard',
-            showConfirmButton: false,
-            timer: 2000
-        });
-    });
-}
-
-function activateToken(tokenId) {
-    Swal.fire({
-        title: 'Activate Token?',
-        text: 'This will enable push notifications for this device',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Activate'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Make API call to activate token
-            Swal.fire('Token Activated!', 'Push notifications enabled for this device.', 'success')
-                .then(() => location.reload());
-        }
-    });
-}
-
-function deactivateToken(tokenId) {
-    Swal.fire({
-        title: 'Deactivate Token?',
-        text: 'This will disable push notifications for this device',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Deactivate',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch('{{ url_for("admin_panel.deactivate_device_token") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `token_id=${tokenId}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Token Deactivated!', 'Push notifications disabled for this device.', 'success')
-                        .then(() => location.reload());
-                } else {
-                    Swal.fire('Error', data.message || 'Failed to deactivate token', 'error');
-                }
-            })
-            .catch(error => {
-                Swal.fire('Error', 'Failed to deactivate token', 'error');
+    function initPushSubscriptions() {
+        // Select all functionality
+        const selectAllEl = document.getElementById('push-subs-selectAll');
+        if (selectAllEl) {
+            selectAllEl.addEventListener('change', function() {
+                document.querySelectorAll('.token-checkbox').forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
             });
         }
-    });
-}
-
-function deleteToken(tokenId) {
-    Swal.fire({
-        title: 'Delete Token?',
-        text: 'This will permanently remove this device token. This action cannot be undone.',
-        icon: 'error',
-        showCancelButton: true,
-        confirmButtonText: 'Delete Token',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire('Token Deleted!', 'Device token has been permanently removed.', 'success')
-                .then(() => location.reload());
-        }
-    });
-}
-
-function bulkActivate() {
-    const selectedTokens = Array.from(document.querySelectorAll('.token-checkbox:checked')).map(cb => cb.value);
-    
-    if (selectedTokens.length === 0) {
-        Swal.fire('No Tokens Selected', 'Please select tokens to activate.', 'warning');
-        return;
     }
-    
-    Swal.fire({
-        title: `Activate ${selectedTokens.length} Tokens?`,
-        text: 'This will enable push notifications for all selected devices',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Activate All'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire('Tokens Activated!', `${selectedTokens.length} device tokens have been activated.`, 'success')
-                .then(() => location.reload());
-        }
-    });
-}
-
-function bulkDeactivate() {
-    const selectedTokens = Array.from(document.querySelectorAll('.token-checkbox:checked')).map(cb => cb.value);
-    
-    if (selectedTokens.length === 0) {
-        Swal.fire('No Tokens Selected', 'Please select tokens to deactivate.', 'warning');
-        return;
-    }
-    
-    Swal.fire({
-        title: `Deactivate ${selectedTokens.length} Tokens?`,
-        text: 'This will disable push notifications for all selected devices',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Deactivate All',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire('Tokens Deactivated!', `${selectedTokens.length} device tokens have been deactivated.`, 'success')
-                .then(() => location.reload());
-        }
-    });
-}
-
-function cleanupInactive() {
-    Swal.fire({
-        title: 'Cleanup Inactive Tokens?',
-        text: 'This will permanently remove tokens that have been inactive for 30+ days',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Cleanup Inactive',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Cleaning Up...',
-                text: 'Removing inactive device tokens',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                    setTimeout(() => {
-                        Swal.fire('Cleanup Complete!', '15 inactive tokens have been removed.', 'success')
-                            .then(() => location.reload());
-                    }, 2000);
-                }
-            });
-        }
-    });
-}
-
-function exportSubscriptions() {
-    const selectedTokens = Array.from(document.querySelectorAll('.token-checkbox:checked')).map(cb => cb.value);
-    
-    Swal.fire({
-        title: 'Export Subscriptions?',
-        text: selectedTokens.length > 0 ? `Export ${selectedTokens.length} selected subscriptions?` : 'Export all visible subscriptions?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Export Data'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire('Export Started!', 'Subscription data export is being prepared for download.', 'success');
-        }
-    });
-}
+})();
 </script>
 {% endblock %}

@@ -1,5 +1,3 @@
-import { InitSystem } from '../js/init-system.js';
-
 /**
  * ============================================================================
  * ECS FC Schedule Management
@@ -17,6 +15,7 @@ import { InitSystem } from '../js/init-system.js';
  *
  * ============================================================================
  */
+import { InitSystem } from '../js/init-system.js';
 
 // Guard against duplicate initialization (using window to prevent redeclaration errors if script loads twice)
 if (typeof window._ecsfcInitialized === 'undefined') {
@@ -308,12 +307,12 @@ export class ECSFCScheduleManager {
 
 // Initialize function for InitSystem
 export function initEcsfcSchedule() {
-    if (_ecsfcInitialized) return;
+    if (window._ecsfcInitialized) return;
     window.ecsfcScheduleManager = new ECSFCScheduleManager();
 }
 
 // Register with InitSystem (primary)
-if (true && InitSystem.register) {
+if (InitSystem && InitSystem.register) {
     InitSystem.register('ecsfc-schedule', initEcsfcSchedule, {
         priority: 40,
         reinitializable: false,
@@ -330,6 +329,4 @@ if (document.readyState === 'loading') {
 
 // Backward compatibility
 window.ECSFCScheduleManager = ECSFCScheduleManager;
-
-// Backward compatibility
 window.initEcsfcSchedule = initEcsfcSchedule;

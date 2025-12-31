@@ -364,230 +364,112 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+{# Event handlers managed by mobile-features-handlers.js via EventDelegation #}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Attach event listeners to action buttons
-document.addEventListener('DOMContentLoaded', function() {
-    // Apply dynamic widths from data attributes
-    document.querySelectorAll('[data-width]').forEach(el => {
-        el.style.width = el.dataset.width + '%';
-    });
+(function() {
+    'use strict';
 
-    const actionButtons = {
-        'emergency-kill-switch': emergencyKillSwitch,
-        'export-feature-config': exportFeatureConfig,
-        'save-feature-settings': saveFeatureSettings
-    };
+    // Register initialization with InitSystem
+    if (typeof InitSystem !== 'undefined') {
+        InitSystem.register('feature-toggles', initFeatureToggles);
+    } else {
+        document.addEventListener('DOMContentLoaded', initFeatureToggles);
+    }
 
-    document.querySelectorAll('[data-action]').forEach(button => {
-        const action = button.dataset.action;
-        if (actionButtons[action]) {
-            button.addEventListener('click', actionButtons[action]);
-        }
-    });
-});
+    function initFeatureToggles() {
+        // Apply dynamic widths from data attributes
+        document.querySelectorAll('[data-width]').forEach(el => {
+            el.style.width = el.dataset.width + '%';
+        });
 
-// Feature toggle handling
-document.querySelectorAll('input[data-feature]').forEach(toggle => {
-    toggle.addEventListener('change', function() {
-        const feature = this.dataset.feature;
-        const enabled = this.checked;
-        
-        // Confirm critical feature changes
-        if (['mobile_push_notifications', 'mobile_wallet_passes'].includes(feature) && !enabled) {
-            Swal.fire({
-                title: 'Disable Core Feature?',
-                text: 'This is a critical feature used by many users. Are you sure?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, Disable',
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    toggleFeature(feature, enabled);
+        // Feature toggle handling - this requires page-specific API call
+        document.querySelectorAll('input[data-feature]').forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const feature = this.dataset.feature;
+                const enabled = this.checked;
+
+                if (['mobile_push_notifications', 'mobile_wallet_passes'].includes(feature) && !enabled) {
+                    Swal.fire({
+                        title: 'Disable Core Feature?',
+                        text: 'This is a critical feature used by many users. Are you sure?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, Disable',
+                        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            toggleFeature(feature, enabled, this);
+                        } else {
+                            this.checked = true;
+                        }
+                    });
                 } else {
-                    this.checked = true; // Revert toggle
+                    toggleFeature(feature, enabled, this);
                 }
             });
-        } else {
-            toggleFeature(feature, enabled);
-        }
-    });
-});
+        });
 
-function toggleFeature(feature, enabled) {
-    // Show loading state
-    const toggle = document.querySelector(`input[data-feature="${feature}"]`);
-    const originalState = toggle.checked;
-    toggle.disabled = true;
-    
-    // Simulate API call
-    fetch('{{ url_for("admin_panel.toggle_mobile_setting") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() if csrf_token else "" }}'
-        },
-        body: JSON.stringify({
-            key: feature,
-            enabled: enabled
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Feature Updated!',
-                text: `${feature.replace('mobile_', '').replace('_', ' ')} has been ${enabled ? 'enabled' : 'disabled'}`,
-                showConfirmButton: false,
-                timer: 2000
+        // Initialize chart
+        const chartEl = document.getElementById('featureUsageChart');
+        if (chartEl) {
+            new Chart(chartEl.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Push Notifications', 'Wallet Passes', 'Camera Upload', 'Offline Sync', 'Biometric Auth', 'Location Services'],
+                    datasets: [{
+                        label: 'Active Users',
+                        data: [1250, 890, 654, 432, 321, 543],
+                        backgroundColor: ['rgba(40, 167, 69, 0.8)', 'rgba(0, 123, 255, 0.8)', 'rgba(255, 193, 7, 0.8)', 'rgba(220, 53, 69, 0.8)', 'rgba(108, 117, 125, 0.8)', 'rgba(23, 162, 184, 0.8)']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { display: false } }
+                }
             });
-        } else {
-            throw new Error(data.message || 'Failed to update feature');
-        }
-    })
-    .catch(error => {
-        console.error('Feature toggle error:', error);
-        toggle.checked = originalState; // Revert on error
-        Swal.fire('Error', 'Failed to update feature setting', 'error');
-    })
-    .finally(() => {
-        toggle.disabled = false;
-    });
-}
-
-// Feature Usage Chart
-const featureUsageCtx = document.getElementById('featureUsageChart').getContext('2d');
-const featureUsageChart = new Chart(featureUsageCtx, {
-    type: 'bar',
-    data: {
-        labels: ['Push Notifications', 'Wallet Passes', 'Camera Upload', 'Offline Sync', 'Biometric Auth', 'Location Services'],
-        datasets: [{
-            label: 'Active Users',
-            data: [1250, 890, 654, 432, 321, 543],
-            backgroundColor: [
-                'rgba(40, 167, 69, 0.8)',
-                'rgba(0, 123, 255, 0.8)',
-                'rgba(255, 193, 7, 0.8)',
-                'rgba(220, 53, 69, 0.8)',
-                'rgba(108, 117, 125, 0.8)',
-                'rgba(23, 162, 184, 0.8)'
-            ]
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            y: {
-                beginAtZero: true
-            }
-        },
-        plugins: {
-            legend: {
-                display: false
-            }
         }
     }
-});
 
-function saveFeatureSettings() {
-    const settings = {
-        defaultFeatureState: document.getElementById('defaultFeatureState').value,
-        rolloutStrategy: document.getElementById('rolloutStrategy').value,
-        killSwitchEnabled: document.getElementById('killSwitchEnabled').checked,
-        autoRollbackEnabled: document.getElementById('autoRollbackEnabled').checked
-    };
-    
-    Swal.fire({
-        title: 'Save Feature Settings?',
-        text: 'This will update the global feature rollout configuration',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Save Settings'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Saving Settings...',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                    setTimeout(() => {
-                        Swal.fire('Settings Saved!', 'Feature rollout settings have been updated.', 'success');
-                    }, 2000);
-                }
-            });
-        }
-    });
-}
+    function toggleFeature(feature, enabled, toggle) {
+        const originalState = toggle.checked;
+        toggle.disabled = true;
 
-function emergencyKillSwitch() {
-    Swal.fire({
-        title: 'Emergency Kill Switch',
-        text: 'This will immediately disable ALL mobile features for ALL users!',
-        icon: 'error',
-        showCancelButton: true,
-        confirmButtonText: 'EMERGENCY DISABLE',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire({
-                title: 'Disabling All Features...',
-                text: 'Emergency shutdown in progress',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                    setTimeout(() => {
-                        // Disable all toggles
-                        document.querySelectorAll('input[data-feature]').forEach(toggle => {
-                            toggle.checked = false;
-                        });
-                        Swal.fire('Emergency Shutdown Complete!', 'All mobile features have been disabled.', 'warning');
-                    }, 3000);
-                }
-            });
-        }
-    });
-}
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-function exportFeatureConfig() {
-    const config = {
-        features: {},
-        settings: {
-            defaultFeatureState: document.getElementById('defaultFeatureState').value,
-            rolloutStrategy: document.getElementById('rolloutStrategy').value,
-            killSwitchEnabled: document.getElementById('killSwitchEnabled').checked,
-            autoRollbackEnabled: document.getElementById('autoRollbackEnabled').checked
-        },
-        exportedAt: new Date().toISOString()
-    };
-    
-    // Collect all feature states
-    document.querySelectorAll('input[data-feature]').forEach(toggle => {
-        config.features[toggle.dataset.feature] = toggle.checked;
-    });
-    
-    // Create and download JSON file
-    const dataStr = JSON.stringify(config, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `mobile-features-config-${new Date().toISOString().split('T')[0]}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-    
-    Swal.fire('Config Exported!', 'Feature configuration has been downloaded.', 'success');
-}
-
-// Auto-refresh feature usage chart every 5 minutes
-setInterval(() => {
-    featureUsageChart.update();
-}, 300000);
+        fetch('{{ url_for("admin_panel.toggle_mobile_setting") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ key: feature, enabled: enabled })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Feature Updated!',
+                    text: `${feature.replace('mobile_', '').replace('_', ' ')} has been ${enabled ? 'enabled' : 'disabled'}`,
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            } else {
+                throw new Error(data.message || 'Failed to update feature');
+            }
+        })
+        .catch(error => {
+            console.error('Feature toggle error:', error);
+            toggle.checked = originalState;
+            Swal.fire('Error', 'Failed to update feature setting', 'error');
+        })
+        .finally(() => {
+            toggle.disabled = false;
+        });
+    }
+})();
 </script>
-{% endif %}
 {% endblock %}

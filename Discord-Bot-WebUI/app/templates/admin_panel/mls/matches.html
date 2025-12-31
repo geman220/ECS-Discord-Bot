@@ -21,13 +21,13 @@
                     </div>
                     <div class="col-md-6 text-md-end">
                         <div class="btn-group">
-                            <button id="fetch-espn-btn" class="c-btn c-btn--success">
+                            <button class="c-btn c-btn--success" data-action="fetch-espn">
                                 <i class="ti ti-download me-2"></i>Fetch ESPN
                             </button>
-                            <button id="schedule-all-btn" class="c-btn c-btn--info">
+                            <button class="c-btn c-btn--info" data-action="schedule-all-matches">
                                 <i class="ti ti-calendar-event me-2"></i>Schedule All
                             </button>
-                            <button id="refresh-statuses-btn" class="c-btn c-btn--outline-secondary">
+                            <button class="c-btn c-btn--outline-secondary" data-action="refresh-match-statuses">
                                 <i class="ti ti-refresh me-2"></i>Refresh
                             </button>
                         </div>
@@ -131,7 +131,7 @@
                 <div class="text-center py-5">
                     <i class="ti ti-calendar-off fs-1 text-muted mb-3"></i>
                     <p class="text-muted">No upcoming matches found.</p>
-                    <button id="fetch-espn-empty-btn" class="c-btn c-btn--success">
+                    <button class="c-btn c-btn--success" data-action="fetch-espn">
                         <i class="ti ti-download me-2"></i>Fetch Matches from ESPN
                     </button>
                 </div>
@@ -192,248 +192,6 @@
 
 {% block custom_js %}
 {{ super() }}
-<script>
-function fetchFromESPN(btn) {
-    if (!btn) btn = document.getElementById('fetch-espn-btn');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="ti ti-loader spin me-2"></i>Fetching...';
-    btn.disabled = true;
-
-    fetch('{{ url_for("admin_panel.mls_fetch_espn") }}', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error fetching matches', 'danger');
-        })
-        .finally(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        });
-}
-
-function scheduleAll() {
-    if (!confirm('Schedule tasks for all upcoming matches?')) return;
-
-    const btn = document.getElementById('schedule-all-btn');
-    btn.innerHTML = '<i class="ti ti-loader spin me-2"></i>Scheduling...';
-    btn.disabled = true;
-
-    fetch('{{ url_for("admin_panel.mls_schedule_all") }}', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error scheduling matches', 'danger');
-        })
-        .finally(() => {
-            btn.innerHTML = '<i class="ti ti-calendar-event me-2"></i>Schedule All';
-            btn.disabled = false;
-        });
-}
-
-function scheduleMatch(matchId) {
-    fetch(`{{ url_for('admin_panel.mls_schedule_match', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error scheduling match', 'danger');
-        });
-}
-
-function createThread(matchId) {
-    fetch(`{{ url_for('admin_panel.mls_create_thread', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error creating thread', 'danger');
-        });
-}
-
-function startReporting(matchId) {
-    fetch(`{{ url_for('admin_panel.mls_start_reporting', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error starting reporting', 'danger');
-        });
-}
-
-function stopReporting(matchId) {
-    if (!confirm('Stop live reporting for this match?')) return;
-
-    fetch(`{{ url_for('admin_panel.mls_stop_reporting', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error stopping reporting', 'danger');
-        });
-}
-
-function removeMatch(matchId) {
-    if (!confirm('Are you sure you want to remove this match? This will also revoke any scheduled tasks.')) return;
-
-    fetch(`{{ url_for('admin_panel.mls_remove_match', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                AdminPanel.showMobileToast(data.message, 'success');
-                document.getElementById(`match-row-${matchId}`).remove();
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error removing match', 'danger');
-        });
-}
-
-function resyncMatch(matchId) {
-    if (!confirm('Resync this match? This will check and fix any missing threads or tasks.')) return;
-
-    fetch(`{{ url_for('admin_panel.match_resync', match_id=0) }}`.replace('0', matchId), { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                let message = data.message;
-                if (data.actions && data.actions.length > 0) {
-                    message += '\n\nActions:\n' + data.actions.join('\n');
-                }
-                AdminPanel.showMobileToast(message, 'success');
-                setTimeout(() => location.reload(), 2000);
-            } else {
-                AdminPanel.showMobileToast('Error: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error resyncing match', 'danger');
-        });
-}
-
-function refreshStatuses() {
-    const btn = document.getElementById('refresh-statuses-btn');
-    btn.innerHTML = '<i class="ti ti-loader spin me-2"></i>';
-    btn.disabled = true;
-
-    fetch('{{ url_for("admin_panel.mls_match_statuses_api") }}')
-        .then(response => response.json())
-        .then(data => {
-            if (data.statuses) {
-                data.statuses.forEach(status => {
-                    const el = document.getElementById(`status-${status.id}`);
-                    if (el) {
-                        el.className = `badge bg-${status.status_color}`;
-                        el.innerHTML = `<i class="ti ${status.status_icon} me-1"></i>${status.status_display}`;
-                    }
-                });
-                AdminPanel.showMobileToast('Statuses refreshed', 'success');
-            }
-        })
-        .catch(error => {
-            AdminPanel.showMobileToast('Error refreshing statuses', 'danger');
-        })
-        .finally(() => {
-            btn.innerHTML = '<i class="ti ti-refresh me-2"></i>Refresh';
-            btn.disabled = false;
-        });
-}
-
-document.getElementById('fetch-espn-btn').addEventListener('click', function() { fetchFromESPN(this); });
-document.getElementById('schedule-all-btn').addEventListener('click', scheduleAll);
-document.getElementById('refresh-statuses-btn').addEventListener('click', refreshStatuses);
-
-const emptyBtn = document.getElementById('fetch-espn-empty-btn');
-if (emptyBtn) emptyBtn.addEventListener('click', function() { fetchFromESPN(this); });
-
-// Schedule match buttons
-document.querySelectorAll('.js-schedule-match').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const matchId = this.dataset.matchId;
-        scheduleMatch(matchId);
-    });
-});
-
-// Create thread buttons
-document.querySelectorAll('.js-create-thread').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const matchId = this.dataset.matchId;
-        createThread(matchId);
-    });
-});
-
-// Start reporting buttons
-document.querySelectorAll('.js-start-reporting').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const matchId = this.dataset.matchId;
-        startReporting(matchId);
-    });
-});
-
-// Stop reporting buttons
-document.querySelectorAll('.js-stop-reporting').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const matchId = this.dataset.matchId;
-        stopReporting(matchId);
-    });
-});
-
-// Resync match buttons
-document.querySelectorAll('.js-resync-match').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const matchId = this.dataset.matchId;
-        resyncMatch(matchId);
-    });
-});
-
-// Remove match buttons
-document.querySelectorAll('.js-remove-match').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const matchId = this.dataset.matchId;
-        removeMatch(matchId);
-    });
-});
-
-// Spin animation
-const style = document.createElement('style');
-style.textContent = `.spin { animation: spin 1s linear infinite; } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
-document.head.appendChild(style);
-</script>
+{# Inline scripts migrated to mls-handlers.js #}
+{# Actions: fetch-espn, schedule-all-matches, refresh-match-statuses, schedule-match, create-thread, start-reporting, stop-reporting, resync-match, remove-match #}
 {% endblock %}

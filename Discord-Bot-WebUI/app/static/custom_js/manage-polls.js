@@ -2,57 +2,55 @@
  * Manage Polls Page
  * Initializes DataTable for polls listing
  */
-// ES Module
-'use strict';
-
 import { InitSystem } from '../js/init-system.js';
+
 let _initialized = false;
 
-    function init() {
-        if (_initialized) return;
+function init() {
+    if (_initialized) return;
 
-        // Page guard - only run if polls table exists
-        const pollsTable = document.getElementById('pollsTable');
-        if (!pollsTable) return;
+    // Page guard - only run if polls table exists
+    const pollsTable = document.getElementById('pollsTable');
+    if (!pollsTable) return;
 
-        // Check jQuery and DataTables are available
-        if (typeof window.$ === 'undefined' || typeof window.$.fn.DataTable === 'undefined') {
-            console.warn('[Manage Polls] jQuery or DataTables not available');
-            return;
-        }
-
-        _initialized = true;
-
-        // Destroy existing DataTable if it exists
-        if (window.$.fn.DataTable.isDataTable('#pollsTable')) {
-            window.$('#pollsTable').DataTable().destroy();
-        }
-
-        // Initialize DataTable
-        window.$('#pollsTable').DataTable({
-            "order": [[ 3, "desc" ]], // Order by created date, newest first
-            "pageLength": 25,
-            "responsive": true,
-            "columnDefs": [
-                { "orderable": false, "targets": [5] } // Disable sorting on actions column
-            ]
-        });
+    // Check jQuery and DataTables are available
+    if (typeof window.$ === 'undefined' || typeof window.$.fn.DataTable === 'undefined') {
+        console.warn('[Manage Polls] jQuery or DataTables not available');
+        return;
     }
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('manage-polls', init, {
-            priority: 35,
-            reinitializable: true,
-            description: 'Manage polls DataTable'
-        });
+    _initialized = true;
+
+    // Destroy existing DataTable if it exists
+    if (window.$.fn.DataTable.isDataTable('#pollsTable')) {
+        window.$('#pollsTable').DataTable().destroy();
     }
 
-    // Fallback - use jQuery ready if available
-    if (typeof window.$ !== 'undefined') {
-        window.$(document).ready(init);
-    } else if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+    // Initialize DataTable
+    window.$('#pollsTable').DataTable({
+        "order": [[ 3, "desc" ]], // Order by created date, newest first
+        "pageLength": 25,
+        "responsive": true,
+        "columnDefs": [
+            { "orderable": false, "targets": [5] } // Disable sorting on actions column
+        ]
+    });
+}
+
+// Register with InitSystem (primary)
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('manage-polls', init, {
+        priority: 35,
+        reinitializable: true,
+        description: 'Manage polls DataTable'
+    });
+}
+
+// Fallback - use jQuery ready if available
+if (typeof window.$ !== 'undefined') {
+    window.$(document).ready(init);
+} else if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

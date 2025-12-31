@@ -109,13 +109,13 @@
                             </div>
                             <div class="flex-shrink-0 ms-3">
                                 <div class="btn-group btn-group-sm">
-                                    <button class="c-btn c-btn--outline-success js-acknowledge-alert" data-action="acknowledge-alert" data-alert-id="{{ alert.id }}">
+                                    <button class="c-btn c-btn--outline-success" data-action="acknowledge-alert" data-alert-id="{{ alert.id }}">
                                         <i class="ti ti-check me-1"></i>Acknowledge
                                     </button>
-                                    <button class="c-btn c-btn--outline-primary js-view-alert" data-action="view-alert" data-alert-id="{{ alert.id }}">
+                                    <button class="c-btn c-btn--outline-primary" data-action="view-alert" data-alert-id="{{ alert.id }}">
                                         <i class="ti ti-eye me-1"></i>Details
                                     </button>
-                                    <button class="c-btn c-btn--outline-danger js-resolve-alert" data-action="resolve-alert" data-alert-id="{{ alert.id }}">
+                                    <button class="c-btn c-btn--outline-danger" data-action="resolve-alert" data-alert-id="{{ alert.id }}">
                                         <i class="ti ti-x me-1"></i>Resolve
                                     </button>
                                 </div>
@@ -197,7 +197,7 @@
                     </div>
                 </div>
                 <div class="mt-3">
-                    <button class="c-btn c-btn--primary js-save-alert-config" data-action="save-alert-config">
+                    <button class="c-btn c-btn--primary" data-action="save-alert-config">
                         <i class="ti ti-device-floppy me-1"></i>Save Configuration
                     </button>
                 </div>
@@ -245,7 +245,7 @@
                     </select>
                 </div>
                 
-                <button class="c-btn c-btn--outline-primary w-100 js-test-notifications" data-action="test-notifications">
+                <button class="c-btn c-btn--outline-primary w-100" data-action="test-notifications">
                     <i class="ti ti-send me-1"></i>Test Notifications
                 </button>
             </div>
@@ -330,140 +330,5 @@
 
 {% block custom_js %}
 {{ super() }}
-<script>
-// Event delegation
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.js-acknowledge-alert').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const alertId = this.dataset.alertId;
-            acknowledgeAlert(alertId);
-        });
-    });
-
-    document.querySelectorAll('.js-view-alert').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const alertId = this.dataset.alertId;
-            viewAlertDetails(alertId);
-        });
-    });
-
-    document.querySelectorAll('.js-resolve-alert').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const alertId = this.dataset.alertId;
-            resolveAlert(alertId);
-        });
-    });
-
-    document.querySelector('.js-save-alert-config')?.addEventListener('click', saveAlertConfig);
-    document.querySelector('.js-test-notifications')?.addEventListener('click', testNotifications);
-});
-
-function acknowledgeAlert(alertId) {
-    Swal.fire({
-        title: 'Acknowledge Alert?',
-        text: 'This will mark the alert as acknowledged but keep it active',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Acknowledge'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Implement alert acknowledgment
-            Swal.fire('Alert Acknowledged!', 'The alert has been acknowledged.', 'success');
-        }
-    });
-}
-
-function resolveAlert(alertId) {
-    Swal.fire({
-        title: 'Resolve Alert?',
-        input: 'textarea',
-        inputLabel: 'Resolution Notes (optional)',
-        inputPlaceholder: 'Describe how this alert was resolved...',
-        showCancelButton: true,
-        confirmButtonText: 'Resolve Alert'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Implement alert resolution
-            Swal.fire('Alert Resolved!', 'The alert has been marked as resolved.', 'success');
-            location.reload();
-        }
-    });
-}
-
-function viewAlertDetails(alertId) {
-    // Make AJAX request to get alert details
-    Swal.fire({
-        title: 'Alert Details',
-        html: `
-            <div class="text-start">
-                <div class="mb-3">
-                    <strong>Alert ID:</strong> ${alertId}<br>
-                    <strong>Component:</strong> System Monitor<br>
-                    <strong>Severity:</strong> <span class="badge bg-danger" data-badge>CRITICAL</span><br>
-                    <strong>Status:</strong> Active
-                </div>
-                <div class="mb-3">
-                    <strong>Description:</strong><br>
-                    CPU usage has exceeded 85% for the past 5 minutes. This may indicate high system load or a runaway process.
-                </div>
-                <div class="mb-3">
-                    <strong>Timeline:</strong><br>
-                    <small>
-                    • 12:00:00 - Alert triggered (CPU: 87%)<br>
-                    • 12:01:00 - CPU: 89%<br>
-                    • 12:02:00 - CPU: 91%<br>
-                    • 12:03:00 - Current (CPU: 88%)
-                    </small>
-                </div>
-                <div class="mb-3">
-                    <strong>Suggested Actions:</strong><br>
-                    <small>
-                    1. Check running processes with 'top' or 'htop'<br>
-                    2. Identify high CPU processes<br>
-                    3. Consider scaling resources if sustained high usage
-                    </small>
-                </div>
-            </div>
-        `,
-        width: '600px',
-        confirmButtonText: 'Close'
-    });
-}
-
-function saveAlertConfig() {
-    // Collect configuration data
-    const config = {
-        cpuAlert: document.getElementById('cpuAlert').checked,
-        memoryAlert: document.getElementById('memoryAlert').checked,
-        diskAlert: document.getElementById('diskAlert').checked,
-        dbAlert: document.getElementById('dbAlert').checked,
-        errorRateAlert: document.getElementById('errorRateAlert').checked,
-        responseTimeAlert: document.getElementById('responseTimeAlert').checked,
-        discordAlert: document.getElementById('discordAlert').checked,
-        taskAlert: document.getElementById('taskAlert').checked
-    };
-    
-    // Save configuration
-    Swal.fire('Configuration Saved!', 'Alert settings have been updated.', 'success');
-}
-
-function testNotifications() {
-    Swal.fire({
-        title: 'Send Test Notifications?',
-        text: 'This will send test alerts to all configured notification channels',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Send Test'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            Swal.fire('Test Sent!', 'Test notifications have been sent to all channels.', 'success');
-        }
-    });
-}
-
-// Auto-refresh every 30 seconds
-setInterval(() => {
-    location.reload();
-}, 30000);
-</script>
+{# Event handlers managed by monitoring-handlers.js via EventDelegation #}
 {% endblock %}

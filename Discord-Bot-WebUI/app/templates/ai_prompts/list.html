@@ -27,7 +27,7 @@
                     <!-- Filter Section -->
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <select id="typeFilter" class="form-control" data-form-select>
+                            <select id="typeFilter" class="form-control" data-form-select data-action="filter-prompts">
                                 <option value="">All Types</option>
                                 <option value="match_commentary">Match Commentary</option>
                                 <option value="goal">Goal Events</option>
@@ -39,7 +39,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="activeOnly" checked>
+                                <input class="form-check-input" type="checkbox" id="activeOnly" checked data-action="filter-prompts">
                                 <label class="form-check-label" for="activeOnly">
                                     Show Active Only
                                 </label>
@@ -120,57 +120,6 @@
     </div>
 </div>
 
-<script>
-// Filter functionality
-document.getElementById('typeFilter').addEventListener('change', function() {
-    filterPrompts();
-});
-
-document.getElementById('activeOnly').addEventListener('change', function() {
-    filterPrompts();
-});
-
-function filterPrompts() {
-    const type = document.getElementById('typeFilter').value;
-    const activeOnly = document.getElementById('activeOnly').checked;
-
-    const params = new URLSearchParams();
-    if (type) params.append('type', type);
-    params.append('active_only', activeOnly);
-
-    window.location.href = '{{ url_for("ai_prompts.list_prompts") }}?' + params.toString();
-}
-
-// Event delegation for toggle prompt buttons
-document.addEventListener('click', function(e) {
-    const toggleBtn = e.target.closest('.js-toggle-prompt');
-    if (toggleBtn) {
-        const promptId = toggleBtn.dataset.promptId;
-        togglePrompt(promptId);
-    }
-});
-
-// Toggle prompt active status
-function togglePrompt(promptId) {
-    fetch(`/ai-prompts/${promptId}/toggle`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to toggle prompt status');
-    });
-}
-</script>
+{# Inline scripts migrated to ai-prompts-handlers.js #}
+{# Actions: toggle-prompt, filter-prompts #}
 {% endblock %}

@@ -14,8 +14,9 @@
 'use strict';
 
 import { InitSystem } from './init-system.js';
+
 // Main responsive system controller
-  const ResponsiveSystem = {
+export const ResponsiveSystem = {
     // Device detection states
     device: {
       isMobile: false,

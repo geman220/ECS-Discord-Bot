@@ -15,90 +15,90 @@
  *
  * ============================================================================
  */
-// ES Module
 'use strict';
 
 import { InitSystem } from './init-system.js';
 import { EventDelegation } from './event-delegation/core.js';
+
 // Configuration
-  const CONFIG = {
+const CONFIG = {
     botApiUrl: 'http://localhost:5001/api/bot',
     recentLogs: null, // Will be populated from template
     commands: null, // Will be populated from template
     commandUsage: null, // Will be populated from template
     guildInfo: null // Will be populated from template
-  };
+};
 
-  // Initialization guard
-  let _initialized = false;
+// Initialization guard
+let _initialized = false;
 
-  // Initialize data from template
-  function initializeData() {
+// Initialize data from template
+function initializeData() {
     // These would be populated from script tags in the template if needed
     // For now, using placeholder data structure
     CONFIG.recentLogs = window.__BOT_RECENT_LOGS__ || [];
     CONFIG.commands = window.__BOT_COMMANDS__ || [];
     CONFIG.commandUsage = window.__BOT_COMMAND_USAGE__ || {};
     CONFIG.guildInfo = window.__BOT_GUILD_INFO__ || {};
-  }
+}
 
-  // ============================================================================
-  // BOT CONTROL OPERATIONS
-  // ============================================================================
+// ============================================================================
+// BOT CONTROL OPERATIONS
+// ============================================================================
 
-  async function restartBot() {
+async function restartBot() {
     const result = await window.Swal.fire({
-      title: 'Restart Discord Bot?',
-      text: 'This will temporarily disconnect the bot from Discord while it restarts.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Restart Bot'
+        title: 'Restart Discord Bot?',
+        text: 'This will temporarily disconnect the bot from Discord while it restarts.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Restart Bot'
     });
 
     if (result.isConfirmed) {
-      window.Swal.fire({
-        title: 'Restarting Bot...',
-        text: 'Please wait while the bot restarts',
+        window.Swal.fire({
+            title: 'Restarting Bot...',
+            text: 'Please wait while the bot restarts',
+            allowOutsideClick: false,
+            didOpen: () => {
+                window.Swal.showLoading();
+
+                fetch(`${CONFIG.botApiUrl}/restart`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.Swal.fire('Restarted!', 'Discord bot restart has been initiated.', 'success');
+                    } else {
+                        window.Swal.fire('Error!', `Failed to restart bot: ${data.message || 'Unknown error'}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error restarting bot:', error);
+                    window.Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
+                });
+            }
+        });
+    }
+}
+
+async function checkBotHealth() {
+    window.Swal.fire({
+        title: 'Running Health Check...',
+        text: 'Checking bot connectivity and status',
         allowOutsideClick: false,
         didOpen: () => {
-          window.Swal.showLoading();
+            window.Swal.showLoading();
 
-          fetch(`${CONFIG.botApiUrl}/restart`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              window.Swal.fire('Restarted!', 'Discord bot restart has been initiated.', 'success');
-            } else {
-              window.Swal.fire('Error!', `Failed to restart bot: ${data.message || 'Unknown error'}`, 'error');
-            }
-          })
-          .catch(error => {
-            console.error('Error restarting bot:', error);
-            window.Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
-          });
-        }
-      });
-    }
-  }
-
-  async function checkBotHealth() {
-    window.Swal.fire({
-      title: 'Running Health Check...',
-      text: 'Checking bot connectivity and status',
-      allowOutsideClick: false,
-      didOpen: () => {
-        window.Swal.showLoading();
-
-        fetch(`${CONFIG.botApiUrl}/health-detailed`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'online') {
-            const healthInfo = `
+            fetch(`${CONFIG.botApiUrl}/health-detailed`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'online') {
+                    const healthInfo = `
               <div class="text-start">
                 <p><strong>Status:</strong> ${data.status}</p>
                 <p><strong>Username:</strong> ${data.username || 'Unknown'}</p>
@@ -107,115 +107,115 @@ import { EventDelegation } from './event-delegation/core.js';
                 ${data.memory_usage_mb ? `<p><strong>Memory Usage:</strong> ${data.memory_usage_mb}MB</p>` : ''}
               </div>
             `;
-            window.Swal.fire({
-              title: 'Bot Health Check',
-              html: healthInfo,
-              icon: 'success',
-              confirmButtonText: 'Close'
+                    window.Swal.fire({
+                        title: 'Bot Health Check',
+                        html: healthInfo,
+                        icon: 'success',
+                        confirmButtonText: 'Close'
+                    });
+                } else {
+                    window.Swal.fire('Bot Offline', `Bot status: ${data.status}. ${data.details || ''}`, 'warning');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking bot health:', error);
+                window.Swal.fire('Connection Error', 'Failed to connect to bot API.', 'error');
             });
-          } else {
-            window.Swal.fire('Bot Offline', `Bot status: ${data.status}. ${data.details || ''}`, 'warning');
-          }
-        })
-        .catch(error => {
-          console.error('Error checking bot health:', error);
-          window.Swal.fire('Connection Error', 'Failed to connect to bot API.', 'error');
-        });
-      }
+        }
     });
-  }
+}
 
-  function viewBotLogs() {
+function viewBotLogs() {
     let logsHtml = '';
     const logs = CONFIG.recentLogs;
 
     if (logs && logs.length > 0) {
-      logs.forEach(log => {
-        const timestamp = new Date(log.timestamp).toLocaleString();
-        logsHtml += `[${timestamp}] ${log.level}: ${log.message}\n`;
-      });
+        logs.forEach(log => {
+            const timestamp = new Date(log.timestamp).toLocaleString();
+            logsHtml += `[${timestamp}] ${log.level}: ${log.message}\n`;
+        });
     } else {
-      logsHtml = 'No recent logs available. Bot may not be connected to the API.';
+        logsHtml = 'No recent logs available. Bot may not be connected to the API.';
     }
 
     window.Swal.fire({
-      title: 'Discord Bot Logs',
-      html: `
+        title: 'Discord Bot Logs',
+        html: `
         <div class="bot-logs-container" style="max-height: 400px; overflow-y: auto; text-align: left;">
           <pre style="font-family: var(--font-mono); font-size: 0.875rem; white-space: pre-wrap;">${logsHtml}</pre>
         </div>
       `,
-      showCancelButton: true,
-      confirmButtonText: 'Refresh Logs',
-      cancelButtonText: 'Close',
-      width: '700px'
+        showCancelButton: true,
+        confirmButtonText: 'Refresh Logs',
+        cancelButtonText: 'Close',
+        width: '700px'
     }).then((result) => {
-      if (result.isConfirmed) {
-        location.reload();
-      }
+        if (result.isConfirmed) {
+            location.reload();
+        }
     });
-  }
+}
 
-  async function syncCommands() {
+async function syncCommands() {
     const result = await window.Swal.fire({
-      title: 'Sync Commands?',
-      text: 'This will synchronize all slash commands with Discord.',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sync Commands'
+        title: 'Sync Commands?',
+        text: 'This will synchronize all slash commands with Discord.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sync Commands'
     });
 
     if (result.isConfirmed) {
-      window.Swal.fire({
-        title: 'Syncing Commands...',
-        text: 'Please wait while commands are synchronized',
-        allowOutsideClick: false,
-        didOpen: () => {
-          window.Swal.showLoading();
+        window.Swal.fire({
+            title: 'Syncing Commands...',
+            text: 'Please wait while commands are synchronized',
+            allowOutsideClick: false,
+            didOpen: () => {
+                window.Swal.showLoading();
 
-          fetch(`${CONFIG.botApiUrl}/sync-commands`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
+                fetch(`${CONFIG.botApiUrl}/sync-commands`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.Swal.fire('Synced!', `${data.commands_synced || 'All'} commands have been synchronized with Discord.`, 'success');
+                    } else {
+                        window.Swal.fire('Error!', `Failed to sync commands: ${data.message || 'Unknown error'}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error syncing commands:', error);
+                    window.Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
+                });
             }
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              window.Swal.fire('Synced!', `${data.commands_synced || 'All'} commands have been synchronized with Discord.`, 'success');
-            } else {
-              window.Swal.fire('Error!', `Failed to sync commands: ${data.message || 'Unknown error'}`, 'error');
-            }
-          })
-          .catch(error => {
-            console.error('Error syncing commands:', error);
-            window.Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
-          });
-        }
-      });
+        });
     }
-  }
+}
 
-  // ============================================================================
-  // COMMAND MANAGEMENT
-  // ============================================================================
+// ============================================================================
+// COMMAND MANAGEMENT
+// ============================================================================
 
-  function viewCommands() {
+function viewCommands() {
     const commands = CONFIG.commands;
     let commandsHtml = '';
 
     // Group commands by category
     const categories = {};
     commands.forEach(cmd => {
-      if (!categories[cmd.category]) {
-        categories[cmd.category] = [];
-      }
-      categories[cmd.category].push(cmd);
+        if (!categories[cmd.category]) {
+            categories[cmd.category] = [];
+        }
+        categories[cmd.category].push(cmd);
     });
 
     // Build HTML for each category
     Object.keys(categories).forEach(category => {
-      commandsHtml += `
+        commandsHtml += `
         <div class="mb-4">
           <h6 class="mb-2 text-primary">${category} Commands</h6>
           <div class="table-responsive">
@@ -230,19 +230,19 @@ import { EventDelegation } from './event-delegation/core.js';
               <tbody>
       `;
 
-      categories[category].forEach(cmd => {
-        const permissionColor = cmd.permission_level === 'Public' ? 'success' :
+        categories[category].forEach(cmd => {
+            const permissionColor = cmd.permission_level === 'Public' ? 'success' :
                                cmd.permission_level.includes('Admin') ? 'danger' : 'warning';
-        commandsHtml += `
+            commandsHtml += `
           <tr>
             <td><code>/${cmd.name}</code></td>
             <td>${cmd.description}</td>
             <td><span class="badge bg-${permissionColor}">${cmd.permission_level}</span></td>
           </tr>
         `;
-      });
+        });
 
-      commandsHtml += `
+        commandsHtml += `
               </tbody>
             </table>
           </div>
@@ -251,28 +251,28 @@ import { EventDelegation } from './event-delegation/core.js';
     });
 
     window.Swal.fire({
-      title: 'Discord Bot Commands',
-      html: `
+        title: 'Discord Bot Commands',
+        html: `
         <div class="command-list-container" style="max-height: 500px; overflow-y: auto;">
           ${commandsHtml}
         </div>
       `,
-      confirmButtonText: 'Close',
-      width: '800px'
+        confirmButtonText: 'Close',
+        width: '800px'
     });
-  }
+}
 
-  function commandPermissions() {
+function commandPermissions() {
     // Placeholder - would implement permissions management
     window.Swal.fire('Command Permissions', 'Command permissions management interface would appear here.', 'info');
-  }
+}
 
-  function commandUsage() {
+function commandUsage() {
     const usage = CONFIG.commandUsage;
 
     window.Swal.fire({
-      title: 'Command Usage Statistics',
-      html: `
+        title: 'Command Usage Statistics',
+        html: `
         <div class="command-usage-stats" style="text-align: left;">
           <div class="row mb-3">
             <div class="col-md-6">
@@ -304,31 +304,31 @@ import { EventDelegation } from './event-delegation/core.js';
           </div>
         </div>
       `,
-      confirmButtonText: 'Close',
-      width: '700px'
+        confirmButtonText: 'Close',
+        width: '700px'
     });
-  }
+}
 
-  function customCommands() {
+function customCommands() {
     // Placeholder - would implement custom commands interface
     window.Swal.fire('Custom Commands', 'Custom commands management interface would appear here.', 'info');
-  }
+}
 
-  // ============================================================================
-  // GUILD MANAGEMENT
-  // ============================================================================
+// ============================================================================
+// GUILD MANAGEMENT
+// ============================================================================
 
-  function manageGuild(element, e) {
+function manageGuild(element, e) {
     const guildId = element.dataset.guild;
     window.Swal.fire('Guild Management', `Guild management interface for ${guildId} would appear here.`, 'info');
-  }
+}
 
-  function guildStats(element, e) {
+function guildStats(element, e) {
     const guild = CONFIG.guildInfo;
 
     window.Swal.fire({
-      title: `${guild.name || 'Guild'} Statistics`,
-      html: `
+        title: `${guild.name || 'Guild'} Statistics`,
+        html: `
         <div class="guild-stats-container" style="text-align: left;">
           <div class="row mb-3">
             <div class="col-md-4">
@@ -358,15 +358,15 @@ import { EventDelegation } from './event-delegation/core.js';
           </div>
         </div>
       `,
-      confirmButtonText: 'Close',
-      width: '700px'
+        confirmButtonText: 'Close',
+        width: '700px'
     });
-  }
+}
 
-  function addGuild() {
+function addGuild() {
     window.Swal.fire({
-      title: 'Add Bot to Server',
-      html: `
+        title: 'Add Bot to Server',
+        html: `
         <div class="add-guild-container">
           <p>To add the ECS FC Discord bot to another server, you need administrator permissions on that server.</p>
           <div class="alert alert-info">
@@ -385,58 +385,58 @@ import { EventDelegation } from './event-delegation/core.js';
           </div>
         </div>
       `,
-      showConfirmButton: false,
-      showCloseButton: true
+        showConfirmButton: false,
+        showCloseButton: true
     });
-  }
+}
 
-  // ============================================================================
-  // CONFIGURATION MANAGEMENT
-  // ============================================================================
+// ============================================================================
+// CONFIGURATION MANAGEMENT
+// ============================================================================
 
-  async function saveBotConfig() {
+async function saveBotConfig() {
     const config = {
-      prefix: document.getElementById('botPrefix')?.value || '!',
-      default_role: document.getElementById('defaultRole')?.value || '',
-      activity_type: document.getElementById('activityType')?.value || 'playing',
-      activity_text: document.getElementById('activityText')?.value || 'ECS FC League',
-      auto_moderation: document.getElementById('autoModeration')?.checked || false,
-      command_logging: document.getElementById('commandLogging')?.checked || false,
-      welcome_messages: document.getElementById('welcomeMessages')?.checked || false
+        prefix: document.getElementById('botPrefix')?.value || '!',
+        default_role: document.getElementById('defaultRole')?.value || '',
+        activity_type: document.getElementById('activityType')?.value || 'playing',
+        activity_text: document.getElementById('activityText')?.value || 'ECS FC League',
+        auto_moderation: document.getElementById('autoModeration')?.checked || false,
+        command_logging: document.getElementById('commandLogging')?.checked || false,
+        welcome_messages: document.getElementById('welcomeMessages')?.checked || false
     };
 
     window.Swal.fire({
-      title: 'Saving Configuration...',
-      text: 'Please wait while the configuration is being saved',
-      allowOutsideClick: false,
-      didOpen: () => {
-        window.Swal.showLoading();
-      }
+        title: 'Saving Configuration...',
+        text: 'Please wait while the configuration is being saved',
+        allowOutsideClick: false,
+        didOpen: () => {
+            window.Swal.showLoading();
+        }
     });
 
     try {
-      const response = await fetch(`${CONFIG.botApiUrl}/config`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(config)
-      });
+        const response = await fetch(`${CONFIG.botApiUrl}/config`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(config)
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (data.success) {
-        window.Swal.fire('Saved!', 'Bot configuration has been updated successfully.', 'success');
-      } else {
-        window.Swal.fire('Error!', `Failed to save configuration: ${data.error || 'Unknown error'}`, 'error');
-      }
+        if (data.success) {
+            window.Swal.fire('Saved!', 'Bot configuration has been updated successfully.', 'success');
+        } else {
+            window.Swal.fire('Error!', `Failed to save configuration: ${data.error || 'Unknown error'}`, 'error');
+        }
     } catch (error) {
-      console.error('Error saving bot config:', error);
-      window.Swal.fire('Error!', 'Failed to connect to bot API. Please check if the bot is running.', 'error');
+        console.error('Error saving bot config:', error);
+        window.Swal.fire('Error!', 'Failed to connect to bot API. Please check if the bot is running.', 'error');
     }
-  }
+}
 
-  function resetBotConfig() {
+function resetBotConfig() {
     const prefixEl = document.getElementById('botPrefix');
     const roleEl = document.getElementById('defaultRole');
     const activityTypeEl = document.getElementById('activityType');
@@ -454,42 +454,42 @@ import { EventDelegation } from './event-delegation/core.js';
     if (welcomeEl) welcomeEl.checked = true;
 
     window.Swal.fire('Reset!', 'Configuration has been reset to defaults.', 'info');
-  }
+}
 
-  async function loadBotConfig() {
+async function loadBotConfig() {
     try {
-      const response = await fetch(`${CONFIG.botApiUrl}/config`);
-      const data = await response.json();
+        const response = await fetch(`${CONFIG.botApiUrl}/config`);
+        const data = await response.json();
 
-      if (data.success && data.config) {
-        const config = data.config;
-        const prefixEl = document.getElementById('botPrefix');
-        const roleEl = document.getElementById('defaultRole');
-        const activityTypeEl = document.getElementById('activityType');
-        const activityTextEl = document.getElementById('activityText');
-        const autoModEl = document.getElementById('autoModeration');
-        const cmdLogEl = document.getElementById('commandLogging');
-        const welcomeEl = document.getElementById('welcomeMessages');
+        if (data.success && data.config) {
+            const config = data.config;
+            const prefixEl = document.getElementById('botPrefix');
+            const roleEl = document.getElementById('defaultRole');
+            const activityTypeEl = document.getElementById('activityType');
+            const activityTextEl = document.getElementById('activityText');
+            const autoModEl = document.getElementById('autoModeration');
+            const cmdLogEl = document.getElementById('commandLogging');
+            const welcomeEl = document.getElementById('welcomeMessages');
 
-        if (prefixEl) prefixEl.value = config.prefix || '!';
-        if (roleEl) roleEl.value = config.default_role || '';
-        if (activityTypeEl) activityTypeEl.value = config.activity_type || 'playing';
-        if (activityTextEl) activityTextEl.value = config.activity_text || 'ECS FC League';
-        if (autoModEl) autoModEl.checked = config.auto_moderation !== false;
-        if (cmdLogEl) cmdLogEl.checked = config.command_logging !== false;
-        if (welcomeEl) welcomeEl.checked = config.welcome_messages !== false;
-      }
+            if (prefixEl) prefixEl.value = config.prefix || '!';
+            if (roleEl) roleEl.value = config.default_role || '';
+            if (activityTypeEl) activityTypeEl.value = config.activity_type || 'playing';
+            if (activityTextEl) activityTextEl.value = config.activity_text || 'ECS FC League';
+            if (autoModEl) autoModEl.checked = config.auto_moderation !== false;
+            if (cmdLogEl) cmdLogEl.checked = config.command_logging !== false;
+            if (welcomeEl) welcomeEl.checked = config.welcome_messages !== false;
+        }
     } catch (error) {
-      console.log('Could not load bot configuration:', error);
-      // Use default values if API is not accessible
+        console.log('Could not load bot configuration:', error);
+        // Use default values if API is not accessible
     }
-  }
+}
 
-  // ============================================================================
-  // INITIALIZATION
-  // ============================================================================
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
 
-  function init() {
+function init() {
     // Guard against duplicate initialization
     if (_initialized) return;
     _initialized = true;
@@ -500,7 +500,7 @@ import { EventDelegation } from './event-delegation/core.js';
                       window.location.pathname.includes('discord-bot');
 
     if (!isBotPage) {
-      return;
+        return;
     }
 
     // Initialize data
@@ -512,82 +512,78 @@ import { EventDelegation } from './event-delegation/core.js';
     loadBotConfig();
 
     console.log('Discord Bot Management initialized');
-  }
+}
 
-  // ============================================================================
-  // EVENT DELEGATION - Registered at module scope
-  // ============================================================================
-  // MUST use EventDelegation to avoid TDZ errors in bundled code
+// ============================================================================
+// EVENT DELEGATION - Registered at module scope
+// ============================================================================
 
-  // Bot Control
-  EventDelegation.register('restart-bot', restartBot, { preventDefault: true });
-  EventDelegation.register('check-bot-health', checkBotHealth, { preventDefault: true });
-  EventDelegation.register('view-bot-logs', viewBotLogs, { preventDefault: true });
-  EventDelegation.register('sync-commands', syncCommands, { preventDefault: true });
+// Bot Control
+EventDelegation.register('restart-bot', restartBot, { preventDefault: true });
+EventDelegation.register('check-bot-health', checkBotHealth, { preventDefault: true });
+EventDelegation.register('view-bot-logs', viewBotLogs, { preventDefault: true });
+EventDelegation.register('sync-commands', syncCommands, { preventDefault: true });
 
-  // Command Management
-  EventDelegation.register('view-commands', viewCommands, { preventDefault: true });
-  EventDelegation.register('command-permissions', commandPermissions, { preventDefault: true });
-  EventDelegation.register('command-usage', commandUsage, { preventDefault: true });
-  EventDelegation.register('custom-commands', customCommands, { preventDefault: true });
+// Command Management
+EventDelegation.register('view-commands', viewCommands, { preventDefault: true });
+EventDelegation.register('command-permissions', commandPermissions, { preventDefault: true });
+EventDelegation.register('command-usage', commandUsage, { preventDefault: true });
+EventDelegation.register('custom-commands', customCommands, { preventDefault: true });
 
-  // Guild Management
-  EventDelegation.register('manage-guild', manageGuild, { preventDefault: true });
-  EventDelegation.register('guild-stats', guildStats, { preventDefault: true });
-  EventDelegation.register('add-guild', addGuild, { preventDefault: true });
+// Guild Management
+EventDelegation.register('manage-guild', manageGuild, { preventDefault: true });
+EventDelegation.register('guild-stats', guildStats, { preventDefault: true });
+EventDelegation.register('add-guild', addGuild, { preventDefault: true });
 
-  // Configuration
-  EventDelegation.register('save-bot-config', saveBotConfig, { preventDefault: true });
-  EventDelegation.register('reset-bot-config', resetBotConfig, { preventDefault: true });
+// Configuration
+EventDelegation.register('save-bot-config', saveBotConfig, { preventDefault: true });
+EventDelegation.register('reset-bot-config', resetBotConfig, { preventDefault: true });
 
-  // Register with InitSystem (primary)
-  if (true && InitSystem.register) {
-    InitSystem.register('admin-panel-discord-bot', init, {
-      priority: 30,
-      reinitializable: true,
-      description: 'Admin panel Discord bot management'
-    });
-  }
+// Register with InitSystem
+InitSystem.register('admin-panel-discord-bot', init, {
+    priority: 30,
+    reinitializable: true,
+    description: 'Admin panel Discord bot management'
+});
 
-  // Fallback
-  if (document.readyState === 'loading') {
+// Fallback
+if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
-  } else {
+} else {
     init();
-  }
+}
 
-// Backward compatibility
+// Backward compatibility exports
 window.CONFIG = CONFIG;
-
-// Backward compatibility
 window.initializeData = initializeData;
-
-// Backward compatibility
 window.viewBotLogs = viewBotLogs;
-
-// Backward compatibility
 window.viewCommands = viewCommands;
-
-// Backward compatibility
 window.commandPermissions = commandPermissions;
-
-// Backward compatibility
 window.commandUsage = commandUsage;
-
-// Backward compatibility
 window.customCommands = customCommands;
-
-// Backward compatibility
 window.manageGuild = manageGuild;
-
-// Backward compatibility
 window.guildStats = guildStats;
-
-// Backward compatibility
 window.addGuild = addGuild;
-
-// Backward compatibility
 window.resetBotConfig = resetBotConfig;
-
-// Backward compatibility
 window.init = init;
+
+// Named exports for ES modules
+export {
+    CONFIG,
+    initializeData,
+    restartBot,
+    checkBotHealth,
+    viewBotLogs,
+    syncCommands,
+    viewCommands,
+    commandPermissions,
+    commandUsage,
+    customCommands,
+    manageGuild,
+    guildStats,
+    addGuild,
+    saveBotConfig,
+    resetBotConfig,
+    loadBotConfig,
+    init
+};

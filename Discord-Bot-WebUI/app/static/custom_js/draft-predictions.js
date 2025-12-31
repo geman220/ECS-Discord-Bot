@@ -9,6 +9,7 @@
 
 import { ModalManager } from '../js/modal-manager.js';
 import { InitSystem } from '../js/init-system.js';
+
 let _initialized = false;
 
 export class DraftPredictionsManager {
@@ -317,65 +318,71 @@ export class DraftPredictionsManager {
     }
 }
 
-    // Utility functions for quick access
-    window.DraftPredictions = {
-        setPrediction: function(playerId, round, confidence = null, notes = '') {
-            const row = document.querySelector(`tr[data-player-id="${playerId}"]`);
-            if (row) {
-                const roundInput = row.querySelector('.predicted-round-input');
-                const confidenceInput = row.querySelector('.confidence-input');
-                const notesInput = row.querySelector('.notes-input');
+// Utility functions for quick access
+window.DraftPredictions = {
+    setPrediction: function(playerId, round, confidence = null, notes = '') {
+        const row = document.querySelector(`tr[data-player-id="${playerId}"]`);
+        if (row) {
+            const roundInput = row.querySelector('.predicted-round-input');
+            const confidenceInput = row.querySelector('.confidence-input');
+            const notesInput = row.querySelector('.notes-input');
 
-                if (roundInput) {
-                    roundInput.value = round;
-                    roundInput.dispatchEvent(new Event('change'));
-                }
-                if (confidence && confidenceInput) {
-                    confidenceInput.value = confidence;
-                    confidenceInput.dispatchEvent(new Event('change'));
-                }
-                if (notes && notesInput) {
-                    notesInput.value = notes;
-                    notesInput.dispatchEvent(new Event('input'));
-                }
+            if (roundInput) {
+                roundInput.value = round;
+                roundInput.dispatchEvent(new Event('change'));
             }
-        },
-
-        bulkSetRounds: function(roundMappings) {
-            Object.entries(roundMappings).forEach(([playerId, round]) => {
-                this.setPrediction(playerId, round);
-            });
+            if (confidence && confidenceInput) {
+                confidenceInput.value = confidence;
+                confidenceInput.dispatchEvent(new Event('change'));
+            }
+            if (notes && notesInput) {
+                notesInput.value = notes;
+                notesInput.dispatchEvent(new Event('input'));
+            }
         }
-    };
+    },
 
-    // Export class to window
-    window.DraftPredictionsManager = DraftPredictionsManager;
-
-    // Initialize function
-    function init() {
-        if (_initialized) return;
-        _initialized = true;
-
-        if (document.getElementById('playersTable')) {
-            window.draftPredictionsManager = new window.DraftPredictionsManager();
-        }
-    }
-
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('draft-predictions', init, {
-            priority: 40,
-            reinitializable: false,
-            description: 'Draft predictions auto-save'
+    bulkSetRounds: function(roundMappings) {
+        Object.entries(roundMappings).forEach(([playerId, round]) => {
+            this.setPrediction(playerId, round);
         });
     }
+};
 
-    // Fallback
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
+// Export class to window
+window.DraftPredictionsManager = DraftPredictionsManager;
+
+// Initialize function
+function init() {
+    if (_initialized) return;
+    _initialized = true;
+
+    if (document.getElementById('playersTable')) {
+        window.draftPredictionsManager = new DraftPredictionsManager();
     }
+}
+
+// ========================================================================
+// EXPORTS
+// ========================================================================
+
+export { init };
+
+// Register with InitSystem (primary)
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('draft-predictions', init, {
+        priority: 40,
+        reinitializable: false,
+        description: 'Draft predictions auto-save'
+    });
+}
+
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
 
 // Backward compatibility
-window.init = init;
+window.draftPredictionsInit = init;

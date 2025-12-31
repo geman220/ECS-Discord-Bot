@@ -1,10 +1,9 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 
 /**
  * Calendar Subscription Action Handlers
  * Handles calendar subscriptions and preferences
  */
-// Uses global EventDelegation from core.js
 
 // CALENDAR SUBSCRIPTION ACTIONS
 // ============================================================================

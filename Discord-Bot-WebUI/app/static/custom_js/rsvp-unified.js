@@ -71,7 +71,7 @@ let _initialized = false;
         // Show appropriate notification
         if (data.success) {
           if (window.toastr) {
-            toastr.success('RSVP synchronization with Discord has been triggered.', 'Sync Started');
+            window.toastr.success('RSVP synchronization with Discord has been triggered.', 'Sync Started');
           } else if (window.Swal) {
             window.Swal.fire({
               title: 'Success!',
@@ -85,7 +85,7 @@ let _initialized = false;
           }
         } else {
           if (window.toastr) {
-            toastr.error(data.message || 'An error occurred syncing with Discord.', 'Sync Failed');
+            window.toastr.error(data.message || 'An error occurred syncing with Discord.', 'Sync Failed');
           } else if (window.Swal) {
             window.Swal.fire({
               title: 'Sync Failed',
@@ -106,7 +106,7 @@ let _initialized = false;
         
         // Show error notification
         if (window.toastr) {
-          toastr.error('Could not connect to the Discord sync service.', 'Connection Error');
+          window.toastr.error('Could not connect to the Discord sync service.', 'Connection Error');
         } else if (window.Swal) {
           window.Swal.fire({
             title: 'Connection Error',
@@ -126,7 +126,7 @@ let _initialized = false;
       try {
         // Toastr configuration
         if (window.toastr) {
-          toastr.options = {
+          window.toastr.options = {
             closeButton: true,
             newestOnTop: true,
             progressBar: true,
@@ -344,7 +344,7 @@ export function bindEventHandlers() {
           var charCount = window.$('#smsMessage').val().length;
           if (charCount > 160) {
             if (window.toastr) {
-              toastr.warning('Your message exceeds the 160 character limit for SMS. Please shorten your message.');
+              window.toastr.warning('Your message exceeds the 160 character limit for SMS. Please shorten your message.');
             }
             return false;
           }
@@ -368,7 +368,7 @@ export function bindEventHandlers() {
           .then(function(data) {
             if (data.success) {
               if (window.toastr) {
-                toastr.success('SMS sent successfully.');
+                window.toastr.success('SMS sent successfully.');
               }
               var smsModal = document.querySelector('[data-modal="send-sms"]');
               if (window.bootstrap && smsModal) {
@@ -376,14 +376,14 @@ export function bindEventHandlers() {
               }
             } else {
               if (window.toastr) {
-                toastr.error(data.message || 'Error sending SMS.');
+                window.toastr.error(data.message || 'Error sending SMS.');
               }
             }
           })
           .catch(function(error) {
             // console.error('Error:', error);
             if (window.toastr) {
-              toastr.error('An error occurred while sending SMS.');
+              window.toastr.error('An error occurred while sending SMS.');
             }
           })
           .finally(function() {
@@ -402,7 +402,7 @@ export function bindEventHandlers() {
           var charCount = window.$('#discordMessage').val().length;
           if (charCount > 2000) {
             if (window.toastr) {
-              toastr.warning('Your message exceeds the 2000 character limit for Discord. Please shorten your message.');
+              window.toastr.warning('Your message exceeds the 2000 character limit for Discord. Please shorten your message.');
             }
             return false;
           }
@@ -426,7 +426,7 @@ export function bindEventHandlers() {
           .then(function(data) {
             if (data.success) {
               if (window.toastr) {
-                toastr.success('Discord DM sent successfully.');
+                window.toastr.success('Discord DM sent successfully.');
               }
               var discordModal = document.querySelector('[data-modal="send-discord-dm"]');
               if (window.bootstrap && discordModal) {
@@ -434,14 +434,14 @@ export function bindEventHandlers() {
               }
             } else {
               if (window.toastr) {
-                toastr.error(data.message || 'Error sending Discord DM.');
+                window.toastr.error(data.message || 'Error sending Discord DM.');
               }
             }
           })
           .catch(function(error) {
             // console.error('Error:', error);
             if (window.toastr) {
-              toastr.error('An error occurred while sending Discord DM.');
+              window.toastr.error('An error occurred while sending Discord DM.');
             }
           })
           .finally(function() {
@@ -561,7 +561,7 @@ export function loadAvailableSubs() {
             
             // Show error toast if toastr is available
             if (window.toastr) {
-              toastr.error('Failed to load substitute responses. Please try again.');
+              window.toastr.error('Failed to load substitute responses. Please try again.');
             }
           });
       });
@@ -600,7 +600,7 @@ export function loadAvailableSubs() {
                 window.location.reload();
               });
             } else if (window.toastr) {
-              toastr.success(data.message || 'Substitute assigned successfully.');
+              window.toastr.success(data.message || 'Substitute assigned successfully.');
               setTimeout(() => window.location.reload(), 1500);
             } else {
               alert('Substitute assigned successfully.');
@@ -622,7 +622,7 @@ export function loadAvailableSubs() {
                 icon: 'error'
               });
             } else if (window.toastr) {
-              toastr.error(data.message || 'Failed to assign substitute.');
+              window.toastr.error(data.message || 'Failed to assign substitute.');
             } else {
               alert('Error: ' + (data.message || 'Failed to assign substitute.'));
             }
@@ -631,7 +631,7 @@ export function loadAvailableSubs() {
         .catch(error => {
           // console.error('Error assigning substitute:', error);
           if (window.toastr) {
-            toastr.error('An error occurred while assigning the substitute.');
+            window.toastr.error('An error occurred while assigning the substitute.');
           } else {
             alert('An error occurred while assigning the substitute.');
           }

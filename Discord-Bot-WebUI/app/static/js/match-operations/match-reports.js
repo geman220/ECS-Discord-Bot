@@ -4,7 +4,10 @@
  */
 'use strict';
 
+import { InitSystem } from '../init-system.js';
 import { EventDelegation } from '../event-delegation/core.js';
+
+let _initialized = false;
 /**
  * Initialize Chart.js charts
  */
@@ -146,6 +149,8 @@ export function viewAllMatches() {
  * Initialize module
  */
 export function init() {
+    if (_initialized) return;
+
     // Page guard - only run on match reports page
     const isMatchReportsPage = document.getElementById('matchStatusChart') ||
         document.getElementById('matchesPerWeekChart') ||
@@ -153,6 +158,8 @@ export function init() {
         document.querySelector('[data-action^="export-"]');
 
     if (!isMatchReportsPage) return;
+
+    _initialized = true;
 
     initializeCharts();
     registerEventHandlers();
@@ -233,7 +240,16 @@ export function registerEventHandlers() {
     }, { preventDefault: true });
 }
 
-// Auto-initialize
+// Register with InitSystem
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('match-reports', init, {
+        priority: 30,
+        reinitializable: false,
+        description: 'Match reports page with charts'
+    });
+}
+
+// Fallback initialization
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {

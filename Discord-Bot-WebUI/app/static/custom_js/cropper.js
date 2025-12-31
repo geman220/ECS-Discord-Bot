@@ -6,111 +6,116 @@
 'use strict';
 
 import { InitSystem } from '../js/init-system.js';
+
 let _initialized = false;
-    let cropper;
+let cropper;
 
-    function init() {
-        if (_initialized) return;
+function init() {
+    if (_initialized) return;
 
-        // Page guard - only run on pages with image cropper
-        const imageInput = document.getElementById('image');
-        if (!imageInput) {
-            return; // Not on a page with image cropper
-        }
-
-        _initialized = true;
-
-        // Initialize Cropper when an image is selected
-        imageInput.addEventListener('change', function(e) {
-            const ratio = 1; // 1:1 aspect ratio for square images
-            croppingimg(e, ratio);
-        });
+    // Page guard - only run on pages with image cropper
+    const imageInput = document.getElementById('image');
+    if (!imageInput) {
+        return; // Not on a page with image cropper
     }
 
-    // Function to initialize cropper
-    function croppingimg(e, ratio) {
-        const files = e.target.files;
-        if (files && files.length > 0) {
-            const imgsrc = URL.createObjectURL(files[0]);
-            const imageElement = document.getElementById('imagecan');
-            imageElement.src = imgsrc;
+    _initialized = true;
 
-            const imgContainer = document.querySelector('.img-container');
-            imgContainer.classList.remove('d-none');
-            imgContainer.classList.add('d-block');
+    // Initialize Cropper when an image is selected
+    imageInput.addEventListener('change', function(e) {
+        const ratio = 1; // 1:1 aspect ratio for square images
+        croppingimg(e, ratio);
+    });
+}
 
-            if (cropper) {
-                cropper.destroy(); // Destroy previous cropper instance
-            }
+// Function to initialize cropper
+function croppingimg(e, ratio) {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+        const imgsrc = URL.createObjectURL(files[0]);
+        const imageElement = document.getElementById('imagecan');
+        imageElement.src = imgsrc;
 
-            // Check if Cropper is available
-            if (typeof window.Cropper === 'undefined') {
-                console.error('Cropper.js library not loaded');
-                return;
-            }
+        const imgContainer = document.querySelector('.img-container');
+        imgContainer.classList.remove('d-none');
+        imgContainer.classList.add('d-block');
 
-            cropper = new window.Cropper(imageElement, {
-                viewMode: 1,
-                aspectRatio: ratio,
-                dragMode: 'move',
-                autoCropArea: 0.8,
-                restore: false,
-                guides: true,
-                center: true,
-                highlight: true,
-                background: false,
-                responsive: true,
-                movable: true,
-                zoomable: true,
-                rotatable: false,
-                scalable: false,
-                cropBoxMovable: true,
-                cropBoxResizable: true,
-                toggleDragModeOnDblclick: false,
-                checkOrientation: false,
-            });
-        }
-    }
-
-    // Function to handle the image upload
-    function onClickUpload() {
         if (cropper) {
-            const canvas = cropper.getCroppedCanvas({
-                width: 300,
-                height: 300,
-                imageSmoothingQuality: 'high',
-            });
-            canvas.toBlob(function(blob) {
-                const reader = new FileReader();
-                reader.readAsDataURL(blob);
-                reader.onloadend = function() {
-                    const base64data = reader.result;
-                    document.getElementById('cropped_image_data').value = base64data;
-                    // Submit the form
-                    document.querySelector('#profileImageModal form').submit();
-                };
-            }, 'image/png');
+            cropper.destroy(); // Destroy previous cropper instance
         }
-    }
 
-    // Expose globally for button onclick (backward compatibility)
-    window.onClickUpload = onClickUpload;
+        // Check if Cropper is available
+        if (typeof window.Cropper === 'undefined') {
+            console.error('Cropper.js library not loaded');
+            return;
+        }
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('cropper', init, {
-            priority: 45,
-            reinitializable: false,
-            description: 'Image cropper for profile photos'
+        cropper = new window.Cropper(imageElement, {
+            viewMode: 1,
+            aspectRatio: ratio,
+            dragMode: 'move',
+            autoCropArea: 0.8,
+            restore: false,
+            guides: true,
+            center: true,
+            highlight: true,
+            background: false,
+            responsive: true,
+            movable: true,
+            zoomable: true,
+            rotatable: false,
+            scalable: false,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+            toggleDragModeOnDblclick: false,
+            checkOrientation: false,
         });
     }
+}
 
-    // Fallback
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
+// Function to handle the image upload
+function onClickUpload() {
+    if (cropper) {
+        const canvas = cropper.getCroppedCanvas({
+            width: 300,
+            height: 300,
+            imageSmoothingQuality: 'high',
+        });
+        canvas.toBlob(function(blob) {
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = function() {
+                const base64data = reader.result;
+                document.getElementById('cropped_image_data').value = base64data;
+                // Submit the form
+                document.querySelector('#profileImageModal form').submit();
+            };
+        }, 'image/png');
     }
+}
 
-// Backward compatibility
+// ========================================================================
+// EXPORTS
+// ========================================================================
+
+export { init, croppingimg, onClickUpload };
+
+// Expose globally for button onclick (backward compatibility)
+window.onClickUpload = onClickUpload;
 window.croppingimg = croppingimg;
+
+// Register with InitSystem (primary)
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('cropper', init, {
+        priority: 45,
+        reinitializable: false,
+        description: 'Image cropper for profile photos'
+    });
+}
+
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

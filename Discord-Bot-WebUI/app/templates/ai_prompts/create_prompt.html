@@ -115,8 +115,9 @@
                         <!-- Temperature -->
                         <div class="mb-4">
                             <label for="temperature" class="form-label">Temperature: <span id="temp-value">{{ prompt.temperature if prompt else 0.7 }}</span></label>
-                            <input type="range" class="form-range" id="temperature" name="temperature" 
-                                   min="0" max="1" step="0.05" value="{{ prompt.temperature if prompt else 0.7 }}">
+                            <input type="range" class="form-range" id="temperature" name="temperature"
+                                   min="0" max="1" step="0.05" value="{{ prompt.temperature if prompt else 0.7 }}"
+                                   data-action="update-temperature">
                             <div class="d-flex justify-content-between text-muted small">
                                 <span>Conservative (0.0)</span>
                                 <span>Creative (1.0)</span>
@@ -157,8 +158,9 @@
                         <!-- Rivalry Intensity -->
                         <div class="mb-3">
                             <label for="rivalry_intensity" class="form-label">Rivalry Intensity: <span id="rivalry-value">{{ prompt.rivalry_intensity if prompt else 5 }}</span>/10</label>
-                            <input type="range" class="form-range" id="rivalry_intensity" name="rivalry_intensity" 
-                                   min="1" max="10" step="1" value="{{ prompt.rivalry_intensity if prompt else 5 }}">
+                            <input type="range" class="form-range" id="rivalry_intensity" name="rivalry_intensity"
+                                   min="1" max="10" step="1" value="{{ prompt.rivalry_intensity if prompt else 5 }}"
+                                   data-action="update-rivalry-intensity">
                             <div class="d-flex justify-content-between text-muted small">
                                 <span>Mild (1)</span>
                                 <span>Maximum Hostility (10)</span>
@@ -167,7 +169,7 @@
 
                         <!-- Rivalry Teams -->
                         <div class="form-floating">
-                            <textarea class="form-control textarea-rivalry" id="rivalry_teams" name="rivalry_teams" placeholder='{"portland": ["timbers", "portland timbers"], "vancouver": ["whitecaps"]}' data-form-control>{{ prompt.rivalry_teams|tojson if prompt and prompt.rivalry_teams else '' }}</textarea>
+                            <textarea class="form-control textarea-rivalry" id="rivalry_teams" name="rivalry_teams" placeholder='{"portland": ["timbers", "portland timbers"], "vancouver": ["whitecaps"]}' data-form-control data-action="validate-rivalry-json">{{ prompt.rivalry_teams|tojson if prompt and prompt.rivalry_teams else '' }}</textarea>
                             <label for="rivalry_teams">Rivalry Teams (JSON)</label>
                             <div class="form-text">Define team keywords that trigger rivalry behavior</div>
                         </div>
@@ -227,7 +229,7 @@
                         <!-- Enthusiasm -->
                         <div class="mb-3">
                             <label class="form-label small">Enthusiasm: <span id="enthusiasm-value">{{ traits.get('enthusiasm', 5) }}</span></label>
-                            <input type="range" class="form-range form-range-sm js-personality-slider" data-target="enthusiasm-value"
+                            <input type="range" class="form-range form-range-sm" data-action="update-personality-slider" data-target="enthusiasm-value"
                                    name="personality_enthusiasm"
                                    min="1" max="10" step="1" value="{{ traits.get('enthusiasm', 5) }}">
                         </div>
@@ -235,7 +237,7 @@
                         <!-- Bias -->
                         <div class="mb-3">
                             <label class="form-label small">Bias: <span id="bias-value">{{ traits.get('bias', 5) }}</span></label>
-                            <input type="range" class="form-range form-range-sm js-personality-slider" data-target="bias-value"
+                            <input type="range" class="form-range form-range-sm" data-action="update-personality-slider" data-target="bias-value"
                                    name="personality_bias"
                                    min="1" max="10" step="1" value="{{ traits.get('bias', 5) }}">
                         </div>
@@ -243,7 +245,7 @@
                         <!-- Humor -->
                         <div class="mb-3">
                             <label class="form-label small">Humor: <span id="humor-value">{{ traits.get('humor', 5) }}</span></label>
-                            <input type="range" class="form-range form-range-sm js-personality-slider" data-target="humor-value"
+                            <input type="range" class="form-range form-range-sm" data-action="update-personality-slider" data-target="humor-value"
                                    name="personality_humor"
                                    min="1" max="10" step="1" value="{{ traits.get('humor', 5) }}">
                         </div>
@@ -251,7 +253,7 @@
                         <!-- Hostility -->
                         <div class="mb-3">
                             <label class="form-label small">Hostility: <span id="hostility-value">{{ traits.get('hostility', 1) }}</span></label>
-                            <input type="range" class="form-range form-range-sm js-personality-slider" data-target="hostility-value"
+                            <input type="range" class="form-range form-range-sm" data-action="update-personality-slider" data-target="hostility-value"
                                    name="personality_hostility"
                                    min="1" max="10" step="1" value="{{ traits.get('hostility', 1) }}">
                         </div>
@@ -259,7 +261,7 @@
                         <!-- Formality -->
                         <div class="mb-3">
                             <label class="form-label small">Formality: <span id="formality-value">{{ traits.get('formality', 5) }}</span></label>
-                            <input type="range" class="form-range form-range-sm js-personality-slider" data-target="formality-value"
+                            <input type="range" class="form-range form-range-sm" data-action="update-personality-slider" data-target="formality-value"
                                    name="personality_formality"
                                    min="1" max="10" step="1" value="{{ traits.get('formality', 5) }}">
                         </div>
@@ -290,74 +292,9 @@
 {% endblock %}
 
 {% block custom_js %}
+{# Inline scripts migrated to ai-prompts-handlers.js #}
+{# Actions: update-temperature, update-rivalry-intensity, update-personality-slider, load-template, validate-rivalry-json #}
 <script>
-// Temperature slider
-document.getElementById('temperature').addEventListener('input', function() {
-    document.getElementById('temp-value').textContent = this.value;
-});
-
-// Rivalry intensity slider
-document.getElementById('rivalry_intensity').addEventListener('input', function() {
-    document.getElementById('rivalry-value').textContent = this.value;
-});
-
-// Event delegation for personality sliders
-document.addEventListener('input', function(e) {
-    if (e.target.classList.contains('js-personality-slider')) {
-        const targetId = e.target.dataset.target;
-        const targetElement = document.getElementById(targetId);
-        if (targetElement) {
-            targetElement.textContent = e.target.value;
-        }
-    }
-});
-
-// Event delegation for load template buttons
-document.addEventListener('click', function(e) {
-    const loadBtn = e.target.closest('.js-load-template');
-    if (loadBtn) {
-        const templateId = loadBtn.dataset.templateId;
-        loadTemplate(templateId);
-    }
-});
-
-// Load template function
-function loadTemplate(templateId) {
-    if (confirm('This will replace the current prompt configuration. Continue?')) {
-        // You could implement AJAX to load template data here
-        fetch(`/ai-prompts/api/template/${templateId}`)
-            .then(response => response.json())
-            .then(data => {
-                // Populate form fields with template data
-                if (data.template_data.system_prompt) {
-                    document.getElementById('system_prompt').value = data.template_data.system_prompt;
-                }
-                if (data.template_data.temperature) {
-                    document.getElementById('temperature').value = data.template_data.temperature;
-                    document.getElementById('temp-value').textContent = data.template_data.temperature;
-                }
-                // Add more field mappings as needed
-            })
-            .catch(error => {
-                toastr.error('Failed to load template');
-            });
-    }
-}
-
-// Form validation
-document.querySelector('form').addEventListener('submit', function(e) {
-    const rivalryTeams = document.getElementById('rivalry_teams').value.trim();
-    if (rivalryTeams && rivalryTeams !== '') {
-        try {
-            JSON.parse(rivalryTeams);
-        } catch (error) {
-            e.preventDefault();
-            toastr.error('Rivalry Teams must be valid JSON');
-            return false;
-        }
-    }
-});
-
 // Flash message handling
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}

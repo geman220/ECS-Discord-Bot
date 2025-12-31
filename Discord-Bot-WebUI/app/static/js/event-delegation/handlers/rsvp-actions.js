@@ -1,11 +1,10 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 import { ModalManager } from '../../modal-manager.js';
 
 /**
  * RSVP Action Handlers
  * Handles match RSVP responses and notifications
  */
-// Uses global EventDelegation from core.js
 
 // RSVP ACTIONS
 // ============================================================================

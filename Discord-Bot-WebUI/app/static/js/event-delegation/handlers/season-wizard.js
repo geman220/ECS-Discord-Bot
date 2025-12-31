@@ -1,10 +1,9 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 
 /**
  * Season/Schedule Wizard Action Handlers
  * Handles season creation and auto-scheduling
  */
-// Uses global EventDelegation from core.js
 
 // AUTO SCHEDULE WIZARD ACTIONS
 // ============================================================================

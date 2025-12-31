@@ -2,172 +2,69 @@
  * Match Stats Management
  * Handles match stats editing and filtering
  */
-// ES Module
-'use strict';
-
 import { InitSystem } from '../js/init-system.js';
+
 let _initialized = false;
 
-    function init() {
-        if (_initialized) return;
-        _initialized = true;
+function init() {
+    if (_initialized) return;
+    _initialized = true;
 
-        // Initialize Feather Icons for dynamically added elements
-        if (typeof window.feather !== 'undefined') {
-            window.feather.replace();
-        }
-
-        // Event delegation for Edit buttons
-        window.$(document).on('click', '.edit-match-stat-btn', function () {
-            var statId = window.$(this).data('stat-id');
-            window.matchStatsEditMatch(statId);
-        });
-
-        // Event delegation for Remove buttons
-        window.$(document).on('click', '.remove-match-stat-btn', function () {
-            var statId = window.$(this).data('stat-id');
-            window.removeMatchStat(statId);
-        });
-
-        // Initialize filter on page load
-        window.filterMatchStats();
-
-        // Bind filter change
-        window.$('#matchFilter').on('change', function () {
-            window.filterMatchStats();
-        });
-
-        // Handle form submission for editing match stats with SA2 confirmation
-        window.$('#editMatchStatForm').submit(function (e) {
-            e.preventDefault();  // Prevent default form submission
-
-            var statId = window.$('#editStatId').val();  // Get the stat ID
-            var formData = window.$(this).serialize();  // Serialize the form data
-            var csrfToken = window.$('input[name="csrf_token"]').val();  // Get CSRF token
-
-            window.Swal.fire({
-                title: 'Confirm Changes',
-                text: "Are you sure you want to save these changes?",
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
-                cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
-                confirmButtonText: 'Yes, save it!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Proceed with AJAX submission
-                    window.$.ajax({
-                        url: '/edit_match_stat/' + statId,
-                        method: 'POST',
-                        data: formData,
-                        headers: {
-                            'X-CSRFToken': csrfToken,
-                        },
-                        beforeSend: function () {
-                            window.Swal.fire({
-                                title: 'Saving...',
-                                text: 'Please wait while your changes are being saved.',
-                                allowOutsideClick: false,
-                                didOpen: () => {
-                                    window.Swal.showLoading()
-                                }
-                            });
-                        },
-                        success: function (response) {
-                            if (response.success) {
-                                window.Swal.fire(
-                                    'Success!',
-                                    'Match stat has been updated successfully.',
-                                    'success'
-                                ).then(() => {
-                                    window.$('#editMatchStatModal').modal('hide');
-                                    location.reload();
-                                });
-                            } else {
-                                window.Swal.fire(
-                                    'Error!',
-                                    response.message || 'Failed to update match stat.',
-                                    'error'
-                                );
-                            }
-                        },
-                        error: function () {
-                            window.Swal.fire(
-                                'Error!',
-                                'Failed to update match stat. Please try again.',
-                                'error'
-                            );
-                        }
-                    });
-                }
-            });
-        });
+    // Initialize Feather Icons for dynamically added elements
+    if (typeof window.feather !== 'undefined') {
+        window.feather.replace();
     }
 
-    // Function to filter match stats based on selected match
-    function filterMatchStats() {
-        var selectedMatchId = window.$('#matchFilter').val();
-        window.$('#matchStatsContainer .card').each(function () {
-            var matchId = window.$(this).data('match-id');
-            if (selectedMatchId === '' || matchId == selectedMatchId) {
-                window.$(this).show();
-            } else {
-                window.$(this).hide();
-            }
-        });
-    }
+    // Event delegation for Edit buttons
+    window.$(document).on('click', '.edit-match-stat-btn', function () {
+        var statId = window.$(this).data('stat-id');
+        matchStatsEditMatch(statId);
+    });
 
-    // Function to open Edit Match Stat Modal with data populated
-    function matchStatsEditMatch(statId) {
-        var csrfToken = window.$('input[name="csrf_token"]').val();
+    // Event delegation for Remove buttons
+    window.$(document).on('click', '.remove-match-stat-btn', function () {
+        var statId = window.$(this).data('stat-id');
+        removeMatchStat(statId);
+    });
 
-        window.$.ajax({
-            url: '/edit_match_stat/' + statId,
-            method: 'GET',
-            headers: {
-                'X-CSRFToken': csrfToken,
-            },
-            success: function (data) {
-                window.$('#editGoalsInput').val(data.goals);
-                window.$('#editAssistsInput').val(data.assists);
-                window.$('#editYellowCardsInput').val(data.yellow_cards);
-                window.$('#editRedCardsInput').val(data.red_cards);
-                window.$('#editStatId').val(statId);
-                window.$('#editMatchStatModal').modal('show');
-            },
-            error: function () {
-                window.Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to load match stats. Please try again.',
-                });
-            }
-        });
-    }
+    // Initialize filter on page load
+    filterMatchStats();
 
-    // Function to remove a match stat with SA2 confirmation
-    function removeMatchStat(statId) {
+    // Bind filter change
+    window.$('#matchFilter').on('change', function () {
+        filterMatchStats();
+    });
+
+    // Handle form submission for editing match stats with SA2 confirmation
+    window.$('#editMatchStatForm').submit(function (e) {
+        e.preventDefault();  // Prevent default form submission
+
+        var statId = window.$('#editStatId').val();  // Get the stat ID
+        var formData = window.$(this).serialize();  // Serialize the form data
+        var csrfToken = window.$('input[name="csrf_token"]').val();  // Get CSRF token
+
         window.Swal.fire({
-            title: 'Are you sure?',
-            text: "Do you want to remove this stat?",
-            icon: 'warning',
+            title: 'Confirm Changes',
+            text: "Are you sure you want to save these changes?",
+            icon: 'question',
             showCancelButton: true,
             confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
             cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
-            confirmButtonText: 'Yes, remove it!'
+            confirmButtonText: 'Yes, save it!'
         }).then((result) => {
             if (result.isConfirmed) {
-                var csrfToken = window.$('input[name="csrf_token"]').val();
+                // Proceed with AJAX submission
                 window.$.ajax({
-                    url: '/remove_match_stat/' + statId,
+                    url: '/edit_match_stat/' + statId,
                     method: 'POST',
+                    data: formData,
                     headers: {
-                        'X-CSRFToken': csrfToken
+                        'X-CSRFToken': csrfToken,
                     },
                     beforeSend: function () {
                         window.Swal.fire({
-                            title: 'Removing...',
-                            text: 'Please wait while the stat is being removed.',
+                            title: 'Saving...',
+                            text: 'Please wait while your changes are being saved.',
                             allowOutsideClick: false,
                             didOpen: () => {
                                 window.Swal.showLoading()
@@ -177,16 +74,17 @@ let _initialized = false;
                     success: function (response) {
                         if (response.success) {
                             window.Swal.fire(
-                                'Removed!',
-                                'The stat has been removed successfully.',
+                                'Success!',
+                                'Match stat has been updated successfully.',
                                 'success'
                             ).then(() => {
+                                window.$('#editMatchStatModal').modal('hide');
                                 location.reload();
                             });
                         } else {
                             window.Swal.fire(
                                 'Error!',
-                                response.message || 'Failed to remove the stat.',
+                                response.message || 'Failed to update match stat.',
                                 'error'
                             );
                         }
@@ -194,32 +92,132 @@ let _initialized = false;
                     error: function () {
                         window.Swal.fire(
                             'Error!',
-                            'Failed to remove match stat. Please try again.',
+                            'Failed to update match stat. Please try again.',
                             'error'
                         );
                     }
                 });
             }
         });
-    }
+    });
+}
 
-    // Export functions for template compatibility
-    window.filterMatchStats = filterMatchStats;
-    window.matchStatsEditMatch = matchStatsEditMatch;
-    window.removeMatchStat = removeMatchStat;
+// Function to filter match stats based on selected match
+function filterMatchStats() {
+    var selectedMatchId = window.$('#matchFilter').val();
+    window.$('#matchStatsContainer .card').each(function () {
+        var matchId = window.$(this).data('match-id');
+        if (selectedMatchId === '' || matchId == selectedMatchId) {
+            window.$(this).show();
+        } else {
+            window.$(this).hide();
+        }
+    });
+}
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('match-stats', init, {
-            priority: 40,
-            reinitializable: false,
-            description: 'Match stats management'
-        });
-    }
+// Function to open Edit Match Stat Modal with data populated
+function matchStatsEditMatch(statId) {
+    var csrfToken = window.$('input[name="csrf_token"]').val();
 
-    // Fallback
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+    window.$.ajax({
+        url: '/edit_match_stat/' + statId,
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': csrfToken,
+        },
+        success: function (data) {
+            window.$('#editGoalsInput').val(data.goals);
+            window.$('#editAssistsInput').val(data.assists);
+            window.$('#editYellowCardsInput').val(data.yellow_cards);
+            window.$('#editRedCardsInput').val(data.red_cards);
+            window.$('#editStatId').val(statId);
+            window.$('#editMatchStatModal').modal('show');
+        },
+        error: function () {
+            window.Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load match stats. Please try again.',
+            });
+        }
+    });
+}
+
+// Function to remove a match stat with SA2 confirmation
+function removeMatchStat(statId) {
+    window.Swal.fire({
+        title: 'Are you sure?',
+        text: "Do you want to remove this stat?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
+        cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
+        confirmButtonText: 'Yes, remove it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            var csrfToken = window.$('input[name="csrf_token"]').val();
+            window.$.ajax({
+                url: '/remove_match_stat/' + statId,
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                beforeSend: function () {
+                    window.Swal.fire({
+                        title: 'Removing...',
+                        text: 'Please wait while the stat is being removed.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            window.Swal.showLoading()
+                        }
+                    });
+                },
+                success: function (response) {
+                    if (response.success) {
+                        window.Swal.fire(
+                            'Removed!',
+                            'The stat has been removed successfully.',
+                            'success'
+                        ).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        window.Swal.fire(
+                            'Error!',
+                            response.message || 'Failed to remove the stat.',
+                            'error'
+                        );
+                    }
+                },
+                error: function () {
+                    window.Swal.fire(
+                        'Error!',
+                        'Failed to remove match stat. Please try again.',
+                        'error'
+                    );
+                }
+            });
+        }
+    });
+}
+
+// Export functions for template compatibility
+window.filterMatchStats = filterMatchStats;
+window.matchStatsEditMatch = matchStatsEditMatch;
+window.removeMatchStat = removeMatchStat;
+
+// Register with InitSystem (primary)
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('match-stats', init, {
+        priority: 40,
+        reinitializable: false,
+        description: 'Match stats management'
+    });
+}
+
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

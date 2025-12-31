@@ -22,382 +22,395 @@
  *
  * ============================================================================
  */
-// ES Module
 'use strict';
 
 import { EventDelegation } from '../event-delegation/core.js';
 import { ModalManager } from '../modal-manager.js';
-// ========================================================================
-    // VIEW TEMPLATE
-    // ========================================================================
 
-    /**
-     * View template content in modal
-     * @param {number} id - Template ID
-     * @param {string} name - Template name
-     * @param {string} content - Template content
-     */
-    function viewTemplate(id, name, content) {
-        const titleEl = document.getElementById('view_template_title');
-        const contentEl = document.getElementById('view_template_content');
+/* ========================================================================
+   VIEW TEMPLATE
+   ======================================================================== */
 
-        if (titleEl) titleEl.textContent = name;
-        if (contentEl) contentEl.textContent = content;
+/**
+ * View template content in modal
+ * @param {number} id - Template ID
+ * @param {string} name - Template name
+ * @param {string} content - Template content
+ */
+function viewTemplate(id, name, content) {
+    const titleEl = document.getElementById('view_template_title');
+    const contentEl = document.getElementById('view_template_content');
 
-        // Show modal
-        const modalEl = document.getElementById('viewTemplateModal');
-        if (modalEl) {
-            ModalManager.show('viewTemplateModal');
+    if (titleEl) titleEl.textContent = name;
+    if (contentEl) contentEl.textContent = content;
+
+    // Show modal
+    const modalEl = document.getElementById('viewTemplateModal');
+    if (modalEl) {
+        ModalManager.show('viewTemplateModal');
+    }
+}
+
+/* ========================================================================
+   EDIT TEMPLATE
+   ======================================================================== */
+
+/**
+ * Edit a template
+ * Opens modal with pre-filled template data
+ * @param {number} id - Template ID
+ * @param {string} name - Template name
+ * @param {string} description - Template description
+ * @param {string} content - Template content
+ * @param {string} channelType - Channel type (discord_dm, sms, etc.)
+ * @param {string} usageContext - Usage context description
+ * @param {boolean} isActive - Template active status
+ */
+function editTemplate(id, name, description, content, channelType, usageContext, isActive) {
+    const idInput = document.getElementById('edit_template_id');
+    const nameInput = document.getElementById('edit_template_name');
+    const descInput = document.getElementById('edit_template_description');
+    const contentInput = document.getElementById('edit_template_content');
+    const channelSelect = document.getElementById('edit_channel_type');
+    const contextInput = document.getElementById('edit_usage_context');
+    const activeCheckbox = document.getElementById('edit_template_active');
+
+    if (idInput) idInput.value = id;
+    if (nameInput) nameInput.value = name;
+    if (descInput) descInput.value = description || '';
+    if (contentInput) contentInput.value = content;
+    if (channelSelect) channelSelect.value = channelType || '';
+    if (contextInput) contextInput.value = usageContext || '';
+    if (activeCheckbox) activeCheckbox.checked = isActive;
+
+    // Show edit modal
+    const modalEl = document.getElementById('editTemplateModal');
+    if (modalEl) {
+        ModalManager.show('editTemplateModal');
+    }
+}
+
+/* ========================================================================
+   TOGGLE TEMPLATE STATUS
+   ======================================================================== */
+
+/**
+ * Toggle template active/inactive status
+ * @param {number} id - Template ID
+ * @param {string} name - Template name for display
+ * @param {boolean} currentStatus - Current active status
+ * @param {string} toggleUrl - URL to submit toggle request
+ * @param {string} csrfToken - CSRF token for form submission
+ */
+function toggleTemplate(id, name, currentStatus, toggleUrl, csrfToken) {
+    const action = currentStatus ? 'deactivate' : 'activate';
+    const newStatus = !currentStatus;
+
+    window.Swal.fire({
+        title: `${action.charAt(0).toUpperCase() + action.slice(1)} Template?`,
+        text: `Are you sure you want to ${action} "${name}"?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: newStatus ?
+            (getComputedStyle(document.documentElement).getPropertyValue('--ecs-success').trim() || '#198754') :
+            (getComputedStyle(document.documentElement).getPropertyValue('--ecs-warning').trim() || '#ffc107'),
+        cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ?
+            window.ECSTheme.getColor('secondary') :
+            (getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d'),
+        confirmButtonText: `Yes, ${action} it!`
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = toggleUrl;
+
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken;
+
+            const templateIdInput = document.createElement('input');
+            templateIdInput.type = 'hidden';
+            templateIdInput.name = 'template_id';
+            templateIdInput.value = id;
+
+            form.appendChild(csrfInput);
+            form.appendChild(templateIdInput);
+            document.body.appendChild(form);
+            form.submit();
         }
-    }
+    });
+}
 
-    // ========================================================================
-    // EDIT TEMPLATE
-    // ========================================================================
+/* ========================================================================
+   DELETE TEMPLATE
+   ======================================================================== */
 
-    /**
-     * Edit a template
-     * Opens modal with pre-filled template data
-     * @param {number} id - Template ID
-     * @param {string} name - Template name
-     * @param {string} description - Template description
-     * @param {string} content - Template content
-     * @param {string} channelType - Channel type (discord_dm, sms, etc.)
-     * @param {string} usageContext - Usage context description
-     * @param {boolean} isActive - Template active status
-     */
-    function editTemplate(id, name, description, content, channelType, usageContext, isActive) {
-        const idInput = document.getElementById('edit_template_id');
-        const nameInput = document.getElementById('edit_template_name');
-        const descInput = document.getElementById('edit_template_description');
-        const contentInput = document.getElementById('edit_template_content');
-        const channelSelect = document.getElementById('edit_channel_type');
-        const contextInput = document.getElementById('edit_usage_context');
-        const activeCheckbox = document.getElementById('edit_template_active');
+/**
+ * Delete a template
+ * Shows confirmation dialog before deletion
+ * @param {number} id - Template ID
+ * @param {string} name - Template name for display
+ * @param {string} deleteUrl - URL to submit delete request
+ * @param {string} csrfToken - CSRF token for form submission
+ */
+function deleteTemplate(id, name, deleteUrl, csrfToken) {
+    window.Swal.fire({
+        title: 'Delete Template?',
+        text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ?
+            window.ECSTheme.getColor('danger') :
+            (getComputedStyle(document.documentElement).getPropertyValue('--ecs-danger').trim() || '#dc3545'),
+        cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ?
+            window.ECSTheme.getColor('info') :
+            (getComputedStyle(document.documentElement).getPropertyValue('--ecs-info').trim() || '#0dcaf0'),
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = deleteUrl;
 
-        if (idInput) idInput.value = id;
-        if (nameInput) nameInput.value = name;
-        if (descInput) descInput.value = description || '';
-        if (contentInput) contentInput.value = content;
-        if (channelSelect) channelSelect.value = channelType || '';
-        if (contextInput) contextInput.value = usageContext || '';
-        if (activeCheckbox) activeCheckbox.checked = isActive;
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken;
 
-        // Show edit modal
-        const modalEl = document.getElementById('editTemplateModal');
-        if (modalEl) {
-            ModalManager.show('editTemplateModal');
+            const templateIdInput = document.createElement('input');
+            templateIdInput.type = 'hidden';
+            templateIdInput.name = 'template_id';
+            templateIdInput.value = id;
+
+            form.appendChild(csrfInput);
+            form.appendChild(templateIdInput);
+            document.body.appendChild(form);
+            form.submit();
         }
-    }
+    });
+}
 
-    // ========================================================================
-    // TOGGLE TEMPLATE STATUS
-    // ========================================================================
+/* ========================================================================
+   VARIABLE INSERTION
+   ======================================================================== */
 
-    /**
-     * Toggle template active/inactive status
-     * @param {number} id - Template ID
-     * @param {string} name - Template name for display
-     * @param {boolean} currentStatus - Current active status
-     * @param {string} toggleUrl - URL to submit toggle request
-     * @param {string} csrfToken - CSRF token for form submission
-     */
-    function toggleTemplate(id, name, currentStatus, toggleUrl, csrfToken) {
-        const action = currentStatus ? 'deactivate' : 'activate';
-        const newStatus = !currentStatus;
+/**
+ * Insert variable into textarea at cursor position
+ * @param {string} variable - Variable string to insert
+ * @param {string} targetId - ID of textarea to insert into
+ */
+function insertVariable(variable, targetId) {
+    const textarea = document.getElementById(targetId);
+    if (!textarea) return;
 
-        window.Swal.fire({
-            title: `${action.charAt(0).toUpperCase() + action.slice(1)} Template?`,
-            text: `Are you sure you want to ${action} "${name}"?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: newStatus ?
-                (getComputedStyle(document.documentElement).getPropertyValue('--ecs-success').trim() || '#198754') :
-                (getComputedStyle(document.documentElement).getPropertyValue('--ecs-warning').trim() || '#ffc107'),
-            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ?
-                window.ECSTheme.getColor('secondary') :
-                (getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d'),
-            confirmButtonText: `Yes, ${action} it!`
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Create form and submit
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = toggleUrl;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
 
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = 'csrf_token';
-                csrfInput.value = csrfToken;
+    // Insert variable at cursor position
+    textarea.value = text.substring(0, start) + variable + text.substring(end);
 
-                const templateIdInput = document.createElement('input');
-                templateIdInput.type = 'hidden';
-                templateIdInput.name = 'template_id';
-                templateIdInput.value = id;
+    // Move cursor to after inserted variable
+    const newPos = start + variable.length;
+    textarea.setSelectionRange(newPos, newPos);
+    textarea.focus();
+}
 
-                form.appendChild(csrfInput);
-                form.appendChild(templateIdInput);
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-    }
+/**
+ * Initialize variable button click handlers
+ */
+function initVariableButtons() {
+    document.addEventListener('click', function(e) {
+        const varBtn = e.target.closest('.var-btn');
+        if (!varBtn) return;
 
-    // ========================================================================
-    // DELETE TEMPLATE
-    // ========================================================================
+        e.preventDefault();
+        const variable = varBtn.dataset.var;
+        const targetId = varBtn.dataset.target || 'template_content';
 
-    /**
-     * Delete a template
-     * Shows confirmation dialog before deletion
-     * @param {number} id - Template ID
-     * @param {string} name - Template name for display
-     * @param {string} deleteUrl - URL to submit delete request
-     * @param {string} csrfToken - CSRF token for form submission
-     */
-    function deleteTemplate(id, name, deleteUrl, csrfToken) {
-        window.Swal.fire({
-            title: 'Delete Template?',
-            text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ?
-                window.ECSTheme.getColor('danger') :
-                (getComputedStyle(document.documentElement).getPropertyValue('--ecs-danger').trim() || '#dc3545'),
-            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ?
-                window.ECSTheme.getColor('info') :
-                (getComputedStyle(document.documentElement).getPropertyValue('--ecs-info').trim() || '#0dcaf0'),
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Create form and submit
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = deleteUrl;
+        // Determine target based on which modal is open
+        let actualTarget = targetId;
+        const editModal = document.getElementById('editTemplateModal');
+        const createModal = document.getElementById('createTemplateModal');
 
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = 'csrf_token';
-                csrfInput.value = csrfToken;
-
-                const templateIdInput = document.createElement('input');
-                templateIdInput.type = 'hidden';
-                templateIdInput.name = 'template_id';
-                templateIdInput.value = id;
-
-                form.appendChild(csrfInput);
-                form.appendChild(templateIdInput);
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-    }
-
-    // ========================================================================
-    // VARIABLE INSERTION
-    // ========================================================================
-
-    /**
-     * Insert variable into textarea at cursor position
-     * @param {string} variable - Variable string to insert
-     * @param {string} targetId - ID of textarea to insert into
-     */
-    function insertVariable(variable, targetId) {
-        const textarea = document.getElementById(targetId);
-        if (!textarea) return;
-
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const text = textarea.value;
-
-        // Insert variable at cursor position
-        textarea.value = text.substring(0, start) + variable + text.substring(end);
-
-        // Move cursor to after inserted variable
-        const newPos = start + variable.length;
-        textarea.setSelectionRange(newPos, newPos);
-        textarea.focus();
-    }
-
-    /**
-     * Initialize variable button click handlers
-     */
-    function initVariableButtons() {
-        document.addEventListener('click', function(e) {
-            const varBtn = e.target.closest('.var-btn');
-            if (!varBtn) return;
-
-            e.preventDefault();
-            const variable = varBtn.dataset.var;
-            const targetId = varBtn.dataset.target || 'template_content';
-
-            // Determine target based on which modal is open
-            let actualTarget = targetId;
-            const editModal = document.getElementById('editTemplateModal');
-            const createModal = document.getElementById('createTemplateModal');
-
-            if (editModal && editModal.classList.contains('show')) {
-                actualTarget = 'edit_template_content';
-            } else if (createModal && createModal.classList.contains('show')) {
-                actualTarget = 'template_content';
-            }
-
-            insertVariable(variable, actualTarget);
-
-            // Visual feedback
-            varBtn.classList.add('inserted');
-            setTimeout(() => varBtn.classList.remove('inserted'), 300);
-        });
-    }
-
-    // ========================================================================
-    // ACTION HANDLERS
-    // ========================================================================
-
-    /**
-     * Handle go back action
-     * @param {Event} e - The event object
-     */
-    function handleGoBack(e) {
-        window.history.back();
-    }
-
-    /**
-     * Handle view template action
-     * @param {Event} e - The event object
-     */
-    function handleViewTemplate(e) {
-        const viewId = e.target.dataset.templateId;
-        const viewName = e.target.dataset.templateName;
-        const viewContent = e.target.dataset.templateContent;
-        viewTemplate(viewId, viewName, viewContent);
-    }
-
-    /**
-     * Handle edit template action
-     * @param {Event} e - The event object
-     */
-    function handleEditTemplate(e) {
-        const editId = e.target.dataset.templateId;
-        const editName = e.target.dataset.templateName;
-        const editDesc = e.target.dataset.templateDescription;
-        const editContent = e.target.dataset.templateContent;
-        const editChannel = e.target.dataset.templateChannel;
-        const editContext = e.target.dataset.templateContext;
-        const editActive = e.target.dataset.templateActive === 'true';
-        window.editTemplate(editId, editName, editDesc, editContent, editChannel, editContext, editActive);
-    }
-
-    /**
-     * Handle toggle template action
-     * @param {Event} e - The event object
-     */
-    function handleToggleTemplate(e) {
-        const toggleId = e.target.dataset.templateId;
-        const toggleName = e.target.dataset.templateName;
-        const toggleActive = e.target.dataset.templateActive === 'true';
-        const toggleUrl = e.target.dataset.toggleUrl;
-        const toggleCsrf = e.target.dataset.csrfToken;
-        toggleTemplate(toggleId, toggleName, toggleActive, toggleUrl, toggleCsrf);
-    }
-
-    /**
-     * Handle delete template action
-     * @param {Event} e - The event object
-     */
-    function handleDeleteTemplate(e) {
-        const deleteId = e.target.dataset.templateId;
-        const deleteName = e.target.dataset.templateName;
-        const deleteUrl = e.target.dataset.deleteUrl;
-        const deleteCsrf = e.target.dataset.csrfToken;
-        deleteTemplate(deleteId, deleteName, deleteUrl, deleteCsrf);
-    }
-
-    // ========================================================================
-    // INITIALIZATION
-    // ========================================================================
-
-    /**
-     * Initialize all template detail functionality
-     */
-    function init() {
-        // Page guard: only run on template detail page
-        if (!document.getElementById('viewTemplateModal') && !document.getElementById('editTemplateModal')) {
-            return;
+        if (editModal && editModal.classList.contains('show')) {
+            actualTarget = 'edit_template_content';
+        } else if (createModal && createModal.classList.contains('show')) {
+            actualTarget = 'template_content';
         }
 
-        console.log('[Template Detail] Initializing...');
-        // EventDelegation handlers are registered at module scope below
-        initVariableButtons();
-        console.log('[Template Detail] Initialization complete');
+        insertVariable(variable, actualTarget);
+
+        // Visual feedback
+        varBtn.classList.add('inserted');
+        setTimeout(() => varBtn.classList.remove('inserted'), 300);
+    });
+}
+
+/* ========================================================================
+   ACTION HANDLERS
+   ======================================================================== */
+
+/**
+ * Handle go back action
+ * @param {Event} e - The event object
+ */
+function handleGoBack(e) {
+    window.history.back();
+}
+
+/**
+ * Handle view template action
+ * @param {Event} e - The event object
+ */
+function handleViewTemplate(e) {
+    const viewId = e.target.dataset.templateId;
+    const viewName = e.target.dataset.templateName;
+    const viewContent = e.target.dataset.templateContent;
+    viewTemplate(viewId, viewName, viewContent);
+}
+
+/**
+ * Handle edit template action
+ * @param {Event} e - The event object
+ */
+function handleEditTemplate(e) {
+    const editId = e.target.dataset.templateId;
+    const editName = e.target.dataset.templateName;
+    const editDesc = e.target.dataset.templateDescription;
+    const editContent = e.target.dataset.templateContent;
+    const editChannel = e.target.dataset.templateChannel;
+    const editContext = e.target.dataset.templateContext;
+    const editActive = e.target.dataset.templateActive === 'true';
+    editTemplate(editId, editName, editDesc, editContent, editChannel, editContext, editActive);
+}
+
+/**
+ * Handle toggle template action
+ * @param {Event} e - The event object
+ */
+function handleToggleTemplate(e) {
+    const toggleId = e.target.dataset.templateId;
+    const toggleName = e.target.dataset.templateName;
+    const toggleActive = e.target.dataset.templateActive === 'true';
+    const toggleUrl = e.target.dataset.toggleUrl;
+    const toggleCsrf = e.target.dataset.csrfToken;
+    toggleTemplate(toggleId, toggleName, toggleActive, toggleUrl, toggleCsrf);
+}
+
+/**
+ * Handle delete template action
+ * @param {Event} e - The event object
+ */
+function handleDeleteTemplate(e) {
+    const deleteId = e.target.dataset.templateId;
+    const deleteName = e.target.dataset.templateName;
+    const deleteUrl = e.target.dataset.deleteUrl;
+    const deleteCsrf = e.target.dataset.csrfToken;
+    deleteTemplate(deleteId, deleteName, deleteUrl, deleteCsrf);
+}
+
+/* ========================================================================
+   INITIALIZATION
+   ======================================================================== */
+
+/**
+ * Initialize all template detail functionality
+ */
+function init() {
+    // Page guard: only run on template detail page
+    if (!document.getElementById('viewTemplateModal') && !document.getElementById('editTemplateModal')) {
+        return;
     }
 
-    // ========================================================================
-    // EVENT DELEGATION - Registered at module scope
-    // ========================================================================
-    // Handlers registered when IIFE executes, ensuring EventDelegation is available
+    console.log('[Template Detail] Initializing...');
+    // EventDelegation handlers are registered at module scope below
+    initVariableButtons();
+    console.log('[Template Detail] Initialization complete');
+}
 
-    EventDelegation.register('go-back-templates', handleGoBack, { preventDefault: true });
-    EventDelegation.register('view-template', handleViewTemplate, { preventDefault: true });
-    EventDelegation.register('edit-template', handleEditTemplate, { preventDefault: true });
-    EventDelegation.register('toggle-template', handleToggleTemplate, { preventDefault: true });
-    EventDelegation.register('delete-template', handleDeleteTemplate, { preventDefault: true });
+/* ========================================================================
+   EVENT DELEGATION - Registered at module scope
+   ======================================================================== */
 
-    // ========================================================================
-    // DOM READY
-    // ========================================================================
+EventDelegation.register('go-back-templates', handleGoBack, { preventDefault: true });
+EventDelegation.register('view-template', handleViewTemplate, { preventDefault: true });
+EventDelegation.register('edit-template', handleEditTemplate, { preventDefault: true });
+EventDelegation.register('toggle-template', handleToggleTemplate, { preventDefault: true });
+EventDelegation.register('delete-template', handleDeleteTemplate, { preventDefault: true });
 
-    // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        // DOM already loaded
-        init();
-    }
+/* ========================================================================
+   REGISTER WITH INITSYSTEM
+   ======================================================================== */
 
-    // Expose public API
-    window.MessageTemplateDetail = {
-        version: '1.1.0',
-        viewTemplate,
-        editTemplate,
-        toggleTemplate,
-        deleteTemplate,
-        insertVariable,
-        init
-    };
+import { InitSystem } from '../init-system.js';
+
+let _initialized = false;
+
+function initWithGuard() {
+    if (_initialized) return;
+    _initialized = true;
+    init();
+}
+
+InitSystem.register('message-template-detail', initWithGuard, {
+    priority: 30,
+    reinitializable: false,
+    description: 'Message template detail management'
+});
+
+// Fallback for non-bundled usage
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initWithGuard);
+} else {
+    initWithGuard();
+}
+
+/* ========================================================================
+   PUBLIC API
+   ======================================================================== */
+
+const MessageTemplateDetail = {
+    version: '1.1.0',
+    viewTemplate,
+    editTemplate,
+    toggleTemplate,
+    deleteTemplate,
+    insertVariable,
+    init
+};
+
+// Expose public API
+window.MessageTemplateDetail = MessageTemplateDetail;
 
 // Backward compatibility
 window.viewTemplate = viewTemplate;
-
-// Backward compatibility
 window.editTemplate = editTemplate;
-
-// Backward compatibility
 window.toggleTemplate = toggleTemplate;
-
-// Backward compatibility
 window.deleteTemplate = deleteTemplate;
-
-// Backward compatibility
 window.insertVariable = insertVariable;
-
-// Backward compatibility
 window.initVariableButtons = initVariableButtons;
-
-// Backward compatibility
 window.handleGoBack = handleGoBack;
-
-// Backward compatibility
 window.handleViewTemplate = handleViewTemplate;
-
-// Backward compatibility
 window.handleEditTemplate = handleEditTemplate;
-
-// Backward compatibility
 window.handleToggleTemplate = handleToggleTemplate;
-
-// Backward compatibility
 window.handleDeleteTemplate = handleDeleteTemplate;
 
-// Backward compatibility
-window.init = init;
+export {
+    MessageTemplateDetail,
+    viewTemplate,
+    editTemplate,
+    toggleTemplate,
+    deleteTemplate,
+    insertVariable,
+    initVariableButtons,
+    handleGoBack,
+    handleViewTemplate,
+    handleEditTemplate,
+    handleToggleTemplate,
+    handleDeleteTemplate,
+    init
+};

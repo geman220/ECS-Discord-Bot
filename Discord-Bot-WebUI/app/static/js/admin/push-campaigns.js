@@ -22,462 +22,483 @@
  *
  * ============================================================================
  */
-// ES Module
 'use strict';
 
 import { EventDelegation } from '../event-delegation/core.js';
-// ========================================================================
-    // CONFIGURATION
-    // ========================================================================
 
-    const CampaignsConfig = {
-        baseUrl: window.CAMPAIGNS_BASE_URL || '/admin-panel',
-        csrfToken: window.CAMPAIGNS_CSRF_TOKEN || ''
+/* ========================================================================
+   CONFIGURATION
+   ======================================================================== */
+
+const CampaignsConfig = {
+    baseUrl: window.CAMPAIGNS_BASE_URL || '/admin-panel',
+    csrfToken: window.CAMPAIGNS_CSRF_TOKEN || ''
+};
+
+/* ========================================================================
+   CAMPAIGN CRUD OPERATIONS
+   ======================================================================== */
+
+async function viewCampaign(campaignId) {
+    try {
+        const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}`);
+        const data = await response.json();
+
+        if (data.success) {
+            // Show campaign details in modal
+            window.Swal.fire({
+                title: data.campaign.name,
+                html: `
+                    <div class="text-start">
+                        <p><strong>Title:</strong> ${data.campaign.title}</p>
+                        <p><strong>Body:</strong> ${data.campaign.body}</p>
+                        <p><strong>Target:</strong> ${data.campaign.target_type}</p>
+                        <p><strong>Status:</strong> ${data.campaign.status}</p>
+                    </div>
+                `,
+                width: 600
+            });
+        }
+    } catch (error) {
+        window.Swal.fire('Error', 'Failed to load campaign details', 'error');
+    }
+}
+
+async function editCampaign(campaignId) {
+    try {
+        const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}`);
+        const data = await response.json();
+
+        if (data.success) {
+            window.location.href = `${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/edit`;
+        }
+    } catch (error) {
+        window.Swal.fire('Error', 'Failed to load campaign for editing', 'error');
+    }
+}
+
+async function sendCampaign(campaignId, campaignName) {
+    const result = await window.Swal.fire({
+        title: 'Send Campaign Now?',
+        text: `Send "${campaignName}" to all targeted users immediately?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, send it!',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/send`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CampaignsConfig.csrfToken
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                window.Swal.fire('Sent!', data.message, 'success').then(() => location.reload());
+            } else {
+                window.Swal.fire('Error', data.message, 'error');
+            }
+        } catch (error) {
+            window.Swal.fire('Error', 'Failed to send campaign', 'error');
+        }
+    }
+}
+
+async function scheduleCampaign(campaignId, campaignName) {
+    const result = await window.Swal.fire({
+        title: 'Schedule Campaign',
+        html: `
+            <div class="text-start">
+                <label class="form-label">Schedule Time</label>
+                <input type="datetime-local" id="scheduleTime" class="form-control">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Schedule',
+        preConfirm: () => {
+            const scheduleTime = document.getElementById('scheduleTime').value;
+            if (!scheduleTime) {
+                window.Swal.showValidationMessage('Please select a time');
+                return false;
+            }
+            return { scheduleTime };
+        }
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/schedule`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CampaignsConfig.csrfToken
+                },
+                body: JSON.stringify({ scheduled_send_time: result.value.scheduleTime })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                window.Swal.fire('Scheduled!', data.message, 'success').then(() => location.reload());
+            } else {
+                window.Swal.fire('Error', data.message, 'error');
+            }
+        } catch (error) {
+            window.Swal.fire('Error', 'Failed to schedule campaign', 'error');
+        }
+    }
+}
+
+async function deleteCampaign(campaignId, campaignName) {
+    const result = await window.Swal.fire({
+        title: 'Delete Campaign?',
+        text: `Delete "${campaignName}"? This cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'Yes, delete it!'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CampaignsConfig.csrfToken
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                window.Swal.fire('Deleted!', data.message, 'success').then(() => location.reload());
+            } else {
+                window.Swal.fire('Error', data.message, 'error');
+            }
+        } catch (error) {
+            window.Swal.fire('Error', 'Failed to delete campaign', 'error');
+        }
+    }
+}
+
+async function cancelCampaign(campaignId, campaignName) {
+    const result = await window.Swal.fire({
+        title: 'Cancel Campaign?',
+        text: `Cancel scheduled campaign "${campaignName}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, cancel it!'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/cancel`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CampaignsConfig.csrfToken
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                window.Swal.fire('Cancelled!', data.message, 'success').then(() => location.reload());
+            } else {
+                window.Swal.fire('Error', data.message, 'error');
+            }
+        } catch (error) {
+            window.Swal.fire('Error', 'Failed to cancel campaign', 'error');
+        }
+    }
+}
+
+async function duplicateCampaign(campaignId, campaignName) {
+    const result = await window.Swal.fire({
+        title: 'Duplicate Campaign?',
+        text: `Create a copy of "${campaignName}"?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, duplicate it!'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/duplicate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CampaignsConfig.csrfToken
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                window.Swal.fire('Duplicated!', data.message, 'success').then(() => location.reload());
+            } else {
+                window.Swal.fire('Error', data.message, 'error');
+            }
+        } catch (error) {
+            window.Swal.fire('Error', 'Failed to duplicate campaign', 'error');
+        }
+    }
+}
+
+/* ========================================================================
+   FORM HELPERS
+   ======================================================================== */
+
+function toggleCampaignTargetOptions() {
+    const targetType = document.getElementById('campaign_target_type')?.value;
+    if (!targetType) return;
+
+    // Hide all target selectors
+    const selectors = [
+        'campaignTeamSelector',
+        'campaignLeagueSelector',
+        'campaignRoleSelector',
+        'campaignPoolSelector',
+        'campaignGroupSelector'
+    ];
+
+    selectors.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('d-none');
+    });
+
+    // Show selected target selector
+    const selectorMap = {
+        'team': 'campaignTeamSelector',
+        'league': 'campaignLeagueSelector',
+        'role': 'campaignRoleSelector',
+        'pool': 'campaignPoolSelector',
+        'group': 'campaignGroupSelector'
     };
 
-    // ========================================================================
-    // CAMPAIGN CRUD OPERATIONS
-    // ========================================================================
-
-    async function viewCampaign(campaignId) {
-        try {
-            const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}`);
-            const data = await response.json();
-
-            if (data.success) {
-                // Show campaign details in modal
-                window.Swal.fire({
-                    title: data.campaign.name,
-                    html: `
-                        <div class="text-start">
-                            <p><strong>Title:</strong> ${data.campaign.title}</p>
-                            <p><strong>Body:</strong> ${data.campaign.body}</p>
-                            <p><strong>Target:</strong> ${data.campaign.target_type}</p>
-                            <p><strong>Status:</strong> ${data.campaign.status}</p>
-                        </div>
-                    `,
-                    width: 600
-                });
-            }
-        } catch (error) {
-            window.Swal.fire('Error', 'Failed to load campaign details', 'error');
-        }
+    const selectedSelector = selectorMap[targetType];
+    if (selectedSelector) {
+        const el = document.getElementById(selectedSelector);
+        if (el) el.classList.remove('d-none');
     }
+}
 
-    async function editCampaign(campaignId) {
-        try {
-            const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}`);
-            const data = await response.json();
+function toggleCampaignSchedule() {
+    const sendType = document.querySelector('input[name="send_type"]:checked')?.value;
+    const scheduleContainer = document.getElementById('campaignScheduleContainer');
 
-            if (data.success) {
-                window.location.href = `${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/edit`;
-            }
-        } catch (error) {
-            window.Swal.fire('Error', 'Failed to load campaign for editing', 'error');
-        }
-    }
+    if (!scheduleContainer) return;
 
-    async function sendCampaign(campaignId, campaignName) {
-        const result = await window.Swal.fire({
-            title: 'Send Campaign Now?',
-            text: `Send "${campaignName}" to all targeted users immediately?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, send it!',
-            cancelButtonText: 'Cancel'
-        });
-
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/send`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': CampaignsConfig.csrfToken
-                    }
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    window.Swal.fire('Sent!', data.message, 'success').then(() => location.reload());
-                } else {
-                    window.Swal.fire('Error', data.message, 'error');
-                }
-            } catch (error) {
-                window.Swal.fire('Error', 'Failed to send campaign', 'error');
-            }
-        }
-    }
-
-    async function scheduleCampaign(campaignId, campaignName) {
-        const result = await window.Swal.fire({
-            title: 'Schedule Campaign',
-            html: `
-                <div class="text-start">
-                    <label class="form-label">Schedule Time</label>
-                    <input type="datetime-local" id="scheduleTime" class="form-control">
-                </div>
-            `,
-            showCancelButton: true,
-            confirmButtonText: 'Schedule',
-            preConfirm: () => {
-                const scheduleTime = document.getElementById('scheduleTime').value;
-                if (!scheduleTime) {
-                    window.Swal.showValidationMessage('Please select a time');
-                    return false;
-                }
-                return { scheduleTime };
-            }
-        });
-
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/schedule`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': CampaignsConfig.csrfToken
-                    },
-                    body: JSON.stringify({ scheduled_send_time: result.value.scheduleTime })
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    window.Swal.fire('Scheduled!', data.message, 'success').then(() => location.reload());
-                } else {
-                    window.Swal.fire('Error', data.message, 'error');
-                }
-            } catch (error) {
-                window.Swal.fire('Error', 'Failed to schedule campaign', 'error');
-            }
-        }
-    }
-
-    async function deleteCampaign(campaignId, campaignName) {
-        const result = await window.Swal.fire({
-            title: 'Delete Campaign?',
-            text: `Delete "${campaignName}"? This cannot be undone.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            confirmButtonText: 'Yes, delete it!'
-        });
-
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': CampaignsConfig.csrfToken
-                    }
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    window.Swal.fire('Deleted!', data.message, 'success').then(() => location.reload());
-                } else {
-                    window.Swal.fire('Error', data.message, 'error');
-                }
-            } catch (error) {
-                window.Swal.fire('Error', 'Failed to delete campaign', 'error');
-            }
-        }
-    }
-
-    async function cancelCampaign(campaignId, campaignName) {
-        const result = await window.Swal.fire({
-            title: 'Cancel Campaign?',
-            text: `Cancel scheduled campaign "${campaignName}"?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, cancel it!'
-        });
-
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/cancel`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': CampaignsConfig.csrfToken
-                    }
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    window.Swal.fire('Cancelled!', data.message, 'success').then(() => location.reload());
-                } else {
-                    window.Swal.fire('Error', data.message, 'error');
-                }
-            } catch (error) {
-                window.Swal.fire('Error', 'Failed to cancel campaign', 'error');
-            }
-        }
-    }
-
-    async function duplicateCampaign(campaignId, campaignName) {
-        const result = await window.Swal.fire({
-            title: 'Duplicate Campaign?',
-            text: `Create a copy of "${campaignName}"?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, duplicate it!'
-        });
-
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(`${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/duplicate`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': CampaignsConfig.csrfToken
-                    }
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    window.Swal.fire('Duplicated!', data.message, 'success').then(() => location.reload());
-                } else {
-                    window.Swal.fire('Error', data.message, 'error');
-                }
-            } catch (error) {
-                window.Swal.fire('Error', 'Failed to duplicate campaign', 'error');
-            }
-        }
-    }
-
-    // ========================================================================
-    // FORM HELPERS
-    // ========================================================================
-
-    function toggleCampaignTargetOptions() {
-        const targetType = document.getElementById('campaign_target_type')?.value;
-        if (!targetType) return;
-
-        // Hide all target selectors
-        const selectors = [
-            'campaignTeamSelector',
-            'campaignLeagueSelector',
-            'campaignRoleSelector',
-            'campaignPoolSelector',
-            'campaignGroupSelector'
-        ];
-
-        selectors.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.classList.add('d-none');
-        });
-
-        // Show selected target selector
-        const selectorMap = {
-            'team': 'campaignTeamSelector',
-            'league': 'campaignLeagueSelector',
-            'role': 'campaignRoleSelector',
-            'pool': 'campaignPoolSelector',
-            'group': 'campaignGroupSelector'
-        };
-
-        const selectedSelector = selectorMap[targetType];
-        if (selectedSelector) {
-            const el = document.getElementById(selectedSelector);
-            if (el) el.classList.remove('d-none');
-        }
-    }
-
-    function toggleCampaignSchedule() {
-        const sendType = document.querySelector('input[name="send_type"]:checked')?.value;
-        const scheduleContainer = document.getElementById('campaignScheduleContainer');
-
-        if (!scheduleContainer) return;
-
-        if (sendType === 'scheduled') {
-            scheduleContainer.classList.remove('d-none');
-        } else {
-            scheduleContainer.classList.add('d-none');
-        }
-    }
-
-    // ========================================================================
-    // ACTION HANDLERS
-    // ========================================================================
-
-    /**
-     * Handle go back action
-     * @param {Event} e - The event object
-     */
-    function handleGoBack(e) {
-        window.history.back();
-    }
-
-    /**
-     * Handle view campaign action
-     * @param {Event} e - The event object
-     */
-    function handleViewCampaign(e) {
-        viewCampaign(e.target.dataset.campaignId);
-    }
-
-    /**
-     * Handle edit campaign action
-     * @param {Event} e - The event object
-     */
-    function handleEditCampaign(e) {
-        editCampaign(e.target.dataset.campaignId);
-    }
-
-    /**
-     * Handle send campaign action
-     * @param {Event} e - The event object
-     */
-    function handleSendCampaign(e) {
-        sendCampaign(
-            e.target.dataset.campaignId,
-            e.target.dataset.campaignName
-        );
-    }
-
-    /**
-     * Handle schedule campaign action
-     * @param {Event} e - The event object
-     */
-    function handleScheduleCampaign(e) {
-        scheduleCampaign(
-            e.target.dataset.campaignId,
-            e.target.dataset.campaignName
-        );
-    }
-
-    /**
-     * Handle delete campaign action
-     * @param {Event} e - The event object
-     */
-    function handleDeleteCampaign(e) {
-        deleteCampaign(
-            e.target.dataset.campaignId,
-            e.target.dataset.campaignName
-        );
-    }
-
-    /**
-     * Handle cancel campaign action
-     * @param {Event} e - The event object
-     */
-    function handleCancelCampaign(e) {
-        cancelCampaign(
-            e.target.dataset.campaignId,
-            e.target.dataset.campaignName
-        );
-    }
-
-    /**
-     * Handle duplicate campaign action
-     * @param {Event} e - The event object
-     */
-    function handleDuplicateCampaign(e) {
-        duplicateCampaign(
-            e.target.dataset.campaignId,
-            e.target.dataset.campaignName
-        );
-    }
-
-    // ========================================================================
-    // INITIALIZATION
-    // ========================================================================
-
-    let _initialized = false;
-
-    function init() {
-        // Guard against duplicate initialization
-        if (_initialized) return;
-
-        // Page guard: only run on campaigns page
-        if (!document.querySelector('[data-action*="campaign"]')) {
-            return;
-        }
-
-        _initialized = true;
-
-        console.log('[Push Campaigns] Initializing...');
-        // EventDelegation handlers are registered at module scope below
-
-        // Initialize target type selector
-        const targetTypeSelect = document.getElementById('campaign_target_type');
-        if (targetTypeSelect) {
-            targetTypeSelect.addEventListener('change', toggleCampaignTargetOptions);
-            toggleCampaignTargetOptions(); // Set initial state
-        }
-
-        // Initialize send type radios
-        const sendTypeRadios = document.querySelectorAll('input[name="send_type"]');
-        sendTypeRadios.forEach(radio => {
-            radio.addEventListener('change', toggleCampaignSchedule);
-        });
-        toggleCampaignSchedule(); // Set initial state
-
-        console.log('[Push Campaigns] Initialization complete');
-    }
-
-    // ========================================================================
-    // EVENT DELEGATION - Registered at module scope
-    // ========================================================================
-    // Handlers registered when IIFE executes, ensuring EventDelegation is available
-
-    EventDelegation.register('go-back-campaigns', handleGoBack, { preventDefault: true });
-    EventDelegation.register('view-campaign', handleViewCampaign, { preventDefault: true });
-    EventDelegation.register('edit-campaign', handleEditCampaign, { preventDefault: true });
-    EventDelegation.register('send-campaign', handleSendCampaign, { preventDefault: true });
-    EventDelegation.register('schedule-campaign', handleScheduleCampaign, { preventDefault: true });
-    EventDelegation.register('delete-campaign', handleDeleteCampaign, { preventDefault: true });
-    EventDelegation.register('cancel-campaign', handleCancelCampaign, { preventDefault: true });
-    EventDelegation.register('duplicate-campaign', handleDuplicateCampaign, { preventDefault: true });
-
-    // ========================================================================
-    // DOM READY
-    // ========================================================================
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+    if (sendType === 'scheduled') {
+        scheduleContainer.classList.remove('d-none');
     } else {
-        init();
+        scheduleContainer.classList.add('d-none');
+    }
+}
+
+/* ========================================================================
+   ACTION HANDLERS
+   ======================================================================== */
+
+/**
+ * Handle go back action
+ * @param {Event} e - The event object
+ */
+function handleGoBack(e) {
+    window.history.back();
+}
+
+/**
+ * Handle view campaign action
+ * @param {Event} e - The event object
+ */
+function handleViewCampaign(e) {
+    viewCampaign(e.target.dataset.campaignId);
+}
+
+/**
+ * Handle edit campaign action
+ * @param {Event} e - The event object
+ */
+function handleEditCampaign(e) {
+    editCampaign(e.target.dataset.campaignId);
+}
+
+/**
+ * Handle send campaign action
+ * @param {Event} e - The event object
+ */
+function handleSendCampaign(e) {
+    sendCampaign(
+        e.target.dataset.campaignId,
+        e.target.dataset.campaignName
+    );
+}
+
+/**
+ * Handle schedule campaign action
+ * @param {Event} e - The event object
+ */
+function handleScheduleCampaign(e) {
+    scheduleCampaign(
+        e.target.dataset.campaignId,
+        e.target.dataset.campaignName
+    );
+}
+
+/**
+ * Handle delete campaign action
+ * @param {Event} e - The event object
+ */
+function handleDeleteCampaign(e) {
+    deleteCampaign(
+        e.target.dataset.campaignId,
+        e.target.dataset.campaignName
+    );
+}
+
+/**
+ * Handle cancel campaign action
+ * @param {Event} e - The event object
+ */
+function handleCancelCampaign(e) {
+    cancelCampaign(
+        e.target.dataset.campaignId,
+        e.target.dataset.campaignName
+    );
+}
+
+/**
+ * Handle duplicate campaign action
+ * @param {Event} e - The event object
+ */
+function handleDuplicateCampaign(e) {
+    duplicateCampaign(
+        e.target.dataset.campaignId,
+        e.target.dataset.campaignName
+    );
+}
+
+/* ========================================================================
+   INITIALIZATION
+   ======================================================================== */
+
+let _initialized = false;
+
+function init() {
+    // Guard against duplicate initialization
+    if (_initialized) return;
+
+    // Page guard: only run on campaigns page
+    if (!document.querySelector('[data-action*="campaign"]')) {
+        return;
     }
 
-    // Expose public API
-    window.PushCampaigns = {
-        version: '1.0.0',
-        viewCampaign,
-        editCampaign,
-        sendCampaign,
-        scheduleCampaign,
-        deleteCampaign,
-        cancelCampaign,
-        duplicateCampaign,
-        init
-    };
+    _initialized = true;
+
+    console.log('[Push Campaigns] Initializing...');
+    // EventDelegation handlers are registered at module scope below
+
+    // Initialize target type selector
+    const targetTypeSelect = document.getElementById('campaign_target_type');
+    if (targetTypeSelect) {
+        targetTypeSelect.addEventListener('change', toggleCampaignTargetOptions);
+        toggleCampaignTargetOptions(); // Set initial state
+    }
+
+    // Initialize send type radios
+    const sendTypeRadios = document.querySelectorAll('input[name="send_type"]');
+    sendTypeRadios.forEach(radio => {
+        radio.addEventListener('change', toggleCampaignSchedule);
+    });
+    toggleCampaignSchedule(); // Set initial state
+
+    console.log('[Push Campaigns] Initialization complete');
+}
+
+/* ========================================================================
+   EVENT DELEGATION - Registered at module scope
+   ======================================================================== */
+
+EventDelegation.register('go-back-campaigns', handleGoBack, { preventDefault: true });
+EventDelegation.register('view-campaign', handleViewCampaign, { preventDefault: true });
+EventDelegation.register('edit-campaign', handleEditCampaign, { preventDefault: true });
+EventDelegation.register('send-campaign', handleSendCampaign, { preventDefault: true });
+EventDelegation.register('schedule-campaign', handleScheduleCampaign, { preventDefault: true });
+EventDelegation.register('delete-campaign', handleDeleteCampaign, { preventDefault: true });
+EventDelegation.register('cancel-campaign', handleCancelCampaign, { preventDefault: true });
+EventDelegation.register('duplicate-campaign', handleDuplicateCampaign, { preventDefault: true });
+
+/* ========================================================================
+   REGISTER WITH INITSYSTEM
+   ======================================================================== */
+
+import { InitSystem } from '../init-system.js';
+
+InitSystem.register('push-campaigns', init, {
+    priority: 30,
+    reinitializable: false,
+    description: 'Push campaigns management'
+});
+
+// Fallback for non-bundled usage
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+/* ========================================================================
+   PUBLIC API
+   ======================================================================== */
+
+const PushCampaigns = {
+    version: '1.0.0',
+    viewCampaign,
+    editCampaign,
+    sendCampaign,
+    scheduleCampaign,
+    deleteCampaign,
+    cancelCampaign,
+    duplicateCampaign,
+    init
+};
+
+// Expose public API
+window.PushCampaigns = PushCampaigns;
 
 // Backward compatibility
 window.CampaignsConfig = CampaignsConfig;
-
-// Backward compatibility
 window.handleGoBack = handleGoBack;
-
-// Backward compatibility
 window.handleViewCampaign = handleViewCampaign;
-
-// Backward compatibility
 window.handleEditCampaign = handleEditCampaign;
-
-// Backward compatibility
 window.handleSendCampaign = handleSendCampaign;
-
-// Backward compatibility
 window.handleScheduleCampaign = handleScheduleCampaign;
-
-// Backward compatibility
 window.handleDeleteCampaign = handleDeleteCampaign;
-
-// Backward compatibility
 window.handleCancelCampaign = handleCancelCampaign;
-
-// Backward compatibility
 window.handleDuplicateCampaign = handleDuplicateCampaign;
+
+export {
+    PushCampaigns,
+    CampaignsConfig,
+    viewCampaign,
+    editCampaign,
+    sendCampaign,
+    scheduleCampaign,
+    deleteCampaign,
+    cancelCampaign,
+    duplicateCampaign,
+    toggleCampaignTargetOptions,
+    toggleCampaignSchedule,
+    handleGoBack,
+    handleViewCampaign,
+    handleEditCampaign,
+    handleSendCampaign,
+    handleScheduleCampaign,
+    handleDeleteCampaign,
+    handleCancelCampaign,
+    handleDuplicateCampaign,
+    init
+};

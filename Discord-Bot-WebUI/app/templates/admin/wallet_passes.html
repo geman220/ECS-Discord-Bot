@@ -178,7 +178,7 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small text-muted">Status Filter</label>
-                        <select class="form-select js-filter-by-status" onchange="filterByStatus(this.value)" data-form-select>
+                        <select class="form-select js-filter-by-status" data-action="filter-by-value" data-param="status" data-form-select>
                             <option value="all" {{ 'selected' if status_filter == 'all' or not status_filter else '' }}>All Statuses</option>
                             <option value="active" {{ 'selected' if status_filter == 'active' else '' }}>Active Only</option>
                             <option value="voided" {{ 'selected' if status_filter == 'voided' else '' }}>Voided</option>
@@ -225,7 +225,7 @@
                         <tr>
                             {% if 'Global Admin' in user_roles %}
                             <th class="u-w-40" scope="col">
-                                <input type="checkbox" class="form-check-input js-select-all" id="selectAll" onchange="toggleSelectAll(this)">
+                                <input type="checkbox" class="form-check-input js-select-all" id="selectAll" data-action="toggle-select-all" data-target=".pass-checkbox">
                             </th>
                             {% endif %}
                             <th scope="col">Member</th>
@@ -247,7 +247,7 @@
                                 <input type="checkbox" class="form-check-input pass-checkbox js-update-bulk-actions"
                                        value="{{ wallet_pass.id }}"
                                        data-status="{{ wallet_pass.status }}"
-                                       onchange="updateBulkActions()">
+                                       data-action="update-selection" data-count="#selectedCount" data-bar="#bulkActionsBar" data-items=".pass-checkbox:checked">
                             </td>
                             {% endif %}
                             <td>
@@ -422,7 +422,7 @@
 
                 <div class="mb-3">
                     <label class="form-label">Pass Type</label>
-                    <select class="form-select" id="bulkPassType" data-form-select>
+                    <select class="form-select" id="bulkPassType" data-action="bulk-pass-type-change" data-form-select>
                         <option value="ecs_membership">ECS Membership</option>
                         <option value="pub_league">Pub League</option>
                     </select>
@@ -501,206 +501,5 @@
 
 {% block scripts %}
 {{ super() }}
-<script>
-function filterByStatus(status) {
-    const url = new URL(window.location);
-    url.searchParams.set('status', status);
-    window.location = url;
-}
-
-function voidPass(passId) {
-    if (!confirm('Are you sure you want to void this pass?\n\nThe pass will be marked as invalid and the member will no longer be able to use it.')) return;
-
-    fetch(`/admin/wallet/api/passes/${passId}/void`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ reason: 'Voided by admin' })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + (data.error || 'Failed to void pass'));
-        }
-    })
-    .catch(err => alert('Error voiding pass. Please try again.'));
-}
-
-function reactivatePass(passId) {
-    if (!confirm('Are you sure you want to reactivate this pass?\n\nThe pass will be restored and the member will be able to use it again.')) return;
-
-    fetch(`/admin/wallet/api/passes/${passId}/reactivate`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + (data.error || 'Failed to reactivate pass'));
-        }
-    })
-    .catch(err => alert('Error reactivating pass. Please try again.'));
-}
-
-// Bulk selection functions
-function toggleSelectAll(checkbox) {
-    const checkboxes = document.querySelectorAll('.pass-checkbox');
-    checkboxes.forEach(cb => cb.checked = checkbox.checked);
-    updateBulkActions();
-}
-
-function updateBulkActions() {
-    const checkboxes = document.querySelectorAll('.pass-checkbox:checked');
-    const count = checkboxes.length;
-    const bar = document.getElementById('bulkActionsBar');
-    const countSpan = document.getElementById('selectedCount');
-
-    if (count > 0) {
-        bar.classList.remove('d-none');
-        countSpan.textContent = count;
-    } else {
-        bar.classList.add('d-none');
-    }
-}
-
-function clearSelection() {
-    const checkboxes = document.querySelectorAll('.pass-checkbox');
-    checkboxes.forEach(cb => cb.checked = false);
-    document.getElementById('selectAll').checked = false;
-    updateBulkActions();
-}
-
-function getSelectedIds() {
-    const checkboxes = document.querySelectorAll('.pass-checkbox:checked');
-    return Array.from(checkboxes).map(cb => parseInt(cb.value));
-}
-
-function bulkVoid() {
-    const ids = getSelectedIds();
-    if (ids.length === 0) return;
-
-    document.getElementById('voidCount').textContent = ids.length;
-    ModalManager.show('bulkVoidModal');
-}
-
-function confirmBulkVoid() {
-    const ids = getSelectedIds();
-    const reason = document.getElementById('voidReason').value || 'Bulk voided by admin';
-
-    fetch('/admin/wallet/api/passes/bulk-void', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pass_ids: ids, reason: reason })
-    })
-    .then(response => response.json())
-    .then(data => {
-        bootstrap.Modal.getInstance(document.getElementById('bulkVoidModal')).hide();
-        alert(`Voided ${data.success.length} passes.\n${data.failed.length} failed.`);
-        location.reload();
-    })
-    .catch(err => alert('Error voiding passes. Please try again.'));
-}
-
-function bulkReactivate() {
-    const ids = getSelectedIds();
-    if (ids.length === 0) return;
-
-    if (!confirm(`Are you sure you want to reactivate ${ids.length} passes?`)) return;
-
-    fetch('/admin/wallet/api/passes/bulk-reactivate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pass_ids: ids })
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert(`Reactivated ${data.success.length} passes.\n${data.failed.length} failed.`);
-        location.reload();
-    })
-    .catch(err => alert('Error reactivating passes. Please try again.'));
-}
-
-// Bulk generate functions
-document.addEventListener('DOMContentLoaded', function() {
-    const passTypeSelect = document.getElementById('bulkPassType');
-    if (passTypeSelect) {
-        passTypeSelect.addEventListener('change', function() {
-            const yearField = document.getElementById('yearField');
-            const seasonField = document.getElementById('seasonField');
-
-            if (this.value === 'pub_league') {
-                yearField.classList.add('d-none');
-                seasonField.classList.remove('d-none');
-            } else {
-                yearField.classList.remove('d-none');
-                seasonField.classList.add('d-none');
-            }
-        });
-    }
-});
-
-function bulkGenerate() {
-    const passType = document.getElementById('bulkPassType').value;
-    const year = document.getElementById('bulkYear').value;
-    const seasonName = document.getElementById('bulkSeasonName').value;
-    const btn = document.getElementById('bulkGenerateBtn');
-    const resultsDiv = document.getElementById('bulkGenerateResults');
-    const resultsContent = document.getElementById('bulkResultsContent');
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating...';
-
-    fetch('/admin/wallet/api/passes/bulk-generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            pass_type: passType,
-            year: parseInt(year),
-            season_name: seasonName
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="ti ti-bolt me-1"></i>Generate Passes';
-
-        resultsDiv.classList.remove('d-none');
-
-        if (data.error) {
-            resultsContent.innerHTML = `<div class="alert alert-danger" data-alert>${data.error}</div>`;
-            return;
-        }
-
-        let html = `
-            <div class="mb-2"><strong>Total eligible:</strong> ${data.total_eligible}</div>
-            <div class="mb-2 text-success"><i class="ti ti-check me-1"></i><strong>Created:</strong> ${data.success.length}</div>
-            <div class="mb-2 text-info"><i class="ti ti-minus me-1"></i><strong>Skipped (already have pass):</strong> ${data.skipped.length}</div>
-            <div class="mb-2 text-danger"><i class="ti ti-x me-1"></i><strong>Failed:</strong> ${data.failed.length}</div>
-        `;
-
-        if (data.failed.length > 0) {
-            html += '<details class="mt-2"><summary class="text-danger">View failures</summary><ul class="small mt-2">';
-            data.failed.forEach(f => {
-                html += `<li>${f.player_name || f.player_id}: ${f.error}</li>`;
-            });
-            html += '</ul></details>';
-        }
-
-        resultsContent.innerHTML = html;
-    })
-    .catch(err => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="ti ti-bolt me-1"></i>Generate Passes';
-        resultsContent.innerHTML = `<div class="alert alert-danger" data-alert>Error generating passes. Please try again.</div>`;
-        resultsDiv.classList.remove('d-none');
-    });
-}
-</script>
+{# All inline JavaScript has been migrated to event-delegation handlers in admin-wallet.js #}
 {% endblock %}

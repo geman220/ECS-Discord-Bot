@@ -109,9 +109,10 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <button class="c-btn c-btn--sm c-btn--outline-primary js-view-error"
+                                    <button class="c-btn c-btn--sm c-btn--outline-primary"
                                             data-action="view-error"
-                                            data-error-id="{{ error.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
+                                            data-error-id="{{ error.id }}"
+                                            data-error-url="{{ url_for('admin_panel.api_mobile_error_details', error_id=error.id) }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -167,64 +168,5 @@
 
 {% block custom_js %}
 {{ super() }}
-<script>
-// Event delegation for view error button
-document.addEventListener('click', async function(e) {
-    if (e.target.closest('.js-view-error')) {
-        const btn = e.target.closest('.js-view-error');
-        const errorId = btn.dataset.errorId;
-
-        try {
-            const response = await fetch(`{{ url_for('admin_panel.api_mobile_error_details', error_id=0) }}`.replace('0', errorId));
-            const data = await response.json();
-
-            if (data.error) {
-                Swal.fire('Error', data.error, 'error');
-                return;
-            }
-
-            Swal.fire({
-                title: 'Error Details',
-                html: `
-                    <div class="text-start">
-                        <div class="mb-3">
-                            <strong>Error Type:</strong><br>
-                            <code>${data.error_type}</code>
-                        </div>
-                        <div class="mb-3">
-                            <strong>Severity:</strong><br>
-                            <span class="badge bg-${data.severity === 'critical' ? 'danger' : data.severity === 'error' ? 'warning' : 'info'}" data-badge>${data.severity}</span>
-                        </div>
-                        <div class="mb-3">
-                            <strong>Message:</strong><br>
-                            ${data.message}
-                        </div>
-                        ${data.stack_trace ? `
-                        <div class="mb-3">
-                            <strong>Stack Trace:</strong><br>
-                            <pre class="bg-light p-2 rounded" class="u-max-h-200-scroll u-font-size-11">${data.stack_trace}</pre>
-                        </div>
-                        ` : ''}
-                        ${data.device_info ? `
-                        <div class="mb-3">
-                            <strong>Device Info:</strong><br>
-                            <pre class="bg-light p-2 rounded">${JSON.stringify(data.device_info, null, 2)}</pre>
-                        </div>
-                        ` : ''}
-                        <div class="mb-3">
-                            <strong>Timestamp:</strong><br>
-                            ${data.created_at || 'N/A'}
-                        </div>
-                    </div>
-                `,
-                width: '600px',
-                confirmButtonText: 'Close'
-            });
-        } catch (error) {
-            console.error('Error fetching error details:', error);
-            Swal.fire('Error', 'Failed to load error details', 'error');
-        }
-    }
-});
-</script>
+{# Event handlers for view-error managed by mobile-features-handlers.js via EventDelegation #}
 {% endblock %}

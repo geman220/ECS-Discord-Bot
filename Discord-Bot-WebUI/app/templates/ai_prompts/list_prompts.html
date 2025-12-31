@@ -206,6 +206,8 @@
 
 {% block custom_js %}
 {{ super() }}
+{# Inline scripts migrated to ai-prompts-handlers.js #}
+{# Actions: use-template, delete-prompt #}
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
 <script src="https://cdn.datatables.net/plug-ins/1.10.25/sorting/datetime-moment.js"></script>
@@ -223,31 +225,7 @@ $(document).ready(function() {
             { "orderable": false, "targets": [7] } // Disable sorting on actions column
         ]
     });
-
-    // Use Template button delegation
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.js-use-template')) {
-            const btn = e.target.closest('.js-use-template');
-            const templateId = btn.dataset.templateId;
-            useTemplate(templateId);
-        }
-    });
-
-    // Delete confirmation delegation
-    document.addEventListener('submit', function(e) {
-        if (e.target.querySelector('.js-confirm-delete')) {
-            if (!confirm('Are you sure you want to delete this AI prompt? This cannot be undone.')) {
-                e.preventDefault();
-                return false;
-            }
-        }
-    }, true); // Use capture phase for form submission
 });
-
-function useTemplate(templateId) {
-    // Redirect to create prompt page with template parameter
-    window.location.href = "{{ url_for('ai_prompts.create_prompt') }}?template=" + templateId;
-}
 
 // Flash message handling
 {% with messages = get_flashed_messages(with_categories=true) %}

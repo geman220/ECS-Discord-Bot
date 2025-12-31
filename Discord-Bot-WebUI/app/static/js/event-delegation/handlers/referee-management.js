@@ -1,10 +1,9 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 
 /**
  * Referee Management Action Handlers
  * Handles referee assignments and scheduling
  */
-// Uses global EventDelegation from core.js
 
 // REFEREE MANAGEMENT ACTIONS
 // ============================================================================

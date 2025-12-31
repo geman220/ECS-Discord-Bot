@@ -1,0 +1,501 @@
+import { EventDelegation } from '../core.js';
+
+/**
+ * MLS Management Action Handlers
+ * Handles MLS match management, scheduling, and live reporting
+ */
+
+// ============================================================================
+// MLS MATCH MANAGEMENT
+// ============================================================================
+
+/**
+ * Fetch ESPN Matches
+ * Fetches match data from ESPN API
+ */
+EventDelegation.register('fetch-espn', function(element, e) {
+    e.preventDefault();
+
+    const originalText = element.innerHTML;
+    element.innerHTML = '<i class="ti ti-loader spin me-2"></i>Fetching...';
+    element.disabled = true;
+
+    fetch('/admin-panel/mls/fetch-espn', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof window.AdminPanel !== 'undefined') {
+                    window.AdminPanel.showMobileToast(data.message, 'success');
+                }
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                throw new Error(data.error || 'Failed to fetch matches');
+            }
+        })
+        .catch(error => {
+            if (typeof window.AdminPanel !== 'undefined') {
+                window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+            }
+        })
+        .finally(() => {
+            element.innerHTML = originalText;
+            element.disabled = false;
+        });
+});
+
+/**
+ * Schedule All Matches
+ * Schedules tasks for all upcoming matches
+ */
+EventDelegation.register('schedule-all-matches', function(element, e) {
+    e.preventDefault();
+
+    if (!confirm('Schedule tasks for all upcoming matches?')) return;
+
+    const originalText = element.innerHTML;
+    element.innerHTML = '<i class="ti ti-loader spin me-2"></i>Scheduling...';
+    element.disabled = true;
+
+    fetch('/admin-panel/mls/schedule-all', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof window.AdminPanel !== 'undefined') {
+                    window.AdminPanel.showMobileToast(data.message, 'success');
+                }
+            } else {
+                throw new Error(data.error || 'Failed to schedule matches');
+            }
+        })
+        .catch(error => {
+            if (typeof window.AdminPanel !== 'undefined') {
+                window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+            }
+        })
+        .finally(() => {
+            element.innerHTML = '<i class="ti ti-calendar-event me-2"></i>Schedule All';
+            element.disabled = false;
+        });
+});
+
+/**
+ * Schedule Match
+ * Schedules tasks for a specific match
+ */
+EventDelegation.register('schedule-match', function(element, e) {
+    e.preventDefault();
+
+    const matchId = element.dataset.matchId;
+
+    if (!matchId) {
+        console.error('[schedule-match] Missing match ID');
+        return;
+    }
+
+    const originalText = element.innerHTML;
+    element.innerHTML = '<i class="ti ti-loader spin"></i>';
+    element.disabled = true;
+
+    fetch(`/admin-panel/mls/schedule-match/${matchId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof window.AdminPanel !== 'undefined') {
+                    window.AdminPanel.showMobileToast(data.message, 'success');
+                }
+            } else {
+                throw new Error(data.error || 'Failed to schedule match');
+            }
+        })
+        .catch(error => {
+            if (typeof window.AdminPanel !== 'undefined') {
+                window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+            }
+        })
+        .finally(() => {
+            element.innerHTML = originalText;
+            element.disabled = false;
+        });
+});
+
+/**
+ * Create Thread
+ * Creates a Discord thread for a match
+ */
+EventDelegation.register('create-thread', function(element, e) {
+    e.preventDefault();
+
+    const matchId = element.dataset.matchId;
+
+    if (!matchId) {
+        console.error('[create-thread] Missing match ID');
+        return;
+    }
+
+    const originalText = element.innerHTML;
+    element.innerHTML = '<i class="ti ti-loader spin"></i>';
+    element.disabled = true;
+
+    fetch(`/admin-panel/mls/create-thread/${matchId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof window.AdminPanel !== 'undefined') {
+                    window.AdminPanel.showMobileToast(data.message, 'success');
+                }
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                throw new Error(data.error || 'Failed to create thread');
+            }
+        })
+        .catch(error => {
+            if (typeof window.AdminPanel !== 'undefined') {
+                window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+            }
+        })
+        .finally(() => {
+            element.innerHTML = originalText;
+            element.disabled = false;
+        });
+});
+
+/**
+ * Start Reporting
+ * Starts live reporting for a match
+ */
+EventDelegation.register('start-reporting', function(element, e) {
+    e.preventDefault();
+
+    const matchId = element.dataset.matchId;
+
+    if (!matchId) {
+        console.error('[start-reporting] Missing match ID');
+        return;
+    }
+
+    const originalText = element.innerHTML;
+    element.innerHTML = '<i class="ti ti-loader spin"></i>';
+    element.disabled = true;
+
+    fetch(`/admin-panel/mls/start-reporting/${matchId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof window.AdminPanel !== 'undefined') {
+                    window.AdminPanel.showMobileToast(data.message, 'success');
+                }
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                throw new Error(data.error || 'Failed to start reporting');
+            }
+        })
+        .catch(error => {
+            if (typeof window.AdminPanel !== 'undefined') {
+                window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+            }
+        })
+        .finally(() => {
+            element.innerHTML = originalText;
+            element.disabled = false;
+        });
+});
+
+/**
+ * Stop Reporting
+ * Stops live reporting for a match
+ */
+EventDelegation.register('stop-reporting', function(element, e) {
+    e.preventDefault();
+
+    const matchId = element.dataset.matchId;
+
+    if (!matchId) {
+        console.error('[stop-reporting] Missing match ID');
+        return;
+    }
+
+    if (!confirm('Stop live reporting for this match?')) return;
+
+    const originalText = element.innerHTML;
+    element.innerHTML = '<i class="ti ti-loader spin"></i>';
+    element.disabled = true;
+
+    fetch(`/admin-panel/mls/stop-reporting/${matchId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof window.AdminPanel !== 'undefined') {
+                    window.AdminPanel.showMobileToast(data.message, 'success');
+                }
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                throw new Error(data.error || 'Failed to stop reporting');
+            }
+        })
+        .catch(error => {
+            if (typeof window.AdminPanel !== 'undefined') {
+                window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+            }
+        })
+        .finally(() => {
+            element.innerHTML = originalText;
+            element.disabled = false;
+        });
+});
+
+/**
+ * Resync Match
+ * Resyncs a match to fix any issues
+ */
+EventDelegation.register('resync-match', function(element, e) {
+    e.preventDefault();
+
+    const matchId = element.dataset.matchId;
+
+    if (!matchId) {
+        console.error('[resync-match] Missing match ID');
+        return;
+    }
+
+    if (!confirm('Resync this match? This will check and fix any missing threads or tasks.')) return;
+
+    const originalText = element.innerHTML;
+    element.innerHTML = '<i class="ti ti-loader spin"></i>';
+    element.disabled = true;
+
+    fetch(`/admin-panel/mls/resync-match/${matchId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let message = data.message;
+                if (data.actions && data.actions.length > 0) {
+                    message += '\n\nActions:\n' + data.actions.join('\n');
+                }
+                if (typeof window.AdminPanel !== 'undefined') {
+                    window.AdminPanel.showMobileToast(message, 'success');
+                }
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                throw new Error(data.error || 'Failed to resync match');
+            }
+        })
+        .catch(error => {
+            if (typeof window.AdminPanel !== 'undefined') {
+                window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+            }
+        })
+        .finally(() => {
+            element.innerHTML = originalText;
+            element.disabled = false;
+        });
+});
+
+/**
+ * Remove Match
+ * Removes a match from the system
+ */
+EventDelegation.register('remove-match', function(element, e) {
+    e.preventDefault();
+
+    const matchId = element.dataset.matchId;
+
+    if (!matchId) {
+        console.error('[remove-match] Missing match ID');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to remove this match? This will also revoke any scheduled tasks.')) return;
+
+    const originalText = element.innerHTML;
+    element.innerHTML = '<i class="ti ti-loader spin"></i>';
+    element.disabled = true;
+
+    fetch(`/admin-panel/mls/remove-match/${matchId}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof window.AdminPanel !== 'undefined') {
+                    window.AdminPanel.showMobileToast(data.message, 'success');
+                }
+                const row = document.getElementById(`match-row-${matchId}`);
+                if (row) row.remove();
+            } else {
+                throw new Error(data.error || 'Failed to remove match');
+            }
+        })
+        .catch(error => {
+            if (typeof window.AdminPanel !== 'undefined') {
+                window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+            }
+        })
+        .finally(() => {
+            element.innerHTML = originalText;
+            element.disabled = false;
+        });
+});
+
+/**
+ * Refresh Statuses
+ * Refreshes status display for all matches
+ */
+EventDelegation.register('refresh-match-statuses', function(element, e) {
+    e.preventDefault();
+
+    const originalText = element.innerHTML;
+    element.innerHTML = '<i class="ti ti-loader spin me-2"></i>';
+    element.disabled = true;
+
+    fetch('/admin-panel/mls/match-statuses-api')
+        .then(response => response.json())
+        .then(data => {
+            if (data.statuses) {
+                data.statuses.forEach(status => {
+                    const el = document.getElementById(`status-${status.id}`);
+                    if (el) {
+                        el.className = `badge bg-${status.status_color}`;
+                        el.innerHTML = `<i class="ti ${status.status_icon} me-1"></i>${status.status_display}`;
+                    }
+                });
+                if (typeof window.AdminPanel !== 'undefined') {
+                    window.AdminPanel.showMobileToast('Statuses refreshed', 'success');
+                }
+            }
+        })
+        .catch(error => {
+            if (typeof window.AdminPanel !== 'undefined') {
+                window.AdminPanel.showMobileToast('Error refreshing statuses', 'danger');
+            }
+        })
+        .finally(() => {
+            element.innerHTML = '<i class="ti ti-refresh me-2"></i>Refresh';
+            element.disabled = false;
+        });
+});
+
+// ============================================================================
+// LIVE REPORTING DASHBOARD
+// ============================================================================
+
+/**
+ * Toggle Auto Refresh
+ * Toggles auto-refresh for live reporting dashboard
+ */
+EventDelegation.register('toggle-auto-refresh', function(element, e) {
+    const isChecked = element.checked;
+
+    if (typeof window.LiveReportingDashboard !== 'undefined') {
+        if (isChecked) {
+            window.LiveReportingDashboard.startAutoRefresh();
+        } else {
+            window.LiveReportingDashboard.stopAutoRefresh();
+        }
+    }
+});
+
+/**
+ * Manual Refresh Dashboard
+ * Manually refreshes the live reporting dashboard
+ */
+EventDelegation.register('refresh-live-dashboard', function(element, e) {
+    e.preventDefault();
+
+    if (typeof window.LiveReportingDashboard !== 'undefined') {
+        window.LiveReportingDashboard.refresh();
+    } else {
+        location.reload();
+    }
+});
+
+// ============================================================================
+// TASK MONITORING
+// ============================================================================
+
+/**
+ * Retry Task
+ * Retries a failed task
+ */
+EventDelegation.register('retry-task', function(element, e) {
+    e.preventDefault();
+
+    const taskId = element.dataset.taskId;
+
+    if (!taskId) {
+        console.error('[retry-task] Missing task ID');
+        return;
+    }
+
+    const originalText = element.innerHTML;
+    element.innerHTML = '<i class="ti ti-loader spin"></i>';
+    element.disabled = true;
+
+    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+
+    fetch('/admin-panel/mls/retry-task', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ task_id: taskId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof window.AdminPanel !== 'undefined') {
+                window.AdminPanel.showMobileToast('Task retried', 'success');
+            }
+            location.reload();
+        } else {
+            throw new Error(data.error || 'Failed to retry task');
+        }
+    })
+    .catch(error => {
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', error.message, 'error');
+        }
+    })
+    .finally(() => {
+        element.innerHTML = originalText;
+        element.disabled = false;
+    });
+});
+
+/**
+ * View Task Logs
+ * Shows logs for a specific task
+ */
+EventDelegation.register('view-task-logs', function(element, e) {
+    e.preventDefault();
+
+    const taskId = element.dataset.taskId;
+
+    if (!taskId) {
+        console.error('[view-task-logs] Missing task ID');
+        return;
+    }
+
+    fetch(`/admin-panel/mls/task-logs/${taskId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
+                        title: 'Task Logs',
+                        html: `<pre class="text-start" style="max-height: 400px; overflow-y: auto;">${data.logs || 'No logs available'}</pre>`,
+                        width: '800px'
+                    });
+                }
+            } else {
+                throw new Error(data.error || 'Failed to load logs');
+            }
+        })
+        .catch(error => {
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', error.message, 'error');
+            }
+        });
+});
+
+// ============================================================================
+
+console.log('[EventDelegation] MLS handlers loaded');

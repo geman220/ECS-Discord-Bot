@@ -435,12 +435,19 @@ export function clearSeasonLeague(seasonId, leagueId, seasonName, leagueName) {
     draftHistoryManager.clearSeasonLeague(seasonId, leagueId, seasonName, leagueName);
 }
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+import { InitSystem } from './init-system.js';
+
+let _initialized = false;
+
+function init() {
+    if (_initialized) return;
+
     // Page guard - only run on draft history page
     if (!document.querySelector('.sortable-draft-picks') && !document.getElementById('editDraftPickForm')) {
         return; // Not on draft history page
     }
+
+    _initialized = true;
 
     draftHistoryManager = new DraftHistoryManager();
 
@@ -448,7 +455,20 @@ document.addEventListener('DOMContentLoaded', function() {
     draftHistoryManager.initTooltips();
 
     console.log('Draft History interface loaded successfully');
+}
+
+InitSystem.register('draft-history', init, {
+    priority: 30,
+    reinitializable: false,
+    description: 'Draft history admin interface'
 });
+
+// Fallback for non-bundled usage
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
 
 // Backward compatibility
 window.DraftHistoryManager = DraftHistoryManager;

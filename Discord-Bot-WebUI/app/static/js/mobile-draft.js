@@ -579,19 +579,34 @@ export const MobileDraft = {
     }
   };
 
-  // Auto-initialize on draft pages
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      // Only init if on draft page
-      if (document.querySelector('[data-component="player-card"], [data-component="draft-container"]')) {
-        window.MobileDraft.init();
-      }
-    });
-  } else {
-    if (document.querySelector('[data-component="player-card"], [data-component="draft-container"]')) {
-      window.MobileDraft.init();
+import { InitSystem } from './init-system.js';
+
+let _mobileInitialized = false;
+
+function initMobileDraft() {
+    if (_mobileInitialized) return;
+
+    // Only init if on draft page
+    if (!document.querySelector('[data-component="player-card"], [data-component="draft-container"]')) {
+        return;
     }
-  }
+
+    _mobileInitialized = true;
+    window.MobileDraft.init();
+}
+
+InitSystem.register('mobile-draft', initMobileDraft, {
+    priority: 30,
+    reinitializable: false,
+    description: 'Mobile draft system enhancements'
+});
+
+// Fallback for non-bundled usage
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMobileDraft);
+} else {
+    initMobileDraft();
+}
 
   // Expose globally
   window.MobileDraft = MobileDraft;

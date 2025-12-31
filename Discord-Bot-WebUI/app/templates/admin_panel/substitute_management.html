@@ -434,295 +434,45 @@
 {% block custom_js %}
 {{ super() }}
 <script>
-// Event delegation for substitute management actions
+// Configuration for substitute management handlers
+window.SUB_MANAGEMENT_CONFIG = {
+    composeMessageUrl: '/admin-panel/substitute-contact/compose-message',
+    availableSubsUrl: '/admin-panel/substitute-contact/available-subs',
+    notifyPoolUrl: '/admin-panel/substitute-contact/notify-pool',
+    availabilityUrl: '/admin-panel/substitute-contact'
+};
+
+// Handle team selection change for sub assignment form
 document.addEventListener('DOMContentLoaded', function() {
-    document.addEventListener('click', function(e) {
-        const target = e.target.closest('[data-action]');
-        if (!target) return;
-
-        const action = target.dataset.action;
-        switch(action) {
-            case 'show-contact-subs':
-                showContactSubsModal(target.dataset.requestId, target.dataset.league);
-                break;
-            case 'show-availability':
-                showAvailabilityModal(target.dataset.requestId);
-                break;
-            case 'show-sub-assignment':
-                showSubAssignmentModal(
-                    target.dataset.requestId || null,
-                    target.dataset.matchId || null,
-                    target.dataset.teamId || null
-                );
-                break;
-            case 'send-to-all-subs':
-                sendToAllSubs();
-                break;
-            case 'refresh-availability':
-                refreshAvailability();
-                break;
-        }
-    });
-});
-
-// ============================================================================
-// Sub Assignment Modal
-// ============================================================================
-function showSubAssignmentModal(requestId, matchId, teamId) {
-    document.getElementById('assignMatchId').value = matchId;
-    document.getElementById('assignTeamId').value = teamId || '';
-    document.getElementById('assignRequestId').value = requestId || '';
-
-    // Reset form
-    document.getElementById('assignPlayerId').value = '';
-    document.getElementById('assignTeamSelect').value = '';
-
-    // If no team specified, populate team dropdown
-    if (!teamId) {
-        document.getElementById('assignTeamSelect').style.display = 'block';
-        document.getElementById('assignTeamSelect').previousElementSibling.style.display = 'block';
-    } else {
-        document.getElementById('assignTeamSelect').style.display = 'none';
-        document.getElementById('assignTeamSelect').previousElementSibling.style.display = 'none';
+    const assignTeamSelect = document.getElementById('assignTeamSelect');
+    if (assignTeamSelect) {
+        assignTeamSelect.addEventListener('change', function() {
+            if (this.value) {
+                document.getElementById('assignTeamId').value = this.value;
+            }
+        });
     }
 
-    ModalManager.show('subAssignmentModal');
-}
+    // Handle form submission validation
+    const subAssignmentForm = document.getElementById('subAssignmentForm');
+    if (subAssignmentForm) {
+        subAssignmentForm.addEventListener('submit', function(e) {
+            const playerId = document.getElementById('assignPlayerId').value;
+            const matchId = document.getElementById('assignMatchId').value;
+            const teamId = document.getElementById('assignTeamId').value;
 
-// Handle team selection change
-document.getElementById('assignTeamSelect').addEventListener('change', function() {
-    if (this.value) {
-        document.getElementById('assignTeamId').value = this.value;
+            if (!playerId || !matchId || !teamId) {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire('Error', 'Please select a substitute, match, and team.', 'error');
+                } else {
+                    alert('Please select a substitute, match, and team.');
+                }
+                return false;
+            }
+        });
     }
 });
-
-// Handle form submission
-document.getElementById('subAssignmentForm').addEventListener('submit', function(e) {
-    const playerId = document.getElementById('assignPlayerId').value;
-    const matchId = document.getElementById('assignMatchId').value;
-    const teamId = document.getElementById('assignTeamId').value;
-
-    if (!playerId || !matchId || !teamId) {
-        e.preventDefault();
-        Swal.fire('Error', 'Please select a substitute, match, and team.', 'error');
-        return false;
-    }
-});
-
-// ============================================================================
-// Contact Subs Modal
-// ============================================================================
-function showContactSubsModal(requestId, leagueType) {
-    document.getElementById('contactRequestId').value = requestId;
-    document.getElementById('contactLeagueType').value = leagueType;
-
-    // Reset
-    document.getElementById('contactMessage').value = '';
-    document.getElementById('contactMatchDetails').innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm" data-spinner></div> Loading...</div>';
-    document.getElementById('availableSubsList').innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm" data-spinner></div></div>';
-
-    ModalManager.show('contactSubsModal');
-
-    // Load message template
-    fetch(`/admin-panel/substitute-contact/compose-message?request_id=${requestId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('contactMessage').value = data.template;
-                document.getElementById('contactMatchDetails').innerHTML = `
-                    <strong><i class="ti ti-vs me-1"></i>${data.match_details.home_team} vs ${data.match_details.away_team}</strong><br>
-                    <small class="text-muted">
-                        <i class="ti ti-calendar me-1"></i>${data.match_details.date || 'TBD'} |
-                        <i class="ti ti-clock me-1"></i>${data.match_details.time || 'TBD'} |
-                        <i class="ti ti-map-pin me-1"></i>${data.match_details.location || 'TBD'}
-                    </small>
-                `;
-            }
-        })
-        .catch(err => {
-            document.getElementById('contactMatchDetails').innerHTML = '<span class="text-danger">Error loading match details</span>';
-        });
-
-    // Load available subs
-    fetch(`/admin-panel/substitute-contact/available-subs?league_type=${encodeURIComponent(leagueType)}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('availableSubsCount').textContent = data.total;
-                if (data.total === 0) {
-                    document.getElementById('availableSubsList').innerHTML = '<div class="text-muted text-center py-2">No active subs in this pool</div>';
-                } else {
-                    let html = '<div class="list-group list-group-flush">';
-                    data.subs.forEach(sub => {
-                        const channels = [];
-                        if (sub.channels.email) channels.push('<i class="ti ti-mail text-success"></i>');
-                        if (sub.channels.sms) channels.push('<i class="ti ti-device-mobile text-success"></i>');
-                        if (sub.channels.discord) channels.push('<i class="ti ti-brand-discord text-success"></i>');
-
-                        html += `
-                            <div class="list-group-item d-flex justify-content-between align-items-center py-2">
-                                <div>
-                                    <strong>${sub.name}</strong>
-                                    ${sub.pronouns ? '<small class="text-muted ms-1">(' + sub.pronouns + ')</small>' : ''}
-                                    ${sub.preferred_positions ? '<br><small class="text-muted">' + sub.preferred_positions + '</small>' : ''}
-                                </div>
-                                <div class="d-flex gap-1">
-                                    ${channels.join(' ')}
-                                </div>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                    document.getElementById('availableSubsList').innerHTML = html;
-                }
-            }
-        })
-        .catch(err => {
-            document.getElementById('availableSubsList').innerHTML = '<span class="text-danger">Error loading subs</span>';
-        });
-}
-
-function sendToAllSubs() {
-    const requestId = document.getElementById('contactRequestId').value;
-    const leagueType = document.getElementById('contactLeagueType').value;
-    const message = document.getElementById('contactMessage').value;
-
-    // Get selected channels
-    const channels = [];
-    if (document.getElementById('channelEmail').checked) channels.push('EMAIL');
-    if (document.getElementById('channelSMS').checked) channels.push('SMS');
-    if (document.getElementById('channelDiscord').checked) channels.push('DISCORD');
-
-    if (channels.length === 0) {
-        Swal.fire('Error', 'Please select at least one notification channel.', 'error');
-        return;
-    }
-
-    Swal.fire({
-        title: 'Send to All Subs?',
-        text: `This will contact all available ${leagueType} subs via ${channels.join(', ')}.`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Send',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Show loading
-            Swal.fire({
-                title: 'Sending...',
-                text: 'Please wait while we contact the subs.',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-
-            fetch('/admin-panel/substitute-contact/notify-pool', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    request_id: parseInt(requestId),
-                    league_type: leagueType,
-                    custom_message: message,
-                    channels: channels
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Sent!', `Successfully contacted ${data.notifications_sent} subs.`, 'success');
-                    bootstrap.Modal.getInstance(document.getElementById('contactSubsModal')).hide();
-                } else {
-                    Swal.fire('Error', data.errors?.join(', ') || 'Failed to send notifications.', 'error');
-                }
-            })
-            .catch(err => {
-                Swal.fire('Error', 'Network error. Please try again.', 'error');
-            });
-        }
-    });
-}
-
-// ============================================================================
-// Availability Modal
-// ============================================================================
-function showAvailabilityModal(requestId) {
-    document.getElementById('availabilityRequestId').value = requestId;
-
-    // Reset
-    document.getElementById('availabilityList').innerHTML = `
-        <div class="text-center py-3">
-            <div class="spinner-border text-primary" role="status" data-spinner></div>
-            <p class="mt-2 text-muted">Loading availability...</p>
-        </div>
-    `;
-
-    ModalManager.show('availabilityModal');
-
-    loadAvailability(requestId);
-}
-
-function loadAvailability(requestId) {
-    fetch(`/admin-panel/substitute-contact/${requestId}/availability`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Update summary
-                document.getElementById('availableCount').textContent = data.available;
-                document.getElementById('pendingCount').textContent = data.pending;
-                document.getElementById('notAvailableCount').textContent = data.not_available;
-
-                // Build list
-                if (data.responses.length === 0) {
-                    document.getElementById('availabilityList').innerHTML = `
-                        <div class="text-center py-3 text-muted">
-                            <i class="ti ti-users-minus u-card-icon-stat"></i>
-                            <p class="mt-2">No subs have been contacted yet.</p>
-                        </div>
-                    `;
-                } else {
-                    let html = '<div class="list-group list-group-flush">';
-                    data.responses.forEach(resp => {
-                        let badgeClass = 'bg-warning';
-                        let icon = 'ti-clock';
-                        if (resp.status === 'available') {
-                            badgeClass = 'bg-success';
-                            icon = 'ti-check';
-                        } else if (resp.status === 'not_available') {
-                            badgeClass = 'bg-danger';
-                            icon = 'ti-x';
-                        }
-
-                        html += `
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>${resp.player_name}</strong>
-                                    <br><small class="text-muted">via ${resp.notification_methods || 'N/A'}</small>
-                                    ${resp.response_text ? '<br><small class="fst-italic">"' + resp.response_text + '"</small>' : ''}
-                                </div>
-                                <span class="badge ${badgeClass}" data-badge>
-                                    <i class="ti ${icon} me-1"></i>
-                                    ${resp.status.replace('_', ' ')}
-                                </span>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                    document.getElementById('availabilityList').innerHTML = html;
-                }
-            } else {
-                document.getElementById('availabilityList').innerHTML = '<div class="text-danger text-center">Error loading availability</div>';
-            }
-        })
-        .catch(err => {
-            document.getElementById('availabilityList').innerHTML = '<div class="text-danger text-center">Network error</div>';
-        });
-}
-
-function refreshAvailability() {
-    const requestId = document.getElementById('availabilityRequestId').value;
-    if (requestId) {
-        loadAvailability(requestId);
-    }
-}
 
 // Auto-refresh every 2 minutes
 setTimeout(() => {

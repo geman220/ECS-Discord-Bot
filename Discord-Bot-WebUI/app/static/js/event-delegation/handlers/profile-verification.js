@@ -1,10 +1,9 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 
 /**
  * Profile Verification Action Handlers
  * Handles profile verification workflow
  */
-// Uses global EventDelegation from core.js
 
 // PROFILE VERIFICATION ACTIONS
 // ============================================================================

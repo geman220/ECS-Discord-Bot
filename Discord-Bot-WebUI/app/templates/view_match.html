@@ -917,39 +917,10 @@
 {{ super() }}
 <!-- report_match.js loaded globally in base.html -->
 <script>
-    // Make player choices globally available for the report_match.js script
-    window.playerChoices = {{ player_choices | tojson | safe }};
-    
-    // Event delegation for player sorting (standardized pattern)
-    document.addEventListener('click', function(e) {
-        const sortLink = e.target.closest('[data-action="change-sort"]');
-        if (sortLink) {
-            e.preventDefault();
-            const sortType = sortLink.dataset.sortType;
-            const currentUrl = new URL(window.location.href);
-
-            if (sortType === 'default') {
-                currentUrl.searchParams.delete('sort');
-            } else {
-                currentUrl.searchParams.set('sort', sortType);
-            }
-
-            window.location.href = currentUrl.toString();
-        }
-    });
-
-    document.addEventListener('DOMContentLoaded', function () {
-        // Initialize tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-        
-        // Load match modals if they don't exist
-        if (!document.getElementById('reportMatchModal-{{ match.id if match else ecs_match.id }}')) {
-            console.log('Match modal not found - may need to be loaded dynamically');
-        }
-    });
+// Make player choices globally available for the report_match.js script
+window.playerChoices = {{ player_choices | tojson | safe }};
 </script>
+{# change-sort handler is in event-delegation/handlers/match-management.js #}
+{# Tooltips are initialized globally by InitSystem or base.html #}
 {% endblock %}
 

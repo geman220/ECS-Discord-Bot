@@ -822,11 +822,27 @@ export function showError(message) {
     }
 }
 
-// Initialize on DOM ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
+import { InitSystem } from './init-system.js';
+
+let _moduleInitialized = false;
+
+function initWithGuard() {
+    if (_moduleInitialized) return;
+    _moduleInitialized = true;
     init();
+}
+
+InitSystem.register('messages-inbox', initWithGuard, {
+    priority: 30,
+    reinitializable: false,
+    description: 'Messages inbox interface'
+});
+
+// Fallback for non-bundled usage
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initWithGuard);
+} else {
+    initWithGuard();
 }
 
 // Backward compatibility

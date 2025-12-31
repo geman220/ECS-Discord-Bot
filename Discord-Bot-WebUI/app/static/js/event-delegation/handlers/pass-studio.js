@@ -1,10 +1,9 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 
 /**
  * Pass Studio Action Handlers
  * Handles wallet pass design and configuration
  */
-// Uses global EventDelegation from core.js
 
 // PASS STUDIO ACTIONS
 // ============================================================================

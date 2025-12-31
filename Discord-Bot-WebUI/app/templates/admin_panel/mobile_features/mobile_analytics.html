@@ -90,9 +90,9 @@
                     <i class="ti ti-chart-line me-2"></i>User Engagement Trends
                 </h5>
                 <div class="btn-group btn-group-sm">
-                    <button class="c-btn c-btn--outline-primary active js-update-chart" data-action="update-chart" data-period="7d">7 Days</button>
-                    <button class="c-btn c-btn--outline-primary js-update-chart" data-action="update-chart" data-period="30d">30 Days</button>
-                    <button class="c-btn c-btn--outline-primary js-update-chart" data-action="update-chart" data-period="90d">90 Days</button>
+                    <button class="c-btn c-btn--outline-primary active" data-action="update-chart" data-period="7d">7 Days</button>
+                    <button class="c-btn c-btn--outline-primary" data-action="update-chart" data-period="30d">30 Days</button>
+                    <button class="c-btn c-btn--outline-primary" data-action="update-chart" data-period="90d">90 Days</button>
                 </div>
             </div>
             <div class="c-card__body">
@@ -274,10 +274,10 @@
                     <i class="ti ti-users me-2"></i>User Behavior Analytics
                 </h5>
                 <div class="btn-group btn-group-sm">
-                    <button class="c-btn c-btn--outline-primary js-export-analytics" data-action="export-analytics">
+                    <button class="c-btn c-btn--outline-primary" data-action="export-analytics">
                         <i class="ti ti-download me-1"></i>Export
                     </button>
-                    <button class="c-btn c-btn--outline-primary js-refresh-analytics" data-action="refresh-analytics">
+                    <button class="c-btn c-btn--outline-primary" data-action="refresh-analytics">
                         <i class="ti ti-refresh me-1"></i>Refresh
                     </button>
                 </div>
@@ -405,7 +405,7 @@
                 </div>
                 
                 <div class="mt-3">
-                    <button class="c-btn c-btn--outline-primary c-btn--sm w-100 js-view-detailed-flow" data-action="view-detailed-flow">
+                    <button class="c-btn c-btn--outline-primary c-btn--sm w-100" data-action="view-detailed-flow">
                         <i class="ti ti-eye me-1"></i>View Detailed Flow
                     </button>
                 </div>
@@ -414,122 +414,72 @@
     </div>
 </div>
 
+{# Event handlers managed by mobile-features-handlers.js via EventDelegation #}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Initialize charts when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    initializeEngagementChart();
-    initializePlatformChart();
+(function() {
+    'use strict';
 
-    // Update chart buttons
-    document.querySelectorAll('.js-update-chart').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const period = this.dataset.period;
-            updateChart(period, this);
+    // Page-specific chart data from server
+    const platformData = {
+        iOS: {{ analytics_data.platform_breakdown.iOS or 0 }},
+        Android: {{ analytics_data.platform_breakdown.Android or 0 }},
+        unknown: {{ analytics_data.platform_breakdown.unknown or 0 }}
+    };
+
+    // Register initialization with InitSystem
+    if (typeof InitSystem !== 'undefined') {
+        InitSystem.register('mobile-analytics-charts', function() {
+            initMobileAnalyticsCharts(platformData);
         });
-    });
-
-    // Export analytics button
-    document.querySelectorAll('.js-export-analytics').forEach(btn => {
-        btn.addEventListener('click', function() {
-            exportAnalytics();
+    } else {
+        document.addEventListener('DOMContentLoaded', function() {
+            initMobileAnalyticsCharts(platformData);
         });
-    });
+    }
 
-    // Refresh analytics button
-    document.querySelectorAll('.js-refresh-analytics').forEach(btn => {
-        btn.addEventListener('click', function() {
-            refreshAnalytics();
-        });
-    });
+    function initMobileAnalyticsCharts(data) {
+        const engagementEl = document.getElementById('engagementChart');
+        const platformEl = document.getElementById('platformChart');
 
-    // View detailed flow button
-    document.querySelectorAll('.js-view-detailed-flow').forEach(btn => {
-        btn.addEventListener('click', function() {
-            viewDetailedFlow();
-        });
-    });
-});
-
-function initializeEngagementChart() {
-    const ctx = document.getElementById('engagementChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            datasets: [{
-                label: 'Daily Active Users',
-                data: [120, 135, 145, 142, 158, 98, 87],
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(75, 192, 192, 0.1)',
-                tension: 0.4
-            }, {
-                label: 'Sessions',
-                data: [380, 420, 445, 435, 485, 285, 245],
-                borderColor: 'rgb(255, 99, 132)',
-                backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
+        if (engagementEl) {
+            new Chart(engagementEl.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Daily Active Users',
+                        data: [120, 135, 145, 142, 158, 98, 87],
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Sessions',
+                        data: [380, 420, 445, 435, 485, 285, 245],
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            });
         }
-    });
-}
 
-function initializePlatformChart() {
-    const ctx = document.getElementById('platformChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['iOS', 'Android', 'Unknown'],
-            datasets: [{
-                data: [{{ analytics_data.platform_breakdown.iOS or 0 }}, {{ analytics_data.platform_breakdown.Android or 0 }}, {{ analytics_data.platform_breakdown.unknown or 0 }}],
-                backgroundColor: [
-                    'rgb(54, 162, 235)',
-                    'rgb(75, 192, 192)',
-                    'rgb(201, 203, 207)'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
+        if (platformEl) {
+            new Chart(platformEl.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['iOS', 'Android', 'Unknown'],
+                    datasets: [{
+                        data: [data.iOS, data.Android, data.unknown],
+                        backgroundColor: ['rgb(54, 162, 235)', 'rgb(75, 192, 192)', 'rgb(201, 203, 207)']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
         }
-    });
-}
-
-function updateChart(period, clickedBtn) {
-    // Update chart based on selected time period
-    document.querySelectorAll('.btn-group .btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    clickedBtn.classList.add('active');
-    alert(`Update chart for ${period} - functionality will be implemented here`);
-}
-
-function exportAnalytics() {
-    alert('Export analytics functionality will be implemented here');
-}
-
-function refreshAnalytics() {
-    location.reload();
-}
-
-function viewDetailedFlow() {
-    alert('Detailed user flow analysis functionality will be implemented here');
-}
+    }
+})();
 </script>
 
 {% endblock %}

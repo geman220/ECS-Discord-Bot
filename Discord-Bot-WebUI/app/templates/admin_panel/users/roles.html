@@ -300,68 +300,11 @@
 {% block custom_js %}
 {{ super() }}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Event delegation for role actions
-    document.querySelectorAll('.js-back-button').forEach(btn => {
-        btn.addEventListener('click', function() {
-            window.history.back();
-        });
-    });
-
-    document.querySelectorAll('.js-view-role').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const roleId = this.getAttribute('data-role-id');
-            const roleName = this.getAttribute('data-role-name');
-            viewRoleDetails(roleId, roleName);
-        });
-    });
-
-    document.querySelectorAll('.js-manage-permissions').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const roleId = this.getAttribute('data-role-id');
-            const roleName = this.getAttribute('data-role-name');
-            manageRolePermissions(roleId, roleName);
-        });
-    });
-
-    document.querySelectorAll('.js-view-users').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const roleId = this.getAttribute('data-role-id');
-            const roleName = this.getAttribute('data-role-name');
-            viewRoleUsers(roleId, roleName);
-        });
-    });
-});
-
-function viewRoleDetails(roleId, roleName) {
-    document.getElementById('role_details_title').textContent = `Details for ${roleName}`;
-    document.getElementById('role_details_content').innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
-
-    ModalManager.show('roleDetailsModal');
-
-    // Load role details via AJAX
-    fetch(`{{ url_for('admin_panel.get_role_details') }}?role_id=${roleId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('role_details_content').innerHTML = data.html;
-            } else {
-                document.getElementById('role_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading role details</div>';
-            }
-        })
-        .catch(error => {
-            document.getElementById('role_details_content').innerHTML = '<div class="alert alert-danger" data-alert>Error loading role details</div>';
-        });
-}
-
-function manageRolePermissions(roleId, roleName) {
-    // Redirect to the role settings with the role pre-selected
-    window.location.href = `{{ url_for('admin_panel.feature_toggles') }}#roles`;
-}
-
-function viewRoleUsers(roleId, roleName) {
-    // Redirect to user approvals filtered by this role
-    window.location.href = `{{ url_for('admin_panel.user_approvals') }}?role=${roleId}`;
-}
+// Configuration for roles management handlers
+window.ROLES_CONFIG = {
+    roleDetailsUrl: '{{ url_for("admin_panel.get_role_details") }}',
+    featureTogglesUrl: '{{ url_for("admin_panel.feature_toggles") }}',
+    userApprovalsUrl: '{{ url_for("admin_panel.user_approvals") }}'
+};
 </script>
 {% endblock %}

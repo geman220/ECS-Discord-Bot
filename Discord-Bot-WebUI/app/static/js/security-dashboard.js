@@ -724,15 +724,34 @@ export class SecurityDashboard {
     }
 }
 
-// Initialize dashboard when DOM is ready - ONLY on security dashboard page
-document.addEventListener('DOMContentLoaded', () => {
+import { InitSystem } from './init-system.js';
+
+let _securityInitialized = false;
+
+function initSecurityDashboard() {
+    if (_securityInitialized) return;
+
     // Page guard: only initialize if we're on the security dashboard
     const securityDashboardContainer = document.getElementById('securityDashboard') ||
                                         document.querySelector('[data-component="security-dashboard"]');
-    if (securityDashboardContainer) {
-        window.securityDashboard = new SecurityDashboard();
-    }
+    if (!securityDashboardContainer) return;
+
+    _securityInitialized = true;
+    window.securityDashboard = new SecurityDashboard();
+}
+
+InitSystem.register('security-dashboard', initSecurityDashboard, {
+    priority: 30,
+    reinitializable: false,
+    description: 'Security dashboard interface'
 });
+
+// Fallback for non-bundled usage
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSecurityDashboard);
+} else {
+    initSecurityDashboard();
+}
 
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {

@@ -1,10 +1,9 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 
 /**
  * Message Templates & Categories Action Handlers
  * Handles message template and announcement management
  */
-// Uses global EventDelegation from core.js
 
 // MESSAGE TEMPLATES ACTIONS
 // ============================================================================

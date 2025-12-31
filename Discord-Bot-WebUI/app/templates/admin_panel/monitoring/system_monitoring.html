@@ -215,16 +215,16 @@
             </div>
             <div class="c-card__body">
                 <div class="d-grid gap-2">
-                    <button class="c-btn c-btn--outline-primary js-refresh-status" data-action="refresh-status">
+                    <button class="c-btn c-btn--outline-primary" data-action="refresh-status">
                         <i class="ti ti-refresh me-1"></i>Refresh Status
                     </button>
-                    <button class="c-btn c-btn--outline-info js-view-logs" data-action="view-logs">
+                    <button class="c-btn c-btn--outline-info" data-action="view-logs" data-logs-url="{{ url_for('admin_panel.system_logs') }}">
                         <i class="ti ti-file-text me-1"></i>View System Logs
                     </button>
-                    <button class="c-btn c-btn--outline-warning js-clear-cache" data-action="clear-cache">
+                    <button class="c-btn c-btn--outline-warning" data-action="clear-cache">
                         <i class="ti ti-trash me-1"></i>Clear Cache
                     </button>
-                    <button class="c-btn c-btn--outline-danger js-emergency-mode" data-action="emergency-mode">
+                    <button class="c-btn c-btn--outline-danger" data-action="emergency-mode">
                         <i class="ti ti-alert-triangle me-1"></i>Emergency Mode
                     </button>
                 </div>
@@ -237,80 +237,5 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Event delegation for monitoring actions
-    document.querySelectorAll('.js-refresh-status').forEach(btn => {
-        btn.addEventListener('click', function() {
-            refreshStatus();
-        });
-    });
-
-    document.querySelectorAll('.js-view-logs').forEach(btn => {
-        btn.addEventListener('click', function() {
-            viewLogs();
-        });
-    });
-
-    document.querySelectorAll('.js-clear-cache').forEach(btn => {
-        btn.addEventListener('click', function() {
-            clearCache();
-        });
-    });
-
-    document.querySelectorAll('.js-emergency-mode').forEach(btn => {
-        btn.addEventListener('click', function() {
-            emergencyMode();
-        });
-    });
-});
-
-function refreshStatus() {
-    Swal.fire({
-        title: 'Refreshing Status...',
-        text: 'Checking all system services',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-            setTimeout(() => {
-                location.reload();
-            }, 2000);
-        }
-    });
-}
-
-function viewLogs() {
-    window.location.href = '{{ url_for("admin_panel.system_logs") }}';
-}
-
-function clearCache() {
-    Swal.fire({
-        title: 'Clear System Cache?',
-        text: 'This will clear all cached data',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Clear Cache'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Implement cache clearing
-            Swal.fire('Cache Cleared!', 'System cache has been cleared successfully.', 'success');
-        }
-    });
-}
-
-function emergencyMode() {
-    Swal.fire({
-        title: 'Emergency Mode',
-        text: 'Emergency system controls coming soon!',
-        icon: 'info'
-    });
-}
-
-// Auto-refresh every 30 seconds
-setInterval(() => {
-    location.reload();
-}, 30000);
-</script>
-{% endif %}
+{# Event handlers managed by monitoring-handlers.js via EventDelegation #}
 {% endblock %}

@@ -20,168 +20,181 @@
  *
  * ============================================================================
  */
-// ES Module
 'use strict';
 
 import { EventDelegation } from '../event-delegation/core.js';
 import { ModalManager } from '../modal-manager.js';
-// ========================================================================
-    // EDIT CATEGORY
-    // ========================================================================
 
-    /**
-     * Edit a message category
-     * Opens modal with pre-filled category data
-     * @param {number} id - Category ID
-     * @param {string} name - Category name
-     * @param {string} description - Category description
-     */
-    function editCategory(id, name, description) {
-        const idInput = document.getElementById('edit_category_id');
-        const nameInput = document.getElementById('edit_category_name');
-        const descInput = document.getElementById('edit_category_description');
+/* ========================================================================
+   EDIT CATEGORY
+   ======================================================================== */
 
-        if (idInput) idInput.value = id;
-        if (nameInput) nameInput.value = name;
-        if (descInput) descInput.value = description || '';
+/**
+ * Edit a message category
+ * Opens modal with pre-filled category data
+ * @param {number} id - Category ID
+ * @param {string} name - Category name
+ * @param {string} description - Category description
+ */
+function editCategory(id, name, description) {
+    const idInput = document.getElementById('edit_category_id');
+    const nameInput = document.getElementById('edit_category_name');
+    const descInput = document.getElementById('edit_category_description');
 
-        // Show edit modal
-        const modalEl = document.getElementById('editCategoryModal');
-        if (modalEl) {
-            ModalManager.show('editCategoryModal');
+    if (idInput) idInput.value = id;
+    if (nameInput) nameInput.value = name;
+    if (descInput) descInput.value = description || '';
+
+    // Show edit modal
+    const modalEl = document.getElementById('editCategoryModal');
+    if (modalEl) {
+        ModalManager.show('editCategoryModal');
+    }
+}
+
+/* ========================================================================
+   DELETE CATEGORY
+   ======================================================================== */
+
+/**
+ * Delete a message category
+ * Shows confirmation dialog before deletion
+ * @param {number} id - Category ID
+ * @param {string} name - Category name for display
+ * @param {string} deleteUrl - URL to submit delete request
+ * @param {string} csrfToken - CSRF token for form submission
+ */
+function deleteCategory(id, name, deleteUrl, csrfToken) {
+    window.Swal.fire({
+        title: 'Delete Category?',
+        text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
+        cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('info') : '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = deleteUrl;
+
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken;
+
+            const categoryIdInput = document.createElement('input');
+            categoryIdInput.type = 'hidden';
+            categoryIdInput.name = 'category_id';
+            categoryIdInput.value = id;
+
+            form.appendChild(csrfInput);
+            form.appendChild(categoryIdInput);
+            document.body.appendChild(form);
+            form.submit();
         }
+    });
+}
+
+/* ========================================================================
+   ACTION HANDLERS
+   ======================================================================== */
+
+/**
+ * Handle edit category action
+ * @param {Event} e - The event object
+ */
+function handleEditCategory(e) {
+    const editId = e.target.dataset.categoryId;
+    const editName = e.target.dataset.categoryName;
+    const editDesc = e.target.dataset.categoryDescription;
+    editCategory(editId, editName, editDesc);
+}
+
+/**
+ * Handle delete category action
+ * @param {Event} e - The event object
+ */
+function handleDeleteCategory(e) {
+    const deleteId = e.target.dataset.categoryId;
+    const deleteName = e.target.dataset.categoryName;
+    const deleteUrl = e.target.dataset.deleteUrl;
+    const csrfToken = e.target.dataset.csrfToken;
+    deleteCategory(deleteId, deleteName, deleteUrl, csrfToken);
+}
+
+/* ========================================================================
+   INITIALIZATION
+   ======================================================================== */
+
+/**
+ * Initialize all message category functionality
+ */
+function init() {
+    // Page guard: only run on message categories page
+    if (!document.getElementById('editCategoryModal')) {
+        return;
     }
 
-    // ========================================================================
-    // DELETE CATEGORY
-    // ========================================================================
+    console.log('[Message Categories] Initializing...');
+    // EventDelegation handlers are registered at module scope below
+    console.log('[Message Categories] Initialization complete');
+}
 
-    /**
-     * Delete a message category
-     * Shows confirmation dialog before deletion
-     * @param {number} id - Category ID
-     * @param {string} name - Category name for display
-     * @param {string} deleteUrl - URL to submit delete request
-     * @param {string} csrfToken - CSRF token for form submission
-     */
-    function deleteCategory(id, name, deleteUrl, csrfToken) {
-        window.Swal.fire({
-            title: 'Delete Category?',
-            text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
-            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('info') : '#3085d6',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Create form and submit
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = deleteUrl;
+/* ========================================================================
+   EVENT DELEGATION - Registered at module scope
+   ======================================================================== */
 
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = 'csrf_token';
-                csrfInput.value = csrfToken;
+EventDelegation.register('edit-category', handleEditCategory, { preventDefault: true });
+EventDelegation.register('delete-category', handleDeleteCategory, { preventDefault: true });
 
-                const categoryIdInput = document.createElement('input');
-                categoryIdInput.type = 'hidden';
-                categoryIdInput.name = 'category_id';
-                categoryIdInput.value = id;
+/* ========================================================================
+   REGISTER WITH INITSYSTEM
+   ======================================================================== */
 
-                form.appendChild(csrfInput);
-                form.appendChild(categoryIdInput);
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-    }
+import { InitSystem } from '../init-system.js';
 
-    // ========================================================================
-    // ACTION HANDLERS
-    // ========================================================================
+let _initialized = false;
 
-    /**
-     * Handle edit category action
-     * @param {Event} e - The event object
-     */
-    function handleEditCategory(e) {
-        const editId = e.target.dataset.categoryId;
-        const editName = e.target.dataset.categoryName;
-        const editDesc = e.target.dataset.categoryDescription;
-        window.editCategory(editId, editName, editDesc);
-    }
+function initWithGuard() {
+    if (_initialized) return;
+    _initialized = true;
+    init();
+}
 
-    /**
-     * Handle delete category action
-     * @param {Event} e - The event object
-     */
-    function handleDeleteCategory(e) {
-        const deleteId = e.target.dataset.categoryId;
-        const deleteName = e.target.dataset.categoryName;
-        const deleteUrl = e.target.dataset.deleteUrl;
-        const csrfToken = e.target.dataset.csrfToken;
-        deleteCategory(deleteId, deleteName, deleteUrl, csrfToken);
-    }
+InitSystem.register('message-categories', initWithGuard, {
+    priority: 30,
+    reinitializable: false,
+    description: 'Message categories management'
+});
 
-    // ========================================================================
-    // INITIALIZATION
-    // ========================================================================
+// Fallback for non-bundled usage
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initWithGuard);
+} else {
+    initWithGuard();
+}
 
-    /**
-     * Initialize all message category functionality
-     */
-    function init() {
-        // Page guard: only run on message categories page
-        if (!document.getElementById('editCategoryModal')) {
-            return;
-        }
+/* ========================================================================
+   PUBLIC API
+   ======================================================================== */
 
-        console.log('[Message Categories] Initializing...');
-        // EventDelegation handlers are registered at module scope below
-        console.log('[Message Categories] Initialization complete');
-    }
+const MessageCategories = {
+    version: '1.0.0',
+    editCategory,
+    deleteCategory,
+    init
+};
 
-    // ========================================================================
-    // EVENT DELEGATION - Registered at module scope
-    // ========================================================================
-    // Handlers registered when IIFE executes, ensuring EventDelegation is available
-
-    EventDelegation.register('edit-category', handleEditCategory, { preventDefault: true });
-    EventDelegation.register('delete-category', handleDeleteCategory, { preventDefault: true });
-
-    // ========================================================================
-    // DOM READY
-    // ========================================================================
-
-    // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        // DOM already loaded
-        init();
-    }
-
-    // Expose public API
-    window.MessageCategories = {
-        version: '1.0.0',
-        editCategory,
-        deleteCategory,
-        init
-    };
+// Expose public API
+window.MessageCategories = MessageCategories;
 
 // Backward compatibility
 window.editCategory = editCategory;
-
-// Backward compatibility
 window.deleteCategory = deleteCategory;
-
-// Backward compatibility
 window.handleEditCategory = handleEditCategory;
-
-// Backward compatibility
 window.handleDeleteCategory = handleDeleteCategory;
 
-// Backward compatibility
-window.init = init;
+export { MessageCategories, editCategory, deleteCategory, handleEditCategory, handleDeleteCategory, init };

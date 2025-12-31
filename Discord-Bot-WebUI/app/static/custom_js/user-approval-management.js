@@ -2,11 +2,11 @@
  * User Approval Management JavaScript
  * Handles user approval and denial functionality for league placement
  */
-// ES Module
 'use strict';
 
 import { InitSystem } from '../js/init-system.js';
 import { ModalManager } from '../js/modal-manager.js';
+
 let _initialized = false;
 
 // Module-level variables
@@ -605,16 +605,8 @@ export function showPlayerDetails(userId) {
         });
 }
 
-// Export functions for global use
-window.showApprovalModal = showApprovalModal;
-window.showDenialModal = showDenialModal;
-window.submitApproval = submitApproval;
-window.submitDenial = submitDenial;
-window.refreshStats = refreshStats;
-window.showPlayerDetails = showPlayerDetails;
-
 // Register with InitSystem (primary)
-if (true && InitSystem.register) {
+if (InitSystem.register) {
     InitSystem.register('user-approval-management', init, {
         priority: 30,
         reinitializable: true,
@@ -629,35 +621,21 @@ if (document.readyState === 'loading') {
     init();
 }
 
-// Backward compatibility
+// Export functions for global use
+window.showApprovalModal = showApprovalModal;
+window.showDenialModal = showDenialModal;
+window.submitApproval = submitApproval;
+window.submitDenial = submitDenial;
+window.refreshStats = refreshStats;
+window.showPlayerDetails = showPlayerDetails;
 window.init = init;
-
-// Backward compatibility
 window.initializeModals = initializeModals;
-
-// Backward compatibility
 window.initializeFormSubmitListeners = initializeFormSubmitListeners;
-
-// Backward compatibility
 window.removeUserFromTable = removeUserFromTable;
-
-// Backward compatibility
 window.showEmptyTableMessage = showEmptyTableMessage;
-
-// Backward compatibility
 window.userApprovalUpdateStats = userApprovalUpdateStats;
-
-// Backward compatibility
 window.getCSRFToken = getCSRFToken;
-
-// Backward compatibility
 window.showSuccessAlert = showSuccessAlert;
-
-// Backward compatibility
 window.showErrorAlert = showErrorAlert;
-
-// Backward compatibility
 window.showWarningAlert = showWarningAlert;
-
-// Backward compatibility
 window.showInfoAlert = showInfoAlert;

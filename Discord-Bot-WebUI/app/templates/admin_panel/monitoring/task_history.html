@@ -213,7 +213,7 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="c-btn c-btn--outline-info" data-action="view-task" data-task-id="{{ task.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
+                                        <button class="c-btn c-btn--outline-info" data-action="view-task" data-task-id="{{ task.id }}" data-task-details-url="{{ url_for('admin_panel.get_task_details') }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                         {% if task.status == 'failed' %}
                                         <button class="c-btn c-btn--outline-warning" data-action="retry-task" data-task-id="{{ task.id }}" aria-label="Refresh"><i class="ti ti-refresh"></i></button>
                                         {% endif %}
@@ -254,101 +254,5 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Event delegation for all task actions
-    document.addEventListener('click', function(e) {
-        const target = e.target.closest('[data-action]');
-        if (!target) return;
-
-        const action = target.dataset.action;
-        const taskId = target.dataset.taskId;
-
-        switch(action) {
-            case 'view-task':
-                viewTaskDetails(taskId);
-                break;
-            case 'retry-task':
-                retryTask(taskId);
-                break;
-            case 'kill-task':
-                killTask(taskId);
-                break;
-            case 'cleanup-zombies':
-                cleanupZombies();
-                break;
-        }
-    });
-});
-
-function viewTaskDetails(taskId) {
-    // Make AJAX request to get task details
-    fetch(`{{ url_for('admin_panel.get_task_details') }}?task_id=${taskId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                Swal.fire({
-                    title: `Task Details: ${taskId.substring(0, 8)}`,
-                    html: data.html,
-                    width: '800px',
-                    confirmButtonText: 'Close'
-                });
-            } else {
-                Swal.fire('Error', data.message || 'Failed to load task details', 'error');
-            }
-        })
-        .catch(error => {
-            Swal.fire('Error', 'Failed to load task details', 'error');
-        });
-}
-
-function retryTask(taskId) {
-    Swal.fire({
-        title: 'Retry Task?',
-        text: 'This will attempt to run the failed task again',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Retry Task'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Implement task retry
-            Swal.fire('Task Queued!', 'The task has been queued for retry.', 'success');
-        }
-    });
-}
-
-function killTask(taskId) {
-    Swal.fire({
-        title: 'Kill Zombie Task?',
-        text: 'This will forcefully terminate the zombie task',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Kill Task',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Implement task killing
-            Swal.fire('Task Killed!', 'The zombie task has been terminated.', 'success');
-        }
-    });
-}
-
-function cleanupZombies() {
-    Swal.fire({
-        title: 'Cleanup All Zombie Tasks?',
-        text: 'This will terminate all zombie tasks',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Cleanup All',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Implement zombie cleanup
-            Swal.fire('Zombies Cleaned!', 'All zombie tasks have been terminated.', 'success');
-        }
-    });
-}
-</script>
-{% endif %}
+{# Event handlers managed by monitoring-handlers.js via EventDelegation #}
 {% endblock %}

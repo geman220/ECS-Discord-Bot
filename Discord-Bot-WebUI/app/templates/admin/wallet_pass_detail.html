@@ -295,11 +295,11 @@
                         </a>
 
                         {% if wallet_pass.status == 'active' %}
-                        <button type="button" class="c-btn c-btn--outline-danger js-void-pass" data-action="void-pass">
+                        <button type="button" class="c-btn c-btn--outline-danger" data-action="void-pass" data-pass-id="{{ wallet_pass.id }}">
                             <i class="ti ti-ban me-1"></i>Void Pass
                         </button>
                         {% else %}
-                        <button type="button" class="c-btn c-btn--outline-success js-reactivate-pass" data-action="reactivate-pass">
+                        <button type="button" class="c-btn c-btn--outline-success" data-action="reactivate-pass" data-pass-id="{{ wallet_pass.id }}">
                             <i class="ti ti-refresh me-1"></i>Reactivate Pass
                         </button>
                         {% endif %}
@@ -352,107 +352,15 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
 <script>
+// QR code generation - must remain inline due to template variable
 document.addEventListener('DOMContentLoaded', function() {
-    // Generate QR code
     if (typeof qrcode !== 'undefined') {
         var qr = qrcode(0, 'M');
         qr.addData('{{ wallet_pass.barcode_data }}');
         qr.make();
         document.getElementById('qrcode').innerHTML = qr.createSvgTag(4, 0);
     }
-
-    // Void pass button
-    const voidBtn = document.querySelector('.js-void-pass');
-    if (voidBtn) {
-        voidBtn.addEventListener('click', voidPass);
-    }
-
-    // Reactivate pass button
-    const reactivateBtn = document.querySelector('.js-reactivate-pass');
-    if (reactivateBtn) {
-        reactivateBtn.addEventListener('click', reactivatePass);
-    }
-
-    // Copy link button
-    const copyLinkBtn = document.querySelector('.js-copy-link');
-    if (copyLinkBtn) {
-        copyLinkBtn.addEventListener('click', copyLink);
-    }
 });
-
-function voidPass() {
-    Swal.fire({
-        title: 'Void This Pass?',
-        html: '<p class="mb-3">The member will no longer be able to use this pass for check-ins.</p><input id="void-reason" class="form-control" placeholder="Reason for voiding (optional)" data-form-control>',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        confirmButtonText: '<i class="ti ti-ban me-1"></i>Void Pass',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const reason = document.getElementById('void-reason')?.value || 'Voided by admin';
-            fetch('/admin/wallet/api/passes/{{ wallet_pass.id }}/void', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason: reason })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Pass Voided', 'The pass has been marked as invalid.', 'success')
-                        .then(() => location.reload());
-                } else {
-                    Swal.fire('Error', data.error || 'Failed to void pass', 'error');
-                }
-            })
-            .catch(err => Swal.fire('Error', 'Failed to void pass. Please try again.', 'error'));
-        }
-    });
-}
-
-function reactivatePass() {
-    Swal.fire({
-        title: 'Reactivate This Pass?',
-        text: 'The pass will become valid again and can be used for check-ins.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
-        confirmButtonText: '<i class="ti ti-refresh me-1"></i>Reactivate',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch('/admin/wallet/api/passes/{{ wallet_pass.id }}/reactivate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire('Pass Reactivated', 'The pass is now active and valid.', 'success')
-                        .then(() => location.reload());
-                } else {
-                    Swal.fire('Error', data.error || 'Failed to reactivate pass', 'error');
-                }
-            })
-            .catch(err => Swal.fire('Error', 'Failed to reactivate pass. Please try again.', 'error'));
-        }
-    });
-}
-
-function copyLink() {
-    const linkInput = document.getElementById('download-link');
-    linkInput.select();
-    document.execCommand('copy');
-
-    Swal.fire({
-        toast: true,
-        position: 'top-end',
-        icon: 'success',
-        title: 'Link copied to clipboard!',
-        showConfirmButton: false,
-        timer: 2000
-    });
-}
+// All other handlers migrated to event-delegation admin-wallet.js
 </script>
 {% endblock %}

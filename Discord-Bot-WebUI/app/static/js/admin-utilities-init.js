@@ -1,27 +1,30 @@
 /**
- * MIGRATED TO CENTRALIZED INIT SYSTEM
- * ====================================
+ * ============================================================================
+ * ADMIN UTILITIES INIT - JavaScript Controller
+ * ============================================================================
  *
- * This component is now registered in /app/static/js/app-init-registration.js
- * using InitSystem with priority 70.
- *
- * Original DOMContentLoaded logic has been moved to centralized registration.
- * This file is kept for reference but the init logic is no longer executed here.
+ * Purpose: Initialize admin utility helpers (progress bars, theme colors)
  *
  * Component Name: admin-utilities
  * Priority: 70 (Global components)
  * Reinitializable: true (supports AJAX content)
  * Description: Initialize admin utility helpers (progress bars, theme colors)
  *
- * Phase 2.4 - Batch 1 Migration
- * Migrated: 2025-12-16
+ * ============================================================================
  */
+'use strict';
 
-/*
-// ORIGINAL CODE - NOW REGISTERED WITH InitSystem
-document.addEventListener('DOMContentLoaded', function() {
+import { InitSystem } from './init-system.js';
+
+/**
+ * Initialize admin utilities
+ * @param {HTMLElement|Document} context - The context to search within
+ */
+function init(context) {
+    context = context || document;
+
     // Apply data-width to all progress bars
-    const progressBars = document.querySelectorAll('[data-width]');
+    const progressBars = context.querySelectorAll('[data-width]');
     progressBars.forEach(bar => {
         const width = bar.dataset.width;
         if (width) {
@@ -30,12 +33,31 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Apply data-theme-color to elements
-    const themedElements = document.querySelectorAll('[data-theme-color]');
+    const themedElements = context.querySelectorAll('[data-theme-color]');
     themedElements.forEach(el => {
         const color = el.dataset.themeColor;
         if (color) {
             el.style.backgroundColor = color;
         }
     });
+}
+
+// Register with InitSystem
+InitSystem.register('admin-utilities', init, {
+    priority: 70,
+    reinitializable: true,
+    description: 'Initialize admin utility helpers (progress bars, theme colors)'
 });
-*/
+
+// Fallback for non-InitSystem environments
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => init(document));
+} else {
+    init(document);
+}
+
+// Backward compatibility
+window.initAdminUtilities = init;
+
+// Named export for ES modules
+export { init };

@@ -4,15 +4,15 @@
  *
  * Dependencies: jQuery, Bootstrap 5, subPoolShowAlert function
  */
-// ES Module
 'use strict';
 
 import { InitSystem } from '../js/init-system.js';
 import { ModalManager } from '../js/modal-manager.js';
+
 let _initialized = false;
 
-    // Global pagination state
-    let paginationState = {};
+// Global pagination state
+let paginationState = {};
 
 // Notification function
 export function subPoolShowAlert(type, message) {
@@ -34,7 +34,7 @@ export function subPoolShowAlert(type, message) {
 
 // Global drag and drop functions for substitute pool management
 // Use unique names to avoid conflicts with draft-system.js drag handlers
-window.subPoolHandleDragStart = function(event) {
+export function subPoolHandleDragStart(event) {
     const card = event.target.closest('.player-card, .player-list-item');
     if (card) {
         card.classList.add('dragging');
@@ -45,25 +45,25 @@ window.subPoolHandleDragStart = function(event) {
             status: card.dataset.status
         }));
     }
-};
+}
 
-window.subPoolHandleDragEnd = function(event) {
+export function subPoolHandleDragEnd(event) {
     const card = event.target.closest('.player-card, .player-list-item');
     if (card) {
         card.classList.remove('dragging');
     }
-};
+}
 
-window.subPoolHandleDragOver = function(event) {
+export function subPoolHandleDragOver(event) {
     event.preventDefault();
     event.currentTarget.classList.add('drag-over');
-};
+}
 
-window.subPoolHandleDragLeave = function(event) {
+export function subPoolHandleDragLeave(event) {
     event.currentTarget.classList.remove('drag-over');
-};
+}
 
-window.subPoolHandleDrop = function(event) {
+export function subPoolHandleDrop(event) {
     event.preventDefault();
     const dropZone = event.currentTarget;
     dropZone.classList.remove('drag-over');
@@ -89,7 +89,7 @@ window.subPoolHandleDrop = function(event) {
     } else if (targetStatus === 'pending') {
         window.removePlayer(data.playerId, data.league);
     }
-};
+}
 
 // Initialize pagination state
 export function initializePaginationState(poolsData) {
@@ -206,86 +206,6 @@ export function subPoolInitializeEventHandlers() {
     // - filter-pool: Filter players by search text (input event)
     // - manage-league-pool: Open league management modal
     // - save-pool-preferences: Save preferences form
-
-    // Legacy jQuery handlers kept for reference (commented out):
-    /*
-    // Approve player
-    window.$(document).on('click', '.approve-player', function() {
-        const playerId = window.$(this).data('player-id');
-        const league = window.$(this).data('league');
-        window.approvePlayer(playerId, league);
-    });
-
-    // Remove player
-    window.$(document).on('click', '.remove-player', function() {
-        const playerId = window.$(this).data('player-id');
-        const league = window.$(this).data('league');
-
-        if (confirm('Are you sure you want to remove this player from the substitute pool?')) {
-            window.removePlayer(playerId, league);
-        }
-    });
-
-    // Edit preferences
-    window.$(document).on('click', '.edit-preferences', function() {
-        const playerId = window.$(this).data('player-id');
-        const league = window.$(this).data('league');
-        openEditPreferencesModal(playerId, league);
-    });
-
-    // Player details
-    window.$(document).on('click', '.player-details-btn', function() {
-        const playerId = window.$(this).data('player-id');
-        window.openPlayerDetailsModal(playerId);
-    });
-
-    // Add to league from search
-    window.$(document).on('click', '.add-to-league', function() {
-        const playerId = window.$(this).data('player-id');
-        const league = window.$(this).data('league');
-        window.approvePlayer(playerId, league);
-    });
-
-    // Save preferences
-    window.$('#savePreferences').on('click', function() {
-        savePreferences();
-    });
-
-    // View toggle
-    window.$(document).on('click', '.view-toggle', function() {
-        const view = window.$(this).data('view');
-        const league = window.$(this).data('league');
-        const section = window.$(this).data('section');
-
-        // Update button states
-        window.$(this).siblings().removeClass('active');
-        window.$(this).addClass('active');
-
-        // Show/hide views
-        if (view === 'list') {
-            $(`#${section}-list-${league}`).show();
-            $(`#${section}-grid-${league}`).hide();
-        } else {
-            $(`#${section}-list-${league}`).hide();
-            $(`#${section}-grid-${league}`).show();
-        }
-    });
-
-    // Filter functionality
-    window.$(document).on('input', '.pool-filter', function() {
-        const filterText = window.$(this).val().toLowerCase();
-        const league = window.$(this).data('league');
-        const section = window.$(this).data('section');
-
-        window.filterPlayerCards(league, section, filterText);
-    });
-
-    // Manage league modal
-    window.$(document).on('click', '.manage-league-btn', function() {
-        const league = window.$(this).data('league');
-        window.openLeagueManagementModal(league);
-    });
-    */
 }
 
 // Player management functions
@@ -540,83 +460,49 @@ export function generatePaginationControls(league, section, currentPage, totalPa
     paginationContainer.html(paginationHtml);
 }
 
-// Pagination click handler
-// NOTE: Pagination is now handled by the centralized EventDelegation system
-// See event-delegation.js - action: pool-pagination
-// Legacy jQuery handler kept for reference (commented out):
-/*
-window.$(document).on('click', '.pagination .page-link', function(e) {
-    e.preventDefault();
+// Initialize function
+function init() {
+    if (_initialized) return;
+    _initialized = true;
 
-    const page = parseInt(window.$(this).data('page'));
-    const league = window.$(this).data('league');
-    const section = window.$(this).data('section');
-    const key = `${league}-${section}`;
+    initializeSearch();
+    subPoolInitializeEventHandlers();
+}
 
-    if (page && paginationState[key] && page !== paginationState[key].currentPage) {
-        paginationState[key].currentPage = page;
-        window.updatePagination(league, section);
-    }
-});
-*/
+// Register with InitSystem (primary)
+if (InitSystem.register) {
+    InitSystem.register('substitute-pool-management', init, {
+        priority: 40,
+        reinitializable: false,
+        description: 'Substitute pool management'
+    });
+}
 
-    // Export to window for template compatibility
-    window.paginationState = paginationState;
-    window.subPoolShowAlert = subPoolShowAlert;
-    window.subPoolHandleDragStart = subPoolHandleDragStart;
-    window.subPoolHandleDragEnd = subPoolHandleDragEnd;
-    window.subPoolHandleDragOver = subPoolHandleDragOver;
-    window.subPoolHandleDragLeave = subPoolHandleDragLeave;
-    window.subPoolHandleDrop = subPoolHandleDrop;
-    window.initializePaginationState = initializePaginationState;
-    window.updatePagination = updatePagination;
-    window.approvePlayer = approvePlayer;
-    window.removePlayer = removePlayer;
-    window.openPlayerDetailsModal = openPlayerDetailsModal;
-    window.filterPlayerCards = filterPlayerCards;
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
 
-    // Initialize function
-    function init() {
-        if (_initialized) return;
-        _initialized = true;
-
-        initializeSearch();
-        subPoolInitializeEventHandlers();
-    }
-
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('substitute-pool-management', init, {
-            priority: 40,
-            reinitializable: false,
-            description: 'Substitute pool management'
-        });
-    }
-
-    // Fallback
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-
-// Backward compatibility
+// Export to window for template compatibility
+window.paginationState = paginationState;
+window.subPoolShowAlert = subPoolShowAlert;
+window.subPoolHandleDragStart = subPoolHandleDragStart;
+window.subPoolHandleDragEnd = subPoolHandleDragEnd;
+window.subPoolHandleDragOver = subPoolHandleDragOver;
+window.subPoolHandleDragLeave = subPoolHandleDragLeave;
+window.subPoolHandleDrop = subPoolHandleDrop;
+window.initializePaginationState = initializePaginationState;
+window.updatePagination = updatePagination;
+window.approvePlayer = approvePlayer;
+window.removePlayer = removePlayer;
+window.openPlayerDetailsModal = openPlayerDetailsModal;
+window.filterPlayerCards = filterPlayerCards;
 window.initializeSearch = initializeSearch;
-
-// Backward compatibility
 window.performSearch = performSearch;
-
-// Backward compatibility
 window.displaySearchResults = displaySearchResults;
-
-// Backward compatibility
 window.subPoolInitializeEventHandlers = subPoolInitializeEventHandlers;
-
-// Backward compatibility
 window.displayPlayerDetails = displayPlayerDetails;
-
-// Backward compatibility
 window.generatePaginationControls = generatePaginationControls;
-
-// Backward compatibility
 window.init = init;

@@ -1,4 +1,4 @@
-import { EventDelegation } from '../event-delegation/core.js';
+import { EventDelegation } from './core.js';
 
 /**
  * ============================================================================
@@ -37,6 +37,9 @@ import './handlers/profile-verification.js'; // Profile verification workflow
 import './handlers/discord-management.js';   // Discord integration, player sync
 import './handlers/user-approval.js';        // User approval/denial workflow
 import './handlers/user-management.js';      // User edit/delete/approve/remove actions
+import './handlers/roles-management.js';     // Roles and permissions management
+import './handlers/waitlist-management.js';  // Waitlist user management
+import './handlers/user-management-comprehensive.js'; // Comprehensive user management
 
 // Pool & Assignment Management
 import './handlers/substitute-pool.js';      // Substitute pool management
@@ -51,8 +54,40 @@ import './handlers/ecs-fc-management.js';    // ECS FC team management
 import './handlers/push-notifications.js';   // Push notification management
 import './handlers/message-templates.js';    // Message templates and announcements
 
+// System Administration
+import './handlers/system-handlers.js';      // Health, Redis, Docker management
+import './handlers/store-handlers.js';       // Store items, orders, analytics
+import './handlers/communication-handlers.js'; // Announcements, campaigns, messaging
+import './handlers/api-handlers.js';         // API keys, config, logs
+import './handlers/ai-prompts-handlers.js';  // AI prompt configuration
+import './handlers/mls-handlers.js';         // MLS match management, live reporting
+
 // Onboarding
 import './handlers/onboarding-wizard.js';    // New user onboarding
+
+// Form Actions
+import './handlers/form-actions.js';         // Auto-submit, select-all, filter
+
+// Authentication
+import './handlers/auth-actions.js';         // Password toggle, login options, terms
+
+// Admin - Wallet
+import './handlers/admin-wallet.js';         // Wallet pass management, bulk operations
+
+// Admin - Waitlist
+import './handlers/admin-waitlist.js';       // User waitlist management (admin view/contact/remove)
+
+// Admin - Scheduled Messages
+import './handlers/admin-scheduled-messages.js'; // Scheduled message management, filtering, export
+
+// Admin Panel - Monitoring
+import './handlers/monitoring-handlers.js';      // System monitoring, alerts, logs, tasks
+
+// Admin Panel - Mobile Features
+import './handlers/mobile-features-handlers.js'; // Feature toggles, analytics, push subscriptions
+
+// Admin Panel - Wallet Config
+import './handlers/wallet-config-handlers.js';   // Template management, visual editor, diagnostics
 
 // EventDelegation is available globally via EventDelegation
 

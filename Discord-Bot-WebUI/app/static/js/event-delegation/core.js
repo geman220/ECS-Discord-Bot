@@ -1,7 +1,7 @@
+'use strict';
+
 /**
- * ============================================================================
- * EVENT DELEGATION CORE
- * ============================================================================
+ * Event Delegation Core
  *
  * Centralized Event Delegation System - Core Module
  *
@@ -23,10 +23,11 @@
  *        const matchId = element.dataset.matchId;
  *        // Handle delete
  *    });
- *
- * ============================================================================
  */
 
+/**
+ * Centralized event delegation system
+ */
 export const EventDelegation = {
     // Handler registry - maps action names to handler functions
     handlers: new Map(),
@@ -55,13 +56,13 @@ export const EventDelegation = {
      */
     register(action, handler, options = {}) {
         if (typeof handler !== 'function') {
-            console.error(`[window.EventDelegation] Handler for action "${action}" must be a function`);
+            console.error(`[EventDelegation] Handler for action "${action}" must be a function`);
             return;
         }
 
         // Duplicate detection - warn if handler already exists
         if (this.handlers.has(action)) {
-            console.warn(`[window.EventDelegation] WARNING: Handler for action "${action}" is being overwritten! This may cause unexpected behavior. Consider using unique action names.`);
+            console.warn(`[EventDelegation] WARNING: Handler for action "${action}" is being overwritten! This may cause unexpected behavior. Consider using unique action names.`);
             this.duplicates.add(action);
         }
 
@@ -76,25 +77,28 @@ export const EventDelegation = {
         this.stats.handlersRegistered++;
 
         if (this.debug) {
-            console.log(`[window.EventDelegation] Registered handler: ${action}`);
+            console.log(`[EventDelegation] Registered handler: ${action}`);
         }
     },
 
     /**
      * Unregister an action handler
+     * @param {string} action - Action name to unregister
      */
     unregister(action) {
         if (this.handlers.has(action)) {
             this.handlers.delete(action);
             this.stats.handlersRegistered--;
             if (this.debug) {
-                console.log(`[window.EventDelegation] Unregistered handler: ${action}`);
+                console.log(`[EventDelegation] Unregistered handler: ${action}`);
             }
         }
     },
 
     /**
      * Check if an action is registered
+     * @param {string} action - Action name
+     * @returns {boolean} True if registered
      */
     isRegistered(action) {
         return this.handlers.has(action);
@@ -102,6 +106,7 @@ export const EventDelegation = {
 
     /**
      * Get all registered action names
+     * @returns {Array<string>} Array of action names
      */
     getRegisteredActions() {
         return Array.from(this.handlers.keys());
@@ -109,6 +114,7 @@ export const EventDelegation = {
 
     /**
      * Get all actions that were registered multiple times (duplicates)
+     * @returns {Array<string>} Array of duplicate action names
      */
     getDuplicates() {
         return Array.from(this.duplicates);
@@ -134,11 +140,12 @@ export const EventDelegation = {
         document.addEventListener('keydown', this.handleKeydown.bind(this), false);
 
         console.log('[EventDelegation] System initialized');
-        console.log(`[window.EventDelegation] Registered ${this.stats.handlersRegistered} handlers`);
+        console.log(`[EventDelegation] Registered ${this.stats.handlersRegistered} handlers`);
     },
 
     /**
      * Handle click events
+     * @param {Event} e - Click event
      */
     handleClick(e) {
         const actionElement = e.target.closest('[data-action]');
@@ -151,7 +158,7 @@ export const EventDelegation = {
             this.stats.eventsProcessed++;
 
             if (this.debug) {
-                console.log(`[window.EventDelegation] Handling click action: ${action}`, {
+                console.log(`[EventDelegation] Handling click action: ${action}`, {
                     element: actionElement,
                     data: actionElement.dataset
                 });
@@ -161,18 +168,19 @@ export const EventDelegation = {
                 handler(actionElement, e);
             } catch (error) {
                 this.stats.errorsEncountered++;
-                console.error(`[window.EventDelegation] Error in handler "${action}":`, error);
+                console.error(`[EventDelegation] Error in handler "${action}":`, error);
                 this.handleError(action, error, actionElement);
             }
         } else {
             if (this.debug) {
-                console.warn(`[window.EventDelegation] No handler registered for action: ${action}`);
+                console.warn(`[EventDelegation] No handler registered for action: ${action}`);
             }
         }
     },
 
     /**
      * Handle change events
+     * @param {Event} e - Change event
      */
     handleChange(e) {
         const target = e.target.closest('[data-on-change]');
@@ -187,13 +195,14 @@ export const EventDelegation = {
                 handler(target, e);
             } catch (error) {
                 this.stats.errorsEncountered++;
-                console.error(`[window.EventDelegation] Error in handler "${action}":`, error);
+                console.error(`[EventDelegation] Error in handler "${action}":`, error);
             }
         }
     },
 
     /**
      * Handle input events
+     * @param {Event} e - Input event
      */
     handleInput(e) {
         const target = e.target.closest('[data-on-input]');
@@ -208,13 +217,14 @@ export const EventDelegation = {
                 handler(target, e);
             } catch (error) {
                 this.stats.errorsEncountered++;
-                console.error(`[window.EventDelegation] Error in handler "${action}":`, error);
+                console.error(`[EventDelegation] Error in handler "${action}":`, error);
             }
         }
     },
 
     /**
      * Handle submit events
+     * @param {Event} e - Submit event
      */
     handleSubmit(e) {
         const form = e.target.closest('[data-on-submit]');
@@ -229,13 +239,14 @@ export const EventDelegation = {
                 handler(form, e);
             } catch (error) {
                 this.stats.errorsEncountered++;
-                console.error(`[window.EventDelegation] Error in handler "${action}":`, error);
+                console.error(`[EventDelegation] Error in handler "${action}":`, error);
             }
         }
     },
 
     /**
      * Handle keydown events
+     * @param {Event} e - Keydown event
      */
     handleKeydown(e) {
         const target = e.target.closest('[data-on-keydown]');
@@ -250,31 +261,44 @@ export const EventDelegation = {
                 handler(target, e);
             } catch (error) {
                 this.stats.errorsEncountered++;
-                console.error(`[window.EventDelegation] Error in handler "${action}":`, error);
+                console.error(`[EventDelegation] Error in handler "${action}":`, error);
             }
         }
     },
 
     /**
      * Handle errors in action handlers
+     * @param {string} action - Action name
+     * @param {Error} error - Error object
+     * @param {Element} element - Element that triggered the action
      */
     handleError(action, error, element) {
-        console.error(`[window.EventDelegation] Action "${action}" failed:`, error);
-        if (typeof showNotification === 'function') {
-            showNotification('Error', `Action failed: ${action}`, 'error');
+        console.error(`[EventDelegation] Action "${action}" failed:`, error);
+        if (typeof window.showNotification === 'function') {
+            window.showNotification('Error', `Action failed: ${action}`, 'error');
         }
     },
 
+    /**
+     * Enable debug mode
+     */
     enableDebug() {
         this.debug = true;
         console.log('[EventDelegation] Debug mode enabled');
     },
 
+    /**
+     * Disable debug mode
+     */
     disableDebug() {
         this.debug = false;
         console.log('[EventDelegation] Debug mode disabled');
     },
 
+    /**
+     * Get statistics
+     * @returns {Object} Statistics object
+     */
     getStats() {
         return {
             ...this.stats,
@@ -282,13 +306,16 @@ export const EventDelegation = {
         };
     },
 
+    /**
+     * Reset statistics
+     */
     resetStats() {
         this.stats.eventsProcessed = 0;
         this.stats.errorsEncountered = 0;
     }
 };
 
-// Export to window for global access and backward compatibility
+// Backward compatibility - keep window.EventDelegation for legacy code
 window.EventDelegation = EventDelegation;
 
 // NOTE: Initialization is now controlled by main-entry.js

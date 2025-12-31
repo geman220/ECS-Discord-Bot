@@ -16,7 +16,7 @@
 /**
    * Mobile Gestures Controller
    */
-  const MobileGestures = {
+export const MobileGestures = {
     /**
      * Check if device supports touch
      * @returns {boolean}

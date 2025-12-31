@@ -1,80 +1,892 @@
+'use strict';
+
+/**
+ * ============================================================================
+ * MENU - Navigation Menu Component
+ * ============================================================================
+ *
+ * Handles vertical and horizontal menu navigation with:
+ * - Accordion/collapsible behavior
+ * - Dropdown menus (horizontal mode)
+ * - Hover or click to open
+ * - PerfectScrollbar integration
+ * - Responsive menu switching
+ * - Animation support
+ *
+ * ============================================================================
+ */
+
 import { Helpers } from './helpers-minimal.js';
 
-/*
- * ATTENTION: The "eval" devtool has been used (maybe by default in mode: "development").
- * This devtool is neither made for production nor for readable output files.
- * It uses "eval()" calls to create a separate source file in the browser devtools.
- * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
- * or disable the default devtool with "devtool: false".
- * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
- */
-(function webpackUniversalModuleDefinition(root, factory) {
-	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory();
-	else if(typeof define === 'function' && define.amd)
-		define([], factory);
-	else {
-		var a = factory();
-		for(var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
-	}
-})(self, function() {
-return /******/ (function() { // webpackBootstrap
-/******/ 	"use strict";
-/******/ 	var __webpack_modules__ = ({
+const TRANSITION_EVENTS = ['transitionend', 'webkitTransitionEnd', 'oTransitionEnd'];
+const DELTA = 5;
 
-/***/ "./js/menu.js":
-/*!********************!*\
-  !*** ./js/menu.js ***!
-  \********************/
-/***/ (function(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+export class Menu {
+  constructor(el, config = {}, _PS = null) {
+    this._el = el;
+    this._horizontal = config.orientation === 'horizontal';
+    this._animate = config.animate !== false;
+    this._accordion = config.accordion !== false;
+    this._showDropdownOnHover = Boolean(config.showDropdownOnHover);
+    this._closeChildren = Boolean(config.closeChildren);
+    this._rtl = document.documentElement.getAttribute('dir') === 'rtl' || document.body.getAttribute('dir') === 'rtl';
+    this._onOpen = config.onOpen || function () {};
+    this._onOpened = config.onOpened || function () {};
+    this._onClose = config.onClose || function () {};
+    this._onClosed = config.onClosed || function () {};
+    this._psScroll = null;
+    this._topParent = null;
+    this._menuBgClass = null;
 
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   Menu: function() { return /* binding */ Menu; }\n/* harmony export */ });\nfunction _typeof(o) { \"@babel/helpers - typeof\"; return _typeof = \"function\" == typeof Symbol && \"symbol\" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && \"function\" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? \"symbol\" : typeof o; }, _typeof(o); }\nfunction _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }\nfunction _nonIterableSpread() { throw new TypeError(\"Invalid attempt to spread non-iterable instance.\\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.\"); }\nfunction _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === \"string\") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === \"Object\" && o.constructor) n = o.constructor.name; if (n === \"Map\" || n === \"Set\") return Array.from(o); if (n === \"Arguments\" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }\nfunction _iterableToArray(iter) { if (typeof Symbol !== \"undefined\" && iter[Symbol.iterator] != null || iter[\"@@iterator\"] != null) return Array.from(iter); }\nfunction _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }\nfunction _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i]; return arr2; }\nfunction _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError(\"Cannot call a class as a function\"); } }\nfunction _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if (\"value\" in descriptor) descriptor.writable = true; Object.defineProperty(target, _toPropertyKey(descriptor.key), descriptor); } }\nfunction _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); Object.defineProperty(Constructor, \"prototype\", { writable: false }); return Constructor; }\nfunction _toPropertyKey(t) { var i = _toPrimitive(t, \"string\"); return \"symbol\" == _typeof(i) ? i : String(i); }\nfunction _toPrimitive(t, r) { if (\"object\" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || \"default\"); if (\"object\" != _typeof(i)) return i; throw new TypeError(\"@@toPrimitive must return a primitive value.\"); } return (\"string\" === r ? String : Number)(t); }\nvar TRANSITION_EVENTS = ['transitionend', 'webkitTransitionEnd', 'oTransitionEnd'];\n// const TRANSITION_PROPERTIES = ['transition', 'MozTransition', 'webkitTransition', 'WebkitTransition', 'OTransition']\nvar DELTA = 5;\nvar Menu = /*#__PURE__*/function () {\n  function Menu(el) {\n    var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};\n    var _PS = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;\n    _classCallCheck(this, Menu);\n    this._el = el;\n    this._horizontal = config.orientation === 'horizontal';\n    this._animate = config.animate !== false;\n    this._accordion = config.accordion !== false;\n    this._showDropdownOnHover = Boolean(config.showDropdownOnHover);\n    this._closeChildren = Boolean(config.closeChildren);\n    this._rtl = document.documentElement.getAttribute('dir') === 'rtl' || document.body.getAttribute('dir') === 'rtl';\n    this._onOpen = config.onOpen || function () {};\n    this._onOpened = config.onOpened || function () {};\n    this._onClose = config.onClose || function () {};\n    this._onClosed = config.onClosed || function () {};\n    this._psScroll = null;\n    this._topParent = null;\n    this._menuBgClass = null;\n    el.classList.add('menu');\n    el.classList[this._animate ? 'remove' : 'add']('menu-no-animation');\n    if (!this._horizontal) {\n      el.classList.add('menu-vertical');\n      el.classList.remove('menu-horizontal');\n      var PerfectScrollbarLib = _PS || window.PerfectScrollbar;\n      if (PerfectScrollbarLib) {\n        this._scrollbar = new PerfectScrollbarLib(el.querySelector('.menu-inner'), {\n          suppressScrollX: true,\n          wheelPropagation: !Menu._hasClass('layout-menu-fixed layout-menu-fixed-offcanvas')\n        });\n        Helpers.menuPsScroll = this._scrollbar;\n      } else {\n        el.querySelector('.menu-inner').classList.add('overflow-auto');\n      }\n    } else {\n      el.classList.add('menu-horizontal');\n      el.classList.remove('menu-vertical');\n      this._inner = el.querySelector('.menu-inner');\n      var container = this._inner.parentNode;\n      this._prevBtn = el.querySelector('.menu-horizontal-prev');\n      if (!this._prevBtn) {\n        this._prevBtn = document.createElement('a');\n        this._prevBtn.href = '#';\n        this._prevBtn.className = 'menu-horizontal-prev';\n        container.appendChild(this._prevBtn);\n      }\n      this._wrapper = el.querySelector('.menu-horizontal-wrapper');\n      if (!this._wrapper) {\n        this._wrapper = document.createElement('div');\n        this._wrapper.className = 'menu-horizontal-wrapper';\n        this._wrapper.appendChild(this._inner);\n        container.appendChild(this._wrapper);\n      }\n      this._nextBtn = el.querySelector('.menu-horizontal-next');\n      if (!this._nextBtn) {\n        this._nextBtn = document.createElement('a');\n        this._nextBtn.href = '#';\n        this._nextBtn.className = 'menu-horizontal-next';\n        container.appendChild(this._nextBtn);\n      }\n      this._innerPosition = 0;\n      this.update();\n    }\n\n    // Add data attribute for bg color class of menu\n    var menuClassList = el.classList;\n    for (var i = 0; i < menuClassList.length; i++) {\n      if (menuClassList[i].startsWith('bg-')) {\n        this._menuBgClass = menuClassList[i];\n      }\n    }\n    el.setAttribute('data-bg-class', this._menuBgClass);\n\n    // Switch to vertical menu on small screen for horizontal menu layout on page load\n    if (this._horizontal && window.innerWidth < Helpers.LAYOUT_BREAKPOINT) {\n      this.switchMenu('vertical');\n    } else {\n      this._bindEvents();\n    }\n\n    // Link menu instance to element\n    el.menuInstance = this;\n  }\n  _createClass(Menu, [{\n    key: \"_bindEvents\",\n    value: function _bindEvents() {\n      var _this = this;\n      // Click Event\n      this._evntElClick = function (e) {\n        // Find top parent element\n        if (e.target.closest('ul') && e.target.closest('ul').classList.contains('menu-inner')) {\n          var menuItem = Menu._findParent(e.target, 'menu-item', false);\n\n          // eslint-disable-next-line prefer-destructuring\n          if (menuItem) _this._topParent = menuItem.childNodes[0];\n        }\n        var toggleLink = e.target.classList.contains('menu-toggle') ? e.target : Menu._findParent(e.target, 'menu-toggle', false);\n        if (toggleLink) {\n          e.preventDefault();\n          if (toggleLink.getAttribute('data-hover') !== 'true') {\n            _this.toggle(toggleLink);\n          }\n        }\n      };\n      if (!this._showDropdownOnHover && this._horizontal || !this._horizontal || Helpers.isMobileDevice) this._el.addEventListener('click', this._evntElClick);\n      this._evntWindowResize = function () {\n        _this.update();\n        if (_this._lastWidth !== window.innerWidth) {\n          _this._lastWidth = window.innerWidth;\n          _this.update();\n        }\n        var horizontalMenuTemplate = document.querySelector(\"[data-template^='horizontal-menu']\");\n        if (!_this._horizontal && !horizontalMenuTemplate) _this.manageScroll();\n      };\n      window.addEventListener('resize', this._evntWindowResize);\n      if (this._horizontal) {\n        this._evntPrevBtnClick = function (e) {\n          e.preventDefault();\n          if (_this._prevBtn.classList.contains('disabled')) return;\n          _this._slide('prev');\n        };\n        this._prevBtn.addEventListener('click', this._evntPrevBtnClick);\n        this._evntNextBtnClick = function (e) {\n          e.preventDefault();\n          if (_this._nextBtn.classList.contains('disabled')) return;\n          _this._slide('next');\n        };\n        this._nextBtn.addEventListener('click', this._evntNextBtnClick);\n        this._evntBodyClick = function (e) {\n          if (!_this._inner.contains(e.target) && _this._el.querySelectorAll('.menu-inner > .menu-item.open').length) _this.closeAll();\n        };\n        document.body.addEventListener('click', this._evntBodyClick);\n        if (this._showDropdownOnHover) {\n          /** ***********************************************\n           * Horizontal Menu Mouse Over Event\n           * ? e.target !== e.currentTarget condition to disable mouseover event on whole menu navbar\n           * ? !e.target.parentNode.classList.contains('open') to disable mouseover events on icon, text and dropdown arrow\n           */\n          this._evntElMouseOver = function (e) {\n            if (e.target !== e.currentTarget && !e.target.parentNode.classList.contains('open')) {\n              var toggleLink = e.target.classList.contains('menu-toggle') ? e.target : null;\n              if (toggleLink) {\n                e.preventDefault();\n                if (toggleLink.getAttribute('data-hover') !== 'true') {\n                  _this.toggle(toggleLink);\n                }\n              }\n            }\n            e.stopPropagation();\n          };\n          if (this._horizontal && window.screen.width > Helpers.LAYOUT_BREAKPOINT) {\n            this._el.addEventListener('mouseover', this._evntElMouseOver);\n          }\n\n          /** ***********************************************\n           * Horizontal Menu Mouse Out Event\n           * ? e.target !== e.currentTarget condition to disable mouseout event on whole menu navbar\n           * ? mouseOutEl.parentNode.classList.contains('open') to check if the mouseout element has open class or not\n           * ? !mouseOutEl.classList.contains('menu-toggle') to check if mouseout was from single menu item and not from the one which has submenu\n           * ? !mouseOverEl.parentNode.classList.contains('menu-link') to disable mouseout event for icon, text and dropdown arrow\n           */\n          this._evntElMouseOut = function (e) {\n            var mainEl = e.currentTarget;\n            var mouseOutEl = e.target;\n            var mouseOverEl = e.toElement || e.relatedTarget;\n\n            // Find absolute parent of any menu item from which mouseout event triggered\n            if (mouseOutEl.closest('ul') && mouseOutEl.closest('ul').classList.contains('menu-inner')) {\n              _this._topParent = mouseOutEl;\n            }\n            if (mouseOutEl !== mainEl && (mouseOutEl.parentNode.classList.contains('open') || !mouseOutEl.classList.contains('menu-toggle')) && mouseOverEl && mouseOverEl.parentNode && !mouseOverEl.parentNode.classList.contains('menu-link')) {\n              // When mouse goes totally out of menu items, check mouse over element to confirm it's not the child of menu, once confirmed close the menu\n              if (_this._topParent && !Menu.childOf(mouseOverEl, _this._topParent.parentNode)) {\n                var _toggleLink = _this._topParent.classList.contains('menu-toggle') ? _this._topParent : null;\n                if (_toggleLink) {\n                  e.preventDefault();\n                  if (_toggleLink.getAttribute('data-hover') !== 'true') {\n                    _this.toggle(_toggleLink);\n                    _this._topParent = null;\n                  }\n                }\n              }\n\n              // When mouse enter the sub menu, check if it's child of the initially mouse overed menu item(Actual Parent),\n              // if it's the parent do not close the sub menu else close the sub menu\n              if (Menu.childOf(mouseOverEl, mouseOutEl.parentNode)) {\n                return;\n              }\n              var toggleLink = mouseOutEl.classList.contains('menu-toggle') ? mouseOutEl : null;\n              if (toggleLink) {\n                e.preventDefault();\n                if (toggleLink.getAttribute('data-hover') !== 'true') {\n                  _this.toggle(toggleLink);\n                }\n              }\n            }\n            e.stopPropagation();\n          };\n          if (this._horizontal && window.screen.width > Helpers.LAYOUT_BREAKPOINT) {\n            this._el.addEventListener('mouseout', this._evntElMouseOut);\n          }\n        }\n      }\n    }\n  }, {\n    key: \"_unbindEvents\",\n    value: function _unbindEvents() {\n      if (this._evntElClick) {\n        this._el.removeEventListener('click', this._evntElClick);\n        this._evntElClick = null;\n      }\n      if (this._evntElMouseOver) {\n        this._el.removeEventListener('mouseover', this._evntElMouseOver);\n        this._evntElMouseOver = null;\n      }\n      if (this._evntElMouseOut) {\n        this._el.removeEventListener('mouseout', this._evntElMouseOut);\n        this._evntElMouseOut = null;\n      }\n      if (this._evntWindowResize) {\n        window.removeEventListener('resize', this._evntWindowResize);\n        this._evntWindowResize = null;\n      }\n      if (this._evntBodyClick) {\n        document.body.removeEventListener('click', this._evntBodyClick);\n        this._evntBodyClick = null;\n      }\n      if (this._evntInnerMousemove) {\n        this._inner.removeEventListener('mousemove', this._evntInnerMousemove);\n        this._evntInnerMousemove = null;\n      }\n      if (this._evntInnerMouseleave) {\n        this._inner.removeEventListener('mouseleave', this._evntInnerMouseleave);\n        this._evntInnerMouseleave = null;\n      }\n    }\n  }, {\n    key: \"open\",\n    value: function open(el) {\n      var _this2 = this;\n      var closeChildren = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this._closeChildren;\n      var item = this._findUnopenedParent(Menu._getItem(el, true), closeChildren);\n      if (!item) return;\n      var toggleLink = Menu._getLink(item, true);\n      Menu._promisify(this._onOpen, this, item, toggleLink, Menu._findMenu(item)).then(function () {\n        if (!_this2._horizontal || !Menu._isRoot(item)) {\n          if (_this2._animate && !_this2._horizontal) {\n            window.requestAnimationFrame(function () {\n              return _this2._toggleAnimation(true, item, false);\n            });\n            if (_this2._accordion) _this2._closeOther(item, closeChildren);\n          } else if (_this2._animate) {\n            _this2._toggleDropdown(true, item, closeChildren);\n            // eslint-disable-next-line no-unused-expressions\n            _this2._onOpened && _this2._onOpened(_this2, item, toggleLink, Menu._findMenu(item));\n          } else {\n            item.classList.add('open');\n            // eslint-disable-next-line no-unused-expressions\n            _this2._onOpened && _this2._onOpened(_this2, item, toggleLink, Menu._findMenu(item));\n            if (_this2._accordion) _this2._closeOther(item, closeChildren);\n          }\n        } else {\n          _this2._toggleDropdown(true, item, closeChildren);\n          // eslint-disable-next-line no-unused-expressions\n          _this2._onOpened && _this2._onOpened(_this2, item, toggleLink, Menu._findMenu(item));\n        }\n      }).catch(function () {});\n    }\n  }, {\n    key: \"close\",\n    value: function close(el) {\n      var _this3 = this;\n      var closeChildren = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this._closeChildren;\n      var _autoClose = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;\n      var item = Menu._getItem(el, true);\n      var toggleLink = Menu._getLink(el, true);\n      if (!item.classList.contains('open') || item.classList.contains('disabled')) return;\n      Menu._promisify(this._onClose, this, item, toggleLink, Menu._findMenu(item), _autoClose).then(function () {\n        if (!_this3._horizontal || !Menu._isRoot(item)) {\n          if (_this3._animate && !_this3._horizontal) {\n            window.requestAnimationFrame(function () {\n              return _this3._toggleAnimation(false, item, closeChildren);\n            });\n          } else {\n            item.classList.remove('open');\n            if (closeChildren) {\n              var opened = item.querySelectorAll('.menu-item.open');\n              for (var i = 0, l = opened.length; i < l; i++) opened[i].classList.remove('open');\n            }\n\n            // eslint-disable-next-line no-unused-expressions\n            _this3._onClosed && _this3._onClosed(_this3, item, toggleLink, Menu._findMenu(item));\n          }\n        } else {\n          _this3._toggleDropdown(false, item, closeChildren);\n          // eslint-disable-next-line no-unused-expressions\n          _this3._onClosed && _this3._onClosed(_this3, item, toggleLink, Menu._findMenu(item));\n        }\n      }).catch(function () {});\n    }\n  }, {\n    key: \"_closeOther\",\n    value: function _closeOther(item, closeChildren) {\n      var opened = Menu._findChild(item.parentNode, ['menu-item', 'open']);\n      for (var i = 0, l = opened.length; i < l; i++) {\n        if (opened[i] !== item) this.close(opened[i], closeChildren);\n      }\n    }\n  }, {\n    key: \"toggle\",\n    value: function toggle(el) {\n      var closeChildren = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this._closeChildren;\n      var item = Menu._getItem(el, true);\n      // const toggleLink = Menu._getLink(el, true)\n\n      if (item.classList.contains('open')) this.close(item, closeChildren);else this.open(item, closeChildren);\n    }\n  }, {\n    key: \"_toggleDropdown\",\n    value: function _toggleDropdown(show, item, closeChildren) {\n      var menu = Menu._findMenu(item);\n      var actualItem = item;\n      var subMenuItem = false;\n      if (show) {\n        if (Menu._findParent(item, 'menu-sub', false)) {\n          subMenuItem = true;\n          item = this._topParent ? this._topParent.parentNode : item;\n        }\n        var wrapperWidth = Math.round(this._wrapper.getBoundingClientRect().width);\n        var position = this._innerPosition;\n        var itemOffset = this._getItemOffset(item);\n        var itemWidth = Math.round(item.getBoundingClientRect().width);\n        if (itemOffset - DELTA <= -1 * position) {\n          this._innerPosition = -1 * itemOffset;\n        } else if (itemOffset + position + itemWidth + DELTA >= wrapperWidth) {\n          if (itemWidth > wrapperWidth) {\n            this._innerPosition = -1 * itemOffset;\n          } else {\n            this._innerPosition = -1 * (itemOffset + itemWidth - wrapperWidth);\n          }\n        }\n        actualItem.classList.add('open');\n        var menuWidth = Math.round(menu.getBoundingClientRect().width);\n        if (subMenuItem) {\n          if (itemOffset + this._innerPosition + menuWidth * 2 > wrapperWidth && menuWidth < wrapperWidth && menuWidth >= itemWidth) {\n            menu.style.left = [this._rtl ? '100%' : '-100%'];\n          }\n        } else if (itemOffset + this._innerPosition + menuWidth > wrapperWidth && menuWidth < wrapperWidth && menuWidth > itemWidth) {\n          menu.style[this._rtl ? 'marginRight' : 'marginLeft'] = \"-\".concat(menuWidth - itemWidth, \"px\");\n        }\n        this._closeOther(actualItem, closeChildren);\n        this._updateSlider();\n      } else {\n        var toggle = Menu._findChild(item, ['menu-toggle']);\n\n        // eslint-disable-next-line no-unused-expressions\n        toggle.length && toggle[0].removeAttribute('data-hover', 'true');\n        item.classList.remove('open');\n        menu.style[this._rtl ? 'marginRight' : 'marginLeft'] = null;\n        if (closeChildren) {\n          var opened = menu.querySelectorAll('.menu-item.open');\n          for (var i = 0, l = opened.length; i < l; i++) opened[i].classList.remove('open');\n        }\n      }\n    }\n  }, {\n    key: \"_slide\",\n    value: function _slide(direction) {\n      var wrapperWidth = Math.round(this._wrapper.getBoundingClientRect().width);\n      var innerWidth = this._innerWidth;\n      var newPosition;\n      if (direction === 'next') {\n        newPosition = this._getSlideNextPos();\n        if (innerWidth + newPosition < wrapperWidth) {\n          newPosition = wrapperWidth - innerWidth;\n        }\n      } else {\n        newPosition = this._getSlidePrevPos();\n        if (newPosition > 0) newPosition = 0;\n      }\n      this._innerPosition = newPosition;\n      this.update();\n    }\n  }, {\n    key: \"_getSlideNextPos\",\n    value: function _getSlideNextPos() {\n      var wrapperWidth = Math.round(this._wrapper.getBoundingClientRect().width);\n      var position = this._innerPosition;\n      var curItem = this._inner.childNodes[0];\n      var left = 0;\n      while (curItem) {\n        if (curItem.tagName) {\n          var curItemWidth = Math.round(curItem.getBoundingClientRect().width);\n          if (left + position - DELTA <= wrapperWidth && left + position + curItemWidth + DELTA >= wrapperWidth) {\n            if (curItemWidth > wrapperWidth && left === -1 * position) left += curItemWidth;\n            break;\n          }\n          left += curItemWidth;\n        }\n        curItem = curItem.nextSibling;\n      }\n      return -1 * left;\n    }\n  }, {\n    key: \"_getSlidePrevPos\",\n    value: function _getSlidePrevPos() {\n      var wrapperWidth = Math.round(this._wrapper.getBoundingClientRect().width);\n      var position = this._innerPosition;\n      var curItem = this._inner.childNodes[0];\n      var left = 0;\n      while (curItem) {\n        if (curItem.tagName) {\n          var curItemWidth = Math.round(curItem.getBoundingClientRect().width);\n          if (left - DELTA <= -1 * position && left + curItemWidth + DELTA >= -1 * position) {\n            if (curItemWidth <= wrapperWidth) left = left + curItemWidth - wrapperWidth;\n            break;\n          }\n          left += curItemWidth;\n        }\n        curItem = curItem.nextSibling;\n      }\n      return -1 * left;\n    }\n  }, {\n    key: \"_findUnopenedParent\",\n    value: function _findUnopenedParent(item, closeChildren) {\n      var tree = [];\n      var parentItem = null;\n      while (item) {\n        if (item.classList.contains('disabled')) {\n          parentItem = null;\n          tree = [];\n        } else {\n          if (!item.classList.contains('open')) parentItem = item;\n          tree.push(item);\n        }\n        item = Menu._findParent(item, 'menu-item', false);\n      }\n      if (!parentItem) return null;\n      if (tree.length === 1) return parentItem;\n      tree = tree.slice(0, tree.indexOf(parentItem));\n      for (var i = 0, l = tree.length; i < l; i++) {\n        tree[i].classList.add('open');\n        if (this._accordion) {\n          var openedItems = Menu._findChild(tree[i].parentNode, ['menu-item', 'open']);\n          for (var j = 0, k = openedItems.length; j < k; j++) {\n            if (openedItems[j] !== tree[i]) {\n              openedItems[j].classList.remove('open');\n              if (closeChildren) {\n                var openedChildren = openedItems[j].querySelectorAll('.menu-item.open');\n                for (var x = 0, z = openedChildren.length; x < z; x++) {\n                  openedChildren[x].classList.remove('open');\n                }\n              }\n            }\n          }\n        }\n      }\n      return parentItem;\n    }\n  }, {\n    key: \"_toggleAnimation\",\n    value: function _toggleAnimation(open, item, closeChildren) {\n      var _this4 = this;\n      var toggleLink = Menu._getLink(item, true);\n      var menu = Menu._findMenu(item);\n      Menu._unbindAnimationEndEvent(item);\n      var linkHeight = Math.round(toggleLink.getBoundingClientRect().height);\n      item.style.overflow = 'hidden';\n      var clearItemStyle = function clearItemStyle() {\n        item.classList.remove('menu-item-animating');\n        item.classList.remove('menu-item-closing');\n        item.style.overflow = null;\n        item.style.height = null;\n        if (!_this4._horizontal) _this4.update();\n      };\n      if (open) {\n        item.style.height = \"\".concat(linkHeight, \"px\");\n        item.classList.add('menu-item-animating');\n        item.classList.add('open');\n        Menu._bindAnimationEndEvent(item, function () {\n          clearItemStyle();\n          _this4._onOpened(_this4, item, toggleLink, menu);\n        });\n        setTimeout(function () {\n          item.style.height = \"\".concat(linkHeight + Math.round(menu.getBoundingClientRect().height), \"px\");\n        }, 50);\n      } else {\n        item.style.height = \"\".concat(linkHeight + Math.round(menu.getBoundingClientRect().height), \"px\");\n        item.classList.add('menu-item-animating');\n        item.classList.add('menu-item-closing');\n        Menu._bindAnimationEndEvent(item, function () {\n          item.classList.remove('open');\n          clearItemStyle();\n          if (closeChildren) {\n            var opened = item.querySelectorAll('.menu-item.open');\n            for (var i = 0, l = opened.length; i < l; i++) opened[i].classList.remove('open');\n          }\n          _this4._onClosed(_this4, item, toggleLink, menu);\n        });\n        setTimeout(function () {\n          item.style.height = \"\".concat(linkHeight, \"px\");\n        }, 50);\n      }\n    }\n  }, {\n    key: \"_getItemOffset\",\n    value: function _getItemOffset(item) {\n      var curItem = this._inner.childNodes[0];\n      var left = 0;\n      while (curItem !== item) {\n        if (curItem.tagName) {\n          left += Math.round(curItem.getBoundingClientRect().width);\n        }\n        curItem = curItem.nextSibling;\n      }\n      return left;\n    }\n  }, {\n    key: \"_updateSlider\",\n    value: function _updateSlider() {\n      var wrapperWidth = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;\n      var innerWidth = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;\n      var position = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;\n      var _wrapperWidth = wrapperWidth !== null ? wrapperWidth : Math.round(this._wrapper.getBoundingClientRect().width);\n      var _innerWidth = innerWidth !== null ? innerWidth : this._innerWidth;\n      var _position = position !== null ? position : this._innerPosition;\n      if (_innerWidth < _wrapperWidth || window.innerWidth < Helpers.LAYOUT_BREAKPOINT) {\n        this._prevBtn.classList.add('d-none');\n        this._nextBtn.classList.add('d-none');\n      } else {\n        this._prevBtn.classList.remove('d-none');\n        this._nextBtn.classList.remove('d-none');\n      }\n      if (_innerWidth > _wrapperWidth && window.innerWidth > Helpers.LAYOUT_BREAKPOINT) {\n        if (_position === 0) this._prevBtn.classList.add('disabled');else this._prevBtn.classList.remove('disabled');\n        if (_innerWidth + _position <= _wrapperWidth) this._nextBtn.classList.add('disabled');else this._nextBtn.classList.remove('disabled');\n      }\n    }\n  }, {\n    key: \"_innerWidth\",\n    get: function get() {\n      var items = this._inner.childNodes;\n      var width = 0;\n      for (var i = 0, l = items.length; i < l; i++) {\n        if (items[i].tagName) {\n          width += Math.round(items[i].getBoundingClientRect().width);\n        }\n      }\n      return width;\n    }\n  }, {\n    key: \"_innerPosition\",\n    get: function get() {\n      return parseInt(this._inner.style[this._rtl ? 'marginRight' : 'marginLeft'] || '0px', 10);\n    },\n    set: function set(value) {\n      this._inner.style[this._rtl ? 'marginRight' : 'marginLeft'] = \"\".concat(value, \"px\");\n      return value;\n    }\n  }, {\n    key: \"closeAll\",\n    value: function closeAll() {\n      var closeChildren = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this._closeChildren;\n      var opened = this._el.querySelectorAll('.menu-inner > .menu-item.open');\n      for (var i = 0, l = opened.length; i < l; i++) this.close(opened[i], closeChildren);\n    }\n  }, {\n    key: \"update\",\n    value: function update() {\n      if (!this._horizontal) {\n        if (this._scrollbar) {\n          this._scrollbar.update();\n        }\n      } else {\n        this.closeAll();\n        var wrapperWidth = Math.round(this._wrapper.getBoundingClientRect().width);\n        var innerWidth = this._innerWidth;\n        var position = this._innerPosition;\n        if (wrapperWidth - position > innerWidth) {\n          position = wrapperWidth - innerWidth;\n          if (position > 0) position = 0;\n          this._innerPosition = position;\n        }\n        this._updateSlider(wrapperWidth, innerWidth, position);\n      }\n    }\n  }, {\n    key: \"manageScroll\",\n    value: function manageScroll() {\n      var _window = window,\n        PerfectScrollbar = _window.PerfectScrollbar;\n      var menuInner = document.querySelector('.menu-inner');\n      if (window.innerWidth < Helpers.LAYOUT_BREAKPOINT) {\n        if (this._scrollbar !== null) {\n          // Helpers.menuPsScroll.destroy()\n          this._scrollbar.destroy();\n          this._scrollbar = null;\n        }\n        menuInner.classList.add('overflow-auto');\n      } else {\n        if (this._scrollbar === null) {\n          var menuScroll = new PerfectScrollbar(document.querySelector('.menu-inner'), {\n            suppressScrollX: true,\n            wheelPropagation: false\n          });\n          // Helpers.menuPsScroll = menuScroll\n          this._scrollbar = menuScroll;\n        }\n        menuInner.classList.remove('overflow-auto');\n      }\n    }\n  }, {\n    key: \"switchMenu\",\n    value: function switchMenu(menu) {\n      // Unbind Events\n      this._unbindEvents();\n\n      // const html = document.documentElement\n      var navbar = document.querySelector('nav.layout-navbar');\n      var navbarCollapse = document.querySelector('#navbar-collapse');\n      /* const fullNavbar = document.querySelector('.layout-navbar-full')\n      const contentNavbar = document.querySelector('.layout-content-navbar')\n      const contentWrapper = document.querySelector('.content-wrapper') */\n      var asideMenuWrapper = document.querySelector('#layout-menu div');\n      var asideMenu = document.querySelector('#layout-menu');\n      var horzMenuClasses = ['layout-menu-horizontal', 'menu', 'menu-horizontal', 'container-fluid', 'flex-grow-0'];\n      var vertMenuClasses = ['layout-menu', 'menu', 'menu-vertical'];\n      var horzMenuWrapper = document.querySelector('.menu-horizontal-wrapper');\n      var menuInner = document.querySelector('.menu-inner');\n      var brand = document.querySelector('.app-brand');\n      var menuToggler = document.querySelector('.layout-menu-toggle');\n      var activeMenuItems = document.querySelectorAll('.menu-inner .active');\n      /* const layoutPage = document.querySelector('.layout-page')\n      const layoutContainer = document.querySelector('.layout-container')\n      const content = document.querySelector('.container-fluid') */\n\n      // const { PerfectScrollbar } = window\n\n      if (menu === 'vertical') {\n        var _asideMenu$classList, _asideMenu$classList2;\n        this._horizontal = false;\n        asideMenuWrapper.insertBefore(brand, horzMenuWrapper);\n        asideMenuWrapper.insertBefore(menuInner, horzMenuWrapper);\n        asideMenuWrapper.classList.add('flex-column', 'p-0');\n        (_asideMenu$classList = asideMenu.classList).remove.apply(_asideMenu$classList, _toConsumableArray(asideMenu.classList));\n        (_asideMenu$classList2 = asideMenu.classList).add.apply(_asideMenu$classList2, vertMenuClasses.concat([this._menuBgClass]));\n        brand.classList.remove('d-none', 'd-lg-flex');\n        menuToggler.classList.remove('d-none');\n        // if (PerfectScrollbar !== undefined) {\n        //   this._psScroll = new PerfectScrollbar(document.querySelector('.menu-inner'), {\n        //     suppressScrollX: true,\n        //     wheelPropagation: !Menu._hasClass('layout-menu-fixed layout-menu-fixed-offcanvas')\n        //   })\n        // }\n\n        menuInner.classList.add('overflow-auto');\n\n        // Add open class to active items\n        for (var i = 0; i < activeMenuItems.length - 1; ++i) {\n          activeMenuItems[i].classList.add('open');\n        }\n      } else {\n        var _asideMenu$classList3, _asideMenu$classList4;\n        this._horizontal = true;\n        navbar.children[0].insertBefore(brand, navbarCollapse);\n        brand.classList.add('d-none', 'd-lg-flex');\n        horzMenuWrapper.appendChild(menuInner);\n        asideMenuWrapper.classList.remove('flex-column', 'p-0');\n        (_asideMenu$classList3 = asideMenu.classList).remove.apply(_asideMenu$classList3, _toConsumableArray(asideMenu.classList));\n        (_asideMenu$classList4 = asideMenu.classList).add.apply(_asideMenu$classList4, horzMenuClasses.concat([this._menuBgClass]));\n        menuToggler.classList.add('d-none');\n        menuInner.classList.remove('overflow-auto');\n\n        // if (PerfectScrollbar !== undefined && this._psScroll !== null) {\n        //   this._psScroll.destroy()\n        //   this._psScroll = null\n        // }\n\n        // Remove open class from active items\n        for (var _i = 0; _i < activeMenuItems.length; ++_i) {\n          activeMenuItems[_i].classList.remove('open');\n        }\n      }\n      this._bindEvents();\n    }\n  }, {\n    key: \"destroy\",\n    value: function destroy() {\n      if (!this._el) return;\n      this._unbindEvents();\n      var items = this._el.querySelectorAll('.menu-item');\n      for (var i = 0, l = items.length; i < l; i++) {\n        Menu._unbindAnimationEndEvent(items[i]);\n        items[i].classList.remove('menu-item-animating');\n        items[i].classList.remove('open');\n        items[i].style.overflow = null;\n        items[i].style.height = null;\n      }\n      var menus = this._el.querySelectorAll('.menu-menu');\n      for (var i2 = 0, l2 = menus.length; i2 < l2; i2++) {\n        menus[i2].style.marginRight = null;\n        menus[i2].style.marginLeft = null;\n      }\n      this._el.classList.remove('menu-no-animation');\n      if (this._wrapper) {\n        this._prevBtn.parentNode.removeChild(this._prevBtn);\n        this._nextBtn.parentNode.removeChild(this._nextBtn);\n        this._wrapper.parentNode.insertBefore(this._inner, this._wrapper);\n        this._wrapper.parentNode.removeChild(this._wrapper);\n        this._inner.style.marginLeft = null;\n        this._inner.style.marginRight = null;\n      }\n      this._el.menuInstance = null;\n      delete this._el.menuInstance;\n      this._el = null;\n      this._horizontal = null;\n      this._animate = null;\n      this._accordion = null;\n      this._showDropdownOnHover = null;\n      this._closeChildren = null;\n      this._rtl = null;\n      this._onOpen = null;\n      this._onOpened = null;\n      this._onClose = null;\n      this._onClosed = null;\n      if (this._scrollbar) {\n        this._scrollbar.destroy();\n        this._scrollbar = null;\n      }\n      this._inner = null;\n      this._prevBtn = null;\n      this._wrapper = null;\n      this._nextBtn = null;\n    }\n  }], [{\n    key: \"childOf\",\n    value: function childOf( /* child node */c, /* parent node */p) {\n      // returns boolean\n      if (c.parentNode) {\n        while ((c = c.parentNode) && c !== p);\n        return !!c;\n      }\n      return false;\n    }\n  }, {\n    key: \"_isRoot\",\n    value: function _isRoot(item) {\n      return !Menu._findParent(item, 'menu-item', false);\n    }\n  }, {\n    key: \"_findParent\",\n    value: function _findParent(el, cls) {\n      var throwError = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;\n      if (el.tagName.toUpperCase() === 'BODY') return null;\n      el = el.parentNode;\n      while (el.tagName.toUpperCase() !== 'BODY' && !el.classList.contains(cls)) {\n        el = el.parentNode;\n      }\n      el = el.tagName.toUpperCase() !== 'BODY' ? el : null;\n      if (!el && throwError) throw new Error(\"Cannot find `.\".concat(cls, \"` parent element\"));\n      return el;\n    }\n  }, {\n    key: \"_findChild\",\n    value: function _findChild(el, cls) {\n      var items = el.childNodes;\n      var found = [];\n      for (var i = 0, l = items.length; i < l; i++) {\n        if (items[i].classList) {\n          var passed = 0;\n          for (var j = 0; j < cls.length; j++) {\n            if (items[i].classList.contains(cls[j])) passed += 1;\n          }\n          if (cls.length === passed) found.push(items[i]);\n        }\n      }\n      return found;\n    }\n  }, {\n    key: \"_findMenu\",\n    value: function _findMenu(item) {\n      var curEl = item.childNodes[0];\n      var menu = null;\n      while (curEl && !menu) {\n        if (curEl.classList && curEl.classList.contains('menu-sub')) menu = curEl;\n        curEl = curEl.nextSibling;\n      }\n      if (!menu) throw new Error('Cannot find `.menu-sub` element for the current `.menu-toggle`');\n      return menu;\n    }\n\n    // Has class\n  }, {\n    key: \"_hasClass\",\n    value: function _hasClass(cls) {\n      var el = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : Helpers.ROOT_EL;\n      var result = false;\n      cls.split(' ').forEach(function (c) {\n        if (el.classList.contains(c)) result = true;\n      });\n      return result;\n    }\n  }, {\n    key: \"_getItem\",\n    value: function _getItem(el, toggle) {\n      var item = null;\n      var selector = toggle ? 'menu-toggle' : 'menu-link';\n      if (el.classList.contains('menu-item')) {\n        if (Menu._findChild(el, [selector]).length) item = el;\n      } else if (el.classList.contains(selector)) {\n        item = el.parentNode.classList.contains('menu-item') ? el.parentNode : null;\n      }\n      if (!item) {\n        throw new Error(\"\".concat(toggle ? 'Toggable ' : '', \"`.menu-item` element not found.\"));\n      }\n      return item;\n    }\n  }, {\n    key: \"_getLink\",\n    value: function _getLink(el, toggle) {\n      var found = [];\n      var selector = toggle ? 'menu-toggle' : 'menu-link';\n      if (el.classList.contains(selector)) found = [el];else if (el.classList.contains('menu-item')) found = Menu._findChild(el, [selector]);\n      if (!found.length) throw new Error(\"`\".concat(selector, \"` element not found.\"));\n      return found[0];\n    }\n  }, {\n    key: \"_bindAnimationEndEvent\",\n    value: function _bindAnimationEndEvent(el, handler) {\n      var cb = function cb(e) {\n        if (e.target !== el) return;\n        Menu._unbindAnimationEndEvent(el);\n        handler(e);\n      };\n      var duration = window.getComputedStyle(el).transitionDuration;\n      duration = parseFloat(duration) * (duration.indexOf('ms') !== -1 ? 1 : 1000);\n      el._menuAnimationEndEventCb = cb;\n      TRANSITION_EVENTS.forEach(function (ev) {\n        return el.addEventListener(ev, el._menuAnimationEndEventCb, false);\n      });\n      el._menuAnimationEndEventTimeout = setTimeout(function () {\n        cb({\n          target: el\n        });\n      }, duration + 50);\n    }\n  }, {\n    key: \"_promisify\",\n    value: function _promisify(fn) {\n      for (var _len = arguments.length, args = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {\n        args[_key - 1] = arguments[_key];\n      }\n      var result = fn.apply(void 0, args);\n      if (result instanceof Promise) {\n        return result;\n      }\n      if (result === false) {\n        return Promise.reject();\n      }\n      return Promise.resolve();\n    }\n  }, {\n    key: \"_unbindAnimationEndEvent\",\n    value: function _unbindAnimationEndEvent(el) {\n      var cb = el._menuAnimationEndEventCb;\n      if (el._menuAnimationEndEventTimeout) {\n        clearTimeout(el._menuAnimationEndEventTimeout);\n        el._menuAnimationEndEventTimeout = null;\n      }\n      if (!cb) return;\n      TRANSITION_EVENTS.forEach(function (ev) {\n        return el.removeEventListener(ev, cb, false);\n      });\n      el._menuAnimationEndEventCb = null;\n    }\n  }, {\n    key: \"setDisabled\",\n    value: function setDisabled(el, disabled) {\n      Menu._getItem(el, false).classList[disabled ? 'add' : 'remove']('disabled');\n    }\n  }, {\n    key: \"isActive\",\n    value: function isActive(el) {\n      return Menu._getItem(el, false).classList.contains('active');\n    }\n  }, {\n    key: \"isOpened\",\n    value: function isOpened(el) {\n      return Menu._getItem(el, false).classList.contains('open');\n    }\n  }, {\n    key: \"isDisabled\",\n    value: function isDisabled(el) {\n      return Menu._getItem(el, false).classList.contains('disabled');\n    }\n  }]);\n  return Menu;\n}();\nwindow.Menu = Menu;\n\n\n//# sourceURL=webpack://Vuexy/./js/menu.js?");
+    el.classList.add('menu');
+    el.classList[this._animate ? 'remove' : 'add']('menu-no-animation');
 
-/***/ })
+    if (!this._horizontal) {
+      el.classList.add('menu-vertical');
+      el.classList.remove('menu-horizontal');
+      const PerfectScrollbarLib = _PS || window.PerfectScrollbar;
+      if (PerfectScrollbarLib) {
+        this._scrollbar = new PerfectScrollbarLib(el.querySelector('.menu-inner'), {
+          suppressScrollX: true,
+          wheelPropagation: !Menu._hasClass('layout-menu-fixed layout-menu-fixed-offcanvas')
+        });
+        Helpers.menuPsScroll = this._scrollbar;
+      } else {
+        el.querySelector('.menu-inner').classList.add('overflow-auto');
+      }
+    } else {
+      el.classList.add('menu-horizontal');
+      el.classList.remove('menu-vertical');
+      this._inner = el.querySelector('.menu-inner');
+      const container = this._inner.parentNode;
 
-/******/ 	});
-/************************************************************************/
-/******/ 	// The require scope
-/******/ 	var __webpack_require__ = {};
-/******/ 	
-/************************************************************************/
-/******/ 	/* webpack/runtime/define property getters */
-/******/ 	!function() {
-/******/ 		// define getter functions for harmony exports
-/******/ 		__webpack_require__.d = function(exports, definition) {
-/******/ 			for(var key in definition) {
-/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-/******/ 				}
-/******/ 			}
-/******/ 		};
-/******/ 	}();
-/******/ 	
-/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
-/******/ 	!function() {
-/******/ 		__webpack_require__.o = function(obj, prop) { return Object.prototype.hasOwnProperty.call(obj, prop); }
-/******/ 	}();
-/******/ 	
-/******/ 	/* webpack/runtime/make namespace object */
-/******/ 	!function() {
-/******/ 		// define __esModule on exports
-/******/ 		__webpack_require__.r = function(exports) {
-/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-/******/ 			}
-/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
-/******/ 		};
-/******/ 	}();
-/******/ 	
-/************************************************************************/
-/******/ 	
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	// This entry module can't be inlined because the eval devtool is used.
-/******/ 	var __webpack_exports__ = {};
-/******/ 	__webpack_modules__["./js/menu.js"](0, __webpack_exports__, __webpack_require__);
-/******/ 	
-/******/ 	return __webpack_exports__;
-/******/ })()
-;
-});
+      this._prevBtn = el.querySelector('.menu-horizontal-prev');
+      if (!this._prevBtn) {
+        this._prevBtn = document.createElement('a');
+        this._prevBtn.href = '#';
+        this._prevBtn.className = 'menu-horizontal-prev';
+        container.appendChild(this._prevBtn);
+      }
+
+      this._wrapper = el.querySelector('.menu-horizontal-wrapper');
+      if (!this._wrapper) {
+        this._wrapper = document.createElement('div');
+        this._wrapper.className = 'menu-horizontal-wrapper';
+        this._wrapper.appendChild(this._inner);
+        container.appendChild(this._wrapper);
+      }
+
+      this._nextBtn = el.querySelector('.menu-horizontal-next');
+      if (!this._nextBtn) {
+        this._nextBtn = document.createElement('a');
+        this._nextBtn.href = '#';
+        this._nextBtn.className = 'menu-horizontal-next';
+        container.appendChild(this._nextBtn);
+      }
+
+      this._innerPosition = 0;
+      this.update();
+    }
+
+    // Add data attribute for bg color class of menu
+    const menuClassList = el.classList;
+    for (let i = 0; i < menuClassList.length; i++) {
+      if (menuClassList[i].startsWith('bg-')) {
+        this._menuBgClass = menuClassList[i];
+      }
+    }
+    el.setAttribute('data-bg-class', this._menuBgClass);
+
+    // Switch to vertical menu on small screen for horizontal menu layout on page load
+    if (this._horizontal && window.innerWidth < Helpers.LAYOUT_BREAKPOINT) {
+      this.switchMenu('vertical');
+    } else {
+      this._bindEvents();
+    }
+
+    // Link menu instance to element
+    el.menuInstance = this;
+  }
+
+  _bindEvents() {
+    // Click Event
+    this._evntElClick = (e) => {
+      // Find top parent element
+      if (e.target.closest('ul') && e.target.closest('ul').classList.contains('menu-inner')) {
+        const menuItem = Menu._findParent(e.target, 'menu-item', false);
+        if (menuItem) this._topParent = menuItem.childNodes[0];
+      }
+
+      const toggleLink = e.target.classList.contains('menu-toggle')
+        ? e.target
+        : Menu._findParent(e.target, 'menu-toggle', false);
+
+      if (toggleLink) {
+        e.preventDefault();
+        if (toggleLink.getAttribute('data-hover') !== 'true') {
+          this.toggle(toggleLink);
+        }
+      }
+    };
+
+    if (!this._showDropdownOnHover && this._horizontal || !this._horizontal || Helpers.isMobileDevice) {
+      this._el.addEventListener('click', this._evntElClick);
+    }
+
+    this._evntWindowResize = () => {
+      this.update();
+      if (this._lastWidth !== window.innerWidth) {
+        this._lastWidth = window.innerWidth;
+        this.update();
+      }
+      const horizontalMenuTemplate = document.querySelector("[data-template^='horizontal-menu']");
+      if (!this._horizontal && !horizontalMenuTemplate) this.manageScroll();
+    };
+    window.addEventListener('resize', this._evntWindowResize);
+
+    if (this._horizontal) {
+      this._evntPrevBtnClick = (e) => {
+        e.preventDefault();
+        if (this._prevBtn.classList.contains('disabled')) return;
+        this._slide('prev');
+      };
+      this._prevBtn.addEventListener('click', this._evntPrevBtnClick);
+
+      this._evntNextBtnClick = (e) => {
+        e.preventDefault();
+        if (this._nextBtn.classList.contains('disabled')) return;
+        this._slide('next');
+      };
+      this._nextBtn.addEventListener('click', this._evntNextBtnClick);
+
+      this._evntBodyClick = (e) => {
+        if (!this._inner.contains(e.target) && this._el.querySelectorAll('.menu-inner > .menu-item.open').length) {
+          this.closeAll();
+        }
+      };
+      document.body.addEventListener('click', this._evntBodyClick);
+
+      if (this._showDropdownOnHover) {
+        this._evntElMouseOver = (e) => {
+          if (e.target !== e.currentTarget && !e.target.parentNode.classList.contains('open')) {
+            const toggleLink = e.target.classList.contains('menu-toggle') ? e.target : null;
+            if (toggleLink) {
+              e.preventDefault();
+              if (toggleLink.getAttribute('data-hover') !== 'true') {
+                this.toggle(toggleLink);
+              }
+            }
+          }
+          e.stopPropagation();
+        };
+
+        if (this._horizontal && window.screen.width > Helpers.LAYOUT_BREAKPOINT) {
+          this._el.addEventListener('mouseover', this._evntElMouseOver);
+        }
+
+        this._evntElMouseOut = (e) => {
+          const mainEl = e.currentTarget;
+          const mouseOutEl = e.target;
+          const mouseOverEl = e.toElement || e.relatedTarget;
+
+          if (mouseOutEl.closest('ul') && mouseOutEl.closest('ul').classList.contains('menu-inner')) {
+            this._topParent = mouseOutEl;
+          }
+
+          if (mouseOutEl !== mainEl &&
+              (mouseOutEl.parentNode.classList.contains('open') || !mouseOutEl.classList.contains('menu-toggle')) &&
+              mouseOverEl && mouseOverEl.parentNode && !mouseOverEl.parentNode.classList.contains('menu-link')) {
+            if (this._topParent && !Menu.childOf(mouseOverEl, this._topParent.parentNode)) {
+              const _toggleLink = this._topParent.classList.contains('menu-toggle') ? this._topParent : null;
+              if (_toggleLink) {
+                e.preventDefault();
+                if (_toggleLink.getAttribute('data-hover') !== 'true') {
+                  this.toggle(_toggleLink);
+                  this._topParent = null;
+                }
+              }
+            }
+
+            if (Menu.childOf(mouseOverEl, mouseOutEl.parentNode)) {
+              return;
+            }
+
+            const toggleLink = mouseOutEl.classList.contains('menu-toggle') ? mouseOutEl : null;
+            if (toggleLink) {
+              e.preventDefault();
+              if (toggleLink.getAttribute('data-hover') !== 'true') {
+                this.toggle(toggleLink);
+              }
+            }
+          }
+          e.stopPropagation();
+        };
+
+        if (this._horizontal && window.screen.width > Helpers.LAYOUT_BREAKPOINT) {
+          this._el.addEventListener('mouseout', this._evntElMouseOut);
+        }
+      }
+    }
+  }
+
+  _unbindEvents() {
+    if (this._evntElClick) {
+      this._el.removeEventListener('click', this._evntElClick);
+      this._evntElClick = null;
+    }
+    if (this._evntElMouseOver) {
+      this._el.removeEventListener('mouseover', this._evntElMouseOver);
+      this._evntElMouseOver = null;
+    }
+    if (this._evntElMouseOut) {
+      this._el.removeEventListener('mouseout', this._evntElMouseOut);
+      this._evntElMouseOut = null;
+    }
+    if (this._evntWindowResize) {
+      window.removeEventListener('resize', this._evntWindowResize);
+      this._evntWindowResize = null;
+    }
+    if (this._evntBodyClick) {
+      document.body.removeEventListener('click', this._evntBodyClick);
+      this._evntBodyClick = null;
+    }
+    if (this._evntInnerMousemove) {
+      this._inner.removeEventListener('mousemove', this._evntInnerMousemove);
+      this._evntInnerMousemove = null;
+    }
+    if (this._evntInnerMouseleave) {
+      this._inner.removeEventListener('mouseleave', this._evntInnerMouseleave);
+      this._evntInnerMouseleave = null;
+    }
+  }
+
+  open(el, closeChildren = this._closeChildren) {
+    const item = this._findUnopenedParent(Menu._getItem(el, true), closeChildren);
+    if (!item) return;
+
+    const toggleLink = Menu._getLink(item, true);
+    Menu._promisify(this._onOpen, this, item, toggleLink, Menu._findMenu(item))
+      .then(() => {
+        if (!this._horizontal || !Menu._isRoot(item)) {
+          if (this._animate && !this._horizontal) {
+            window.requestAnimationFrame(() => this._toggleAnimation(true, item, false));
+            if (this._accordion) this._closeOther(item, closeChildren);
+          } else if (this._animate) {
+            this._toggleDropdown(true, item, closeChildren);
+            this._onOpened && this._onOpened(this, item, toggleLink, Menu._findMenu(item));
+          } else {
+            item.classList.add('open');
+            this._onOpened && this._onOpened(this, item, toggleLink, Menu._findMenu(item));
+            if (this._accordion) this._closeOther(item, closeChildren);
+          }
+        } else {
+          this._toggleDropdown(true, item, closeChildren);
+          this._onOpened && this._onOpened(this, item, toggleLink, Menu._findMenu(item));
+        }
+      })
+      .catch(() => {});
+  }
+
+  close(el, closeChildren = this._closeChildren, _autoClose = false) {
+    const item = Menu._getItem(el, true);
+    const toggleLink = Menu._getLink(el, true);
+
+    if (!item.classList.contains('open') || item.classList.contains('disabled')) return;
+
+    Menu._promisify(this._onClose, this, item, toggleLink, Menu._findMenu(item), _autoClose)
+      .then(() => {
+        if (!this._horizontal || !Menu._isRoot(item)) {
+          if (this._animate && !this._horizontal) {
+            window.requestAnimationFrame(() => this._toggleAnimation(false, item, closeChildren));
+          } else {
+            item.classList.remove('open');
+            if (closeChildren) {
+              const opened = item.querySelectorAll('.menu-item.open');
+              for (let i = 0, l = opened.length; i < l; i++) opened[i].classList.remove('open');
+            }
+            this._onClosed && this._onClosed(this, item, toggleLink, Menu._findMenu(item));
+          }
+        } else {
+          this._toggleDropdown(false, item, closeChildren);
+          this._onClosed && this._onClosed(this, item, toggleLink, Menu._findMenu(item));
+        }
+      })
+      .catch(() => {});
+  }
+
+  _closeOther(item, closeChildren) {
+    const opened = Menu._findChild(item.parentNode, ['menu-item', 'open']);
+    for (let i = 0, l = opened.length; i < l; i++) {
+      if (opened[i] !== item) this.close(opened[i], closeChildren);
+    }
+  }
+
+  toggle(el, closeChildren = this._closeChildren) {
+    const item = Menu._getItem(el, true);
+    if (item.classList.contains('open')) {
+      this.close(item, closeChildren);
+    } else {
+      this.open(item, closeChildren);
+    }
+  }
+
+  _toggleDropdown(show, item, closeChildren) {
+    const menu = Menu._findMenu(item);
+    let actualItem = item;
+    let subMenuItem = false;
+
+    if (show) {
+      if (Menu._findParent(item, 'menu-sub', false)) {
+        subMenuItem = true;
+        item = this._topParent ? this._topParent.parentNode : item;
+      }
+
+      const wrapperWidth = Math.round(this._wrapper.getBoundingClientRect().width);
+      const position = this._innerPosition;
+      const itemOffset = this._getItemOffset(item);
+      const itemWidth = Math.round(item.getBoundingClientRect().width);
+
+      if (itemOffset - DELTA <= -1 * position) {
+        this._innerPosition = -1 * itemOffset;
+      } else if (itemOffset + position + itemWidth + DELTA >= wrapperWidth) {
+        if (itemWidth > wrapperWidth) {
+          this._innerPosition = -1 * itemOffset;
+        } else {
+          this._innerPosition = -1 * (itemOffset + itemWidth - wrapperWidth);
+        }
+      }
+
+      actualItem.classList.add('open');
+
+      const menuWidth = Math.round(menu.getBoundingClientRect().width);
+      if (subMenuItem) {
+        if (itemOffset + this._innerPosition + menuWidth * 2 > wrapperWidth &&
+            menuWidth < wrapperWidth && menuWidth >= itemWidth) {
+          menu.style.left = [this._rtl ? '100%' : '-100%'];
+        }
+      } else if (itemOffset + this._innerPosition + menuWidth > wrapperWidth &&
+                 menuWidth < wrapperWidth && menuWidth > itemWidth) {
+        menu.style[this._rtl ? 'marginRight' : 'marginLeft'] = `-${menuWidth - itemWidth}px`;
+      }
+
+      this._closeOther(actualItem, closeChildren);
+      this._updateSlider();
+    } else {
+      const toggle = Menu._findChild(item, ['menu-toggle']);
+      toggle.length && toggle[0].removeAttribute('data-hover', 'true');
+      item.classList.remove('open');
+      menu.style[this._rtl ? 'marginRight' : 'marginLeft'] = null;
+
+      if (closeChildren) {
+        const opened = menu.querySelectorAll('.menu-item.open');
+        for (let i = 0, l = opened.length; i < l; i++) opened[i].classList.remove('open');
+      }
+    }
+  }
+
+  _slide(direction) {
+    const wrapperWidth = Math.round(this._wrapper.getBoundingClientRect().width);
+    const innerWidth = this._innerWidth;
+    let newPosition;
+
+    if (direction === 'next') {
+      newPosition = this._getSlideNextPos();
+      if (innerWidth + newPosition < wrapperWidth) {
+        newPosition = wrapperWidth - innerWidth;
+      }
+    } else {
+      newPosition = this._getSlidePrevPos();
+      if (newPosition > 0) newPosition = 0;
+    }
+
+    this._innerPosition = newPosition;
+    this.update();
+  }
+
+  _getSlideNextPos() {
+    const wrapperWidth = Math.round(this._wrapper.getBoundingClientRect().width);
+    const position = this._innerPosition;
+    let curItem = this._inner.childNodes[0];
+    let left = 0;
+
+    while (curItem) {
+      if (curItem.tagName) {
+        const curItemWidth = Math.round(curItem.getBoundingClientRect().width);
+        if (left + position - DELTA <= wrapperWidth && left + position + curItemWidth + DELTA >= wrapperWidth) {
+          if (curItemWidth > wrapperWidth && left === -1 * position) left += curItemWidth;
+          break;
+        }
+        left += curItemWidth;
+      }
+      curItem = curItem.nextSibling;
+    }
+
+    return -1 * left;
+  }
+
+  _getSlidePrevPos() {
+    const wrapperWidth = Math.round(this._wrapper.getBoundingClientRect().width);
+    const position = this._innerPosition;
+    let curItem = this._inner.childNodes[0];
+    let left = 0;
+
+    while (curItem) {
+      if (curItem.tagName) {
+        const curItemWidth = Math.round(curItem.getBoundingClientRect().width);
+        if (left - DELTA <= -1 * position && left + curItemWidth + DELTA >= -1 * position) {
+          if (curItemWidth <= wrapperWidth) left = left + curItemWidth - wrapperWidth;
+          break;
+        }
+        left += curItemWidth;
+      }
+      curItem = curItem.nextSibling;
+    }
+
+    return -1 * left;
+  }
+
+  _findUnopenedParent(item, closeChildren) {
+    const tree = [];
+    let parentItem = null;
+
+    while (item) {
+      if (item.classList.contains('disabled')) {
+        parentItem = null;
+        tree.length = 0;
+      } else {
+        if (!item.classList.contains('open')) parentItem = item;
+        tree.push(item);
+      }
+      item = Menu._findParent(item, 'menu-item', false);
+    }
+
+    if (!parentItem) return null;
+    if (tree.length === 1) return parentItem;
+
+    const treeCopy = tree.slice(0, tree.indexOf(parentItem));
+    for (let i = 0, l = treeCopy.length; i < l; i++) {
+      treeCopy[i].classList.add('open');
+      if (this._accordion) {
+        const openedItems = Menu._findChild(treeCopy[i].parentNode, ['menu-item', 'open']);
+        for (let j = 0, k = openedItems.length; j < k; j++) {
+          if (openedItems[j] !== treeCopy[i]) {
+            openedItems[j].classList.remove('open');
+            if (closeChildren) {
+              const openedChildren = openedItems[j].querySelectorAll('.menu-item.open');
+              for (let x = 0, z = openedChildren.length; x < z; x++) {
+                openedChildren[x].classList.remove('open');
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return parentItem;
+  }
+
+  _toggleAnimation(open, item, closeChildren) {
+    const toggleLink = Menu._getLink(item, true);
+    const menu = Menu._findMenu(item);
+    Menu._unbindAnimationEndEvent(item);
+
+    const linkHeight = Math.round(toggleLink.getBoundingClientRect().height);
+    item.style.overflow = 'hidden';
+
+    const clearItemStyle = () => {
+      item.classList.remove('menu-item-animating');
+      item.classList.remove('menu-item-closing');
+      item.style.overflow = null;
+      item.style.height = null;
+      if (!this._horizontal) this.update();
+    };
+
+    if (open) {
+      item.style.height = `${linkHeight}px`;
+      item.classList.add('menu-item-animating');
+      item.classList.add('open');
+
+      Menu._bindAnimationEndEvent(item, () => {
+        clearItemStyle();
+        this._onOpened(this, item, toggleLink, menu);
+      });
+
+      setTimeout(() => {
+        item.style.height = `${linkHeight + Math.round(menu.getBoundingClientRect().height)}px`;
+      }, 50);
+    } else {
+      item.style.height = `${linkHeight + Math.round(menu.getBoundingClientRect().height)}px`;
+      item.classList.add('menu-item-animating');
+      item.classList.add('menu-item-closing');
+
+      Menu._bindAnimationEndEvent(item, () => {
+        item.classList.remove('open');
+        clearItemStyle();
+        if (closeChildren) {
+          const opened = item.querySelectorAll('.menu-item.open');
+          for (let i = 0, l = opened.length; i < l; i++) opened[i].classList.remove('open');
+        }
+        this._onClosed(this, item, toggleLink, menu);
+      });
+
+      setTimeout(() => {
+        item.style.height = `${linkHeight}px`;
+      }, 50);
+    }
+  }
+
+  _getItemOffset(item) {
+    let curItem = this._inner.childNodes[0];
+    let left = 0;
+
+    while (curItem !== item) {
+      if (curItem.tagName) {
+        left += Math.round(curItem.getBoundingClientRect().width);
+      }
+      curItem = curItem.nextSibling;
+    }
+
+    return left;
+  }
+
+  _updateSlider(wrapperWidth = null, innerWidth = null, position = null) {
+    const _wrapperWidth = wrapperWidth !== null ? wrapperWidth : Math.round(this._wrapper.getBoundingClientRect().width);
+    const _innerWidth = innerWidth !== null ? innerWidth : this._innerWidth;
+    const _position = position !== null ? position : this._innerPosition;
+
+    if (_innerWidth < _wrapperWidth || window.innerWidth < Helpers.LAYOUT_BREAKPOINT) {
+      this._prevBtn.classList.add('d-none');
+      this._nextBtn.classList.add('d-none');
+    } else {
+      this._prevBtn.classList.remove('d-none');
+      this._nextBtn.classList.remove('d-none');
+    }
+
+    if (_innerWidth > _wrapperWidth && window.innerWidth > Helpers.LAYOUT_BREAKPOINT) {
+      if (_position === 0) {
+        this._prevBtn.classList.add('disabled');
+      } else {
+        this._prevBtn.classList.remove('disabled');
+      }
+      if (_innerWidth + _position <= _wrapperWidth) {
+        this._nextBtn.classList.add('disabled');
+      } else {
+        this._nextBtn.classList.remove('disabled');
+      }
+    }
+  }
+
+  get _innerWidth() {
+    const items = this._inner.childNodes;
+    let width = 0;
+    for (let i = 0, l = items.length; i < l; i++) {
+      if (items[i].tagName) {
+        width += Math.round(items[i].getBoundingClientRect().width);
+      }
+    }
+    return width;
+  }
+
+  get _innerPosition() {
+    return parseInt(this._inner.style[this._rtl ? 'marginRight' : 'marginLeft'] || '0px', 10);
+  }
+
+  set _innerPosition(value) {
+    this._inner.style[this._rtl ? 'marginRight' : 'marginLeft'] = `${value}px`;
+    return value;
+  }
+
+  closeAll(closeChildren = this._closeChildren) {
+    const opened = this._el.querySelectorAll('.menu-inner > .menu-item.open');
+    for (let i = 0, l = opened.length; i < l; i++) this.close(opened[i], closeChildren);
+  }
+
+  update() {
+    if (!this._horizontal) {
+      if (this._scrollbar) {
+        this._scrollbar.update();
+      }
+    } else {
+      this.closeAll();
+      const wrapperWidth = Math.round(this._wrapper.getBoundingClientRect().width);
+      const innerWidth = this._innerWidth;
+      let position = this._innerPosition;
+
+      if (wrapperWidth - position > innerWidth) {
+        position = wrapperWidth - innerWidth;
+        if (position > 0) position = 0;
+        this._innerPosition = position;
+      }
+
+      this._updateSlider(wrapperWidth, innerWidth, position);
+    }
+  }
+
+  manageScroll() {
+    const { PerfectScrollbar } = window;
+    const menuInner = document.querySelector('.menu-inner');
+
+    if (window.innerWidth < Helpers.LAYOUT_BREAKPOINT) {
+      if (this._scrollbar !== null) {
+        this._scrollbar.destroy();
+        this._scrollbar = null;
+      }
+      menuInner.classList.add('overflow-auto');
+    } else {
+      if (this._scrollbar === null) {
+        const menuScroll = new PerfectScrollbar(document.querySelector('.menu-inner'), {
+          suppressScrollX: true,
+          wheelPropagation: false
+        });
+        this._scrollbar = menuScroll;
+      }
+      menuInner.classList.remove('overflow-auto');
+    }
+  }
+
+  switchMenu(menu) {
+    // Unbind Events
+    this._unbindEvents();
+
+    const navbar = document.querySelector('nav.layout-navbar');
+    const navbarCollapse = document.querySelector('#navbar-collapse');
+    const asideMenuWrapper = document.querySelector('#layout-menu div');
+    const asideMenu = document.querySelector('#layout-menu');
+    const horzMenuClasses = ['layout-menu-horizontal', 'menu', 'menu-horizontal', 'container-fluid', 'flex-grow-0'];
+    const vertMenuClasses = ['layout-menu', 'menu', 'menu-vertical'];
+    const horzMenuWrapper = document.querySelector('.menu-horizontal-wrapper');
+    const menuInner = document.querySelector('.menu-inner');
+    const brand = document.querySelector('.app-brand');
+    const menuToggler = document.querySelector('.layout-menu-toggle');
+    const activeMenuItems = document.querySelectorAll('.menu-inner .active');
+
+    if (menu === 'vertical') {
+      this._horizontal = false;
+      asideMenuWrapper.insertBefore(brand, horzMenuWrapper);
+      asideMenuWrapper.insertBefore(menuInner, horzMenuWrapper);
+      asideMenuWrapper.classList.add('flex-column', 'p-0');
+      asideMenu.classList.remove(...asideMenu.classList);
+      asideMenu.classList.add(...vertMenuClasses.concat([this._menuBgClass]));
+      brand.classList.remove('d-none', 'd-lg-flex');
+      menuToggler.classList.remove('d-none');
+      menuInner.classList.add('overflow-auto');
+
+      // Add open class to active items
+      for (let i = 0; i < activeMenuItems.length - 1; ++i) {
+        activeMenuItems[i].classList.add('open');
+      }
+    } else {
+      this._horizontal = true;
+      navbar.children[0].insertBefore(brand, navbarCollapse);
+      brand.classList.add('d-none', 'd-lg-flex');
+      horzMenuWrapper.appendChild(menuInner);
+      asideMenuWrapper.classList.remove('flex-column', 'p-0');
+      asideMenu.classList.remove(...asideMenu.classList);
+      asideMenu.classList.add(...horzMenuClasses.concat([this._menuBgClass]));
+      menuToggler.classList.add('d-none');
+      menuInner.classList.remove('overflow-auto');
+
+      // Remove open class from active items
+      for (let i = 0; i < activeMenuItems.length; ++i) {
+        activeMenuItems[i].classList.remove('open');
+      }
+    }
+
+    this._bindEvents();
+  }
+
+  destroy() {
+    if (!this._el) return;
+    this._unbindEvents();
+
+    const items = this._el.querySelectorAll('.menu-item');
+    for (let i = 0, l = items.length; i < l; i++) {
+      Menu._unbindAnimationEndEvent(items[i]);
+      items[i].classList.remove('menu-item-animating');
+      items[i].classList.remove('open');
+      items[i].style.overflow = null;
+      items[i].style.height = null;
+    }
+
+    const menus = this._el.querySelectorAll('.menu-menu');
+    for (let i2 = 0, l2 = menus.length; i2 < l2; i2++) {
+      menus[i2].style.marginRight = null;
+      menus[i2].style.marginLeft = null;
+    }
+
+    this._el.classList.remove('menu-no-animation');
+
+    if (this._wrapper) {
+      this._prevBtn.parentNode.removeChild(this._prevBtn);
+      this._nextBtn.parentNode.removeChild(this._nextBtn);
+      this._wrapper.parentNode.insertBefore(this._inner, this._wrapper);
+      this._wrapper.parentNode.removeChild(this._wrapper);
+      this._inner.style.marginLeft = null;
+      this._inner.style.marginRight = null;
+    }
+
+    this._el.menuInstance = null;
+    delete this._el.menuInstance;
+    this._el = null;
+    this._horizontal = null;
+    this._animate = null;
+    this._accordion = null;
+    this._showDropdownOnHover = null;
+    this._closeChildren = null;
+    this._rtl = null;
+    this._onOpen = null;
+    this._onOpened = null;
+    this._onClose = null;
+    this._onClosed = null;
+
+    if (this._scrollbar) {
+      this._scrollbar.destroy();
+      this._scrollbar = null;
+    }
+
+    this._inner = null;
+    this._prevBtn = null;
+    this._wrapper = null;
+    this._nextBtn = null;
+  }
+
+  // Static methods
+  static childOf(c, p) {
+    if (c.parentNode) {
+      while ((c = c.parentNode) && c !== p);
+      return !!c;
+    }
+    return false;
+  }
+
+  static _isRoot(item) {
+    return !Menu._findParent(item, 'menu-item', false);
+  }
+
+  static _findParent(el, cls, throwError = true) {
+    if (el.tagName.toUpperCase() === 'BODY') return null;
+    el = el.parentNode;
+    while (el.tagName.toUpperCase() !== 'BODY' && !el.classList.contains(cls)) {
+      el = el.parentNode;
+    }
+    el = el.tagName.toUpperCase() !== 'BODY' ? el : null;
+    if (!el && throwError) throw new Error(`Cannot find \`.${cls}\` parent element`);
+    return el;
+  }
+
+  static _findChild(el, cls) {
+    const items = el.childNodes;
+    const found = [];
+    for (let i = 0, l = items.length; i < l; i++) {
+      if (items[i].classList) {
+        let passed = 0;
+        for (let j = 0; j < cls.length; j++) {
+          if (items[i].classList.contains(cls[j])) passed += 1;
+        }
+        if (cls.length === passed) found.push(items[i]);
+      }
+    }
+    return found;
+  }
+
+  static _findMenu(item) {
+    let curEl = item.childNodes[0];
+    let menu = null;
+    while (curEl && !menu) {
+      if (curEl.classList && curEl.classList.contains('menu-sub')) menu = curEl;
+      curEl = curEl.nextSibling;
+    }
+    if (!menu) throw new Error('Cannot find `.menu-sub` element for the current `.menu-toggle`');
+    return menu;
+  }
+
+  static _hasClass(cls, el = Helpers.ROOT_EL) {
+    let result = false;
+    cls.split(' ').forEach((c) => {
+      if (el.classList.contains(c)) result = true;
+    });
+    return result;
+  }
+
+  static _getItem(el, toggle) {
+    let item = null;
+    const selector = toggle ? 'menu-toggle' : 'menu-link';
+    if (el.classList.contains('menu-item')) {
+      if (Menu._findChild(el, [selector]).length) item = el;
+    } else if (el.classList.contains(selector)) {
+      item = el.parentNode.classList.contains('menu-item') ? el.parentNode : null;
+    }
+    if (!item) {
+      throw new Error(`${toggle ? 'Toggable ' : ''}\`.menu-item\` element not found.`);
+    }
+    return item;
+  }
+
+  static _getLink(el, toggle) {
+    let found = [];
+    const selector = toggle ? 'menu-toggle' : 'menu-link';
+    if (el.classList.contains(selector)) {
+      found = [el];
+    } else if (el.classList.contains('menu-item')) {
+      found = Menu._findChild(el, [selector]);
+    }
+    if (!found.length) throw new Error(`\`${selector}\` element not found.`);
+    return found[0];
+  }
+
+  static _bindAnimationEndEvent(el, handler) {
+    const cb = (e) => {
+      if (e.target !== el) return;
+      Menu._unbindAnimationEndEvent(el);
+      handler(e);
+    };
+    let duration = window.getComputedStyle(el).transitionDuration;
+    duration = parseFloat(duration) * (duration.indexOf('ms') !== -1 ? 1 : 1000);
+    el._menuAnimationEndEventCb = cb;
+    TRANSITION_EVENTS.forEach((ev) => el.addEventListener(ev, el._menuAnimationEndEventCb, false));
+    el._menuAnimationEndEventTimeout = setTimeout(() => {
+      cb({ target: el });
+    }, duration + 50);
+  }
+
+  static _promisify(fn, ...args) {
+    const result = fn(...args);
+    if (result instanceof Promise) {
+      return result;
+    }
+    if (result === false) {
+      return Promise.reject();
+    }
+    return Promise.resolve();
+  }
+
+  static _unbindAnimationEndEvent(el) {
+    const cb = el._menuAnimationEndEventCb;
+    if (el._menuAnimationEndEventTimeout) {
+      clearTimeout(el._menuAnimationEndEventTimeout);
+      el._menuAnimationEndEventTimeout = null;
+    }
+    if (!cb) return;
+    TRANSITION_EVENTS.forEach((ev) => el.removeEventListener(ev, cb, false));
+    el._menuAnimationEndEventCb = null;
+  }
+
+  static setDisabled(el, disabled) {
+    Menu._getItem(el, false).classList[disabled ? 'add' : 'remove']('disabled');
+  }
+
+  static isActive(el) {
+    return Menu._getItem(el, false).classList.contains('active');
+  }
+
+  static isOpened(el) {
+    return Menu._getItem(el, false).classList.contains('open');
+  }
+
+  static isDisabled(el) {
+    return Menu._getItem(el, false).classList.contains('disabled');
+  }
+}
+
+// Backward compatibility
+window.Menu = Menu;

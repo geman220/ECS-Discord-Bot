@@ -1,65 +1,59 @@
 #!/usr/bin/env node
 /**
- * Fix Indented Exports Script
+ * Fix Indented Exports
  *
- * Removes `export` keywords from lines that are indented (inside blocks).
- * These exports are invalid because they're not at the module level.
- *
- * Run: node scripts/fix-indented-exports.cjs
+ * Removes leading indentation from export statements that should be at module level.
+ * Also removes any IIFE closing patterns that were left behind.
  */
 
 const fs = require('fs');
 const path = require('path');
 const { glob } = require('glob');
 
-async function fixFile(filePath) {
-    const content = fs.readFileSync(filePath, 'utf8');
-    const lines = content.split('\n');
-    let modified = false;
-
-    const newLines = lines.map(line => {
-        // Match lines with indented exports (2+ spaces before export)
-        if (/^(\s{2,})export\s+(function|const|class|let|var)\s+/.test(line)) {
-            // Remove the 'export ' keyword, keeping the indentation
-            modified = true;
-            return line.replace(/^(\s*)export\s+/, '$1');
-        }
-        return line;
-    });
-
-    if (modified) {
-        fs.writeFileSync(filePath, newLines.join('\n'), 'utf8');
-        console.log(`✅ Fixed: ${filePath}`);
-        return true;
-    }
-    return false;
-}
-
 async function main() {
-    console.log('🔧 Fixing indented exports...\n');
+    console.log('🔄 Fixing indented exports and leftover IIFE closures...\n');
 
-    const jsFiles = await glob('app/static/js/**/*.js', {
-        ignore: ['**/vendor/**', '**/vite-dist/**', '**/dist/**', '**/gen/**']
-    });
+    const jsFiles = await glob('app/static/js/**/*.js', { ignore: ['**/vendor/**', '**/vite-dist/**', '**/gen/**'] });
     const customJsFiles = await glob('app/static/custom_js/**/*.js');
+    const assetsJsFiles = await glob('app/static/assets/js/**/*.js');
 
-    const allFiles = [...jsFiles, ...customJsFiles];
-    let fixedCount = 0;
+    const allFiles = [...jsFiles, ...customJsFiles, ...assetsJsFiles];
 
-    for (const file of allFiles) {
+    let fixed = 0;
+
+    for (const filePath of allFiles) {
         try {
-            if (await fixFile(file)) {
-                fixedCount++;
+            let content = fs.readFileSync(filePath, 'utf8');
+            const original = content;
+
+            // Fix 1: Remove indentation from export statements at wrong level
+            // Match lines starting with spaces followed by export
+            content = content.replace(/^([ \t]+)(export\s+(?:const|let|var|function|class|default)\s)/gm, '$2');
+
+            // Fix 2: Remove IIFE closing patterns at end of file
+            content = content.replace(/^\s*\}\)\(\);?\s*$/gm, '');
+            content = content.replace(/^\s*\}\(\)\);?\s*$/gm, '');
+
+            // Fix 3: Remove orphaned closing braces with semicolons at file end
+            content = content.replace(/\n\s*\};\s*\n*$/g, '\n');
+
+            // Clean up multiple blank lines
+            content = content.replace(/\n{3,}/g, '\n\n');
+
+            // Ensure file ends with single newline
+            content = content.trimEnd() + '\n';
+
+            if (content !== original) {
+                fs.writeFileSync(filePath, content, 'utf8');
+                console.log(`✅ Fixed: ${filePath}`);
+                fixed++;
             }
-        } catch (err) {
-            console.error(`❌ Error fixing ${file}: ${err.message}`);
+        } catch (error) {
+            console.error(`❌ Error processing ${filePath}: ${error.message}`);
         }
     }
 
-    console.log(`\n✅ Fixed ${fixedCount} files`);
+    console.log(`\n📊 Fixed ${fixed} files with indentation issues.`);
 }
 
-main().catch(err => {
-    console.error('Error:', err);
-    process.exit(1);
-});
+main().catch(console.error);

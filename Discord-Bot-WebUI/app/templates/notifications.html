@@ -24,7 +24,7 @@
         </div>
         {% if notifications %}
         <div class="c-notifications-header__actions">
-            <button class="c-btn c-btn--outline-secondary" data-action="mark-all-read">
+            <button class="c-btn c-btn--outline-secondary" data-action="mark-all-notifications-read" data-url="{{ url_for('main.mark_all_as_read') }}">
                 <i class="ti ti-check-all"></i>
                 <span>Mark All as Read</span>
             </button>
@@ -84,34 +84,5 @@
 {% endblock %}
 
 {% block custom_js %}
-<script>
-// Event delegation for notification actions
-document.addEventListener('click', function(e) {
-    const action = e.target.closest('[data-action]')?.dataset.action;
-    if (!action) return;
-
-    const target = e.target.closest('[data-action]');
-
-    switch(action) {
-        case 'mark-all-read':
-            e.preventDefault();
-            markAllNotificationsAsRead();
-            break;
-        case 'mark-read':
-            // Let the link navigate naturally, but add visual feedback
-            const card = target.closest('.c-notification-card');
-            if (card) {
-                card.classList.add('is-fading');
-            }
-            break;
-    }
-});
-
-function markAllNotificationsAsRead() {
-    if (confirm('Mark all notifications as read?')) {
-        // Implement mark all as read functionality
-        window.location.href = "{{ url_for('main.mark_all_as_read') }}";
-    }
-}
-</script>
+{# Notification actions (mark-all-notifications-read, mark-read) are handled by event-delegation/handlers/push-notifications.js #}
 {% endblock %}

@@ -122,7 +122,7 @@
                            id="terms-agreement"
                            name="terms_agreement"
                            required
-                           data-controller="terms-agreement">
+                           data-on-change="terms-agreement">
                     <label class="c-auth-checkbox__label c-auth-checkbox__label--muted" for="terms-agreement">
                         I agree to the ECS FC terms and conditions, liability waiver, and code of conduct
                     </label>
@@ -153,49 +153,5 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle terms agreement checkbox
-        document.addEventListener('change', function(e) {
-            const target = e.target;
-            if (!target.matches('[data-controller="terms-agreement"]')) return;
-
-            const registerBtn = document.querySelector('[data-target="submit-button"]');
-            const label = document.querySelector('label[for="terms-agreement"]');
-
-            if (registerBtn) {
-                registerBtn.disabled = !target.checked;
-            }
-
-            if (label) {
-                label.classList.toggle('c-auth-checkbox__label--muted', !target.checked);
-            }
-        });
-
-        // Password toggle handlers
-        document.addEventListener('click', function(e) {
-            const target = e.target.closest('[data-action]');
-            if (!target) return;
-
-            const action = target.dataset.action;
-
-            if (action === 'toggle-password' || action === 'toggle-password-confirm') {
-                const inputGroup = target.closest('.c-auth-input-group--password');
-                const passwordField = inputGroup.querySelector('[data-input]');
-
-                if (passwordField) {
-                    const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-                    passwordField.setAttribute('type', type);
-                    const icon = target.querySelector('i');
-                    if (icon) {
-                        icon.classList.toggle('ti-eye');
-                        icon.classList.toggle('ti-eye-off');
-                    }
-                }
-            }
-        });
-    });
-</script>
-{% endif %}
+{# Auth actions (toggle-password, toggle-password-confirm, terms-agreement) are handled by event-delegation/handlers/auth-actions.js #}
 {% endblock %}

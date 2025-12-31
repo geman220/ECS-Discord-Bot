@@ -1,11 +1,10 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 import { ModalManager } from '../../modal-manager.js';
 
 /**
  * Discord Management Action Handlers
  * Handles Discord integration and player management
  */
-// Uses global EventDelegation from core.js
 
 // DISCORD MANAGEMENT ACTIONS
 // ============================================================================

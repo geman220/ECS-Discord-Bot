@@ -135,8 +135,8 @@
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button type="button" class="c-btn c-btn--outline-info js-view-order-details"
-                                        data-action="view-details" data-order-id="{{ order.id }}" title="View Details">
+                                <button type="button" class="c-btn c-btn--outline-info"
+                                        data-action="view-order-details" data-order-id="{{ order.id }}" title="View Details">
                                     <i class="ti ti-eye"></i>
                                 </button>
                                 <div class="dropdown">
@@ -148,8 +148,8 @@
                                         {% for status in order_statuses %}
                                         {% if status != order.status %}
                                         <li>
-                                            <a class="dropdown-item js-update-order-status" href="#"
-                                               data-action="update-status" data-order-id="{{ order.id }}" data-status="{{ status }}">
+                                            <a class="dropdown-item" href="#"
+                                               data-action="update-order-status" data-order-id="{{ order.id }}" data-new-status="{{ status }}">
                                                 {{ status }}
                                             </a>
                                         </li>
@@ -218,129 +218,6 @@
 
 {% block custom_js %}
 {{ super() }}
-<script>
-// Event delegation for order actions
-document.addEventListener('DOMContentLoaded', function() {
-    // View Order Details button delegation
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.js-view-order-details')) {
-            const btn = e.target.closest('.js-view-order-details');
-            const orderId = btn.dataset.orderId;
-            viewOrderDetails(orderId);
-        }
-    });
-
-    // Update Order Status link delegation
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.js-update-order-status')) {
-            e.preventDefault();
-            const link = e.target.closest('.js-update-order-status');
-            const orderId = link.dataset.orderId;
-            const status = link.dataset.status;
-            updateOrderStatus(orderId, status);
-        }
-    });
-});
-
-function viewOrderDetails(orderId) {
-    fetch(`/admin-panel/store/orders/${orderId}/details`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const order = data.order;
-                let detailsHtml = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Order Information</h6>
-                            <p><strong>Order ID:</strong> #${order.id}</p>
-                            <p><strong>Customer:</strong> ${order.orderer_name}</p>
-                            <p><strong>Order Date:</strong> ${order.order_date}</p>
-                            <p><strong>Status:</strong> <span class="badge bg-primary" data-badge>${order.status}</span></p>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Item Details</h6>
-                            <p><strong>Item:</strong> ${order.item_name}</p>
-                            <p><strong>Quantity:</strong> ${order.quantity}</p>
-                            ${order.selected_color ? `<p><strong>Color:</strong> ${order.selected_color}</p>` : ''}
-                            ${order.selected_size ? `<p><strong>Size:</strong> ${order.selected_size}</p>` : ''}
-                        </div>
-                    </div>
-                `;
-                
-                if (order.notes) {
-                    detailsHtml += `
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <h6>Notes</h6>
-                                <p class="bg-light p-3 rounded">${order.notes}</p>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                if (order.processed_date || order.delivered_date) {
-                    detailsHtml += `
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <h6>Timeline</h6>
-                                ${order.processed_date ? `<p><strong>Processed:</strong> ${order.processed_date}</p>` : ''}
-                                ${order.delivered_date ? `<p><strong>Delivered:</strong> ${order.delivered_date}</p>` : ''}
-                                ${order.processor_name ? `<p><strong>Processed by:</strong> ${order.processor_name}</p>` : ''}
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                Swal.fire({
-                    title: 'Order Details',
-                    html: detailsHtml,
-                    width: '600px',
-                    confirmButtonText: 'Close'
-                });
-            } else {
-                Swal.fire('Error', 'Could not load order details', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire('Error', 'Could not load order details', 'error');
-        });
-}
-
-function updateOrderStatus(orderId, newStatus) {
-    Swal.fire({
-        title: 'Update Order Status',
-        text: `Change order status to ${newStatus}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Update Status'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Create and submit form
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `/admin-panel/store/orders/${orderId}/update-status`;
-            
-            const statusInput = document.createElement('input');
-            statusInput.type = 'hidden';
-            statusInput.name = 'status';
-            statusInput.value = newStatus;
-            form.appendChild(statusInput);
-            
-            // Add CSRF token if available
-            const _csrfToken = document.querySelector('meta[name=csrf-token]');
-            if (_csrfToken) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'csrf_token';
-                input.value = _csrfToken.getAttribute('content');
-                form.appendChild(input);
-            }
-            
-            document.body.appendChild(form);
-            form.submit();
-        }
-    });
-}
-</script>
+{# Inline scripts migrated to store-handlers.js #}
+{# Actions: view-order-details, update-order-status #}
 {% endblock %}

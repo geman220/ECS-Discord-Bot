@@ -278,162 +278,137 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+{# Chart initialization requires page-specific data, handled via InitSystem #}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Apply dynamic widths to progress bars
-    document.querySelectorAll('[data-width]').forEach(function(el) {
-        const width = el.dataset.width;
-        el.style.width = width + '%';
-    });
+(function() {
+    'use strict';
 
-    // Apply circular progress indicators
-    document.querySelectorAll('.u-progress-circle[data-progress]').forEach(function(circle) {
-        const progress = parseFloat(circle.dataset.progress);
-        const progressBar = circle.querySelector('.progress-bar');
-        if (progressBar) {
-            const deg = progress * 3.6;
-            const colorVar = progressBar.classList.contains('bg-info') ?
-                'var(--ecs-info, #0dcaf0)' : 'var(--ecs-primary, #0d6efd)';
-            progressBar.style.background = `conic-gradient(${colorVar} ${deg}deg, transparent 0deg)`;
+    // Page-specific chart data from server
+    const chartData = {
+        responseTime: {
+            labels: {{ historical_data.response_time.labels | tojson | safe }},
+            data: {{ historical_data.response_time.data | tojson | safe }}
+        },
+        requestDistribution: {
+            labels: {{ historical_data.request_distribution.labels | tojson | safe }},
+            data: {{ historical_data.request_distribution.data | tojson | safe }}
+        },
+        timeline: {
+            labels: {{ historical_data.timeline.labels | tojson | safe }},
+            responseTime: {{ historical_data.timeline.response_time | tojson | safe }},
+            requests: {{ historical_data.timeline.requests | tojson | safe }}
         }
-    });
+    };
 
-    // Event delegation for load historical data buttons
-    document.addEventListener('click', function(e) {
-        const target = e.target.closest('[data-action="load-historical"]');
-        if (target) {
-            loadHistoricalData(target.dataset.period, target);
-        }
-    });
-});
-
-// Response Time Chart
-const responseTimeCtx = document.getElementById('responseTimeChart').getContext('2d');
-const responseTimeChart = new Chart(responseTimeCtx, {
-    type: 'line',
-    data: {
-        labels: {{ historical_data.response_time.labels | tojson | safe }},
-        datasets: [{
-            label: 'Response Time (ms)',
-            data: {{ historical_data.response_time.data | tojson | safe }},
-            borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-primary').trim() || '#0d6efd',
-            backgroundColor: 'rgba(13, 110, 253, 0.1)',
-            tension: 0.4
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            y: {
-                beginAtZero: true
-            }
-        }
+    // Register initialization with InitSystem
+    if (typeof InitSystem !== 'undefined') {
+        InitSystem.register('performance-charts', function() {
+            initPerformanceCharts(chartData);
+        });
+    } else {
+        document.addEventListener('DOMContentLoaded', function() {
+            initPerformanceCharts(chartData);
+        });
     }
-});
 
-// Request Distribution Chart
-const requestDistCtx = document.getElementById('requestDistributionChart').getContext('2d');
-const requestDistChart = new Chart(requestDistCtx, {
-    type: 'doughnut',
-    data: {
-        labels: {{ historical_data.request_distribution.labels | tojson | safe }},
-        datasets: [{
-            data: {{ historical_data.request_distribution.data | tojson | safe }},
-            backgroundColor: [
-                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-primary').trim() || '#0d6efd',
-                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-success').trim() || '#198754',
-                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-warning').trim() || '#ffc107',
-                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-danger').trim() || '#dc3545',
-                (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d'
-            ]
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom'
-            }
-        }
-    }
-});
+    function initPerformanceCharts(data) {
+        // Apply dynamic widths to progress bars
+        document.querySelectorAll('[data-width]').forEach(function(el) {
+            const width = el.dataset.width;
+            el.style.width = width + '%';
+        });
 
-// Historical Data Chart
-const historicalCtx = document.getElementById('historicalChart').getContext('2d');
-const historicalChart = new Chart(historicalCtx, {
-    type: 'line',
-    data: {
-        labels: {{ historical_data.timeline.labels | tojson | safe }},
-        datasets: [
-            {
-                label: 'Response Time (ms)',
-                data: {{ historical_data.timeline.response_time | tojson | safe }},
-                borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-primary').trim() || '#0d6efd',
-                backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                yAxisID: 'y'
-            },
-            {
-                label: 'Requests/min',
-                data: {{ historical_data.timeline.requests | tojson | safe }},
-                borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : getComputedStyle(document.documentElement).getPropertyValue('--ecs-success').trim() || '#198754',
-                backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                yAxisID: 'y1'
+        // Apply circular progress indicators
+        document.querySelectorAll('.u-progress-circle[data-progress]').forEach(function(circle) {
+            const progress = parseFloat(circle.dataset.progress);
+            const progressBar = circle.querySelector('.progress-bar');
+            if (progressBar) {
+                const deg = progress * 3.6;
+                const colorVar = progressBar.classList.contains('bg-info') ?
+                    'var(--ecs-info, #0dcaf0)' : 'var(--ecs-primary, #0d6efd)';
+                progressBar.style.background = `conic-gradient(${colorVar} ${deg}deg, transparent 0deg)`;
             }
-        ]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            y: {
-                type: 'linear',
-                display: true,
-                position: 'left',
-            },
-            y1: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                grid: {
-                    drawOnChartArea: false,
+        });
+
+        // Initialize charts
+        const responseTimeEl = document.getElementById('responseTimeChart');
+        const requestDistEl = document.getElementById('requestDistributionChart');
+        const historicalEl = document.getElementById('historicalChart');
+
+        if (responseTimeEl) {
+            new Chart(responseTimeEl.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: data.responseTime.labels,
+                    datasets: [{
+                        label: 'Response Time (ms)',
+                        data: data.responseTime.data,
+                        borderColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        tension: 0.4
+                    }]
                 },
-            }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        if (requestDistEl) {
+            new Chart(requestDistEl.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: data.requestDistribution.labels,
+                    datasets: [{
+                        data: data.requestDistribution.data,
+                        backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6c757d']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        if (historicalEl) {
+            new Chart(historicalEl.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: data.timeline.labels,
+                    datasets: [
+                        {
+                            label: 'Response Time (ms)',
+                            data: data.timeline.responseTime,
+                            borderColor: '#0d6efd',
+                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Requests/min',
+                            data: data.timeline.requests,
+                            borderColor: '#198754',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { type: 'linear', display: true, position: 'left' },
+                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
         }
     }
-});
-
-function loadHistoricalData(period, button) {
-    // Update active button
-    document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
-    button.classList.add('active');
-
-    // Load data for the selected period
-    Swal.fire({
-        title: 'Loading Data...',
-        text: `Loading ${period} historical data`,
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-            // Simulate data loading
-            setTimeout(() => {
-                Swal.close();
-                // Update charts with new data
-            }, 1000);
-        }
-    });
-}
-
-// Auto-refresh every 30 seconds
-setInterval(() => {
-    // Update charts with fresh data
-    responseTimeChart.update();
-    requestDistChart.update();
-    historicalChart.update();
-}, 30000);
+})();
 </script>
-{% endif %}
+{# Event handlers for load-historical managed by monitoring-handlers.js via EventDelegation #}
 {% endblock %}

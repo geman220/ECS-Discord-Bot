@@ -25,13 +25,14 @@
 
 import { InitSystem } from './init-system.js';
 import { EventDelegation } from './event-delegation/core.js';
+
 /**
-   * ============================================================================
-   * MODAL CONTROLLER
-   * ROOT CAUSE FIX: Added initialization guard
-   * ============================================================================
-   */
-  const ModalController = {
+ * ============================================================================
+ * MODAL CONTROLLER
+ * ROOT CAUSE FIX: Added initialization guard
+ * ============================================================================
+ */
+export const ModalController = {
     activeModals: new Set(),
     _initialized: false,
 
@@ -142,13 +143,13 @@ import { EventDelegation } from './event-delegation/core.js';
     }
   };
 
-  /**
-   * ============================================================================
-   * TOAST CONTROLLER
-   * ROOT CAUSE FIX: Added initialization guard
-   * ============================================================================
-   */
-  const ToastController = {
+/**
+ * ============================================================================
+ * TOAST CONTROLLER
+ * ROOT CAUSE FIX: Added initialization guard
+ * ============================================================================
+ */
+export const ToastController = {
     container: null,
     toasts: new Map(),
     idCounter: 0,
@@ -252,12 +253,12 @@ import { EventDelegation } from './event-delegation/core.js';
     }
   };
 
-  /**
-   * ============================================================================
-   * TOOLTIP CONTROLLER
-   * ============================================================================
-   */
-  const TooltipController = {
+/**
+ * ============================================================================
+ * TOOLTIP CONTROLLER
+ * ============================================================================
+ */
+export const TooltipController = {
     activeTooltip: null,
     tooltips: new Map(),
     _initialized: false,
@@ -349,12 +350,12 @@ import { EventDelegation } from './event-delegation/core.js';
     }
   };
 
-  /**
-   * ============================================================================
-   * DROPDOWN CONTROLLER
-   * ============================================================================
-   */
-  const DropdownController = {
+/**
+ * ============================================================================
+ * DROPDOWN CONTROLLER
+ * ============================================================================
+ */
+export const DropdownController = {
     activeDropdown: null,
     _initialized: false,
 
@@ -422,13 +423,13 @@ import { EventDelegation } from './event-delegation/core.js';
     }
   };
 
-  /**
-   * ============================================================================
-   * TABLE CONTROLLER
-   * ROOT CAUSE FIX: Added initialization guard
-   * ============================================================================
-   */
-  const TableController = {
+/**
+ * ============================================================================
+ * TABLE CONTROLLER
+ * ROOT CAUSE FIX: Added initialization guard
+ * ============================================================================
+ */
+export const TableController = {
     _initialized: false,
 
     init() {
@@ -502,13 +503,13 @@ import { EventDelegation } from './event-delegation/core.js';
     }
   };
 
-  /**
-   * ============================================================================
-   * FORM VALIDATION CONTROLLER
-   * ROOT CAUSE FIX: Added initialization guard
-   * ============================================================================
-   */
-  const FormController = {
+/**
+ * ============================================================================
+ * FORM VALIDATION CONTROLLER
+ * ROOT CAUSE FIX: Added initialization guard
+ * ============================================================================
+ */
+export const FormController = {
     _initialized: false,
 
     init() {
@@ -591,12 +592,12 @@ import { EventDelegation } from './event-delegation/core.js';
     }
   };
 
-  /**
-   * ============================================================================
-   * INITIALIZATION
-   * ============================================================================
-   */
-  function init() {
+/**
+ * ============================================================================
+ * INITIALIZATION
+ * ============================================================================
+ */
+export function init() {
     // NOTE: ModalController is DISABLED to prevent conflicts with ModalManager
     // ModalManager (modal-manager.js) handles all Bootstrap modals (.modal class)
     // ModalController was designed for .c-modal-modern class which is not used in templates

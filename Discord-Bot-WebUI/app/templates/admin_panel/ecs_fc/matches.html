@@ -18,7 +18,7 @@
                 <form method="get" class="row g-3 align-items-center">
                     <div class="col-auto">
                         <label for="team_id" class="visually-hidden">Team</label>
-                        <select name="team_id" id="team_id" class="c-form-control" onchange="this.form.submit()">
+                        <select name="team_id" id="team_id" class="c-form-control" data-action="auto-submit-form">
                             <option value="">All Teams</option>
                             {% for team in teams %}
                             <option value="{{ team.id }}" {% if team_filter == team.id %}selected{% endif %}>
@@ -31,7 +31,7 @@
                         <div class="form-check">
                             <input type="checkbox" class="form-check-input" id="showPast" name="show_past"
                                    value="true" {% if show_past %}checked{% endif %}
-                                   onchange="this.form.submit()">
+                                   data-action="auto-submit-form">
                             <label class="form-check-label" for="showPast">Show past matches</label>
                         </div>
                     </div>

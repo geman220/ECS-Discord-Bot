@@ -1,11 +1,13 @@
-import { InitSystem } from '../js/init-system.js';
-
 /**
  * Discord Membership Detection and Prompt System
- * 
+ *
  * Detects when users are not in the Discord server and prompts them to join
  * with helpful SweetAlert popups.
  */
+// ES Module
+'use strict';
+
+import { InitSystem } from '../js/init-system.js';
 
 export class DiscordMembershipChecker {
     constructor(options = {}) {
@@ -15,12 +17,12 @@ export class DiscordMembershipChecker {
             showUrgentPopup: true,
             ...options
         };
-        
+
         if (this.options.checkOnLoad) {
             document.addEventListener('DOMContentLoaded', () => this.init());
         }
     }
-    
+
     init() {
         // Check if we have Discord membership status data
         if (window.discordMembershipStatus) {
@@ -33,7 +35,7 @@ export class DiscordMembershipChecker {
             this.showDiscordJoinPrompt('no_info');
         }
     }
-    
+
     handleMembershipStatus(status) {
         if (status && !status.in_server) {
             // User authenticated but not in server
@@ -45,16 +47,16 @@ export class DiscordMembershipChecker {
             this.showSuccessMessage();
         }
     }
-    
+
     showDiscordJoinPrompt(reason = 'general') {
         if (!this.options.showUrgentPopup) return;
-        
+
         // Check if we've shown a Discord prompt recently (rate limiting)
         const lastPromptShown = localStorage.getItem('discord_prompt_last_shown');
         const now = Date.now();
         const oneHour = 60 * 60 * 1000; // One hour
         const oneWeek = 7 * 24 * 60 * 60 * 1000; // One week
-        
+
         // For critical errors, always show. For others, respect rate limits
         if (reason !== 'not_in_server' && lastPromptShown) {
             const timeSince = now - parseInt(lastPromptShown);
@@ -63,9 +65,9 @@ export class DiscordMembershipChecker {
                 return;
             }
         }
-        
+
         let title, message, urgency;
-        
+
         switch (reason) {
             case 'not_in_server':
                 title = '🚨 Action Required: Join Discord!';
@@ -92,9 +94,9 @@ export class DiscordMembershipChecker {
                 message = 'Don\'t miss out - join our Discord server!';
                 urgency = 'info';
         }
-        
+
         const isUrgent = urgency === 'critical';
-        
+
         window.Swal.fire({
             title: title,
             html: `
@@ -125,7 +127,7 @@ export class DiscordMembershipChecker {
         }).then((result) => {
             // Store timestamp when prompt was shown
             localStorage.setItem('discord_prompt_last_shown', now.toString());
-            
+
             if (result.isConfirmed) {
                 this.handleDiscordJoin();
             } else if (isUrgent) {
@@ -133,11 +135,11 @@ export class DiscordMembershipChecker {
             }
         });
     }
-    
+
     handleDiscordJoin() {
         // Open Discord invite in new tab
         window.open(this.options.discordInviteUrl, '_blank', 'noopener,noreferrer');
-        
+
         // Show follow-up message
         setTimeout(() => {
             window.Swal.fire({
@@ -172,7 +174,7 @@ export class DiscordMembershipChecker {
             timerProgressBar: true
         });
     }
-    
+
     showSuccessMessage() {
         // Optional: Show a brief success message if user is already in Discord
         if (this.options.showSuccessMessage) {
@@ -188,7 +190,7 @@ export class DiscordMembershipChecker {
             }, 1000);
         }
     }
-    
+
     updateDiscordElements(isInServer) {
         // Update Discord information cards if they exist on the page
         const elements = {
@@ -198,18 +200,18 @@ export class DiscordMembershipChecker {
             footer: document.getElementById('discord-status-footer'),
             button: document.getElementById('discord-join-btn')
         };
-        
+
         // Check if elements exist before updating
         const hasElements = Object.values(elements).some(el => el !== null);
         if (!hasElements) return;
-        
+
         if (isInServer) {
             this.setSuccessState(elements);
         } else {
             this.setWarningState(elements);
         }
     }
-    
+
     setSuccessState(elements) {
         if (elements.card) {
             elements.card.className = 'alert alert-success mb-4';
@@ -229,7 +231,7 @@ export class DiscordMembershipChecker {
             elements.button.href = this.options.discordInviteUrl;
         }
     }
-    
+
     setWarningState(elements) {
         if (elements.card) {
             elements.card.className = 'alert alert-warning mb-4';
@@ -249,10 +251,10 @@ export class DiscordMembershipChecker {
             elements.button.href = this.options.discordInviteUrl;
         }
     }
-    
+
     // Static method to manually trigger Discord join prompt
     static showJoinPrompt(options = {}) {
-        const checker = new window.DiscordMembershipChecker({
+        const checker = new DiscordMembershipChecker({
             checkOnLoad: false,
             showUrgentPopup: true,
             ...options
@@ -295,6 +297,7 @@ window.DiscordMembershipChecker = DiscordMembershipChecker;
 if (typeof window._discordCheckerInitialized === 'undefined') {
     window._discordCheckerInitialized = false;
 }
+
 export function initDiscordChecker() {
     if (window._discordCheckerInitialized) return;
 
@@ -303,12 +306,12 @@ export function initDiscordChecker() {
         window.location.pathname.includes('auth') ||
         document.querySelector('[data-discord-check="auto"]')) {
         window._discordCheckerInitialized = true;
-        window.discordChecker = new window.DiscordMembershipChecker();
+        window.discordChecker = new DiscordMembershipChecker();
     }
 }
 
 // Register with InitSystem (primary)
-if (true && InitSystem.register) {
+if (InitSystem && InitSystem.register) {
     InitSystem.register('discord-membership-check', initDiscordChecker, {
         priority: 45,
         reinitializable: false,

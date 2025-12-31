@@ -1,10 +1,9 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 
 /**
  * Draft System Action Handlers
  * Handles player drafting, team assignment, and draft UI
  */
-// Uses global EventDelegation from core.js
 
 // DRAFT SYSTEM ACTIONS
 // ============================================================================

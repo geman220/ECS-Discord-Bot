@@ -1,38 +1,42 @@
-import { ModalManager } from '../js/modal-manager.js';
-
 /**
  * ECS FC Schedule Management JavaScript
- * 
+ *
  * This module handles all client-side functionality for ECS FC schedule management
  * including match creation, editing, calendar display, and RSVP handling.
+ *
+ * Component Name: ecs-fc-schedule
+ * Priority: 30 (Page-specific features)
  */
+'use strict';
 
-// Global variables (using var to allow safe re-declaration if script loads twice)
-var currentTeamId = null;
-var calendar = null;
-var currentMatches = [];
+import { InitSystem } from '../js/init-system.js';
+import { ModalManager } from '../js/modal-manager.js';
 
-// Initialize ECS FC schedule management
-document.addEventListener('DOMContentLoaded', function() {
-    initializeEcsFcSchedule();
-});
+// Module state
+let _initialized = false;
+let currentTeamId = null;
+let calendar = null;
+let currentMatches = [];
 
 /**
  * Initialize ECS FC schedule functionality
  */
 export function initializeEcsFcSchedule() {
+    if (_initialized) return;
+
     // Get team ID from page data
     const teamData = document.getElementById('team-data');
-    if (teamData) {
-        currentTeamId = parseInt(teamData.dataset.teamId);
-    }
+    if (!teamData) return; // Not on ECS FC schedule page
+
+    currentTeamId = parseInt(teamData.dataset.teamId);
+    if (!currentTeamId) return;
+
+    _initialized = true;
 
     // Initialize components
-    if (currentTeamId) {
-        initializeCalendar();
-        ecsFcInitializeEventHandlers();
-        loadTeamMatches();
-    }
+    initializeCalendar();
+    ecsFcInitializeEventHandlers();
+    loadTeamMatches();
 }
 
 /**
@@ -147,7 +151,7 @@ export function loadCalendarEvents(start, end, successCallback, failureCallback)
  */
 export function loadTeamMatches(upcomingOnly = true) {
     const url = `/api/ecs-fc/teams/${currentTeamId}/matches?upcoming_only=${upcomingOnly}`;
-    
+
     fetch(url)
         .then(response => response.json())
         .then(data => {
@@ -230,7 +234,7 @@ export function createMatchCard(match) {
                     </div>
                 </div>
                 ${match.notes ? `<div class="mt-2"><strong>Notes:</strong> ${match.notes}</div>` : ''}
-                
+
                 <div class="mt-3 d-flex flex-wrap gap-2">
                     ${isUpcoming ? `
                         <button class="btn btn-sm btn-success js-rsvp-btn" data-match-id="${match.id}" data-response="yes">
@@ -307,8 +311,8 @@ export function renderRsvpSummary(matchId, summary) {
         <div class="js-rsvp-counts">
             <small class="text-muted">RSVP Status:</small>
             <div class="d-flex justify-content-between mt-1">
-                <span class="badge bg-success rsvp-status-yes">✓ ${summary.yes}</span>
-                <span class="badge bg-danger rsvp-status-no">✗ ${summary.no}</span>
+                <span class="badge bg-success rsvp-status-yes">${summary.yes}</span>
+                <span class="badge bg-danger rsvp-status-no">${summary.no}</span>
                 <span class="badge bg-warning rsvp-status-maybe">? ${summary.maybe}</span>
                 <span class="badge bg-secondary rsvp-status-none">- ${summary.no_response}</span>
             </div>
@@ -328,7 +332,7 @@ export function showCreateMatchModal(selectedDate = null) {
     const form = document.getElementById('ecs-fc-match-form');
     if (form) {
         form.reset();
-        
+
         // Set default date if provided
         if (selectedDate) {
             const dateInput = form.querySelector('[name="match_date"]');
@@ -347,18 +351,18 @@ export function showCreateMatchModal(selectedDate = null) {
  */
 export function handleMatchFormSubmit(e) {
     e.preventDefault();
-    
+
     const form = e.target;
     const formData = new FormData(form);
     const matchData = Object.fromEntries(formData.entries());
-    
+
     // Convert boolean fields
     matchData.is_home_match = formData.get('is_home_match') === 'on';
     matchData.team_id = currentTeamId;
 
     // Create or update match
     const matchId = form.dataset.matchId;
-    const url = matchId 
+    const url = matchId
         ? `/api/ecs-fc/matches/${matchId}`
         : '/api/ecs-fc/matches';
     const method = matchId ? 'PUT' : 'POST';
@@ -515,7 +519,7 @@ export function showImportMatchesModal() {
  */
 export function handleImportFormSubmit(e) {
     e.preventDefault();
-    
+
     const csvInput = document.getElementById('csv-matches');
     const csvText = csvInput.value.trim();
 
@@ -579,7 +583,7 @@ export function parseMatchesCsv(csvText) {
 
     for (let i = startIndex; i < lines.length; i++) {
         const fields = lines[i].split(',').map(field => field.trim().replace(/^["']|["']$/g, ''));
-        
+
         if (fields.length >= 5) {
             const match = {
                 opponent_name: fields[0],
@@ -590,7 +594,7 @@ export function parseMatchesCsv(csvText) {
                 field_name: fields[5] || null,
                 notes: fields[6] || null
             };
-            
+
             // Validate required fields
             if (match.opponent_name && match.match_date && match.match_time && match.location) {
                 matches.push(match);
@@ -684,72 +688,35 @@ window.EcsFcSchedule = {
 
 // Backward compatibility
 window.initializeEcsFcSchedule = initializeEcsFcSchedule;
-
-// Backward compatibility
 window.ecsFcInitializeEventHandlers = ecsFcInitializeEventHandlers;
-
-// Backward compatibility
 window.initializeCalendar = initializeCalendar;
-
-// Backward compatibility
 window.loadCalendarEvents = loadCalendarEvents;
-
-// Backward compatibility
 window.loadTeamMatches = loadTeamMatches;
-
-// Backward compatibility
 window.renderMatchesList = renderMatchesList;
-
-// Backward compatibility
 window.createMatchCard = createMatchCard;
-
-// Backward compatibility
 window.getStatusBadge = getStatusBadge;
-
-// Backward compatibility
 window.loadRsvpSummary = loadRsvpSummary;
-
-// Backward compatibility
 window.renderRsvpSummary = renderRsvpSummary;
-
-// Backward compatibility
 window.showCreateMatchModal = showCreateMatchModal;
-
-// Backward compatibility
 window.handleMatchFormSubmit = handleMatchFormSubmit;
-
-// Backward compatibility
 window.ecsFcEditMatch = ecsFcEditMatch;
-
-// Backward compatibility
 window.ecsFcDeleteMatch = ecsFcDeleteMatch;
-
-// Backward compatibility
 window.handleRsvpResponse = handleRsvpResponse;
-
-// Backward compatibility
 window.sendRsvpReminder = sendRsvpReminder;
-
-// Backward compatibility
 window.showImportMatchesModal = showImportMatchesModal;
-
-// Backward compatibility
 window.handleImportFormSubmit = handleImportFormSubmit;
-
-// Backward compatibility
 window.parseMatchesCsv = parseMatchesCsv;
-
-// Backward compatibility
 window.handleRsvpUpdate = handleRsvpUpdate;
-
-// Backward compatibility
 window.handleMatchUpdate = handleMatchUpdate;
-
-// Backward compatibility
 window.ecsFcFormatDate = ecsFcFormatDate;
-
-// Backward compatibility
 window.formatTime = formatTime;
-
-// Backward compatibility
 window.ecsFcShowAlert = ecsFcShowAlert;
+
+// Register with InitSystem
+if (InitSystem.register) {
+    InitSystem.register('ecs-fc-schedule', initializeEcsFcSchedule, {
+        priority: 30,
+        reinitializable: false,
+        description: 'ECS FC schedule management'
+    });
+}

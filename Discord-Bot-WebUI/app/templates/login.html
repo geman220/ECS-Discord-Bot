@@ -110,40 +110,5 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.addEventListener('click', function(e) {
-        const target = e.target.closest('[data-action]');
-        if (!target) return;
-
-        const action = target.dataset.action;
-
-        switch(action) {
-            case 'toggle-options':
-                const container = document.getElementById('additional-options');
-                if (container) {
-                    const isHidden = container.classList.contains('is-hidden');
-                    container.classList.toggle('is-hidden', !isHidden);
-                    target.textContent = isHidden ? 'Hide Email Login' : 'More Options';
-                }
-                break;
-
-            case 'toggle-password':
-                const passwordField = document.querySelector('input[name="password"]');
-                if (passwordField) {
-                    const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-                    passwordField.setAttribute('type', type);
-                    const icon = target.querySelector('i');
-                    if (icon) {
-                        icon.classList.toggle('ti-eye');
-                        icon.classList.toggle('ti-eye-off');
-                    }
-                }
-                break;
-        }
-    });
-});
-</script>
-{% endif %}
+{# Auth actions (toggle-password, toggle-options) are handled by event-delegation/handlers/auth-actions.js #}
 {% endblock %}

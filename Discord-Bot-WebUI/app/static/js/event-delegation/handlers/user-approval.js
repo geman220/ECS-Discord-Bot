@@ -1,10 +1,9 @@
-import { EventDelegation } from '../../event-delegation/core.js';
+import { EventDelegation } from '../core.js';
 
 /**
  * User Approval Action Handlers
  * Handles user approval/denial workflow
  */
-// Uses global EventDelegation from core.js
 
 // USER APPROVAL MANAGEMENT ACTIONS
 // ============================================================================
@@ -113,8 +112,5 @@ EventDelegation.register('deny-user', function(element, e) {
         console.error('[deny-user] submitDenial function not found');
     }
 });
-
-// EventDelegation is already exposed globally by core.js
-// No need to re-assign EventDelegation here
 
 console.log('[EventDelegation] User approval handlers loaded');
