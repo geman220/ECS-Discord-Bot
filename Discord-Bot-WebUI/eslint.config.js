@@ -151,6 +151,23 @@ export default [
           name: 'ModalManager',
           message: 'Use window.ModalManager instead to avoid TDZ errors in bundled code.'
         },
+        // Config variables - MUST use window.X (from config.js)
+        {
+          name: 'config',
+          message: 'Use window.config instead to avoid TDZ errors in bundled code.'
+        },
+        {
+          name: 'templateName',
+          message: 'Use window.templateName instead to avoid TDZ errors in bundled code.'
+        },
+        {
+          name: 'assetsPath',
+          message: 'Use window.assetsPath instead to avoid TDZ errors in bundled code.'
+        },
+        {
+          name: 'TemplateCustomizer',
+          message: 'Use window.TemplateCustomizer instead to avoid TDZ errors in bundled code.'
+        },
       ],
 
       // Warn about console.log (but don't error - useful for debugging)

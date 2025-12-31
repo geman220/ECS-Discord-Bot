@@ -67,8 +67,8 @@ export default defineConfig({
       },
     },
 
-    // Disable source maps in production to reduce memory usage during build
-    sourcemap: false,
+    // Enable source maps temporarily to debug TDZ error
+    sourcemap: true,
   },
 
   // Development server config

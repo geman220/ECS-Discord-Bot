@@ -44,8 +44,8 @@ if (document.getElementById('layout-menu')) {
       orientation: isHorizontalLayout ? 'horizontal' : 'vertical',
       closeChildren: isHorizontalLayout ? true : false,
       // ? This option only works with Horizontal menu
-      showDropdownOnHover: localStorage.getItem('templateCustomizer-' + templateName + '--ShowDropdownOnHover') // If value(showDropdownOnHover) is set in local storage
-        ? localStorage.getItem('templateCustomizer-' + templateName + '--ShowDropdownOnHover') === 'true' // Use the local storage value
+      showDropdownOnHover: localStorage.getItem('templateCustomizer-' + window.templateName + '--ShowDropdownOnHover') // If value(showDropdownOnHover) is set in local storage
+        ? localStorage.getItem('templateCustomizer-' + window.templateName + '--ShowDropdownOnHover') === 'true' // Use the local storage value
         : window.templateCustomizer !== undefined // If value is set in config.js
           ? window.templateCustomizer.settings.defaultShowDropdownOnHover // Use the config.js value
           : true // Use this if you are not using the config.js and want to set value directly from here
@@ -62,10 +62,10 @@ if (document.getElementById('layout-menu')) {
       event.preventDefault();
       window.Helpers.toggleCollapsed();
       // Enable menu state with local storage support if enableMenuLocalStorage = true from config.js
-      if (config.enableMenuLocalStorage && !window.Helpers.isSmallScreen()) {
+      if (window.config.enableMenuLocalStorage && !window.Helpers.isSmallScreen()) {
         try {
           localStorage.setItem(
-            'templateCustomizer-' + templateName + '--LayoutCollapsed',
+            'templateCustomizer-' + window.templateName + '--LayoutCollapsed',
             String(window.Helpers.isCollapsed())
           );
           // Update customizer checkbox state on click of menu toggler
@@ -113,7 +113,7 @@ if (document.getElementById('layout-menu')) {
     const switchImagesList = [].slice.call(document.querySelectorAll('[data-app-' + style + '-img]'));
     switchImagesList.map(function (imageEl) {
       const setImage = imageEl.getAttribute('data-app-' + style + '-img');
-      imageEl.src = assetsPath + 'img/' + setImage; // Using window.assetsPath to get the exact relative path
+      imageEl.src = window.assetsPath + 'img/' + setImage; // Using window.assetsPath to get the exact relative path
     });
   }
 
@@ -125,7 +125,7 @@ if (document.getElementById('layout-menu')) {
 
   // Get style from local storage or use 'system' as default
   let storedStyle =
-    localStorage.getItem('templateCustomizer-' + templateName + '--Style') || //if no template style then use Customizer style
+    localStorage.getItem('templateCustomizer-' + window.templateName + '--Style') || //if no template style then use Customizer style
     (window.templateCustomizer?.settings?.defaultStyle ?? 'light'); //!if there is no Customizer then use default style as light
 
   // Set style on click of style switcher item if template customizer is enabled
@@ -189,7 +189,7 @@ if (document.getElementById('layout-menu')) {
         debug: false,
         fallbackLng: 'en',
         backend: {
-          loadPath: assetsPath + 'json/locales/{{lng}}.json'
+          loadPath: window.assetsPath + 'json/locales/{{lng}}.json'
         },
         returnObjects: true
       })
@@ -231,10 +231,10 @@ if (document.getElementById('layout-menu')) {
     }
     function directionChange(textDirection) {
       if (textDirection === 'rtl') {
-        if (localStorage.getItem('templateCustomizer-' + templateName + '--Rtl') !== 'true')
+        if (localStorage.getItem('templateCustomizer-' + window.templateName + '--Rtl') !== 'true')
           window.templateCustomizer ? window.templateCustomizer.setRtl(true) : '';
       } else {
-        if (localStorage.getItem('templateCustomizer-' + templateName + '--Rtl') === 'true')
+        if (localStorage.getItem('templateCustomizer-' + window.templateName + '--Rtl') === 'true')
           window.templateCustomizer ? window.templateCustomizer.setRtl(false) : '';
       }
     }
@@ -386,7 +386,7 @@ if (document.getElementById('layout-menu')) {
   // If current layout is vertical and current window screen is > small
 
   // Auto update menu collapsed/expanded based on the themeConfig
-  if (typeof TemplateCustomizer !== 'undefined') {
+  if (typeof window.TemplateCustomizer !== 'undefined') {
     if (window.templateCustomizer.settings.defaultMenuCollapsed) {
       window.Helpers.setCollapsed(true, false);
     } else {
@@ -395,12 +395,12 @@ if (document.getElementById('layout-menu')) {
   }
 
   // Manage menu expanded/collapsed state with local storage support If enableMenuLocalStorage = true in config.js
-  if (typeof config !== 'undefined') {
-    if (config.enableMenuLocalStorage) {
+  if (typeof window.config !== 'undefined') {
+    if (window.config.enableMenuLocalStorage) {
       try {
-        if (localStorage.getItem('templateCustomizer-' + templateName + '--LayoutCollapsed') !== null)
+        if (localStorage.getItem('templateCustomizer-' + window.templateName + '--LayoutCollapsed') !== null)
           window.Helpers.setCollapsed(
-            localStorage.getItem('templateCustomizer-' + templateName + '--LayoutCollapsed') === 'true',
+            localStorage.getItem('templateCustomizer-' + window.templateName + '--LayoutCollapsed') === 'true',
             false
           );
       } catch (e) {}
@@ -491,7 +491,7 @@ if (typeof window.$ !== 'undefined') {
       }
       // Search API AJAX call
       var searchData = $.ajax({
-        url: assetsPath + 'json/' + searchJson, //? Use your own search api instead
+        url: window.assetsPath + 'json/' + searchJson, //? Use your own search api instead
         dataType: 'json',
         async: false
       }).responseJSON;
@@ -553,7 +553,7 @@ if (typeof window.$ !== 'undefined') {
                     '<a href="javascript:;">' +
                     '<div class="d-flex w-50">' +
                     '<img class="me-3" src="' +
-                    assetsPath +
+                    window.assetsPath +
                     src +
                     '" alt="' +
                     name +
@@ -593,7 +593,7 @@ if (typeof window.$ !== 'undefined') {
                     '<a href="app-user-view-account.html">' +
                     '<div class="d-flex align-items-center">' +
                     '<img class="rounded-circle me-3" src="' +
-                    assetsPath +
+                    window.assetsPath +
                     src +
                     '" alt="' +
                     name +
