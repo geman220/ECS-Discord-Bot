@@ -11,7 +11,7 @@
  * Change Per Page Action (triggered by change event)
  * Updates the number of items displayed per page
  */
-EventDelegation.register('change-per-page', function(element, e) {
+window.EventDelegation.register('change-per-page', function(element, e) {
     const perPage = element.value;
     const url = new URL(window.location);
     url.searchParams.set('per_page', perPage);
@@ -23,7 +23,7 @@ EventDelegation.register('change-per-page', function(element, e) {
  * Refresh All Discord Status Action
  * Refreshes Discord status for all players
  */
-EventDelegation.register('refresh-all-discord-status', function(element, e) {
+window.EventDelegation.register('refresh-all-discord-status', function(element, e) {
     e.preventDefault();
 
     const btn = element;
@@ -93,7 +93,7 @@ EventDelegation.register('refresh-all-discord-status', function(element, e) {
  * Refresh Unknown Discord Status Action
  * Checks Discord status for all players with unknown status
  */
-EventDelegation.register('refresh-unknown-discord-status', function(element, e) {
+window.EventDelegation.register('refresh-unknown-discord-status', function(element, e) {
     e.preventDefault();
 
     const btn = element;
@@ -163,7 +163,7 @@ EventDelegation.register('refresh-unknown-discord-status', function(element, e) 
  * Refresh Player Status Action
  * Refreshes Discord status for individual player
  */
-EventDelegation.register('refresh-player-status', function(element, e) {
+window.EventDelegation.register('refresh-player-status', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -228,7 +228,7 @@ EventDelegation.register('refresh-player-status', function(element, e) {
  * Send Discord DM Action
  * Opens modal to send Discord direct message
  */
-EventDelegation.register('send-discord-dm', function(element, e) {
+window.EventDelegation.register('send-discord-dm', function(element, e) {
     e.preventDefault();
 
     const discordId = element.dataset.discordId;
@@ -274,7 +274,7 @@ See you there!
  * Submit Discord DM Action
  * Sends the Discord direct message
  */
-EventDelegation.register('submit-discord-dm', function(element, e) {
+window.EventDelegation.register('submit-discord-dm', function(element, e) {
     e.preventDefault();
 
     const discordId = document.getElementById('dmDiscordId')?.value;

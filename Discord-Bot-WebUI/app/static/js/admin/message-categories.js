@@ -147,8 +147,8 @@
     // ========================================================================
     // Handlers registered when IIFE executes, ensuring EventDelegation is available
 
-    EventDelegation.register('edit-category', handleEditCategory, { preventDefault: true });
-    EventDelegation.register('delete-category', handleDeleteCategory, { preventDefault: true });
+    window.EventDelegation.register('edit-category', handleEditCategory, { preventDefault: true });
+    window.EventDelegation.register('delete-category', handleDeleteCategory, { preventDefault: true });
 
     // ========================================================================
     // DOM READY

@@ -165,70 +165,70 @@
     // ========================================================================
 
     // Report Generation Actions
-    EventDelegation.register('generate-match-report', function(element, e) {
+    window.EventDelegation.register('generate-match-report', function(element, e) {
         const matchId = element.dataset.matchId;
         generateMatchReport(matchId);
     }, { preventDefault: true });
 
-    EventDelegation.register('generate-league-report', function(element, e) {
+    window.EventDelegation.register('generate-league-report', function(element, e) {
         generateLeagueReport();
     }, { preventDefault: true });
 
-    EventDelegation.register('generate-team-report', function(element, e) {
+    window.EventDelegation.register('generate-team-report', function(element, e) {
         const teamId = element.dataset.teamId;
         generateTeamReport(teamId);
     }, { preventDefault: true });
 
-    EventDelegation.register('generate-custom-report', function(element, e) {
+    window.EventDelegation.register('generate-custom-report', function(element, e) {
         generateCustomReport();
     }, { preventDefault: true });
 
     // Quick View Actions
-    EventDelegation.register('view-recent-matches', function(element, e) {
+    window.EventDelegation.register('view-recent-matches', function(element, e) {
         viewRecentMatches();
     }, { preventDefault: true });
 
-    EventDelegation.register('view-upcoming-matches', function(element, e) {
+    window.EventDelegation.register('view-upcoming-matches', function(element, e) {
         viewUpcomingMatches();
     }, { preventDefault: true });
 
-    EventDelegation.register('view-top-scorers', function(element, e) {
+    window.EventDelegation.register('view-top-scorers', function(element, e) {
         viewTopScorers();
     }, { preventDefault: true });
 
-    EventDelegation.register('view-league-standings', function(element, e) {
+    window.EventDelegation.register('view-league-standings', function(element, e) {
         viewLeagueStandings();
     }, { preventDefault: true });
 
     // Export Actions
-    EventDelegation.register('export-pdf', function(element, e) {
+    window.EventDelegation.register('export-pdf', function(element, e) {
         exportPDF();
     }, { preventDefault: true });
 
-    EventDelegation.register('export-excel', function(element, e) {
+    window.EventDelegation.register('export-excel', function(element, e) {
         exportExcel();
     }, { preventDefault: true });
 
-    EventDelegation.register('export-csv', function(element, e) {
+    window.EventDelegation.register('export-csv', function(element, e) {
         exportCSV();
     }, { preventDefault: true });
 
-    EventDelegation.register('schedule-report', function(element, e) {
+    window.EventDelegation.register('schedule-report', function(element, e) {
         scheduleReport();
     }, { preventDefault: true });
 
     // Individual Report View Actions
-    EventDelegation.register('view-match-report', function(element, e) {
+    window.EventDelegation.register('view-match-report', function(element, e) {
         const matchId = element.dataset.matchId;
         viewMatchReport(matchId);
     }, { preventDefault: true });
 
-    EventDelegation.register('view-team-report', function(element, e) {
+    window.EventDelegation.register('view-team-report', function(element, e) {
         const teamId = element.dataset.teamId;
         viewTeamReport(teamId);
     }, { preventDefault: true });
 
-    EventDelegation.register('view-all-matches', function(element, e) {
+    window.EventDelegation.register('view-all-matches', function(element, e) {
         viewAllMatches();
     }, { preventDefault: true });
 

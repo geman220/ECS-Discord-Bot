@@ -400,11 +400,13 @@ window.SimpleThemeSwitcher = SimpleThemeSwitcher;
 // ============================================================================
 // EVENT DELEGATION - Registered at module scope
 // ============================================================================
-// Handlers registered when module loads, ensuring EventDelegation is available.
+// MUST use window.EventDelegation to avoid TDZ errors in bundled code.
+// In Vite/Rollup bundles, bare `EventDelegation` reference can throw ReferenceError
+// if the variable is hoisted but not yet initialized (Temporal Dead Zone).
 // Handlers delegate to window.themeSwitcher which is set on DOMContentLoaded.
 
 // Handle settings page theme buttons (data-action="set-theme")
-EventDelegation.register('set-theme', (element, e) => {
+window.EventDelegation.register('set-theme', (element, e) => {
   if (!window.themeSwitcher) return;
 
   const theme = element.getAttribute('data-theme');
@@ -423,7 +425,7 @@ EventDelegation.register('set-theme', (element, e) => {
 }, { preventDefault: true });
 
 // Handle navbar dropdown theme options (data-action="select-theme")
-EventDelegation.register('select-theme', (element, e) => {
+window.EventDelegation.register('select-theme', (element, e) => {
   if (!window.themeSwitcher) return;
 
   const theme = element.getAttribute('data-theme');

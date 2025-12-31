@@ -73,7 +73,8 @@
   window.clearCacheAndRedirect = clearCacheAndRedirect;
 
   // Register EventDelegation handler if available
-  if (typeof EventDelegation !== 'undefined' && EventDelegation.register) {
-    EventDelegation.register('clear-cache', clearCacheAndRedirect, { preventDefault: true });
+  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
+  if (typeof window.EventDelegation !== 'undefined' && window.EventDelegation.register) {
+    window.EventDelegation.register('clear-cache', clearCacheAndRedirect, { preventDefault: true });
   }
 })();

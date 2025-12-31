@@ -292,10 +292,10 @@
   // ============================================================================
   // EVENT DELEGATION - Registered at module scope
   // ============================================================================
-  // Handlers registered when IIFE executes, ensuring EventDelegation is available
+  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
 
-  EventDelegation.register('toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
-  EventDelegation.register('clear-cache', handleClearCache, { preventDefault: true });
+  window.EventDelegation.register('toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
+  window.EventDelegation.register('clear-cache', handleClearCache, { preventDefault: true });
 
   // Register with InitSystem (primary)
   if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {

@@ -599,14 +599,15 @@
   // ========================================================================
   // EVENT DELEGATION REGISTRATIONS
   // ========================================================================
+  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
 
-  if (typeof EventDelegation !== 'undefined') {
-    EventDelegation.register('close-quick-draft-panel', function(element) {
+  if (typeof window.EventDelegation !== 'undefined') {
+    window.EventDelegation.register('close-quick-draft-panel', function(element) {
       const panel = element.closest('.mobile-quick-draft-panel');
       if (panel) panel.remove();
     }, { preventDefault: true });
 
-    EventDelegation.register('quick-draft', function(element) {
+    window.EventDelegation.register('quick-draft', function(element) {
       const playerId = element.dataset.playerId;
       const team = element.dataset.team || 'default';
       if (playerId && window.MobileDraft) {
@@ -614,7 +615,7 @@
       }
     }, { preventDefault: true });
 
-    EventDelegation.register('show-team-selector', function(element) {
+    window.EventDelegation.register('show-team-selector', function(element) {
       const playerId = element.dataset.playerId;
       if (playerId && window.MobileDraft) {
         MobileDraft.showTeamSelector(playerId);

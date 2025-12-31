@@ -438,8 +438,10 @@ window.safeShowModal = function(modalId) {
 // Wrapped to handle both bundled (Vite) and individual script loading.
 
 function registerModalManagerEventHandlers() {
-    // Safety check - EventDelegation must exist
-    if (typeof EventDelegation === 'undefined' || typeof EventDelegation.register !== 'function') {
+    // Safety check - MUST use window.EventDelegation to avoid TDZ errors in bundled code
+    // In Vite/Rollup bundles, bare `EventDelegation` reference can throw ReferenceError
+    // if the variable is hoisted but not yet initialized (Temporal Dead Zone)
+    if (typeof window.EventDelegation === 'undefined' || typeof window.EventDelegation.register !== 'function') {
         console.warn('[ModalManager] EventDelegation not available, handlers not registered');
         return;
     }
@@ -451,7 +453,7 @@ function registerModalManagerEventHandlers() {
     window._modalManagerHandlersRegistered = true;
 
     // Show modal
-    EventDelegation.register('show-modal', (element, e) => {
+    window.EventDelegation.register('show-modal', (element, e) => {
         const modalId = element.dataset.modalId;
         if (modalId) {
             const options = ModalManager.parseOptionsFromElement(element);
@@ -462,7 +464,7 @@ function registerModalManagerEventHandlers() {
     }, { preventDefault: true });
 
     // Hide modal
-    EventDelegation.register('hide-modal', (element, e) => {
+    window.EventDelegation.register('hide-modal', (element, e) => {
         const modalId = element.dataset.modalId;
         if (modalId) {
             ModalManager.hide(modalId);
@@ -476,7 +478,7 @@ function registerModalManagerEventHandlers() {
     }, { preventDefault: true });
 
     // Close modal (alias for hide) - handles all modal types
-    EventDelegation.register('close-modal', (element, e) => {
+    window.EventDelegation.register('close-modal', (element, e) => {
         const modalId = element.dataset.modalId;
         if (modalId) {
             ModalManager.hide(modalId);
@@ -490,7 +492,7 @@ function registerModalManagerEventHandlers() {
     }, { preventDefault: true });
 
     // Toggle modal
-    EventDelegation.register('toggle-modal', (element, e) => {
+    window.EventDelegation.register('toggle-modal', (element, e) => {
         const modalId = element.dataset.modalId;
         if (modalId) {
             ModalManager.toggle(modalId);
@@ -503,7 +505,8 @@ function registerModalManagerEventHandlers() {
 }
 
 // Try to register immediately (works in Vite bundle)
-if (typeof EventDelegation !== 'undefined') {
+// MUST use window.EventDelegation to avoid TDZ errors
+if (typeof window.EventDelegation !== 'undefined') {
     registerModalManagerEventHandlers();
 } else {
     // Fallback: Wait for DOMContentLoaded (for individual script loading)

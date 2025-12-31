@@ -12,7 +12,7 @@
  * User clicks "Create Profile" button on intro screen
  * Advances carousel to first step and sets form action
  */
-EventDelegation.register('onboarding-create-profile', function(element, e) {
+window.EventDelegation.register('onboarding-create-profile', function(element, e) {
     e.preventDefault();
 
     const formActionInput = document.getElementById('form_action');
@@ -32,7 +32,7 @@ EventDelegation.register('onboarding-create-profile', function(element, e) {
  * User clicks "Skip for now" button on intro screen
  * Submits form with skip_profile action
  */
-EventDelegation.register('onboarding-skip-profile', function(element, e) {
+window.EventDelegation.register('onboarding-skip-profile', function(element, e) {
     e.preventDefault();
 
     const formActionInput = document.getElementById('form_action');
@@ -48,7 +48,7 @@ EventDelegation.register('onboarding-skip-profile', function(element, e) {
  * Handles "Next" button clicks (validation + navigation) and "Save and Finish" on final step
  * Validates current step before advancing, or submits form on final step
  */
-EventDelegation.register('onboarding-next', function(element, e) {
+window.EventDelegation.register('onboarding-next', function(element, e) {
     e.preventDefault();
     e.stopPropagation();
 
@@ -145,7 +145,7 @@ EventDelegation.register('onboarding-next', function(element, e) {
  * Previous Button Action
  * Navigates to previous step in onboarding carousel
  */
-EventDelegation.register('onboarding-previous', function(element, e) {
+window.EventDelegation.register('onboarding-previous', function(element, e) {
     e.preventDefault();
 
     const carouselElement = document.getElementById('modalCarouselControls');
@@ -160,7 +160,7 @@ EventDelegation.register('onboarding-previous', function(element, e) {
  * Shows/hides SMS opt-in section with animation when checkbox changes
  * Triggered by data-on-change attribute on SMS toggle checkbox
  */
-EventDelegation.register('onboarding-toggle-sms', function(element, e) {
+window.EventDelegation.register('onboarding-toggle-sms', function(element, e) {
     // Element is the checkbox that was changed
     if (window.OnboardingWizard && typeof window.OnboardingWizard.handleSmsToggle === 'function') {
         window.OnboardingWizard.handleSmsToggle(element);

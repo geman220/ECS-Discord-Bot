@@ -924,9 +924,10 @@ window.switchTeamView = switchTeamView;
 // ============================================================================
 // EVENT DELEGATION REGISTRATIONS
 // ============================================================================
+// MUST use window.EventDelegation to avoid TDZ errors in bundled code
 
-if (typeof EventDelegation !== 'undefined') {
-    EventDelegation.register('remove-player-from-pitch', function(element) {
+if (typeof window.EventDelegation !== 'undefined') {
+    window.EventDelegation.register('remove-player-from-pitch', function(element) {
         const playerId = parseInt(element.dataset.playerId, 10);
         const position = element.dataset.position;
         const teamId = parseInt(element.dataset.teamId, 10);

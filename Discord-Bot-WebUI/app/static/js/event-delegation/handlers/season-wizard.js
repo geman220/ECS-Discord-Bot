@@ -11,7 +11,7 @@
  * Start Season Wizard Action
  * Opens the season builder wizard modal
  */
-EventDelegation.register('start-season-wizard', function(element, e) {
+window.EventDelegation.register('start-season-wizard', function(element, e) {
     e.preventDefault();
 
     if (typeof startSeasonWizard === 'function') {
@@ -25,7 +25,7 @@ EventDelegation.register('start-season-wizard', function(element, e) {
  * Show Existing Seasons Action
  * Displays the list of existing seasons
  */
-EventDelegation.register('show-existing-seasons', function(element, e) {
+window.EventDelegation.register('show-existing-seasons', function(element, e) {
     e.preventDefault();
 
     if (typeof showExistingSeasons === 'function') {
@@ -39,7 +39,7 @@ EventDelegation.register('show-existing-seasons', function(element, e) {
  * Show Main View Action
  * Returns to main season builder view
  */
-EventDelegation.register('show-main-view', function(element, e) {
+window.EventDelegation.register('show-main-view', function(element, e) {
     e.preventDefault();
 
     if (typeof showMainView === 'function') {
@@ -53,7 +53,7 @@ EventDelegation.register('show-main-view', function(element, e) {
  * Next Step Action (Wizard Navigation)
  * Advances to the next step in the wizard
  */
-EventDelegation.register('next-step', function(element, e) {
+window.EventDelegation.register('next-step', function(element, e) {
     e.preventDefault();
 
     if (typeof nextStep === 'function') {
@@ -67,7 +67,7 @@ EventDelegation.register('next-step', function(element, e) {
  * Previous Step Action (Wizard Navigation)
  * Goes back to the previous step in the wizard
  */
-EventDelegation.register('previous-step', function(element, e) {
+window.EventDelegation.register('previous-step', function(element, e) {
     e.preventDefault();
 
     if (typeof previousStep === 'function') {
@@ -81,7 +81,7 @@ EventDelegation.register('previous-step', function(element, e) {
  * Create Season Action
  * Submits the wizard and creates the season
  */
-EventDelegation.register('create-season', function(element, e) {
+window.EventDelegation.register('create-season', function(element, e) {
     e.preventDefault();
 
     if (typeof createSeason === 'function') {
@@ -95,7 +95,7 @@ EventDelegation.register('create-season', function(element, e) {
  * Update Season Structure Action
  * Updates season breakdown based on total weeks selection
  */
-EventDelegation.register('update-season-structure', function(element, e) {
+window.EventDelegation.register('update-season-structure', function(element, e) {
     if (typeof updateSeasonStructure === 'function') {
         updateSeasonStructure();
     } else {
@@ -107,7 +107,7 @@ EventDelegation.register('update-season-structure', function(element, e) {
  * Apply Wizard Template Action
  * Applies a configuration template (standard, classic-practice, custom)
  */
-EventDelegation.register('apply-wizard-template', function(element, e) {
+window.EventDelegation.register('apply-wizard-template', function(element, e) {
     e.preventDefault();
 
     const templateType = element.dataset.templateType;
@@ -128,7 +128,7 @@ EventDelegation.register('apply-wizard-template', function(element, e) {
  * Add Wizard Field Action
  * Adds a new field configuration row in the wizard
  */
-EventDelegation.register('add-wizard-field', function(element, e) {
+window.EventDelegation.register('add-wizard-field', function(element, e) {
     e.preventDefault();
 
     if (typeof addWizardField === 'function') {
@@ -142,7 +142,7 @@ EventDelegation.register('add-wizard-field', function(element, e) {
  * Remove Wizard Field Action
  * Removes a field configuration row from the wizard
  */
-EventDelegation.register('remove-wizard-field', function(element, e) {
+window.EventDelegation.register('remove-wizard-field', function(element, e) {
     e.preventDefault();
 
     if (typeof removeWizardField === 'function') {
@@ -156,7 +156,7 @@ EventDelegation.register('remove-wizard-field', function(element, e) {
  * Set Active Season Action
  * Sets a season as the current active season
  */
-EventDelegation.register('set-active-season', function(element, e) {
+window.EventDelegation.register('set-active-season', function(element, e) {
     e.preventDefault();
 
     const seasonId = element.dataset.seasonId;
@@ -178,7 +178,7 @@ EventDelegation.register('set-active-season', function(element, e) {
  * Confirm Delete Season Action
  * Shows confirmation dialog before deleting a season
  */
-EventDelegation.register('confirm-delete-season', function(element, e) {
+window.EventDelegation.register('confirm-delete-season', function(element, e) {
     e.preventDefault();
 
     const seasonId = element.dataset.seasonId;
@@ -200,7 +200,7 @@ EventDelegation.register('confirm-delete-season', function(element, e) {
  * Recreate Discord Resources Action
  * Recreates Discord channels and roles for a season
  */
-EventDelegation.register('recreate-discord-resources', function(element, e) {
+window.EventDelegation.register('recreate-discord-resources', function(element, e) {
     e.preventDefault();
 
     const seasonId = element.dataset.seasonId;
@@ -222,7 +222,7 @@ EventDelegation.register('recreate-discord-resources', function(element, e) {
  * Toggle Settings Action (Schedule Preview)
  * Toggles visibility of schedule settings panel
  */
-EventDelegation.register('toggle-settings', function(element, e) {
+window.EventDelegation.register('toggle-settings', function(element, e) {
     e.preventDefault();
 
     if (typeof toggleScheduleSettings === 'function') {
@@ -236,7 +236,7 @@ EventDelegation.register('toggle-settings', function(element, e) {
  * Delete Schedule Action (Schedule Preview)
  * Deletes the generated schedule
  */
-EventDelegation.register('delete-schedule', function(element, e) {
+window.EventDelegation.register('delete-schedule', function(element, e) {
     e.preventDefault();
 
     if (typeof deleteSchedule === 'function') {
@@ -250,7 +250,7 @@ EventDelegation.register('delete-schedule', function(element, e) {
  * Commit Schedule Action (Schedule Preview)
  * Commits the schedule and creates matches
  */
-EventDelegation.register('commit-schedule', function(element, e) {
+window.EventDelegation.register('commit-schedule', function(element, e) {
     e.preventDefault();
 
     if (typeof commitSchedule === 'function') {
@@ -264,7 +264,7 @@ EventDelegation.register('commit-schedule', function(element, e) {
  * Select for Swap Action (Schedule Preview)
  * Selects a match for team swapping
  */
-EventDelegation.register('select-for-swap', function(element, e) {
+window.EventDelegation.register('select-for-swap', function(element, e) {
     e.preventDefault();
 
     const matchId = parseInt(element.dataset.matchId);
@@ -286,7 +286,7 @@ EventDelegation.register('select-for-swap', function(element, e) {
  * Execute Swap Action (Schedule Preview)
  * Executes the team swap
  */
-EventDelegation.register('execute-swap', function(element, e) {
+window.EventDelegation.register('execute-swap', function(element, e) {
     e.preventDefault();
 
     if (typeof executeSwap === 'function') {
@@ -300,7 +300,7 @@ EventDelegation.register('execute-swap', function(element, e) {
  * Remove from Swap Action (Schedule Preview)
  * Removes a match from swap selection
  */
-EventDelegation.register('remove-from-swap', function(element, e) {
+window.EventDelegation.register('remove-from-swap', function(element, e) {
     e.preventDefault();
 
     const swapIndex = parseInt(element.dataset.swapIndex);
@@ -321,7 +321,7 @@ EventDelegation.register('remove-from-swap', function(element, e) {
  * Remove Field Action (Config Page)
  * Removes a field from the configuration
  */
-EventDelegation.register('remove-field', function(element, e) {
+window.EventDelegation.register('remove-field', function(element, e) {
     e.preventDefault();
 
     if (typeof removeField === 'function') {
@@ -335,7 +335,7 @@ EventDelegation.register('remove-field', function(element, e) {
  * Add Config Field Action (Config Page)
  * Adds a new field to the configuration
  */
-EventDelegation.register('add-config-field', function(element, e) {
+window.EventDelegation.register('add-config-field', function(element, e) {
     e.preventDefault();
 
     if (typeof addField === 'function') {
@@ -349,7 +349,7 @@ EventDelegation.register('add-config-field', function(element, e) {
  * Apply Template Action (Config Page)
  * Applies a configuration template
  */
-EventDelegation.register('apply-template', function(element, e) {
+window.EventDelegation.register('apply-template', function(element, e) {
     e.preventDefault();
 
     const template = element.dataset.template;
@@ -370,7 +370,7 @@ EventDelegation.register('apply-template', function(element, e) {
  * Add Week Config Action (Config Page)
  * Adds a new week configuration
  */
-EventDelegation.register('add-week-config', function(element, e) {
+window.EventDelegation.register('add-week-config', function(element, e) {
     e.preventDefault();
 
     if (typeof addWeekConfig === 'function') {
@@ -384,7 +384,7 @@ EventDelegation.register('add-week-config', function(element, e) {
  * Generate Default Weeks Action (Config Page)
  * Auto-generates default week configuration
  */
-EventDelegation.register('generate-default-weeks', function(element, e) {
+window.EventDelegation.register('generate-default-weeks', function(element, e) {
     e.preventDefault();
 
     if (typeof generateDefaultWeeks === 'function') {
@@ -398,7 +398,7 @@ EventDelegation.register('generate-default-weeks', function(element, e) {
  * Clear Weeks Action (Config Page)
  * Clears all week configurations
  */
-EventDelegation.register('clear-weeks', function(element, e) {
+window.EventDelegation.register('clear-weeks', function(element, e) {
     e.preventDefault();
 
     if (typeof clearWeeks === 'function') {
@@ -412,7 +412,7 @@ EventDelegation.register('clear-weeks', function(element, e) {
  * Update Week Card Action (Config Page)
  * Updates week type when dropdown changes
  */
-EventDelegation.register('update-week-card', function(element, e) {
+window.EventDelegation.register('update-week-card', function(element, e) {
     if (typeof updateWeekCard === 'function') {
         updateWeekCard(element);
     } else {
@@ -424,7 +424,7 @@ EventDelegation.register('update-week-card', function(element, e) {
  * Remove Week Card Action (Config Page)
  * Removes a week configuration
  */
-EventDelegation.register('remove-week-card', function(element, e) {
+window.EventDelegation.register('remove-week-card', function(element, e) {
     e.preventDefault();
 
     if (typeof removeWeekCard === 'function') {
@@ -438,7 +438,7 @@ EventDelegation.register('remove-week-card', function(element, e) {
  * Close Toast Action
  * Closes/removes a toast notification
  */
-EventDelegation.register('close-toast', function(element, e) {
+window.EventDelegation.register('close-toast', function(element, e) {
     e.preventDefault();
 
     // Remove the toast (parent element)

@@ -11,7 +11,7 @@
  * Toggle Opponent Source (Library vs Custom)
  * Shows/hides the appropriate input based on selection
  */
-EventDelegation.register('toggle-opponent-source', function(element, e) {
+window.EventDelegation.register('toggle-opponent-source', function(element, e) {
     const source = element.value || element.dataset.source;
     const librarySelect = document.getElementById('librarySelect');
     const customInput = document.getElementById('customInput');
@@ -35,7 +35,7 @@ EventDelegation.register('toggle-opponent-source', function(element, e) {
  * Delete ECS FC Match
  * Confirms and deletes a match
  */
-EventDelegation.register('delete-ecs-fc-match', function(element, e) {
+window.EventDelegation.register('delete-ecs-fc-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -87,7 +87,7 @@ EventDelegation.register('delete-ecs-fc-match', function(element, e) {
  * Deactivate Opponent
  * Soft-deletes an opponent from the library
  */
-EventDelegation.register('deactivate-opponent', function(element, e) {
+window.EventDelegation.register('deactivate-opponent', function(element, e) {
     e.preventDefault();
 
     const opponentId = element.dataset.opponentId;
@@ -143,7 +143,7 @@ EventDelegation.register('deactivate-opponent', function(element, e) {
  * Add Quick Opponent
  * Opens modal to quickly add new opponent from match form
  */
-EventDelegation.register('add-quick-opponent', function(element, e) {
+window.EventDelegation.register('add-quick-opponent', function(element, e) {
     e.preventDefault();
 
     const modal = document.getElementById('addOpponentModal');
@@ -157,7 +157,7 @@ EventDelegation.register('add-quick-opponent', function(element, e) {
  * Preview CSV Import
  * Parses and displays CSV content for review
  */
-EventDelegation.register('preview-csv-import', function(element, e) {
+window.EventDelegation.register('preview-csv-import', function(element, e) {
     e.preventDefault();
 
     const fileInput = document.getElementById('csv_file');
@@ -222,7 +222,7 @@ EventDelegation.register('preview-csv-import', function(element, e) {
  * Filter ECS FC Matches by Team
  * Handles team filter dropdown changes
  */
-EventDelegation.register('filter-ecs-fc-team', function(element, e) {
+window.EventDelegation.register('filter-ecs-fc-team', function(element, e) {
     const teamId = element.value;
     const url = new URL(window.location.href);
 
@@ -239,7 +239,7 @@ EventDelegation.register('filter-ecs-fc-team', function(element, e) {
  * Toggle Match Status Filter
  * Shows/hides past or upcoming matches
  */
-EventDelegation.register('toggle-ecs-fc-status', function(element, e) {
+window.EventDelegation.register('toggle-ecs-fc-status', function(element, e) {
     const status = element.value || element.dataset.status;
     const url = new URL(window.location.href);
 
@@ -259,7 +259,7 @@ EventDelegation.register('toggle-ecs-fc-status', function(element, e) {
 /**
  * Edit Sub Preferences
  */
-EventDelegation.register('edit-sub-preferences', function(element, e) {
+window.EventDelegation.register('edit-sub-preferences', function(element, e) {
     e.preventDefault();
     const entryId = element.dataset.entryId;
     if (typeof window.editSubPreferences === 'function') {
@@ -270,7 +270,7 @@ EventDelegation.register('edit-sub-preferences', function(element, e) {
 /**
  * Remove From Pool
  */
-EventDelegation.register('remove-from-pool', function(element, e) {
+window.EventDelegation.register('remove-from-pool', function(element, e) {
     e.preventDefault();
     const entryId = element.dataset.entryId;
     if (typeof window.removeFromPool === 'function') {

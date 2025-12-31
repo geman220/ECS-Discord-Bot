@@ -369,9 +369,10 @@
     // ============================================================================
     // EVENT DELEGATION - Registered at module scope
     // ============================================================================
+    // MUST use window.EventDelegation to avoid TDZ errors in bundled code.
     // Mobile menu handlers - work directly with DOM classes
 
-    EventDelegation.register('toggle-mobile-menu', function(element, e) {
+    window.EventDelegation.register('toggle-mobile-menu', function(element, e) {
         e.preventDefault();
         if (document.documentElement.classList.contains('layout-menu-expanded')) {
             document.documentElement.classList.remove('layout-menu-expanded');
@@ -382,7 +383,7 @@
         }
     }, { preventDefault: true });
 
-    EventDelegation.register('close-mobile-menu', function(element, e) {
+    window.EventDelegation.register('close-mobile-menu', function(element, e) {
         e.preventDefault();
         document.documentElement.classList.remove('layout-menu-expanded');
         document.body.classList.remove('sidebar-open');

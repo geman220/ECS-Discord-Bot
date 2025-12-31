@@ -1487,8 +1487,8 @@
   // ============================================================================
   // EVENT DELEGATION - Registered at module scope
   // ============================================================================
-  // Handler registered when IIFE executes
+  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
 
-  EventDelegation.register('delete-menu', handleDeleteMenuClick, { preventDefault: true });
+  window.EventDelegation.register('delete-menu', handleDeleteMenuClick, { preventDefault: true });
 
 })();

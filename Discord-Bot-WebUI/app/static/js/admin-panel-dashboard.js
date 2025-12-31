@@ -575,15 +575,15 @@
   // ============================================================================
   // EVENT DELEGATION - Registered at module scope
   // ============================================================================
-  // Handlers registered when IIFE executes, ensuring EventDelegation is available
+  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
 
-  EventDelegation.register('navigate', handleNavigate);
-  EventDelegation.register('open-navigation-settings', openNavigationSettings, { preventDefault: true });
-  EventDelegation.register('open-registration-settings', openRegistrationSettings, { preventDefault: true });
-  EventDelegation.register('open-task-monitor', openTaskMonitor, { preventDefault: true });
-  EventDelegation.register('open-database-monitor', openDatabaseMonitor, { preventDefault: true });
-  EventDelegation.register('open-match-reports', openMatchReports, { preventDefault: true });
-  EventDelegation.register('generate-report', generateReport, { preventDefault: true });
+  window.EventDelegation.register('navigate', handleNavigate);
+  window.EventDelegation.register('open-navigation-settings', openNavigationSettings, { preventDefault: true });
+  window.EventDelegation.register('open-registration-settings', openRegistrationSettings, { preventDefault: true });
+  window.EventDelegation.register('open-task-monitor', openTaskMonitor, { preventDefault: true });
+  window.EventDelegation.register('open-database-monitor', openDatabaseMonitor, { preventDefault: true });
+  window.EventDelegation.register('open-match-reports', openMatchReports, { preventDefault: true });
+  window.EventDelegation.register('generate-report', generateReport, { preventDefault: true });
 
   // ============================================================================
   // AUTO-INITIALIZE

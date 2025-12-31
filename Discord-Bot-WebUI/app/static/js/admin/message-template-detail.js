@@ -336,11 +336,11 @@
     // ========================================================================
     // Handlers registered when IIFE executes, ensuring EventDelegation is available
 
-    EventDelegation.register('go-back-templates', handleGoBack, { preventDefault: true });
-    EventDelegation.register('view-template', handleViewTemplate, { preventDefault: true });
-    EventDelegation.register('edit-template', handleEditTemplate, { preventDefault: true });
-    EventDelegation.register('toggle-template', handleToggleTemplate, { preventDefault: true });
-    EventDelegation.register('delete-template', handleDeleteTemplate, { preventDefault: true });
+    window.EventDelegation.register('go-back-templates', handleGoBack, { preventDefault: true });
+    window.EventDelegation.register('view-template', handleViewTemplate, { preventDefault: true });
+    window.EventDelegation.register('edit-template', handleEditTemplate, { preventDefault: true });
+    window.EventDelegation.register('toggle-template', handleToggleTemplate, { preventDefault: true });
+    window.EventDelegation.register('delete-template', handleDeleteTemplate, { preventDefault: true });
 
     // ========================================================================
     // DOM READY

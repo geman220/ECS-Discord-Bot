@@ -11,7 +11,7 @@
  * Assign Referee Action
  * Assigns a referee to a match via form submission
  */
-EventDelegation.register('assign-referee', function(element, e) {
+window.EventDelegation.register('assign-referee', function(element, e) {
     e.preventDefault();
 
     const matchId = document.getElementById('matchId')?.value;
@@ -34,7 +34,7 @@ EventDelegation.register('assign-referee', function(element, e) {
  * Remove Referee Action
  * Removes a referee from a match
  */
-EventDelegation.register('remove-referee', function(element, e) {
+window.EventDelegation.register('remove-referee', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId || document.getElementById('matchId')?.value;
@@ -56,7 +56,7 @@ EventDelegation.register('remove-referee', function(element, e) {
  * Refresh Calendar Action
  * Reloads calendar events and available referees list
  */
-EventDelegation.register('refresh-calendar', function(element, e) {
+window.EventDelegation.register('refresh-calendar', function(element, e) {
     e.preventDefault();
 
     // Check for calendar-specific refresh function
@@ -79,7 +79,7 @@ EventDelegation.register('refresh-calendar', function(element, e) {
  * View Referee Profile Action
  * Opens modal or page with referee details
  */
-EventDelegation.register('view-referee-profile', function(element, e) {
+window.EventDelegation.register('view-referee-profile', function(element, e) {
     e.preventDefault();
 
     const refereeId = element.dataset.refereeId;
@@ -102,7 +102,7 @@ EventDelegation.register('view-referee-profile', function(element, e) {
  * Update Referee Status Action
  * Updates referee availability status
  */
-EventDelegation.register('update-referee-status', function(element, e) {
+window.EventDelegation.register('update-referee-status', function(element, e) {
     e.preventDefault();
 
     const refereeId = element.dataset.refereeId;

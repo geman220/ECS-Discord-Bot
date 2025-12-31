@@ -639,10 +639,11 @@
   // ============================================================================
   // EVENT DELEGATION - Registered at module scope
   // ============================================================================
+  // MUST use window.EventDelegation to avoid TDZ errors in bundled code.
   // Handlers registered when IIFE executes, delegating to controller instances
 
   // Toast dismiss action
-  EventDelegation.register('dismiss-toast', (element, e) => {
+  window.EventDelegation.register('dismiss-toast', (element, e) => {
     const toastId = element.dataset.toastId;
     if (toastId && window.ModernComponents?.Toast) {
       window.ModernComponents.Toast.dismiss(toastId);
@@ -650,7 +651,7 @@
   }, { preventDefault: true });
 
   // Dropdown trigger action
-  EventDelegation.register('dropdown-trigger', (element, e) => {
+  window.EventDelegation.register('dropdown-trigger', (element, e) => {
     const dropdownId = element.dataset.dropdownTrigger;
     if (dropdownId && window.ModernComponents?.Dropdown) {
       window.ModernComponents.Dropdown.toggle(dropdownId);

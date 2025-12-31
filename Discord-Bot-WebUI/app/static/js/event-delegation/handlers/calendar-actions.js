@@ -11,7 +11,7 @@
  * Copy Subscription URL Action
  * Copies the calendar subscription URL to clipboard
  */
-EventDelegation.register('copy-subscription-url', async function(element, e) {
+window.EventDelegation.register('copy-subscription-url', async function(element, e) {
     e.preventDefault();
 
     const urlInput = document.getElementById('subscriptionUrl');
@@ -42,7 +42,7 @@ EventDelegation.register('copy-subscription-url', async function(element, e) {
  * Regenerate Subscription Token Action
  * Regenerates the calendar subscription URL/token
  */
-EventDelegation.register('regenerate-subscription-token', async function(element, e) {
+window.EventDelegation.register('regenerate-subscription-token', async function(element, e) {
     e.preventDefault();
 
     if (!confirm('Are you sure you want to regenerate your subscription URL?\n\nYour existing calendar subscriptions will stop working and you will need to re-subscribe with the new URL.')) {
@@ -85,7 +85,7 @@ EventDelegation.register('regenerate-subscription-token', async function(element
  * Subscribe via Webcal Action
  * Opens subscription in iOS/macOS Calendar app via webcal:// protocol
  */
-EventDelegation.register('subscribe-webcal', function(element, e) {
+window.EventDelegation.register('subscribe-webcal', function(element, e) {
     e.preventDefault();
 
     const webcalUrl = element.dataset.webcalUrl;
@@ -101,7 +101,7 @@ EventDelegation.register('subscribe-webcal', function(element, e) {
  * Subscribe via Google Calendar Action
  * Opens Google Calendar subscription page in new tab
  */
-EventDelegation.register('subscribe-google', function(element, e) {
+window.EventDelegation.register('subscribe-google', function(element, e) {
     e.preventDefault();
 
     const feedUrl = element.dataset.feedUrl;
@@ -121,7 +121,7 @@ EventDelegation.register('subscribe-google', function(element, e) {
  * Updates subscription preferences (which events to include)
  * Triggered by change events on preference checkboxes
  */
-EventDelegation.register('update-calendar-preferences', async function(element, e) {
+window.EventDelegation.register('update-calendar-preferences', async function(element, e) {
     const preferences = {
         include_team_matches: document.getElementById('subIncludeMatches')?.checked ?? true,
         include_league_events: document.getElementById('subIncludeLeagueEvents')?.checked ?? true,

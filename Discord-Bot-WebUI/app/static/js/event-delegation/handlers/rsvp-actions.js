@@ -11,7 +11,7 @@
  * RSVP Yes Action
  * Player confirms attendance (admin can set for players)
  */
-EventDelegation.register('rsvp-yes', function(element, e) {
+window.EventDelegation.register('rsvp-yes', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -46,7 +46,7 @@ EventDelegation.register('rsvp-yes', function(element, e) {
  * RSVP No Action
  * Player confirms they cannot attend
  */
-EventDelegation.register('rsvp-no', function(element, e) {
+window.EventDelegation.register('rsvp-no', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -76,7 +76,7 @@ EventDelegation.register('rsvp-no', function(element, e) {
  * RSVP Maybe Action
  * Player is unsure about attendance
  */
-EventDelegation.register('rsvp-maybe', function(element, e) {
+window.EventDelegation.register('rsvp-maybe', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -106,7 +106,7 @@ EventDelegation.register('rsvp-maybe', function(element, e) {
  * Withdraw RSVP Action
  * Player cancels their RSVP
  */
-EventDelegation.register('rsvp-withdraw', function(element, e) {
+window.EventDelegation.register('rsvp-withdraw', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -138,7 +138,7 @@ EventDelegation.register('rsvp-withdraw', function(element, e) {
  * Send SMS Action
  * Opens modal to send SMS to player
  */
-EventDelegation.register('rsvp-request-sms', function(element, e) {
+window.EventDelegation.register('rsvp-request-sms', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -204,7 +204,7 @@ EventDelegation.register('rsvp-request-sms', function(element, e) {
  * Send Discord DM Action
  * Opens modal to send Discord direct message
  */
-EventDelegation.register('rsvp-request-discord-dm', function(element, e) {
+window.EventDelegation.register('rsvp-request-discord-dm', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -260,7 +260,7 @@ EventDelegation.register('rsvp-request-discord-dm', function(element, e) {
  * Admin manually updates player RSVP status
  * This is the main handler that triggers the update via AJAX
  */
-EventDelegation.register('rsvp-update-status', function(element, e) {
+window.EventDelegation.register('rsvp-update-status', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -372,7 +372,7 @@ function updateRSVPStatus(playerId, matchId, response) {
 /**
  * Send RSVP Reminder to all players
  */
-EventDelegation.register('send-rsvp-reminder', function(element, e) {
+window.EventDelegation.register('send-rsvp-reminder', function(element, e) {
     e.preventDefault();
     if (typeof window.sendReminder === 'function') {
         window.sendReminder();
@@ -384,7 +384,7 @@ EventDelegation.register('send-rsvp-reminder', function(element, e) {
 /**
  * Filter RSVP responses by type
  */
-EventDelegation.register('filter-rsvp-responses', function(element, e) {
+window.EventDelegation.register('filter-rsvp-responses', function(element, e) {
     e.preventDefault();
     const filterType = element.dataset.filterType || 'all';
     if (typeof window.filterResponses === 'function') {
@@ -397,7 +397,7 @@ EventDelegation.register('filter-rsvp-responses', function(element, e) {
 /**
  * Update player RSVP (admin action)
  */
-EventDelegation.register('update-player-rsvp-admin', function(element, e) {
+window.EventDelegation.register('update-player-rsvp-admin', function(element, e) {
     e.preventDefault();
     const playerId = element.dataset.playerId;
     const response = element.dataset.response;
@@ -415,7 +415,7 @@ EventDelegation.register('update-player-rsvp-admin', function(element, e) {
 /**
  * Send individual reminder to specific player
  */
-EventDelegation.register('send-individual-reminder', function(element, e) {
+window.EventDelegation.register('send-individual-reminder', function(element, e) {
     e.preventDefault();
     const playerId = element.dataset.playerId;
     if (!playerId) {

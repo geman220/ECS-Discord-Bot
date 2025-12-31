@@ -11,7 +11,7 @@
  * Platform Toggle Action
  * Switches between Apple and Google wallet preview
  */
-EventDelegation.register('toggle-platform', function(element, e) {
+window.EventDelegation.register('toggle-platform', function(element, e) {
     e.preventDefault();
 
     const platform = element.dataset.platform;
@@ -33,7 +33,7 @@ EventDelegation.register('toggle-platform', function(element, e) {
  * Changes pass layout style (generic, storeCard, eventTicket)
  * Triggered by change event on radio buttons
  */
-EventDelegation.register('update-pass-style', function(element, e) {
+window.EventDelegation.register('update-pass-style', function(element, e) {
     if (window.PassStudio && typeof window.PassStudio.updatePassStylePreview === 'function') {
         window.PassStudio.updatePassStylePreview();
     } else {
@@ -45,7 +45,7 @@ EventDelegation.register('update-pass-style', function(element, e) {
  * Apply Color Preset Action
  * Applies predefined color schemes to the pass
  */
-EventDelegation.register('apply-color-preset', function(element, e) {
+window.EventDelegation.register('apply-color-preset', function(element, e) {
     e.preventDefault();
 
     const bg = element.dataset.bg;
@@ -90,7 +90,7 @@ EventDelegation.register('apply-color-preset', function(element, e) {
  * Sync Color Input Action
  * Syncs color picker with text input and vice versa
  */
-EventDelegation.register('sync-color-input', function(element, e) {
+window.EventDelegation.register('sync-color-input', function(element, e) {
     const targetId = element.dataset.target;
     if (!targetId) return;
 
@@ -117,7 +117,7 @@ EventDelegation.register('sync-color-input', function(element, e) {
  * Update Preview Field Action
  * Updates specific field in preview (e.g., logo text)
  */
-EventDelegation.register('update-preview-field', function(element, e) {
+window.EventDelegation.register('update-preview-field', function(element, e) {
     if (window.PassStudio && typeof window.PassStudio.updatePreviewFromForm === 'function') {
         window.PassStudio.updatePreviewFromForm();
     }
@@ -127,7 +127,7 @@ EventDelegation.register('update-preview-field', function(element, e) {
  * Toggle Logo Visibility Action
  * Shows/hides logo in preview
  */
-EventDelegation.register('toggle-logo-visibility', function(element, e) {
+window.EventDelegation.register('toggle-logo-visibility', function(element, e) {
     if (window.PassStudio && typeof window.PassStudio.toggleLogoVisibility === 'function') {
         window.PassStudio.toggleLogoVisibility();
     }
@@ -137,7 +137,7 @@ EventDelegation.register('toggle-logo-visibility', function(element, e) {
  * Open Asset Cropper Action
  * Opens modal to upload/crop pass assets
  */
-EventDelegation.register('open-asset-cropper', function(element, e) {
+window.EventDelegation.register('open-asset-cropper', function(element, e) {
     e.preventDefault();
 
     const assetType = element.dataset.assetType;
@@ -158,7 +158,7 @@ EventDelegation.register('open-asset-cropper', function(element, e) {
  * Update Google Preview Action
  * Updates Google Wallet preview with URL changes
  */
-EventDelegation.register('update-google-preview', function(element, e) {
+window.EventDelegation.register('update-google-preview', function(element, e) {
     if (window.PassStudio && typeof window.PassStudio.updateGooglePreview === 'function') {
         window.PassStudio.updateGooglePreview();
     }
@@ -168,7 +168,7 @@ EventDelegation.register('update-google-preview', function(element, e) {
  * Update Barcode Preview Action
  * Shows/hides barcode in preview
  */
-EventDelegation.register('update-barcode-preview', function(element, e) {
+window.EventDelegation.register('update-barcode-preview', function(element, e) {
     if (window.PassStudio && typeof window.PassStudio.updateBarcodePreview === 'function') {
         window.PassStudio.updateBarcodePreview();
     }
@@ -178,7 +178,7 @@ EventDelegation.register('update-barcode-preview', function(element, e) {
  * Save Appearance Action
  * Saves appearance settings to server
  */
-EventDelegation.register('save-appearance', function(element, e) {
+window.EventDelegation.register('save-appearance', function(element, e) {
     e.preventDefault();
 
     if (window.PassStudio && typeof window.PassStudio.saveAppearance === 'function') {
@@ -192,7 +192,7 @@ EventDelegation.register('save-appearance', function(element, e) {
  * Initialize Defaults Action
  * Loads default field configuration for pass
  */
-EventDelegation.register('initialize-defaults', function(element, e) {
+window.EventDelegation.register('initialize-defaults', function(element, e) {
     e.preventDefault();
 
     if (window.FieldsManager && typeof window.FieldsManager.initializeDefaults === 'function') {
@@ -206,7 +206,7 @@ EventDelegation.register('initialize-defaults', function(element, e) {
  * Add Pass Field Action
  * Opens modal to add new pass field (Pass Studio)
  */
-EventDelegation.register('add-pass-field', function(element, e) {
+window.EventDelegation.register('add-pass-field', function(element, e) {
     e.preventDefault();
 
     const fieldType = element.dataset.fieldType;
@@ -227,7 +227,7 @@ EventDelegation.register('add-pass-field', function(element, e) {
  * Create Field Action
  * Creates new field from modal data
  */
-EventDelegation.register('create-field', function(element, e) {
+window.EventDelegation.register('create-field', function(element, e) {
     e.preventDefault();
 
     if (window.FieldsManager && typeof window.FieldsManager.createField === 'function') {
@@ -241,7 +241,7 @@ EventDelegation.register('create-field', function(element, e) {
  * Save Fields Action
  * Saves all field configurations to server
  */
-EventDelegation.register('save-fields', function(element, e) {
+window.EventDelegation.register('save-fields', function(element, e) {
     e.preventDefault();
 
     if (window.FieldsManager && typeof window.FieldsManager.saveFields === 'function') {
@@ -255,7 +255,7 @@ EventDelegation.register('save-fields', function(element, e) {
  * Reset Fields Action
  * Resets fields to last saved state
  */
-EventDelegation.register('reset-fields', function(element, e) {
+window.EventDelegation.register('reset-fields', function(element, e) {
     e.preventDefault();
 
     if (window.FieldsManager && typeof window.FieldsManager.resetFields === 'function') {
@@ -269,7 +269,7 @@ EventDelegation.register('reset-fields', function(element, e) {
  * Insert Variable Action
  * Inserts template variable at cursor position
  */
-EventDelegation.register('insert-variable', function(element, e) {
+window.EventDelegation.register('insert-variable', function(element, e) {
     e.preventDefault();
 
     const variableName = element.dataset.variableName;
@@ -293,7 +293,7 @@ EventDelegation.register('insert-variable', function(element, e) {
 /**
  * Print Page Action
  */
-EventDelegation.register('print-page', function(element, e) {
+window.EventDelegation.register('print-page', function(element, e) {
     e.preventDefault();
     window.print();
 }, { preventDefault: true });
@@ -301,7 +301,7 @@ EventDelegation.register('print-page', function(element, e) {
 /**
  * Toggle Detail Section
  */
-EventDelegation.register('toggle-detail', function(element, e) {
+window.EventDelegation.register('toggle-detail', function(element, e) {
     e.preventDefault();
     const detailId = element.dataset.detailId;
     if (!detailId) {
@@ -323,7 +323,7 @@ EventDelegation.register('toggle-detail', function(element, e) {
 /**
  * Run Admin Command
  */
-EventDelegation.register('run-admin-command', function(element, e) {
+window.EventDelegation.register('run-admin-command', function(element, e) {
     e.preventDefault();
     const command = element.dataset.command;
     if (!command) {
@@ -344,7 +344,7 @@ EventDelegation.register('run-admin-command', function(element, e) {
 /**
  * Bulk Void Passes
  */
-EventDelegation.register('bulk-void-passes', function(element, e) {
+window.EventDelegation.register('bulk-void-passes', function(element, e) {
     e.preventDefault();
     if (typeof window.bulkVoid === 'function') {
         window.bulkVoid();
@@ -356,7 +356,7 @@ EventDelegation.register('bulk-void-passes', function(element, e) {
 /**
  * Bulk Reactivate Passes
  */
-EventDelegation.register('bulk-reactivate-passes', function(element, e) {
+window.EventDelegation.register('bulk-reactivate-passes', function(element, e) {
     e.preventDefault();
     if (typeof window.bulkReactivate === 'function') {
         window.bulkReactivate();
@@ -368,7 +368,7 @@ EventDelegation.register('bulk-reactivate-passes', function(element, e) {
 /**
  * Clear Selection
  */
-EventDelegation.register('clear-pass-selection', function(element, e) {
+window.EventDelegation.register('clear-pass-selection', function(element, e) {
     e.preventDefault();
     if (typeof window.clearSelection === 'function') {
         window.clearSelection();
@@ -380,7 +380,7 @@ EventDelegation.register('clear-pass-selection', function(element, e) {
 /**
  * Void Pass
  */
-EventDelegation.register('void-pass', function(element, e) {
+window.EventDelegation.register('void-pass', function(element, e) {
     e.preventDefault();
     const passId = element.dataset.passId;
     if (!passId) {
@@ -397,7 +397,7 @@ EventDelegation.register('void-pass', function(element, e) {
 /**
  * Reactivate Pass
  */
-EventDelegation.register('reactivate-pass', function(element, e) {
+window.EventDelegation.register('reactivate-pass', function(element, e) {
     e.preventDefault();
     const passId = element.dataset.passId;
     if (!passId) {
@@ -414,7 +414,7 @@ EventDelegation.register('reactivate-pass', function(element, e) {
 /**
  * Bulk Generate Passes
  */
-EventDelegation.register('bulk-generate-passes', function(element, e) {
+window.EventDelegation.register('bulk-generate-passes', function(element, e) {
     e.preventDefault();
     if (typeof window.bulkGenerate === 'function') {
         window.bulkGenerate();
@@ -426,7 +426,7 @@ EventDelegation.register('bulk-generate-passes', function(element, e) {
 /**
  * Confirm Bulk Void
  */
-EventDelegation.register('confirm-bulk-void', function(element, e) {
+window.EventDelegation.register('confirm-bulk-void', function(element, e) {
     e.preventDefault();
     if (typeof window.confirmBulkVoid === 'function') {
         window.confirmBulkVoid();
@@ -442,7 +442,7 @@ EventDelegation.register('confirm-bulk-void', function(element, e) {
 /**
  * Copy To Clipboard
  */
-EventDelegation.register('copy-to-clipboard', function(element, e) {
+window.EventDelegation.register('copy-to-clipboard', function(element, e) {
     e.preventDefault();
     const targetId = element.dataset.targetId;
     if (!targetId) {
@@ -459,7 +459,7 @@ EventDelegation.register('copy-to-clipboard', function(element, e) {
 /**
  * Save WooCommerce URL
  */
-EventDelegation.register('save-woocommerce-url', function(element, e) {
+window.EventDelegation.register('save-woocommerce-url', function(element, e) {
     e.preventDefault();
     if (typeof window.saveWooCommerceUrl === 'function') {
         window.saveWooCommerceUrl();
@@ -471,7 +471,7 @@ EventDelegation.register('save-woocommerce-url', function(element, e) {
 /**
  * Generate Secret
  */
-EventDelegation.register('generate-secret', function(element, e) {
+window.EventDelegation.register('generate-secret', function(element, e) {
     e.preventDefault();
     if (typeof window.generateSecret === 'function') {
         window.generateSecret();
@@ -483,7 +483,7 @@ EventDelegation.register('generate-secret', function(element, e) {
 /**
  * Validate Plugin Connection
  */
-EventDelegation.register('validate-plugin-connection', function(element, e) {
+window.EventDelegation.register('validate-plugin-connection', function(element, e) {
     e.preventDefault();
     if (typeof window.validatePluginConnection === 'function') {
         window.validatePluginConnection();
@@ -499,7 +499,7 @@ EventDelegation.register('validate-plugin-connection', function(element, e) {
 /**
  * Add/Edit/Toggle/Delete Sponsor
  */
-EventDelegation.register('add-sponsor', function(element, e) {
+window.EventDelegation.register('add-sponsor', function(element, e) {
     e.preventDefault();
     if (typeof window.addSponsor === 'function') {
         window.addSponsor();
@@ -508,7 +508,7 @@ EventDelegation.register('add-sponsor', function(element, e) {
     }
 }, { preventDefault: true });
 
-EventDelegation.register('edit-sponsor', function(element, e) {
+window.EventDelegation.register('edit-sponsor', function(element, e) {
     e.preventDefault();
     const sponsorId = element.dataset.sponsorId;
     if (typeof window.editSponsor === 'function') {
@@ -516,7 +516,7 @@ EventDelegation.register('edit-sponsor', function(element, e) {
     }
 }, { preventDefault: true });
 
-EventDelegation.register('toggle-sponsor', function(element, e) {
+window.EventDelegation.register('toggle-sponsor', function(element, e) {
     e.preventDefault();
     const sponsorId = element.dataset.sponsorId;
     const active = element.dataset.active;
@@ -525,7 +525,7 @@ EventDelegation.register('toggle-sponsor', function(element, e) {
     }
 }, { preventDefault: true });
 
-EventDelegation.register('delete-sponsor', function(element, e) {
+window.EventDelegation.register('delete-sponsor', function(element, e) {
     e.preventDefault();
     const sponsorId = element.dataset.sponsorId;
     const sponsorName = element.dataset.sponsorName;
@@ -537,7 +537,7 @@ EventDelegation.register('delete-sponsor', function(element, e) {
 /**
  * Add/Edit/Toggle/Delete Location
  */
-EventDelegation.register('add-location', function(element, e) {
+window.EventDelegation.register('add-location', function(element, e) {
     e.preventDefault();
     if (typeof window.addLocation === 'function') {
         window.addLocation();
@@ -546,7 +546,7 @@ EventDelegation.register('add-location', function(element, e) {
     }
 }, { preventDefault: true });
 
-EventDelegation.register('edit-location', function(element, e) {
+window.EventDelegation.register('edit-location', function(element, e) {
     e.preventDefault();
     const locationId = element.dataset.locationId;
     if (typeof window.editLocation === 'function') {
@@ -554,7 +554,7 @@ EventDelegation.register('edit-location', function(element, e) {
     }
 }, { preventDefault: true });
 
-EventDelegation.register('toggle-location', function(element, e) {
+window.EventDelegation.register('toggle-location', function(element, e) {
     e.preventDefault();
     const locationId = element.dataset.locationId;
     const active = element.dataset.active;
@@ -563,7 +563,7 @@ EventDelegation.register('toggle-location', function(element, e) {
     }
 }, { preventDefault: true });
 
-EventDelegation.register('delete-location', function(element, e) {
+window.EventDelegation.register('delete-location', function(element, e) {
     e.preventDefault();
     const locationId = element.dataset.locationId;
     const locationName = element.dataset.locationName;
@@ -575,7 +575,7 @@ EventDelegation.register('delete-location', function(element, e) {
 /**
  * Add/Edit/Delete Subgroup
  */
-EventDelegation.register('add-subgroup', function(element, e) {
+window.EventDelegation.register('add-subgroup', function(element, e) {
     e.preventDefault();
     if (typeof window.addSubgroup === 'function') {
         window.addSubgroup();
@@ -584,7 +584,7 @@ EventDelegation.register('add-subgroup', function(element, e) {
     }
 }, { preventDefault: true });
 
-EventDelegation.register('edit-subgroup', function(element, e) {
+window.EventDelegation.register('edit-subgroup', function(element, e) {
     e.preventDefault();
     const subgroupId = element.dataset.subgroupId;
     const subgroupName = element.dataset.subgroupName;
@@ -595,7 +595,7 @@ EventDelegation.register('edit-subgroup', function(element, e) {
     }
 }, { preventDefault: true });
 
-EventDelegation.register('delete-subgroup', function(element, e) {
+window.EventDelegation.register('delete-subgroup', function(element, e) {
     e.preventDefault();
     const subgroupId = element.dataset.subgroupId;
     const subgroupName = element.dataset.subgroupName;
@@ -611,7 +611,7 @@ EventDelegation.register('delete-subgroup', function(element, e) {
 /**
  * Edit Category
  */
-EventDelegation.register('edit-category', function(element, e) {
+window.EventDelegation.register('edit-category', function(element, e) {
     e.preventDefault();
     const categoryId = element.dataset.categoryId;
     const categoryName = element.dataset.categoryName;
@@ -624,7 +624,7 @@ EventDelegation.register('edit-category', function(element, e) {
 /**
  * Edit Template
  */
-EventDelegation.register('edit-template', function(element, e) {
+window.EventDelegation.register('edit-template', function(element, e) {
     e.preventDefault();
     const templateId = element.dataset.templateId;
     if (typeof window.editTemplate === 'function') {
@@ -635,7 +635,7 @@ EventDelegation.register('edit-template', function(element, e) {
 /**
  * Preview Template
  */
-EventDelegation.register('preview-template', function(element, e) {
+window.EventDelegation.register('preview-template', function(element, e) {
     e.preventDefault();
     const templateId = element.dataset.templateId;
     if (typeof window.previewTemplate === 'function') {
@@ -646,7 +646,7 @@ EventDelegation.register('preview-template', function(element, e) {
 /**
  * Copy Template
  */
-EventDelegation.register('copy-template', function(element, e) {
+window.EventDelegation.register('copy-template', function(element, e) {
     e.preventDefault();
     const templateId = element.dataset.templateId;
     if (typeof window.copyTemplate === 'function') {
@@ -662,7 +662,7 @@ EventDelegation.register('copy-template', function(element, e) {
  * Reset Form
  * Resets form to original values
  */
-EventDelegation.register('reset-form', function(element, e) {
+window.EventDelegation.register('reset-form', function(element, e) {
     e.preventDefault();
     if (typeof window.resetForm === 'function') {
         window.resetForm();
@@ -675,7 +675,7 @@ EventDelegation.register('reset-form', function(element, e) {
  * Clear Selection
  * Clears the current selection (used in direct messaging)
  */
-EventDelegation.register('clear-selection', function(element, e) {
+window.EventDelegation.register('clear-selection', function(element, e) {
     e.preventDefault();
     if (typeof window.clearSelection === 'function') {
         window.clearSelection();

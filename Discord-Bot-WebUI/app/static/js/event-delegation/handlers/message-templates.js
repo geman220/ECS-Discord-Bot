@@ -10,7 +10,7 @@
 /**
  * Create Template
  */
-EventDelegation.register('create-template', function(element, e) {
+window.EventDelegation.register('create-template', function(element, e) {
     e.preventDefault();
     const categoryId = element.dataset.categoryId;
     const categoryName = element.dataset.categoryName;
@@ -28,7 +28,7 @@ EventDelegation.register('create-template', function(element, e) {
 /**
  * Create Announcement
  */
-EventDelegation.register('create-announcement', function(element, e) {
+window.EventDelegation.register('create-announcement', function(element, e) {
     e.preventDefault();
     if (typeof window.createAnnouncement === 'function') {
         window.createAnnouncement();
@@ -40,7 +40,7 @@ EventDelegation.register('create-announcement', function(element, e) {
 /**
  * Edit Announcement
  */
-EventDelegation.register('edit-announcement', function(element, e) {
+window.EventDelegation.register('edit-announcement', function(element, e) {
     e.preventDefault();
     const announcementId = element.dataset.announcementId;
     if (!announcementId) {
@@ -57,7 +57,7 @@ EventDelegation.register('edit-announcement', function(element, e) {
 /**
  * Delete Announcement
  */
-EventDelegation.register('delete-announcement', function(element, e) {
+window.EventDelegation.register('delete-announcement', function(element, e) {
     e.preventDefault();
     const announcementId = element.dataset.announcementId;
     if (!announcementId) {
@@ -74,7 +74,7 @@ EventDelegation.register('delete-announcement', function(element, e) {
 /**
  * Preview Message
  */
-EventDelegation.register('preview-message', function(element, e) {
+window.EventDelegation.register('preview-message', function(element, e) {
     e.preventDefault();
     if (typeof window.previewMessage === 'function') {
         window.previewMessage();
@@ -86,7 +86,7 @@ EventDelegation.register('preview-message', function(element, e) {
 /**
  * Preview New Template
  */
-EventDelegation.register('preview-new-template', function(element, e) {
+window.EventDelegation.register('preview-new-template', function(element, e) {
     e.preventDefault();
     if (typeof window.previewNewTemplate === 'function') {
         window.previewNewTemplate();

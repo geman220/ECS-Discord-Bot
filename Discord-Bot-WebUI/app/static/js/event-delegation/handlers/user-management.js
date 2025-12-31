@@ -21,7 +21,7 @@
  * Handle Edit User button click
  * Opens the edit user modal with user data
  */
-EventDelegation.register('edit-user', function(element, e) {
+window.EventDelegation.register('edit-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -46,7 +46,7 @@ EventDelegation.register('edit-user', function(element, e) {
  * Handle Reset Password button click
  * Opens the reset password modal for a user
  */
-EventDelegation.register('reset-user-password', function(element, e) {
+window.EventDelegation.register('reset-user-password', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -73,7 +73,7 @@ EventDelegation.register('reset-user-password', function(element, e) {
  * Handle Approve User button click
  * Approves a pending user
  */
-EventDelegation.register('approve-user-status', function(element, e) {
+window.EventDelegation.register('approve-user-status', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -98,7 +98,7 @@ EventDelegation.register('approve-user-status', function(element, e) {
  * Handle Remove User button click
  * Removes a user from the system
  */
-EventDelegation.register('remove-user', function(element, e) {
+window.EventDelegation.register('remove-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -123,7 +123,7 @@ EventDelegation.register('remove-user', function(element, e) {
  * Handle Delete User button click
  * Permanently deletes a user
  */
-EventDelegation.register('delete-user', function(element, e) {
+window.EventDelegation.register('delete-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -146,7 +146,7 @@ EventDelegation.register('delete-user', function(element, e) {
 // BULK APPROVE ACTION
 // ============================================================================
 
-EventDelegation.register('bulk-approve-users', function(element, e) {
+window.EventDelegation.register('bulk-approve-users', function(element, e) {
     e.preventDefault();
     if (typeof window.bulkApprove === 'function') {
         window.bulkApprove();
@@ -159,7 +159,7 @@ EventDelegation.register('bulk-approve-users', function(element, e) {
 // EXPORT USERS ACTION
 // ============================================================================
 
-EventDelegation.register('export-users', function(element, e) {
+window.EventDelegation.register('export-users', function(element, e) {
     e.preventDefault();
     const exportType = element.dataset.exportType || 'all';
     if (typeof window.exportUsers === 'function') {
@@ -173,7 +173,7 @@ EventDelegation.register('export-users', function(element, e) {
 // SYNC USERS ACTION
 // ============================================================================
 
-EventDelegation.register('sync-users', function(element, e) {
+window.EventDelegation.register('sync-users', function(element, e) {
     e.preventDefault();
     if (typeof window.syncUsers === 'function') {
         window.syncUsers();
@@ -186,7 +186,7 @@ EventDelegation.register('sync-users', function(element, e) {
 // CREATE USER ACTION
 // ============================================================================
 
-EventDelegation.register('create-user', function(element, e) {
+window.EventDelegation.register('create-user', function(element, e) {
     e.preventDefault();
     if (typeof window.createUser === 'function') {
         window.createUser();
@@ -199,7 +199,7 @@ EventDelegation.register('create-user', function(element, e) {
 // BULK ACTION (approve, activate, deactivate, delete)
 // ============================================================================
 
-EventDelegation.register('bulk-action', function(element, e) {
+window.EventDelegation.register('bulk-action', function(element, e) {
     e.preventDefault();
     const action = element.dataset.bulkAction;
     if (!action) {

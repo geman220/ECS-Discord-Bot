@@ -316,21 +316,22 @@
     return nav ? nav.adminNavController : null;
   }
 
-  EventDelegation.register('toggle-admin-dropdown', (element, e) => {
+  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
+  window.EventDelegation.register('toggle-admin-dropdown', (element, e) => {
     const controller = getController(element);
     if (controller) {
       controller.toggleDropdown(element);
     }
   }, { preventDefault: true });
 
-  EventDelegation.register('admin-navigate', (element, e) => {
+  window.EventDelegation.register('admin-navigate', (element, e) => {
     const controller = getController(element);
     if (controller) {
       controller.handleNavigation(element, e);
     }
   }, { preventDefault: false });
 
-  EventDelegation.register('close-admin-dropdown', (element, e) => {
+  window.EventDelegation.register('close-admin-dropdown', (element, e) => {
     const controller = getController(element);
     if (controller) {
       controller.closeDropdown(element);

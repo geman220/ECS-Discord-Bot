@@ -10,7 +10,7 @@
 /**
  * Refresh Notification Status
  */
-EventDelegation.register('refresh-notification-status', function(element, e) {
+window.EventDelegation.register('refresh-notification-status', function(element, e) {
     e.preventDefault();
     if (typeof window.refreshNotificationStatus === 'function') {
         window.refreshNotificationStatus();
@@ -22,7 +22,7 @@ EventDelegation.register('refresh-notification-status', function(element, e) {
 /**
  * Send Test Notification
  */
-EventDelegation.register('send-test-notification', function(element, e) {
+window.EventDelegation.register('send-test-notification', function(element, e) {
     e.preventDefault();
     if (typeof window.sendTestNotification === 'function') {
         window.sendTestNotification();
@@ -34,7 +34,7 @@ EventDelegation.register('send-test-notification', function(element, e) {
 /**
  * Send Match Reminder
  */
-EventDelegation.register('send-match-reminder', function(element, e) {
+window.EventDelegation.register('send-match-reminder', function(element, e) {
     e.preventDefault();
     if (typeof window.sendMatchReminder === 'function') {
         window.sendMatchReminder();
@@ -46,7 +46,7 @@ EventDelegation.register('send-match-reminder', function(element, e) {
 /**
  * Send RSVP Reminder
  */
-EventDelegation.register('send-rsvp-reminder-notification', function(element, e) {
+window.EventDelegation.register('send-rsvp-reminder-notification', function(element, e) {
     e.preventDefault();
     if (typeof window.sendRSVPReminder === 'function') {
         window.sendRSVPReminder();
@@ -58,7 +58,7 @@ EventDelegation.register('send-rsvp-reminder-notification', function(element, e)
 /**
  * View Notification Logs
  */
-EventDelegation.register('view-notification-logs', function(element, e) {
+window.EventDelegation.register('view-notification-logs', function(element, e) {
     e.preventDefault();
     if (typeof window.viewNotificationLogs === 'function') {
         window.viewNotificationLogs();
@@ -70,7 +70,7 @@ EventDelegation.register('view-notification-logs', function(element, e) {
 /**
  * Manage Tokens
  */
-EventDelegation.register('manage-push-tokens', function(element, e) {
+window.EventDelegation.register('manage-push-tokens', function(element, e) {
     e.preventDefault();
     if (typeof window.manageTokens === 'function') {
         window.manageTokens();
@@ -82,7 +82,7 @@ EventDelegation.register('manage-push-tokens', function(element, e) {
 /**
  * Cleanup Invalid Tokens
  */
-EventDelegation.register('cleanup-invalid-tokens', function(element, e) {
+window.EventDelegation.register('cleanup-invalid-tokens', function(element, e) {
     e.preventDefault();
     if (typeof window.cleanupInvalidTokens === 'function') {
         window.cleanupInvalidTokens();
@@ -94,7 +94,7 @@ EventDelegation.register('cleanup-invalid-tokens', function(element, e) {
 /**
  * Send Broadcast
  */
-EventDelegation.register('send-broadcast', function(element, e) {
+window.EventDelegation.register('send-broadcast', function(element, e) {
     e.preventDefault();
     if (typeof window.sendBroadcast === 'function') {
         window.sendBroadcast();
@@ -106,7 +106,7 @@ EventDelegation.register('send-broadcast', function(element, e) {
 /**
  * Confirm Send Test
  */
-EventDelegation.register('confirm-send-test', function(element, e) {
+window.EventDelegation.register('confirm-send-test', function(element, e) {
     e.preventDefault();
     if (typeof window.confirmSendTest === 'function') {
         window.confirmSendTest();
