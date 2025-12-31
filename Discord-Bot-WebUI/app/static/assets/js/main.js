@@ -19,20 +19,20 @@ if (document.getElementById('layout-menu')) {
     window.Helpers.initCustomOptionCheck();
   }, 1000);
 
-  if (typeof Waves !== 'undefined') {
-    Waves.init();
-    Waves.attach(
+  if (typeof window.Waves !== 'undefined') {
+    window.Waves.init();
+    window.Waves.attach(
       ".btn[class*='btn-']:not(.position-relative):not([class*='btn-outline-']):not([class*='btn-label-'])",
       ['waves-light']
     );
-    Waves.attach("[class*='btn-outline-']:not(.position-relative)");
-    Waves.attach("[class*='btn-label-']:not(.position-relative)");
-    Waves.attach('.pagination .page-item .page-link');
-    Waves.attach('.dropdown-menu .dropdown-item');
-    Waves.attach('.light-style .list-group .list-group-item-action');
-    Waves.attach('.dark-style .list-group .list-group-item-action', ['waves-light']);
-    Waves.attach('.nav-tabs:not(.nav-tabs-widget) .nav-item .nav-link');
-    Waves.attach('.nav-pills .nav-item .nav-link', ['waves-light']);
+    window.Waves.attach("[class*='btn-outline-']:not(.position-relative)");
+    window.Waves.attach("[class*='btn-label-']:not(.position-relative)");
+    window.Waves.attach('.pagination .page-item .page-link');
+    window.Waves.attach('.dropdown-menu .dropdown-item');
+    window.Waves.attach('.light-style .list-group .list-group-item-action');
+    window.Waves.attach('.dark-style .list-group .list-group-item-action', ['waves-light']);
+    window.Waves.attach('.nav-tabs:not(.nav-tabs-widget) .nav-item .nav-link');
+    window.Waves.attach('.nav-pills .nav-item .nav-link', ['waves-light']);
   }
 
   // Initialize menu
@@ -40,7 +40,7 @@ if (document.getElementById('layout-menu')) {
 
   let layoutMenuEl = document.querySelectorAll('#layout-menu');
   layoutMenuEl.forEach(function (element) {
-    menu = new Menu(element, {
+    menu = new window.Menu(element, {
       orientation: isHorizontalLayout ? 'horizontal' : 'vertical',
       closeChildren: isHorizontalLayout ? true : false,
       // ? This option only works with Horizontal menu
@@ -156,19 +156,19 @@ if (document.getElementById('layout-menu')) {
 
     if (storedStyle === 'light') {
       styleSwitcherIcon.classList.add('ti-sun');
-      new bootstrap.Tooltip(styleSwitcherIcon, {
+      new window.bootstrap.Tooltip(styleSwitcherIcon, {
         title: 'Light Mode',
         fallbackPlacements: ['bottom']
       });
     } else if (storedStyle === 'dark') {
       styleSwitcherIcon.classList.add('ti-moon-stars');
-      new bootstrap.Tooltip(styleSwitcherIcon, {
+      new window.bootstrap.Tooltip(styleSwitcherIcon, {
         title: 'Dark Mode',
         fallbackPlacements: ['bottom']
       });
     } else {
       styleSwitcherIcon.classList.add('ti-device-desktop-analytics');
-      new bootstrap.Tooltip(styleSwitcherIcon, {
+      new window.bootstrap.Tooltip(styleSwitcherIcon, {
         title: 'System Mode',
         fallbackPlacements: ['bottom']
       });
@@ -290,7 +290,7 @@ if (document.getElementById('layout-menu')) {
   // Init BS Tooltip
   const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
   tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl);
+    return new window.bootstrap.Tooltip(tooltipTriggerEl);
   });
 
   // Accordion active class
@@ -409,7 +409,7 @@ if (document.getElementById('layout-menu')) {
 })();
 
 // ! Removed following code if you do't wish to use jQuery. Remember that navbar search functionality will stop working on removal.
-if (typeof $ !== 'undefined') {
+if (typeof window.$ !== 'undefined') {
   $(function () {
     // ! TODO: Required to load after DOM is ready, did this now with jQuery ready.
     window.Helpers.initSidebarToggle();
@@ -652,7 +652,7 @@ if (typeof $ !== 'undefined') {
       // Init PerfectScrollbar in search result
       var psSearch;
       $('.navbar-search-suggestion').each(function () {
-        psSearch = new PerfectScrollbar($(this)[0], {
+        psSearch = new window.PerfectScrollbar($(this)[0], {
           wheelPropagation: false,
           suppressScrollX: true
         });

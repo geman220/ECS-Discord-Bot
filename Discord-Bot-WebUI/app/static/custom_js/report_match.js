@@ -284,10 +284,8 @@ window.addEvent = function(matchId, containerId, statId = null, playerId = null,
     }
 
     // Re-initialize Feather icons if necessary
-    if (typeof window.feather !== 'undefined' && feather) {
-        if (typeof window.feather !== 'undefined') {
-            window.feather.replace();
-        }
+    if (typeof window.feather !== 'undefined' && window.feather) {
+        window.feather.replace();
     }
 };
 
@@ -1529,10 +1527,8 @@ window.addOwnGoalEvent = function(matchId, containerId, statId = null, teamId = 
     $(containerSelector).append(newInputGroup);
 
     // Re-initialize Feather icons if necessary
-    if (typeof window.feather !== 'undefined' && feather) {
-        if (typeof window.feather !== 'undefined') {
-            window.feather.replace();
-        }
+    if (typeof window.feather !== 'undefined' && window.feather) {
+        window.feather.replace();
     }
 };
 
