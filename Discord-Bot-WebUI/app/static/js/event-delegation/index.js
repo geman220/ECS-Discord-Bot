@@ -36,7 +36,7 @@ import './handlers/rsvp-actions.js';         // Match RSVP responses
 import './handlers/profile-verification.js'; // Profile verification workflow
 import './handlers/discord-management.js';   // Discord integration, player sync
 import './handlers/user-approval.js';        // User approval/denial workflow
-import './handlers/user-management.js';      // User edit/delete/approve/remove actions
+// user-management.js removed - handlers merged into user-management-comprehensive.js
 import './handlers/roles-management.js';     // Roles and permissions management
 import './handlers/waitlist-management.js';  // Waitlist user management
 import './handlers/user-management-comprehensive.js'; // Comprehensive user management

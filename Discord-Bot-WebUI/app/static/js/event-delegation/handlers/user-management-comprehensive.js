@@ -232,6 +232,83 @@ function getSelectedUserIds() {
 }
 
 // ============================================================================
+// RESET USER PASSWORD
+// ============================================================================
+
+/**
+ * Handle Reset Password button click
+ * Opens the reset password modal for a user
+ */
+EventDelegation.register('reset-user-password', function(element, e) {
+    e.preventDefault();
+
+    const userId = element.dataset.userId;
+    const username = element.dataset.username;
+
+    if (!userId) {
+        console.error('[reset-user-password] Missing user ID');
+        return;
+    }
+
+    // Call the global handler function defined in manage_users.html
+    if (typeof window.setUserForResetPassword === 'function') {
+        window.setUserForResetPassword(userId, username);
+    } else {
+        console.error('[reset-user-password] setUserForResetPassword function not found');
+    }
+}, { preventDefault: true });
+
+// ============================================================================
+// APPROVE USER STATUS (for manage_users.html)
+// ============================================================================
+
+/**
+ * Handle Approve User button click (manage_users.html variant)
+ * Approves a pending user via global handler
+ */
+EventDelegation.register('approve-user-status', function(element, e) {
+    e.preventDefault();
+
+    const userId = element.dataset.userId;
+    if (!userId) {
+        console.error('[approve-user-status] Missing user ID');
+        return;
+    }
+
+    // Call the global handler function defined in manage_users.html
+    if (typeof window.handleApproveUserClick === 'function') {
+        window.handleApproveUserClick(userId);
+    } else {
+        console.error('[approve-user-status] handleApproveUserClick function not found');
+    }
+}, { preventDefault: true });
+
+// ============================================================================
+// REMOVE USER (for manage_users.html)
+// ============================================================================
+
+/**
+ * Handle Remove User button click
+ * Removes a user via global handler
+ */
+EventDelegation.register('remove-user', function(element, e) {
+    e.preventDefault();
+
+    const userId = element.dataset.userId;
+    if (!userId) {
+        console.error('[remove-user] Missing user ID');
+        return;
+    }
+
+    // Call the global handler function defined in manage_users.html
+    if (typeof window.handleRemoveUserClick === 'function') {
+        window.handleRemoveUserClick(userId);
+    } else {
+        console.error('[remove-user] handleRemoveUserClick function not found');
+    }
+}, { preventDefault: true });
+
+// ============================================================================
 // EDIT USER
 // ============================================================================
 
@@ -450,13 +527,8 @@ function performUserAction(userId, action) {
 // ============================================================================
 // TOGGLE SELECT ALL
 // ============================================================================
-
-EventDelegation.register('toggle-select-all', function(element, e) {
-    const targetSelector = element.dataset.target || '.user-checkbox';
-    document.querySelectorAll(targetSelector).forEach(cb => {
-        cb.checked = element.checked;
-    });
-});
+// Note: toggle-select-all is handled by form-actions.js (generic implementation)
+// Use data-target=".user-checkbox" in the HTML to specify checkbox selector
 
 // ============================================================================
 // BULK ACTIONS

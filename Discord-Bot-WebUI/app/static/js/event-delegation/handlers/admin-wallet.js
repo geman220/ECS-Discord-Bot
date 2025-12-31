@@ -164,14 +164,10 @@ EventDelegation.register('copy-link', (element, event) => {
 
 /**
  * Filter by status (dropdown change)
+ * Note: filter-by-value is handled by form-actions.js (generic implementation)
+ * Use data-param="status" in the HTML to specify the query parameter name
  */
-EventDelegation.register('filter-by-value', (element, event) => {
-    const param = element.dataset.param || 'status';
-    const value = element.value;
-    const url = new URL(window.location);
-    url.searchParams.set(param, value);
-    window.location = url;
-});
+// Removed duplicate registration - form-actions.js handles filter-by-value
 
 // ============================================================================
 // BULK SELECTION OPERATIONS
@@ -179,20 +175,18 @@ EventDelegation.register('filter-by-value', (element, event) => {
 
 /**
  * Toggle select all checkboxes
+ * Note: toggle-select-all is handled by form-actions.js (generic implementation)
+ * Use data-target=".pass-checkbox" in the HTML to specify checkbox selector
+ * Wallet-specific: also update bulk actions bar on change
  */
-EventDelegation.register('toggle-select-all', (element, event) => {
-    const target = element.dataset.target || '.pass-checkbox';
-    const checkboxes = document.querySelectorAll(target);
-    checkboxes.forEach(cb => cb.checked = element.checked);
-    updateBulkActionsBar();
-});
+// Removed duplicate registration - form-actions.js handles toggle-select-all
 
 /**
  * Update selection count when individual checkbox changes
+ * Note: update-selection is handled by form-actions.js
+ * For wallet-specific bulk actions bar, use data-bar="#bulkActionsBar"
  */
-EventDelegation.register('update-selection', (element, event) => {
-    updateBulkActionsBar();
-});
+// Removed duplicate registration - form-actions.js handles update-selection
 
 /**
  * Clear all selections

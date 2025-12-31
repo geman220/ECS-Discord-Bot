@@ -3,6 +3,15 @@
 """
 Asset Management Module
 
+⚠️  LEGACY: Flask-Assets bundle definitions are still here but no longer actively used.
+    Production uses Vite (npm run build → vite-dist/).
+    This module remains for:
+    1. ASSETS_PRODUCTION_MODE config flag (still used to detect mode)
+    2. Potential fallback if Vite fails
+
+    TODO: Remove Flask-Assets bundles once Vite is confirmed stable.
+    Date: 2025-12-31
+
 This module initializes and registers asset bundles (CSS and JS) for the
 Flask application. It also enables gzip compression and sets caching
 headers for static files.

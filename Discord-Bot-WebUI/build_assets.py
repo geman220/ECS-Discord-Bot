@@ -2,6 +2,13 @@
 """
 Production Asset Builder
 
+⚠️  DEPRECATED: This Flask-Assets builder is no longer used in production.
+    We've migrated to Vite for all asset bundling. This file is kept temporarily
+    as a fallback but will be removed once Vite is confirmed stable.
+
+    See: docker-compose.yml - build_assets.py removed from startup command
+    Date deprecated: 2025-12-31
+
 This script builds all Flask-Assets bundles for production deployment.
 It forces a rebuild of all assets with minification enabled.
 

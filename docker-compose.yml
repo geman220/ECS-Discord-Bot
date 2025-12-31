@@ -328,7 +328,7 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     command: >
-      sh -c "npm install && npm run build && python build_assets.py &&
+      sh -c "npm install && npm run build &&
       gunicorn
       --worker-class eventlet
       --workers 1

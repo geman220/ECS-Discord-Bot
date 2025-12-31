@@ -183,14 +183,14 @@ EventDelegation.register('process-user', function(element, e) {
  * Handle Remove User button click
  * Shows confirmation dialog and removes user from waitlist
  */
-EventDelegation.register('remove-user', function(element, e) {
+EventDelegation.register('remove-waitlist-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
     const userName = element.dataset.userName || 'this user';
 
     if (!userId) {
-        console.error('[remove-user] Missing user ID');
+        console.error('[remove-waitlist-user] Missing user ID');
         return;
     }
 
@@ -319,17 +319,8 @@ EventDelegation.register('process-from-modal', function(element, e) {
 // ============================================================================
 // TOGGLE SELECT ALL
 // ============================================================================
-
-/**
- * Handle Select All checkbox change
- * Toggles all user checkboxes in the waitlist table
- */
-EventDelegation.register('toggle-select-all', function(element, e) {
-    const checkboxes = document.querySelectorAll('.js-user-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = element.checked;
-    });
-});
+// Note: toggle-select-all is handled by form-actions.js (generic implementation)
+// Use data-target=".js-user-checkbox" in the HTML to specify checkbox selector
 
 // ============================================================================
 // HELPER FUNCTIONS

@@ -403,19 +403,27 @@ export const Haptics = {
   // Expose globally (MUST be before any callbacks or registrations)
   window.Haptics = Haptics;
 
-  // Register with InitSystem
-  if (InitSystem && InitSystem.register) {
-    InitSystem.register('mobile-haptics', () => Haptics.init(), {
-      priority: 35,
-      reinitializable: false,
-      description: 'Mobile haptic feedback'
-    });
-  }
+  // Register with InitSystem (primary initialization method)
+  InitSystem.register('mobile-haptics', () => Haptics.init(), {
+    priority: 35,
+    reinitializable: false,
+    description: 'Mobile haptic feedback'
+  });
 
-  // Fallback initialization
+  // Fallback initialization only if InitSystem doesn't run
+  // Uses guard to prevent "undefined" errors during bundling
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => window.Haptics.init());
-  } else {
-    window.Haptics.init();
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.Haptics && !_initialized) {
+        window.Haptics.init();
+      }
+    });
+  } else if (window.Haptics && !_initialized) {
+    // Defer to next tick to ensure all modules are loaded
+    setTimeout(() => {
+      if (window.Haptics && !_initialized) {
+        window.Haptics.init();
+      }
+    }, 0);
   }
 
