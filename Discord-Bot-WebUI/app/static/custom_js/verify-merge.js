@@ -2,11 +2,10 @@
  * Verify Merge Account Handler
  * Manages account merge verification and resend email
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
     function init() {
         if (_initialized) return;
@@ -107,4 +106,3 @@
     } else {
         init();
     }
-})();

@@ -12,16 +12,15 @@
  *
  * Architecture: Event delegation pattern, no inline handlers, data-action attributes
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  let _initialized = false;
+let _initialized = false;
 
   /**
    * Initialize on DOM ready
    */
-  function init() {
+  export function init() {
     if (_initialized) return;
     _initialized = true;
 
@@ -33,7 +32,7 @@
   /**
    * Set up event delegation for all player list interactions
    */
-  function initializeEventDelegation() {
+  export function initializeEventDelegation() {
     document.addEventListener('click', function(e) {
       const target = e.target.closest('[data-action]');
       if (!target) return;
@@ -63,7 +62,7 @@
   /**
    * Handle clear search action
    */
-  function handleClearSearch(e) {
+  export function handleClearSearch(e) {
     e.preventDefault();
 
     // Get the search form
@@ -83,7 +82,7 @@
   /**
    * Handle player deletion with SweetAlert confirmation
    */
-  function handleDeletePlayer(target) {
+  export function handleDeletePlayer(target) {
     const playerId = target.dataset.playerId;
     const playerName = target.dataset.playerName;
 
@@ -122,7 +121,7 @@
   /**
    * Submit the delete player form
    */
-  function submitDeleteForm(playerId) {
+  export function submitDeleteForm(playerId) {
     // Create a temporary form to submit the deletion
     const form = document.createElement('form');
     form.method = 'POST';
@@ -145,7 +144,7 @@
   /**
    * Initialize WooCommerce sync handler
    */
-  function initializeSyncHandler() {
+  export function initializeSyncHandler() {
     const syncForm = document.querySelector('[data-form="update-players"]');
     if (!syncForm) return;
 
@@ -179,7 +178,7 @@
   /**
    * Start the WooCommerce sync process with progress tracking
    */
-  function startSyncProcess(form) {
+  export function startSyncProcess(form) {
     // Show progress modal
     window.Swal.fire({
       title: 'Syncing with WooCommerce',
@@ -276,7 +275,7 @@
   /**
    * Show sync results and confirmation dialog
    */
-  function showSyncResults(statusData, taskId, csrfToken) {
+  export function showSyncResults(statusData, taskId, csrfToken) {
     const newPlayers = statusData.new_players || 0;
     const potentialInactive = statusData.potential_inactive || 0;
 
@@ -309,7 +308,7 @@
   /**
    * Confirm and process the sync
    */
-  function confirmSync(taskId, csrfToken) {
+  export function confirmSync(taskId, csrfToken) {
     const processNew = document.getElementById('processNew')?.checked || false;
     const processInactive = document.getElementById('processInactive')?.checked || false;
 
@@ -353,7 +352,7 @@
   /**
    * Get theme color from ECSTheme if available, with fallback
    */
-  function getThemeColor(colorName, fallback) {
+  export function getThemeColor(colorName, fallback) {
     if (typeof window.ECSTheme !== 'undefined' && window.ECSTheme.getColor) {
       return window.ECSTheme.getColor(colorName);
     }
@@ -368,7 +367,7 @@
   /**
    * Initialize Feather icons
    */
-  function initializeFeatherIcons() {
+  export function initializeFeatherIcons() {
     if (typeof window.feather !== 'undefined') {
       window.feather.replace();
     }
@@ -377,7 +376,7 @@
   /**
    * Debounce function for search input
    */
-  function debounce(func, wait) {
+  export function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
       const later = () => {
@@ -392,7 +391,7 @@
   /**
    * Add live search functionality (optional enhancement)
    */
-  function initializeLiveSearch() {
+  export function initializeLiveSearch() {
     const searchInput = document.querySelector('[data-input="search"]');
     if (!searchInput) return;
 
@@ -426,4 +425,41 @@
     init();
   }
 
-})();
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.initializeEventDelegation = initializeEventDelegation;
+
+// Backward compatibility
+window.handleClearSearch = handleClearSearch;
+
+// Backward compatibility
+window.handleDeletePlayer = handleDeletePlayer;
+
+// Backward compatibility
+window.submitDeleteForm = submitDeleteForm;
+
+// Backward compatibility
+window.initializeSyncHandler = initializeSyncHandler;
+
+// Backward compatibility
+window.startSyncProcess = startSyncProcess;
+
+// Backward compatibility
+window.showSyncResults = showSyncResults;
+
+// Backward compatibility
+window.confirmSync = confirmSync;
+
+// Backward compatibility
+window.getThemeColor = getThemeColor;
+
+// Backward compatibility
+window.initializeFeatherIcons = initializeFeatherIcons;
+
+// Backward compatibility
+window.debounce = debounce;
+
+// Backward compatibility
+window.initializeLiveSearch = initializeLiveSearch;

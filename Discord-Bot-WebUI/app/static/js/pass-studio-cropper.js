@@ -5,7 +5,7 @@
  * Crops images to exact dimensions required for Apple/Google Wallet passes.
  */
 
-const AssetCropper = {
+export const AssetCropper = {
     canvas: null,
     ctx: null,
     image: null,

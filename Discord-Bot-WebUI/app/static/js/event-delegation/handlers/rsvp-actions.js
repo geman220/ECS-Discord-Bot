@@ -279,7 +279,7 @@ window.EventDelegation.register('rsvp-update-status', function(element, e) {
  * Helper function to update RSVP status via AJAX
  * This replaces the inline logic from the jQuery handler
  */
-function updateRSVPStatus(playerId, matchId, response) {
+export function updateRSVPStatus(playerId, matchId, response) {
     // Use SweetAlert2 for confirmation
     if (typeof window.Swal === 'undefined') {
         console.error('[updateRSVPStatus] SweetAlert2 not available');
@@ -432,3 +432,6 @@ window.EventDelegation.register('send-individual-reminder', function(element, e)
 // ============================================================================
 
 console.log('[EventDelegation] RSVP handlers loaded');
+
+// Backward compatibility
+window.updateRSVPStatus = updateRSVPStatus;

@@ -9,10 +9,10 @@
  * but removes all layout manipulation (_updateInlineStyle, update, etc.)
  */
 
-(function() {
-    'use strict';
-
-    const Helpers = {
+/**
+ * ES Module Export - Helpers
+ */
+export const Helpers = {
         // Root Element
         ROOT_EL: document.documentElement,
 
@@ -456,10 +456,8 @@
         }
     };
 
-    // Initialize immediately
-    window.Helpers.init();
+// Initialize immediately
+Helpers.init();
 
-    // Expose globally
-    window.Helpers = Helpers;
-
-})();
+// Backward compatibility - keep window.Helpers for legacy code
+window.Helpers = Helpers;

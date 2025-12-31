@@ -2,11 +2,10 @@
  * 2FA Enable/Disable Handler
  * Manages 2FA setup modal and form submission
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
     function init() {
         if (_initialized) return;
@@ -91,4 +90,3 @@
     } else {
         init();
     }
-})();

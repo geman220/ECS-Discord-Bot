@@ -16,15 +16,14 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    /**
+/**
      * Get CSRF token from meta tag
      * @returns {string} CSRF token value
      */
-    function getCsrfToken() {
+    export function getCsrfToken() {
         const csrfMeta = document.querySelector('meta[name="csrf-token"]');
         return csrfMeta ? csrfMeta.content : '';
     }
@@ -180,7 +179,7 @@
      * ROOT CAUSE FIX: All listeners use document-level delegation
      */
     let _initialized = false;
-    function init() {
+    export function init() {
         // Only initialize once
         if (_initialized) return;
         _initialized = true;
@@ -230,4 +229,9 @@
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.getCsrfToken = getCsrfToken;
+
+// Backward compatibility
+window.init = init;

@@ -2,8 +2,7 @@
  * User Approval Management JavaScript
  * Handles user approval and denial functionality for league placement
  */
-
-(function() {
+// ES Module
 'use strict';
 
 let _initialized = false;
@@ -15,7 +14,7 @@ let denialModal = null;
 let playerDetailsModal = null;
 
 // Initialize function
-function init() {
+export function init() {
     if (_initialized) return;
     _initialized = true;
 
@@ -26,7 +25,7 @@ function init() {
 /**
  * Initialize Bootstrap modals
  */
-function initializeModals() {
+export function initializeModals() {
     const approvalModalElement = document.getElementById('approvalModal');
     const denialModalElement = document.getElementById('denialModal');
     const playerDetailsModalElement = document.getElementById('playerDetailsModal');
@@ -48,7 +47,7 @@ function initializeModals() {
  * Initialize form submit event listeners
  * Note: Click handlers are managed by centralized event delegation
  */
-function initializeFormSubmitListeners() {
+export function initializeFormSubmitListeners() {
     // Handle form submissions
     const approvalForm = document.getElementById('approvalForm');
     const denialForm = document.getElementById('denialForm');
@@ -72,7 +71,7 @@ function initializeFormSubmitListeners() {
  * Show approval modal for a user
  * @param {number} userId - The user ID to approve
  */
-function showApprovalModal(userId) {
+export function showApprovalModal(userId) {
     if (!approvalModal) {
         showErrorAlert('Modal not initialized');
         return;
@@ -97,7 +96,7 @@ function showApprovalModal(userId) {
  * Show denial modal for a user
  * @param {number} userId - The user ID to deny
  */
-function showDenialModal(userId) {
+export function showDenialModal(userId) {
     if (!denialModal) {
         showErrorAlert('Modal not initialized');
         return;
@@ -121,7 +120,7 @@ function showDenialModal(userId) {
 /**
  * Submit user approval
  */
-function submitApproval() {
+export function submitApproval() {
     const form = document.getElementById('approvalForm');
     const formData = new FormData(form);
     const userId = document.getElementById('approvalUserId').value;
@@ -183,7 +182,7 @@ function submitApproval() {
 /**
  * Submit user denial
  */
-function submitDenial() {
+export function submitDenial() {
     const form = document.getElementById('denialForm');
     const formData = new FormData(form);
     const userId = document.getElementById('denialUserId').value;
@@ -246,7 +245,7 @@ function submitDenial() {
  * Remove user row from the table
  * @param {number} userId - The user ID to remove
  */
-function removeUserFromTable(userId) {
+export function removeUserFromTable(userId) {
     const table = document.querySelector('[data-role="approval-table"]');
     if (!table) return;
 
@@ -274,7 +273,7 @@ function removeUserFromTable(userId) {
 /**
  * Show empty table message
  */
-function showEmptyTableMessage() {
+export function showEmptyTableMessage() {
     const container = document.querySelector('[data-role="table-container"]');
     if (container) {
         container.innerHTML = `
@@ -290,7 +289,7 @@ function showEmptyTableMessage() {
 /**
  * Update statistics display
  */
-function userApprovalUpdateStats() {
+export function userApprovalUpdateStats() {
     fetch('/admin/user-approvals/stats')
         .then(response => response.json())
         .then(data => {
@@ -335,7 +334,7 @@ function userApprovalUpdateStats() {
 /**
  * Refresh stats manually
  */
-function refreshStats() {
+export function refreshStats() {
     const refreshButton = document.querySelector('[data-action="refresh-stats"]');
     if (refreshButton) {
         const originalText = refreshButton.innerHTML;
@@ -354,7 +353,7 @@ function refreshStats() {
  * Get CSRF token from meta tag or cookie
  * @returns {string} CSRF token
  */
-function getCSRFToken() {
+export function getCSRFToken() {
     // Try to get from meta tag first (vanilla JS pattern)
     const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
 
@@ -374,7 +373,7 @@ function getCSRFToken() {
  * Show success alert
  * @param {string} message - Success message
  */
-function showSuccessAlert(message) {
+export function showSuccessAlert(message) {
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire({
             icon: 'success',
@@ -394,7 +393,7 @@ function showSuccessAlert(message) {
  * Show error alert
  * @param {string} message - Error message
  */
-function showErrorAlert(message) {
+export function showErrorAlert(message) {
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire({
             icon: 'error',
@@ -411,7 +410,7 @@ function showErrorAlert(message) {
  * Show warning alert
  * @param {string} message - Warning message
  */
-function showWarningAlert(message) {
+export function showWarningAlert(message) {
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire({
             icon: 'warning',
@@ -428,7 +427,7 @@ function showWarningAlert(message) {
  * Show info alert
  * @param {string} message - Info message
  */
-function showInfoAlert(message) {
+export function showInfoAlert(message) {
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire({
             icon: 'info',
@@ -445,7 +444,7 @@ function showInfoAlert(message) {
  * Show player details modal
  * @param {number} userId - The user ID to show details for
  */
-function showPlayerDetails(userId) {
+export function showPlayerDetails(userId) {
     if (!playerDetailsModal) {
         showErrorAlert('Details modal not initialized');
         return;
@@ -628,4 +627,35 @@ if (document.readyState === 'loading') {
     init();
 }
 
-})();
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.initializeModals = initializeModals;
+
+// Backward compatibility
+window.initializeFormSubmitListeners = initializeFormSubmitListeners;
+
+// Backward compatibility
+window.removeUserFromTable = removeUserFromTable;
+
+// Backward compatibility
+window.showEmptyTableMessage = showEmptyTableMessage;
+
+// Backward compatibility
+window.userApprovalUpdateStats = userApprovalUpdateStats;
+
+// Backward compatibility
+window.getCSRFToken = getCSRFToken;
+
+// Backward compatibility
+window.showSuccessAlert = showSuccessAlert;
+
+// Backward compatibility
+window.showErrorAlert = showErrorAlert;
+
+// Backward compatibility
+window.showWarningAlert = showWarningAlert;
+
+// Backward compatibility
+window.showInfoAlert = showInfoAlert;

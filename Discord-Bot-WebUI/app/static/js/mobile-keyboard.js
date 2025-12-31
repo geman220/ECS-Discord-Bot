@@ -13,14 +13,13 @@
  *
  * REFACTORED: All inline style manipulations replaced with CSS classes
  */
+// ES Module
+'use strict';
 
-(function (window) {
-  'use strict';
-
-  /**
+/**
    * Mobile Keyboard Controller
    */
-  const MobileKeyboard = {
+  export const MobileKeyboard = {
     /**
      * Current keyboard state
      */
@@ -565,4 +564,3 @@
     window.MobileKeyboard.init();
   }
 
-})(window);

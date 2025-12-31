@@ -25,15 +25,14 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    // ========================================================================
+// ========================================================================
     // CONSTANTS & CONFIGURATION
     // ========================================================================
 
-    const CONFIG = {
+    export const CONFIG = {
         BACKDROP_TRANSITION_MS: 300,
         RIPPLE_CLEANUP_DELAY_MS: 10,
         BUTTON_FIX_RETRY_DELAY_MS: 500,
@@ -44,7 +43,7 @@
         BUTTON_SELECTORS: '[data-action], .btn, .c-btn, button[class*="btn-"]'
     };
 
-    const CSS_CLASSES = {
+    export const CSS_CLASSES = {
         MODAL_OPEN: 'modal-open',
         MODAL_SHOW: 'show',
         MODAL_ACTIVE: 'modal-active',
@@ -59,7 +58,7 @@
     // MODAL HELPERS CONTROLLER
     // ========================================================================
 
-    const ModalHelpers = {
+    export const ModalHelpers = {
         // State tracking
         _initialized: false,
 
@@ -432,4 +431,8 @@
         }
     }
 
-})();
+// Backward compatibility
+window.CONFIG = CONFIG;
+
+// Backward compatibility
+window.CSS_CLASSES = CSS_CLASSES;

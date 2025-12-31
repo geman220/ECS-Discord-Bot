@@ -1,12 +1,12 @@
 /**
  * Settings Page - Account and notification settings management
  */
-(function() {
-  'use strict';
+// ES Module
+'use strict';
 
-  let _initialized = false;
+let _initialized = false;
 
-  function init() {
+  export function init() {
     if (_initialized) return;
     _initialized = true;
 
@@ -224,4 +224,6 @@
   } else {
     init();
   }
-})();
+
+// Backward compatibility
+window.init = init;

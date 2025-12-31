@@ -14,15 +14,14 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    /* ========================================================================
+/* ========================================================================
        CONFIGURATION
        ======================================================================== */
 
-    const CONFIG = {
+    export const CONFIG = {
         selectors: {
             // Containers
             dockerStatusContainer: '#dockerStatusContainer',
@@ -70,7 +69,7 @@
        ADMIN DASHBOARD CONTROLLER
        ======================================================================== */
 
-    const AdminDashboard = {
+    export const AdminDashboard = {
         /**
          * Initialize the admin dashboard
          */
@@ -870,4 +869,5 @@
         });
     }
 
-})();
+// Backward compatibility
+window.CONFIG = CONFIG;

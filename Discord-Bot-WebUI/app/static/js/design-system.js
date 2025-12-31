@@ -7,12 +7,11 @@
  * 2. Adding responsive behaviors to components
  * 3. Providing helper functions for common UI patterns
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  // Main design system helper
-  const ECSDesignSystem = {
+// Main design system helper
+  export const ECSDesignSystem = {
     // Module-level initialization guard - prevents multiple init calls
     _initialized: false,
 
@@ -626,4 +625,3 @@
       window.ECSDesignSystem.init();
     });
   }
-})();

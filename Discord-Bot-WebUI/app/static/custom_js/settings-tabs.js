@@ -7,11 +7,10 @@
  * - data-tab-trigger="name": Tab trigger button
  * - data-tab-pane="name": Tab content pane
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    const SettingsTabs = {
+export const SettingsTabs = {
         SELECTORS: {
             CONTAINER: '[data-tabs]',
             TRIGGER: '[data-tab-trigger]',
@@ -196,4 +195,3 @@
 
     // Handle hash changes
     window.addEventListener('hashchange', () => window.SettingsTabs.handleHash());
-})();

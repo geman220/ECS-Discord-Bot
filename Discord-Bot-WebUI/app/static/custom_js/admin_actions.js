@@ -2,15 +2,15 @@
  * Admin Actions - Role Toggle Functionality
  * Handles player role updates via AJAX
  */
-(function() {
-    'use strict';
+// ES Module
+'use strict';
 
-    /**
+/**
      * Toggle a role for a player
      * @param {string} role - The role to toggle
      * @param {number} playerId - The player ID
      */
-    function toggleRole(role, playerId) {
+    export function toggleRole(role, playerId) {
         const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
         const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
         const roleToggle = document.querySelector(`[data-role-toggle="${role}"]`);
@@ -93,4 +93,3 @@
 
     // Expose globally for inline onclick handlers (backward compatibility)
     window.toggleRole = toggleRole;
-})();

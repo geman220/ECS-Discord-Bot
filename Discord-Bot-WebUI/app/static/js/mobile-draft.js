@@ -15,11 +15,10 @@
  * REFACTORED: All inline style manipulations replaced with CSS classes
  * See /app/static/css/utilities/draft-system-utils.css for utility classes
  */
+// ES Module
+'use strict';
 
-(function (window) {
-  'use strict';
-
-  const MobileDraft = {
+export const MobileDraft = {
     selectedPlayer: null,
     selectedTeam: null,
 
@@ -623,4 +622,3 @@
     }, { preventDefault: true });
   }
 
-})(window);

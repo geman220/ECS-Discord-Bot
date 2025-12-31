@@ -2,11 +2,10 @@
  * Waitlist Registration (Authenticated) Page Handler
  * Manages profile modal and verification
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
     let isEditing = false;
 
     function init() {
@@ -41,14 +40,14 @@
     }
 
     // Show profile verification modal
-    function showProfileModal() {
+    export function showProfileModal() {
         if (typeof window.ModalManager !== 'undefined') {
             window.ModalManager.show('profileModal');
         }
     }
 
     // Toggle edit mode
-    function toggleEdit() {
+    export function toggleEdit() {
         isEditing = !isEditing;
         const editBtn = document.getElementById('editProfileBtn');
         const form = document.getElementById('profileForm');
@@ -85,7 +84,7 @@
     }
 
     // Verify profile function (now also saves if edited)
-    function verifyProfile() {
+    export function verifyProfile() {
         const playerData = window.playerData || {};
 
         if (!playerData.id) {
@@ -204,4 +203,12 @@
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.showProfileModal = showProfileModal;
+
+// Backward compatibility
+window.toggleEdit = toggleEdit;
+
+// Backward compatibility
+window.verifyProfile = verifyProfile;

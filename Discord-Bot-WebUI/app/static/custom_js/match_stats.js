@@ -2,11 +2,10 @@
  * Match Stats Management
  * Handles match stats editing and filtering
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
     function init() {
         if (_initialized) return;
@@ -105,7 +104,7 @@
     }
 
     // Function to filter match stats based on selected match
-    function filterMatchStats() {
+    export function filterMatchStats() {
         var selectedMatchId = window.$('#matchFilter').val();
         window.$('#matchStatsContainer .card').each(function () {
             var matchId = window.$(this).data('match-id');
@@ -118,7 +117,7 @@
     }
 
     // Function to open Edit Match Stat Modal with data populated
-    function matchStatsEditMatch(statId) {
+    export function matchStatsEditMatch(statId) {
         var csrfToken = window.$('input[name="csrf_token"]').val();
 
         window.$.ajax({
@@ -146,7 +145,7 @@
     }
 
     // Function to remove a match stat with SA2 confirmation
-    function removeMatchStat(statId) {
+    export function removeMatchStat(statId) {
         window.Swal.fire({
             title: 'Are you sure?',
             text: "Do you want to remove this stat?",
@@ -223,4 +222,3 @@
     } else {
         init();
     }
-})();

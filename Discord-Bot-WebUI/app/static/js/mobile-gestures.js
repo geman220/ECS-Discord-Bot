@@ -10,14 +10,13 @@
  * @version 1.0.1
  * @updated 2025-12-26 - Code review for EventDelegation (no changes needed - uses Hammer.js)
  */
+// ES Module
+'use strict';
 
-(function (window) {
-  'use strict';
-
-  /**
+/**
    * Mobile Gestures Controller
    */
-  const MobileGestures = {
+  export const MobileGestures = {
     /**
      * Check if device supports touch
      * @returns {boolean}
@@ -582,4 +581,3 @@
     window.MobileGestures.init();
   }
 
-})(window);

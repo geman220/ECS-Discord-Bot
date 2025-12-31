@@ -33,15 +33,14 @@
  *
  * ==========================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  // ============================================================================
+// ============================================================================
   // CONFIGURATION
   // ============================================================================
 
-  const CONFIG = {
+  export const CONFIG = {
     // Socket.IO connection options
     connection: {
       // Start with polling to establish sticky session, then upgrade to websocket
@@ -84,17 +83,17 @@
   // LOGGING
   // ============================================================================
 
-  function log(...args) {
+  export function log(...args) {
     if (CONFIG.debug) {
       console.log('[SocketManager]', ...args);
     }
   }
 
-  function warn(...args) {
+  export function warn(...args) {
     console.warn('[SocketManager]', ...args);
   }
 
-  function error(...args) {
+  export function error(...args) {
     console.error('[SocketManager]', ...args);
   }
 
@@ -106,7 +105,7 @@
    * Get or create the socket instance
    * @returns {Socket|null} The socket instance or null if Socket.IO not available
    */
-  function getSocket() {
+  export function getSocket() {
     // Return existing socket if available
     if (socket) {
       return window.socket;
@@ -153,7 +152,7 @@
   /**
    * Attach internal event listeners for connection management
    */
-  function attachInternalListeners() {
+  export function attachInternalListeners() {
     if (!window.socket) return;
 
     // Remove existing listeners to prevent duplicates on reconnect
@@ -172,7 +171,7 @@
   /**
    * Handle successful connection
    */
-  function handleConnect() {
+  export function handleConnect() {
     log('Socket connected, id:', socket.id);
     isConnected = true;
     connectionAttempts = 0;
@@ -199,7 +198,7 @@
    * Check if we were recently connected (for optimistic UI across page loads)
    * Returns true if connected within the optimistic delay period
    */
-  function wasRecentlyConnected() {
+  export function wasRecentlyConnected() {
     try {
       const lastConnected = sessionStorage.getItem(OPTIMISTIC_KEY);
       if (!lastConnected) return false;
@@ -215,7 +214,7 @@
    * Handle disconnection
    * Uses optimistic UI - delays firing disconnect callbacks to handle page navigation gracefully
    */
-  function handleDisconnect(reason) {
+  export function handleDisconnect(reason) {
     log('Socket disconnected, reason:', reason);
 
     // Clear any existing timeout
@@ -239,7 +238,7 @@
   /**
    * Handle connection error
    */
-  function handleConnectError(err) {
+  export function handleConnectError(err) {
     connectionAttempts++;
     warn(`Connection error (attempt ${connectionAttempts}):`, err.message);
 
@@ -252,7 +251,7 @@
   /**
    * Fire all registered connect callbacks
    */
-  function fireConnectCallbacks() {
+  export function fireConnectCallbacks() {
     connectCallbacks.forEach((callback, component) => {
       try {
         log(`Firing connect callback for: ${component}`);
@@ -266,7 +265,7 @@
   /**
    * Fire all registered disconnect callbacks
    */
-  function fireDisconnectCallbacks(reason) {
+  export function fireDisconnectCallbacks(reason) {
     disconnectCallbacks.forEach((callback, component) => {
       try {
         callback(reason);
@@ -280,7 +279,7 @@
   // PUBLIC API
   // ============================================================================
 
-  const SocketManager = {
+  export const SocketManager = {
     /**
      * Get the socket instance (creates if needed)
      * @returns {Socket|null}
@@ -469,7 +468,7 @@
   // ============================================================================
 
   // Auto-initialize socket when DOM is ready
-  function init() {
+  export function init() {
     // Only initialize if Socket.IO is available
     if (typeof window.io !== 'undefined') {
       getSocket();
@@ -506,4 +505,41 @@
   // Expose to global scope
   window.SocketManager = SocketManager;
 
-})();
+// Backward compatibility
+window.CONFIG = CONFIG;
+
+// Backward compatibility
+window.log = log;
+
+// Backward compatibility
+window.warn = warn;
+
+// Backward compatibility
+window.error = error;
+
+// Backward compatibility
+window.getSocket = getSocket;
+
+// Backward compatibility
+window.attachInternalListeners = attachInternalListeners;
+
+// Backward compatibility
+window.handleConnect = handleConnect;
+
+// Backward compatibility
+window.wasRecentlyConnected = wasRecentlyConnected;
+
+// Backward compatibility
+window.handleDisconnect = handleDisconnect;
+
+// Backward compatibility
+window.handleConnectError = handleConnectError;
+
+// Backward compatibility
+window.fireConnectCallbacks = fireConnectCallbacks;
+
+// Backward compatibility
+window.fireDisconnectCallbacks = fireDisconnectCallbacks;
+
+// Backward compatibility
+window.init = init;

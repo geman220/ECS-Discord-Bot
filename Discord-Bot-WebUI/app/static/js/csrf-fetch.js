@@ -8,11 +8,10 @@
  *
  * The CSRF token is read from: <meta name="csrf-token" content="...">
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    // Store the original fetch
+// Store the original fetch
     const originalFetch = window.fetch;
 
     // Methods that require CSRF protection
@@ -21,7 +20,7 @@
     /**
      * Get CSRF token from meta tag
      */
-    function getCSRFToken() {
+    export function getCSRFToken() {
         const meta = document.querySelector('meta[name="csrf-token"]');
         return meta ? meta.getAttribute('content') : null;
     }
@@ -63,4 +62,6 @@
     window.fetchWithCSRF = window.fetch;
 
     console.debug('[CSRF] Fetch wrapper initialized');
-})();
+
+// Backward compatibility
+window.getCSRFToken = getCSRFToken;

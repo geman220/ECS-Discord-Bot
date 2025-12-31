@@ -9,7 +9,7 @@
  * @updated 2025-12-26 - Refactored to use EventDelegation
  */
 
-class SimpleThemeSwitcher {
+export class SimpleThemeSwitcher {
   constructor() {
     this.themes = ['light', 'dark', 'system'];
     this.variants = ['modern'];

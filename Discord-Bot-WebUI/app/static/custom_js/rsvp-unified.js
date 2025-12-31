@@ -7,13 +7,12 @@
  * - Added fallback solutions for team selection in sub request modal
  * - Fixed issue with Pub League Coaches not being able to request subs
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
+let _initialized = false;
 
-  let _initialized = false;
-
-  function init() {
+  export function init() {
     if (_initialized) return;
     _initialized = true;
   
@@ -229,7 +228,7 @@
  * Note: This function now only adds CSS classes instead of manipulating styles directly.
  * The heavy lifting is done by CSS, which is more performant and maintainable.
  */
-function fixDropdownsAndOverflow() {
+export function fixDropdownsAndOverflow() {
   try {
     // Add utility classes to dropdown menus (exclude navbar dropdowns)
     var dropdowns = document.querySelectorAll('[data-dropdown]:not(.c-navbar-modern__actions [data-dropdown])');
@@ -250,7 +249,7 @@ function fixDropdownsAndOverflow() {
 /**
  * Format phone number for display
  */
-function formatPhoneNumber(phoneNumber) {
+export function formatPhoneNumber(phoneNumber) {
   if (!phoneNumber) return '';
   
   var cleaned = ('' + phoneNumber).replace(/\D/g, '');
@@ -273,7 +272,7 @@ function formatPhoneNumber(phoneNumber) {
 /**
  * Bind all event handlers for the page
  */
-function bindEventHandlers() {
+export function bindEventHandlers() {
   try {
     // Using jQuery with defensive programming
     if (window.jQuery) {
@@ -460,7 +459,7 @@ function bindEventHandlers() {
 /**
  * Bind tab event handlers
  */
-function bindTabHandlers() {
+export function bindTabHandlers() {
   try {
     if (window.jQuery) {
       var $ = window.jQuery;
@@ -484,7 +483,7 @@ function bindTabHandlers() {
 /**
  * Load available substitutes for the assign sub modal
  */
-function loadAvailableSubs() {
+export function loadAvailableSubs() {
   try {
     if (window.jQuery) {
       var $ = window.jQuery;
@@ -652,7 +651,7 @@ function loadAvailableSubs() {
  * This function provides a client-side fallback that ensures the team selection
  * dropdown shows the teams that a coach is associated with for a match.
  */
-function fixTeamOptions() {
+export function fixTeamOptions() {
   try {
     // Get required DOM elements
     var requestSubModal = document.getElementById('requestSubModal');
@@ -837,7 +836,7 @@ function fixTeamOptions() {
 }
 
 // Function to ensure DataTables arrows work correctly
-function removeDataTablesArrows() {
+export function removeDataTablesArrows() {
   try {
     // Get sorting elements (this DOM query might be essential)
     var sortingElements = document.querySelectorAll('table.dataTable thead th.sorting, table.dataTable thead th.sorting_asc, table.dataTable thead th.sorting_desc');
@@ -873,4 +872,27 @@ function removeDataTablesArrows() {
   } else {
     init();
   }
-})();
+
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.fixDropdownsAndOverflow = fixDropdownsAndOverflow;
+
+// Backward compatibility
+window.formatPhoneNumber = formatPhoneNumber;
+
+// Backward compatibility
+window.bindEventHandlers = bindEventHandlers;
+
+// Backward compatibility
+window.bindTabHandlers = bindTabHandlers;
+
+// Backward compatibility
+window.loadAvailableSubs = loadAvailableSubs;
+
+// Backward compatibility
+window.fixTeamOptions = fixTeamOptions;
+
+// Backward compatibility
+window.removeDataTablesArrows = removeDataTablesArrows;

@@ -3,11 +3,10 @@
  * Ensures users review all sections before confirming profile
  * Implements section-by-section checkbox tracking
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  const ProfileVerification = {
+export const ProfileVerification = {
     /**
      * Initialize profile verification system
      */
@@ -459,4 +458,3 @@
   // Export for external access
   window.ProfileVerification = ProfileVerification;
 
-})();

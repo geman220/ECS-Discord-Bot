@@ -1,259 +1,252 @@
-(function() {
-  'use strict';
+'use strict';
 
-  let _initialized = false;
+let _initialized = false;
 
-  function init() {
-    if (_initialized) return;
+/**
+ * Generate unique operation ID for idempotency
+ */
+export function generateOperationId() {
+    return 'web_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
 
-    // Retrieve the values for playerId, discordId, and csrfToken from the DOM
-    const rsvpDataElement = document.getElementById('rsvp-data');
+// Track the last selected response to allow "unclick" behavior
+const lastSelected = {};
 
-    // Check if the element exists before proceeding
-    if (!rsvpDataElement) {
-        // console.log('RSVP data element not found, RSVP functionality disabled');
-        return; // Exit early if RSVP data is not available
-    }
+// Current operation ID for retry logic
+let currentOperationId = null;
 
-    _initialized = true;
-    
-    const playerId = rsvpDataElement.getAttribute('data-player-id');
-    const discordId = rsvpDataElement.getAttribute('data-discord-id');
-    const csrfToken = rsvpDataElement.getAttribute('data-csrf-token');
+/**
+ * Submit RSVP for a match
+ * @param {string} matchId - Match ID
+ * @param {string} response - RSVP response
+ * @param {string} csrfToken - CSRF token
+ * @param {string} discordId - Discord ID
+ * @param {number} retryCount - Retry count
+ */
+function submitRSVP(matchId, response, csrfToken, discordId, retryCount = 0) {
+    // Use same operation ID for retries to ensure idempotency
+    const operationId = currentOperationId || generateOperationId();
+    currentOperationId = operationId;
 
-    // Generate unique operation ID for idempotency
-    function generateOperationId() {
-        return 'web_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    }
-
-    function submitRSVP(matchId, response, retryCount = 0) {
-        // Use same operation ID for retries to ensure idempotency
-        const operationId = this.currentOperationId || generateOperationId();
-        this.currentOperationId = operationId;
-        
-        fetch(`/api/v2/rsvp/update`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  // Include CSRF token
-            },
-            body: JSON.stringify({
-                match_id: parseInt(matchId),
-                availability: response,  // Changed from 'response' to 'availability'
-                operation_id: operationId,
-                source: 'discord',  // Changed from 'web' to 'discord' to use Discord ID auth
-                discord_id: discordId
-            })
+    fetch(`/api/v2/rsvp/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            match_id: parseInt(matchId),
+            availability: response,
+            operation_id: operationId,
+            source: 'discord',
+            discord_id: discordId
         })
-            .then(response => {
-                // Check if the response is ok (status in the range 200-299)
-                if (!response.ok) {
-                    throw new Error(`HTTP error ${response.status}`);
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+
+            return response.text().then(text => {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    throw new Error('Invalid JSON response');
                 }
-                
-                // For debugging, log the raw response text first
-                return response.text().then(text => {
-                    // console.log('Raw response:', text);
-                    try {
-                        return JSON.parse(text);
-                    } catch (e) {
-                        // console.error('JSON parse error:', e);
-                        throw new Error('Invalid JSON response');
-                    }
+            });
+        })
+        .then(data => {
+            // Clear operation ID on success
+            currentOperationId = null;
+
+            if (data.message && data.match_id) {
+                window.Swal.fire({
+                    icon: 'success',
+                    title: 'RSVP Updated',
+                    text: data.message || 'Your RSVP status has been updated!',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
                 });
-            })
-            .then(data => {
-                // Clear operation ID on success
-                this.currentOperationId = null;
-                
-                // Enterprise endpoint returns success with message, no 'success' field
-                if (data.message && data.match_id) {
-                    // console.log('RSVP updated successfully with enterprise system');
-                    // Show success message
+
+                if (window.location.pathname.includes('/matches/')) {
+                    setTimeout(() => window.location.reload(), 1000);
+                }
+            } else if (data.error) {
+                throw new Error(data.error);
+            } else {
+                if (data.success) {
                     window.Swal.fire({
                         icon: 'success',
                         title: 'RSVP Updated',
-                        text: data.message || 'Your RSVP status has been updated!',
+                        text: 'Your RSVP status has been updated!',
                         toast: true,
                         position: 'top-end',
                         showConfirmButton: false,
                         timer: 3000
                     });
-                    
-                    // If we're on the match details page, reload to show the updated status
+
                     if (window.location.pathname.includes('/matches/')) {
                         setTimeout(() => window.location.reload(), 1000);
                     }
-                } else if (data.error) {
-                    // Handle enterprise API error format
-                    throw new Error(data.error);
                 } else {
-                    // Fallback for legacy success format
-                    if (data.success) {
-                        window.Swal.fire({
-                            icon: 'success',
-                            title: 'RSVP Updated',
-                            text: 'Your RSVP status has been updated!',
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 3000
-                        });
-                        
-                        if (window.location.pathname.includes('/matches/')) {
-                            setTimeout(() => window.location.reload(), 1000);
-                        }
-                    } else {
-                        throw new Error(data.message || 'Failed to update RSVP');
+                    throw new Error(data.message || 'Failed to update RSVP');
+                }
+            }
+        })
+        .catch(error => {
+            const maxRetries = 2;
+            if (retryCount < maxRetries &&
+                (error.message.includes('HTTP error 5') || error.message.includes('NetworkError'))) {
+
+                setTimeout(() => {
+                    console.log(`Retrying RSVP update (attempt ${retryCount + 1}/${maxRetries})`);
+                    submitRSVP(matchId, response, csrfToken, discordId, retryCount + 1);
+                }, Math.pow(2, retryCount) * 1000);
+
+                return;
+            }
+
+            currentOperationId = null;
+
+            window.Swal.fire({
+                icon: 'error',
+                title: 'RSVP Error',
+                text: `Could not update your RSVP: ${error.message}`,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: true,
+                confirmButtonText: 'Retry',
+                timer: 8000
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    currentOperationId = null;
+                    submitRSVP(matchId, response, csrfToken, discordId, 0);
+                }
+            });
+        });
+}
+
+/**
+ * Set initial RSVP values from server
+ * @param {string} csrfToken - CSRF token
+ */
+export function setInitialRSVPs(csrfToken) {
+    try {
+        const inputs = document.querySelectorAll('.btn-check.rsvp-input');
+        if (!inputs || inputs.length === 0) {
+            return;
+        }
+
+        const matchIds = [...new Set(
+            [...inputs]
+            .map(input => {
+                const parts = input.name ? input.name.split('-') : [];
+                return parts.length > 1 ? parts[1] : null;
+            })
+            .filter(id => id && id !== 'undefined' && id.trim() !== '')
+        )];
+
+        matchIds.forEach(matchId => {
+            if (!matchId || matchId === 'undefined') {
+                return;
+            }
+
+            fetch(`/rsvp/status/${matchId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                return response.text().then(text => {
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        throw new Error('Invalid JSON response');
+                    }
+                });
+            })
+            .then(data => {
+                if (data && data.response) {
+                    const radioButton = document.querySelector(`input[name="response-${matchId}"][value="${data.response}"]`);
+                    if (radioButton) {
+                        radioButton.checked = true;
+                        lastSelected[matchId] = data.response;
                     }
                 }
             })
             .catch(error => {
-                // console.error('Error updating RSVP:', error);
-                
-                // Implement simple retry logic for network errors
-                const maxRetries = 2;
-                if (retryCount < maxRetries && 
-                    (error.message.includes('HTTP error 5') || error.message.includes('NetworkError'))) {
-                    
-                    // Retry with exponential backoff
-                    setTimeout(() => {
-                        console.log(`Retrying RSVP update (attempt ${retryCount + 1}/${maxRetries})`);
-                        submitRSVP(matchId, response, retryCount + 1);
-                    }, Math.pow(2, retryCount) * 1000);
-                    
-                    return;
-                }
-                
-                // Clear operation ID on final failure
-                this.currentOperationId = null;
-                
-                // Show error message to user with retry option
-                window.Swal.fire({
-                    icon: 'error',
-                    title: 'RSVP Error',
-                    text: `Could not update your RSVP: ${error.message}`,
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: true,
-                    confirmButtonText: 'Retry',
-                    timer: 8000
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // User clicked retry - start fresh
-                        this.currentOperationId = null;
-                        submitRSVP(matchId, response, 0);
-                    }
-                });
+                // Silently fail for status checks
             });
+        });
+    } catch (error) {
+        // Silently fail
+    }
+}
+
+/**
+ * Initialize RSVP functionality
+ */
+export function init() {
+    if (_initialized) return;
+
+    const rsvpDataElement = document.getElementById('rsvp-data');
+
+    if (!rsvpDataElement) {
+        return;
     }
 
-    // Track the last selected response to allow "unclick" behavior
-    const lastSelected = {};
+    _initialized = true;
 
-    // Attach event listeners for RSVP radio buttons
-    // ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
+    const playerId = rsvpDataElement.getAttribute('data-player-id');
+    const discordId = rsvpDataElement.getAttribute('data-discord-id');
+    const csrfToken = rsvpDataElement.getAttribute('data-csrf-token');
+
+    // Attach event listeners for RSVP radio buttons using event delegation
     document.addEventListener('click', function(event) {
         const element = event.target.closest('.btn-check.rsvp-input');
         if (!element) return;
 
-        const matchId = element.name.split('-')[1];  // Extract match ID from name attribute
+        const matchId = element.name.split('-')[1];
         const response = element.value;
 
         if (lastSelected[matchId] === response) {
-            // If the same option is clicked twice, uncheck it and reset to "no response"
             element.checked = false;
-            submitRSVP(matchId, 'no_response');
+            submitRSVP(matchId, 'no_response', csrfToken, discordId);
             lastSelected[matchId] = null;
         } else {
-            // Otherwise, submit the selected response
-            submitRSVP(matchId, response);
+            submitRSVP(matchId, response, csrfToken, discordId);
             lastSelected[matchId] = response;
         }
     });
 
-    // Load and set the existing RSVP values when the page loads
-    function setInitialRSVPs() {
-        try {
-            // Get all form inputs and extract unique match IDs
-            const inputs = document.querySelectorAll('.btn-check.rsvp-input');
-            if (!inputs || inputs.length === 0) {
-                // console.log('No RSVP inputs found on page');
-                return;
-            }
-            
-            // Extract match IDs, filtering out undefined or empty values
-            const matchIds = [...new Set(
-                [...inputs]
-                .map(input => {
-                    const parts = input.name ? input.name.split('-') : [];
-                    return parts.length > 1 ? parts[1] : null;
-                })
-                .filter(id => id && id !== 'undefined' && id.trim() !== '')
-            )];
-            
-            // For each valid match ID, fetch the status
-            matchIds.forEach(matchId => {
-                if (!matchId || matchId === 'undefined') {
-                    // console.warn('Invalid match ID for RSVP status fetch');
-                    return;
-                }
-                
-                fetch(`/rsvp/status/${matchId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken  // Include CSRF token
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error ${response.status}`);
-                    }
-                    return response.text().then(text => {
-                        try {
-                            return JSON.parse(text);
-                        } catch (e) {
-                            // console.error(`JSON parse error for match ${matchId}:`, e);
-                            throw new Error('Invalid JSON response');
-                        }
-                    });
-                })
-                .then(data => {
-                    if (data && data.response) {
-                        const radioButton = document.querySelector(`input[name="response-${matchId}"][value="${data.response}"]`);
-                        if (radioButton) {
-                            radioButton.checked = true;
-                            lastSelected[matchId] = data.response;
-                        }
-                    }
-                })
-                .catch(error => {
-                    // console.log(`Could not load RSVP status for match ${matchId}: ${error.message}`);
-                });
-            });
-        } catch (error) {
-            // console.error('Error in setInitialRSVPs:', error);
-        }
-    }
+    // Load initial RSVP values
+    setInitialRSVPs(csrfToken);
+}
 
-    // Call the function to set the initial RSVP statuses
-    setInitialRSVPs();
-  }
-
-  // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+// Register with InitSystem (primary)
+if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
     window.InitSystem.register('rsvp', init, {
-      priority: 50,
-      reinitializable: true,
-      description: 'RSVP functionality'
+        priority: 50,
+        reinitializable: true,
+        description: 'RSVP functionality'
     });
-  }
+}
 
-  // Fallback
-  if (document.readyState === 'loading') {
+// Fallback
+if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
-  } else {
+} else {
     init();
-  }
-})();
+}
+
+// Backward compatibility
+window.init = init;
+window.generateOperationId = generateOperationId;
+window.setInitialRSVPs = setInitialRSVPs;

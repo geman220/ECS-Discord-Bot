@@ -37,7 +37,7 @@
  * @since 2025-12-17
  */
 
-class ModalManager {
+export class ModalManager {
     /**
      * Modal instance cache - prevents duplicate initializations
      * @private

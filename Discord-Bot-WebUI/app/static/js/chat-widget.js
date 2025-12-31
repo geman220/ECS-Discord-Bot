@@ -16,15 +16,14 @@
  * @requires Socket.IO (for real-time messaging)
  * @requires /api/messages endpoints
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  // ============================================================================
+// ============================================================================
   // CONFIGURATION
   // ============================================================================
 
-  const CONFIG = {
+  export const CONFIG = {
     api: {
       conversations: '/api/messages',
       messages: (userId) => `/api/messages/${userId}`,
@@ -76,7 +75,7 @@
 
   let elements = {};
 
-  function cacheElements() {
+  export function cacheElements() {
     elements = {
       widget: document.querySelector('.c-chat-widget'),
       trigger: document.querySelector('.c-chat-widget__trigger'),
@@ -114,7 +113,7 @@
   // API FUNCTIONS
   // ============================================================================
 
-  function getCSRFToken() {
+  export function getCSRFToken() {
     const meta = document.querySelector('meta[name="csrf-token"]');
     return meta ? meta.getAttribute('content') : '';
   }
@@ -255,7 +254,7 @@
    * @param {Object} user - User object with role flags
    * @returns {string} HTML string with badge icons
    */
-  function renderRoleBadges(user) {
+  export function renderRoleBadges(user) {
     if (!user) return '';
 
     const badges = [];
@@ -282,7 +281,7 @@
     return badges.length > 0 ? `<span class="c-chat-widget__role-badges">${badges.join('')}</span>` : '';
   }
 
-  function renderConversations() {
+  export function renderConversations() {
     if (!elements.conversationList) return;
 
     if (state.conversations.length === 0) {
@@ -338,7 +337,7 @@
     elements.conversationList.innerHTML = html;
   }
 
-  function renderMessages() {
+  export function renderMessages() {
     if (!elements.messagesContainer) return;
 
     if (state.messages.length === 0) {
@@ -399,7 +398,7 @@
     elements.messagesContainer.innerHTML = html;
   }
 
-  function handleDeleteMenuClick(element, e) {
+  export function handleDeleteMenuClick(element, e) {
     e.stopPropagation();
 
     const messageEl = element.closest('.c-chat-widget__message');
@@ -413,7 +412,7 @@
     showDeleteConfirmation(messageId, isSent);
   }
 
-  function showDeleteConfirmation(messageId, isSent) {
+  export function showDeleteConfirmation(messageId, isSent) {
     // Use SweetAlert2 if available
     if (typeof window.Swal !== 'undefined') {
       const options = {
@@ -493,7 +492,7 @@
   }
 
   // Emoji shortcode conversion
-  const EMOJI_MAP = {
+  export const EMOJI_MAP = {
     ':)': '😊', ':-)': '😊', '=)': '😊',
     ':(': '😞', ':-(': '😞', '=(': '😞',
     ':D': '😃', ':-D': '😃', '=D': '😃',
@@ -519,7 +518,7 @@
     ':cool:': '😎', ':lol:': '😂', ':rofl:': '🤣'
   };
 
-  function convertEmojiShortcodes(text) {
+  export function convertEmojiShortcodes(text) {
     if (!text) return text;
 
     let result = text;
@@ -531,7 +530,7 @@
     return result;
   }
 
-  function renderSearchResults() {
+  export function renderSearchResults() {
     if (!elements.searchResults) {
       console.warn('[ChatWidget] Search results element not found');
       return;
@@ -575,7 +574,7 @@
     console.log('[ChatWidget] Search results dropdown visible');
   }
 
-  function renderOnlineUsers(users) {
+  export function renderOnlineUsers(users) {
     if (!elements.onlineList) return;
 
     const onlineSection = elements.onlineList.closest('.c-chat-widget__online');
@@ -610,7 +609,7 @@
     elements.onlineList.innerHTML = html;
   }
 
-  function updateBadge() {
+  export function updateBadge() {
     if (!elements.badge) return;
 
     if (state.unreadCount > 0) {
@@ -630,7 +629,7 @@
     }
   }
 
-  function updateSendButton() {
+  export function updateSendButton() {
     if (!elements.sendBtn || !elements.composerInput) return;
 
     const hasContent = elements.composerInput.value.trim().length > 0;
@@ -641,7 +640,7 @@
   // VIEW MANAGEMENT
   // ============================================================================
 
-  function openWidget() {
+  export function openWidget() {
     if (!elements.widget) return;
 
     state.isOpen = true;
@@ -674,7 +673,7 @@
     }
   }
 
-  function closeWidget() {
+  export function closeWidget() {
     if (!elements.widget) return;
 
     state.isOpen = false;
@@ -700,7 +699,7 @@
     clearSearch();
   }
 
-  function toggleWidget() {
+  export function toggleWidget() {
     if (state.isOpen) {
       closeWidget();
     } else {
@@ -708,7 +707,7 @@
     }
   }
 
-  function openConversation(userId, userName, avatarUrl, isOnline, roleInfo) {
+  export function openConversation(userId, userName, avatarUrl, isOnline, roleInfo) {
     state.currentView = 'chat';
     state.activeConversation = {
       id: parseInt(userId),
@@ -766,7 +765,7 @@
     }
   }
 
-  function closeConversation() {
+  export function closeConversation() {
     state.currentView = 'list';
     state.activeConversation = null;
     state.messages = [];
@@ -782,7 +781,7 @@
     loadConversations();
   }
 
-  function scrollToBottom() {
+  export function scrollToBottom() {
     if (elements.messagesContainer) {
       requestAnimationFrame(() => {
         elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
@@ -794,13 +793,13 @@
   // EVENT HANDLERS
   // ============================================================================
 
-  function handleTriggerClick(e) {
+  export function handleTriggerClick(e) {
     e.preventDefault();
     e.stopPropagation();
     toggleWidget();
   }
 
-  function handleConversationClick(e) {
+  export function handleConversationClick(e) {
     const conversation = e.target.closest('.c-chat-widget__conversation, .c-chat-widget__online-user, .c-chat-widget__search-result');
     if (!conversation) return;
 
@@ -823,7 +822,7 @@
     clearSearch();
   }
 
-  function clearSearch() {
+  export function clearSearch() {
     state.searchQuery = '';
     state.searchResults = [];
     if (elements.searchInput) {
@@ -835,12 +834,12 @@
     }
   }
 
-  function handleBackClick(e) {
+  export function handleBackClick(e) {
     e.preventDefault();
     closeConversation();
   }
 
-  function handleSendClick(e) {
+  export function handleSendClick(e) {
     e.preventDefault();
     if (!state.activeConversation || !elements.composerInput) return;
 
@@ -850,7 +849,7 @@
     sendMessage(state.activeConversation.id, content);
   }
 
-  function handleComposerKeydown(e) {
+  export function handleComposerKeydown(e) {
     // Send on Enter (without Shift)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -862,13 +861,13 @@
     emitTypingStart();
   }
 
-  function handleComposerInput() {
+  export function handleComposerInput() {
     updateSendButton();
     autoResizeTextarea(elements.composerInput);
   }
 
   let searchDebounceTimer = null;
-  function handleSearchInput(e) {
+  export function handleSearchInput(e) {
     const query = e.target.value.trim();
     state.searchQuery = query;
     console.log('[ChatWidget] Search input:', query);
@@ -879,13 +878,13 @@
     }, CONFIG.ui.searchDebounce);
   }
 
-  function handleSearchFocus() {
+  export function handleSearchFocus() {
     if (state.searchResults.length > 0 && elements.searchResults) {
       elements.searchResults.classList.add('is-visible');
     }
   }
 
-  function handleSearchBlur() {
+  export function handleSearchBlur() {
     // Delay hiding to allow click on results
     setTimeout(() => {
       if (elements.searchResults) {
@@ -894,7 +893,7 @@
     }, 200);
   }
 
-  function handleKeydown(e) {
+  export function handleKeydown(e) {
     // Close on Escape
     if (e.key === 'Escape') {
       if (state.currentView === 'chat') {
@@ -905,7 +904,7 @@
     }
   }
 
-  function handleClickOutside(e) {
+  export function handleClickOutside(e) {
     if (!elements.widget || !state.isOpen) return;
 
     // Don't close if clicking inside widget
@@ -923,7 +922,7 @@
 
   let socket = null;
 
-  function initWebSocket() {
+  export function initWebSocket() {
     // Use SocketManager if available (preferred method)
     if (typeof window.SocketManager !== 'undefined') {
       console.log('[ChatWidget] Using SocketManager');
@@ -980,7 +979,7 @@
     checkSocket();
   }
 
-  function attachSocketListeners() {
+  export function attachSocketListeners() {
     // Use SocketManager for event registration (handles reconnects properly)
     if (typeof window.SocketManager !== 'undefined') {
       // Message events
@@ -1009,7 +1008,7 @@
     attachSocketListenersDirect();
   }
 
-  function attachSocketListenersDirect() {
+  export function attachSocketListenersDirect() {
     if (!window.socket) return;
 
     // Message events
@@ -1033,7 +1032,7 @@
     console.log('[ChatWidget] Socket listeners attached (direct)');
   }
 
-  function handleMessageDeleted(data) {
+  export function handleMessageDeleted(data) {
     const messageId = data.message_id;
     const deletedFor = data.deleted_for;
 
@@ -1051,7 +1050,7 @@
     }
   }
 
-  function joinMessagingRoom() {
+  export function joinMessagingRoom() {
     // Use SocketManager if available
     if (typeof window.SocketManager !== 'undefined') {
       if (window.SocketManager.isConnected()) {
@@ -1066,7 +1065,7 @@
     }
   }
 
-  function handleNewMessage(message) {
+  export function handleNewMessage(message) {
     // Update unread count
     state.unreadCount++;
     updateBadge();
@@ -1094,21 +1093,21 @@
     }
   }
 
-  function handleMessageSent(data) {
+  export function handleMessageSent(data) {
     // Message already added locally, just confirm
     console.log('[ChatWidget] Message sent:', data.message?.id);
   }
 
-  function handleMessageError(data) {
+  export function handleMessageError(data) {
     window.showToast(data.error || 'Failed to send message', 'error');
   }
 
-  function handleUnreadUpdate(data) {
+  export function handleUnreadUpdate(data) {
     state.unreadCount = data.count;
     updateBadge();
   }
 
-  function handleUserTyping(data) {
+  export function handleUserTyping(data) {
     if (!state.activeConversation || data.user_id !== state.activeConversation.id) return;
 
     if (data.typing) {
@@ -1118,7 +1117,7 @@
     }
   }
 
-  function handleMessagesRead(data) {
+  export function handleMessagesRead(data) {
     // Update read receipts in UI
     if (state.activeConversation && data.reader_id === state.activeConversation.id) {
       state.messages.forEach(msg => {
@@ -1130,7 +1129,7 @@
     }
   }
 
-  function handleUserOnline(data) {
+  export function handleUserOnline(data) {
     // Update online status in conversation list
     updateUserOnlineStatus(data.user_id, true);
 
@@ -1147,7 +1146,7 @@
     }
   }
 
-  function handleUserOffline(data) {
+  export function handleUserOffline(data) {
     updateUserOnlineStatus(data.user_id, false);
 
     if (state.activeConversation?.id === data.user_id) {
@@ -1162,12 +1161,12 @@
     }
   }
 
-  function handleOnlineUsers(data) {
+  export function handleOnlineUsers(data) {
     state.onlineUsers = data.users || [];
     renderOnlineUsers(state.onlineUsers);
   }
 
-  function updateUserOnlineStatus(userId, isOnline) {
+  export function updateUserOnlineStatus(userId, isOnline) {
     const convElements = document.querySelectorAll(`[data-user-id="${userId}"]`);
     convElements.forEach(el => {
       el.dataset.online = isOnline;
@@ -1182,7 +1181,7 @@
   // TYPING INDICATOR
   // ============================================================================
 
-  function emitTypingStart() {
+  export function emitTypingStart() {
     if (!state.activeConversation || !state.settings.typingIndicators) return;
 
     // Check if we can emit
@@ -1211,14 +1210,14 @@
     }, CONFIG.ui.typingDebounce);
   }
 
-  function showTypingIndicator() {
+  export function showTypingIndicator() {
     if (elements.typingIndicator) {
       elements.typingIndicator.style.display = 'flex';
       scrollToBottom();
     }
   }
 
-  function hideTypingIndicator() {
+  export function hideTypingIndicator() {
     if (elements.typingIndicator) {
       elements.typingIndicator.style.display = 'none';
     }
@@ -1228,14 +1227,14 @@
   // UTILITIES
   // ============================================================================
 
-  function escapeHtml(text) {
+  export function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
   }
 
-  function formatMessageTime(isoString) {
+  export function formatMessageTime(isoString) {
     if (!isoString) return '';
 
     const date = new Date(isoString);
@@ -1261,7 +1260,7 @@
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
 
-  function getCurrentUserId() {
+  export function getCurrentUserId() {
     // Try to get from global or meta tag
     if (window.currentUserId) return parseInt(window.currentUserId);
 
@@ -1275,14 +1274,14 @@
     return null;
   }
 
-  function autoResizeTextarea(textarea) {
+  export function autoResizeTextarea(textarea) {
     if (!textarea) return;
 
     textarea.style.height = 'auto';
     textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
   }
 
-  function showToast(message, type = 'info') {
+  export function showToast(message, type = 'info') {
     // Use SweetAlert2 if available, otherwise console
     if (typeof window.Swal !== 'undefined') {
       window.Swal.fire({
@@ -1299,7 +1298,7 @@
     }
   }
 
-  function showNotification(title, body) {
+  export function showNotification(title, body) {
     // Browser notification if permitted
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(title, {
@@ -1314,7 +1313,7 @@
   // SMART POSITIONING
   // ============================================================================
 
-  function updatePosition() {
+  export function updatePosition() {
     if (!elements.widget) return;
 
     // Check for mobile bottom nav
@@ -1329,7 +1328,7 @@
   // EVENT DELEGATION REGISTRATION
   // ============================================================================
 
-  function registerEventHandlers() {
+  export function registerEventHandlers() {
     // EventDelegation handler is registered at module scope below
     // This function is kept for consistency but no longer registers handlers
   }
@@ -1338,7 +1337,7 @@
   // INITIALIZATION
   // ============================================================================
 
-  function bindEvents() {
+  export function bindEvents() {
     // Trigger button
     if (elements.trigger) {
       elements.trigger.addEventListener('click', handleTriggerClick);
@@ -1491,4 +1490,182 @@
 
   window.EventDelegation.register('delete-menu', handleDeleteMenuClick, { preventDefault: true });
 
-})();
+// Backward compatibility
+window.CONFIG = CONFIG;
+
+// Backward compatibility
+window.EMOJI_MAP = EMOJI_MAP;
+
+// Backward compatibility
+window.cacheElements = cacheElements;
+
+// Backward compatibility
+window.getCSRFToken = getCSRFToken;
+
+// Backward compatibility
+window.renderRoleBadges = renderRoleBadges;
+
+// Backward compatibility
+window.renderConversations = renderConversations;
+
+// Backward compatibility
+window.renderMessages = renderMessages;
+
+// Backward compatibility
+window.handleDeleteMenuClick = handleDeleteMenuClick;
+
+// Backward compatibility
+window.showDeleteConfirmation = showDeleteConfirmation;
+
+// Backward compatibility
+window.convertEmojiShortcodes = convertEmojiShortcodes;
+
+// Backward compatibility
+window.renderSearchResults = renderSearchResults;
+
+// Backward compatibility
+window.renderOnlineUsers = renderOnlineUsers;
+
+// Backward compatibility
+window.updateBadge = updateBadge;
+
+// Backward compatibility
+window.updateSendButton = updateSendButton;
+
+// Backward compatibility
+window.openWidget = openWidget;
+
+// Backward compatibility
+window.closeWidget = closeWidget;
+
+// Backward compatibility
+window.toggleWidget = toggleWidget;
+
+// Backward compatibility
+window.openConversation = openConversation;
+
+// Backward compatibility
+window.closeConversation = closeConversation;
+
+// Backward compatibility
+window.scrollToBottom = scrollToBottom;
+
+// Backward compatibility
+window.handleTriggerClick = handleTriggerClick;
+
+// Backward compatibility
+window.handleConversationClick = handleConversationClick;
+
+// Backward compatibility
+window.clearSearch = clearSearch;
+
+// Backward compatibility
+window.handleBackClick = handleBackClick;
+
+// Backward compatibility
+window.handleSendClick = handleSendClick;
+
+// Backward compatibility
+window.handleComposerKeydown = handleComposerKeydown;
+
+// Backward compatibility
+window.handleComposerInput = handleComposerInput;
+
+// Backward compatibility
+window.handleSearchInput = handleSearchInput;
+
+// Backward compatibility
+window.handleSearchFocus = handleSearchFocus;
+
+// Backward compatibility
+window.handleSearchBlur = handleSearchBlur;
+
+// Backward compatibility
+window.handleKeydown = handleKeydown;
+
+// Backward compatibility
+window.handleClickOutside = handleClickOutside;
+
+// Backward compatibility
+window.initWebSocket = initWebSocket;
+
+// Backward compatibility
+window.attachSocketListeners = attachSocketListeners;
+
+// Backward compatibility
+window.attachSocketListenersDirect = attachSocketListenersDirect;
+
+// Backward compatibility
+window.handleMessageDeleted = handleMessageDeleted;
+
+// Backward compatibility
+window.joinMessagingRoom = joinMessagingRoom;
+
+// Backward compatibility
+window.handleNewMessage = handleNewMessage;
+
+// Backward compatibility
+window.handleMessageSent = handleMessageSent;
+
+// Backward compatibility
+window.handleMessageError = handleMessageError;
+
+// Backward compatibility
+window.handleUnreadUpdate = handleUnreadUpdate;
+
+// Backward compatibility
+window.handleUserTyping = handleUserTyping;
+
+// Backward compatibility
+window.handleMessagesRead = handleMessagesRead;
+
+// Backward compatibility
+window.handleUserOnline = handleUserOnline;
+
+// Backward compatibility
+window.handleUserOffline = handleUserOffline;
+
+// Backward compatibility
+window.handleOnlineUsers = handleOnlineUsers;
+
+// Backward compatibility
+window.updateUserOnlineStatus = updateUserOnlineStatus;
+
+// Backward compatibility
+window.emitTypingStart = emitTypingStart;
+
+// Backward compatibility
+window.showTypingIndicator = showTypingIndicator;
+
+// Backward compatibility
+window.hideTypingIndicator = hideTypingIndicator;
+
+// Backward compatibility
+window.escapeHtml = escapeHtml;
+
+// Backward compatibility
+window.formatMessageTime = formatMessageTime;
+
+// Backward compatibility
+window.getCurrentUserId = getCurrentUserId;
+
+// Backward compatibility
+window.autoResizeTextarea = autoResizeTextarea;
+
+// Backward compatibility
+window.showToast = showToast;
+
+// Backward compatibility
+window.showNotification = showNotification;
+
+// Backward compatibility
+window.updatePosition = updatePosition;
+
+// Backward compatibility
+window.registerEventHandlers = registerEventHandlers;
+
+// Backward compatibility
+window.bindEvents = bindEvents;
+
+// Backward compatibility
+window.init = init;

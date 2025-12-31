@@ -2,13 +2,12 @@
  * Simple HTML5 Canvas Image Cropper for Modal Use
  * Works without external libraries and handles modal initialization properly
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
+let _initialized = false;
 
-    let _initialized = false;
-
-class SimpleCropper {
+export class SimpleCropper {
     constructor(canvasId, options = {}) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
@@ -461,7 +460,7 @@ window.getCroppedImage = function() {
     window.SimpleCropper = SimpleCropper;
 
     // Initialize function
-    function init() {
+    export function init() {
         if (_initialized) return;
         _initialized = true;
 
@@ -484,4 +483,6 @@ window.getCroppedImage = function() {
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.init = init;

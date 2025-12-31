@@ -5,7 +5,7 @@
  * REFACTORED: Eliminated all inline style manipulations in favor of CSS classes
  */
 
-class PitchViewSystem {
+export class PitchViewSystem {
     constructor(leagueName, teams, draftedPlayersByTeam) {
         this.leagueName = leagueName;
         this.teams = teams;

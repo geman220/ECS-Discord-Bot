@@ -16,14 +16,12 @@
  * ============================================================================
  */
 
-(function() {
-  'use strict';
-
-  /**
-   * Admin Navigation Controller
-   * Handles all navigation interactions via event delegation
-   */
-  class AdminNavigationController {
+/**
+ * Admin Navigation Controller
+ * Handles all navigation interactions via event delegation
+ * ES Module Export
+ */
+export class AdminNavigationController {
     constructor(element) {
       this.nav = element;
       this.activeDropdown = null;
@@ -338,7 +336,8 @@
     }
   }, { preventDefault: true });
 
-})();
+// Backward compat
+window.AdminNavigationController = AdminNavigationController;
 
 /**
  * ============================================================================

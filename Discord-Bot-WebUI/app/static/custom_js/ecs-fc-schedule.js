@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
 /**
  * Initialize ECS FC schedule functionality
  */
-function initializeEcsFcSchedule() {
+export function initializeEcsFcSchedule() {
     // Get team ID from page data
     const teamData = document.getElementById('team-data');
     if (teamData) {
@@ -36,7 +36,7 @@ function initializeEcsFcSchedule() {
 /**
  * Initialize event handlers for ECS FC schedule management
  */
-function ecsFcInitializeEventHandlers() {
+export function ecsFcInitializeEventHandlers() {
     // Create match button
     const createMatchBtn = document.getElementById('create-match-btn');
     if (createMatchBtn) {
@@ -88,7 +88,7 @@ function ecsFcInitializeEventHandlers() {
 /**
  * Initialize FullCalendar for ECS FC matches
  */
-function initializeCalendar() {
+export function initializeCalendar() {
     const calendarEl = document.getElementById('ecs-fc-calendar');
     if (!calendarEl) return;
 
@@ -120,7 +120,7 @@ function initializeCalendar() {
 /**
  * Load calendar events for date range
  */
-function loadCalendarEvents(start, end, successCallback, failureCallback) {
+export function loadCalendarEvents(start, end, successCallback, failureCallback) {
     const startDate = start.toISOString().split('T')[0];
     const endDate = end.toISOString().split('T')[0];
 
@@ -143,7 +143,7 @@ function loadCalendarEvents(start, end, successCallback, failureCallback) {
 /**
  * Load team matches for list view
  */
-function loadTeamMatches(upcomingOnly = true) {
+export function loadTeamMatches(upcomingOnly = true) {
     const url = `/api/ecs-fc/teams/${currentTeamId}/matches?upcoming_only=${upcomingOnly}`;
     
     fetch(url)
@@ -165,7 +165,7 @@ function loadTeamMatches(upcomingOnly = true) {
 /**
  * Render matches list
  */
-function renderMatchesList(matches) {
+export function renderMatchesList(matches) {
     const container = document.getElementById('matches-list-container');
     if (!container) return;
 
@@ -191,7 +191,7 @@ function renderMatchesList(matches) {
 /**
  * Create HTML card for a match
  */
-function createMatchCard(match) {
+export function createMatchCard(match) {
     const matchDate = new Date(match.match_date + 'T' + match.match_time);
     const isUpcoming = matchDate > new Date();
     const statusBadge = getStatusBadge(match.status);
@@ -260,7 +260,7 @@ function createMatchCard(match) {
 /**
  * Get status badge HTML
  */
-function getStatusBadge(status) {
+export function getStatusBadge(status) {
     switch (status) {
         case 'SCHEDULED':
             return '<span class="badge bg-info match-status-scheduled">Scheduled</span>';
@@ -276,7 +276,7 @@ function getStatusBadge(status) {
 /**
  * Load and display RSVP summary for a match
  */
-function loadRsvpSummary(matchId) {
+export function loadRsvpSummary(matchId) {
     fetch(`/api/ecs-fc/matches/${matchId}/rsvp`)
         .then(response => response.json())
         .then(data => {
@@ -294,7 +294,7 @@ function loadRsvpSummary(matchId) {
 /**
  * Render RSVP summary
  */
-function renderRsvpSummary(matchId, summary) {
+export function renderRsvpSummary(matchId, summary) {
     const container = document.getElementById(`rsvp-summary-${matchId}`);
     if (!container) return;
 
@@ -318,7 +318,7 @@ function renderRsvpSummary(matchId, summary) {
 /**
  * Show create match modal
  */
-function showCreateMatchModal(selectedDate = null) {
+export function showCreateMatchModal(selectedDate = null) {
     const modal = document.getElementById('createMatchModal');
     if (!modal) return;
 
@@ -343,7 +343,7 @@ function showCreateMatchModal(selectedDate = null) {
 /**
  * Handle match form submission
  */
-function handleMatchFormSubmit(e) {
+export function handleMatchFormSubmit(e) {
     e.preventDefault();
     
     const form = e.target;
@@ -393,7 +393,7 @@ function handleMatchFormSubmit(e) {
 /**
  * Edit a match
  */
-function ecsFcEditMatch(matchId) {
+export function ecsFcEditMatch(matchId) {
     // Find match data
     const match = currentMatches.find(m => m.id == matchId);
     if (!match) return;
@@ -424,7 +424,7 @@ function ecsFcEditMatch(matchId) {
 /**
  * Delete a match
  */
-function ecsFcDeleteMatch(matchId) {
+export function ecsFcDeleteMatch(matchId) {
     if (!confirm('Are you sure you want to delete this match? This action cannot be undone.')) {
         return;
     }
@@ -451,7 +451,7 @@ function ecsFcDeleteMatch(matchId) {
 /**
  * Handle RSVP response
  */
-function handleRsvpResponse(button) {
+export function handleRsvpResponse(button) {
     const matchId = button.dataset.matchId;
     const response = button.dataset.response;
 
@@ -480,7 +480,7 @@ function handleRsvpResponse(button) {
 /**
  * Send RSVP reminder
  */
-function sendRsvpReminder(matchId) {
+export function sendRsvpReminder(matchId) {
     fetch(`/api/ecs-fc/matches/${matchId}/remind`, {
         method: 'POST'
     })
@@ -501,7 +501,7 @@ function sendRsvpReminder(matchId) {
 /**
  * Show import matches modal
  */
-function showImportMatchesModal() {
+export function showImportMatchesModal() {
     const modal = document.getElementById('importMatchesModal');
     if (!modal) return;
 
@@ -511,7 +511,7 @@ function showImportMatchesModal() {
 /**
  * Handle import form submission
  */
-function handleImportFormSubmit(e) {
+export function handleImportFormSubmit(e) {
     e.preventDefault();
     
     const csvInput = document.getElementById('csv-matches');
@@ -565,7 +565,7 @@ function handleImportFormSubmit(e) {
 /**
  * Parse CSV data into matches array
  */
-function parseMatchesCsv(csvText) {
+export function parseMatchesCsv(csvText) {
     const lines = csvText.split('\n').map(line => line.trim()).filter(line => line);
     const matches = [];
 
@@ -602,7 +602,7 @@ function parseMatchesCsv(csvText) {
 /**
  * Handle real-time RSVP updates
  */
-function handleRsvpUpdate(data) {
+export function handleRsvpUpdate(data) {
     if (data.match_type === 'ecs_fc' && data.match_id) {
         loadRsvpSummary(data.match_id);
     }
@@ -611,7 +611,7 @@ function handleRsvpUpdate(data) {
 /**
  * Handle real-time match updates
  */
-function handleMatchUpdate(data) {
+export function handleMatchUpdate(data) {
     if (data.match_type === 'ecs_fc') {
         loadTeamMatches();
         if (calendar) calendar.refetchEvents();
@@ -621,7 +621,7 @@ function handleMatchUpdate(data) {
 /**
  * Utility functions
  */
-function ecsFcFormatDate(dateString) {
+export function ecsFcFormatDate(dateString) {
     return new Date(dateString).toLocaleDateString('en-US', {
         weekday: 'short',
         year: 'numeric',
@@ -630,7 +630,7 @@ function ecsFcFormatDate(dateString) {
     });
 }
 
-function formatTime(timeString) {
+export function formatTime(timeString) {
     const [hours, minutes] = timeString.split(':');
     const date = new Date();
     date.setHours(parseInt(hours), parseInt(minutes));
@@ -641,7 +641,7 @@ function formatTime(timeString) {
     });
 }
 
-function ecsFcShowAlert(type, message) {
+export function ecsFcShowAlert(type, message) {
     // Create alert element
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
@@ -679,3 +679,75 @@ window.EcsFcSchedule = {
     deleteMatch: ecsFcDeleteMatch,
     sendRsvpReminder
 };
+
+// Backward compatibility
+window.initializeEcsFcSchedule = initializeEcsFcSchedule;
+
+// Backward compatibility
+window.ecsFcInitializeEventHandlers = ecsFcInitializeEventHandlers;
+
+// Backward compatibility
+window.initializeCalendar = initializeCalendar;
+
+// Backward compatibility
+window.loadCalendarEvents = loadCalendarEvents;
+
+// Backward compatibility
+window.loadTeamMatches = loadTeamMatches;
+
+// Backward compatibility
+window.renderMatchesList = renderMatchesList;
+
+// Backward compatibility
+window.createMatchCard = createMatchCard;
+
+// Backward compatibility
+window.getStatusBadge = getStatusBadge;
+
+// Backward compatibility
+window.loadRsvpSummary = loadRsvpSummary;
+
+// Backward compatibility
+window.renderRsvpSummary = renderRsvpSummary;
+
+// Backward compatibility
+window.showCreateMatchModal = showCreateMatchModal;
+
+// Backward compatibility
+window.handleMatchFormSubmit = handleMatchFormSubmit;
+
+// Backward compatibility
+window.ecsFcEditMatch = ecsFcEditMatch;
+
+// Backward compatibility
+window.ecsFcDeleteMatch = ecsFcDeleteMatch;
+
+// Backward compatibility
+window.handleRsvpResponse = handleRsvpResponse;
+
+// Backward compatibility
+window.sendRsvpReminder = sendRsvpReminder;
+
+// Backward compatibility
+window.showImportMatchesModal = showImportMatchesModal;
+
+// Backward compatibility
+window.handleImportFormSubmit = handleImportFormSubmit;
+
+// Backward compatibility
+window.parseMatchesCsv = parseMatchesCsv;
+
+// Backward compatibility
+window.handleRsvpUpdate = handleRsvpUpdate;
+
+// Backward compatibility
+window.handleMatchUpdate = handleMatchUpdate;
+
+// Backward compatibility
+window.ecsFcFormatDate = ecsFcFormatDate;
+
+// Backward compatibility
+window.formatTime = formatTime;
+
+// Backward compatibility
+window.ecsFcShowAlert = ecsFcShowAlert;

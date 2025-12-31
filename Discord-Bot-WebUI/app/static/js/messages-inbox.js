@@ -15,11 +15,10 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  // Configuration from server
+// Configuration from server
   const config = window.MessagesInboxConfig || {};
   const API_BASE = config.apiBase || '/api/messages';
   const CURRENT_USER_ID = config.currentUserId;
@@ -74,7 +73,7 @@
   /**
    * Initialize the inbox
    */
-  function init() {
+  export function init() {
     loadConversations();
     setupEventListeners();
     setupWebSocket();
@@ -88,7 +87,7 @@
   /**
    * Set up event listeners
    */
-  function setupEventListeners() {
+  export function setupEventListeners() {
     // Guard against duplicate setup
     if (_eventListenersSetup) return;
     _eventListenersSetup = true;
@@ -154,7 +153,7 @@
    * Set up WebSocket connection
    * REFACTORED: Uses SocketManager instead of creating own socket
    */
-  function setupWebSocket() {
+  export function setupWebSocket() {
     // Use SocketManager if available (preferred)
     if (typeof window.SocketManager !== 'undefined') {
       console.log('[MessagesInbox] Using SocketManager');
@@ -189,7 +188,7 @@
   /**
    * Set up socket event listeners (fallback when SocketManager not available)
    */
-  function setupSocketListeners() {
+  export function setupSocketListeners() {
     if (!window.socket) return;
 
     window.socket.on('connect', () => {
@@ -226,7 +225,7 @@
   /**
    * Show/hide loading state
    */
-  function showLoading(show) {
+  export function showLoading(show) {
     if (elements.loadingState) {
       elements.loadingState.classList.toggle('u-hidden', !show);
     }
@@ -235,7 +234,7 @@
   /**
    * Render conversations list
    */
-  function renderConversations(filteredList = null) {
+  export function renderConversations(filteredList = null) {
     const list = filteredList || conversations;
 
     // Show/hide empty state
@@ -262,7 +261,7 @@
   /**
    * Create a conversation list item element
    */
-  function createConversationElement(conv) {
+  export function createConversationElement(conv) {
     const div = document.createElement('div');
     div.className = 'c-messages-conversation';
     div.dataset.userId = conv.user.id;
@@ -336,7 +335,7 @@
   /**
    * Update chat header with user info
    */
-  function updateChatHeader(user) {
+  export function updateChatHeader(user) {
     const avatarUrl = user.avatar_url || '/static/img/default-avatar.png';
     const roleBadges = renderRoleBadges(user);
 
@@ -368,7 +367,7 @@
   /**
    * Show/hide chat view
    */
-  function showChatView(show) {
+  export function showChatView(show) {
     if (elements.welcomeState) {
       elements.welcomeState.classList.toggle('u-hidden', show);
     }
@@ -382,7 +381,7 @@
   /**
    * Close chat (mobile)
    */
-  function closeChat() {
+  export function closeChat() {
     activeUserId = null;
     activeConversation = null;
     showChatView(false);
@@ -437,7 +436,7 @@
   /**
    * Render messages in the chat view
    */
-  function renderMessages(messages) {
+  export function renderMessages(messages) {
     let lastDate = null;
 
     messages.forEach(msg => {
@@ -460,7 +459,7 @@
   /**
    * Create date separator element
    */
-  function createDateSeparator(dateStr) {
+  export function createDateSeparator(dateStr) {
     const div = document.createElement('div');
     div.className = 'c-messages-date-separator';
 
@@ -485,7 +484,7 @@
   /**
    * Create message element
    */
-  function createMessageElement(msg) {
+  export function createMessageElement(msg) {
     const div = document.createElement('div');
     const isSent = msg.sender_id === CURRENT_USER_ID;
     div.className = `c-messages-message ${isSent ? 'c-messages-message--sent' : 'c-messages-message--received'}`;
@@ -506,7 +505,7 @@
   /**
    * Handle input change
    */
-  function handleInputChange() {
+  export function handleInputChange() {
     const value = elements.messageInput.value;
     const length = value.length;
     const maxLength = SETTINGS.max_message_length || 2000;
@@ -541,7 +540,7 @@
   /**
    * Handle keydown in message input
    */
-  function handleKeyDown(e) {
+  export function handleKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -611,7 +610,7 @@
   /**
    * Handle incoming WebSocket message
    */
-  function handleNewMessage(msg) {
+  export function handleNewMessage(msg) {
     // Only process if from someone we're chatting with
     if (msg.sender_id === activeUserId) {
       const element = createMessageElement(msg);
@@ -639,7 +638,7 @@
   /**
    * Handle typing start event
    */
-  function handleTypingStart(data) {
+  export function handleTypingStart(data) {
     if (data.user_id === activeUserId && elements.typingIndicator) {
       elements.typingIndicator.classList.remove('u-hidden');
       if (elements.typingName) {
@@ -652,7 +651,7 @@
   /**
    * Handle typing stop event
    */
-  function handleTypingStop(data) {
+  export function handleTypingStop(data) {
     if (data.user_id === activeUserId && elements.typingIndicator) {
       elements.typingIndicator.classList.add('u-hidden');
     }
@@ -661,7 +660,7 @@
   /**
    * Handle message read event
    */
-  function handleMessageRead(data) {
+  export function handleMessageRead(data) {
     if (data.reader_id === activeUserId) {
       // Update read status on messages
       document.querySelectorAll('.c-messages-message--sent').forEach(el => {
@@ -717,7 +716,7 @@
   /**
    * Update conversation preview in sidebar
    */
-  function updateConversationPreview(userId, content, sentByMe) {
+  export function updateConversationPreview(userId, content, sentByMe) {
     const conv = document.querySelector(`.c-messages-conversation[data-user-id="${userId}"]`);
     if (conv) {
       const preview = conv.querySelector('.c-messages-conversation__preview');
@@ -736,7 +735,7 @@
   /**
    * Update conversation unread count
    */
-  function updateConversationUnread(userId, count) {
+  export function updateConversationUnread(userId, count) {
     const conv = document.querySelector(`.c-messages-conversation[data-user-id="${userId}"]`);
     if (conv) {
       let badge = conv.querySelector('.c-messages-conversation__unread');
@@ -756,7 +755,7 @@
   /**
    * Increment conversation unread count
    */
-  function incrementConversationUnread(userId) {
+  export function incrementConversationUnread(userId) {
     const conv = document.querySelector(`.c-messages-conversation[data-user-id="${userId}"]`);
     if (conv) {
       let badge = conv.querySelector('.c-messages-conversation__unread');
@@ -774,7 +773,7 @@
   /**
    * Handle conversation search
    */
-  function handleConversationSearch() {
+  export function handleConversationSearch() {
     const query = elements.searchInput.value.toLowerCase().trim();
 
     if (!query) {
@@ -793,7 +792,7 @@
   /**
    * Open new conversation modal
    */
-  function openNewConversationModal() {
+  export function openNewConversationModal() {
     if (modal) {
       // Use ModalManager if available, fallback to Bootstrap
       if (typeof window.ModalManager !== 'undefined') {
@@ -812,7 +811,7 @@
   /**
    * Handle user search in modal
    */
-  function handleUserSearch() {
+  export function handleUserSearch() {
     const query = userSearchInput.value.trim();
 
     clearTimeout(searchTimeout);
@@ -873,7 +872,7 @@
   /**
    * Scroll messages to bottom
    */
-  function scrollToBottom() {
+  export function scrollToBottom() {
     if (elements.messagesContainer) {
       elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
     }
@@ -882,7 +881,7 @@
   /**
    * Format time for display
    */
-  function formatTime(dateStr) {
+  export function formatTime(dateStr) {
     const date = new Date(dateStr);
     return date.toLocaleTimeString('en-US', {
       hour: 'numeric',
@@ -894,7 +893,7 @@
   /**
    * Escape HTML to prevent XSS
    */
-  function escapeHtml(text) {
+  export function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -905,7 +904,7 @@
    * @param {Object} user - User object with role flags
    * @returns {string} HTML string with badge icons
    */
-  function renderRoleBadges(user) {
+  export function renderRoleBadges(user) {
     if (!user) return '';
 
     const badges = [];
@@ -935,7 +934,7 @@
   /**
    * Get CSRF token
    */
-  function getCsrfToken() {
+  export function getCsrfToken() {
     const meta = document.querySelector('meta[name="csrf-token"]');
     return meta ? meta.getAttribute('content') : '';
   }
@@ -943,7 +942,7 @@
   /**
    * Update global unread badge (in navbar)
    */
-  function updateGlobalBadge(count) {
+  export function updateGlobalBadge(count) {
     const badge = document.querySelector('[data-badge="messages-count"]');
     if (badge) {
       badge.textContent = count;
@@ -954,7 +953,7 @@
   /**
    * Show error toast
    */
-  function showError(message) {
+  export function showError(message) {
     // Use your existing toast system
     if (typeof window.showToast === 'function') {
       window.showToast(message, 'error');
@@ -970,4 +969,98 @@
     init();
   }
 
-})();
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.setupEventListeners = setupEventListeners;
+
+// Backward compatibility
+window.setupWebSocket = setupWebSocket;
+
+// Backward compatibility
+window.setupSocketListeners = setupSocketListeners;
+
+// Backward compatibility
+window.showLoading = showLoading;
+
+// Backward compatibility
+window.renderConversations = renderConversations;
+
+// Backward compatibility
+window.createConversationElement = createConversationElement;
+
+// Backward compatibility
+window.updateChatHeader = updateChatHeader;
+
+// Backward compatibility
+window.showChatView = showChatView;
+
+// Backward compatibility
+window.closeChat = closeChat;
+
+// Backward compatibility
+window.renderMessages = renderMessages;
+
+// Backward compatibility
+window.createDateSeparator = createDateSeparator;
+
+// Backward compatibility
+window.createMessageElement = createMessageElement;
+
+// Backward compatibility
+window.handleInputChange = handleInputChange;
+
+// Backward compatibility
+window.handleKeyDown = handleKeyDown;
+
+// Backward compatibility
+window.handleNewMessage = handleNewMessage;
+
+// Backward compatibility
+window.handleTypingStart = handleTypingStart;
+
+// Backward compatibility
+window.handleTypingStop = handleTypingStop;
+
+// Backward compatibility
+window.handleMessageRead = handleMessageRead;
+
+// Backward compatibility
+window.updateConversationPreview = updateConversationPreview;
+
+// Backward compatibility
+window.updateConversationUnread = updateConversationUnread;
+
+// Backward compatibility
+window.incrementConversationUnread = incrementConversationUnread;
+
+// Backward compatibility
+window.handleConversationSearch = handleConversationSearch;
+
+// Backward compatibility
+window.openNewConversationModal = openNewConversationModal;
+
+// Backward compatibility
+window.handleUserSearch = handleUserSearch;
+
+// Backward compatibility
+window.scrollToBottom = scrollToBottom;
+
+// Backward compatibility
+window.formatTime = formatTime;
+
+// Backward compatibility
+window.escapeHtml = escapeHtml;
+
+// Backward compatibility
+window.renderRoleBadges = renderRoleBadges;
+
+// Backward compatibility
+window.getCsrfToken = getCsrfToken;
+
+// Backward compatibility
+window.updateGlobalBadge = updateGlobalBadge;
+
+// Backward compatibility
+window.showError = showError;

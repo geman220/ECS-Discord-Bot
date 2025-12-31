@@ -18,15 +18,14 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    /**
+/**
      * Admin Panel Base Controller
      * Uses data-* selectors for element binding (never classes)
      */
-    const AdminPanelBase = {
+    export const AdminPanelBase = {
         // Configuration
         CONFIG: {
             MOBILE_BREAKPOINT: 768,
@@ -706,7 +705,7 @@
     /**
      * Service Worker Registration (for offline support)
      */
-    function registerServiceWorker() {
+    export function registerServiceWorker() {
         // Guard against duplicate registration attempts
         if (_serviceWorkerRegistered) return;
         _serviceWorkerRegistered = true;
@@ -744,4 +743,5 @@
         });
     }
 
-})();
+// Backward compatibility
+window.registerServiceWorker = registerServiceWorker;

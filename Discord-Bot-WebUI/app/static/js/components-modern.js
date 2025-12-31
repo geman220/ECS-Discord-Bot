@@ -20,17 +20,16 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  /**
+/**
    * ============================================================================
    * MODAL CONTROLLER
    * ROOT CAUSE FIX: Added initialization guard
    * ============================================================================
    */
-  const ModalController = {
+  export const ModalController = {
     activeModals: new Set(),
     _initialized: false,
 
@@ -147,7 +146,7 @@
    * ROOT CAUSE FIX: Added initialization guard
    * ============================================================================
    */
-  const ToastController = {
+  export const ToastController = {
     container: null,
     toasts: new Map(),
     idCounter: 0,
@@ -256,7 +255,7 @@
    * TOOLTIP CONTROLLER
    * ============================================================================
    */
-  const TooltipController = {
+  export const TooltipController = {
     activeTooltip: null,
     tooltips: new Map(),
     _initialized: false,
@@ -353,7 +352,7 @@
    * DROPDOWN CONTROLLER
    * ============================================================================
    */
-  const DropdownController = {
+  export const DropdownController = {
     activeDropdown: null,
     _initialized: false,
 
@@ -427,7 +426,7 @@
    * ROOT CAUSE FIX: Added initialization guard
    * ============================================================================
    */
-  const TableController = {
+  export const TableController = {
     _initialized: false,
 
     init() {
@@ -507,7 +506,7 @@
    * ROOT CAUSE FIX: Added initialization guard
    * ============================================================================
    */
-  const FormController = {
+  export const FormController = {
     _initialized: false,
 
     init() {
@@ -595,7 +594,7 @@
    * INITIALIZATION
    * ============================================================================
    */
-  function init() {
+  export function init() {
     // NOTE: ModalController is DISABLED to prevent conflicts with ModalManager
     // ModalManager (modal-manager.js) handles all Bootstrap modals (.modal class)
     // ModalController was designed for .c-modal-modern class which is not used in templates
@@ -658,4 +657,23 @@
     }
   }, { preventDefault: true });
 
-})();
+// Backward compatibility
+window.ModalController = ModalController;
+
+// Backward compatibility
+window.ToastController = ToastController;
+
+// Backward compatibility
+window.TooltipController = TooltipController;
+
+// Backward compatibility
+window.DropdownController = DropdownController;
+
+// Backward compatibility
+window.TableController = TableController;
+
+// Backward compatibility
+window.FormController = FormController;
+
+// Backward compatibility
+window.init = init;

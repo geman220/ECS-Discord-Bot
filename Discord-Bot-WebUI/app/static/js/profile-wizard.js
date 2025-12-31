@@ -3,7 +3,7 @@
  * Handles step progression, validation, review population, auto-save, and touch gestures
  */
 
-class ProfileWizard {
+export class ProfileWizard {
     constructor(config = {}) {
         this.config = {
             totalSteps: config.totalSteps || 5,
@@ -463,3 +463,6 @@ class ProfileWizard {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = ProfileWizard;
 }
+
+// Backward compatibility
+window.ProfileWizard = ProfileWizard;

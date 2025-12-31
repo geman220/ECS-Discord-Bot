@@ -5,11 +5,10 @@
  * reporting system. It handles WebSocket communication, UI updates, and
  * synchronization of match data between multiple reporters.
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
     // Initialize SocketIO with the live reporting namespace
     let socket;
@@ -28,7 +27,7 @@
  * @param {number} config.teamId - ID of the team the user is reporting for
  * @param {string} config.socketUrl - WebSocket server URL (optional)
  */
-function initLiveReporting(config) {
+export function initLiveReporting(config) {
     matchId = config.matchId;
     teamId = config.teamId;
     
@@ -50,7 +49,7 @@ function initLiveReporting(config) {
 /**
  * Set up all socket event listeners
  */
-function setupSocketListeners() {
+export function setupSocketListeners() {
     // Connection events
     window.socket.on('disconnect', () => {
         // Disconnected from live reporting server
@@ -215,7 +214,7 @@ function setupSocketListeners() {
 /**
  * Set up UI event listeners
  */
-function setupUIListeners() {
+export function setupUIListeners() {
     // Score controls
     window.$('#increaseHomeScore').on('click', function() {
         if (!matchState) return;
@@ -343,7 +342,7 @@ function setupUIListeners() {
 /**
  * Join a match room
  */
-function joinMatch() {
+export function joinMatch() {
     window.socket.emit('join_match', {
         match_id: matchId,
         team_id: teamId
@@ -353,7 +352,7 @@ function joinMatch() {
 /**
  * Leave a match room
  */
-function leaveMatch() {
+export function leaveMatch() {
     window.socket.emit('leave_match', {
         match_id: matchId
     });
@@ -362,7 +361,7 @@ function leaveMatch() {
 /**
  * Update the match score
  */
-function updateScore(homeScore, awayScore) {
+export function updateScore(homeScore, awayScore) {
     window.socket.emit('update_score', {
         match_id: matchId,
         home_score: homeScore,
@@ -373,7 +372,7 @@ function updateScore(homeScore, awayScore) {
 /**
  * Update the match timer
  */
-function updateTimer(elapsedSeconds, isRunning, period = null) {
+export function updateTimer(elapsedSeconds, isRunning, period = null) {
     const data = {
         match_id: matchId,
         elapsed_seconds: elapsedSeconds,
@@ -390,7 +389,7 @@ function updateTimer(elapsedSeconds, isRunning, period = null) {
 /**
  * Update the match period
  */
-function updatePeriod(period) {
+export function updatePeriod(period) {
     // Use the timer update event to also update the period
     if (matchState) {
         updateTimer(matchState.elapsed_seconds, isTimerRunning, period);
@@ -400,7 +399,7 @@ function updatePeriod(period) {
 /**
  * Toggle the timer state
  */
-function toggleTimer(shouldRun) {
+export function toggleTimer(shouldRun) {
     if (!matchState) return;
     
     if (shouldRun !== isTimerRunning) {
@@ -436,7 +435,7 @@ function toggleTimer(shouldRun) {
 /**
  * Start the local timer interval
  */
-function startTimerInterval() {
+export function startTimerInterval() {
     if (timerInterval) {
         clearInterval(timerInterval);
     }
@@ -453,7 +452,7 @@ function startTimerInterval() {
 /**
  * Add a match event
  */
-function addEvent(eventData) {
+export function addEvent(eventData) {
     window.socket.emit('add_event', {
         match_id: matchId,
         event: eventData
@@ -463,7 +462,7 @@ function addEvent(eventData) {
 /**
  * Toggle a player's shift status
  */
-function togglePlayerShift(playerId, isActive) {
+export function togglePlayerShift(playerId, isActive) {
     window.socket.emit('update_player_shift', {
         match_id: matchId,
         player_id: playerId,
@@ -475,7 +474,7 @@ function togglePlayerShift(playerId, isActive) {
 /**
  * Submit the final match report
  */
-function submitFinalReport() {
+export function submitFinalReport() {
     const notes = window.$('#matchNotes').val();
     
     window.socket.emit('submit_report', {
@@ -489,7 +488,7 @@ function submitFinalReport() {
 /**
  * Update the match UI with current state
  */
-function updateMatchUI(state) {
+export function updateMatchUI(state) {
     // Update score
     updateScoreUI(state.home_score, state.away_score);
     
@@ -516,7 +515,7 @@ function updateMatchUI(state) {
 /**
  * Update the score display
  */
-function updateScoreUI(homeScore, awayScore) {
+export function updateScoreUI(homeScore, awayScore) {
     window.$('#homeScore').text(homeScore);
     window.$('#awayScore').text(awayScore);
 }
@@ -524,7 +523,7 @@ function updateScoreUI(homeScore, awayScore) {
 /**
  * Update the timer display
  */
-function updateTimerUI(elapsedSeconds, isRunning, period) {
+export function updateTimerUI(elapsedSeconds, isRunning, period) {
     // Update period selector
     if (period && window.$('#periodSelector').val() !== period) {
         window.$('#periodSelector').val(period);
@@ -542,7 +541,7 @@ function updateTimerUI(elapsedSeconds, isRunning, period) {
 /**
  * Update the timer display format
  */
-function updateTimerDisplay(elapsedSeconds) {
+export function updateTimerDisplay(elapsedSeconds) {
     const minutes = Math.floor(elapsedSeconds / 60);
     const seconds = elapsedSeconds % 60;
     
@@ -554,7 +553,7 @@ function updateTimerDisplay(elapsedSeconds) {
 /**
  * Update the events list
  */
-function updateEventsUI(events) {
+export function updateEventsUI(events) {
     const $eventsList = window.$('#eventsList');
     $eventsList.empty();
 
@@ -598,7 +597,7 @@ function updateEventsUI(events) {
 /**
  * Update the match status display
  */
-function updateMatchStatusUI(status) {
+export function updateMatchStatusUI(status) {
     window.$('#matchStatus').text(status);
 
     let statusClass = 'badge js-match-status-badge ';
@@ -622,7 +621,7 @@ function updateMatchStatusUI(status) {
 /**
  * Update the active reporters list
  */
-function updateReportersUI(reporters) {
+export function updateReportersUI(reporters) {
     const $reportersList = window.$('#reportersList');
     $reportersList.empty();
 
@@ -647,7 +646,7 @@ function updateReportersUI(reporters) {
 /**
  * Format time since last active
  */
-function timeSinceLastActive(lastActive) {
+export function timeSinceLastActive(lastActive) {
     const now = new Date();
     const diffMs = now - lastActive;
     const diffSec = Math.floor(diffMs / 1000);
@@ -666,7 +665,7 @@ function timeSinceLastActive(lastActive) {
 /**
  * Update the player shifts display
  */
-function updateShiftsUI(shifts) {
+export function updateShiftsUI(shifts) {
     const $shiftsContainer = window.$('#playerShiftsContainer');
     $shiftsContainer.empty();
     
@@ -727,7 +726,7 @@ function updateShiftsUI(shifts) {
 /**
  * Update the player dropdown based on selected team
  */
-function updatePlayerDropdown(teamId) {
+export function updatePlayerDropdown(teamId) {
     if (!matchState) return;
     
     const $playerSelect = window.$('#eventPlayer');
@@ -755,7 +754,7 @@ function updatePlayerDropdown(teamId) {
 /**
  * Disable all reporting controls when report is submitted
  */
-function disableReportingControls() {
+export function disableReportingControls() {
     // Disable score controls
     window.$('#increaseHomeScore, #decreaseHomeScore, #increaseAwayScore, #decreaseAwayScore').prop('disabled', true);
     
@@ -782,7 +781,7 @@ function disableReportingControls() {
 /**
  * Show a notification message
  */
-function liveReportingShowNotification(message, type = 'info') {
+export function liveReportingShowNotification(message, type = 'info') {
     const $notifications = window.$('#notifications');
     
     // Create notification element
@@ -810,7 +809,7 @@ function liveReportingShowNotification(message, type = 'info') {
     };
 
     // Initialize function
-    function init() {
+    export function init() {
         if (_initialized) return;
         _initialized = true;
 
@@ -833,4 +832,81 @@ function liveReportingShowNotification(message, type = 'info') {
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.initLiveReporting = initLiveReporting;
+
+// Backward compatibility
+window.setupSocketListeners = setupSocketListeners;
+
+// Backward compatibility
+window.setupUIListeners = setupUIListeners;
+
+// Backward compatibility
+window.joinMatch = joinMatch;
+
+// Backward compatibility
+window.leaveMatch = leaveMatch;
+
+// Backward compatibility
+window.updateScore = updateScore;
+
+// Backward compatibility
+window.updateTimer = updateTimer;
+
+// Backward compatibility
+window.updatePeriod = updatePeriod;
+
+// Backward compatibility
+window.toggleTimer = toggleTimer;
+
+// Backward compatibility
+window.startTimerInterval = startTimerInterval;
+
+// Backward compatibility
+window.addEvent = addEvent;
+
+// Backward compatibility
+window.togglePlayerShift = togglePlayerShift;
+
+// Backward compatibility
+window.submitFinalReport = submitFinalReport;
+
+// Backward compatibility
+window.updateMatchUI = updateMatchUI;
+
+// Backward compatibility
+window.updateScoreUI = updateScoreUI;
+
+// Backward compatibility
+window.updateTimerUI = updateTimerUI;
+
+// Backward compatibility
+window.updateTimerDisplay = updateTimerDisplay;
+
+// Backward compatibility
+window.updateEventsUI = updateEventsUI;
+
+// Backward compatibility
+window.updateMatchStatusUI = updateMatchStatusUI;
+
+// Backward compatibility
+window.updateReportersUI = updateReportersUI;
+
+// Backward compatibility
+window.timeSinceLastActive = timeSinceLastActive;
+
+// Backward compatibility
+window.updateShiftsUI = updateShiftsUI;
+
+// Backward compatibility
+window.updatePlayerDropdown = updatePlayerDropdown;
+
+// Backward compatibility
+window.disableReportingControls = disableReportingControls;
+
+// Backward compatibility
+window.liveReportingShowNotification = liveReportingShowNotification;
+
+// Backward compatibility
+window.init = init;

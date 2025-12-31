@@ -2,14 +2,13 @@
  * Safe HTML Utilities
  * Provides XSS protection for dynamic HTML content
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    /**
+/**
      * HTML entity encoding map
      */
-    const HTML_ENTITIES = {
+    export const HTML_ENTITIES = {
         '&': '&amp;',
         '<': '&lt;',
         '>': '&gt;',
@@ -26,7 +25,7 @@
      * @param {string} str - String to escape
      * @returns {string} Escaped string
      */
-    function escapeHtml(str) {
+    export function escapeHtml(str) {
         if (typeof str !== 'string') return '';
         return str.replace(/[&<>"'`=\/]/g, char => HTML_ENTITIES[char]);
     }
@@ -43,7 +42,7 @@
      * @param {...any} values - Interpolated values
      * @returns {string} Safe HTML string
      */
-    function safeHtml(strings, ...values) {
+    export function safeHtml(strings, ...values) {
         return strings.reduce((result, str, i) => {
             const value = values[i - 1];
             const escaped = typeof value === 'string' ? window.escapeHtml(value) : (value ?? '');
@@ -61,7 +60,7 @@
      * @param {string} html - HTML string to trust
      * @returns {string} The same HTML string (marker for code review)
      */
-    function trustHtml(html) {
+    export function trustHtml(html) {
         // This is a marker function for code review
         // It indicates this HTML is intentionally not escaped
         return html;
@@ -76,7 +75,7 @@
      * @param {Element} element - DOM element
      * @param {string} html - HTML content (use safeHtml template literal)
      */
-    function setInnerHTML(element, html) {
+    export function setInnerHTML(element, html) {
         if (element && typeof html === 'string') {
             element.innerHTML = html;
         }
@@ -95,4 +94,8 @@
     window.safeHtml = safeHtml;
     window.trustHtml = trustHtml;
 
-})();
+// Backward compatibility
+window.HTML_ENTITIES = HTML_ENTITIES;
+
+// Backward compatibility
+window.setInnerHTML = setInnerHTML;

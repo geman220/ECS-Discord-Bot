@@ -2,13 +2,12 @@
  * Schedule Management
  * Handles match scheduling, editing, and deletion
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
+let _initialized = false;
 
-    let _initialized = false;
-
-class ScheduleManager {
+export class ScheduleManager {
     constructor() {
         // We'll store references to the "Add/Edit Match" modal and the "Add Single Week" form
         this.editMatchModal = null;
@@ -359,7 +358,7 @@ class ScheduleManager {
     window.ScheduleManager = ScheduleManager;
 
     // Initialize function
-    function init() {
+    export function init() {
         if (_initialized) return;
         _initialized = true;
 
@@ -382,4 +381,6 @@ class ScheduleManager {
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.init = init;

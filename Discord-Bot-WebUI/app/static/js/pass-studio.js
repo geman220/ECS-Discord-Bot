@@ -21,7 +21,7 @@
  */
 
 // Pass Studio JavaScript
-const PassStudio = {
+export const PassStudio = {
     passTypeCode: '',
     hasUnsavedChanges: false,
     previewData: null,

@@ -27,7 +27,7 @@
  * ============================================================================
  */
 
-const EventDelegation = {
+export const EventDelegation = {
     // Handler registry - maps action names to handler functions
     handlers: new Map(),
 

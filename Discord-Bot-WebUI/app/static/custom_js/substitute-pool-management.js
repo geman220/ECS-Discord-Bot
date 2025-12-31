@@ -4,17 +4,16 @@
  *
  * Dependencies: jQuery, Bootstrap 5, subPoolShowAlert function
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
     // Global pagination state
     let paginationState = {};
 
 // Notification function
-function subPoolShowAlert(type, message) {
+export function subPoolShowAlert(type, message) {
     // Try toastr first, fallback to SweetAlert2, then basic alert
     if (typeof toastr !== 'undefined') {
         toastr[type](message);
@@ -91,7 +90,7 @@ window.subPoolHandleDrop = function(event) {
 };
 
 // Initialize pagination state
-function initializePaginationState(poolsData) {
+export function initializePaginationState(poolsData) {
     paginationState = {};
     for (const leagueType in poolsData) {
         paginationState[`${leagueType}-pending`] = { currentPage: 1, itemsPerPage: 8 };
@@ -100,7 +99,7 @@ function initializePaginationState(poolsData) {
 }
 
 // Search functionality
-function initializeSearch() {
+export function initializeSearch() {
     let searchTimeout;
 
     window.$('#playerSearch').on('input', function() {
@@ -124,7 +123,7 @@ function initializeSearch() {
     });
 }
 
-function performSearch(query) {
+export function performSearch(query) {
     const leagueFilter = window.$('#searchLeagueFilter').val();
 
     window.$.ajax({
@@ -147,7 +146,7 @@ function performSearch(query) {
     });
 }
 
-function displaySearchResults(players) {
+export function displaySearchResults(players) {
     const resultsContainer = window.$('#searchResults');
     resultsContainer.empty();
 
@@ -191,7 +190,7 @@ function displaySearchResults(players) {
 // Actions registered: approve-pool-player, remove-pool-player, edit-pool-preferences,
 // view-pool-player-details, add-player-to-league, toggle-pool-view, filter-pool,
 // manage-league-pool, save-pool-preferences, pool-pagination
-function subPoolInitializeEventHandlers() {
+export function subPoolInitializeEventHandlers() {
     // All jQuery delegation has been replaced with EventDelegation.register()
     // See event-delegation.js for the centralized handlers
 
@@ -288,7 +287,7 @@ function subPoolInitializeEventHandlers() {
 }
 
 // Player management functions
-function approvePlayer(playerId, league) {
+export function approvePlayer(playerId, league) {
     window.$.ajax({
         url: `/admin/substitute-pools/${league}/add-player`,
         method: 'POST',
@@ -313,7 +312,7 @@ function approvePlayer(playerId, league) {
     });
 }
 
-function removePlayer(playerId, league) {
+export function removePlayer(playerId, league) {
     // Confirmation is now handled by the EventDelegation system
     // But we keep it here as a safety check for direct function calls
     if (!confirm('Are you sure you want to remove this player from the substitute pool?')) {
@@ -342,7 +341,7 @@ function removePlayer(playerId, league) {
 }
 
 // Player details modal
-function openPlayerDetailsModal(playerId) {
+export function openPlayerDetailsModal(playerId) {
     const detailsLoading = document.getElementById('detailsLoading');
     const detailsData = document.getElementById('detailsData');
 
@@ -373,7 +372,7 @@ function openPlayerDetailsModal(playerId) {
         });
 }
 
-function displayPlayerDetails(data, playerId) {
+export function displayPlayerDetails(data, playerId) {
     const detailsLoading = document.getElementById('detailsLoading');
     const detailsData = document.getElementById('detailsData');
 
@@ -432,7 +431,7 @@ function displayPlayerDetails(data, playerId) {
 }
 
 // Filter functionality
-function filterPlayerCards(league, section, filterText) {
+export function filterPlayerCards(league, section, filterText) {
     const cards = $(`.player-card[data-league="${league}"][data-status="${section}"], .player-list-item[data-league="${league}"][data-status="${section}"]`);
 
     cards.each(function() {
@@ -446,7 +445,7 @@ function filterPlayerCards(league, section, filterText) {
 }
 
 // Pagination functions
-function updatePagination(league, section) {
+export function updatePagination(league, section) {
     const key = `${league}-${section}`;
     const state = paginationState[key];
     const itemsPerPage = state.itemsPerPage;
@@ -474,7 +473,7 @@ function updatePagination(league, section) {
     generatePaginationControls(league, section, currentPage, totalPages);
 }
 
-function generatePaginationControls(league, section, currentPage, totalPages) {
+export function generatePaginationControls(league, section, currentPage, totalPages) {
     const paginationContainer = $(`#${section}-pagination-${league}`);
 
     if (!paginationContainer.length || totalPages <= 1) {
@@ -575,7 +574,7 @@ window.$(document).on('click', '.pagination .page-link', function(e) {
     window.filterPlayerCards = filterPlayerCards;
 
     // Initialize function
-    function init() {
+    export function init() {
         if (_initialized) return;
         _initialized = true;
 
@@ -598,4 +597,24 @@ window.$(document).on('click', '.pagination .page-link', function(e) {
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.initializeSearch = initializeSearch;
+
+// Backward compatibility
+window.performSearch = performSearch;
+
+// Backward compatibility
+window.displaySearchResults = displaySearchResults;
+
+// Backward compatibility
+window.subPoolInitializeEventHandlers = subPoolInitializeEventHandlers;
+
+// Backward compatibility
+window.displayPlayerDetails = displayPlayerDetails;
+
+// Backward compatibility
+window.generatePaginationControls = generatePaginationControls;
+
+// Backward compatibility
+window.init = init;

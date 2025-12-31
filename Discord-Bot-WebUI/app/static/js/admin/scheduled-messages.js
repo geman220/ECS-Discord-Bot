@@ -24,15 +24,14 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    // ========================================================================
+// ========================================================================
     // CONFIGURATION
     // ========================================================================
 
-    const CONFIG = {
+    export const CONFIG = {
         ENDPOINTS: {
             MESSAGE_DETAILS: '/admin-panel/communication/scheduled-messages/{id}/details',
             MESSAGE_UPDATE: '/admin-panel/communication/scheduled-messages/{id}/update'
@@ -46,7 +45,7 @@
     /**
      * Preview message before scheduling
      */
-    function previewMessage() {
+    export function previewMessage() {
         const title = document.getElementById('message_title')?.value;
         const content = document.getElementById('message_content')?.value;
         const type = document.getElementById('message_type')?.value;
@@ -87,7 +86,7 @@
      * @param {number} messageId - The message ID
      * @param {string} messageTitle - The message title for display
      */
-    function viewScheduledMessage(messageId, messageTitle) {
+    export function viewScheduledMessage(messageId, messageTitle) {
         const titleEl = document.getElementById('message_details_title');
         const contentEl = document.getElementById('message_details_content');
 
@@ -131,7 +130,7 @@
      * Edit a scheduled message
      * @param {number} messageId - The message ID
      */
-    function editScheduledMessage(messageId) {
+    export function editScheduledMessage(messageId) {
         // Fetch message details first
         const url = CONFIG.ENDPOINTS.MESSAGE_DETAILS.replace('{id}', messageId);
 
@@ -221,7 +220,7 @@
      * @param {string} cancelUrl - URL to submit cancel request
      * @param {string} csrfToken - CSRF token for form submission
      */
-    function cancelScheduledMessage(messageId, messageTitle, cancelUrl, csrfToken) {
+    export function cancelScheduledMessage(messageId, messageTitle, cancelUrl, csrfToken) {
         window.Swal.fire({
             title: 'Cancel Scheduled Message?',
             text: `Cancel the scheduled message "${messageTitle}"? This action cannot be undone.`,
@@ -266,7 +265,7 @@
      * @param {string} retryUrl - URL to submit retry request
      * @param {string} csrfToken - CSRF token for form submission
      */
-    function retryScheduledMessage(messageId, messageTitle, retryUrl, csrfToken) {
+    export function retryScheduledMessage(messageId, messageTitle, retryUrl, csrfToken) {
         window.Swal.fire({
             title: 'Retry Scheduled Message?',
             text: `Retry sending the failed message "${messageTitle}"?`,
@@ -307,7 +306,7 @@
     /**
      * Initialize recurring message checkbox handler
      */
-    function initRecurringToggle() {
+    export function initRecurringToggle() {
         const recurringCheckbox = document.getElementById('is_recurring');
         const recurrenceOptions = document.getElementById('recurrence_options');
         const recurrencePattern = document.getElementById('recurrence_pattern');
@@ -349,7 +348,7 @@
     /**
      * Initialize queue filtering radio buttons
      */
-    function initQueueFiltering() {
+    export function initQueueFiltering() {
         const filterRadios = document.querySelectorAll('input[name="queue_filter"]');
 
         filterRadios.forEach(radio => {
@@ -379,7 +378,7 @@
     /**
      * Set minimum date/time for scheduling input to current time
      */
-    function initMinDateTime() {
+    export function initMinDateTime() {
         const scheduleDateInput = document.getElementById('schedule_date');
         if (!scheduleDateInput) return;
 
@@ -402,7 +401,7 @@
      * Handle go back action
      * @param {Event} e - The event object
      */
-    function handleGoBack(e) {
+    export function handleGoBack(e) {
         window.history.back();
     }
 
@@ -410,7 +409,7 @@
      * Handle preview message action
      * @param {Event} e - The event object
      */
-    function handlePreviewMessage(e) {
+    export function handlePreviewMessage(e) {
         window.previewMessage();
     }
 
@@ -418,7 +417,7 @@
      * Handle view scheduled message action
      * @param {Event} e - The event object
      */
-    function handleViewScheduledMessage(e) {
+    export function handleViewScheduledMessage(e) {
         const viewId = e.target.dataset.messageId;
         const viewTitle = e.target.dataset.title;
         viewScheduledMessage(viewId, viewTitle);
@@ -428,7 +427,7 @@
      * Handle edit scheduled message action
      * @param {Event} e - The event object
      */
-    function handleEditScheduledMessage(e) {
+    export function handleEditScheduledMessage(e) {
         const editId = e.target.dataset.messageId;
         editScheduledMessage(editId);
     }
@@ -437,7 +436,7 @@
      * Handle cancel scheduled message action
      * @param {Event} e - The event object
      */
-    function handleCancelScheduledMessage(e) {
+    export function handleCancelScheduledMessage(e) {
         const cancelId = e.target.dataset.messageId;
         const cancelTitle = e.target.dataset.title;
         const cancelUrl = e.target.dataset.cancelUrl;
@@ -449,7 +448,7 @@
      * Handle retry scheduled message action
      * @param {Event} e - The event object
      */
-    function handleRetryScheduledMessage(e) {
+    export function handleRetryScheduledMessage(e) {
         const retryId = e.target.dataset.messageId;
         const retryTitle = e.target.dataset.title;
         const retryUrl = e.target.dataset.retryUrl;
@@ -515,4 +514,50 @@
         init
     };
 
-})();
+// Backward compatibility
+window.CONFIG = CONFIG;
+
+// Backward compatibility
+window.previewMessage = previewMessage;
+
+// Backward compatibility
+window.viewScheduledMessage = viewScheduledMessage;
+
+// Backward compatibility
+window.editScheduledMessage = editScheduledMessage;
+
+// Backward compatibility
+window.cancelScheduledMessage = cancelScheduledMessage;
+
+// Backward compatibility
+window.retryScheduledMessage = retryScheduledMessage;
+
+// Backward compatibility
+window.initRecurringToggle = initRecurringToggle;
+
+// Backward compatibility
+window.initQueueFiltering = initQueueFiltering;
+
+// Backward compatibility
+window.initMinDateTime = initMinDateTime;
+
+// Backward compatibility
+window.handleGoBack = handleGoBack;
+
+// Backward compatibility
+window.handlePreviewMessage = handlePreviewMessage;
+
+// Backward compatibility
+window.handleViewScheduledMessage = handleViewScheduledMessage;
+
+// Backward compatibility
+window.handleEditScheduledMessage = handleEditScheduledMessage;
+
+// Backward compatibility
+window.handleCancelScheduledMessage = handleCancelScheduledMessage;
+
+// Backward compatibility
+window.handleRetryScheduledMessage = handleRetryScheduledMessage;
+
+// Backward compatibility
+window.init = init;

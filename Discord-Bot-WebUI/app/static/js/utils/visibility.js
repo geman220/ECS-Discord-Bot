@@ -16,11 +16,10 @@
  *
  *   if (Visibility.isHidden(element)) { ... }
  */
+// ES Module
+'use strict';
 
-(function(window, document) {
-    'use strict';
-
-    const Visibility = {
+export const Visibility = {
         /**
          * The standard hidden class used throughout the application
          * Defined in state-utils.css
@@ -172,4 +171,3 @@
         });
     }
 
-})(window, document);

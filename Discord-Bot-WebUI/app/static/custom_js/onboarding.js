@@ -22,13 +22,12 @@
  * @version 2.1.0 (InitSystem)
  * @date 2025-12-29
  */
-
-(function() {
+// ES Module
 'use strict';
 
 let _initialized = false;
 
-function init() {
+export function init() {
     if (_initialized) return;
     _initialized = true;
     // Core elements
@@ -249,7 +248,7 @@ function init() {
     // ======================
     //  Helper functions
     // ======================
-    function getCurrentStep() {
+    export function getCurrentStep() {
         if (!carouselElement) {
             return -1;
         }
@@ -385,4 +384,8 @@ if (document.readyState === 'loading') {
     init();
 }
 
-})();
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.getCurrentStep = getCurrentStep;

@@ -158,7 +158,7 @@ window.EventDelegation.register('update-calendar-preferences', async function(el
  * Helper: Show calendar-specific toast notification
  * Uses existing toast system if available
  */
-function showCalendarToast(type, message) {
+export function showCalendarToast(type, message) {
     // Use existing toast system if available
     if (typeof window.showToast === 'function') {
         window.showToast(type, message);
@@ -200,7 +200,7 @@ function showCalendarToast(type, message) {
 /**
  * Helper: Set loading state for calendar subscription
  */
-function setCalendarLoading(loading) {
+export function setCalendarLoading(loading) {
     const loadingIndicator = document.getElementById('subscriptionLoading');
     const content = document.getElementById('subscriptionContent');
 
@@ -215,3 +215,9 @@ function setCalendarLoading(loading) {
 // ============================================================================
 
 console.log('[EventDelegation] Calendar handlers loaded');
+
+// Backward compatibility
+window.showCalendarToast = showCalendarToast;
+
+// Backward compatibility
+window.setCalendarLoading = setCalendarLoading;

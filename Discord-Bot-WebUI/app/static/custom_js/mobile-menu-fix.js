@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Function to open menu
-  function openMenu() {
+  export function openMenu() {
     document.documentElement.classList.add('layout-menu-expanded');
     document.body.classList.add('layout-menu-expanded');
     if (layoutMenu) {
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Function to close menu
-  function closeMenu() {
+  export function closeMenu() {
     document.documentElement.classList.remove('layout-menu-expanded');
     document.body.classList.remove('layout-menu-expanded');
     if (layoutMenu) {
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Toggle menu function
-  function toggleMenu() {
+  export function toggleMenu() {
     if (document.documentElement.classList.contains('layout-menu-expanded')) {
       closeMenu();
     } else {
@@ -128,3 +128,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 */
+
+// Backward compatibility
+window.openMenu = openMenu;
+
+// Backward compatibility
+window.closeMenu = closeMenu;
+
+// Backward compatibility
+window.toggleMenu = toggleMenu;

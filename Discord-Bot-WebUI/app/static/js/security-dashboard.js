@@ -11,7 +11,7 @@
  * @date 2025-12-16
  */
 
-class SecurityDashboard {
+export class SecurityDashboard {
     constructor() {
         this.refreshInterval = null;
         this.countdownInterval = null;
@@ -740,3 +740,6 @@ window.addEventListener('beforeunload', () => {
         window.securityDashboard.destroy();
     }
 });
+
+// Backward compatibility
+window.SecurityDashboard = SecurityDashboard;

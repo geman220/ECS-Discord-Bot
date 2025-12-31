@@ -3,11 +3,10 @@
  *
  * Handles validation page interactions and real-time updates
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
     function init() {
         if (_initialized) return;
@@ -19,7 +18,7 @@
 /**
  * Initialize validation page functionality
  */
-function initializeValidationPage() {
+export function initializeValidationPage() {
     // Set up periodic refresh for overdue messages
     setupAutoRefresh();
 
@@ -46,7 +45,7 @@ if (typeof window._scheduledMsgAutoRefreshSetup === 'undefined') {
 /**
  * Set up auto-refresh for pages with critical issues
  */
-function setupAutoRefresh() {
+export function setupAutoRefresh() {
     if (window._scheduledMsgAutoRefreshSetup) return;
     window._scheduledMsgAutoRefreshSetup = true;
 
@@ -69,7 +68,7 @@ function setupAutoRefresh() {
 /**
  * Update page title with countdown
  */
-function updatePageTitle(seconds) {
+export function updatePageTitle(seconds) {
     const originalTitle = document.title;
     let countdown = seconds;
     
@@ -87,7 +86,7 @@ function updatePageTitle(seconds) {
 /**
  * Refresh validation data via AJAX
  */
-function refreshValidation() {
+export function refreshValidation() {
     const refreshBtn = document.querySelector('#refresh-btn');
     if (refreshBtn) {
         // Show loading state
@@ -113,7 +112,7 @@ if (typeof window._scheduledMsgRefreshButtonSetup === 'undefined') {
 /**
  * Set up refresh button functionality
  */
-function setupRefreshButton() {
+export function setupRefreshButton() {
     if (window._scheduledMsgRefreshButtonSetup) return;
     window._scheduledMsgRefreshButtonSetup = true;
 
@@ -126,7 +125,7 @@ function setupRefreshButton() {
 /**
  * Show queue status popup
  */
-function scheduledMsgShowQueueStatus() {
+export function scheduledMsgShowQueueStatus() {
     fetch('/admin/scheduled_messages/queue_status')
         .then(response => response.json())
         .then(data => {
@@ -156,7 +155,7 @@ function scheduledMsgShowQueueStatus() {
 /**
  * Format countdown time display
  */
-function formatCountdown(hours) {
+export function formatCountdown(hours) {
     if (hours < 0) {
         return 'READY';
     } else if (hours < 1) {
@@ -171,7 +170,7 @@ function formatCountdown(hours) {
 /**
  * Update countdown displays if any exist
  */
-function updateCountdowns() {
+export function updateCountdowns() {
     const countdownElements = document.querySelectorAll('[data-hours-until]');
     countdownElements.forEach(function(element) {
         const hours = parseFloat(element.getAttribute('data-hours-until'));
@@ -184,7 +183,7 @@ function updateCountdowns() {
 /**
  * Start countdown updates if we have countdown elements
  */
-function startCountdownUpdates() {
+export function startCountdownUpdates() {
     const countdownElements = document.querySelectorAll('[data-hours-until]');
     if (countdownElements.length > 0) {
         setInterval(updateCountdowns, 60000); // Update every minute
@@ -211,4 +210,21 @@ function startCountdownUpdates() {
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.initializeValidationPage = initializeValidationPage;
+
+// Backward compatibility
+window.setupAutoRefresh = setupAutoRefresh;
+
+// Backward compatibility
+window.updatePageTitle = updatePageTitle;
+
+// Backward compatibility
+window.setupRefreshButton = setupRefreshButton;
+
+// Backward compatibility
+window.updateCountdowns = updateCountdowns;
+
+// Backward compatibility
+window.startCountdownUpdates = startCountdownUpdates;

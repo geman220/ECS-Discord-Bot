@@ -10,12 +10,15 @@
  */
 
 // Global utility function for formatting position names
-function formatPosition(position) {
+export function formatPosition(position) {
     if (!position) return position;
     return position.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
-class DraftSystemV2 {
+// Backward compat for formatPosition
+window.formatPosition = formatPosition;
+
+export class DraftSystemV2 {
     constructor(leagueName) {
         this.leagueName = leagueName;
         this.socket = null;

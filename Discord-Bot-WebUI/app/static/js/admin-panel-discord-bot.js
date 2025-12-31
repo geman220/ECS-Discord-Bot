@@ -15,12 +15,11 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  // Configuration
-  const CONFIG = {
+// Configuration
+  export const CONFIG = {
     botApiUrl: 'http://localhost:5001/api/bot',
     recentLogs: null, // Will be populated from template
     commands: null, // Will be populated from template
@@ -32,7 +31,7 @@
   let _initialized = false;
 
   // Initialize data from template
-  function initializeData() {
+  export function initializeData() {
     // These would be populated from script tags in the template if needed
     // For now, using placeholder data structure
     CONFIG.recentLogs = window.__BOT_RECENT_LOGS__ || [];
@@ -124,7 +123,7 @@
     });
   }
 
-  function viewBotLogs() {
+  export function viewBotLogs() {
     let logsHtml = '';
     const logs = CONFIG.recentLogs;
 
@@ -199,7 +198,7 @@
   // COMMAND MANAGEMENT
   // ============================================================================
 
-  function viewCommands() {
+  export function viewCommands() {
     const commands = CONFIG.commands;
     let commandsHtml = '';
 
@@ -261,12 +260,12 @@
     });
   }
 
-  function commandPermissions() {
+  export function commandPermissions() {
     // Placeholder - would implement permissions management
     window.Swal.fire('Command Permissions', 'Command permissions management interface would appear here.', 'info');
   }
 
-  function commandUsage() {
+  export function commandUsage() {
     const usage = CONFIG.commandUsage;
 
     window.Swal.fire({
@@ -308,7 +307,7 @@
     });
   }
 
-  function customCommands() {
+  export function customCommands() {
     // Placeholder - would implement custom commands interface
     window.Swal.fire('Custom Commands', 'Custom commands management interface would appear here.', 'info');
   }
@@ -317,12 +316,12 @@
   // GUILD MANAGEMENT
   // ============================================================================
 
-  function manageGuild(element, e) {
+  export function manageGuild(element, e) {
     const guildId = element.dataset.guild;
     window.Swal.fire('Guild Management', `Guild management interface for ${guildId} would appear here.`, 'info');
   }
 
-  function guildStats(element, e) {
+  export function guildStats(element, e) {
     const guild = CONFIG.guildInfo;
 
     window.Swal.fire({
@@ -362,7 +361,7 @@
     });
   }
 
-  function addGuild() {
+  export function addGuild() {
     window.Swal.fire({
       title: 'Add Bot to Server',
       html: `
@@ -435,7 +434,7 @@
     }
   }
 
-  function resetBotConfig() {
+  export function resetBotConfig() {
     const prefixEl = document.getElementById('botPrefix');
     const roleEl = document.getElementById('defaultRole');
     const activityTypeEl = document.getElementById('activityType');
@@ -488,7 +487,7 @@
   // INITIALIZATION
   // ============================================================================
 
-  function init() {
+  export function init() {
     // Guard against duplicate initialization
     if (_initialized) return;
     _initialized = true;
@@ -555,4 +554,38 @@
     init();
   }
 
-})();
+// Backward compatibility
+window.CONFIG = CONFIG;
+
+// Backward compatibility
+window.initializeData = initializeData;
+
+// Backward compatibility
+window.viewBotLogs = viewBotLogs;
+
+// Backward compatibility
+window.viewCommands = viewCommands;
+
+// Backward compatibility
+window.commandPermissions = commandPermissions;
+
+// Backward compatibility
+window.commandUsage = commandUsage;
+
+// Backward compatibility
+window.customCommands = customCommands;
+
+// Backward compatibility
+window.manageGuild = manageGuild;
+
+// Backward compatibility
+window.guildStats = guildStats;
+
+// Backward compatibility
+window.addGuild = addGuild;
+
+// Backward compatibility
+window.resetBotConfig = resetBotConfig;
+
+// Backward compatibility
+window.init = init;

@@ -2,18 +2,17 @@
  * UI Enhancements - Additional JavaScript for UI fixes
  * FIXED: Uses UnifiedMutationObserver to prevent cascade effects
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    // Track initialization state to prevent duplicate listeners
+// Track initialization state to prevent duplicate listeners
     let featherHandlerRegistered = false;
     let turboListenersRegistered = false;
 
     /**
      * Initialize all UI enhancements when DOM is ready
      */
-    function init() {
+    export function init() {
         initFeatherIcons();
         initMatchHistoryCollapse();
         // NOTE: Dropdown handling removed - navbar-modern.js handles all navbar dropdowns
@@ -24,7 +23,7 @@
      * Re-runs window.feather.replace() to ensure all icons are rendered
      * REFACTORED: Uses UnifiedMutationObserver instead of separate observer
      */
-    function initFeatherIcons() {
+    export function initFeatherIcons() {
         if (typeof window.feather === 'undefined') return;
 
         // Initial replace
@@ -65,7 +64,7 @@
      * ROOT CAUSE FIX: Uses event delegation for click/keydown events
      */
     let matchHistoryListenersRegistered = false;
-    function initMatchHistoryCollapse() {
+    export function initMatchHistoryCollapse() {
         // Set up event delegation ONCE
         if (!matchHistoryListenersRegistered) {
             matchHistoryListenersRegistered = true;
@@ -146,4 +145,11 @@
         document.addEventListener('turbolinks:load', init);
     }
 
-})();
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.initFeatherIcons = initFeatherIcons;
+
+// Backward compatibility
+window.initMatchHistoryCollapse = initMatchHistoryCollapse;

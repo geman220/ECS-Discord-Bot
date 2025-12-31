@@ -2,11 +2,10 @@
  * Message Management System JavaScript
  * Handles all interactive functionality for the message management interface
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    // Initialize when DOM is ready
+// Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
         console.log('Message Management JS loaded');
         
@@ -144,14 +143,14 @@
     };
 
     // Utility function to escape HTML
-    function escapeHtml(text) {
+    export function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 
     // Show toast notification
-    function showToast(title, message, type = 'info') {
+    export function showToast(title, message, type = 'info') {
         // Create container if it doesn't exist
         let container = document.querySelector('[data-role="toast-container"]');
         if (!container) {
@@ -200,4 +199,8 @@
         });
     }
 
-})();
+// Backward compatibility
+window.escapeHtml = escapeHtml;
+
+// Backward compatibility
+window.showToast = showToast;

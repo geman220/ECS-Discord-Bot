@@ -5,14 +5,14 @@
  * IMPORTANT: This should only run on a dedicated cache-clearing page, not globally.
  * The function is exposed globally but NOT auto-executed.
  */
-(function() {
-  'use strict';
+// ES Module
+'use strict';
 
-  /**
+/**
    * Call this function manually when cache clearing is needed.
    * Example: <button data-action="clear-cache">Clear Cache</button>
    */
-  function clearCacheAndRedirect() {
+  export function clearCacheAndRedirect() {
     // Files that exist in the production bundle
     const filesToClear = [
       '/static/gen/production.min.css',
@@ -77,4 +77,3 @@
   if (typeof window.EventDelegation !== 'undefined' && window.EventDelegation.register) {
     window.EventDelegation.register('clear-cache', clearCacheAndRedirect, { preventDefault: true });
   }
-})();

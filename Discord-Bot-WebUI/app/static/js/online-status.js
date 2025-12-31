@@ -13,10 +13,10 @@
  * ============================================================================
  */
 
-(function () {
-  'use strict';
-
-  class OnlineStatusManager {
+/**
+ * ES Module Export
+ */
+export class OnlineStatusManager {
     constructor() {
       this.updateInterval = 30000; // 30 seconds
       this.intervalId = null;
@@ -216,32 +216,31 @@
     }
   }
 
-  // Create global instance
-  window.OnlineStatusManager = new OnlineStatusManager();
+// Create global instance
+window.OnlineStatusManager = new OnlineStatusManager();
 
-  // Auto-initialize when DOM is ready - ONLY if there are status indicators on the page
-  function initIfNeeded() {
+// Auto-initialize when DOM is ready - ONLY if there are status indicators on the page
+function initIfNeeded() {
     // Page guard - only initialize if there are online status elements to update
     const hasStatusIndicators = document.querySelector('[data-online-status], .c-online-status, [data-component="online-status"]');
     if (!hasStatusIndicators) {
-      return; // No status indicators on this page, skip initialization
+        return; // No status indicators on this page, skip initialization
     }
     window.OnlineStatusManager.init();
-  }
+}
 
-  // Register with InitSystem (primary)
-  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+// Register with InitSystem (primary)
+if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
     window.InitSystem.register('online-status', initIfNeeded, {
-      priority: 40,
-      reinitializable: true,
-      description: 'Online status indicator manager'
+        priority: 40,
+        reinitializable: true,
+        description: 'Online status indicator manager'
     });
-  }
+}
 
-  // Fallback: Initialize when DOM is ready
-  if (document.readyState === 'loading') {
+// Fallback: Initialize when DOM is ready
+if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initIfNeeded);
-  } else {
+} else {
     initIfNeeded();
-  }
-})();
+}

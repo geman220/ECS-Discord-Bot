@@ -2,13 +2,12 @@
  * Playoff Bracket Manager
  * Handles dynamic loading, updating, and interaction with the playoff bracket
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
+let _initialized = false;
 
-    let _initialized = false;
-
-class PlayoffBracket {
+export class PlayoffBracket {
     constructor(leagueId, seasonId, currentTeamId = null) {
         this.leagueId = leagueId;
         this.seasonId = seasonId;
@@ -486,7 +485,7 @@ class PlayoffBracket {
     window.PlayoffBracket = PlayoffBracket;
 
     // Initialize function for pages with playoff brackets
-    function init() {
+    export function init() {
         if (_initialized) return;
         _initialized = true;
 
@@ -517,4 +516,6 @@ class PlayoffBracket {
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.init = init;

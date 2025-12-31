@@ -5,11 +5,10 @@
  *
  * Uses InitSystem with priority 30 (after form selects).
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    const EcsFcTeamManager = {
+export const EcsFcTeamManager = {
         selectors: {
             section: '#ecsFcTeamsSection',
             multiSelect: '#editEcsFcTeams',
@@ -215,4 +214,3 @@
         }
     }
 
-})();

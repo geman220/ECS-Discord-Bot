@@ -22,15 +22,14 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    // ========================================================================
+// ========================================================================
     // CONFIGURATION
     // ========================================================================
 
-    const CampaignsConfig = {
+    export const CampaignsConfig = {
         baseUrl: window.CAMPAIGNS_BASE_URL || '/admin-panel',
         csrfToken: window.CAMPAIGNS_CSRF_TOKEN || ''
     };
@@ -306,7 +305,7 @@
      * Handle go back action
      * @param {Event} e - The event object
      */
-    function handleGoBack(e) {
+    export function handleGoBack(e) {
         window.history.back();
     }
 
@@ -314,7 +313,7 @@
      * Handle view campaign action
      * @param {Event} e - The event object
      */
-    function handleViewCampaign(e) {
+    export function handleViewCampaign(e) {
         viewCampaign(e.target.dataset.campaignId);
     }
 
@@ -322,7 +321,7 @@
      * Handle edit campaign action
      * @param {Event} e - The event object
      */
-    function handleEditCampaign(e) {
+    export function handleEditCampaign(e) {
         editCampaign(e.target.dataset.campaignId);
     }
 
@@ -330,7 +329,7 @@
      * Handle send campaign action
      * @param {Event} e - The event object
      */
-    function handleSendCampaign(e) {
+    export function handleSendCampaign(e) {
         sendCampaign(
             e.target.dataset.campaignId,
             e.target.dataset.campaignName
@@ -341,7 +340,7 @@
      * Handle schedule campaign action
      * @param {Event} e - The event object
      */
-    function handleScheduleCampaign(e) {
+    export function handleScheduleCampaign(e) {
         scheduleCampaign(
             e.target.dataset.campaignId,
             e.target.dataset.campaignName
@@ -352,7 +351,7 @@
      * Handle delete campaign action
      * @param {Event} e - The event object
      */
-    function handleDeleteCampaign(e) {
+    export function handleDeleteCampaign(e) {
         deleteCampaign(
             e.target.dataset.campaignId,
             e.target.dataset.campaignName
@@ -363,7 +362,7 @@
      * Handle cancel campaign action
      * @param {Event} e - The event object
      */
-    function handleCancelCampaign(e) {
+    export function handleCancelCampaign(e) {
         cancelCampaign(
             e.target.dataset.campaignId,
             e.target.dataset.campaignName
@@ -374,7 +373,7 @@
      * Handle duplicate campaign action
      * @param {Event} e - The event object
      */
-    function handleDuplicateCampaign(e) {
+    export function handleDuplicateCampaign(e) {
         duplicateCampaign(
             e.target.dataset.campaignId,
             e.target.dataset.campaignName
@@ -455,4 +454,29 @@
         init
     };
 
-})();
+// Backward compatibility
+window.CampaignsConfig = CampaignsConfig;
+
+// Backward compatibility
+window.handleGoBack = handleGoBack;
+
+// Backward compatibility
+window.handleViewCampaign = handleViewCampaign;
+
+// Backward compatibility
+window.handleEditCampaign = handleEditCampaign;
+
+// Backward compatibility
+window.handleSendCampaign = handleSendCampaign;
+
+// Backward compatibility
+window.handleScheduleCampaign = handleScheduleCampaign;
+
+// Backward compatibility
+window.handleDeleteCampaign = handleDeleteCampaign;
+
+// Backward compatibility
+window.handleCancelCampaign = handleCancelCampaign;
+
+// Backward compatibility
+window.handleDuplicateCampaign = handleDuplicateCampaign;

@@ -4,13 +4,12 @@
  * Handles instant auto-save functionality for draft predictions.
  * Changes are saved immediately when users make selections.
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
+let _initialized = false;
 
-    let _initialized = false;
-
-class DraftPredictionsManager {
+export class DraftPredictionsManager {
     constructor() {
         this.pendingSaves = new Map();
         this.saveTimeouts = new Map();
@@ -351,7 +350,7 @@ class DraftPredictionsManager {
     window.DraftPredictionsManager = DraftPredictionsManager;
 
     // Initialize function
-    function init() {
+    export function init() {
         if (_initialized) return;
         _initialized = true;
 
@@ -375,4 +374,6 @@ class DraftPredictionsManager {
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.init = init;

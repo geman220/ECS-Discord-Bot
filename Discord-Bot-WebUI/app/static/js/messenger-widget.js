@@ -17,10 +17,10 @@
  * ============================================================================
  */
 
-(function() {
-  'use strict';
-
-  class MessengerWidget {
+/**
+ * ES Module Export
+ */
+export class MessengerWidget {
     constructor() {
       this.widget = null;
       this.currentUserId = null;
@@ -797,4 +797,5 @@
     window.MessengerWidget.destroy();
   });
 
-})();
+// Backward compat
+window.MessengerWidget = MessengerWidget;

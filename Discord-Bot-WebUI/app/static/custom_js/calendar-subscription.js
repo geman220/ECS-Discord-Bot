@@ -17,7 +17,7 @@ window.CalendarSubscription = window.CalendarSubscription || (function() {
     /**
      * Initialize the calendar subscription module
      */
-    function init() {
+    export function init() {
         if (_initialized) return;
         _initialized = true;
 
@@ -31,7 +31,7 @@ window.CalendarSubscription = window.CalendarSubscription || (function() {
      * Actions are registered in /app/static/js/event-delegation.js
      * Elements use data-action and data-on-change attributes for delegation.
      */
-    function bindEvents() {
+    export function bindEvents() {
         // All event handlers moved to EventDelegation system:
         // - copy-subscription-url (click)
         // - regenerate-subscription-token (click)
@@ -73,7 +73,7 @@ window.CalendarSubscription = window.CalendarSubscription || (function() {
     /**
      * Render subscription data in the UI
      */
-    function renderSubscription() {
+    export function renderSubscription() {
         if (!subscription) return;
 
         // Update URL display
@@ -141,7 +141,7 @@ window.CalendarSubscription = window.CalendarSubscription || (function() {
      * Set loading state
      * @param {boolean} loading
      */
-    function setLoading(loading) {
+    export function setLoading(loading) {
         isLoading = loading;
         const loadingIndicator = document.getElementById('subscriptionLoading');
         const content = document.getElementById('subscriptionContent');
@@ -158,7 +158,7 @@ window.CalendarSubscription = window.CalendarSubscription || (function() {
      * Show error message
      * @param {string} message
      */
-    function showError(message) {
+    export function showError(message) {
         const errorContainer = document.getElementById('subscriptionError');
         if (errorContainer) {
             errorContainer.textContent = message;
@@ -171,7 +171,7 @@ window.CalendarSubscription = window.CalendarSubscription || (function() {
      * @param {string} type - 'success', 'error', 'warning', 'info'
      * @param {string} message
      */
-    function showToast(type, message) {
+    export function showToast(type, message) {
         // Use existing toast system if available
         if (typeof window.showToast === 'function') {
             window.showToast(type, message);
@@ -215,7 +215,7 @@ window.CalendarSubscription = window.CalendarSubscription || (function() {
      * @param {Object} options - Options (isReferee, etc.)
      * @returns {string} HTML string
      */
-    function getCardHTML(options = {}) {
+    export function getCardHTML(options = {}) {
         const { isReferee = false } = options;
 
         return `
@@ -346,7 +346,7 @@ window.CalendarSubscription = window.CalendarSubscription || (function() {
 })();
 
 // Auto-initialize function
-function initCalendarSubscription() {
+export function initCalendarSubscription() {
     // Check if we're on the settings page with the subscription card
     if (document.getElementById('calendarSubscriptionCard')) {
         window.CalendarSubscription.init();
@@ -373,3 +373,27 @@ if (document.readyState === 'loading') {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = window.CalendarSubscription;
 }
+
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.bindEvents = bindEvents;
+
+// Backward compatibility
+window.renderSubscription = renderSubscription;
+
+// Backward compatibility
+window.setLoading = setLoading;
+
+// Backward compatibility
+window.showError = showError;
+
+// Backward compatibility
+window.showToast = showToast;
+
+// Backward compatibility
+window.getCardHTML = getCardHTML;
+
+// Backward compatibility
+window.initCalendarSubscription = initCalendarSubscription;

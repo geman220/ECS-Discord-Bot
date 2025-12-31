@@ -2,12 +2,12 @@
  * Tour - Shepherd.js guided tour for new users
  * Initializes and runs the onboarding tour
  */
-(function() {
-  'use strict';
+// ES Module
+'use strict';
 
-  let _initialized = false;
+let _initialized = false;
 
-  function init() {
+  export function init() {
     if (_initialized) return;
 
     // Guard: Check if Shepherd is loaded before using it
@@ -29,7 +29,7 @@
     });
 
     // Helper function to create skip action
-    function createSkipAction() {
+    export function createSkipAction() {
       return function() {
         const csrfToken = document.querySelector('input[name="csrf_token"]')?.value ||
                           document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -158,4 +158,9 @@
   } else {
     init();
   }
-})();
+
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.createSkipAction = createSkipAction;

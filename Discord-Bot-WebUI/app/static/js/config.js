@@ -6,18 +6,14 @@
  * This ensures JS and CSS stay in sync with the admin color customization
  */
 
-// Guard against double initialization (file loaded via both bundle and script tag)
-if (typeof window._ecsConfigInitialized === 'undefined') {
-  window._ecsConfigInitialized = true;
-
 // Utility function to get CSS variable value
-function getCSSVariable(name, fallback) {
+export function getCSSVariable(name, fallback) {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return value || fallback;
 }
 
 // Initialize colors from CSS variables (called after DOM ready)
-function initConfigColors() {
+export function initConfigColors() {
   window.config.colors = {
     primary: getCSSVariable('--ecs-primary', '#7C3AED'),
     success: getCSSVariable('--ecs-success', '#10B981'),
@@ -65,16 +61,10 @@ window.config = {
     bodyBg: '#09090B',
     headerBg: '#27272A',
   },
-  enableMenuLocalStorage: true, // Enable menu state with local storage support
-
-  // Set contentWidth to 'wide'
+  enableMenuLocalStorage: true,
   contentWidth: 'wide',
-
-  // Additional configurations
   layout: 'vertical',
   layoutPadding: 20,
-  // Remove or adjust compactContentWidth if it affects layout
-  // compactContentWidth: 1200, // Optional: Remove or set to a higher value if necessary
   navbar: {
     type: 'fixed',
     contentWidth: 'wide',
@@ -82,30 +72,24 @@ window.config = {
     detached: false,
     blur: false,
   },
-  // If you have a footer configuration, ensure it is also set to 'wide'
   footer: {
-    type: 'static', // or 'fixed' based on your needs
-    contentWidth: 'wide', // Ensure footer is also wide
+    type: 'static',
+    contentWidth: 'wide',
     detached: false,
   },
 };
 
-// Paths and RTL support - Use window. to avoid TDZ issues when files are concatenated
+// Paths and RTL support
 window.assetsPath = document.documentElement.getAttribute('data-assets-path');
 window.templateName = document.documentElement.getAttribute('data-template');
-window.rtlSupport = true; // set to true for RTL support, false otherwise.
+window.rtlSupport = true;
 
 // Set the default content layout to 'wide' and initialize colors from CSS variables
 document.addEventListener('DOMContentLoaded', function() {
   document.documentElement.setAttribute('data-content', 'wide');
-  // Initialize colors from CSS variables after DOM is ready
   initConfigColors();
 });
 
-} // End of initialization guard
-
-// Expose local aliases for backwards compatibility (safe to redeclare)
-var config = window.config;
-var assetsPath = window.assetsPath;
-var templateName = window.templateName;
-var rtlSupport = window.rtlSupport;
+// Backward compatibility
+window.getCSSVariable = getCSSVariable;
+window.initConfigColors = initConfigColors;

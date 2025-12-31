@@ -10,14 +10,13 @@
  * - Safari iOS 13+ (limited)
  * - Gracefully degrades on unsupported devices
  */
+// ES Module
+'use strict';
 
-(function (window) {
-  'use strict';
-
-  /**
+/**
    * Haptics controller with various vibration patterns
    */
-  const Haptics = {
+  export const Haptics = {
     /**
      * Check if Vibration API is supported
      * @returns {boolean}
@@ -408,4 +407,3 @@
     window.Haptics.init();
   }
 
-})(window);

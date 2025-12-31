@@ -2,13 +2,12 @@
  * View Standings Page
  * Handles tab persistence, tooltips, and popovers for the standings page
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
+let _initialized = false;
 
-    let _initialized = false;
-
-    const ViewStandings = {
+    export const ViewStandings = {
         init() {
             if (_initialized) return;
             _initialized = true;
@@ -81,4 +80,6 @@
     } else {
         ViewStandings.init();
     }
-})();
+
+// Backward compatibility
+window.ViewStandings = ViewStandings;

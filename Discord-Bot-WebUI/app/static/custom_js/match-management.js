@@ -4,15 +4,14 @@
  *
  * Dependencies: jQuery, Bootstrap 5, SweetAlert2
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
     let csrfToken = '';
 
 // Initialize CSRF token
-function initializeCSRFToken() {
+export function initializeCSRFToken() {
     const csrfMeta = document.querySelector('meta[name="csrf-token"]');
     if (csrfMeta) {
         csrfToken = csrfMeta.getAttribute('content');
@@ -26,7 +25,7 @@ function initializeCSRFToken() {
 }
 
 // Auto-refresh functionality
-function refreshStatuses() {
+export function refreshStatuses() {
     // Page guard - only run on match management page
     const lastUpdatedEl = document.getElementById('lastUpdated');
     if (!lastUpdatedEl) {
@@ -47,7 +46,7 @@ function refreshStatuses() {
         .catch(error => console.error('Error refreshing statuses:', error));
 }
 
-function updateMatchRow(match) {
+export function updateMatchRow(match) {
     const statusBadge = document.getElementById(`status-${match.id}`);
     if (statusBadge) {
         // Set stable structure first
@@ -62,7 +61,7 @@ function updateMatchRow(match) {
 }
 
 // Load detailed task information for a specific match
-function loadMatchTaskDetails(matchId) {
+export function loadMatchTaskDetails(matchId) {
     fetch(`/admin/match_management/match-tasks/${matchId}`)
         .then(response => response.json())
         .then(data => {
@@ -75,7 +74,7 @@ function loadMatchTaskDetails(matchId) {
 }
 
 // Update the task details display for a match
-function updateMatchTaskDetails(matchId, data) {
+export function updateMatchTaskDetails(matchId, data) {
     const container = document.getElementById(`task-details-${matchId}`);
     
     if (!container) {
@@ -113,7 +112,7 @@ function updateMatchTaskDetails(matchId, data) {
 }
 
 // Create a task card for display
-function createTaskCard(taskType, task, matchId) {
+export function createTaskCard(taskType, task, matchId) {
     const statusColor = getStatusColor(task.status);
     const statusIcon = getStatusIcon(task.status);
     const typeName = task.type || (taskType === 'thread' ? 'Thread Creation' : 'Live Reporting');
@@ -187,7 +186,7 @@ function createTaskCard(taskType, task, matchId) {
 }
 
 // Create a "no task" card
-function createNoTaskCard(taskName, message) {
+export function createNoTaskCard(taskName, message) {
     const typeIcon = taskName.includes('Thread') ? 'fa-comments' : 'fa-broadcast-tower';
     return `
         <div data-component="no-task-card" data-task-name="${taskName}" class="mb-1 p-2 border rounded bg-light">
@@ -204,7 +203,7 @@ function createNoTaskCard(taskName, message) {
 }
 
 // Show task error
-function showTaskError(matchId, error) {
+export function showTaskError(matchId, error) {
     const container = document.getElementById(`task-details-${matchId}`);
     if (!container) return;
     
@@ -226,7 +225,7 @@ function showTaskError(matchId, error) {
 }
 
 // Helper functions
-function getStatusColor(status) {
+export function getStatusColor(status) {
     const statusColors = {
         'PENDING': 'warning',
         'STARTED': 'info', 
@@ -245,7 +244,7 @@ function getStatusColor(status) {
     return statusColors[status] || 'secondary';
 }
 
-function getStatusIcon(status) {
+export function getStatusIcon(status) {
     const statusIcons = {
         'PENDING': 'fa-clock',
         'STARTED': 'fa-play',
@@ -264,7 +263,7 @@ function getStatusIcon(status) {
     return statusIcons[status] || 'fa-question';
 }
 
-function formatDuration(seconds) {
+export function formatDuration(seconds) {
     if (seconds < 60) return `${seconds}s`;
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -275,7 +274,7 @@ function formatDuration(seconds) {
 }
 
 // Task control functions
-function revokeTask(taskId, matchId, taskType) {
+export function revokeTask(taskId, matchId, taskType) {
     window.Swal.fire({
         title: 'Revoke Task?',
         text: `Are you sure you want to revoke this ${taskType} task?`,
@@ -314,7 +313,7 @@ function revokeTask(taskId, matchId, taskType) {
     });
 }
 
-function rescheduleTask(matchId, taskType) {
+export function rescheduleTask(matchId, taskType) {
     window.Swal.fire({
         title: 'Reschedule Task?',
         text: `This will reschedule the ${taskType} task for match ${matchId}`,
@@ -331,7 +330,7 @@ function rescheduleTask(matchId, taskType) {
     });
 }
 
-function showTaskInfo(taskId, taskType, taskData) {
+export function showTaskInfo(taskId, taskType, taskData) {
     let taskObj;
     try {
         taskObj = typeof taskData === 'string' ? JSON.parse(taskData) : taskData;
@@ -363,7 +362,7 @@ function showTaskInfo(taskId, taskType, taskData) {
 }
 
 // Load task details for all matches on the page
-function loadAllTaskDetails() {
+export function loadAllTaskDetails() {
     // Find all match rows and load their task details, but exclude historical matches unless expanded
     const matchRows = document.querySelectorAll('[data-match-id]:not([data-match-type="historical"])');
     matchRows.forEach(row => {
@@ -389,7 +388,7 @@ function loadAllTaskDetails() {
 
 
 
-function formatTaskETA(etaString) {
+export function formatTaskETA(etaString) {
     if (!etaString) return 'Unknown';
     
     try {
@@ -414,7 +413,7 @@ function formatTaskETA(etaString) {
     }
 }
 
-function formatTTL(seconds) {
+export function formatTTL(seconds) {
     if (!seconds || seconds <= 0) return 'No limit';
     
     const hours = Math.floor(seconds / 3600);
@@ -430,7 +429,7 @@ function formatTTL(seconds) {
 }
 
 
-function formatScheduledTime(isoString) {
+export function formatScheduledTime(isoString) {
     if (!isoString) return 'Unknown';
     
     try {
@@ -459,7 +458,7 @@ function formatScheduledTime(isoString) {
     }
 }
 
-function formatScheduledTimes() {
+export function formatScheduledTimes() {
     // Format all scheduled time elements on the page
     document.querySelectorAll('[data-time][data-component="scheduled-time"]').forEach(element => {
         const isoTime = element.getAttribute('data-time');
@@ -467,7 +466,7 @@ function formatScheduledTimes() {
     });
 }
 
-function getScheduleStatusColor(status) {
+export function getScheduleStatusColor(status) {
     const colors = {
         'not_started': 'secondary',
         'scheduled': 'warning',
@@ -479,7 +478,7 @@ function getScheduleStatusColor(status) {
     return colors[status] || 'secondary';
 }
 
-function getScheduleStatusIcon(status) {
+export function getScheduleStatusIcon(status) {
     const icons = {
         'not_started': 'fa-circle',
         'scheduled': 'fa-clock',
@@ -491,7 +490,7 @@ function getScheduleStatusIcon(status) {
     return icons[status] || 'fa-circle';
 }
 
-function getStatusDisplay(status) {
+export function getStatusDisplay(status) {
     const displays = {
         'not_started': 'Not Started',
         'scheduled': 'Scheduled',
@@ -504,7 +503,7 @@ function getStatusDisplay(status) {
 }
 
 // Match action functions
-function matchMgmtScheduleMatch(matchId) {
+export function matchMgmtScheduleMatch(matchId) {
     fetch(`/admin/match_management/schedule/${matchId}`, {
         method: 'POST',
         headers: {
@@ -527,7 +526,7 @@ function matchMgmtScheduleMatch(matchId) {
     });
 }
 
-function createThreadNow(matchId) {
+export function createThreadNow(matchId) {
     fetch(`/admin/match_management/create-thread/${matchId}`, {
         method: 'POST',
         headers: {
@@ -550,7 +549,7 @@ function createThreadNow(matchId) {
     });
 }
 
-function startLiveReporting(matchId) {
+export function startLiveReporting(matchId) {
     fetch(`/admin/match_management/start-reporting/${matchId}`, {
         method: 'POST',
         headers: {
@@ -573,7 +572,7 @@ function startLiveReporting(matchId) {
     });
 }
 
-function stopLiveReporting(matchId) {
+export function stopLiveReporting(matchId) {
     fetch(`/admin/match_management/stop-reporting/${matchId}`, {
         method: 'POST',
         headers: {
@@ -596,7 +595,7 @@ function stopLiveReporting(matchId) {
     });
 }
 
-function showTaskDetails(matchId, taskId) {
+export function showTaskDetails(matchId, taskId) {
     // Implementation for showing task details
     window.Swal.fire({
         title: 'Task Details',
@@ -611,7 +610,7 @@ function showTaskDetails(matchId, taskId) {
     });
 }
 
-function getTaskStatusColor(status) {
+export function getTaskStatusColor(status) {
     const colors = {
         'PENDING': 'warning',
         'STARTED': 'info',
@@ -622,7 +621,7 @@ function getTaskStatusColor(status) {
     return colors[status] || 'secondary';
 }
 
-function addMatchByDate() {
+export function addMatchByDate() {
     const dateInput = document.getElementById('matchDate');
     const competitionInput = document.getElementById('matchCompetition');
     const date = dateInput.value;
@@ -670,7 +669,7 @@ function addMatchByDate() {
     });
 }
 
-function scheduleAllMatches() {
+export function scheduleAllMatches() {
     window.Swal.fire({
         title: 'Schedule All Matches?',
         text: 'This will schedule Discord threads and live reporting for all matches.',
@@ -703,7 +702,7 @@ function scheduleAllMatches() {
     });
 }
 
-function fetchAllFromESPN() {
+export function fetchAllFromESPN() {
     window.Swal.fire({
         title: 'Fetch All Matches from ESPN?',
         text: 'This will fetch all matches for the current season from ESPN.',
@@ -745,7 +744,7 @@ function fetchAllFromESPN() {
     });
 }
 
-function clearAllMatches() {
+export function clearAllMatches() {
     window.Swal.fire({
         title: 'Clear All Matches?',
         text: 'This will remove ALL matches from the database. This action cannot be undone!',
@@ -779,12 +778,12 @@ function clearAllMatches() {
     });
 }
 
-function matchMgmtEditMatch(matchId) {
+export function matchMgmtEditMatch(matchId) {
     // Implementation for editing a match
     window.Swal.fire('Info', 'Edit match functionality to be implemented.', 'info');
 }
 
-function removeMatch(matchId) {
+export function removeMatch(matchId) {
     window.Swal.fire({
         title: 'Remove Match?',
         text: 'This will remove the match from the database.',
@@ -819,12 +818,12 @@ function removeMatch(matchId) {
 }
 
 // Queue management functions
-function matchMgmtShowQueueStatus() {
+export function matchMgmtShowQueueStatus() {
     window.$('#queueStatusModal').modal('show');
     window.refreshQueueStatus();
 }
 
-function refreshQueueStatus() {
+export function refreshQueueStatus() {
     fetch('/admin/match_management/queue-status')
         .then(response => response.json())
         .then(data => {
@@ -842,7 +841,7 @@ function refreshQueueStatus() {
         });
 }
 
-function displayQueueStatus(data) {
+export function displayQueueStatus(data) {
     let html = '';
     
     // Active tasks
@@ -917,7 +916,7 @@ function displayQueueStatus(data) {
 }
 
 // Debug functions
-function debugMatchTasks(matchId) {
+export function debugMatchTasks(matchId) {
     fetch(`/admin/match_management/debug-tasks/${matchId}`)
         .then(response => response.json())
         .then(data => {
@@ -933,7 +932,7 @@ function debugMatchTasks(matchId) {
         });
 }
 
-function showDebugModal(debugInfo) {
+export function showDebugModal(debugInfo) {
     let html = '<div class="text-start">';
     
     if (debugInfo.match_info) {
@@ -966,7 +965,7 @@ function showDebugModal(debugInfo) {
     });
 }
 
-function forceScheduleMatch(matchId) {
+export function forceScheduleMatch(matchId) {
     window.Swal.fire({
         title: 'Force Schedule Match?',
         text: 'This will force schedule the match, bypassing normal checks.',
@@ -1000,7 +999,7 @@ function forceScheduleMatch(matchId) {
 }
 
     // Initialize function
-    function init() {
+    export function init() {
         if (_initialized) return;
         _initialized = true;
 
@@ -1048,7 +1047,7 @@ function forceScheduleMatch(matchId) {
     }
 
 // Show cache status
-function showCacheStatus() {
+export function showCacheStatus() {
     fetch('/admin/match_management/cache-status')
         .then(response => response.json())
         .then(data => {
@@ -1193,4 +1192,63 @@ function showCacheStatus() {
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.initializeCSRFToken = initializeCSRFToken;
+
+// Backward compatibility
+window.updateMatchRow = updateMatchRow;
+
+// Backward compatibility
+window.updateMatchTaskDetails = updateMatchTaskDetails;
+
+// Backward compatibility
+window.createTaskCard = createTaskCard;
+
+// Backward compatibility
+window.createNoTaskCard = createNoTaskCard;
+
+// Backward compatibility
+window.showTaskError = showTaskError;
+
+// Backward compatibility
+window.getStatusColor = getStatusColor;
+
+// Backward compatibility
+window.getStatusIcon = getStatusIcon;
+
+// Backward compatibility
+window.formatDuration = formatDuration;
+
+// Backward compatibility
+window.formatTaskETA = formatTaskETA;
+
+// Backward compatibility
+window.formatTTL = formatTTL;
+
+// Backward compatibility
+window.formatScheduledTime = formatScheduledTime;
+
+// Backward compatibility
+window.formatScheduledTimes = formatScheduledTimes;
+
+// Backward compatibility
+window.getScheduleStatusColor = getScheduleStatusColor;
+
+// Backward compatibility
+window.getScheduleStatusIcon = getScheduleStatusIcon;
+
+// Backward compatibility
+window.getStatusDisplay = getStatusDisplay;
+
+// Backward compatibility
+window.getTaskStatusColor = getTaskStatusColor;
+
+// Backward compatibility
+window.displayQueueStatus = displayQueueStatus;
+
+// Backward compatibility
+window.showDebugModal = showDebugModal;
+
+// Backward compatibility
+window.init = init;

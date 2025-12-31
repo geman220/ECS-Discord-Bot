@@ -10,11 +10,11 @@
  * @version 1.0.2
  * @updated 2025-12-26 - Code review for EventDelegation (no changes needed)
  */
-(function () {
-  'use strict';
+// ES Module
+'use strict';
 
-  // Main responsive system controller
-  const ResponsiveSystem = {
+// Main responsive system controller
+  export const ResponsiveSystem = {
     // Device detection states
     device: {
       isMobile: false,
@@ -838,4 +838,3 @@
       window.ResponsiveSystem.init();
     });
   }
-})();

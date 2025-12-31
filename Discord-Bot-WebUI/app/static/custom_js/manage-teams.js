@@ -2,11 +2,10 @@
  * Manage Teams Page
  * Handles team CRUD operations with modal interactions
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    const ManageTeams = {
+export const ManageTeams = {
         init() {
             this.setupEventDelegation();
             this.setupModalHandlers();
@@ -201,4 +200,6 @@
     } else {
         ManageTeams.init();
     }
-})();
+
+// Backward compatibility
+window.ManageTeams = ManageTeams;

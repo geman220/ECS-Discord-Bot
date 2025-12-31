@@ -27,7 +27,7 @@
  * ============================================================================
  */
 
-class ModernNavbarController {
+export class ModernNavbarController {
   constructor() {
     this.navbar = document.querySelector('.c-navbar-modern');
     if (!this.navbar) {

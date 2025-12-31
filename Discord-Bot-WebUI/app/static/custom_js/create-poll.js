@@ -2,10 +2,10 @@
  * Create Poll Page
  * Handles live preview updates for poll creation
  */
-(function() {
-    'use strict';
+// ES Module
+'use strict';
 
-    let _initialized = false;
+let _initialized = false;
 
     function init() {
         if (_initialized) return;
@@ -51,4 +51,3 @@
     } else {
         init();
     }
-})();

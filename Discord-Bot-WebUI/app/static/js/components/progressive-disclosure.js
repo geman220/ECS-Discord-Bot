@@ -39,11 +39,10 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function(window, document) {
-  'use strict';
-
-  const ProgressiveDisclosure = {
+export const ProgressiveDisclosure = {
     // ========================================================================
     // CONFIGURATION
     // ========================================================================
@@ -482,4 +481,3 @@
     }
   }
 
-})(window, document);

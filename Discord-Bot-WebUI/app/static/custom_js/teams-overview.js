@@ -3,13 +3,12 @@
  * Handles tab persistence and mobile optimizations
  * Uses BEM TabsController (not Bootstrap tabs)
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
+let _initialized = false;
 
-    let _initialized = false;
-
-    const TeamsOverview = {
+    export const TeamsOverview = {
         init() {
             if (_initialized) return;
             _initialized = true;
@@ -61,4 +60,6 @@
     } else {
         TeamsOverview.init();
     }
-})();
+
+// Backward compatibility
+window.TeamsOverview = TeamsOverview;

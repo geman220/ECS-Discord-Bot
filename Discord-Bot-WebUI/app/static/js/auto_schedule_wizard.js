@@ -121,7 +121,7 @@ let draggedIndex = window._autoScheduleWizardState.draggedIndex;
  * @param {HTMLElement} element - The element to apply theme color to
  * @param {string} color - The color value to apply
  */
-function applyThemeColor(element, color) {
+export function applyThemeColor(element, color) {
     // Store color in data attribute for reference
     element.dataset.themeColor = color;
     // Apply via CSS custom property for theme-aware styling
@@ -136,7 +136,7 @@ function applyThemeColor(element, color) {
  * @param {HTMLElement} element - The element to apply classes to
  * @param {string[]} classes - Array of class names to add
  */
-function applyUtilityClasses(element, ...classes) {
+export function applyUtilityClasses(element, ...classes) {
     element.classList.add(...classes);
 }
 
@@ -147,7 +147,7 @@ function applyUtilityClasses(element, ...classes) {
  * @param {HTMLElement} element - The element to remove classes from
  * @param {string[]} classes - Array of class names to remove
  */
-function removeUtilityClasses(element, ...classes) {
+export function removeUtilityClasses(element, ...classes) {
     element.classList.remove(...classes);
 }
 
@@ -158,7 +158,7 @@ function removeUtilityClasses(element, ...classes) {
 /**
  * Initialize the season wizard modal
  */
-function startSeasonWizard() {
+export function startSeasonWizard() {
     // MEMORY LEAK FIX: Clean up previous state before starting new wizard
     cleanupCalendarState();
 
@@ -177,7 +177,7 @@ function startSeasonWizard() {
 /**
  * Clean up calendar state and event listeners to prevent memory leaks
  */
-function cleanupCalendarState() {
+export function cleanupCalendarState() {
     // Clear calendar state
     calendarState.weeks = [];
     calendarState.startDate = null;
@@ -200,7 +200,7 @@ function cleanupCalendarState() {
 /**
  * Show existing seasons section
  */
-function showExistingSeasons() {
+export function showExistingSeasons() {
     document.getElementById('existingSeasons').classList.remove('d-none');
     document.querySelector('.row.mb-4:nth-child(2)').classList.add('wizard-view--hidden');
 }
@@ -208,7 +208,7 @@ function showExistingSeasons() {
 /**
  * Show main view (hide existing seasons)
  */
-function showMainView() {
+export function showMainView() {
     document.getElementById('existingSeasons').classList.add('d-none');
     document.querySelector('.row.mb-4:nth-child(2)').classList.remove('wizard-view--hidden');
 }
@@ -216,7 +216,7 @@ function showMainView() {
 /**
  * Set a season as active
  */
-function setActiveSeason(seasonId, leagueType) {
+export function setActiveSeason(seasonId, leagueType) {
     if (confirm(`Are you sure you want to set this season as the current ${leagueType} season?`)) {
         fetch(window.autoScheduleUrls.setActiveSeason, {
             method: 'POST',
@@ -247,7 +247,7 @@ function setActiveSeason(seasonId, leagueType) {
 /**
  * Navigate to next step in wizard
  */
-function nextStep() {
+export function nextStep() {
     if (currentStep < maxSteps) {
         if (validateStep(currentStep)) {
             updateStepDisplay(currentStep + 1);
@@ -258,7 +258,7 @@ function nextStep() {
 /**
  * Navigate to previous step in wizard
  */
-function previousStep() {
+export function previousStep() {
     if (currentStep > 1) {
         updateStepDisplay(currentStep - 1);
     }
@@ -267,7 +267,7 @@ function previousStep() {
 /**
  * Update the wizard step display
  */
-function updateStepDisplay(step) {
+export function updateStepDisplay(step) {
     // Hide current step
     document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.remove('active');
     document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
@@ -302,7 +302,7 @@ function updateStepDisplay(step) {
 /**
  * Validate current step
  */
-function validateStep(step) {
+export function validateStep(step) {
     // Add validation logic for each step
     return true;
 }
@@ -310,7 +310,7 @@ function validateStep(step) {
 /**
  * Update season structure sections based on league type
  */
-function updateStructureSections() {
+export function updateStructureSections() {
     const leagueType = document.getElementById('leagueType').value;
     const pubLeagueStructure = document.getElementById('pubLeagueStructure');
     const ecsFcStructure = document.getElementById('ecsFcStructure');
@@ -330,7 +330,7 @@ function updateStructureSections() {
 /**
  * Update total weeks calculation for a division
  */
-function updateTotalWeeks(divisionType) {
+export function updateTotalWeeks(divisionType) {
     // Get shared special weeks
     const sharedFunEl = document.getElementById('includeFunWeek');
     const sharedTstEl = document.getElementById('includeTstWeek');
@@ -382,7 +382,7 @@ function updateTotalWeeks(divisionType) {
 /**
  * Toggle practice configuration display
  */
-function togglePracticeConfig() {
+export function togglePracticeConfig() {
     const practiceCheckbox = document.getElementById('classicHasPractice');
     const practiceConfig = document.querySelector('.classic-practice-config');
 
@@ -392,7 +392,7 @@ function togglePracticeConfig() {
 /**
  * Update calendar sections based on league type
  */
-function updateCalendarSections() {
+export function updateCalendarSections() {
     const leagueType = document.getElementById('leagueType').value;
     const pubLeagueCalendar = document.getElementById('pubLeagueCalendar');
     const ecsFcCalendar = document.getElementById('ecsFcCalendar');
@@ -411,7 +411,7 @@ function updateCalendarSections() {
 /**
  * Update calendar summary display
  */
-function updateCalendarSummary() {
+export function updateCalendarSummary() {
     const leagueType = document.getElementById('leagueType').value;
     const summaryEl = document.getElementById('calendarSummary');
     
@@ -463,7 +463,7 @@ function updateCalendarSummary() {
 /**
  * Update calendar preview display
  */
-function updateCalendarPreview() {
+export function updateCalendarPreview() {
     // Try different preview elements based on league type
     const leagueType = document.getElementById('leagueType')?.value;
     let preview;
@@ -613,7 +613,7 @@ function updateCalendarPreview() {
     initializeWeekCardDragAndDrop();
 }
 
-function generateCalendarPreview(forceRegenerate = false) {
+export function generateCalendarPreview(forceRegenerate = false) {
     console.log('generateCalendarPreview called');
     const leagueType = document.getElementById('leagueType').value;
     const startDateStr = document.getElementById('seasonStartDate').value;
@@ -662,7 +662,7 @@ function generateCalendarPreview(forceRegenerate = false) {
  * Generate Pub League calendar with Premier and Classic divisions
  * FIXED: Properly handle shared special weeks (TST, FUN) between divisions
  */
-function generatePubLeagueCalendar(startDate) {
+export function generatePubLeagueCalendar(startDate) {
     // Clear calendar state before generating new calendars
     calendarState.weeks = [];
     
@@ -683,7 +683,7 @@ function generatePubLeagueCalendar(startDate) {
 /**
  * Regenerate calendar HTML from existing calendar state
  */
-function regenerateCalendarHTML() {
+export function regenerateCalendarHTML() {
     const leagueType = document.getElementById('leagueType').value;
     
     if (leagueType === 'Pub League') {
@@ -705,7 +705,7 @@ function regenerateCalendarHTML() {
 /**
  * Generate calendar HTML from calendar state
  */
-function generateCalendarHTMLFromState(weeks) {
+export function generateCalendarHTMLFromState(weeks) {
     let calendar = '<div class="calendar-weeks">';
     
     weeks.forEach(week => {
@@ -738,7 +738,7 @@ function generateCalendarHTMLFromState(weeks) {
 /**
  * Helper function to create week HTML
  */
-function createWeekHTML(weekNumber, date, type, isPractice = false, isShared = false) {
+export function createWeekHTML(weekNumber, date, type, isPractice = false, isShared = false) {
     const typeMap = {
         'Regular': 'regular-week',
         'FUN': 'fun-week', 
@@ -770,7 +770,7 @@ function createWeekHTML(weekNumber, date, type, isPractice = false, isShared = f
 /**
  * Generate combined Pub League calendar (simplified)
  */
-function generateCombinedPubLeagueCalendar(startDate) {
+export function generateCombinedPubLeagueCalendar(startDate) {
     // Get total weeks from dropdown to respect user selection
     const totalWeeks = parseInt(document.getElementById('totalSeasonWeeks')?.value) || 11;
     const specialWeeksCount = getEnabledSpecialWeeksCount();
@@ -866,7 +866,7 @@ function generateCombinedPubLeagueCalendar(startDate) {
  * CONVERTED TO EVENT DELEGATION: Drag events still need direct addEventListener
  * as they cannot be delegated through data-action attributes
  */
-function initializeCalendarDragAndDrop() {
+export function initializeCalendarDragAndDrop() {
     const weekItems = document.querySelectorAll('.week-item');
 
     weekItems.forEach(item => {
@@ -883,7 +883,7 @@ function initializeCalendarDragAndDrop() {
 /**
  * Handle calendar drag start
  */
-function handleCalendarDragStart(e) {
+export function handleCalendarDragStart(e) {
     calendarDraggedElement = e.target;
     // Apply drag active state using CSS class
     e.target.classList.add('drag-active');
@@ -893,14 +893,14 @@ function handleCalendarDragStart(e) {
 /**
  * Handle calendar drag enter
  */
-function handleCalendarDragEnter(e) {
+export function handleCalendarDragEnter(e) {
     e.preventDefault();
 }
 
 /**
  * Handle calendar drag leave
  */
-function handleCalendarDragLeave(e) {
+export function handleCalendarDragLeave(e) {
     // Only clear indicators if we're leaving the week item entirely
     const weekItem = e.target.closest('.week-item');
     if (weekItem && !weekItem.contains(e.relatedTarget)) {
@@ -911,7 +911,7 @@ function handleCalendarDragLeave(e) {
 /**
  * Handle calendar drag over
  */
-function handleCalendarDragOver(e) {
+export function handleCalendarDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
 
@@ -945,7 +945,7 @@ function handleCalendarDragOver(e) {
 /**
  * Handle calendar drop
  */
-function handleCalendarDrop(e) {
+export function handleCalendarDrop(e) {
     e.preventDefault();
     
     if (calendarDraggedElement) {
@@ -1001,7 +1001,7 @@ function handleCalendarDrop(e) {
 /**
  * Handle calendar drag end
  */
-function handleCalendarDragEnd(e) {
+export function handleCalendarDragEnd(e) {
     // Remove drag active state using CSS class
     e.target.classList.remove('drag-active');
     calendarDraggedElement = null;
@@ -1011,7 +1011,7 @@ function handleCalendarDragEnd(e) {
 /**
  * Clear all drop indicators
  */
-function clearDropIndicators() {
+export function clearDropIndicators() {
     const allWeekItems = document.querySelectorAll('.week-item');
     allWeekItems.forEach(item => {
         // Remove drop indicator classes instead of inline styles
@@ -1023,7 +1023,7 @@ function clearDropIndicators() {
 /**
  * Synchronize shared week movement to the other division
  */
-function synchronizeSharedWeek(draggedWeekItem, sharedType, dropPosition, targetWeekItem) {
+export function synchronizeSharedWeek(draggedWeekItem, sharedType, dropPosition, targetWeekItem) {
     const otherContainer = getOtherDivisionContainer(draggedWeekItem.closest('.calendar-container'));
     if (!otherContainer) return;
     
@@ -1051,7 +1051,7 @@ function synchronizeSharedWeek(draggedWeekItem, sharedType, dropPosition, target
 /**
  * Get the other division's container (Premier <-> Classic)
  */
-function getOtherDivisionContainer(currentContainer) {
+export function getOtherDivisionContainer(currentContainer) {
     const containerId = currentContainer.id;
     
     if (containerId.includes('premier')) {
@@ -1066,7 +1066,7 @@ function getOtherDivisionContainer(currentContainer) {
 /**
  * Update week numbers and dates after reordering
  */
-function updateWeekNumbersAndDates(container) {
+export function updateWeekNumbersAndDates(container) {
     const weekItems = container.querySelectorAll('.week-item');
     const startDateStr = document.getElementById('seasonStartDate').value;
     
@@ -1149,7 +1149,7 @@ function updateWeekNumbersAndDates(container) {
 /**
  * Generate ECS FC calendar
  */
-function generateEcsFcCalendar(startDate) {
+export function generateEcsFcCalendar(startDate) {
     // Clear calendar state before generating new calendar
     calendarState.weeks = [];
     
@@ -1207,7 +1207,7 @@ function generateEcsFcCalendar(startDate) {
 /**
  * Get next Sunday from a date
  */
-function getNextSunday(date) {
+export function getNextSunday(date) {
     const result = new Date(date);
     const day = result.getDay();
     const diff = day === 0 ? 0 : 7 - day;
@@ -1218,7 +1218,7 @@ function getNextSunday(date) {
 /**
  * Format date for display
  */
-function formatDate(date) {
+export function formatDate(date) {
     return date.toLocaleDateString('en-US', { 
         month: 'short', 
         day: 'numeric',
@@ -1229,14 +1229,14 @@ function formatDate(date) {
 /**
  * Check if date is Sunday
  */
-function isSunday(date) {
+export function isSunday(date) {
     return new Date(date).getDay() === 0;
 }
 
 /**
  * Update team sections based on league type
  */
-function updateTeamSections() {
+export function updateTeamSections() {
     const leagueType = document.getElementById('leagueType').value;
     const pubLeagueSection = document.getElementById('pubLeagueTeams');
     const ecsFcSection = document.getElementById('ecsFcTeams');
@@ -1256,7 +1256,7 @@ function updateTeamSections() {
 /**
  * Update team preview display
  */
-function updateTeamPreview(leagueType) {
+export function updateTeamPreview(leagueType) {
     let count, previewId, startingLetterOffset = 0;
     
     if (leagueType === 'premier') {
@@ -1300,7 +1300,7 @@ function updateTeamPreview(leagueType) {
 /**
  * Add CSS for spinner animation and calendar styling
  */
-function addSpinnerCSS() {
+export function addSpinnerCSS() {
     const style = document.createElement('style');
     style.textContent = `
         .spin {
@@ -1317,7 +1317,7 @@ function addSpinnerCSS() {
 /**
  * Add custom CSS for calendar styling
  */
-function addCalendarCSS() {
+export function addCalendarCSS() {
     if (document.getElementById('calendar-custom-css')) return; // Don't add twice
     
     const style = document.createElement('style');
@@ -1423,7 +1423,7 @@ function addCalendarCSS() {
  * CONVERTED TO EVENT DELEGATION: Drag events still need direct addEventListener
  * as they cannot be delegated through data-action attributes
  */
-function initializeWeekCardDragAndDrop() {
+export function initializeWeekCardDragAndDrop() {
     const draggableWeeks = document.querySelectorAll('.draggable-week');
 
     draggableWeeks.forEach(week => {
@@ -1467,7 +1467,7 @@ function initializeWeekCardDragAndDrop() {
     });
 }
 
-function swapWeekPositions(draggedWeek, targetWeek) {
+export function swapWeekPositions(draggedWeek, targetWeek) {
     // Get the parent container
     const container = draggedWeek.parentNode;
     
@@ -1488,7 +1488,7 @@ function swapWeekPositions(draggedWeek, targetWeek) {
     updateWeekNumbers();
 }
 
-function updateWeekNumbers() {
+export function updateWeekNumbers() {
     const weekCards = document.querySelectorAll('.week-card');
     
     // Create a new calendar state based on the current DOM order
@@ -1563,14 +1563,14 @@ function updateWeekNumbers() {
 /**
  * Helper to create division summary card
  */
-function createDivisionCard(name, data, color, icon) {
+export function createDivisionCard(name, data, color, icon) {
     return `<div class="col-md-6"><div class="card border-${color}"><div class="card-header bg-${color} text-white"><h6 class="mb-0"><i class="fas fa-${icon} me-2"></i>${name}</h6></div><div class="card-body"><ul class="list-unstyled mb-0">${Object.entries(data).map(([k,v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('')}</ul></div></div></div>`;
 }
 
 /**
  * Generate season summary for final step
  */
-function generateSeasonSummary() {
+export function generateSeasonSummary() {
     const config = {
         name: document.getElementById('seasonName').value,
         type: document.getElementById('leagueType').value,
@@ -1646,7 +1646,7 @@ function generateSeasonSummary() {
 /**
  * Generate combined schedule preview for final step
  */
-function generateCombinedSchedulePreview() {
+export function generateCombinedSchedulePreview() {
     if (!calendarState || !calendarState.weeks || calendarState.weeks.length === 0) {
         return '';
     }
@@ -1808,7 +1808,7 @@ function generateCombinedSchedulePreview() {
 /**
  * Helper to get form data for season creation
  */
-function getFormData() {
+export function getFormData() {
     const leagueType = document.getElementById('leagueType').value;
     const getId = id => document.getElementById(id);
     const getVal = id => getId(id)?.value;
@@ -1854,7 +1854,7 @@ function getFormData() {
 /**
  * Create season using wizard data
  */
-function createSeason() {
+export function createSeason() {
     if (!calendarState?.weeks?.length) {
         alert('Please ensure the calendar is generated.');
         return;
@@ -1918,7 +1918,7 @@ addSpinnerCSS();
 /**
  * Generic modal utility
  */
-function showModal(id, title, message, type = 'info', callback = null) {
+export function showModal(id, title, message, type = 'info', callback = null) {
     const config = {
         loading: { icon: '<div class="spinner-border text-primary mb-3"><span class="visually-hidden">Loading...</span></div>', color: '', backdrop: 'data-bs-backdrop="static"', footer: '', autoClose: false },
         success: { icon: '<i class="ti ti-check-circle me-2"></i>', color: 'text-success', backdrop: '', footer: '', autoClose: 2000 },
@@ -1941,10 +1941,10 @@ function showModal(id, title, message, type = 'info', callback = null) {
     }
 }
 
-function showLoadingModal(title, message) { showModal('loadingModal', title, message, 'loading'); }
-function hideLoadingModal() { document.getElementById('loadingModal')?.remove(); }
-function showSuccessModal(title, message, callback) { showModal('successModal', title, message, 'success', callback); }
-function showErrorModal(title, message) { showModal('errorModal', title, message, 'error'); }
+export function showLoadingModal(title, message) { showModal('loadingModal', title, message, 'loading'); }
+export function hideLoadingModal() { document.getElementById('loadingModal')?.remove(); }
+export function showSuccessModal(title, message, callback) { showModal('successModal', title, message, 'success', callback); }
+export function showErrorModal(title, message) { showModal('errorModal', title, message, 'error'); }
 
 // ========================================
 // Enhanced Wizard Functions
@@ -1953,7 +1953,7 @@ function showErrorModal(title, message) { showModal('errorModal', title, message
 /**
  * Apply quick setup templates for wizard configuration
  */
-function applyWizardTemplate(templateType) {
+export function applyWizardTemplate(templateType) {
     switch(templateType) {
         case 'standard':
             // Standard setup: Premier 8:20, Classic 1:10, Time rotation enabled
@@ -2004,7 +2004,7 @@ function applyWizardTemplate(templateType) {
 /**
  * Add new field configuration in wizard
  */
-function addWizardField() {
+export function addWizardField() {
     const container = document.getElementById('wizard-field-configurations');
     const fieldCount = container.children.length;
     
@@ -2032,7 +2032,7 @@ function addWizardField() {
 /**
  * Remove field configuration in wizard
  */
-function removeWizardField(button) {
+export function removeWizardField(button) {
     const fieldItems = document.querySelectorAll('.wizard-field-item');
     if (fieldItems.length > 2) { // Keep at least 2 fields
         button.closest('.wizard-field-item').remove();
@@ -2043,7 +2043,7 @@ function removeWizardField(button) {
 /**
  * Update field remove button states
  */
-function updateWizardFieldRemoveButtons() {
+export function updateWizardFieldRemoveButtons() {
     const fieldItems = document.querySelectorAll('.wizard-field-item');
     const removeButtons = document.querySelectorAll('[data-action="remove-field"]');
 
@@ -2055,7 +2055,7 @@ function updateWizardFieldRemoveButtons() {
 /**
  * Update practice week options based on season length
  */
-function updateWizardPracticeWeekOptions() {
+export function updateWizardPracticeWeekOptions() {
     // Try to get season length from various sources
     let weekCount = 7; // default
     
@@ -2094,7 +2094,7 @@ function updateWizardPracticeWeekOptions() {
 /**
  * Get wizard field configuration data
  */
-function getWizardFieldConfig() {
+export function getWizardFieldConfig() {
     const fieldItems = document.querySelectorAll('.wizard-field-item');
     if (fieldItems.length === 0) {
         // Return default fields if no wizard fields found
@@ -2120,7 +2120,7 @@ function getWizardFieldConfig() {
 /**
  * Get unique week configurations for both divisions
  */
-function getUniqueWeekConfigs() {
+export function getUniqueWeekConfigs() {
     const uniqueWeeks = new Map();
     
     // Process all weeks and create entries for both divisions where appropriate
@@ -2150,7 +2150,7 @@ function getUniqueWeekConfigs() {
 /**
  * Get classic practice weeks configuration from Step 2
  */
-function getClassicPracticeWeeks() {
+export function getClassicPracticeWeeks() {
     const enablePractice = document.getElementById('classicHasPractice');
     if (!enablePractice || !enablePractice.checked) {
         return null;
@@ -2165,7 +2165,7 @@ function getClassicPracticeWeeks() {
 /**
  * Enhanced validation for wizard step 4
  */
-function validateWizardStep4() {
+export function validateWizardStep4() {
     const premierTime = document.getElementById('premierStartTime').value;
     const classicTime = document.getElementById('classicStartTime').value;
     const matchDuration = document.getElementById('matchDuration').value;
@@ -2206,7 +2206,7 @@ function validateWizardStep4() {
 /**
  * Show toast notification
  */
-function showToast(message, type = 'info') {
+export function showToast(message, type = 'info') {
     // Simple toast implementation
     const toast = document.createElement('div');
 
@@ -2239,7 +2239,7 @@ function showToast(message, type = 'info') {
 /**
  * Update season structure breakdown based on total weeks
  */
-function updateSeasonStructure() {
+export function updateSeasonStructure() {
     const totalWeeks = parseInt(document.getElementById('totalSeasonWeeks').value);
     const breakdown = document.getElementById('seasonBreakdown');
     
@@ -2284,7 +2284,7 @@ function updateSeasonStructure() {
 /**
  * Count enabled special weeks
  */
-function getEnabledSpecialWeeksCount() {
+export function getEnabledSpecialWeeksCount() {
     let count = 0;
     if (document.getElementById('includeTstWeek')?.checked) count++;
     if (document.getElementById('includeFunWeek')?.checked) count++;
@@ -2305,7 +2305,7 @@ function getEnabledSpecialWeeksCount() {
  */
 
 // Initialize on page load if needed
-function initAutoScheduleWizard() {
+export function initAutoScheduleWizard() {
     // Page guard - only run on auto schedule wizard page
     if (!document.getElementById('totalSeasonWeeks')) {
         return; // Not on auto schedule wizard page
@@ -2325,3 +2325,210 @@ if (document.readyState === 'loading') {
     // DOM already loaded
     initAutoScheduleWizard();
 }
+
+// Backward compatibility
+window.applyThemeColor = applyThemeColor;
+
+// Backward compatibility
+window.applyUtilityClasses = applyUtilityClasses;
+
+// Backward compatibility
+window.removeUtilityClasses = removeUtilityClasses;
+
+// Backward compatibility
+window.startSeasonWizard = startSeasonWizard;
+
+// Backward compatibility
+window.cleanupCalendarState = cleanupCalendarState;
+
+// Backward compatibility
+window.showExistingSeasons = showExistingSeasons;
+
+// Backward compatibility
+window.showMainView = showMainView;
+
+// Backward compatibility
+window.setActiveSeason = setActiveSeason;
+
+// Backward compatibility
+window.nextStep = nextStep;
+
+// Backward compatibility
+window.previousStep = previousStep;
+
+// Backward compatibility
+window.updateStepDisplay = updateStepDisplay;
+
+// Backward compatibility
+window.validateStep = validateStep;
+
+// Backward compatibility
+window.updateStructureSections = updateStructureSections;
+
+// Backward compatibility
+window.updateTotalWeeks = updateTotalWeeks;
+
+// Backward compatibility
+window.togglePracticeConfig = togglePracticeConfig;
+
+// Backward compatibility
+window.updateCalendarSections = updateCalendarSections;
+
+// Backward compatibility
+window.updateCalendarSummary = updateCalendarSummary;
+
+// Backward compatibility
+window.updateCalendarPreview = updateCalendarPreview;
+
+// Backward compatibility
+window.generateCalendarPreview = generateCalendarPreview;
+
+// Backward compatibility
+window.generatePubLeagueCalendar = generatePubLeagueCalendar;
+
+// Backward compatibility
+window.regenerateCalendarHTML = regenerateCalendarHTML;
+
+// Backward compatibility
+window.generateCalendarHTMLFromState = generateCalendarHTMLFromState;
+
+// Backward compatibility
+window.createWeekHTML = createWeekHTML;
+
+// Backward compatibility
+window.generateCombinedPubLeagueCalendar = generateCombinedPubLeagueCalendar;
+
+// Backward compatibility
+window.initializeCalendarDragAndDrop = initializeCalendarDragAndDrop;
+
+// Backward compatibility
+window.handleCalendarDragStart = handleCalendarDragStart;
+
+// Backward compatibility
+window.handleCalendarDragEnter = handleCalendarDragEnter;
+
+// Backward compatibility
+window.handleCalendarDragLeave = handleCalendarDragLeave;
+
+// Backward compatibility
+window.handleCalendarDragOver = handleCalendarDragOver;
+
+// Backward compatibility
+window.handleCalendarDrop = handleCalendarDrop;
+
+// Backward compatibility
+window.handleCalendarDragEnd = handleCalendarDragEnd;
+
+// Backward compatibility
+window.clearDropIndicators = clearDropIndicators;
+
+// Backward compatibility
+window.synchronizeSharedWeek = synchronizeSharedWeek;
+
+// Backward compatibility
+window.getOtherDivisionContainer = getOtherDivisionContainer;
+
+// Backward compatibility
+window.updateWeekNumbersAndDates = updateWeekNumbersAndDates;
+
+// Backward compatibility
+window.generateEcsFcCalendar = generateEcsFcCalendar;
+
+// Backward compatibility
+window.getNextSunday = getNextSunday;
+
+// Backward compatibility
+window.formatDate = formatDate;
+
+// Backward compatibility
+window.isSunday = isSunday;
+
+// Backward compatibility
+window.updateTeamSections = updateTeamSections;
+
+// Backward compatibility
+window.updateTeamPreview = updateTeamPreview;
+
+// Backward compatibility
+window.addSpinnerCSS = addSpinnerCSS;
+
+// Backward compatibility
+window.addCalendarCSS = addCalendarCSS;
+
+// Backward compatibility
+window.initializeWeekCardDragAndDrop = initializeWeekCardDragAndDrop;
+
+// Backward compatibility
+window.swapWeekPositions = swapWeekPositions;
+
+// Backward compatibility
+window.updateWeekNumbers = updateWeekNumbers;
+
+// Backward compatibility
+window.createDivisionCard = createDivisionCard;
+
+// Backward compatibility
+window.generateSeasonSummary = generateSeasonSummary;
+
+// Backward compatibility
+window.generateCombinedSchedulePreview = generateCombinedSchedulePreview;
+
+// Backward compatibility
+window.getFormData = getFormData;
+
+// Backward compatibility
+window.createSeason = createSeason;
+
+// Backward compatibility
+window.showModal = showModal;
+
+// Backward compatibility
+window.showLoadingModal = showLoadingModal;
+
+// Backward compatibility
+window.hideLoadingModal = hideLoadingModal;
+
+// Backward compatibility
+window.showSuccessModal = showSuccessModal;
+
+// Backward compatibility
+window.showErrorModal = showErrorModal;
+
+// Backward compatibility
+window.applyWizardTemplate = applyWizardTemplate;
+
+// Backward compatibility
+window.addWizardField = addWizardField;
+
+// Backward compatibility
+window.removeWizardField = removeWizardField;
+
+// Backward compatibility
+window.updateWizardFieldRemoveButtons = updateWizardFieldRemoveButtons;
+
+// Backward compatibility
+window.updateWizardPracticeWeekOptions = updateWizardPracticeWeekOptions;
+
+// Backward compatibility
+window.getWizardFieldConfig = getWizardFieldConfig;
+
+// Backward compatibility
+window.getUniqueWeekConfigs = getUniqueWeekConfigs;
+
+// Backward compatibility
+window.getClassicPracticeWeeks = getClassicPracticeWeeks;
+
+// Backward compatibility
+window.validateWizardStep4 = validateWizardStep4;
+
+// Backward compatibility
+window.showToast = showToast;
+
+// Backward compatibility
+window.updateSeasonStructure = updateSeasonStructure;
+
+// Backward compatibility
+window.getEnabledSpecialWeeksCount = getEnabledSpecialWeeksCount;
+
+// Backward compatibility
+window.initAutoScheduleWizard = initAutoScheduleWizard;

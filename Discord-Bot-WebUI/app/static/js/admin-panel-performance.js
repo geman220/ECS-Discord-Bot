@@ -14,11 +14,10 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  let autoRefresh = true;
+let autoRefresh = true;
   let refreshInterval;
   let queryPerformanceChart;
   let cacheUsageChart;
@@ -27,7 +26,7 @@
   /**
    * Initialize on DOM load
    */
-  function init() {
+  export function init() {
     // Guard against duplicate initialization
     if (_initialized) return;
     _initialized = true;
@@ -49,7 +48,7 @@
   /**
    * Initialize Chart.js visualizations
    */
-  function initializeCharts() {
+  export function initializeCharts() {
     // Get data from hidden data element
     const perfData = document.querySelector('[data-perf-data]');
     if (!perfData) return;
@@ -134,7 +133,7 @@
   /**
    * Register event handlers - now a no-op, handlers registered at module scope
    */
-  function registerEventHandlers() {
+  export function registerEventHandlers() {
     // Handlers are now registered at module scope for proper timing
     // See bottom of file for EventDelegation.register() calls
   }
@@ -142,7 +141,7 @@
   /**
    * Handle auto-refresh toggle
    */
-  function handleToggleAutoRefresh() {
+  export function handleToggleAutoRefresh() {
     autoRefresh = !autoRefresh;
     const statusSpan = document.querySelector('[data-status="auto-refresh"]');
 
@@ -158,7 +157,7 @@
   /**
    * Handle cache clear with confirmation
    */
-  function handleClearCache(e) {
+  export function handleClearCache(e) {
     const confirmed = confirm('Are you sure you want to clear all cache?');
     if (!confirmed) {
       e.preventDefault();
@@ -169,7 +168,7 @@
   /**
    * Start auto-refresh interval
    */
-  function startAutoRefresh() {
+  export function startAutoRefresh() {
     // Clear any existing interval
     if (refreshInterval) {
       clearInterval(refreshInterval);
@@ -182,7 +181,7 @@
   /**
    * Update real-time metrics from server
    */
-  function updateMetrics() {
+  export function updateMetrics() {
     if (!autoRefresh) return;
 
     fetch('/admin_panel/performance/api/metrics')
@@ -224,7 +223,7 @@
   /**
    * Update a live value element
    */
-  function updateLiveValue(metric, value) {
+  export function updateLiveValue(metric, value) {
     const element = document.querySelector(`[data-live-value="${metric}"]`);
     if (element) {
       element.textContent = value;
@@ -234,7 +233,7 @@
   /**
    * Update metric colors based on thresholds
    */
-  function updateMetricColors(report) {
+  export function updateMetricColors(report) {
     const slowQueriesEl = document.querySelector('[data-live-value="slow-queries"]');
     if (slowQueriesEl) {
       slowQueriesEl.className = 'c-perf-realtime__value';
@@ -261,7 +260,7 @@
   /**
    * Update query performance chart
    */
-  function updateQueryChart(newValue) {
+  export function updateQueryChart(newValue) {
     if (!queryPerformanceChart) return;
 
     const data = queryPerformanceChart.data.datasets[0].data;
@@ -274,7 +273,7 @@
   /**
    * Update cache usage chart
    */
-  function updateCacheChart(active, expired) {
+  export function updateCacheChart(active, expired) {
     if (!cacheUsageChart) return;
 
     cacheUsageChart.data.datasets[0].data = [active, expired];
@@ -284,7 +283,7 @@
   /**
    * Get CSS variable value
    */
-  function getCSSVariable(varName) {
+  export function getCSSVariable(varName) {
     const value = getComputedStyle(document.documentElement).getPropertyValue(varName);
     return value ? value.trim() : null;
   }
@@ -313,4 +312,38 @@
     init();
   }
 
-})();
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.initializeCharts = initializeCharts;
+
+// Backward compatibility
+window.registerEventHandlers = registerEventHandlers;
+
+// Backward compatibility
+window.handleToggleAutoRefresh = handleToggleAutoRefresh;
+
+// Backward compatibility
+window.handleClearCache = handleClearCache;
+
+// Backward compatibility
+window.startAutoRefresh = startAutoRefresh;
+
+// Backward compatibility
+window.updateMetrics = updateMetrics;
+
+// Backward compatibility
+window.updateLiveValue = updateLiveValue;
+
+// Backward compatibility
+window.updateMetricColors = updateMetricColors;
+
+// Backward compatibility
+window.updateQueryChart = updateQueryChart;
+
+// Backward compatibility
+window.updateCacheChart = updateCacheChart;
+
+// Backward compatibility
+window.getCSSVariable = getCSSVariable;

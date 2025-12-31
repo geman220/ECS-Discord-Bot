@@ -2,12 +2,12 @@
  * Modals - Manual Review Modal Trigger
  * Checks for manual review requirement and shows modal
  */
-(function() {
-  'use strict';
+// ES Module
+'use strict';
 
-  let _initialized = false;
+let _initialized = false;
 
-  function init() {
+  export function init() {
     if (_initialized) return;
     _initialized = true;
 
@@ -17,7 +17,7 @@
   /**
    * Trigger the manual review modal based on data attribute
    */
-  function triggerManualReviewModal() {
+  export function triggerManualReviewModal() {
     const reviewData = document.getElementById('manualReviewData');
     if (!reviewData) return;
 
@@ -49,4 +49,9 @@
   } else {
     init();
   }
-})();
+
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.triggerManualReviewModal = triggerManualReviewModal;

@@ -3,6 +3,11 @@ import { resolve } from 'path';
 import inject from '@rollup/plugin-inject';
 
 export default defineConfig({
+  // esbuild options for minification (drops debugger statements, keeps console.log)
+  esbuild: {
+    drop: ['debugger'],
+  },
+
   // Root directory for source files
   root: resolve(__dirname, 'app/static'),
 
@@ -58,14 +63,8 @@ export default defineConfig({
       },
     },
 
-    // Minification
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: false, // Keep console.log for debugging
-        drop_debugger: true,
-      },
-    },
+    // Minification (esbuild is faster and uses less memory than terser)
+    minify: 'esbuild',
 
     // Enable source maps temporarily to debug TDZ error
     sourcemap: true,

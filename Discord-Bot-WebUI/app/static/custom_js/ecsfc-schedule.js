@@ -21,7 +21,7 @@ if (typeof window._ecsfcInitialized === 'undefined') {
     window._ecsfcInitialized = false;
 }
 
-class ECSFCScheduleManager {
+export class ECSFCScheduleManager {
     constructor() {
         if (window._ecsfcInitialized) return;
         window._ecsfcInitialized = true;
@@ -305,7 +305,7 @@ class ECSFCScheduleManager {
 }
 
 // Initialize function for InitSystem
-function initEcsfcSchedule() {
+export function initEcsfcSchedule() {
     if (_ecsfcInitialized) return;
     window.ecsfcScheduleManager = new ECSFCScheduleManager();
 }
@@ -325,3 +325,9 @@ if (document.readyState === 'loading') {
 } else {
     initEcsfcSchedule();
 }
+
+// Backward compatibility
+window.ECSFCScheduleManager = ECSFCScheduleManager;
+
+// Backward compatibility
+window.initEcsfcSchedule = initEcsfcSchedule;

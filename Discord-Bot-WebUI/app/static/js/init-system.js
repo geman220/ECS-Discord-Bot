@@ -36,10 +36,10 @@
  *   29-10:  Enhancements (mobile features, UI fixes, analytics)
  */
 
-(function(window, document) {
-    'use strict';
-
-    const InitSystem = {
+/**
+ * ES Module Export - InitSystem
+ */
+export const InitSystem = {
         // Initialization state
         initialized: false,
         initializing: false,
@@ -556,4 +556,5 @@
         }
     };
 
-})(window, document);
+// Backward compatibility - keep window.InitSystem for legacy code
+window.InitSystem = InitSystem;

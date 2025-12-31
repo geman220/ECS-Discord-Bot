@@ -3,12 +3,12 @@
  * Handles all interactions for /admin-panel/matches/list page
  * Migrated from inline scripts in admin_panel/matches/list.html
  */
-(function() {
-  'use strict';
+// ES Module
+'use strict';
 
-  let _initialized = false;
+let _initialized = false;
 
-  function init() {
+  export function init() {
     if (_initialized) return;
 
     // Page guard - only run on match list page
@@ -66,7 +66,7 @@
     }
   }
 
-  function toggleSelectAll() {
+  export function toggleSelectAll() {
     const selectAll = document.getElementById('selectAll');
     const checkboxes = document.querySelectorAll('.match-checkbox');
 
@@ -75,12 +75,12 @@
     });
   }
 
-  function getSelectedMatches() {
+  export function getSelectedMatches() {
     const checkboxes = document.querySelectorAll('.match-checkbox:checked');
     return Array.from(checkboxes).map(cb => parseInt(cb.value));
   }
 
-  function viewMatchDetails(matchId) {
+  export function viewMatchDetails(matchId) {
     fetch(`/admin-panel/matches/${matchId}/details`)
       .then(response => response.json())
       .then(data => {
@@ -154,7 +154,7 @@
       });
   }
 
-  function adminPanelDeleteMatch(matchId, matchName) {
+  export function adminPanelDeleteMatch(matchId, matchName) {
     window.Swal.fire({
       title: 'Delete Match?',
       text: `Are you sure you want to delete "${matchName}"? This action cannot be undone.`,
@@ -188,7 +188,7 @@
     });
   }
 
-  function bulkActions() {
+  export function bulkActions() {
     const selectedMatches = getSelectedMatches();
 
     if (selectedMatches.length === 0) {
@@ -220,7 +220,7 @@
     });
   }
 
-  function confirmBulkDelete(matchIds) {
+  export function confirmBulkDelete(matchIds) {
     window.Swal.fire({
       title: 'Confirm Bulk Delete',
       text: `Are you sure you want to delete ${matchIds.length} matches? This cannot be undone.`,
@@ -258,7 +258,7 @@
     });
   }
 
-  function bulkUpdateStatus(matchIds) {
+  export function bulkUpdateStatus(matchIds) {
     window.Swal.fire({
       title: 'Update Status',
       text: 'Select new status for selected matches:',
@@ -303,7 +303,7 @@
     });
   }
 
-  function duplicateMatch(matchId) {
+  export function duplicateMatch(matchId) {
     window.Swal.fire({
       title: 'Duplicate Match',
       text: 'This will create a copy of the match. You can edit the details after creation.',
@@ -316,15 +316,15 @@
     });
   }
 
-  function adminPanelScheduleMatch(matchId) {
+  export function adminPanelScheduleMatch(matchId) {
     window.Swal.fire('Schedule Match', 'Match scheduling functionality would be implemented here.', 'info');
   }
 
-  function postponeMatch(matchId) {
+  export function postponeMatch(matchId) {
     window.Swal.fire('Postpone Match', 'Match postponement functionality would be implemented here.', 'info');
   }
 
-  function cancelMatch(matchId) {
+  export function cancelMatch(matchId) {
     window.Swal.fire({
       title: 'Cancel Match',
       text: 'Are you sure you want to cancel this match?',
@@ -338,7 +338,7 @@
     });
   }
 
-  function exportMatches() {
+  export function exportMatches() {
     window.Swal.fire({
       title: 'Export Matches',
       text: 'Choose export format:',
@@ -357,11 +357,11 @@
     });
   }
 
-  function exportSelectedMatches(matchIds) {
+  export function exportSelectedMatches(matchIds) {
     window.Swal.fire('Export Started', `Export of ${matchIds.length} selected matches has been queued.`, 'info');
   }
 
-  function bulkScheduleMatches() {
+  export function bulkScheduleMatches() {
     window.Swal.fire('Bulk Schedule', 'Bulk scheduling functionality would be implemented here.', 'info');
   }
 
@@ -380,4 +380,48 @@
   } else {
     init();
   }
-})();
+
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.toggleSelectAll = toggleSelectAll;
+
+// Backward compatibility
+window.getSelectedMatches = getSelectedMatches;
+
+// Backward compatibility
+window.viewMatchDetails = viewMatchDetails;
+
+// Backward compatibility
+window.adminPanelDeleteMatch = adminPanelDeleteMatch;
+
+// Backward compatibility
+window.bulkActions = bulkActions;
+
+// Backward compatibility
+window.confirmBulkDelete = confirmBulkDelete;
+
+// Backward compatibility
+window.bulkUpdateStatus = bulkUpdateStatus;
+
+// Backward compatibility
+window.duplicateMatch = duplicateMatch;
+
+// Backward compatibility
+window.adminPanelScheduleMatch = adminPanelScheduleMatch;
+
+// Backward compatibility
+window.postponeMatch = postponeMatch;
+
+// Backward compatibility
+window.cancelMatch = cancelMatch;
+
+// Backward compatibility
+window.exportMatches = exportMatches;
+
+// Backward compatibility
+window.exportSelectedMatches = exportSelectedMatches;
+
+// Backward compatibility
+window.bulkScheduleMatches = bulkScheduleMatches;

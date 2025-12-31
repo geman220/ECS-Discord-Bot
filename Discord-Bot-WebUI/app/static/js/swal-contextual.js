@@ -15,12 +15,11 @@
  *   SwalContextual.delete('Are you sure?').then(...)
  *   SwalContextual.approve('Approve this user?').then(...)
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    // Action configurations with smart defaults
-    const ACTION_CONFIGS = {
+// Action configurations with smart defaults
+    export const ACTION_CONFIGS = {
         delete: {
             icon: 'warning',
             confirmButtonText: 'Delete',
@@ -164,7 +163,7 @@
     /**
      * Detect action type from text
      */
-    function detectAction(text) {
+    export function detectAction(text) {
         if (!text) return null;
         const lowerText = text.toLowerCase();
 
@@ -180,7 +179,7 @@
     /**
      * Build configuration with smart defaults
      */
-    function buildConfig(options, action) {
+    export function buildConfig(options, action) {
         const actionConfig = action ? ACTION_CONFIGS[action] : {};
         const defaults = {
             icon: 'question',
@@ -205,7 +204,7 @@
     /**
      * SwalContextual API
      */
-    const SwalContextual = {
+    export const SwalContextual = {
         /**
          * Smart confirmation dialog that auto-detects action type
          * @param {Object} options - SweetAlert2 options
@@ -285,4 +284,12 @@
     window.SwalContextual = SwalContextual;
 
     console.debug('[SwalContextual] Helper initialized');
-})();
+
+// Backward compatibility
+window.ACTION_CONFIGS = ACTION_CONFIGS;
+
+// Backward compatibility
+window.detectAction = detectAction;
+
+// Backward compatibility
+window.buildConfig = buildConfig;

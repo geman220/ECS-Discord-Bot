@@ -20,11 +20,10 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    // ========================================================================
+// ========================================================================
     // EDIT CATEGORY
     // ========================================================================
 
@@ -35,7 +34,7 @@
      * @param {string} name - Category name
      * @param {string} description - Category description
      */
-    function editCategory(id, name, description) {
+    export function editCategory(id, name, description) {
         const idInput = document.getElementById('edit_category_id');
         const nameInput = document.getElementById('edit_category_name');
         const descInput = document.getElementById('edit_category_description');
@@ -63,7 +62,7 @@
      * @param {string} deleteUrl - URL to submit delete request
      * @param {string} csrfToken - CSRF token for form submission
      */
-    function deleteCategory(id, name, deleteUrl, csrfToken) {
+    export function deleteCategory(id, name, deleteUrl, csrfToken) {
         window.Swal.fire({
             title: 'Delete Category?',
             text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
@@ -105,7 +104,7 @@
      * Handle edit category action
      * @param {Event} e - The event object
      */
-    function handleEditCategory(e) {
+    export function handleEditCategory(e) {
         const editId = e.target.dataset.categoryId;
         const editName = e.target.dataset.categoryName;
         const editDesc = e.target.dataset.categoryDescription;
@@ -116,7 +115,7 @@
      * Handle delete category action
      * @param {Event} e - The event object
      */
-    function handleDeleteCategory(e) {
+    export function handleDeleteCategory(e) {
         const deleteId = e.target.dataset.categoryId;
         const deleteName = e.target.dataset.categoryName;
         const deleteUrl = e.target.dataset.deleteUrl;
@@ -131,7 +130,7 @@
     /**
      * Initialize all message category functionality
      */
-    function init() {
+    export function init() {
         // Page guard: only run on message categories page
         if (!document.getElementById('editCategoryModal')) {
             return;
@@ -170,4 +169,17 @@
         init
     };
 
-})();
+// Backward compatibility
+window.editCategory = editCategory;
+
+// Backward compatibility
+window.deleteCategory = deleteCategory;
+
+// Backward compatibility
+window.handleEditCategory = handleEditCategory;
+
+// Backward compatibility
+window.handleDeleteCategory = handleDeleteCategory;
+
+// Backward compatibility
+window.init = init;

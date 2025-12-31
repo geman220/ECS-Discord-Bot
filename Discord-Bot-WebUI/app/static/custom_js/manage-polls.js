@@ -2,10 +2,10 @@
  * Manage Polls Page
  * Initializes DataTable for polls listing
  */
-(function() {
-    'use strict';
+// ES Module
+'use strict';
 
-    let _initialized = false;
+let _initialized = false;
 
     function init() {
         if (_initialized) return;
@@ -55,4 +55,3 @@
     } else {
         init();
     }
-})();

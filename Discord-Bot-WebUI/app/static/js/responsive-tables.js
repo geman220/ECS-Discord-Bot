@@ -4,11 +4,10 @@
  * Adds data-label attributes to table cells and handles responsive behavior
  * Automatically transforms all tables with .mobile-card-table class
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-  
-  const ResponsiveTables = {
+export const ResponsiveTables = {
     // Track MutationObserver instance for cleanup
     _observer: null,
 
@@ -242,4 +241,3 @@
       window.ResponsiveTables.init();
     });
   }
-})();

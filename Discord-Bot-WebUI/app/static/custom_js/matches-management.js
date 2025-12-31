@@ -15,11 +15,10 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  // Competition mappings
+// Competition mappings
   const competitionMappings = {
     "MLS": "usa.1",
     "US Open Cup": "usa.open",
@@ -37,7 +36,7 @@
   /**
    * Initialize match management
    */
-  function init() {
+  export function init() {
     // Guard against duplicate initialization
     if (_initialized) return;
     _initialized = true;
@@ -56,7 +55,7 @@
   /**
    * Handle all match action clicks
    */
-  function handleMatchActions(e) {
+  export function handleMatchActions(e) {
     const target = e.target.closest('[data-action]');
     if (!target) return;
 
@@ -96,7 +95,7 @@
   /**
    * Initialize Flatpickr date pickers
    */
-  function initializeDatePickers() {
+  export function initializeDatePickers() {
     if (typeof window.flatpickr !== 'undefined') {
       window.flatpickr('.flatpickr', {
         enableTime: true,
@@ -109,7 +108,7 @@
   /**
    * Edit match row
    */
-  function editMatch(matchId) {
+  export function editMatch(matchId) {
     const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
     if (!row) {
       console.error(`Row with match ID ${matchId} not found`);
@@ -159,7 +158,7 @@
   /**
    * Save match edits
    */
-  function saveMatch(matchId) {
+  export function saveMatch(matchId) {
     const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
     const dateValue = document.getElementById(`edit-date-${matchId}`)?.value.trim();
     const competitionValue = document.getElementById(`edit-competition-${matchId}`)?.value.trim();
@@ -205,7 +204,7 @@
   /**
    * Cancel edit mode
    */
-  function cancelEdit(matchId) {
+  export function cancelEdit(matchId) {
     const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
     const dateCell = row.querySelector('td:nth-child(2)');
     const competitionCell = row.querySelector('td:nth-child(3)');
@@ -220,7 +219,7 @@
   /**
    * Reset action buttons to default state
    */
-  function resetActionButtons(matchId) {
+  export function resetActionButtons(matchId) {
     const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
     if (!row) return;
 
@@ -258,7 +257,7 @@
   /**
    * Remove match with confirmation
    */
-  function removeMatch(matchId) {
+  export function removeMatch(matchId) {
     const confirmDelete = typeof window.Swal !== 'undefined'
       ? window.Swal.fire({
           title: 'Are you sure?',
@@ -309,7 +308,7 @@
   /**
    * Clear all matches
    */
-  function clearAllMatches() {
+  export function clearAllMatches() {
     const confirmClear = typeof window.Swal !== 'undefined'
       ? window.Swal.fire({
           title: 'Are you sure?',
@@ -363,7 +362,7 @@
   /**
    * Start live reporting
    */
-  function startLiveReporting(matchId) {
+  export function startLiveReporting(matchId) {
     const startButton = document.querySelector(`[data-action="start-reporting"][data-match-id="${matchId}"]`);
     const stopButton = document.querySelector(`[data-action="stop-reporting"][data-match-id="${matchId}"]`);
 
@@ -401,7 +400,7 @@
   /**
    * Stop live reporting
    */
-  function stopLiveReporting(matchId) {
+  export function stopLiveReporting(matchId) {
     const stopButton = document.querySelector(`[data-action="stop-reporting"][data-match-id="${matchId}"]`);
 
     if (stopButton) stopButton.disabled = true;
@@ -437,7 +436,7 @@
   /**
    * Update match status display
    */
-  function updateMatchStatus(matchId, status) {
+  export function updateMatchStatus(matchId, status) {
     const statusSpan = document.getElementById(`status-${matchId}`);
     const startButton = document.querySelector(`[data-action="start-reporting"][data-match-id="${matchId}"]`);
     const stopButton = document.querySelector(`[data-action="stop-reporting"][data-match-id="${matchId}"]`);
@@ -465,7 +464,7 @@
   /**
    * Update all match statuses
    */
-  function updateAllMatchStatuses() {
+  export function updateAllMatchStatuses() {
     fetch('/bot/admin/get_all_match_statuses')
       .then(response => response.json())
       .then(data => {
@@ -479,7 +478,7 @@
   /**
    * Format date string
    */
-  function formatDate(dateString) {
+  export function formatDate(dateString) {
     const dateObj = new Date(dateString);
     dateObj.setHours(dateObj.getHours() + 25); // Adjust as per original logic
     const options = {
@@ -509,4 +508,44 @@
     init();
   }
 
-})();
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.handleMatchActions = handleMatchActions;
+
+// Backward compatibility
+window.initializeDatePickers = initializeDatePickers;
+
+// Backward compatibility
+window.editMatch = editMatch;
+
+// Backward compatibility
+window.saveMatch = saveMatch;
+
+// Backward compatibility
+window.cancelEdit = cancelEdit;
+
+// Backward compatibility
+window.resetActionButtons = resetActionButtons;
+
+// Backward compatibility
+window.removeMatch = removeMatch;
+
+// Backward compatibility
+window.clearAllMatches = clearAllMatches;
+
+// Backward compatibility
+window.startLiveReporting = startLiveReporting;
+
+// Backward compatibility
+window.stopLiveReporting = stopLiveReporting;
+
+// Backward compatibility
+window.updateMatchStatus = updateMatchStatus;
+
+// Backward compatibility
+window.updateAllMatchStatuses = updateAllMatchStatuses;
+
+// Backward compatibility
+window.formatDate = formatDate;

@@ -2,11 +2,10 @@
  * 2FA Verification Handler
  * Manages token input focus and error animations
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
     function init() {
         if (_initialized) return;
@@ -58,4 +57,3 @@
     } else {
         init();
     }
-})();

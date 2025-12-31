@@ -2,13 +2,13 @@
  * Redis Connection Statistics Management
  * Handles real-time monitoring and updates for Redis connection pool statistics
  */
-(function() {
-  'use strict';
+// ES Module
+'use strict';
 
-  let _initialized = false;
+let _initialized = false;
   let autoRefreshInterval;
 
-  function init() {
+  export function init() {
     if (_initialized) return;
 
     // Page guard - only run on Redis stats page
@@ -52,7 +52,7 @@
     redisUpdateStats();
   }
 
-  function redisUpdateStats() {
+  export function redisUpdateStats() {
     fetch('/admin/redis/api/stats')
       .then(response => response.json())
       .then(data => {
@@ -105,12 +105,12 @@
       });
   }
 
-  function updateElement(id, value) {
+  export function updateElement(id, value) {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
   }
 
-  function testConnection() {
+  export function testConnection() {
     const testButton = document.getElementById('test-btn');
     if (!testButton) return;
 
@@ -158,7 +158,7 @@
       });
   }
 
-  function cleanupConnections() {
+  export function cleanupConnections() {
     const cleanupButton = document.getElementById('cleanup-btn');
     if (!cleanupButton) return;
 
@@ -200,4 +200,18 @@
   } else {
     init();
   }
-})();
+
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.redisUpdateStats = redisUpdateStats;
+
+// Backward compatibility
+window.updateElement = updateElement;
+
+// Backward compatibility
+window.testConnection = testConnection;
+
+// Backward compatibility
+window.cleanupConnections = cleanupConnections;

@@ -3,7 +3,7 @@
  * JavaScript functionality for managing draft order history
  */
 
-class DraftHistoryManager {
+export class DraftHistoryManager {
     constructor() {
         this.csrfToken = null;
         this.init();
@@ -413,23 +413,23 @@ class DraftHistoryManager {
 // Global functions for template compatibility (using var to allow safe re-declaration if script loads twice)
 var draftHistoryManager;
 
-function clearFilters() {
+export function clearFilters() {
     draftHistoryManager.clearFilters();
 }
 
-function editDraftPick(pickId, position, notes, playerName) {
+export function editDraftPick(pickId, position, notes, playerName) {
     draftHistoryManager.editDraftPick(pickId, position, notes, playerName);
 }
 
-function deleteDraftPick(pickId, position, playerName, teamName) {
+export function deleteDraftPick(pickId, position, playerName, teamName) {
     draftHistoryManager.deleteDraftPick(pickId, position, playerName, teamName);
 }
 
-function normalizeDraftPositions(seasonId, leagueId, seasonName, leagueName) {
+export function normalizeDraftPositions(seasonId, leagueId, seasonName, leagueName) {
     draftHistoryManager.normalizeDraftPositions(seasonId, leagueId, seasonName, leagueName);
 }
 
-function clearSeasonLeague(seasonId, leagueId, seasonName, leagueName) {
+export function clearSeasonLeague(seasonId, leagueId, seasonName, leagueName) {
     draftHistoryManager.clearSeasonLeague(seasonId, leagueId, seasonName, leagueName);
 }
 
@@ -447,3 +447,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('Draft History interface loaded successfully');
 });
+
+// Backward compatibility
+window.DraftHistoryManager = DraftHistoryManager;
+
+// Backward compatibility
+window.clearFilters = clearFilters;
+
+// Backward compatibility
+window.editDraftPick = editDraftPick;
+
+// Backward compatibility
+window.deleteDraftPick = deleteDraftPick;
+
+// Backward compatibility
+window.normalizeDraftPositions = normalizeDraftPositions;
+
+// Backward compatibility
+window.clearSeasonLeague = clearSeasonLeague;

@@ -2,11 +2,10 @@
  * Profile Merge Management
  * Handles the UI and interaction for merging duplicate player profiles
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
     function init() {
         if (_initialized) return;
@@ -87,4 +86,3 @@
     } else {
         init();
     }
-})();

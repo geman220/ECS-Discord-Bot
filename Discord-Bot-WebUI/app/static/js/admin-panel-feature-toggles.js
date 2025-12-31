@@ -14,17 +14,16 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  // CSRF Token
+// CSRF Token
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
   /**
    * Initialize feature toggles
    */
-  function init() {
+  export function init() {
     initializeToggleHandlers();
     initializeFormHandlers();
   }
@@ -48,7 +47,7 @@
   /**
    * Initialize toggle switch handlers
    */
-  function initializeToggleHandlers() {
+  export function initializeToggleHandlers() {
     // Event delegation for all toggle switches
     document.addEventListener('change', function(e) {
       const toggle = e.target.closest('[data-setting-toggle]');
@@ -64,7 +63,7 @@
   /**
    * Handle toggle switch change
    */
-  function handleToggleChange(toggle, settingKey, isEnabled) {
+  export function handleToggleChange(toggle, settingKey, isEnabled) {
     const statusLabel = toggle.parentElement.querySelector('[data-toggle-status]');
     const iconElement = document.querySelector(`[data-setting-row][data-setting-key="${settingKey}"] .c-setting-row__status-icon`);
 
@@ -137,7 +136,7 @@
   /**
    * Initialize form submission handlers
    */
-  function initializeFormHandlers() {
+  export function initializeFormHandlers() {
     // Event delegation for form submissions
     document.addEventListener('submit', function(e) {
       const form = e.target.closest('[data-setting-form]');
@@ -161,7 +160,7 @@
    * Show toast notification
    * Uses SweetAlert2 if available, falls back to alert
    */
-  function showToast(icon, title, text) {
+  export function showToast(icon, title, text) {
     if (typeof window.Swal !== 'undefined') {
       window.Swal.fire({
         icon: icon,
@@ -178,4 +177,17 @@
     }
   }
 
-})();
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.initializeToggleHandlers = initializeToggleHandlers;
+
+// Backward compatibility
+window.handleToggleChange = handleToggleChange;
+
+// Backward compatibility
+window.initializeFormHandlers = initializeFormHandlers;
+
+// Backward compatibility
+window.showToast = showToast;

@@ -33,11 +33,10 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function(window, document) {
-  'use strict';
-
-  const MobileTableEnhancer = {
+export const MobileTableEnhancer = {
     // ========================================================================
     // CONFIGURATION
     // ========================================================================
@@ -514,4 +513,3 @@
     }
   }
 
-})(window, document);

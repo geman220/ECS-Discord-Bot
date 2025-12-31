@@ -14,11 +14,10 @@
  *   <div data-tab-pane="account" class="c-settings-tab c-settings-tab--active">Content</div>
  *   <div data-tab-pane="security" class="c-settings-tab">Content</div>
  */
+// ES Module
+'use strict';
 
-(function(window, document) {
-    'use strict';
-
-    const TabsController = {
+export const TabsController = {
         SELECTORS: {
             TABS_CONTAINER: '[data-tabs]',
             TAB_TRIGGER: '[data-tab-trigger]',
@@ -252,4 +251,3 @@
         window.TabsController.handleInitialHash();
     });
 
-})(window, document);

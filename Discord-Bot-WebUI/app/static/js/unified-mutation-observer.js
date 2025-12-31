@@ -26,11 +26,10 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  // Singleton state
+// Singleton state
   let _initialized = false;
   let _observer = null;
   let _isProcessing = false;
@@ -42,7 +41,7 @@
   // Handler registry
   const _handlers = new Map();
 
-  const UnifiedMutationObserver = {
+  export const UnifiedMutationObserver = {
     /**
      * Register a handler for DOM mutations
      *
@@ -229,4 +228,3 @@
   // Expose globally
   window.UnifiedMutationObserver = UnifiedMutationObserver;
 
-})();

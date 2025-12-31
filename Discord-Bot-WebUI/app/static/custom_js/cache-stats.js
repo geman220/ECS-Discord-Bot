@@ -2,13 +2,13 @@
  * Cache Statistics Management
  * Handles cache stats refresh and testing
  */
-(function() {
-  'use strict';
+// ES Module
+'use strict';
 
-  let _initialized = false;
+let _initialized = false;
   let autoRefresh;
 
-  function init() {
+  export function init() {
     if (_initialized) return;
 
     // Page guard - only run on cache stats page
@@ -38,7 +38,7 @@
     }
   }
 
-  function refreshStats() {
+  export function refreshStats() {
     const refreshUrl = document.getElementById('refresh-stats')?.dataset.refreshUrl;
     if (!refreshUrl) return;
 
@@ -52,7 +52,7 @@
       .catch(error => console.error('Error refreshing stats:', error));
   }
 
-  function testCache() {
+  export function testCache() {
     const button = document.getElementById('test-cache');
     const result = document.getElementById('test-result');
     const testUrl = button?.dataset.testUrl;
@@ -95,4 +95,12 @@
   } else {
     init();
   }
-})();
+
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.refreshStats = refreshStats;
+
+// Backward compatibility
+window.testCache = testCache;

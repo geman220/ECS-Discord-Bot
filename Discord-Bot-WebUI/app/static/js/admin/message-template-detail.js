@@ -22,11 +22,10 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    // ========================================================================
+// ========================================================================
     // VIEW TEMPLATE
     // ========================================================================
 
@@ -36,7 +35,7 @@
      * @param {string} name - Template name
      * @param {string} content - Template content
      */
-    function viewTemplate(id, name, content) {
+    export function viewTemplate(id, name, content) {
         const titleEl = document.getElementById('view_template_title');
         const contentEl = document.getElementById('view_template_content');
 
@@ -65,7 +64,7 @@
      * @param {string} usageContext - Usage context description
      * @param {boolean} isActive - Template active status
      */
-    function editTemplate(id, name, description, content, channelType, usageContext, isActive) {
+    export function editTemplate(id, name, description, content, channelType, usageContext, isActive) {
         const idInput = document.getElementById('edit_template_id');
         const nameInput = document.getElementById('edit_template_name');
         const descInput = document.getElementById('edit_template_description');
@@ -101,7 +100,7 @@
      * @param {string} toggleUrl - URL to submit toggle request
      * @param {string} csrfToken - CSRF token for form submission
      */
-    function toggleTemplate(id, name, currentStatus, toggleUrl, csrfToken) {
+    export function toggleTemplate(id, name, currentStatus, toggleUrl, csrfToken) {
         const action = currentStatus ? 'deactivate' : 'activate';
         const newStatus = !currentStatus;
 
@@ -154,7 +153,7 @@
      * @param {string} deleteUrl - URL to submit delete request
      * @param {string} csrfToken - CSRF token for form submission
      */
-    function deleteTemplate(id, name, deleteUrl, csrfToken) {
+    export function deleteTemplate(id, name, deleteUrl, csrfToken) {
         window.Swal.fire({
             title: 'Delete Template?',
             text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
@@ -201,7 +200,7 @@
      * @param {string} variable - Variable string to insert
      * @param {string} targetId - ID of textarea to insert into
      */
-    function insertVariable(variable, targetId) {
+    export function insertVariable(variable, targetId) {
         const textarea = document.getElementById(targetId);
         if (!textarea) return;
 
@@ -221,7 +220,7 @@
     /**
      * Initialize variable button click handlers
      */
-    function initVariableButtons() {
+    export function initVariableButtons() {
         document.addEventListener('click', function(e) {
             const varBtn = e.target.closest('.var-btn');
             if (!varBtn) return;
@@ -257,7 +256,7 @@
      * Handle go back action
      * @param {Event} e - The event object
      */
-    function handleGoBack(e) {
+    export function handleGoBack(e) {
         window.history.back();
     }
 
@@ -265,7 +264,7 @@
      * Handle view template action
      * @param {Event} e - The event object
      */
-    function handleViewTemplate(e) {
+    export function handleViewTemplate(e) {
         const viewId = e.target.dataset.templateId;
         const viewName = e.target.dataset.templateName;
         const viewContent = e.target.dataset.templateContent;
@@ -276,7 +275,7 @@
      * Handle edit template action
      * @param {Event} e - The event object
      */
-    function handleEditTemplate(e) {
+    export function handleEditTemplate(e) {
         const editId = e.target.dataset.templateId;
         const editName = e.target.dataset.templateName;
         const editDesc = e.target.dataset.templateDescription;
@@ -291,7 +290,7 @@
      * Handle toggle template action
      * @param {Event} e - The event object
      */
-    function handleToggleTemplate(e) {
+    export function handleToggleTemplate(e) {
         const toggleId = e.target.dataset.templateId;
         const toggleName = e.target.dataset.templateName;
         const toggleActive = e.target.dataset.templateActive === 'true';
@@ -304,7 +303,7 @@
      * Handle delete template action
      * @param {Event} e - The event object
      */
-    function handleDeleteTemplate(e) {
+    export function handleDeleteTemplate(e) {
         const deleteId = e.target.dataset.templateId;
         const deleteName = e.target.dataset.templateName;
         const deleteUrl = e.target.dataset.deleteUrl;
@@ -365,4 +364,38 @@
         init
     };
 
-})();
+// Backward compatibility
+window.viewTemplate = viewTemplate;
+
+// Backward compatibility
+window.editTemplate = editTemplate;
+
+// Backward compatibility
+window.toggleTemplate = toggleTemplate;
+
+// Backward compatibility
+window.deleteTemplate = deleteTemplate;
+
+// Backward compatibility
+window.insertVariable = insertVariable;
+
+// Backward compatibility
+window.initVariableButtons = initVariableButtons;
+
+// Backward compatibility
+window.handleGoBack = handleGoBack;
+
+// Backward compatibility
+window.handleViewTemplate = handleViewTemplate;
+
+// Backward compatibility
+window.handleEditTemplate = handleEditTemplate;
+
+// Backward compatibility
+window.handleToggleTemplate = handleToggleTemplate;
+
+// Backward compatibility
+window.handleDeleteTemplate = handleDeleteTemplate;
+
+// Backward compatibility
+window.init = init;

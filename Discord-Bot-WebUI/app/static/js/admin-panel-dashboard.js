@@ -20,17 +20,16 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  let _initialized = false;
+let _initialized = false;
 
   // ============================================================================
   // INITIALIZATION
   // ============================================================================
 
-  function init() {
+  export function init() {
     // Guard against duplicate initialization
     if (_initialized) return;
 
@@ -52,14 +51,14 @@
   // EVENT REGISTRATION - Now a no-op, handlers registered at module scope
   // ============================================================================
 
-  function registerEventHandlers() {
+  export function registerEventHandlers() {
     // Handlers are now registered at module scope for proper timing
     // See bottom of file for EventDelegation.register() calls
   }
 
   let _navCardsSetup = false;
 
-  function setupNavigationCards() {
+  export function setupNavigationCards() {
     if (_navCardsSetup) return;
     _navCardsSetup = true;
 
@@ -73,14 +72,14 @@
   // NAVIGATION
   // ============================================================================
 
-  function handleNavigate(element) {
+  export function handleNavigate(element) {
     const url = element.dataset.url;
     if (url) {
       window.location.href = url;
     }
   }
 
-  function highlightActiveNav() {
+  export function highlightActiveNav() {
     const currentPath = window.location.pathname;
     const navLinks = document.querySelectorAll('.nav-pills .nav-link');
 
@@ -95,7 +94,7 @@
   // MODAL: NAVIGATION SETTINGS
   // ============================================================================
 
-  function openNavigationSettings() {
+  export function openNavigationSettings() {
     if (typeof window.Swal === 'undefined') {
       alert('SweetAlert2 is required for this feature');
       return;
@@ -123,7 +122,7 @@
       });
   }
 
-  function showNavigationSettingsModal(settings) {
+  export function showNavigationSettingsModal(settings) {
     const html = `
       <div class="text-start">
         <p class="text-info mb-3"><i class="ti ti-info-circle me-1"></i>Control which navigation items are visible to non-admin users. Admins can always see all navigation items.</p>
@@ -168,7 +167,7 @@
     });
   }
 
-  function saveNavigationSettings() {
+  export function saveNavigationSettings() {
     const formData = {
       teams_navigation_enabled: document.getElementById('teamsNav').checked,
       store_navigation_enabled: document.getElementById('storeNav').checked,
@@ -201,7 +200,7 @@
   // MODAL: REGISTRATION SETTINGS
   // ============================================================================
 
-  function openRegistrationSettings() {
+  export function openRegistrationSettings() {
     if (typeof window.Swal === 'undefined') {
       alert('SweetAlert2 is required for this feature');
       return;
@@ -229,7 +228,7 @@
       });
   }
 
-  function showRegistrationSettingsModal(settings, roles) {
+  export function showRegistrationSettingsModal(settings, roles) {
     const roleOptions = roles.map(role =>
       `<option value="${role.name}" ${settings.default_user_role === role.name ? 'selected' : ''}>${role.name}</option>`
     ).join('');
@@ -293,7 +292,7 @@
     });
   }
 
-  function saveRegistrationSettings() {
+  export function saveRegistrationSettings() {
     const formData = {
       registration_enabled: document.getElementById('registrationEnabled').checked,
       waitlist_registration_enabled: document.getElementById('waitlistEnabled').checked,
@@ -331,7 +330,7 @@
   // MODAL: TASK MONITOR
   // ============================================================================
 
-  function openTaskMonitor() {
+  export function openTaskMonitor() {
     if (typeof window.Swal === 'undefined') {
       alert('SweetAlert2 is required for this feature');
       return;
@@ -356,7 +355,7 @@
       });
   }
 
-  function showTaskMonitorModal(data) {
+  export function showTaskMonitorModal(data) {
     let tasksHtml = '';
     if (data.tasks && data.tasks.length > 0) {
       data.tasks.forEach(task => {
@@ -436,7 +435,7 @@
   // MODAL: DATABASE MONITOR
   // ============================================================================
 
-  function openDatabaseMonitor() {
+  export function openDatabaseMonitor() {
     if (typeof window.Swal === 'undefined') {
       alert('SweetAlert2 is required for this feature');
       return;
@@ -461,7 +460,7 @@
       });
   }
 
-  function showDatabaseMonitorModal(data) {
+  export function showDatabaseMonitorModal(data) {
     const html = `
       <div class="text-start">
         <div class="row mb-3">
@@ -514,7 +513,7 @@
   // MODAL: MATCH REPORTS
   // ============================================================================
 
-  function openMatchReports() {
+  export function openMatchReports() {
     if (typeof window.Swal === 'undefined') {
       alert('SweetAlert2 is required for this feature');
       return;
@@ -535,7 +534,7 @@
     });
   }
 
-  function generateReport() {
+  export function generateReport() {
     console.log('Generate report functionality coming soon');
   }
 
@@ -543,7 +542,7 @@
   // UTILITIES
   // ============================================================================
 
-  function createToggle(id, label, description, checked, disabled = false) {
+  export function createToggle(id, label, description, checked, disabled = false) {
     return `
       <div class="mb-3">
         <div class="form-check form-switch">
@@ -557,7 +556,7 @@
     `;
   }
 
-  function getCSRFToken() {
+  export function getCSRFToken() {
     const metaToken = document.querySelector('meta[name="csrf-token"]');
     if (metaToken) {
       return metaToken.getAttribute('content');
@@ -605,4 +604,59 @@
     init();
   }
 
-})();
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.registerEventHandlers = registerEventHandlers;
+
+// Backward compatibility
+window.setupNavigationCards = setupNavigationCards;
+
+// Backward compatibility
+window.handleNavigate = handleNavigate;
+
+// Backward compatibility
+window.highlightActiveNav = highlightActiveNav;
+
+// Backward compatibility
+window.openNavigationSettings = openNavigationSettings;
+
+// Backward compatibility
+window.showNavigationSettingsModal = showNavigationSettingsModal;
+
+// Backward compatibility
+window.saveNavigationSettings = saveNavigationSettings;
+
+// Backward compatibility
+window.openRegistrationSettings = openRegistrationSettings;
+
+// Backward compatibility
+window.showRegistrationSettingsModal = showRegistrationSettingsModal;
+
+// Backward compatibility
+window.saveRegistrationSettings = saveRegistrationSettings;
+
+// Backward compatibility
+window.openTaskMonitor = openTaskMonitor;
+
+// Backward compatibility
+window.showTaskMonitorModal = showTaskMonitorModal;
+
+// Backward compatibility
+window.openDatabaseMonitor = openDatabaseMonitor;
+
+// Backward compatibility
+window.showDatabaseMonitorModal = showDatabaseMonitorModal;
+
+// Backward compatibility
+window.openMatchReports = openMatchReports;
+
+// Backward compatibility
+window.generateReport = generateReport;
+
+// Backward compatibility
+window.createToggle = createToggle;
+
+// Backward compatibility
+window.getCSRFToken = getCSRFToken;

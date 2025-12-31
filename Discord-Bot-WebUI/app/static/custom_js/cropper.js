@@ -2,10 +2,10 @@
  * Image Cropper - Profile image cropping functionality
  * Uses Cropper.js library for image manipulation
  */
-(function() {
-    'use strict';
+// ES Module
+'use strict';
 
-    let _initialized = false;
+let _initialized = false;
     let cropper;
 
     function init() {
@@ -27,7 +27,7 @@
     }
 
     // Function to initialize cropper
-    function croppingimg(e, ratio) {
+    export function croppingimg(e, ratio) {
         const files = e.target.files;
         if (files && files.length > 0) {
             const imgsrc = URL.createObjectURL(files[0]);
@@ -72,7 +72,7 @@
     }
 
     // Function to handle the image upload
-    function onClickUpload() {
+    export function onClickUpload() {
         if (cropper) {
             const canvas = cropper.getCroppedCanvas({
                 width: 300,
@@ -110,4 +110,6 @@
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.croppingimg = croppingimg;

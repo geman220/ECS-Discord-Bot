@@ -48,11 +48,10 @@
  *     InitSystem.reinit(['dropdown-menu-fix', 'admin-utilities'], event.target);
  *   });
  */
+// ES Module
+'use strict';
 
-(function(window, document) {
-    'use strict';
-
-    // Ensure InitSystem is loaded
+// Ensure InitSystem is loaded
     // MUST use window.InitSystem to avoid TDZ errors in bundled code
     if (typeof window.InitSystem === 'undefined') {
         console.error('[App Init] InitSystem not loaded! Please include init-system.js before this file.');
@@ -390,4 +389,3 @@
         document.body.classList.remove('sidebar-open');
     }, { preventDefault: true });
 
-})(window, document);

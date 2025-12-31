@@ -14,11 +14,10 @@
  * REFACTORED: All inline style manipulations replaced with CSS classes
  * REFACTORED: All styling class selectors replaced with stable behavioral hooks
  */
+// ES Module
+'use strict';
 
-(function (window) {
-  'use strict';
-
-  const MobileForms = {
+export const MobileForms = {
     /**
      * Check if device is mobile
      */
@@ -611,4 +610,3 @@
     }
   }
 
-})(window);

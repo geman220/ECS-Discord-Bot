@@ -17,11 +17,10 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
     // ========================================================================
     // INITIALIZATION
@@ -42,7 +41,7 @@
     /**
      * Initialize all event delegation listeners
      */
-    function initEventDelegation() {
+    export function initEventDelegation() {
         document.addEventListener('click', handleClick);
     }
 
@@ -50,7 +49,7 @@
      * Centralized click handler using event delegation
      * @param {Event} e - Click event
      */
-    function handleClick(e) {
+    export function handleClick(e) {
         const action = e.target.closest('[data-action]');
         if (!action) return;
 
@@ -93,7 +92,7 @@
      * Schedule live reporting for a match
      * @param {HTMLElement} element - The clicked element
      */
-    function handleScheduleMatch(element) {
+    export function handleScheduleMatch(element) {
         const matchId = element.dataset.id || window.matchDetailData.matchId;
 
         if (!matchId) {
@@ -137,7 +136,7 @@
      * Stop a live reporting session
      * @param {HTMLElement} element - The clicked element
      */
-    function handleStopSession(element) {
+    export function handleStopSession(element) {
         const sessionId = element.dataset.id || window.matchDetailData.sessionId;
 
         if (!sessionId) {
@@ -181,7 +180,7 @@
      * Refresh a live reporting session
      * @param {HTMLElement} element - The clicked element
      */
-    function handleRefreshSession(element) {
+    export function handleRefreshSession(element) {
         const sessionId = element.dataset.sessionId || window.matchDetailData.sessionId;
 
         if (!sessionId) {
@@ -221,7 +220,7 @@
      * Force synchronization with real-time service
      * @param {HTMLElement} element - The clicked element
      */
-    function handleForceSync(element) {
+    export function handleForceSync(element) {
         if (!confirm('Force synchronization with real-time service?')) {
             return;
         }
@@ -258,7 +257,7 @@
      * Reload the current page
      * @param {HTMLElement} element - The clicked element
      */
-    function handleReloadPage(element) {
+    export function handleReloadPage(element) {
         // Show loading state
         setButtonLoading(element, true);
         location.reload();
@@ -272,7 +271,7 @@
      * Get CSRF token from meta tag or cookie
      * @returns {string} CSRF token
      */
-    function getCSRFToken() {
+    export function getCSRFToken() {
         // Try meta tag first
         const metaTag = document.querySelector('meta[name="csrf-token"]');
         if (metaTag) {
@@ -292,7 +291,7 @@
      * @param {HTMLElement} button - Button element
      * @param {boolean} isLoading - Loading state
      */
-    function setButtonLoading(button, isLoading) {
+    export function setButtonLoading(button, isLoading) {
         if (isLoading) {
             button.disabled = true;
             button.classList.add('is-loading');
@@ -323,7 +322,7 @@
      * Show success notification
      * @param {string} message - Success message
      */
-    function showSuccessNotification(message) {
+    export function showSuccessNotification(message) {
         // Use native alert as fallback (can be replaced with toast library)
         if (typeof toastr !== 'undefined') {
             toastr.success(message);
@@ -336,7 +335,7 @@
      * Show error notification
      * @param {string} message - Error message
      */
-    function showErrorNotification(message) {
+    export function showErrorNotification(message) {
         // Use native alert as fallback (can be replaced with toast library)
         if (typeof toastr !== 'undefined') {
             toastr.error(message);
@@ -372,4 +371,35 @@
         init();
     }
 
-})();
+// Backward compatibility
+window.initEventDelegation = initEventDelegation;
+
+// Backward compatibility
+window.handleClick = handleClick;
+
+// Backward compatibility
+window.handleScheduleMatch = handleScheduleMatch;
+
+// Backward compatibility
+window.handleStopSession = handleStopSession;
+
+// Backward compatibility
+window.handleRefreshSession = handleRefreshSession;
+
+// Backward compatibility
+window.handleForceSync = handleForceSync;
+
+// Backward compatibility
+window.handleReloadPage = handleReloadPage;
+
+// Backward compatibility
+window.getCSRFToken = getCSRFToken;
+
+// Backward compatibility
+window.setButtonLoading = setButtonLoading;
+
+// Backward compatibility
+window.showSuccessNotification = showSuccessNotification;
+
+// Backward compatibility
+window.showErrorNotification = showErrorNotification;

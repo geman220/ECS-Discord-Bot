@@ -2,11 +2,10 @@
  * Waitlist Login/Register Page Handler
  * Manages focus on Discord registration button
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
     function init() {
         if (_initialized) return;
@@ -34,4 +33,3 @@
     } else {
         init();
     }
-})();

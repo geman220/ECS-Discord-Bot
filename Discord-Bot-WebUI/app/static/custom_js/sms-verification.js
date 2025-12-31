@@ -2,13 +2,13 @@
  * SMS Verification
  * Handles phone number verification via SMS
  */
-(function() {
+// ES Module
 'use strict';
 
 let _initialized = false;
 
 // Create global functions directly (backward compatibility)
-function toggleSmsConsent(show) {
+export function toggleSmsConsent(show) {
     // console.log("Toggle SMS consent:", show);
     const smsOptInSection = document.getElementById('smsOptInSection');
     if (show) {
@@ -27,7 +27,7 @@ function toggleSmsConsent(show) {
     }
 }
 
-function toggleSmsVerification(show) {
+export function toggleSmsVerification(show) {
     // console.log("Toggle SMS verification:", show);
     const smsVerificationSection = document.getElementById('smsVerificationSection');
     if (show) {
@@ -39,7 +39,7 @@ function toggleSmsVerification(show) {
     }
 }
 
-function sendVerificationCode() {
+export function sendVerificationCode() {
     // console.log("Sending verification code");
     var phoneInput = document.querySelector('input[name="phone"]');
     var sendButton = document.getElementById('sendVerificationBtn');
@@ -122,7 +122,7 @@ function sendVerificationCode() {
     });
 }
 
-function verifyCode() {
+export function verifyCode() {
     // console.log("Verifying code");
     var codeInput = document.getElementById('verificationCode');
     var verifyButton = document.getElementById('verifyCodeBtn');
@@ -252,7 +252,7 @@ window.adminSetVerificationCode = function() {
 };
 
 // Initialize when page loads - using a light initialization that respects existing inline handlers
-function initSmsVerification() {
+export function initSmsVerification() {
     if (_initialized) return;
     _initialized = true;
 
@@ -295,4 +295,5 @@ if (document.readyState === 'loading') {
     initSmsVerification();
 }
 
-})();
+// Backward compatibility
+window.initSmsVerification = initSmsVerification;

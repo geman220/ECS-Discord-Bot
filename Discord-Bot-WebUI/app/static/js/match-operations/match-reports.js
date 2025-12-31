@@ -2,11 +2,10 @@
  * Match Reports - Event Handler and Chart Initialization
  * Handles all report generation and export actions
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    // Page guard - only run on match reports page
+// Page guard - only run on match reports page
     const isMatchReportsPage = document.getElementById('matchStatusChart') ||
                                 document.getElementById('matchesPerWeekChart') ||
                                 document.querySelector('[data-action^="generate-"][data-action*="report"]') ||
@@ -22,7 +21,7 @@
     /**
      * Initialize Chart.js charts
      */
-    function initializeCharts() {
+    export function initializeCharts() {
         const matchStatusCtx = document.getElementById('matchStatusChart');
         const matchesPerWeekCtx = document.getElementById('matchesPerWeekChart');
 
@@ -87,7 +86,7 @@
     /**
      * Report generation functions
      */
-    function generateMatchReport(matchId = null) {
+    export function generateMatchReport(matchId = null) {
         console.log('Generate match report:', matchId);
         // Implementation from original file
     }
@@ -110,7 +109,7 @@
     /**
      * Quick report views
      */
-    function viewRecentMatches() {
+    export function viewRecentMatches() {
         window.location.href = '/admin-panel/matches/recent';
     }
 
@@ -129,7 +128,7 @@
     /**
      * Export functions
      */
-    function exportPDF() {
+    export function exportPDF() {
         window.open('/admin/match-operations/reports/export?format=pdf', '_blank');
     }
 
@@ -148,7 +147,7 @@
     /**
      * Individual item views
      */
-    function viewMatchReport(matchId) {
+    export function viewMatchReport(matchId) {
         window.location.href = `/admin/match-operations/match/${matchId}/report`;
     }
 
@@ -232,4 +231,17 @@
         viewAllMatches();
     }, { preventDefault: true });
 
-})();
+// Backward compatibility
+window.initializeCharts = initializeCharts;
+
+// Backward compatibility
+window.generateMatchReport = generateMatchReport;
+
+// Backward compatibility
+window.viewRecentMatches = viewRecentMatches;
+
+// Backward compatibility
+window.exportPDF = exportPDF;
+
+// Backward compatibility
+window.viewMatchReport = viewMatchReport;

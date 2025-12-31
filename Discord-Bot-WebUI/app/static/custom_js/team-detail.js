@@ -13,11 +13,10 @@
  *
  * Architecture: Event delegation pattern, no inline handlers, data-action attributes
  */
+// ES Module
+'use strict';
 
-(function() {
-  'use strict';
-
-  let _initialized = false;
+let _initialized = false;
 
   // Image positioning state
   let imagePositionData = {
@@ -39,7 +38,7 @@
   /**
    * Initialize on DOM ready
    */
-  function init() {
+  export function init() {
     // Guard against duplicate initialization
     if (_initialized) return;
     _initialized = true;
@@ -70,7 +69,7 @@
   /**
    * Set up event delegation for all team detail interactions
    */
-  function initializeEventDelegation() {
+  export function initializeEventDelegation() {
     document.addEventListener('click', function(e) {
       const target = e.target.closest('[data-action]');
       if (!target) return;
@@ -127,7 +126,7 @@
   /**
    * Handle trigger file input button click
    */
-  function handleTriggerFileInput(target) {
+  export function handleTriggerFileInput(target) {
     const targetName = target.dataset.target;
     const fileInput = document.querySelector(`[data-action="auto-submit"][data-target="${targetName}"]`);
 
@@ -139,7 +138,7 @@
   /**
    * Handle trigger background input button click
    */
-  function handleTriggerBackgroundInput(target) {
+  export function handleTriggerBackgroundInput(target) {
     const targetName = target.dataset.target;
     const fileInput = document.querySelector(`[data-action="load-image-cropping"][data-target="${targetName}"]`);
 
@@ -153,7 +152,7 @@
   /**
    * Setup file input change handlers
    */
-  function setupFileInputHandlers() {
+  export function setupFileInputHandlers() {
     if (_fileInputHandlersSetup) return;
     _fileInputHandlersSetup = true;
 
@@ -171,7 +170,7 @@
   /**
    * Initialize auto-submit for file uploads
    */
-  function initializeAutoSubmit() {
+  export function initializeAutoSubmit() {
     const autoSubmitInputs = document.querySelectorAll('[data-action="auto-submit"]');
 
     autoSubmitInputs.forEach(input => {
@@ -187,7 +186,7 @@
   /**
    * Load image for positioning/cropping
    */
-  function loadImageForCropping(input) {
+  export function loadImageForCropping(input) {
     if (input.files && input.files[0]) {
       const reader = new FileReader();
 
@@ -223,7 +222,7 @@
   /**
    * Initialize image positioning controls
    */
-  function initializeImagePositioning() {
+  export function initializeImagePositioning() {
     const previewWrapper = document.getElementById('previewImageWrapper');
     const zoomSlider = document.getElementById('zoomSlider');
     const xPosSlider = document.getElementById('xPosSlider');
@@ -237,7 +236,7 @@
 
     // Hide drag hint after first interaction
     let firstInteraction = true;
-    function hideDragHint() {
+    export function hideDragHint() {
       if (firstInteraction && dragHint) {
         dragHint.style.display = 'none';
         firstInteraction = false;
@@ -288,7 +287,7 @@
   /**
    * Start dragging
    */
-  function startDrag(e) {
+  export function startDrag(e) {
     isDragging = true;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
@@ -300,7 +299,7 @@
   /**
    * Handle drag movement
    */
-  function drag(e) {
+  export function drag(e) {
     if (!isDragging) return;
 
     const deltaX = e.clientX - dragStartX;
@@ -334,7 +333,7 @@
   /**
    * End dragging
    */
-  function endDrag() {
+  export function endDrag() {
     isDragging = false;
     document.body.style.cursor = '';
   }
@@ -342,7 +341,7 @@
   /**
    * Update preview display
    */
-  function updatePreview() {
+  export function updatePreview() {
     const previewWrapper = document.getElementById('previewImageWrapper');
     const zoomValue = document.getElementById('zoomValue');
 
@@ -362,7 +361,7 @@
   /**
    * Handle zoom adjustment
    */
-  function handleAdjustZoom(target) {
+  export function handleAdjustZoom(target) {
     const delta = parseFloat(target.dataset.delta);
     const slider = document.getElementById('zoomSlider');
 
@@ -377,7 +376,7 @@
   /**
    * Reset image position
    */
-  function resetImagePosition() {
+  export function resetImagePosition() {
     imagePositionData.zoom = 1;
     imagePositionData.xPos = 50;
     imagePositionData.yPos = 50;
@@ -396,7 +395,7 @@
   /**
    * Upload cropped/positioned image
    */
-  function uploadCroppedImage() {
+  export function uploadCroppedImage() {
     if (!imagePositionData.originalImage) return;
 
     const formData = new FormData();
@@ -460,7 +459,7 @@
   /**
    * Get team ID from current URL
    */
-  function getTeamIdFromUrl() {
+  export function getTeamIdFromUrl() {
     const match = window.location.pathname.match(/\/teams\/(\d+)/);
     return match ? match[1] : null;
   }
@@ -468,7 +467,7 @@
   /**
    * Handle Discord role assignment
    */
-  function handleAssignDiscordRoles(target) {
+  export function handleAssignDiscordRoles(target) {
     const teamId = target.dataset.teamId;
 
     if (typeof window.Swal === 'undefined') {
@@ -499,7 +498,7 @@
   /**
    * Assign Discord roles to team
    */
-  function assignDiscordRolesToTeam(teamId) {
+  export function assignDiscordRolesToTeam(teamId) {
     if (typeof window.Swal !== 'undefined') {
       window.Swal.fire({
         title: 'Assigning Discord Roles...',
@@ -559,7 +558,7 @@
   /**
    * Handle Discord status refresh for team
    */
-  function handleRefreshDiscordStatus(target) {
+  export function handleRefreshDiscordStatus(target) {
     const teamId = target.dataset.teamId;
 
     if (typeof window.Swal === 'undefined') {
@@ -589,7 +588,7 @@
   /**
    * Refresh Discord status for team
    */
-  function refreshDiscordStatusForTeam(teamId) {
+  export function refreshDiscordStatusForTeam(teamId) {
     if (typeof window.Swal !== 'undefined') {
       window.Swal.fire({
         title: 'Refreshing Discord Status...',
@@ -652,7 +651,7 @@
   /**
    * Handle individual player Discord refresh
    */
-  function handleRefreshPlayerDiscord(target) {
+  export function handleRefreshPlayerDiscord(target) {
     const playerId = target.dataset.playerId;
     const playerName = target.dataset.playerName;
 
@@ -677,7 +676,7 @@
   /**
    * Refresh single player Discord status
    */
-  function refreshSinglePlayerDiscordStatus(playerId, playerName, badgeElement) {
+  export function refreshSinglePlayerDiscordStatus(playerId, playerName, badgeElement) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
     fetch(`/teams/player/${playerId}/refresh-discord-status`, {
@@ -731,7 +730,7 @@
   /**
    * Initialize Bootstrap tooltips
    */
-  function initializeTooltips() {
+  export function initializeTooltips() {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function(tooltipTriggerEl) {
       return new window.bootstrap.Tooltip(tooltipTriggerEl, {
@@ -743,7 +742,7 @@
   /**
    * Initialize background images from data attributes
    */
-  function initializeBackgroundImages() {
+  export function initializeBackgroundImages() {
     const backgrounds = document.querySelectorAll('[data-background-url]');
     backgrounds.forEach(bg => {
       const url = bg.dataset.backgroundUrl;
@@ -759,7 +758,7 @@
   /**
    * Get theme color with fallback
    */
-  function getThemeColor(colorName, fallback) {
+  export function getThemeColor(colorName, fallback) {
     if (typeof window.ECSTheme !== 'undefined' && window.ECSTheme.getColor) {
       return window.ECSTheme.getColor(colorName);
     }
@@ -773,7 +772,7 @@
   /**
    * Expand all schedule weeks (native details elements)
    */
-  function handleExpandAllSchedule() {
+  export function handleExpandAllSchedule() {
     const weeks = document.querySelectorAll('.c-schedule__week');
     weeks.forEach(week => {
       week.open = true;
@@ -784,7 +783,7 @@
   /**
    * Collapse all schedule weeks (native details elements)
    */
-  function handleCollapseAllSchedule() {
+  export function handleCollapseAllSchedule() {
     const weeks = document.querySelectorAll('.c-schedule__week');
     weeks.forEach(week => {
       week.open = false;
@@ -795,7 +794,7 @@
   /**
    * Update schedule control button states
    */
-  function updateScheduleControlsState() {
+  export function updateScheduleControlsState() {
     const weeks = document.querySelectorAll('.c-schedule__week');
     const expandBtn = document.querySelector('[data-action="expand-all-schedule"]');
     const collapseBtn = document.querySelector('[data-action="collapse-all-schedule"]');
@@ -816,7 +815,7 @@
    * Initialize schedule - open closest upcoming week, close others
    * Uses native <details> elements with data-date attribute
    */
-  function initializeScheduleAccordion() {
+  export function initializeScheduleAccordion() {
     const weeks = document.querySelectorAll('.c-schedule__week[data-date]');
     if (weeks.length === 0) return;
 
@@ -872,4 +871,92 @@
     updateScheduleControlsState();
   }
 
-})();
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.initializeEventDelegation = initializeEventDelegation;
+
+// Backward compatibility
+window.handleTriggerFileInput = handleTriggerFileInput;
+
+// Backward compatibility
+window.handleTriggerBackgroundInput = handleTriggerBackgroundInput;
+
+// Backward compatibility
+window.setupFileInputHandlers = setupFileInputHandlers;
+
+// Backward compatibility
+window.initializeAutoSubmit = initializeAutoSubmit;
+
+// Backward compatibility
+window.loadImageForCropping = loadImageForCropping;
+
+// Backward compatibility
+window.initializeImagePositioning = initializeImagePositioning;
+
+// Backward compatibility
+window.hideDragHint = hideDragHint;
+
+// Backward compatibility
+window.startDrag = startDrag;
+
+// Backward compatibility
+window.drag = drag;
+
+// Backward compatibility
+window.endDrag = endDrag;
+
+// Backward compatibility
+window.updatePreview = updatePreview;
+
+// Backward compatibility
+window.handleAdjustZoom = handleAdjustZoom;
+
+// Backward compatibility
+window.resetImagePosition = resetImagePosition;
+
+// Backward compatibility
+window.uploadCroppedImage = uploadCroppedImage;
+
+// Backward compatibility
+window.getTeamIdFromUrl = getTeamIdFromUrl;
+
+// Backward compatibility
+window.handleAssignDiscordRoles = handleAssignDiscordRoles;
+
+// Backward compatibility
+window.assignDiscordRolesToTeam = assignDiscordRolesToTeam;
+
+// Backward compatibility
+window.handleRefreshDiscordStatus = handleRefreshDiscordStatus;
+
+// Backward compatibility
+window.refreshDiscordStatusForTeam = refreshDiscordStatusForTeam;
+
+// Backward compatibility
+window.handleRefreshPlayerDiscord = handleRefreshPlayerDiscord;
+
+// Backward compatibility
+window.refreshSinglePlayerDiscordStatus = refreshSinglePlayerDiscordStatus;
+
+// Backward compatibility
+window.initializeTooltips = initializeTooltips;
+
+// Backward compatibility
+window.initializeBackgroundImages = initializeBackgroundImages;
+
+// Backward compatibility
+window.getThemeColor = getThemeColor;
+
+// Backward compatibility
+window.handleExpandAllSchedule = handleExpandAllSchedule;
+
+// Backward compatibility
+window.handleCollapseAllSchedule = handleCollapseAllSchedule;
+
+// Backward compatibility
+window.updateScheduleControlsState = updateScheduleControlsState;
+
+// Backward compatibility
+window.initializeScheduleAccordion = initializeScheduleAccordion;

@@ -22,17 +22,16 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
     // ========================================================================
     // CONFIGURATION
     // ========================================================================
 
-    const CONFIG = {
+    export const CONFIG = {
         SELECT2_THEME: 'bootstrap-5',
         UNSAVED_WARNING_MESSAGE: 'You have unsaved changes. Are you sure you want to leave?'
     };
@@ -48,7 +47,7 @@
     /**
      * Initialize Select2 on all selects with data-select2 attribute
      */
-    function initSelect2() {
+    export function initSelect2() {
         if (typeof jQuery === 'undefined' || typeof jQuery.fn.select2 === 'undefined') {
             console.warn('[Profile Form] Select2 not available');
             return;
@@ -87,21 +86,21 @@
     /**
      * Mark form as changed (has unsaved changes)
      */
-    function markFormChanged() {
+    export function markFormChanged() {
         formChanged = true;
     }
 
     /**
      * Mark form as saved (no unsaved changes)
      */
-    function markFormSaved() {
+    export function markFormSaved() {
         formChanged = false;
     }
 
     /**
      * Initialize form change tracking
      */
-    function initFormChangeTracking() {
+    export function initFormChangeTracking() {
         const forms = document.querySelectorAll('[data-track-changes]');
 
         forms.forEach(form => {
@@ -136,7 +135,7 @@
      * Initialize unsaved changes warning
      * Warns user before leaving page with unsaved form changes
      */
-    function initUnsavedWarning() {
+    export function initUnsavedWarning() {
         // Warn on page unload
         window.addEventListener('beforeunload', function(e) {
             // Only warn if form has unsaved changes and not currently submitting
@@ -178,7 +177,7 @@
      * Initialize auto-submit forms
      * Forms with data-auto-submit will submit on change
      */
-    function initAutoSubmitForms() {
+    export function initAutoSubmitForms() {
         const autoSubmitForms = document.querySelectorAll('[data-auto-submit]');
 
         autoSubmitForms.forEach(form => {
@@ -210,7 +209,7 @@
     /**
      * Initialize custom form validation
      */
-    function initFormValidation() {
+    export function initFormValidation() {
         const forms = document.querySelectorAll('[data-validate]');
 
         forms.forEach(form => {
@@ -235,7 +234,7 @@
      * Initialize phone number formatting
      * Formats phone numbers as user types
      */
-    function initPhoneFormatting() {
+    export function initPhoneFormatting() {
         const phoneInputs = document.querySelectorAll('[data-format="phone"]');
 
         phoneInputs.forEach(input => {
@@ -269,7 +268,7 @@
     /**
      * Initialize character counters for textareas
      */
-    function initCharacterCounters() {
+    export function initCharacterCounters() {
         const textareas = document.querySelectorAll('[data-max-length]');
 
         textareas.forEach(textarea => {
@@ -311,7 +310,7 @@
     /**
      * Handle form reset events
      */
-    function initFormResetHandling() {
+    export function initFormResetHandling() {
         document.addEventListener('click', function(e) {
             const resetBtn = e.target.closest('[data-action="reset-form"]');
             if (!resetBtn) return;
@@ -389,4 +388,39 @@
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.CONFIG = CONFIG;
+
+// Backward compatibility
+window.initSelect2 = initSelect2;
+
+// Backward compatibility
+window.markFormChanged = markFormChanged;
+
+// Backward compatibility
+window.markFormSaved = markFormSaved;
+
+// Backward compatibility
+window.initFormChangeTracking = initFormChangeTracking;
+
+// Backward compatibility
+window.initUnsavedWarning = initUnsavedWarning;
+
+// Backward compatibility
+window.initAutoSubmitForms = initAutoSubmitForms;
+
+// Backward compatibility
+window.initFormValidation = initFormValidation;
+
+// Backward compatibility
+window.initPhoneFormatting = initPhoneFormatting;
+
+// Backward compatibility
+window.initCharacterCounters = initCharacterCounters;
+
+// Backward compatibility
+window.initFormResetHandling = initFormResetHandling;
+
+// Backward compatibility
+window.init = init;

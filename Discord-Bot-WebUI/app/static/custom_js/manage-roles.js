@@ -2,11 +2,10 @@
  * Manage Roles Page
  * Handles role permission management with Select2 integration
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    const ManageRoles = {
+export const ManageRoles = {
         init() {
             this.initializeSelect2();
             this.setupRoleChangeHandler();
@@ -136,4 +135,6 @@
     } else {
         ManageRoles.init();
     }
-})();
+
+// Backward compatibility
+window.ManageRoles = ManageRoles;

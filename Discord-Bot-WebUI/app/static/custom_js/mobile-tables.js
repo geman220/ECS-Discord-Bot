@@ -2,12 +2,12 @@
  * Mobile Tables - Simple table label injection
  * Adds data-label attributes to table cells for mobile responsive display
  */
-(function() {
-  'use strict';
+// ES Module
+'use strict';
 
-  let _initialized = false;
+let _initialized = false;
 
-  function init() {
+  export function init() {
     if (_initialized) return;
     _initialized = true;
 
@@ -19,7 +19,7 @@
     }
   }
 
-  function addTableLabels() {
+  export function addTableLabels() {
     const tables = document.querySelectorAll('.table-responsive table');
 
     tables.forEach(table => {
@@ -54,4 +54,9 @@
   } else {
     init();
   }
-})();
+
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.addTableLabels = addTableLabels;

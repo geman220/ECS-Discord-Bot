@@ -77,7 +77,7 @@ if (typeof window._reportMatchInitialized === 'undefined') {
     window._reportMatchInitialized = false;
 }
 
-function initReportMatch() {
+export function initReportMatch() {
     if (window._reportMatchInitialized) return;
     window._reportMatchInitialized = true;
 
@@ -123,7 +123,7 @@ if (typeof window.$ !== 'undefined') {
 window.playerChoices = window.playerChoices || {};
 
 // Function to create player options grouped by team
-function createPlayerOptions(matchId) {
+export function createPlayerOptions(matchId) {
     let options = '<option value="" selected>Select a player</option>';
     if (playerChoices[matchId]) {
         for (const teamName in playerChoices[matchId]) {
@@ -137,7 +137,7 @@ function createPlayerOptions(matchId) {
     return options;
 }
 
-function createTeamOptions(matchId) {
+export function createTeamOptions(matchId) {
     let options = '<option value="" selected>Select a team</option>';
     
     // Try to get team info from stored match data
@@ -164,7 +164,7 @@ function createTeamOptions(matchId) {
 }
 
 // Function to get the container ID based on event type
-function getContainerId(eventType, matchId) {
+export function getContainerId(eventType, matchId) {
     let containerId;
     if (eventType === 'goal_scorers') {
         containerId = 'goalScorersContainer-' + matchId;
@@ -181,7 +181,7 @@ function getContainerId(eventType, matchId) {
 }
 
 // Function to collect stat IDs that have been marked for removal
-function collectRemovedStatIds(matchId, eventType) {
+export function collectRemovedStatIds(matchId, eventType) {
     let containerId = getContainerId(eventType, matchId);
     let baseName = containerId.split('Container-')[0];
     let removedIds = [];
@@ -429,7 +429,7 @@ if (typeof window._editMatchButtonsSetup === 'undefined') {
 }
 
 // Function to set up edit match buttons
-function setupEditMatchButtons() {
+export function setupEditMatchButtons() {
     if (window._editMatchButtonsSetup) return;
     window._editMatchButtonsSetup = true;
 
@@ -461,7 +461,7 @@ function setupEditMatchButtons() {
 }
 
 // Function to handle edit button clicks
-function handleEditButtonClick(matchId) {
+export function handleEditButtonClick(matchId) {
     // Edit button clicked for match
     
     // Show loading spinner
@@ -507,7 +507,7 @@ function handleEditButtonClick(matchId) {
 }
 
 // Helper function to set up and show the modal
-function setupAndShowModal(matchId, data) {
+export function setupAndShowModal(matchId, data) {
     // Find the modal
     const modalId = `reportMatchModal-${matchId}`;
     const modal = document.getElementById(modalId);
@@ -552,7 +552,7 @@ function setupAndShowModal(matchId, data) {
 }
 
 // Function to create a dynamic modal for a specific match when needed
-function createDynamicModal(matchId, data) {
+export function createDynamicModal(matchId, data) {
     // Creating a dynamic modal for match
     
     // Create the container if it doesn't exist
@@ -722,7 +722,7 @@ function createDynamicModal(matchId, data) {
 }
 
 // Function to populate the modal with match data
-function populateModal(modal, data) {
+export function populateModal(modal, data) {
     const matchId = data.id || modal.id.replace('reportMatchModal-', '');
     
     // Build player choices data structure for this match
@@ -929,7 +929,7 @@ function populateModal(modal, data) {
 }
 
 // Function to update or add the verification section to the modal
-function updateVerificationSection(modal, matchId, data) {
+export function updateVerificationSection(modal, matchId, data) {
     try {
         // Updating verification section with data
         
@@ -1044,7 +1044,7 @@ function updateVerificationSection(modal, matchId, data) {
 }
 
 // Function to get final events from the form
-function getFinalEvents(matchId, eventType) {
+export function getFinalEvents(matchId, eventType) {
     let events = [];
     let containerId = getContainerId(eventType, matchId);
     let baseName = containerId.split('Container-')[0];
@@ -1107,7 +1107,7 @@ function getFinalEvents(matchId, eventType) {
 }
 
 // Function to check if an event exists in an array
-function eventExists(event, eventsArray) {
+export function eventExists(event, eventsArray) {
     // Special case - if element is marked for removal with to-be-removed class
     if (event.element && event.element.classList && event.element.classList.contains('to-be-removed')) {
         return false; // Treat as non-existent if marked for removal
@@ -1128,7 +1128,7 @@ function eventExists(event, eventsArray) {
 }
 
 // Function to send the AJAX request to update stats
-function reportMatchUpdateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove,
+export function reportMatchUpdateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove,
     yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove, ownGoalsToAdd, ownGoalsToRemove) {
     const homeTeamScore = window.$('#home_team_score-' + matchId).val();
     const awayTeamScore = window.$('#away_team_score-' + matchId).val();
@@ -1593,7 +1593,7 @@ window.removeOwnGoalEvent = function(button) {
 };
 
 // Function to collect removed own goal stat IDs
-function collectRemovedOwnGoalIds(matchId) {
+export function collectRemovedOwnGoalIds(matchId) {
     let containerId = `ownGoalsContainer-${matchId}`;
     let removedIds = [];
 
@@ -1608,7 +1608,7 @@ function collectRemovedOwnGoalIds(matchId) {
 }
 
 // Function to check if an own goal exists in a list
-function ownGoalExists(ownGoal, ownGoalList) {
+export function ownGoalExists(ownGoal, ownGoalList) {
     return ownGoalList.some(og => {
         // Check by stat_id if both have it
         if (ownGoal.stat_id && og.stat_id) {
@@ -1622,3 +1622,51 @@ function ownGoalExists(ownGoal, ownGoalList) {
         return ownGoal.team_id === og.team_id && ownGoal.minute === og.minute;
     });
 }
+
+// Backward compatibility
+window.initReportMatch = initReportMatch;
+
+// Backward compatibility
+window.createPlayerOptions = createPlayerOptions;
+
+// Backward compatibility
+window.createTeamOptions = createTeamOptions;
+
+// Backward compatibility
+window.getContainerId = getContainerId;
+
+// Backward compatibility
+window.collectRemovedStatIds = collectRemovedStatIds;
+
+// Backward compatibility
+window.setupEditMatchButtons = setupEditMatchButtons;
+
+// Backward compatibility
+window.handleEditButtonClick = handleEditButtonClick;
+
+// Backward compatibility
+window.setupAndShowModal = setupAndShowModal;
+
+// Backward compatibility
+window.createDynamicModal = createDynamicModal;
+
+// Backward compatibility
+window.populateModal = populateModal;
+
+// Backward compatibility
+window.updateVerificationSection = updateVerificationSection;
+
+// Backward compatibility
+window.getFinalEvents = getFinalEvents;
+
+// Backward compatibility
+window.eventExists = eventExists;
+
+// Backward compatibility
+window.reportMatchUpdateStats = reportMatchUpdateStats;
+
+// Backward compatibility
+window.collectRemovedOwnGoalIds = collectRemovedOwnGoalIds;
+
+// Backward compatibility
+window.ownGoalExists = ownGoalExists;

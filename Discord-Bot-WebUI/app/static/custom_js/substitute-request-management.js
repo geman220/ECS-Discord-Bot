@@ -10,14 +10,13 @@
  * - All empty state icons use consistent sizing via utility classes
  * - 100% reduction in inline style usage (4 instances removed, 0 remaining)
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
 // Utility functions
-function getTimeSince(dateString) {
+export function getTimeSince(dateString) {
     const now = new Date();
     const past = new Date(dateString);
     const diffMs = now - past;
@@ -31,12 +30,12 @@ function getTimeSince(dateString) {
     return `${diffDays}d ago`;
 }
 
-function formatDateTime(dateString) {
+export function formatDateTime(dateString) {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 }
 
-function subRequestShowNotification(type, message) {
+export function subRequestShowNotification(type, message) {
     // Try toastr first, fallback to showAlert
     if (typeof toastr !== 'undefined') {
         toastr[type](message);
@@ -48,7 +47,7 @@ function subRequestShowNotification(type, message) {
 }
 
 // League Management Modal Functions
-function openLeagueManagementModal(league) {
+export function openLeagueManagementModal(league) {
     // Set modal title and icon based on league
     // League colors - use ECSTheme if available, fallback to distinct semantic colors
     const infoColor = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('info') : '#0dcaf0';
@@ -72,7 +71,7 @@ function openLeagueManagementModal(league) {
     window.$('#leagueManagementModal').data('current-league', league);
 }
 
-function loadLeagueStatistics(league) {
+export function loadLeagueStatistics(league) {
     // Get stats from the main page
     const activeCount = $(`#active-count-${league}`).text() || '0';
     const pendingCount = $(`#pending-count-${league}`).text() || '0';
@@ -103,7 +102,7 @@ function loadLeagueStatistics(league) {
     window.loadSubstituteRequests(league);
 }
 
-function loadRecentActivity(league) {
+export function loadRecentActivity(league) {
     // Show loading spinner
     window.$('#recentActivityTable').html(`
         <tr>
@@ -162,7 +161,7 @@ function loadRecentActivity(league) {
     });
 }
 
-function displayRecentActivity(activities) {
+export function displayRecentActivity(activities) {
     const tbody = window.$('#recentActivityTable');
     tbody.empty();
     
@@ -200,7 +199,7 @@ function displayRecentActivity(activities) {
 }
 
 // Substitute Request Management Functions
-function loadSubstituteRequests(league) {
+export function loadSubstituteRequests(league) {
     window.$('#substituteRequestsTable').html(`
         <tr>
             <td colspan="5" class="text-center">
@@ -242,7 +241,7 @@ function loadSubstituteRequests(league) {
     });
 }
 
-function displaySubstituteRequests(requests) {
+export function displaySubstituteRequests(requests) {
     const tbody = window.$('#substituteRequestsTable');
     tbody.empty();
     
@@ -354,7 +353,7 @@ function displaySubstituteRequests(requests) {
     });
 }
 
-function resendSubstituteRequest(requestId, league, teamName, createdAt) {
+export function resendSubstituteRequest(requestId, league, teamName, createdAt) {
     // Check how long ago it was sent
     const now = new Date();
     const created = new Date(createdAt);
@@ -388,7 +387,7 @@ function resendSubstituteRequest(requestId, league, teamName, createdAt) {
     performResendRequest(requestId, league);
 }
 
-function performResendRequest(requestId, league) {
+export function performResendRequest(requestId, league) {
     const btn = $(`[data-action="resend-request"][data-request-id="${requestId}"]`);
     const originalText = btn.html();
     
@@ -439,7 +438,7 @@ function performResendRequest(requestId, league) {
     });
 }
 
-function cancelSubstituteRequest(requestId, league, teamName) {
+export function cancelSubstituteRequest(requestId, league, teamName) {
     if (!confirm(`Are you sure you want to cancel the substitute request for ${teamName}?`)) {
         return;
     }
@@ -472,7 +471,7 @@ function cancelSubstituteRequest(requestId, league, teamName) {
 }
 
 // Match-specific substitute request functions
-function loadMatchSubstituteRequests(matchId) {
+export function loadMatchSubstituteRequests(matchId) {
     if (!matchId) {
         console.warn('No match ID provided for loading substitute requests');
         return;
@@ -519,7 +518,7 @@ function loadMatchSubstituteRequests(matchId) {
     });
 }
 
-function displayMatchSubstituteRequests(requests) {
+export function displayMatchSubstituteRequests(requests) {
     const tbody = window.$('#matchSubstituteRequestsTable');
     tbody.empty();
     
@@ -696,7 +695,7 @@ window.$(document).on('click', '[data-action="view-match-request-details"]', fun
     window.viewRequestDetails(requestId, league);
 });
 
-function resendMatchSubstituteRequest(requestId, league, teamName, createdAt) {
+export function resendMatchSubstituteRequest(requestId, league, teamName, createdAt) {
     // Check how long ago it was sent
     const now = new Date();
     const created = new Date(createdAt);
@@ -730,7 +729,7 @@ function resendMatchSubstituteRequest(requestId, league, teamName, createdAt) {
     performMatchResendRequest(requestId, league);
 }
 
-function performMatchResendRequest(requestId, league) {
+export function performMatchResendRequest(requestId, league) {
     const btn = $(`[data-action="resend-match-request"][data-request-id="${requestId}"]`);
     const originalText = btn.html();
     
@@ -782,7 +781,7 @@ function performMatchResendRequest(requestId, league) {
     });
 }
 
-function cancelMatchSubstituteRequest(requestId, league, teamName) {
+export function cancelMatchSubstituteRequest(requestId, league, teamName) {
     if (!confirm(`Are you sure you want to cancel the substitute request for ${teamName}?`)) {
         return;
     }
@@ -816,7 +815,7 @@ function cancelMatchSubstituteRequest(requestId, league, teamName) {
     });
 }
 
-function deleteSubstituteRequest(requestId, league, teamName) {
+export function deleteSubstituteRequest(requestId, league, teamName) {
     // Use SweetAlert2 if available
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire({
@@ -838,7 +837,7 @@ function deleteSubstituteRequest(requestId, league, teamName) {
     }
 }
 
-function performDeleteRequest(requestId, league) {
+export function performDeleteRequest(requestId, league) {
     window.$.ajax({
         url: `/api/substitute-pools/requests/${requestId}`,
         method: 'DELETE',
@@ -956,7 +955,7 @@ window.$(document).on('click', '#savePoolSettings', function() {
 });
 
 // Utility function for bulk operations
-function bulkApproveAllPending(league) {
+export function bulkApproveAllPending(league) {
     // Get all pending player IDs for this league
     const pendingCards = $(`[data-component="player-item"][data-league="${league}"][data-status="pending"]`);
     const playerIds = [];
@@ -989,12 +988,12 @@ function bulkApproveAllPending(league) {
 }
 
 // Export pool data function  
-function exportPoolData(league) {
+export function exportPoolData(league) {
     window.open(`/admin/substitute-pools/${league}/export`, '_blank');
 }
 
 // View request details function
-function viewRequestDetails(requestId, league) {
+export function viewRequestDetails(requestId, league) {
     // Load request details via AJAX
     window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests/${requestId}`,
@@ -1012,7 +1011,7 @@ function viewRequestDetails(requestId, league) {
     });
 }
 
-function displayRequestDetailsModal(request) {
+export function displayRequestDetailsModal(request) {
     const available = request.responses.filter(r => r.is_available);
     const unavailable = request.responses.filter(r => !r.is_available);
     const noResponse = request.total_responses === 0;
@@ -1230,7 +1229,7 @@ window.$(document).on('click', '[data-action="assign-substitute"]', function() {
     }
 });
 
-function assignSubstitute(requestId, playerId, league, position) {
+export function assignSubstitute(requestId, playerId, league, position) {
     window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests/${requestId}/assign`,
         method: 'POST',
@@ -1287,7 +1286,7 @@ window.$(document).on('click', '[data-action="resend-from-details"]', function()
     window.viewRequestDetails = viewRequestDetails;
 
     // Initialize function
-    function init() {
+    export function init() {
         if (_initialized) return;
         _initialized = true;
 
@@ -1310,4 +1309,54 @@ window.$(document).on('click', '[data-action="resend-from-details"]', function()
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.getTimeSince = getTimeSince;
+
+// Backward compatibility
+window.formatDateTime = formatDateTime;
+
+// Backward compatibility
+window.subRequestShowNotification = subRequestShowNotification;
+
+// Backward compatibility
+window.displayRecentActivity = displayRecentActivity;
+
+// Backward compatibility
+window.displaySubstituteRequests = displaySubstituteRequests;
+
+// Backward compatibility
+window.performResendRequest = performResendRequest;
+
+// Backward compatibility
+window.displayMatchSubstituteRequests = displayMatchSubstituteRequests;
+
+// Backward compatibility
+window.resendMatchSubstituteRequest = resendMatchSubstituteRequest;
+
+// Backward compatibility
+window.performMatchResendRequest = performMatchResendRequest;
+
+// Backward compatibility
+window.cancelMatchSubstituteRequest = cancelMatchSubstituteRequest;
+
+// Backward compatibility
+window.deleteSubstituteRequest = deleteSubstituteRequest;
+
+// Backward compatibility
+window.performDeleteRequest = performDeleteRequest;
+
+// Backward compatibility
+window.bulkApproveAllPending = bulkApproveAllPending;
+
+// Backward compatibility
+window.exportPoolData = exportPoolData;
+
+// Backward compatibility
+window.displayRequestDetailsModal = displayRequestDetailsModal;
+
+// Backward compatibility
+window.assignSubstitute = assignSubstitute;
+
+// Backward compatibility
+window.init = init;

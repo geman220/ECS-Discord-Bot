@@ -23,14 +23,13 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function () {
-  'use strict';
-
-  /**
+/**
    * Configuration
    */
-  const CONFIG = {
+  export const CONFIG = {
     selectors: {
       sidebar: '.c-sidebar',
       sidebarToggle: '[data-action="toggle-sidebar"]',
@@ -54,7 +53,7 @@
   /**
    * State management
    */
-  const State = {
+  export const State = {
     isDesktop: window.innerWidth >= CONFIG.breakpoints.desktop,
     isSidebarOpen: false,
     collapsedState: localStorage.getItem(CONFIG.storage.collapsedKey) === 'true',
@@ -76,7 +75,7 @@
    * ============================================================================
    */
 
-  function init() {
+  export function init() {
     // Guard against duplicate initialization
     if (State._initialized) return;
     State._initialized = true;
@@ -115,7 +114,7 @@
    * ============================================================================
    */
 
-  function setupEventDelegation() {
+  export function setupEventDelegation() {
     // Guard against duplicate setup
     if (State._eventDelegationSetup) return;
     State._eventDelegationSetup = true;
@@ -127,7 +126,7 @@
     document.addEventListener('click', handleOutsideClick);
   }
 
-  function handleClick(event) {
+  export function handleClick(event) {
     const target = event.target;
     const actionElement = target.closest('[data-action]');
     const action = actionElement?.getAttribute('data-action');
@@ -172,7 +171,7 @@
     }
   }
 
-  function handleOutsideClick(event) {
+  export function handleOutsideClick(event) {
     // Only on mobile
     if (State.isDesktop) return;
 
@@ -191,7 +190,7 @@
    * ============================================================================
    */
 
-  function handleSidebarToggle() {
+  export function handleSidebarToggle() {
     if (State.isDesktop) {
       // Desktop: Toggle collapsed state
       toggleCollapsedState();
@@ -201,7 +200,7 @@
     }
   }
 
-  function toggleCollapsedState() {
+  export function toggleCollapsedState() {
     const isCollapsed = document.body.classList.toggle(CONFIG.classes.collapsed);
     State.collapsedState = isCollapsed;
 
@@ -217,7 +216,7 @@
     console.log('Sidebar collapsed state:', isCollapsed);
   }
 
-  function toggleMobileSidebar() {
+  export function toggleMobileSidebar() {
     if (State.isSidebarOpen) {
       closeSidebar();
     } else {
@@ -225,7 +224,7 @@
     }
   }
 
-  function openSidebar() {
+  export function openSidebar() {
     sidebar.classList.add(CONFIG.classes.open);
     State.isSidebarOpen = true;
 
@@ -247,7 +246,7 @@
     console.log('Sidebar opened');
   }
 
-  function closeSidebar() {
+  export function closeSidebar() {
     sidebar.classList.remove(CONFIG.classes.open);
     State.isSidebarOpen = false;
 
@@ -275,7 +274,7 @@
    * ============================================================================
    */
 
-  function handleSubmenuToggle(button) {
+  export function handleSubmenuToggle(button) {
     const item = button.closest(CONFIG.selectors.expandableItem);
     if (!item) return;
 
@@ -290,7 +289,7 @@
     console.log('Submenu toggled:', isOpen);
   }
 
-  function closeOtherSubmenus(currentItem) {
+  export function closeOtherSubmenus(currentItem) {
     const parent = currentItem.parentElement;
     const siblings = Array.from(parent.children).filter(
       child => child !== currentItem && child.matches(CONFIG.selectors.expandableItem)
@@ -311,7 +310,7 @@
    * ============================================================================
    */
 
-  function handleNoActiveSeason() {
+  export function handleNoActiveSeason() {
     alert('No active Pub League season');
   }
 
@@ -321,7 +320,7 @@
    * ============================================================================
    */
 
-  function setupKeyboardNavigation() {
+  export function setupKeyboardNavigation() {
     // Guard against duplicate setup
     if (State._keyboardNavSetup) return;
     State._keyboardNavSetup = true;
@@ -329,7 +328,7 @@
     sidebar.addEventListener('keydown', handleKeyDown);
   }
 
-  function handleKeyDown(event) {
+  export function handleKeyDown(event) {
     const { key, target } = event;
 
     // Escape closes sidebar on mobile
@@ -364,31 +363,31 @@
     }
   }
 
-  function focusPreviousItem(currentElement) {
+  export function focusPreviousItem(currentElement) {
     const focusable = getFocusableElements();
     const currentIndex = focusable.indexOf(currentElement);
     const previousIndex = currentIndex > 0 ? currentIndex - 1 : focusable.length - 1;
     focusable[previousIndex]?.focus();
   }
 
-  function focusNextItem(currentElement) {
+  export function focusNextItem(currentElement) {
     const focusable = getFocusableElements();
     const currentIndex = focusable.indexOf(currentElement);
     const nextIndex = currentIndex < focusable.length - 1 ? currentIndex + 1 : 0;
     focusable[nextIndex]?.focus();
   }
 
-  function focusFirstItem() {
+  export function focusFirstItem() {
     const focusable = getFocusableElements();
     focusable[0]?.focus();
   }
 
-  function focusLastItem() {
+  export function focusLastItem() {
     const focusable = getFocusableElements();
     focusable[focusable.length - 1]?.focus();
   }
 
-  function getFocusableElements() {
+  export function getFocusableElements() {
     return Array.from(
       sidebar.querySelectorAll('a[href], button:not([disabled])')
     ).filter(el => !el.closest('.c-sidebar__link--disabled'));
@@ -400,7 +399,7 @@
    * ============================================================================
    */
 
-  function setupAriaAttributes() {
+  export function setupAriaAttributes() {
     // Set sidebar role and label
     if (!sidebar.hasAttribute('role')) {
       sidebar.setAttribute('role', 'navigation');
@@ -433,7 +432,7 @@
   let firstFocusableElement = null;
   let lastFocusableElement = null;
 
-  function trapFocus(container) {
+  export function trapFocus(container) {
     const focusableElements = getFocusableElements();
     firstFocusableElement = focusableElements[0];
     lastFocusableElement = focusableElements[focusableElements.length - 1];
@@ -447,12 +446,12 @@
     document.addEventListener('keydown', handleFocusTrap);
   }
 
-  function releaseFocus() {
+  export function releaseFocus() {
     focusTrapActive = false;
     document.removeEventListener('keydown', handleFocusTrap);
   }
 
-  function handleFocusTrap(event) {
+  export function handleFocusTrap(event) {
     if (!focusTrapActive || event.key !== 'Tab') return;
 
     if (event.shiftKey) {
@@ -476,7 +475,7 @@
    * ============================================================================
    */
 
-  function createBackdrop() {
+  export function createBackdrop() {
     if (document.querySelector('.c-sidebar-backdrop')) return;
 
     const backdrop = document.createElement('div');
@@ -499,7 +498,7 @@
     }, 10);
   }
 
-  function removeBackdrop() {
+  export function removeBackdrop() {
     const backdrop = document.querySelector('.c-sidebar-backdrop');
     if (!backdrop) return;
 
@@ -515,7 +514,7 @@
    * ============================================================================
    */
 
-  function setupResizeHandler() {
+  export function setupResizeHandler() {
     // Guard against duplicate setup
     if (State._resizeHandlerSetup) return;
     State._resizeHandlerSetup = true;
@@ -528,7 +527,7 @@
     });
   }
 
-  function handleResize() {
+  export function handleResize() {
     const wasDesktop = State.isDesktop;
     State.isDesktop = window.innerWidth >= CONFIG.breakpoints.desktop;
 
@@ -595,4 +594,90 @@
   } else {
     init();
   }
-})();
+
+// Backward compatibility
+window.CONFIG = CONFIG;
+
+// Backward compatibility
+window.State = State;
+
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.setupEventDelegation = setupEventDelegation;
+
+// Backward compatibility
+window.handleClick = handleClick;
+
+// Backward compatibility
+window.handleOutsideClick = handleOutsideClick;
+
+// Backward compatibility
+window.handleSidebarToggle = handleSidebarToggle;
+
+// Backward compatibility
+window.toggleCollapsedState = toggleCollapsedState;
+
+// Backward compatibility
+window.toggleMobileSidebar = toggleMobileSidebar;
+
+// Backward compatibility
+window.openSidebar = openSidebar;
+
+// Backward compatibility
+window.closeSidebar = closeSidebar;
+
+// Backward compatibility
+window.handleSubmenuToggle = handleSubmenuToggle;
+
+// Backward compatibility
+window.closeOtherSubmenus = closeOtherSubmenus;
+
+// Backward compatibility
+window.handleNoActiveSeason = handleNoActiveSeason;
+
+// Backward compatibility
+window.setupKeyboardNavigation = setupKeyboardNavigation;
+
+// Backward compatibility
+window.handleKeyDown = handleKeyDown;
+
+// Backward compatibility
+window.focusPreviousItem = focusPreviousItem;
+
+// Backward compatibility
+window.focusNextItem = focusNextItem;
+
+// Backward compatibility
+window.focusFirstItem = focusFirstItem;
+
+// Backward compatibility
+window.focusLastItem = focusLastItem;
+
+// Backward compatibility
+window.getFocusableElements = getFocusableElements;
+
+// Backward compatibility
+window.setupAriaAttributes = setupAriaAttributes;
+
+// Backward compatibility
+window.trapFocus = trapFocus;
+
+// Backward compatibility
+window.releaseFocus = releaseFocus;
+
+// Backward compatibility
+window.handleFocusTrap = handleFocusTrap;
+
+// Backward compatibility
+window.createBackdrop = createBackdrop;
+
+// Backward compatibility
+window.removeBackdrop = removeBackdrop;
+
+// Backward compatibility
+window.setupResizeHandler = setupResizeHandler;
+
+// Backward compatibility
+window.handleResize = handleResize;

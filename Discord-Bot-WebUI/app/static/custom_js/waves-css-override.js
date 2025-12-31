@@ -19,10 +19,10 @@
 
 /*
 // ORIGINAL CODE - NOW REGISTERED WITH InitSystem
-(function() {
-    'use strict';
+// ES Module
+'use strict';
 
-    // Wait for DOM and Waves to be ready
+// Wait for DOM and Waves to be ready
     document.addEventListener('DOMContentLoaded', function() {
         if (!window.Waves) {
             console.warn('Waves library not loaded');
@@ -86,5 +86,5 @@
 
         console.log('[Waves CSS Override] Inline style injection prevented - using CSS classes');
     });
-})();
+
 */

@@ -12,16 +12,15 @@
  *
  * ============================================================================
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
     /**
      * Initialize the success page functionality
      */
-    function init() {
+    export function init() {
         if (_initialized) return;
         _initialized = true;
 
@@ -33,7 +32,7 @@
      * Handle the Done button click
      * Redirects user back to their player profile
      */
-    function initDoneButton() {
+    export function initDoneButton() {
         const doneBtn = document.querySelector('[data-action="close-window"]');
         if (!doneBtn) return;
 
@@ -57,7 +56,7 @@
      * Extract player ID from the current URL
      * URL format: /players/profile/{id}/mobile/success
      */
-    function getPlayerId() {
+    export function getPlayerId() {
         const path = window.location.pathname;
         const match = path.match(/\/players\/profile\/(\d+)/);
         return match ? match[1] : null;
@@ -67,7 +66,7 @@
      * Optional celebration effects
      * Triggered by data-success-celebration element
      */
-    function initCelebration() {
+    export function initCelebration() {
         const celebrationEl = document.querySelector('[data-success-celebration]');
         if (!celebrationEl) return;
 
@@ -88,7 +87,7 @@
      * Play a subtle success sound
      * Uses Web Audio API for a simple beep
      */
-    function playSuccessSound() {
+    export function playSuccessSound() {
         try {
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioContext.createOscillator();
@@ -126,4 +125,18 @@
     } else {
         init();
     }
-})();
+
+// Backward compatibility
+window.init = init;
+
+// Backward compatibility
+window.initDoneButton = initDoneButton;
+
+// Backward compatibility
+window.getPlayerId = getPlayerId;
+
+// Backward compatibility
+window.initCelebration = initCelebration;
+
+// Backward compatibility
+window.playSuccessSound = playSuccessSound;

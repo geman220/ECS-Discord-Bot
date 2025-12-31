@@ -5,7 +5,7 @@
  * with helpful SweetAlert popups.
  */
 
-class DiscordMembershipChecker {
+export class DiscordMembershipChecker {
     constructor(options = {}) {
         this.options = {
             discordInviteUrl: 'https://discord.gg/weareecs',
@@ -293,7 +293,7 @@ window.DiscordMembershipChecker = DiscordMembershipChecker;
 if (typeof window._discordCheckerInitialized === 'undefined') {
     window._discordCheckerInitialized = false;
 }
-function initDiscordChecker() {
+export function initDiscordChecker() {
     if (window._discordCheckerInitialized) return;
 
     // Only auto-initialize on specific pages
@@ -320,3 +320,6 @@ if (document.readyState === 'loading') {
 } else {
     initDiscordChecker();
 }
+
+// Backward compatibility
+window.initDiscordChecker = initDiscordChecker;

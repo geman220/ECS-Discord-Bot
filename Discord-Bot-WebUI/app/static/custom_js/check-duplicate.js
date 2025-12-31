@@ -2,11 +2,10 @@
  * Check Duplicate Accounts Handler
  * Manages duplicate account detection and claim/create actions
  */
+// ES Module
+'use strict';
 
-(function() {
-    'use strict';
-
-    let _initialized = false;
+let _initialized = false;
 
     function init() {
         if (_initialized) return;
@@ -136,4 +135,3 @@
     } else {
         init();
     }
-})();
