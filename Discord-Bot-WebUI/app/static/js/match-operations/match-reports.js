@@ -27,7 +27,7 @@
         const matchesPerWeekCtx = document.getElementById('matchesPerWeekChart');
 
         if (matchStatusCtx) {
-            new Chart(matchStatusCtx.getContext('2d'), {
+            new window.Chart(matchStatusCtx.getContext('2d'), {
                 type: 'doughnut',
                 data: {
                     labels: ['Completed', 'Upcoming', 'Live', 'Cancelled'],
@@ -59,7 +59,7 @@
         }
 
         if (matchesPerWeekCtx) {
-            new Chart(matchesPerWeekCtx.getContext('2d'), {
+            new window.Chart(matchesPerWeekCtx.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],

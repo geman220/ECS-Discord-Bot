@@ -46,7 +46,7 @@
         const modalDialog = modal.querySelector('.modal-dialog');
         if (!modalDialog) return;
 
-        const hammer = new Hammer(modalDialog);
+        const hammer = new window.Hammer(modalDialog);
         hammer.get('swipe').set({ direction: Hammer.DIRECTION_DOWN, threshold: 50 });
 
         hammer.on('swipedown', (ev) => {
@@ -112,7 +112,7 @@
       if (!sidebar) return;
 
       const body = document.body;
-      const hammer = new Hammer(body);
+      const hammer = new window.Hammer(body);
 
       // Swipe right from left edge to open
       hammer.on('swiperight', (ev) => {
@@ -143,7 +143,7 @@
       if (!this.isHammerLoaded()) return;
 
       document.querySelectorAll('[data-pull-refresh="true"], .table-responsive').forEach(container => {
-        const hammer = new Hammer(container);
+        const hammer = new window.Hammer(container);
         hammer.get('pan').set({ direction: Hammer.DIRECTION_DOWN, threshold: 10 });
 
         let startY = 0;
@@ -238,7 +238,7 @@
       if (!this.isHammerLoaded()) return;
 
       document.querySelectorAll('[data-long-press="true"], .card, .list-group-item').forEach(element => {
-        const hammer = new Hammer(element);
+        const hammer = new window.Hammer(element);
         hammer.get('press').set({ time: 500 }); // 500ms for long press
 
         hammer.on('press', (ev) => {
@@ -266,7 +266,7 @@
       if (!this.isHammerLoaded()) return;
 
       document.querySelectorAll('[data-double-tap="zoom"], .player-card img, .avatar-lg').forEach(element => {
-        const hammer = new Hammer(element);
+        const hammer = new window.Hammer(element);
         hammer.get('tap').set({ taps: 2, threshold: 10, posThreshold: 50 });
 
         let isZoomed = false;
@@ -312,7 +312,7 @@
       document.querySelectorAll('[data-swipe-actions="true"]').forEach(row => {
         if (row.closest('thead')) return; // Skip header rows
 
-        const hammer = new Hammer(row);
+        const hammer = new window.Hammer(row);
         hammer.get('swipe').set({ threshold: 50, velocity: 0.3 });
 
         let actionsRevealed = false;
@@ -386,7 +386,7 @@
       if (!this.isHammerLoaded()) return;
 
       document.querySelectorAll('[data-pinch-zoom="true"], .chart-container, img.zoomable').forEach(element => {
-        const hammer = new Hammer(element);
+        const hammer = new window.Hammer(element);
         hammer.get('pinch').set({ enable: true });
 
         let lastScale = 1;
@@ -427,7 +427,7 @@
       if (!this.isHammerLoaded()) return;
 
       document.querySelectorAll('[data-swipe-nav="true"], .nav-tabs').forEach(nav => {
-        const hammer = new Hammer(nav);
+        const hammer = new window.Hammer(nav);
         hammer.get('swipe').set({ threshold: 30 });
 
         const tabs = Array.from(nav.querySelectorAll('.nav-link'));

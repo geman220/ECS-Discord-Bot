@@ -214,7 +214,7 @@
             if (typeof Hammer !== 'undefined' && typeof targetEl === 'string') {
                 const el = document.querySelector(targetEl);
                 if (el) {
-                    const hammer = new Hammer(el);
+                    const hammer = new window.Hammer(el);
                     hammer.on('panright', callback);
                 }
             }
@@ -225,7 +225,7 @@
                 setTimeout(() => {
                     const el = document.querySelector(targetEl);
                     if (el) {
-                        const hammer = new Hammer(el);
+                        const hammer = new window.Hammer(el);
                         hammer.get('pan').set({ direction: Hammer.DIRECTION_ALL, threshold: 250 });
                         hammer.on('panleft', callback);
                     }
@@ -335,7 +335,7 @@
             if (typeof window.PerfectScrollbar === 'undefined') return;
 
             document.querySelectorAll('.navbar-dropdown .scrollable-container').forEach(el => {
-                new PerfectScrollbar(el, { wheelPropagation: false, suppressScrollX: true });
+                new window.PerfectScrollbar(el, { wheelPropagation: false, suppressScrollX: true });
             });
         },
 

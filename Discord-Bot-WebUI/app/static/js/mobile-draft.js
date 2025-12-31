@@ -85,7 +85,7 @@
         // Long-press for player details (Hammer needs per-element setup)
         if (window.Hammer && !card._hammerInitialized) {
           card._hammerInitialized = true;
-          const hammer = new Hammer(card);
+          const hammer = new window.Hammer(card);
           hammer.get('press').set({ time: 500 });
 
           hammer.on('press', () => {
@@ -218,7 +218,7 @@
 
       // Add pinch-to-zoom if Hammer.js is available
       if (window.Hammer) {
-        const hammer = new Hammer(pitch);
+        const hammer = new window.Hammer(pitch);
         hammer.get('pinch').set({ enable: true });
 
         let lastScale = 1;
@@ -260,7 +260,7 @@
       const teamsContainer = document.querySelector('.teams-container, .accordion');
       if (!teamsContainer) return;
 
-      const hammer = new Hammer(teamsContainer);
+      const hammer = new window.Hammer(teamsContainer);
       hammer.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
 
       const teams = Array.from(teamsContainer.querySelectorAll('.accordion-item, .team-card'));

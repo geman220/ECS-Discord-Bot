@@ -61,7 +61,7 @@
     // Query Performance Chart
     const queryCtx = document.querySelector('[data-chart="query-performance"]');
     if (queryCtx) {
-      queryPerformanceChart = new Chart(queryCtx.getContext('2d'), {
+      queryPerformanceChart = new window.Chart(queryCtx.getContext('2d'), {
         type: 'line',
         data: {
           labels: ['5min ago', '4min ago', '3min ago', '2min ago', '1min ago', 'Now'],
@@ -105,7 +105,7 @@
     // Cache Usage Chart
     const cacheCtx = document.querySelector('[data-chart="cache-usage"]');
     if (cacheCtx) {
-      cacheUsageChart = new Chart(cacheCtx.getContext('2d'), {
+      cacheUsageChart = new window.Chart(cacheCtx.getContext('2d'), {
         type: 'doughnut',
         data: {
           labels: ['Active', 'Expired'],
