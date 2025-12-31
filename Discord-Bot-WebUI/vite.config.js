@@ -9,9 +9,10 @@ export default defineConfig({
   // Base public path - Flask will serve from /static/
   base: '/static/',
 
-  // Plugins - inject makes jQuery available in all modules without explicit imports
-  // This is the industry standard approach (equivalent to Webpack's ProvidePlugin)
+  // Plugins
   plugins: [
+    // Inject makes jQuery available in all modules without explicit imports
+    // This is the industry standard approach (equivalent to Webpack's ProvidePlugin)
     inject({
       $: 'jquery',
       jQuery: 'jquery',
