@@ -1415,7 +1415,7 @@ class DraftSystemV2 {
         // Show modal
         const modal = document.getElementById('playerProfileModal');
         if (modal) {
-            ModalManager.show('playerProfileModal');
+            window.ModalManager.show('playerProfileModal');
 
             // Request player details via socket
             this.socket.emit('get_player_details', { player_id: playerId });

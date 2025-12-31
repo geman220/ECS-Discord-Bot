@@ -31,7 +31,7 @@
                         }
                         // Use ModalManager for safe modal handling
                         if (typeof ModalManager !== 'undefined') {
-                            ModalManager.show('enable2FAModal');
+                            window.ModalManager.show('enable2FAModal');
                         }
                     });
             });

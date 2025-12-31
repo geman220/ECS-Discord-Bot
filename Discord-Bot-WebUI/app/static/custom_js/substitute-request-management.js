@@ -51,9 +51,9 @@ function subRequestShowNotification(type, message) {
 function openLeagueManagementModal(league) {
     // Set modal title and icon based on league
     // League colors - use ECSTheme if available, fallback to distinct semantic colors
-    const infoColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : '#0dcaf0';
-    const successColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754';
-    const dangerColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545';
+    const infoColor = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('info') : '#0dcaf0';
+    const successColor = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#198754';
+    const dangerColor = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545';
     const leagueConfigs = {
         'ECS FC': { name: 'ECS FC', icon: 'fas fa-futbol', color: infoColor },
         'Classic': { name: 'Classic Division', icon: 'fas fa-trophy', color: successColor },
@@ -371,8 +371,8 @@ function resendSubstituteRequest(requestId, league, teamName, createdAt) {
                 text: confirmMessage,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
-                cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+                confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
+                cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
                 confirmButtonText: 'Yes, resend it!'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -416,8 +416,8 @@ function performResendRequest(requestId, league) {
                         text: confirmMessage,
                         icon: 'question',
                         showCancelButton: true,
-                        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
-                        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+                        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
+                        cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
                         confirmButtonText: 'Yes, send anyway!'
                     }).then((result) => {
                         if (result.isConfirmed) {
@@ -713,8 +713,8 @@ function resendMatchSubstituteRequest(requestId, league, teamName, createdAt) {
                 text: confirmMessage,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
-                cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+                confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
+                cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
                 confirmButtonText: 'Yes, resend it!'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -760,8 +760,8 @@ function performMatchResendRequest(requestId, league) {
                         text: confirmMessage,
                         icon: 'question',
                         showCancelButton: true,
-                        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
-                        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+                        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
+                        cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
                         confirmButtonText: 'Yes, send anyway!'
                     }).then((result) => {
                         if (result.isConfirmed) {
@@ -824,8 +824,8 @@ function deleteSubstituteRequest(requestId, league, teamName) {
             text: `Are you sure you want to delete this cancelled substitute request for ${teamName}? This action cannot be undone.`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
+            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('secondary') : '#6c757d',
             confirmButtonText: 'Yes, delete it!',
             cancelButtonText: 'Cancel'
         }).then((result) => {
@@ -1216,7 +1216,7 @@ $(document).on('click', '[data-action="assign-substitute"]', function() {
             showCancelButton: true,
             confirmButtonText: 'Assign',
             cancelButtonText: 'Cancel',
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754'
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#198754'
         }).then((result) => {
             if (result.isConfirmed) {
                 assignSubstitute(requestId, playerId, league, result.value || '');

@@ -402,24 +402,24 @@ class ModalManager {
     }
 }
 
+// Make ModalManager globally available (MUST be before any callbacks or registrations)
+window.ModalManager = ModalManager;
+
 // Register with InitSystem if available
 if (typeof window.InitSystem !== 'undefined') {
     window.InitSystem.register('ModalManager', function(context) {
-        ModalManager.init(context);
+        window.ModalManager.init(context);
     }, {
         priority: 20 // After responsive (10) and admin-base (15), before page-specific components
     });
 } else {
     // Fallback to DOMContentLoaded
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => ModalManager.init());
+        document.addEventListener('DOMContentLoaded', () => window.ModalManager.init());
     } else {
-        ModalManager.init();
+        window.ModalManager.init();
     }
 }
-
-// Make ModalManager globally available
-window.ModalManager = ModalManager;
 
 // Backward compatibility: Maintain the old helper functions
 window.safeGetModal = function(modalId) {

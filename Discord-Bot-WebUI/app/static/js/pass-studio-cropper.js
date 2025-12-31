@@ -82,7 +82,7 @@ const AssetCropper = {
         }
 
         // Open modal
-        ModalManager.show('assetCropperModal');
+        window.ModalManager.show('assetCropperModal');
     },
 
     /**
@@ -203,7 +203,7 @@ const AssetCropper = {
         );
 
         // Draw crop border
-        this.ctx.strokeStyle = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd';
+        this.ctx.strokeStyle = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd';
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(1, 1, this.canvas.width - 2, this.canvas.height - 2);
     },
@@ -216,8 +216,8 @@ const AssetCropper = {
         for (let x = 0; x < this.canvas.width; x += size) {
             for (let y = 0; y < this.canvas.height; y += size) {
                 // Checkerboard pattern - neutral grays for transparency indication
-                const checkerLight = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('neutral-10') : '#e0e0e0';
-                const checkerDark = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('neutral-5') : '#f5f5f5';
+                const checkerLight = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('neutral-10') : '#e0e0e0';
+                const checkerDark = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('neutral-5') : '#f5f5f5';
                 this.ctx.fillStyle = ((Math.floor(x / size) + Math.floor(y / size)) % 2 === 0) ? checkerLight : checkerDark;
                 this.ctx.fillRect(x, y, size, size);
             }
@@ -469,8 +469,8 @@ const AssetCropper = {
                 if (modal) modal.hide();
 
                 // Notify PassStudio to update preview
-                if (typeof PassStudio !== 'undefined' && PassStudio.onAssetUploaded) {
-                    PassStudio.onAssetUploaded(this.currentAssetType, result.asset);
+                if (typeof window.PassStudio !== 'undefined' && window.PassStudio.onAssetUploaded) {
+                    window.PassStudio.onAssetUploaded(this.currentAssetType, result.asset);
                 }
             } else {
                 throw new Error(result.error || 'Upload failed');
@@ -499,7 +499,7 @@ const AssetCropper = {
             text: `Are you sure you want to remove the ${this.DIMENSIONS[this.currentAssetType]?.label || this.currentAssetType} image?`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
             confirmButtonText: 'Yes, remove it',
             cancelButtonText: 'Cancel'
         });
@@ -546,8 +546,8 @@ const AssetCropper = {
                 if (modal) modal.hide();
 
                 // Notify PassStudio to update preview
-                if (typeof PassStudio !== 'undefined' && PassStudio.onAssetDeleted) {
-                    PassStudio.onAssetDeleted(this.currentAssetType);
+                if (typeof window.PassStudio !== 'undefined' && window.PassStudio.onAssetDeleted) {
+                    window.PassStudio.onAssetDeleted(this.currentAssetType);
                 }
             } else {
                 throw new Error(responseData.error || 'Delete failed');

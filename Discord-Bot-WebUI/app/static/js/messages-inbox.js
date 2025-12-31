@@ -319,8 +319,8 @@
 
     // Close modal if open - use ModalManager if available, fallback to Bootstrap
     if (modal) {
-      if (typeof ModalManager !== 'undefined') {
-        ModalManager.hide('newConversationModal');
+      if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.hide('newConversationModal');
       } else {
         const bsModal = bootstrap.Modal.getInstance(modal);
         if (bsModal) bsModal.hide();
@@ -796,8 +796,8 @@
   function openNewConversationModal() {
     if (modal) {
       // Use ModalManager if available, fallback to Bootstrap
-      if (typeof ModalManager !== 'undefined') {
-        ModalManager.show('newConversationModal');
+      if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('newConversationModal');
       } else if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();

@@ -173,7 +173,7 @@ window.EventDelegation.register('rsvp-request-sms', function(element, e) {
             // Show modal
             const smsModal = document.querySelector('[data-modal="send-sms"]');
             if (smsModal) {
-                ModalManager.showByElement(smsModal);
+                window.ModalManager.showByElement(smsModal);
             }
         } catch (err) {
             console.error('[rsvp-request-sms] Error opening modal:', err);
@@ -195,7 +195,7 @@ window.EventDelegation.register('rsvp-request-sms', function(element, e) {
             if (messageEl) messageEl.value = '';
             if (charCountEl) charCountEl.textContent = '0';
 
-            ModalManager.showByElement(smsModal);
+            window.ModalManager.showByElement(smsModal);
         }
     }
 });
@@ -229,7 +229,7 @@ window.EventDelegation.register('rsvp-request-discord-dm', function(element, e) 
 
             const discordModal = document.querySelector('[data-modal="send-discord-dm"]');
             if (discordModal) {
-                ModalManager.showByElement(discordModal);
+                window.ModalManager.showByElement(discordModal);
             }
         } catch (err) {
             console.error('[rsvp-request-discord-dm] Error opening modal:', err);
@@ -250,7 +250,7 @@ window.EventDelegation.register('rsvp-request-discord-dm', function(element, e) 
             if (messageEl) messageEl.value = '';
             if (charCountEl) charCountEl.textContent = '0';
 
-            ModalManager.showByElement(discordModal);
+            window.ModalManager.showByElement(discordModal);
         }
     }
 });
@@ -293,7 +293,7 @@ function updateRSVPStatus(playerId, matchId, response) {
         showCancelButton: true,
         confirmButtonText: 'Yes, update it',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd',
+        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
         customClass: {
             confirmButton: 'swal-btn-confirm',
             cancelButton: 'swal-btn-cancel'

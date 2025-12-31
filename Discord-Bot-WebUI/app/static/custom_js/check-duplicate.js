@@ -41,8 +41,8 @@
                 `,
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : 'var(--ecs-primary)',
-                cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+                confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : 'var(--ecs-primary)',
+                cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('secondary') : '#6c757d',
                 confirmButtonText: '<i class="ti ti-mail me-1"></i>Send Verification Email',
                 cancelButtonText: 'Cancel',
                 customClass: {
@@ -80,8 +80,8 @@
                     text: 'This will create a brand new profile for you. Are you sure none of the existing profiles are yours?',
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : 'var(--ecs-success)',
-                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+                    confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : 'var(--ecs-success)',
+                    cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('secondary') : '#6c757d',
                     confirmButtonText: '<i class="ti ti-user-plus me-1"></i>Yes, Create New Account',
                     cancelButtonText: 'Let me check again'
                 }).then((result) => {

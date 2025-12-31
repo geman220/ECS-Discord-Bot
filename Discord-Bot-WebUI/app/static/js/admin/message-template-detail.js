@@ -46,7 +46,7 @@
         // Show modal
         const modalEl = document.getElementById('viewTemplateModal');
         if (modalEl) {
-            ModalManager.show('viewTemplateModal');
+            window.ModalManager.show('viewTemplateModal');
         }
     }
 
@@ -85,7 +85,7 @@
         // Show edit modal
         const modalEl = document.getElementById('editTemplateModal');
         if (modalEl) {
-            ModalManager.show('editTemplateModal');
+            window.ModalManager.show('editTemplateModal');
         }
     }
 
@@ -113,8 +113,8 @@
             confirmButtonColor: newStatus ?
                 (getComputedStyle(document.documentElement).getPropertyValue('--ecs-success').trim() || '#198754') :
                 (getComputedStyle(document.documentElement).getPropertyValue('--ecs-warning').trim() || '#ffc107'),
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ?
-                ECSTheme.getColor('secondary') :
+            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ?
+                window.ECSTheme.getColor('secondary') :
                 (getComputedStyle(document.documentElement).getPropertyValue('--ecs-neutral-50').trim() || '#6c757d'),
             confirmButtonText: `Yes, ${action} it!`
         }).then((result) => {
@@ -160,11 +160,11 @@
             text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ?
-                ECSTheme.getColor('danger') :
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ?
+                window.ECSTheme.getColor('danger') :
                 (getComputedStyle(document.documentElement).getPropertyValue('--ecs-danger').trim() || '#dc3545'),
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ?
-                ECSTheme.getColor('info') :
+            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ?
+                window.ECSTheme.getColor('info') :
                 (getComputedStyle(document.documentElement).getPropertyValue('--ecs-info').trim() || '#0dcaf0'),
             confirmButtonText: 'Yes, delete it!'
         }).then((result) => {

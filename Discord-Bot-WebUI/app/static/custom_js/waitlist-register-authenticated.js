@@ -43,7 +43,7 @@
     // Show profile verification modal
     function showProfileModal() {
         if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('profileModal');
+            window.ModalManager.show('profileModal');
         }
     }
 
@@ -132,7 +132,7 @@
             showCancelButton: true,
             confirmButtonText: isEditing ? 'Save & Verify' : 'Yes, my profile is accurate',
             cancelButtonText: 'Cancel',
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#28a745',
             showLoaderOnConfirm: true,
             preConfirm: () => {
                 const url = isEditing ? playerData.updateUrl : playerData.verifyUrl;

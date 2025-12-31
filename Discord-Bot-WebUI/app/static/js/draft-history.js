@@ -181,7 +181,7 @@ class DraftHistoryManager {
         document.getElementById('editDraftPosition').value = position;
         document.getElementById('editNotes').value = notes || '';
 
-        ModalManager.show('editDraftPickModal');
+        window.ModalManager.show('editDraftPickModal');
     }
 
     // Handle edit form submission

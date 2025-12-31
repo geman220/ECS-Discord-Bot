@@ -140,7 +140,7 @@
 
             // Use ModalManager if available
             if (typeof ModalManager !== 'undefined') {
-                return ModalManager.getInstance(modalElement.id);
+                return window.ModalManager.getInstance(modalElement.id);
             }
 
             // Fallback to direct Bootstrap instance
@@ -168,7 +168,7 @@
 
                         // Reinitialize ModalManager if available
                         if (typeof ModalManager !== 'undefined') {
-                            ModalManager.reinit();
+                            window.ModalManager.reinit();
                         }
 
                         resolve(true);
@@ -411,10 +411,13 @@
     // INITIALIZATION
     // ========================================================================
 
+    // Expose public API for external use (MUST be before any callbacks or registrations)
+    window.ModalHelpers = ModalHelpers;
+
     // Register with InitSystem if available
     if (typeof window.InitSystem !== 'undefined') {
         window.InitSystem.register('ModalHelpers', function(context) {
-            ModalHelpers.init(context);
+            window.ModalHelpers.init(context);
         }, {
             priority: 25 // After ModalManager (20)
         });
@@ -422,14 +425,11 @@
         // Fallback to DOMContentLoaded
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
-                ModalHelpers.init(document);
+                window.ModalHelpers.init(document);
             });
         } else {
-            ModalHelpers.init(document);
+            window.ModalHelpers.init(document);
         }
     }
-
-    // Expose public API for external use
-    window.ModalHelpers = ModalHelpers;
 
 })();

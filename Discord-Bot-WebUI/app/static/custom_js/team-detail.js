@@ -760,8 +760,8 @@
    * Get theme color with fallback
    */
   function getThemeColor(colorName, fallback) {
-    if (typeof ECSTheme !== 'undefined' && ECSTheme.getColor) {
-      return ECSTheme.getColor(colorName);
+    if (typeof window.ECSTheme !== 'undefined' && window.ECSTheme.getColor) {
+      return window.ECSTheme.getColor(colorName);
     }
 
     const root = getComputedStyle(document.documentElement);

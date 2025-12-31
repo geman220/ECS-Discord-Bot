@@ -225,10 +225,14 @@
         }
     };
 
+    // Expose globally for programmatic access (MUST be before any callbacks or registrations)
+    window.TabsController = TabsController;
+
     // Register with InitSystem if available
-    if (typeof InitSystem !== 'undefined' && InitSystem.register) {
-        InitSystem.register('tabs-controller', function(context) {
-            TabsController.init(context);
+    // MUST use window.InitSystem and window.TabsController to avoid TDZ errors in bundled code
+    if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+        window.InitSystem.register('tabs-controller', function(context) {
+            window.TabsController.init(context);
         }, {
             priority: 75,
             description: 'BEM tabs navigation controller',
@@ -237,18 +241,15 @@
     } else {
         // Fallback: Initialize on DOMContentLoaded
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => TabsController.init());
+            document.addEventListener('DOMContentLoaded', () => window.TabsController.init());
         } else {
-            TabsController.init();
+            window.TabsController.init();
         }
     }
 
     // Listen for hash changes
     window.addEventListener('hashchange', () => {
-        TabsController.handleInitialHash();
+        window.TabsController.handleInitialHash();
     });
-
-    // Expose globally for programmatic access
-    window.TabsController = TabsController;
 
 })(window, document);

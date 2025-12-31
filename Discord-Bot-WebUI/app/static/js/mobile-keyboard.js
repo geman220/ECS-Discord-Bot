@@ -555,14 +555,14 @@
     }
   };
 
+  // Expose globally (MUST be before any callbacks or registrations)
+  window.MobileKeyboard = MobileKeyboard;
+
   // Auto-initialize
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => MobileKeyboard.init());
+    document.addEventListener('DOMContentLoaded', () => window.MobileKeyboard.init());
   } else {
-    MobileKeyboard.init();
+    window.MobileKeyboard.init();
   }
-
-  // Expose globally
-  window.MobileKeyboard = MobileKeyboard;
 
 })(window);

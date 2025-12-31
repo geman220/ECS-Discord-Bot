@@ -590,13 +590,13 @@
     }
   };
 
-  // Expose globally
+  // Expose globally (MUST be before any callbacks or registrations)
   window.MobileForms = MobileForms;
 
   // Register with InitSystem if available
   if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
     window.InitSystem.register('mobile-forms', function() {
-      MobileForms.init();
+      window.MobileForms.init();
     }, {
       priority: 60,
       description: 'Mobile form optimizations (input groups, swipe, quick actions)',
@@ -605,9 +605,9 @@
   } else {
     // Fallback: Auto-initialize
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => MobileForms.init());
+      document.addEventListener('DOMContentLoaded', () => window.MobileForms.init());
     } else {
-      MobileForms.init();
+      window.MobileForms.init();
     }
   }
 

@@ -329,7 +329,7 @@
               showCancelButton: true,
               confirmButtonText: 'Yes, remove',
               cancelButtonText: 'Cancel',
-              confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
+              confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
             }).then((result) => {
               if (result.isConfirmed) {
                 btn._confirmationHandled = true;

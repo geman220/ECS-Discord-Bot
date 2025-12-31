@@ -354,8 +354,8 @@
    * Get theme color from ECSTheme if available, with fallback
    */
   function getThemeColor(colorName, fallback) {
-    if (typeof ECSTheme !== 'undefined' && ECSTheme.getColor) {
-      return ECSTheme.getColor(colorName);
+    if (typeof window.ECSTheme !== 'undefined' && window.ECSTheme.getColor) {
+      return window.ECSTheme.getColor(colorName);
     }
 
     // Try to get from CSS custom properties

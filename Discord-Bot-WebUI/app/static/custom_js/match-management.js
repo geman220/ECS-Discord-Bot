@@ -281,8 +281,8 @@ function revokeTask(taskId, matchId, taskType) {
         text: `Are you sure you want to revoke this ${taskType} task?`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
+        cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, revoke it!'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -320,8 +320,8 @@ function rescheduleTask(matchId, taskType) {
         text: `This will reschedule the ${taskType} task for match ${matchId}`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#198754',
+        cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('secondary') : '#6c757d',
         confirmButtonText: 'Yes, reschedule!'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -752,7 +752,7 @@ function clearAllMatches() {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, clear all!',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             fetch('/admin/match_management/clear-all', {
@@ -791,7 +791,7 @@ function removeMatch(matchId) {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, remove it!',
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
             fetch(`/admin/match_management/remove/${matchId}`, {
@@ -1137,7 +1137,7 @@ function showCacheStatus() {
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
                 
                 // Show modal
-                ModalManager.show('cacheStatusModal');
+                window.ModalManager.show('cacheStatusModal');
                 
                 // Clean up when modal is hidden
                 document.getElementById('cacheStatusModal').addEventListener('hidden.bs.modal', function () {

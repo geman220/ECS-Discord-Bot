@@ -19,7 +19,7 @@
 
     // Preview message template
     window.previewTemplate = function(templateId) {
-        ModalManager.show('previewModal');
+        window.ModalManager.show('previewModal');
         
         // Set loading state
         const previewContent = document.getElementById('previewContent');
@@ -107,7 +107,7 @@
             return;
         }
 
-        ModalManager.show('previewModal');
+        window.ModalManager.show('previewModal');
         
         // Create a preview with sample data
         const sampleData = {

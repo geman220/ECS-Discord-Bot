@@ -32,15 +32,15 @@ function initializeModals() {
     const playerDetailsModalElement = document.getElementById('playerDetailsModal');
 
     if (approvalModalElement) {
-        approvalModal = ModalManager.getInstance('approvalModal');
+        approvalModal = window.ModalManager.getInstance('approvalModal');
     }
 
     if (denialModalElement) {
-        denialModal = ModalManager.getInstance('denialModal');
+        denialModal = window.ModalManager.getInstance('denialModal');
     }
 
     if (playerDetailsModalElement) {
-        playerDetailsModal = ModalManager.getInstance('playerDetailsModal');
+        playerDetailsModal = window.ModalManager.getInstance('playerDetailsModal');
     }
 }
 

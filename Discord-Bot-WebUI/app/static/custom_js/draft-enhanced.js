@@ -788,7 +788,7 @@ function showDraftTeamSelection(playerId, playerName, existingTeams = '') {
     };
 
     // Show the modal
-    ModalManager.show('draftConfirmModal');
+    window.ModalManager.show('draftConfirmModal');
 }
 
 /**
@@ -803,7 +803,7 @@ function openPlayerModal(playerId) {
     document.getElementById('draftFromModal').classList.remove('is-visible');
 
     // Open modal
-    ModalManager.show('playerProfileModal');
+    window.ModalManager.show('playerProfileModal');
 
     // Fetch player data
     fetch(`/players/api/player_profile/${playerId}`)

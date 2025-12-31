@@ -3,8 +3,8 @@
  * Provides easy access to CSS theme variables from JavaScript
  *
  * Usage:
- *   const primary = ECSTheme.getColor('primary');
- *   const success = ECSTheme.getColor('success');
+ *   const primary = window.ECSTheme.getColor('primary');
+ *   const success = window.ECSTheme.getColor('success');
  *   const colors = ECSTheme.getAllColors();
  */
 

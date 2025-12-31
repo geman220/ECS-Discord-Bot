@@ -47,7 +47,7 @@
         // Show edit modal
         const modalEl = document.getElementById('editCategoryModal');
         if (modalEl) {
-            ModalManager.show('editCategoryModal');
+            window.ModalManager.show('editCategoryModal');
         }
     }
 
@@ -69,8 +69,8 @@
             text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : '#3085d6',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
+            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('info') : '#3085d6',
             confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
             if (result.isConfirmed) {

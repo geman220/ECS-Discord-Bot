@@ -572,14 +572,14 @@
     }
   };
 
+  // Expose globally (MUST be before any callbacks or registrations)
+  window.MobileGestures = MobileGestures;
+
   // Auto-initialize
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => MobileGestures.init());
+    document.addEventListener('DOMContentLoaded', () => window.MobileGestures.init());
   } else {
-    MobileGestures.init();
+    window.MobileGestures.init();
   }
-
-  // Expose globally
-  window.MobileGestures = MobileGestures;
 
 })(window);

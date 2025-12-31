@@ -160,7 +160,7 @@
       text: `Are you sure you want to delete "${matchName}"? This action cannot be undone.`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+      confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
       confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
       if (result.isConfirmed) {
@@ -226,7 +226,7 @@
       text: `Are you sure you want to delete ${matchIds.length} matches? This cannot be undone.`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+      confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
       confirmButtonText: 'Yes, delete them!'
     }).then((result) => {
       if (result.isConfirmed) {

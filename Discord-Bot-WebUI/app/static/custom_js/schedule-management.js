@@ -26,7 +26,7 @@ class ScheduleManager {
             // Hook up the Edit/Match modal
             const modalEl = document.getElementById('editMatchModal');
             if (modalEl) {
-                this.editMatchModal = ModalManager.getInstance('editMatchModal');
+                this.editMatchModal = window.ModalManager.getInstance('editMatchModal');
 
                 // The form inside the modal
                 const editForm = document.getElementById('editMatchForm');

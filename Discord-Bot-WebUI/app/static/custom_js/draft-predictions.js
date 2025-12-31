@@ -307,7 +307,7 @@ class DraftPredictionsManager {
         modalName.textContent = playerName;
         modalLabel.textContent = `${playerName} - Player Photo`;
 
-        ModalManager.show(modal.id);
+        window.ModalManager.show(modal.id);
 
         modalImg.onerror = function() {
             modalImg.src = imgElement.src;

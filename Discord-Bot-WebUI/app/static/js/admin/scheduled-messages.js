@@ -74,7 +74,7 @@
         // Show modal
         const modalEl = document.getElementById('messagePreviewModal');
         if (modalEl) {
-            ModalManager.show('messagePreviewModal');
+            window.ModalManager.show('messagePreviewModal');
         }
     }
 
@@ -102,7 +102,7 @@
         // Show modal
         const modalEl = document.getElementById('messageDetailsModal');
         if (modalEl) {
-            ModalManager.show('messageDetailsModal');
+            window.ModalManager.show('messageDetailsModal');
         }
 
         // Load message details via AJAX
@@ -227,8 +227,8 @@
             text: `Cancel the scheduled message "${messageTitle}"? This action cannot be undone.`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : 'var(--ecs-danger)',
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : 'var(--ecs-danger)',
+            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('secondary') : '#6c757d',
             confirmButtonText: 'Yes, cancel it!'
         }).then((result) => {
             if (result.isConfirmed) {
@@ -272,8 +272,8 @@
             text: `Retry sending the failed message "${messageTitle}"?`,
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : 'var(--ecs-success)',
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : 'var(--ecs-success)',
+            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('secondary') : '#6c757d',
             confirmButtonText: 'Yes, retry!'
         }).then((result) => {
             if (result.isConfirmed) {

@@ -493,9 +493,13 @@
   // INITSYSTEM REGISTRATION
   // ==========================================================================
 
-  if (typeof InitSystem !== 'undefined' && InitSystem.register) {
-    InitSystem.register('mobile-table-enhancer', function(context) {
-      MobileTableEnhancer.init(context);
+  // Expose globally for programmatic access (MUST be before any callbacks or registrations)
+  window.MobileTableEnhancer = MobileTableEnhancer;
+
+  // MUST use window.InitSystem and window.MobileTableEnhancer to avoid TDZ errors in bundled code
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('mobile-table-enhancer', function(context) {
+      window.MobileTableEnhancer.init(context);
     }, {
       priority: 65, // Run before most UI components
       description: 'Enhances tables for mobile card transformation',
@@ -504,13 +508,10 @@
   } else {
     // Fallback: Initialize on DOMContentLoaded
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => MobileTableEnhancer.init());
+      document.addEventListener('DOMContentLoaded', () => window.MobileTableEnhancer.init());
     } else {
-      MobileTableEnhancer.init();
+      window.MobileTableEnhancer.init();
     }
   }
-
-  // Expose globally for programmatic access
-  window.MobileTableEnhancer = MobileTableEnhancer;
 
 })(window, document);

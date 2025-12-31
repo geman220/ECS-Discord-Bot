@@ -398,14 +398,14 @@
     console.log('Haptics: Initialized with event delegation');
   };
 
+  // Expose globally (MUST be before any callbacks or registrations)
+  window.Haptics = Haptics;
+
   // Auto-initialize
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => Haptics.init());
+    document.addEventListener('DOMContentLoaded', () => window.Haptics.init());
   } else {
-    Haptics.init();
+    window.Haptics.init();
   }
-
-  // Expose globally
-  window.Haptics = Haptics;
 
 })(window);

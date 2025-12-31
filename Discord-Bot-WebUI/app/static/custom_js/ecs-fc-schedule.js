@@ -337,7 +337,7 @@ function showCreateMatchModal(selectedDate = null) {
     }
 
     // Show modal
-    ModalManager.show(modal.id);
+    window.ModalManager.show(modal.id);
 }
 
 /**
@@ -418,7 +418,7 @@ function ecsFcEditMatch(matchId) {
     }
 
     // Show modal
-    ModalManager.show('createMatchModal');
+    window.ModalManager.show('createMatchModal');
 }
 
 /**
@@ -505,7 +505,7 @@ function showImportMatchesModal() {
     const modal = document.getElementById('importMatchesModal');
     if (!modal) return;
 
-    ModalManager.show(modal.id);
+    window.ModalManager.show(modal.id);
 }
 
 /**

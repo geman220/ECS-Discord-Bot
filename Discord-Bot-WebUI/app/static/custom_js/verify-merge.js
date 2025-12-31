@@ -38,8 +38,8 @@
                     text: `We'll send another verification email to ${data.oldEmail}.`,
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : 'var(--ecs-primary)',
-                    cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+                    confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : 'var(--ecs-primary)',
+                    cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('secondary') : '#6c757d',
                     confirmButtonText: '<i class="ti ti-mail me-1"></i>Resend Email',
                     cancelButtonText: 'Cancel'
                 }).then((result) => {

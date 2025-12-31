@@ -281,10 +281,10 @@ const PassStudio = {
     },
 
     openAssetCropper(assetType) {
-        if (typeof AssetCropper !== 'undefined') {
+        if (typeof window.AssetCropper !== 'undefined') {
             // Pass existing asset URL so cropper knows to show delete button
             const existingUrl = this.assets[assetType]?.url || null;
-            AssetCropper.open(assetType, this.passTypeCode, existingUrl);
+            window.AssetCropper.open(assetType, this.passTypeCode, existingUrl);
         } else {
             console.error('AssetCropper not loaded');
             this.showToast('Asset cropper not available', 'error');
@@ -419,7 +419,7 @@ const PassStudio = {
         // Get current label color
         const labelColor = document.getElementById('label_color')?.value ||
                           this.previewData?.pass_type?.label_color ||
-                          (typeof ECSTheme !== 'undefined' ? ECSTheme.getColor('neutral-50') : '#999999');
+                          (typeof window.ECSTheme !== 'undefined' ? window.ECSTheme.getColor('neutral-50') : '#999999');
 
         // Helper to resolve template value
         const resolveValue = (field) => {
@@ -784,6 +784,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const initScript = document.querySelector('script[data-pass-type-code]');
     if (initScript) {
         const passTypeCode = initScript.dataset.passTypeCode;
-        PassStudio.init(passTypeCode);
+        window.PassStudio.init(passTypeCode);
     }
 });

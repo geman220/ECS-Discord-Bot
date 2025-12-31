@@ -62,7 +62,7 @@ function init() {
     if (modalElement) {
         // console.log("Initializing onboarding modal");
         try {
-            const onboardingModal = ModalManager.getInstance(modalElement.id, {
+            const onboardingModal = window.ModalManager.getInstance(modalElement.id, {
                 backdrop: 'static',
                 keyboard: false
             });

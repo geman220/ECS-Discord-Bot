@@ -352,7 +352,7 @@ function openPlayerDetailsModal(playerId) {
     detailsData.classList.remove('d-block');
     detailsData.classList.add('d-none');
 
-    ModalManager.show('playerDetailsModal');
+    window.ModalManager.show('playerDetailsModal');
 
     fetch(`/players/api/player_profile/${playerId}`)
         .then(response => response.json())

@@ -812,8 +812,8 @@
         },
 
         getThemeColor: function(colorName, fallback) {
-            return (typeof ECSTheme !== 'undefined' && ECSTheme.getColor) ?
-                   ECSTheme.getColor(colorName) : fallback;
+            return (typeof window.ECSTheme !== 'undefined' && window.ECSTheme.getColor) ?
+                   window.ECSTheme.getColor(colorName) : fallback;
         },
 
         showComponentToast: function(type, title, message) {
@@ -855,19 +855,19 @@
        REGISTER WITH INITSYSTEM OR FALLBACK TO DOMCONTENTLOADED
        ======================================================================== */
 
+    // Expose for external access (MUST be before any callbacks or registrations)
+    window.AdminDashboard = AdminDashboard;
+
     if (typeof window.InitSystem !== 'undefined') {
         window.InitSystem.register('AdminDashboard', function(context) {
-            AdminDashboard.init(context);
+            window.AdminDashboard.init(context);
         }, {
             priority: 50
         });
     } else {
         document.addEventListener('DOMContentLoaded', function() {
-            AdminDashboard.init(document);
+            window.AdminDashboard.init(document);
         });
     }
-
-    // Expose for external access if needed
-    window.AdminDashboard = AdminDashboard;
 
 })();

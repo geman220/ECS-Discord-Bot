@@ -186,7 +186,7 @@
             showDenyButton: true,
             confirmButtonText: 'Save Changes',
             denyButtonText: 'Delete Season',
-            denyButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : 'var(--ecs-danger)',
+            denyButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : 'var(--ecs-danger)',
             cancelButtonText: 'Cancel',
             preConfirm: () => {
                 const name = document.getElementById('editSeasonName').value;
@@ -249,7 +249,7 @@
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Yes, delete',
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : 'var(--ecs-danger)',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : 'var(--ecs-danger)',
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {

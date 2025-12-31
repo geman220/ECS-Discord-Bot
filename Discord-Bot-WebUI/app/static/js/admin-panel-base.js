@@ -724,10 +724,14 @@
         }
     }
 
+    // Expose AdminPanel globally (MUST be before any callbacks or registrations)
+    window.AdminPanel = AdminPanelBase;
+    window.AdminPanelBase = AdminPanelBase;
+
     // Register with InitSystem if available
     if (typeof window.InitSystem !== 'undefined') {
         window.InitSystem.register('AdminPanelBase', function(context) {
-            AdminPanelBase.init(context);
+            window.AdminPanelBase.init(context);
             registerServiceWorker();
         }, {
             priority: 15 // Early priority - after responsive-global (10) but before most components
@@ -735,15 +739,9 @@
     } else {
         // Fallback to DOMContentLoaded
         document.addEventListener('DOMContentLoaded', function() {
-            AdminPanelBase.init(document);
+            window.AdminPanelBase.init(document);
             registerServiceWorker();
         });
     }
-
-    // Expose AdminPanel globally for backward compatibility
-    window.AdminPanel = AdminPanelBase;
-
-    // Also expose as AdminPanelBase for explicit access
-    window.AdminPanelBase = AdminPanelBase;
 
 })();

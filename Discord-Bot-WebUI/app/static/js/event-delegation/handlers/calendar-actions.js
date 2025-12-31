@@ -168,14 +168,14 @@ function showCalendarToast(type, message) {
     // Fallback to Toastify
     if (typeof Toastify !== 'undefined') {
         // Use ECSTheme colors with gradient variations for toast backgrounds
-        const successColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754';
-        const successLight = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success-light') : '#198754';
-        const dangerColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545';
-        const dangerLight = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger-light') : '#dc3545';
-        const warningColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107';
-        const warningLight = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning-light') : '#ffc107';
-        const infoColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : '#0dcaf0';
-        const infoLight = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info-light') : '#0dcaf0';
+        const successColor = (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#198754';
+        const successLight = (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success-light') : '#198754';
+        const dangerColor = (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545';
+        const dangerLight = (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger-light') : '#dc3545';
+        const warningColor = (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('warning') : '#ffc107';
+        const warningLight = (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('warning-light') : '#ffc107';
+        const infoColor = (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('info') : '#0dcaf0';
+        const infoLight = (typeof ECSTheme !== 'undefined') ? window.ECSTheme.getColor('info-light') : '#0dcaf0';
         const bgColors = {
             success: `linear-gradient(to right, ${successColor}, ${successLight})`,
             error: `linear-gradient(to right, ${dangerColor}, ${dangerLight})`,

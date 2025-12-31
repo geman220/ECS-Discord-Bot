@@ -461,9 +461,13 @@
   // INITSYSTEM REGISTRATION
   // ==========================================================================
 
-  if (typeof InitSystem !== 'undefined' && InitSystem.register) {
-    InitSystem.register('progressive-disclosure', function(context) {
-      ProgressiveDisclosure.init(context);
+  // Expose globally for programmatic access (MUST be before any callbacks or registrations)
+  window.ProgressiveDisclosure = ProgressiveDisclosure;
+
+  // MUST use window.InitSystem and window.ProgressiveDisclosure to avoid TDZ errors in bundled code
+  if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('progressive-disclosure', function(context) {
+      window.ProgressiveDisclosure.init(context);
     }, {
       priority: 70,
       description: 'Progressive disclosure / accordion component',
@@ -472,13 +476,10 @@
   } else {
     // Fallback: Initialize on DOMContentLoaded
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => ProgressiveDisclosure.init());
+      document.addEventListener('DOMContentLoaded', () => window.ProgressiveDisclosure.init());
     } else {
-      ProgressiveDisclosure.init();
+      window.ProgressiveDisclosure.init();
     }
   }
-
-  // Expose globally for programmatic access
-  window.ProgressiveDisclosure = ProgressiveDisclosure;
 
 })(window, document);

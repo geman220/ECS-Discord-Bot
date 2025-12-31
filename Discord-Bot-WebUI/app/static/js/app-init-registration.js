@@ -53,7 +53,8 @@
     'use strict';
 
     // Ensure InitSystem is loaded
-    if (typeof InitSystem === 'undefined') {
+    // MUST use window.InitSystem to avoid TDZ errors in bundled code
+    if (typeof window.InitSystem === 'undefined') {
         console.error('[App Init] InitSystem not loaded! Please include init-system.js before this file.');
         return;
     }
@@ -64,7 +65,7 @@
     // PRIORITY 85: PAGE LOADER
     // ============================================================================
     // Hide page loading animation after initial load
-    InitSystem.register('page-loader', function() {
+    window.InitSystem.register('page-loader', function() {
         // Hide loader after short delay to ensure smooth transition
         setTimeout(function() {
             const loader = document.getElementById('page-loader');
@@ -88,7 +89,7 @@
     // PRIORITY 70: ADMIN UTILITIES
     // ============================================================================
     // Initialize admin utility helpers for progress bars and themed elements
-    InitSystem.register('admin-utilities', function(context) {
+    window.InitSystem.register('admin-utilities', function(context) {
         const root = context || document;
 
         // Apply data-width to all progress bars
@@ -122,7 +123,7 @@
     // Design System Fixes
     // ----------------------------------------------------------------------------
     // Fixes issues with design-system.js by safely overriding problematic methods
-    InitSystem.register('design-system-fixes', function() {
+    window.InitSystem.register('design-system-fixes', function() {
         // Check if ECSDesignSystem exists
         if (!window.ECSDesignSystem) {
             return; // Design system not loaded, nothing to fix
@@ -195,7 +196,7 @@
     // Dropdown Menu Fix
     // ----------------------------------------------------------------------------
     // Fixes dropdown menus being hidden behind tables
-    InitSystem.register('dropdown-menu-fix', function(context) {
+    window.InitSystem.register('dropdown-menu-fix', function(context) {
         const root = context || document;
 
         // Add necessary class to tables to fix z-index issues
@@ -218,7 +219,7 @@
     // Mobile Menu Fix
     // ----------------------------------------------------------------------------
     // Ensures sidebar menu works properly on mobile devices (especially iOS Safari)
-    InitSystem.register('mobile-menu-fix', function() {
+    window.InitSystem.register('mobile-menu-fix', function() {
         // References to key elements
         const layoutMenu = document.getElementById('layout-menu');
         const closeIcon = document.getElementById('close-icon');
@@ -325,7 +326,7 @@
     // PRIORITY 20: WAITLIST REGISTRATION FOCUS
     // ============================================================================
     // Auto-focus on Discord registration button and show membership prompts
-    InitSystem.register('waitlist-register-focus', function() {
+    window.InitSystem.register('waitlist-register-focus', function() {
         // Page guard - only run on waitlist registration page
         const discordBtn = document.querySelector('a[href*="waitlist_discord_register"]');
         if (!discordBtn) {
@@ -338,7 +339,7 @@
         // Initialize Discord membership checker for registration page
         // Show a more gentle prompt since they're already on the waitlist registration page
         // Only show if user is not already in Discord (check via DiscordMembershipChecker)
-        if (typeof DiscordMembershipChecker !== 'undefined') {
+        if (typeof window.DiscordMembershipChecker !== 'undefined') {
             // Check if user is already in Discord before showing prompt
             const membershipStatus = window.discordMembershipStatus;
             if (membershipStatus === true || membershipStatus === 'true') {

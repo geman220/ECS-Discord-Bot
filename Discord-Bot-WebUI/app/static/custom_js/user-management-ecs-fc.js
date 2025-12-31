@@ -194,10 +194,13 @@
     // INITIALIZATION
     // ========================================================================
 
+    // Expose for external use (MUST be before any callbacks or registrations)
+    window.EcsFcTeamManager = EcsFcTeamManager;
+
     // Register with InitSystem if available
     if (typeof window.InitSystem !== 'undefined') {
         window.InitSystem.register('EcsFcTeamManager', function(context) {
-            EcsFcTeamManager.init(context);
+            window.EcsFcTeamManager.init(context);
         }, {
             priority: 30 // After form selects
         });
@@ -205,14 +208,11 @@
         // Fallback to DOMContentLoaded
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
-                EcsFcTeamManager.init(document);
+                window.EcsFcTeamManager.init(document);
             });
         } else {
-            EcsFcTeamManager.init(document);
+            window.EcsFcTeamManager.init(document);
         }
     }
-
-    // Expose for external use
-    window.EcsFcTeamManager = EcsFcTeamManager;
 
 })();

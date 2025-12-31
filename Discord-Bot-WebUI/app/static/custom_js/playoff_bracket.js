@@ -405,7 +405,7 @@ class PlayoffBracket {
         const existingModal = document.getElementById(modalId);
 
         if (existingModal) {
-            ModalManager.show(existingModal.id);
+            window.ModalManager.show(existingModal.id);
         } else {
             // If modal doesn't exist, redirect to a page where it does or show a message
             console.warn('Match report modal not found on page. You may need to load it first.');

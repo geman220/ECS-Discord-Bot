@@ -163,7 +163,7 @@ function startSeasonWizard() {
     cleanupCalendarState();
 
     document.getElementById('seasonWizardModal').classList.add('wizard-modal--visible');
-    ModalManager.show('seasonWizardModal');
+    window.ModalManager.show('seasonWizardModal');
     
     // Set default start date to next Sunday (you can change this to any day)
     const today = new Date();
@@ -927,7 +927,7 @@ function handleCalendarDragOver(e) {
 
         // REFACTORED: Apply theme color via utility function
         // Uses data attribute to track color, utility function applies CSS custom property
-        const highlightColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#0d6efd';
+        const highlightColor = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd';
         applyThemeColor(weekItem, highlightColor);
 
         if (e.clientY < midPoint) {
@@ -1931,7 +1931,7 @@ function showModal(id, title, message, type = 'info', callback = null) {
     document.getElementById(id)?.remove();
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-    ModalManager.show(id);
+    window.ModalManager.show(id);
     
     if (cfg.autoClose) {
         setTimeout(() => {

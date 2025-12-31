@@ -114,7 +114,7 @@ class DiscordMembershipChecker {
             confirmButtonText: '<i class="ti ti-brand-discord me-2"></i>Join Discord Now',
             cancelButtonText: isUrgent ? 'I\'ll Join Later' : 'Maybe Later',
             confirmButtonColor: '#5865F2', // Discord brand color - intentional
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('secondary') : '#6c757d',
             allowOutsideClick: !isUrgent,
             customClass: {
                 popup: 'swal2-discord-popup',
@@ -154,7 +154,7 @@ class DiscordMembershipChecker {
                 `,
                 icon: 'info',
                 confirmButtonText: 'Got it!',
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754'
+                confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#198754'
             });
         }, 2000);
     }
@@ -165,7 +165,7 @@ class DiscordMembershipChecker {
             text: 'Remember to join our Discord server soon! You won\'t receive waitlist notifications without it.',
             icon: 'info',
             confirmButtonText: 'I Understand',
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#198754',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#198754',
             timer: 5000,
             timerProgressBar: true
         });
