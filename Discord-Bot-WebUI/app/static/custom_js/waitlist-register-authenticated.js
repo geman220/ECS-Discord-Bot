@@ -40,14 +40,14 @@ let _initialized = false;
     }
 
     // Show profile verification modal
-    export function showProfileModal() {
+    function showProfileModal() {
         if (typeof window.ModalManager !== 'undefined') {
             window.ModalManager.show('profileModal');
         }
     }
 
     // Toggle edit mode
-    export function toggleEdit() {
+    function toggleEdit() {
         isEditing = !isEditing;
         const editBtn = document.getElementById('editProfileBtn');
         const form = document.getElementById('profileForm');
@@ -84,7 +84,7 @@ let _initialized = false;
     }
 
     // Verify profile function (now also saves if edited)
-    export function verifyProfile() {
+    function verifyProfile() {
         const playerData = window.playerData || {};
 
         if (!playerData.id) {

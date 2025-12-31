@@ -21,7 +21,7 @@
        CONFIGURATION
        ======================================================================== */
 
-    export const CONFIG = {
+    const CONFIG = {
         selectors: {
             // Containers
             dockerStatusContainer: '#dockerStatusContainer',
@@ -69,7 +69,7 @@
        ADMIN DASHBOARD CONTROLLER
        ======================================================================== */
 
-    export const AdminDashboard = {
+    const AdminDashboard = {
         /**
          * Initialize the admin dashboard
          */

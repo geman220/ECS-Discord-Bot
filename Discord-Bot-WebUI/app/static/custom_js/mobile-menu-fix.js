@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Function to open menu
-  export function openMenu() {
+  function openMenu() {
     document.documentElement.classList.add('layout-menu-expanded');
     document.body.classList.add('layout-menu-expanded');
     if (layoutMenu) {
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Function to close menu
-  export function closeMenu() {
+  function closeMenu() {
     document.documentElement.classList.remove('layout-menu-expanded');
     document.body.classList.remove('layout-menu-expanded');
     if (layoutMenu) {
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Toggle menu function
-  export function toggleMenu() {
+  function toggleMenu() {
     if (document.documentElement.classList.contains('layout-menu-expanded')) {
       closeMenu();
     } else {

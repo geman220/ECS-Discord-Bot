@@ -143,14 +143,14 @@
     };
 
     // Utility function to escape HTML
-    export function escapeHtml(text) {
+    function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 
     // Show toast notification
-    export function showToast(title, message, type = 'info') {
+    function showToast(title, message, type = 'info') {
         // Create container if it doesn't exist
         let container = document.querySelector('[data-role="toast-container"]');
         if (!container) {

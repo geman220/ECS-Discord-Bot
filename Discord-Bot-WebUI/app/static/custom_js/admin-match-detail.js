@@ -41,7 +41,7 @@ let _initialized = false;
     /**
      * Initialize all event delegation listeners
      */
-    export function initEventDelegation() {
+    function initEventDelegation() {
         document.addEventListener('click', handleClick);
     }
 
@@ -49,7 +49,7 @@ let _initialized = false;
      * Centralized click handler using event delegation
      * @param {Event} e - Click event
      */
-    export function handleClick(e) {
+    function handleClick(e) {
         const action = e.target.closest('[data-action]');
         if (!action) return;
 
@@ -92,7 +92,7 @@ let _initialized = false;
      * Schedule live reporting for a match
      * @param {HTMLElement} element - The clicked element
      */
-    export function handleScheduleMatch(element) {
+    function handleScheduleMatch(element) {
         const matchId = element.dataset.id || window.matchDetailData.matchId;
 
         if (!matchId) {
@@ -136,7 +136,7 @@ let _initialized = false;
      * Stop a live reporting session
      * @param {HTMLElement} element - The clicked element
      */
-    export function handleStopSession(element) {
+    function handleStopSession(element) {
         const sessionId = element.dataset.id || window.matchDetailData.sessionId;
 
         if (!sessionId) {
@@ -180,7 +180,7 @@ let _initialized = false;
      * Refresh a live reporting session
      * @param {HTMLElement} element - The clicked element
      */
-    export function handleRefreshSession(element) {
+    function handleRefreshSession(element) {
         const sessionId = element.dataset.sessionId || window.matchDetailData.sessionId;
 
         if (!sessionId) {
@@ -220,7 +220,7 @@ let _initialized = false;
      * Force synchronization with real-time service
      * @param {HTMLElement} element - The clicked element
      */
-    export function handleForceSync(element) {
+    function handleForceSync(element) {
         if (!confirm('Force synchronization with real-time service?')) {
             return;
         }
@@ -257,7 +257,7 @@ let _initialized = false;
      * Reload the current page
      * @param {HTMLElement} element - The clicked element
      */
-    export function handleReloadPage(element) {
+    function handleReloadPage(element) {
         // Show loading state
         setButtonLoading(element, true);
         location.reload();
@@ -271,7 +271,7 @@ let _initialized = false;
      * Get CSRF token from meta tag or cookie
      * @returns {string} CSRF token
      */
-    export function getCSRFToken() {
+    function getCSRFToken() {
         // Try meta tag first
         const metaTag = document.querySelector('meta[name="csrf-token"]');
         if (metaTag) {
@@ -291,7 +291,7 @@ let _initialized = false;
      * @param {HTMLElement} button - Button element
      * @param {boolean} isLoading - Loading state
      */
-    export function setButtonLoading(button, isLoading) {
+    function setButtonLoading(button, isLoading) {
         if (isLoading) {
             button.disabled = true;
             button.classList.add('is-loading');
@@ -322,7 +322,7 @@ let _initialized = false;
      * Show success notification
      * @param {string} message - Success message
      */
-    export function showSuccessNotification(message) {
+    function showSuccessNotification(message) {
         // Use native alert as fallback (can be replaced with toast library)
         if (typeof toastr !== 'undefined') {
             toastr.success(message);
@@ -335,7 +335,7 @@ let _initialized = false;
      * Show error notification
      * @param {string} message - Error message
      */
-    export function showErrorNotification(message) {
+    function showErrorNotification(message) {
         // Use native alert as fallback (can be replaced with toast library)
         if (typeof toastr !== 'undefined') {
             toastr.error(message);

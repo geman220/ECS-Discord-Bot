@@ -574,7 +574,7 @@ window.$(document).on('click', '.pagination .page-link', function(e) {
     window.filterPlayerCards = filterPlayerCards;
 
     // Initialize function
-    export function init() {
+    function init() {
         if (_initialized) return;
         _initialized = true;
 

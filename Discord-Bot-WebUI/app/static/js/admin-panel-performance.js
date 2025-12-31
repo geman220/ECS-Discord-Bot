@@ -26,7 +26,7 @@ let autoRefresh = true;
   /**
    * Initialize on DOM load
    */
-  export function init() {
+  function init() {
     // Guard against duplicate initialization
     if (_initialized) return;
     _initialized = true;
@@ -48,7 +48,7 @@ let autoRefresh = true;
   /**
    * Initialize Chart.js visualizations
    */
-  export function initializeCharts() {
+  function initializeCharts() {
     // Get data from hidden data element
     const perfData = document.querySelector('[data-perf-data]');
     if (!perfData) return;
@@ -133,7 +133,7 @@ let autoRefresh = true;
   /**
    * Register event handlers - now a no-op, handlers registered at module scope
    */
-  export function registerEventHandlers() {
+  function registerEventHandlers() {
     // Handlers are now registered at module scope for proper timing
     // See bottom of file for EventDelegation.register() calls
   }
@@ -141,7 +141,7 @@ let autoRefresh = true;
   /**
    * Handle auto-refresh toggle
    */
-  export function handleToggleAutoRefresh() {
+  function handleToggleAutoRefresh() {
     autoRefresh = !autoRefresh;
     const statusSpan = document.querySelector('[data-status="auto-refresh"]');
 
@@ -157,7 +157,7 @@ let autoRefresh = true;
   /**
    * Handle cache clear with confirmation
    */
-  export function handleClearCache(e) {
+  function handleClearCache(e) {
     const confirmed = confirm('Are you sure you want to clear all cache?');
     if (!confirmed) {
       e.preventDefault();
@@ -168,7 +168,7 @@ let autoRefresh = true;
   /**
    * Start auto-refresh interval
    */
-  export function startAutoRefresh() {
+  function startAutoRefresh() {
     // Clear any existing interval
     if (refreshInterval) {
       clearInterval(refreshInterval);
@@ -181,7 +181,7 @@ let autoRefresh = true;
   /**
    * Update real-time metrics from server
    */
-  export function updateMetrics() {
+  function updateMetrics() {
     if (!autoRefresh) return;
 
     fetch('/admin_panel/performance/api/metrics')
@@ -223,7 +223,7 @@ let autoRefresh = true;
   /**
    * Update a live value element
    */
-  export function updateLiveValue(metric, value) {
+  function updateLiveValue(metric, value) {
     const element = document.querySelector(`[data-live-value="${metric}"]`);
     if (element) {
       element.textContent = value;
@@ -233,7 +233,7 @@ let autoRefresh = true;
   /**
    * Update metric colors based on thresholds
    */
-  export function updateMetricColors(report) {
+  function updateMetricColors(report) {
     const slowQueriesEl = document.querySelector('[data-live-value="slow-queries"]');
     if (slowQueriesEl) {
       slowQueriesEl.className = 'c-perf-realtime__value';
@@ -260,7 +260,7 @@ let autoRefresh = true;
   /**
    * Update query performance chart
    */
-  export function updateQueryChart(newValue) {
+  function updateQueryChart(newValue) {
     if (!queryPerformanceChart) return;
 
     const data = queryPerformanceChart.data.datasets[0].data;
@@ -273,7 +273,7 @@ let autoRefresh = true;
   /**
    * Update cache usage chart
    */
-  export function updateCacheChart(active, expired) {
+  function updateCacheChart(active, expired) {
     if (!cacheUsageChart) return;
 
     cacheUsageChart.data.datasets[0].data = [active, expired];
@@ -283,7 +283,7 @@ let autoRefresh = true;
   /**
    * Get CSS variable value
    */
-  export function getCSSVariable(varName) {
+  function getCSSVariable(varName) {
     const value = getComputedStyle(document.documentElement).getPropertyValue(varName);
     return value ? value.trim() : null;
   }

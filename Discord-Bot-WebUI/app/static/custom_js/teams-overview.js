@@ -8,7 +8,7 @@
 
 let _initialized = false;
 
-    export const TeamsOverview = {
+    const TeamsOverview = {
         init() {
             if (_initialized) return;
             _initialized = true;

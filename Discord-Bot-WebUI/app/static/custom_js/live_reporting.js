@@ -809,7 +809,7 @@ export function liveReportingShowNotification(message, type = 'info') {
     };
 
     // Initialize function
-    export function init() {
+    function init() {
         if (_initialized) return;
         _initialized = true;
 

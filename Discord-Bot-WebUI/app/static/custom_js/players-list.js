@@ -20,7 +20,7 @@ let _initialized = false;
   /**
    * Initialize on DOM ready
    */
-  export function init() {
+  function init() {
     if (_initialized) return;
     _initialized = true;
 
@@ -32,7 +32,7 @@ let _initialized = false;
   /**
    * Set up event delegation for all player list interactions
    */
-  export function initializeEventDelegation() {
+  function initializeEventDelegation() {
     document.addEventListener('click', function(e) {
       const target = e.target.closest('[data-action]');
       if (!target) return;
@@ -62,7 +62,7 @@ let _initialized = false;
   /**
    * Handle clear search action
    */
-  export function handleClearSearch(e) {
+  function handleClearSearch(e) {
     e.preventDefault();
 
     // Get the search form
@@ -82,7 +82,7 @@ let _initialized = false;
   /**
    * Handle player deletion with SweetAlert confirmation
    */
-  export function handleDeletePlayer(target) {
+  function handleDeletePlayer(target) {
     const playerId = target.dataset.playerId;
     const playerName = target.dataset.playerName;
 
@@ -121,7 +121,7 @@ let _initialized = false;
   /**
    * Submit the delete player form
    */
-  export function submitDeleteForm(playerId) {
+  function submitDeleteForm(playerId) {
     // Create a temporary form to submit the deletion
     const form = document.createElement('form');
     form.method = 'POST';
@@ -144,7 +144,7 @@ let _initialized = false;
   /**
    * Initialize WooCommerce sync handler
    */
-  export function initializeSyncHandler() {
+  function initializeSyncHandler() {
     const syncForm = document.querySelector('[data-form="update-players"]');
     if (!syncForm) return;
 
@@ -178,7 +178,7 @@ let _initialized = false;
   /**
    * Start the WooCommerce sync process with progress tracking
    */
-  export function startSyncProcess(form) {
+  function startSyncProcess(form) {
     // Show progress modal
     window.Swal.fire({
       title: 'Syncing with WooCommerce',
@@ -275,7 +275,7 @@ let _initialized = false;
   /**
    * Show sync results and confirmation dialog
    */
-  export function showSyncResults(statusData, taskId, csrfToken) {
+  function showSyncResults(statusData, taskId, csrfToken) {
     const newPlayers = statusData.new_players || 0;
     const potentialInactive = statusData.potential_inactive || 0;
 
@@ -308,7 +308,7 @@ let _initialized = false;
   /**
    * Confirm and process the sync
    */
-  export function confirmSync(taskId, csrfToken) {
+  function confirmSync(taskId, csrfToken) {
     const processNew = document.getElementById('processNew')?.checked || false;
     const processInactive = document.getElementById('processInactive')?.checked || false;
 
@@ -352,7 +352,7 @@ let _initialized = false;
   /**
    * Get theme color from ECSTheme if available, with fallback
    */
-  export function getThemeColor(colorName, fallback) {
+  function getThemeColor(colorName, fallback) {
     if (typeof window.ECSTheme !== 'undefined' && window.ECSTheme.getColor) {
       return window.ECSTheme.getColor(colorName);
     }
@@ -367,7 +367,7 @@ let _initialized = false;
   /**
    * Initialize Feather icons
    */
-  export function initializeFeatherIcons() {
+  function initializeFeatherIcons() {
     if (typeof window.feather !== 'undefined') {
       window.feather.replace();
     }
@@ -376,7 +376,7 @@ let _initialized = false;
   /**
    * Debounce function for search input
    */
-  export function debounce(func, wait) {
+  function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
       const later = () => {
@@ -391,7 +391,7 @@ let _initialized = false;
   /**
    * Add live search functionality (optional enhancement)
    */
-  export function initializeLiveSearch() {
+  function initializeLiveSearch() {
     const searchInput = document.querySelector('[data-input="search"]');
     if (!searchInput) return;
 

@@ -19,7 +19,7 @@
 /**
    * Mobile Keyboard Controller
    */
-  export const MobileKeyboard = {
+  const MobileKeyboard = {
     /**
      * Current keyboard state
      */

@@ -31,7 +31,7 @@
     // CONFIGURATION
     // ========================================================================
 
-    export const CONFIG = {
+    const CONFIG = {
         ENDPOINTS: {
             MESSAGE_DETAILS: '/admin-panel/communication/scheduled-messages/{id}/details',
             MESSAGE_UPDATE: '/admin-panel/communication/scheduled-messages/{id}/update'
@@ -45,7 +45,7 @@
     /**
      * Preview message before scheduling
      */
-    export function previewMessage() {
+    function previewMessage() {
         const title = document.getElementById('message_title')?.value;
         const content = document.getElementById('message_content')?.value;
         const type = document.getElementById('message_type')?.value;
@@ -86,7 +86,7 @@
      * @param {number} messageId - The message ID
      * @param {string} messageTitle - The message title for display
      */
-    export function viewScheduledMessage(messageId, messageTitle) {
+    function viewScheduledMessage(messageId, messageTitle) {
         const titleEl = document.getElementById('message_details_title');
         const contentEl = document.getElementById('message_details_content');
 
@@ -130,7 +130,7 @@
      * Edit a scheduled message
      * @param {number} messageId - The message ID
      */
-    export function editScheduledMessage(messageId) {
+    function editScheduledMessage(messageId) {
         // Fetch message details first
         const url = CONFIG.ENDPOINTS.MESSAGE_DETAILS.replace('{id}', messageId);
 
@@ -220,7 +220,7 @@
      * @param {string} cancelUrl - URL to submit cancel request
      * @param {string} csrfToken - CSRF token for form submission
      */
-    export function cancelScheduledMessage(messageId, messageTitle, cancelUrl, csrfToken) {
+    function cancelScheduledMessage(messageId, messageTitle, cancelUrl, csrfToken) {
         window.Swal.fire({
             title: 'Cancel Scheduled Message?',
             text: `Cancel the scheduled message "${messageTitle}"? This action cannot be undone.`,
@@ -265,7 +265,7 @@
      * @param {string} retryUrl - URL to submit retry request
      * @param {string} csrfToken - CSRF token for form submission
      */
-    export function retryScheduledMessage(messageId, messageTitle, retryUrl, csrfToken) {
+    function retryScheduledMessage(messageId, messageTitle, retryUrl, csrfToken) {
         window.Swal.fire({
             title: 'Retry Scheduled Message?',
             text: `Retry sending the failed message "${messageTitle}"?`,
@@ -306,7 +306,7 @@
     /**
      * Initialize recurring message checkbox handler
      */
-    export function initRecurringToggle() {
+    function initRecurringToggle() {
         const recurringCheckbox = document.getElementById('is_recurring');
         const recurrenceOptions = document.getElementById('recurrence_options');
         const recurrencePattern = document.getElementById('recurrence_pattern');
@@ -348,7 +348,7 @@
     /**
      * Initialize queue filtering radio buttons
      */
-    export function initQueueFiltering() {
+    function initQueueFiltering() {
         const filterRadios = document.querySelectorAll('input[name="queue_filter"]');
 
         filterRadios.forEach(radio => {
@@ -378,7 +378,7 @@
     /**
      * Set minimum date/time for scheduling input to current time
      */
-    export function initMinDateTime() {
+    function initMinDateTime() {
         const scheduleDateInput = document.getElementById('schedule_date');
         if (!scheduleDateInput) return;
 
@@ -401,7 +401,7 @@
      * Handle go back action
      * @param {Event} e - The event object
      */
-    export function handleGoBack(e) {
+    function handleGoBack(e) {
         window.history.back();
     }
 
@@ -409,7 +409,7 @@
      * Handle preview message action
      * @param {Event} e - The event object
      */
-    export function handlePreviewMessage(e) {
+    function handlePreviewMessage(e) {
         window.previewMessage();
     }
 
@@ -417,7 +417,7 @@
      * Handle view scheduled message action
      * @param {Event} e - The event object
      */
-    export function handleViewScheduledMessage(e) {
+    function handleViewScheduledMessage(e) {
         const viewId = e.target.dataset.messageId;
         const viewTitle = e.target.dataset.title;
         viewScheduledMessage(viewId, viewTitle);
@@ -427,7 +427,7 @@
      * Handle edit scheduled message action
      * @param {Event} e - The event object
      */
-    export function handleEditScheduledMessage(e) {
+    function handleEditScheduledMessage(e) {
         const editId = e.target.dataset.messageId;
         editScheduledMessage(editId);
     }
@@ -436,7 +436,7 @@
      * Handle cancel scheduled message action
      * @param {Event} e - The event object
      */
-    export function handleCancelScheduledMessage(e) {
+    function handleCancelScheduledMessage(e) {
         const cancelId = e.target.dataset.messageId;
         const cancelTitle = e.target.dataset.title;
         const cancelUrl = e.target.dataset.cancelUrl;
@@ -448,7 +448,7 @@
      * Handle retry scheduled message action
      * @param {Event} e - The event object
      */
-    export function handleRetryScheduledMessage(e) {
+    function handleRetryScheduledMessage(e) {
         const retryId = e.target.dataset.messageId;
         const retryTitle = e.target.dataset.title;
         const retryUrl = e.target.dataset.retryUrl;

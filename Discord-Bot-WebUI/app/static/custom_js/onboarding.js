@@ -248,7 +248,7 @@ export function init() {
     // ======================
     //  Helper functions
     // ======================
-    export function getCurrentStep() {
+    function getCurrentStep() {
         if (!carouselElement) {
             return -1;
         }

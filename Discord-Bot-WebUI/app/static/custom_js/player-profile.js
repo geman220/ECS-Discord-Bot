@@ -31,7 +31,7 @@
     // CONFIGURATION
     // ========================================================================
 
-    export const CONFIG = {
+    const CONFIG = {
         DISCORD_PROMPT_DELAY: 3000,
         VERIFICATION_DELAY: 1000,
         TOAST_DURATION: 3000
@@ -46,7 +46,7 @@
      * @param {string} message - Message to display
      * @param {string} type - Type: success, error, warning, info
      */
-    export function showToast(message, type = 'info') {
+    function showToast(message, type = 'info') {
         // Check if SweetAlert2 is available
         if (typeof window.Swal !== 'undefined') {
             window.Swal.fire({
@@ -67,7 +67,7 @@
      * Get CSRF token from meta tag or form
      * @returns {string|null} CSRF token
      */
-    export function getCSRFToken() {
+    function getCSRFToken() {
         const meta = document.querySelector('meta[name="csrf-token"]');
         if (meta) return meta.getAttribute('content');
 
@@ -85,7 +85,7 @@
      * Initialize profile verification prompt
      * Shows modal if profile is not verified after delay
      */
-    export function initProfileVerification() {
+    function initProfileVerification() {
         const verifyData = document.querySelector('[data-profile-verify]');
         if (!verifyData) return;
 
@@ -103,7 +103,7 @@
      * Show verification dialog using SweetAlert2 or Bootstrap modal
      * @param {string} verifyUrl - URL to verification page (GET request)
      */
-    export function showVerificationDialog(verifyUrl) {
+    function showVerificationDialog(verifyUrl) {
         if (typeof window.Swal !== 'undefined') {
             window.Swal.fire({
                 title: 'Verify Your Profile',
@@ -134,7 +134,7 @@
      * Initialize Discord link prompt
      * Shows modal after delay if Discord is not linked
      */
-    export function initDiscordPrompt() {
+    function initDiscordPrompt() {
         const discordData = document.querySelector('[data-discord-prompt]');
         if (!discordData) return;
 
@@ -153,7 +153,7 @@
      * Show Discord link dialog
      * @param {string} discordUrl - Discord OAuth URL
      */
-    export function showDiscordLinkDialog(discordUrl) {
+    function showDiscordLinkDialog(discordUrl) {
         if (typeof window.Swal !== 'undefined') {
             window.Swal.fire({
                 title: 'Link Your Discord Account',
@@ -179,7 +179,7 @@
      * Initialize match filter functionality
      * Filters match history by season
      */
-    export function initMatchFilter() {
+    function initMatchFilter() {
         const filterSelect = document.querySelector('[data-filter="matches"]');
         if (!filterSelect) return;
 
@@ -215,7 +215,7 @@
      *     [data-action="edit-toggle"] - Edit button
      *     [data-action="cancel-edit"] - Cancel button
      */
-    export function initEditModeToggles() {
+    function initEditModeToggles() {
         document.addEventListener('click', function(e) {
             // Handle Edit button click
             const editBtn = e.target.closest('[data-action="edit-toggle"]');
@@ -248,7 +248,7 @@
      * @param {Element} section - The section container
      * @param {Element} editBtn - The edit button that was clicked
      */
-    export function enterEditMode(section, editBtn) {
+    function enterEditMode(section, editBtn) {
         // Set data-editing on all form fields to trigger CSS
         section.querySelectorAll('.c-form-field').forEach(field => {
             field.dataset.editing = 'true';
@@ -282,7 +282,7 @@
      * Exit edit mode for a profile section
      * @param {Element} section - The section container
      */
-    export function exitEditMode(section) {
+    function exitEditMode(section) {
         // Remove data-editing from all form fields to trigger CSS
         section.querySelectorAll('.c-form-field').forEach(field => {
             delete field.dataset.editing;
@@ -322,7 +322,7 @@
     /**
      * Initialize contact modal form validation
      */
-    export function initContactModal() {
+    function initContactModal() {
         const contactModal = document.getElementById('contactModal');
         if (!contactModal) return;
 
@@ -380,7 +380,7 @@
      * Initialize flash message handling
      * Displays flash messages from data attributes
      */
-    export function initFlashMessages() {
+    function initFlashMessages() {
         const flashContainer = document.querySelector('[data-flash-messages]');
         if (!flashContainer) return;
 
@@ -405,7 +405,7 @@
      * Initialize Bootstrap tooltips
      * Activates all elements with data-bs-toggle="tooltip"
      */
-    export function initTooltips() {
+    function initTooltips() {
         if (typeof window.bootstrap === 'undefined') return;
 
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -423,7 +423,7 @@
     /**
      * Handle profile image actions (upload, change, remove)
      */
-    export function initProfileImageActions() {
+    function initProfileImageActions() {
         document.addEventListener('click', function(e) {
             const imageAction = e.target.closest('[data-image-action]');
             if (!imageAction) return;
@@ -453,7 +453,7 @@
      * Handle profile image removal
      * @param {Element} button - Button element that triggered the action
      */
-    export function handleImageRemove(button) {
+    function handleImageRemove(button) {
         const removeUrl = button.dataset.removeUrl;
         if (!removeUrl) return;
 
@@ -481,7 +481,7 @@
      * Perform profile image removal via AJAX
      * @param {string} removeUrl - URL to remove image
      */
-    export function performImageRemove(removeUrl) {
+    function performImageRemove(removeUrl) {
         fetch(removeUrl, {
             method: 'POST',
             headers: {
@@ -514,7 +514,7 @@
      * Removes c-tabs__link--active from all tabs when Bootstrap adds .active
      * This prevents two tabs appearing active simultaneously
      */
-    export function initTabSync() {
+    function initTabSync() {
         const tabContainer = document.querySelector('[data-component="profile-tabs"]');
         if (!tabContainer) return;
 
@@ -538,7 +538,7 @@
     /**
      * Initialize match stat action buttons (edit and remove)
      */
-    export function initMatchStatActions() {
+    function initMatchStatActions() {
         document.addEventListener('click', function(e) {
             // Handle Edit button
             const editBtn = e.target.closest('[data-action="edit-match-stat"]');
@@ -564,7 +564,7 @@
      * Open modal to edit stat minute
      * @param {string} statId - The stat ID to edit
      */
-    export function openEditStatModal(statId) {
+    function openEditStatModal(statId) {
         // Fetch current stat data
         fetch(`/players/edit_match_stat/${statId}`)
             .then(response => response.json())
@@ -616,7 +616,7 @@
      * @param {string} statId - The stat ID
      * @param {string} minute - The new minute value
      */
-    export function saveStatMinute(statId, minute) {
+    function saveStatMinute(statId, minute) {
         const formData = new FormData();
         formData.append('minute', minute);
 
@@ -648,7 +648,7 @@
      * @param {string} statId - The stat ID to remove
      * @param {Element} btn - The button element (to find the row)
      */
-    export function confirmRemoveStat(statId, btn) {
+    function confirmRemoveStat(statId, btn) {
         // Find the row to get event info
         const row = btn.closest('[data-match-stat]');
         const badge = row ? row.querySelector('.c-badge') : null;
@@ -680,7 +680,7 @@
      * @param {string} statId - The stat ID
      * @param {Element} row - The table row element
      */
-    export function performRemoveStat(statId, row) {
+    function performRemoveStat(statId, row) {
         fetch(`/players/remove_match_stat/${statId}`, {
             method: 'POST',
             headers: {

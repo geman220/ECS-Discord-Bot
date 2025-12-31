@@ -7,7 +7,7 @@
 
 let _initialized = false;
 
-  export function init() {
+  function init() {
     if (_initialized) return;
 
     // Guard: Check if Shepherd is loaded before using it
@@ -29,7 +29,7 @@ let _initialized = false;
     });
 
     // Helper function to create skip action
-    export function createSkipAction() {
+    function createSkipAction() {
       return function() {
         const csrfToken = document.querySelector('input[name="csrf_token"]')?.value ||
                           document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');

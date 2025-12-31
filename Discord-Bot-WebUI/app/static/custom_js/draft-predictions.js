@@ -350,7 +350,7 @@ export class DraftPredictionsManager {
     window.DraftPredictionsManager = DraftPredictionsManager;
 
     // Initialize function
-    export function init() {
+    function init() {
         if (_initialized) return;
         _initialized = true;
 

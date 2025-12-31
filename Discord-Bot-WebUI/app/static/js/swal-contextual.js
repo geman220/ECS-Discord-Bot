@@ -19,7 +19,7 @@
 'use strict';
 
 // Action configurations with smart defaults
-    export const ACTION_CONFIGS = {
+    const ACTION_CONFIGS = {
         delete: {
             icon: 'warning',
             confirmButtonText: 'Delete',
@@ -163,7 +163,7 @@
     /**
      * Detect action type from text
      */
-    export function detectAction(text) {
+    function detectAction(text) {
         if (!text) return null;
         const lowerText = text.toLowerCase();
 
@@ -179,7 +179,7 @@
     /**
      * Build configuration with smart defaults
      */
-    export function buildConfig(options, action) {
+    function buildConfig(options, action) {
         const actionConfig = action ? ACTION_CONFIGS[action] : {};
         const defaults = {
             icon: 'question',
@@ -204,7 +204,7 @@
     /**
      * SwalContextual API
      */
-    export const SwalContextual = {
+    const SwalContextual = {
         /**
          * Smart confirmation dialog that auto-detects action type
          * @param {Object} options - SweetAlert2 options

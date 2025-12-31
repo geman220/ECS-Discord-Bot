@@ -32,7 +32,7 @@
     // CONSTANTS & CONFIGURATION
     // ========================================================================
 
-    export const CONFIG = {
+    const CONFIG = {
         BACKDROP_TRANSITION_MS: 300,
         RIPPLE_CLEANUP_DELAY_MS: 10,
         BUTTON_FIX_RETRY_DELAY_MS: 500,
@@ -43,7 +43,7 @@
         BUTTON_SELECTORS: '[data-action], .btn, .c-btn, button[class*="btn-"]'
     };
 
-    export const CSS_CLASSES = {
+    const CSS_CLASSES = {
         MODAL_OPEN: 'modal-open',
         MODAL_SHOW: 'show',
         MODAL_ACTIVE: 'modal-active',
@@ -58,7 +58,7 @@
     // MODAL HELPERS CONTROLLER
     // ========================================================================
 
-    export const ModalHelpers = {
+    const ModalHelpers = {
         // State tracking
         _initialized: false,
 

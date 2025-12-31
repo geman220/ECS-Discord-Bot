@@ -1286,7 +1286,7 @@ window.$(document).on('click', '[data-action="resend-from-details"]', function()
     window.viewRequestDetails = viewRequestDetails;
 
     // Initialize function
-    export function init() {
+    function init() {
         if (_initialized) return;
         _initialized = true;
 

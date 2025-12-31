@@ -7,7 +7,7 @@
 
 let _initialized = false;
 
-    export const ViewStandings = {
+    const ViewStandings = {
         init() {
             if (_initialized) return;
             _initialized = true;

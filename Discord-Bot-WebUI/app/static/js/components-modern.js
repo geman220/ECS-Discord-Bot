@@ -29,7 +29,7 @@
    * ROOT CAUSE FIX: Added initialization guard
    * ============================================================================
    */
-  export const ModalController = {
+  const ModalController = {
     activeModals: new Set(),
     _initialized: false,
 
@@ -146,7 +146,7 @@
    * ROOT CAUSE FIX: Added initialization guard
    * ============================================================================
    */
-  export const ToastController = {
+  const ToastController = {
     container: null,
     toasts: new Map(),
     idCounter: 0,
@@ -255,7 +255,7 @@
    * TOOLTIP CONTROLLER
    * ============================================================================
    */
-  export const TooltipController = {
+  const TooltipController = {
     activeTooltip: null,
     tooltips: new Map(),
     _initialized: false,
@@ -352,7 +352,7 @@
    * DROPDOWN CONTROLLER
    * ============================================================================
    */
-  export const DropdownController = {
+  const DropdownController = {
     activeDropdown: null,
     _initialized: false,
 
@@ -426,7 +426,7 @@
    * ROOT CAUSE FIX: Added initialization guard
    * ============================================================================
    */
-  export const TableController = {
+  const TableController = {
     _initialized: false,
 
     init() {
@@ -506,7 +506,7 @@
    * ROOT CAUSE FIX: Added initialization guard
    * ============================================================================
    */
-  export const FormController = {
+  const FormController = {
     _initialized: false,
 
     init() {
@@ -594,7 +594,7 @@
    * INITIALIZATION
    * ============================================================================
    */
-  export function init() {
+  function init() {
     // NOTE: ModalController is DISABLED to prevent conflicts with ModalManager
     // ModalManager (modal-manager.js) handles all Bootstrap modals (.modal class)
     // ModalController was designed for .c-modal-modern class which is not used in templates

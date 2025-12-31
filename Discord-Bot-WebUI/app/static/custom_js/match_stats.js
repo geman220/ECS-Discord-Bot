@@ -104,7 +104,7 @@ let _initialized = false;
     }
 
     // Function to filter match stats based on selected match
-    export function filterMatchStats() {
+    function filterMatchStats() {
         var selectedMatchId = window.$('#matchFilter').val();
         window.$('#matchStatsContainer .card').each(function () {
             var matchId = window.$(this).data('match-id');
@@ -117,7 +117,7 @@ let _initialized = false;
     }
 
     // Function to open Edit Match Stat Modal with data populated
-    export function matchStatsEditMatch(statId) {
+    function matchStatsEditMatch(statId) {
         var csrfToken = window.$('input[name="csrf_token"]').val();
 
         window.$.ajax({
@@ -145,7 +145,7 @@ let _initialized = false;
     }
 
     // Function to remove a match stat with SA2 confirmation
-    export function removeMatchStat(statId) {
+    function removeMatchStat(statId) {
         window.Swal.fire({
             title: 'Are you sure?',
             text: "Do you want to remove this stat?",

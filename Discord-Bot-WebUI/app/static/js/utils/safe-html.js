@@ -8,7 +8,7 @@
 /**
      * HTML entity encoding map
      */
-    export const HTML_ENTITIES = {
+    const HTML_ENTITIES = {
         '&': '&amp;',
         '<': '&lt;',
         '>': '&gt;',
@@ -25,7 +25,7 @@
      * @param {string} str - String to escape
      * @returns {string} Escaped string
      */
-    export function escapeHtml(str) {
+    function escapeHtml(str) {
         if (typeof str !== 'string') return '';
         return str.replace(/[&<>"'`=\/]/g, char => HTML_ENTITIES[char]);
     }
@@ -42,7 +42,7 @@
      * @param {...any} values - Interpolated values
      * @returns {string} Safe HTML string
      */
-    export function safeHtml(strings, ...values) {
+    function safeHtml(strings, ...values) {
         return strings.reduce((result, str, i) => {
             const value = values[i - 1];
             const escaped = typeof value === 'string' ? window.escapeHtml(value) : (value ?? '');
@@ -60,7 +60,7 @@
      * @param {string} html - HTML string to trust
      * @returns {string} The same HTML string (marker for code review)
      */
-    export function trustHtml(html) {
+    function trustHtml(html) {
         // This is a marker function for code review
         // It indicates this HTML is intentionally not escaped
         return html;
@@ -75,7 +75,7 @@
      * @param {Element} element - DOM element
      * @param {string} html - HTML content (use safeHtml template literal)
      */
-    export function setInnerHTML(element, html) {
+    function setInnerHTML(element, html) {
         if (element && typeof html === 'string') {
             element.innerHTML = html;
         }

@@ -23,7 +23,7 @@
   /**
    * Initialize feature toggles
    */
-  export function init() {
+  function init() {
     initializeToggleHandlers();
     initializeFormHandlers();
   }
@@ -47,7 +47,7 @@
   /**
    * Initialize toggle switch handlers
    */
-  export function initializeToggleHandlers() {
+  function initializeToggleHandlers() {
     // Event delegation for all toggle switches
     document.addEventListener('change', function(e) {
       const toggle = e.target.closest('[data-setting-toggle]');
@@ -63,7 +63,7 @@
   /**
    * Handle toggle switch change
    */
-  export function handleToggleChange(toggle, settingKey, isEnabled) {
+  function handleToggleChange(toggle, settingKey, isEnabled) {
     const statusLabel = toggle.parentElement.querySelector('[data-toggle-status]');
     const iconElement = document.querySelector(`[data-setting-row][data-setting-key="${settingKey}"] .c-setting-row__status-icon`);
 
@@ -136,7 +136,7 @@
   /**
    * Initialize form submission handlers
    */
-  export function initializeFormHandlers() {
+  function initializeFormHandlers() {
     // Event delegation for form submissions
     document.addEventListener('submit', function(e) {
       const form = e.target.closest('[data-setting-form]');
@@ -160,7 +160,7 @@
    * Show toast notification
    * Uses SweetAlert2 if available, falls back to alert
    */
-  export function showToast(icon, title, text) {
+  function showToast(icon, title, text) {
     if (typeof window.Swal !== 'undefined') {
       window.Swal.fire({
         icon: icon,

@@ -460,7 +460,7 @@ window.getCroppedImage = function() {
     window.SimpleCropper = SimpleCropper;
 
     // Initialize function
-    export function init() {
+    function init() {
         if (_initialized) return;
         _initialized = true;
 

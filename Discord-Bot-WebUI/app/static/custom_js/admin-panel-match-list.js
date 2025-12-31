@@ -8,7 +8,7 @@
 
 let _initialized = false;
 
-  export function init() {
+  function init() {
     if (_initialized) return;
 
     // Page guard - only run on match list page
@@ -66,7 +66,7 @@ let _initialized = false;
     }
   }
 
-  export function toggleSelectAll() {
+  function toggleSelectAll() {
     const selectAll = document.getElementById('selectAll');
     const checkboxes = document.querySelectorAll('.match-checkbox');
 
@@ -75,12 +75,12 @@ let _initialized = false;
     });
   }
 
-  export function getSelectedMatches() {
+  function getSelectedMatches() {
     const checkboxes = document.querySelectorAll('.match-checkbox:checked');
     return Array.from(checkboxes).map(cb => parseInt(cb.value));
   }
 
-  export function viewMatchDetails(matchId) {
+  function viewMatchDetails(matchId) {
     fetch(`/admin-panel/matches/${matchId}/details`)
       .then(response => response.json())
       .then(data => {
@@ -154,7 +154,7 @@ let _initialized = false;
       });
   }
 
-  export function adminPanelDeleteMatch(matchId, matchName) {
+  function adminPanelDeleteMatch(matchId, matchName) {
     window.Swal.fire({
       title: 'Delete Match?',
       text: `Are you sure you want to delete "${matchName}"? This action cannot be undone.`,
@@ -188,7 +188,7 @@ let _initialized = false;
     });
   }
 
-  export function bulkActions() {
+  function bulkActions() {
     const selectedMatches = getSelectedMatches();
 
     if (selectedMatches.length === 0) {
@@ -220,7 +220,7 @@ let _initialized = false;
     });
   }
 
-  export function confirmBulkDelete(matchIds) {
+  function confirmBulkDelete(matchIds) {
     window.Swal.fire({
       title: 'Confirm Bulk Delete',
       text: `Are you sure you want to delete ${matchIds.length} matches? This cannot be undone.`,
@@ -258,7 +258,7 @@ let _initialized = false;
     });
   }
 
-  export function bulkUpdateStatus(matchIds) {
+  function bulkUpdateStatus(matchIds) {
     window.Swal.fire({
       title: 'Update Status',
       text: 'Select new status for selected matches:',
@@ -303,7 +303,7 @@ let _initialized = false;
     });
   }
 
-  export function duplicateMatch(matchId) {
+  function duplicateMatch(matchId) {
     window.Swal.fire({
       title: 'Duplicate Match',
       text: 'This will create a copy of the match. You can edit the details after creation.',
@@ -316,15 +316,15 @@ let _initialized = false;
     });
   }
 
-  export function adminPanelScheduleMatch(matchId) {
+  function adminPanelScheduleMatch(matchId) {
     window.Swal.fire('Schedule Match', 'Match scheduling functionality would be implemented here.', 'info');
   }
 
-  export function postponeMatch(matchId) {
+  function postponeMatch(matchId) {
     window.Swal.fire('Postpone Match', 'Match postponement functionality would be implemented here.', 'info');
   }
 
-  export function cancelMatch(matchId) {
+  function cancelMatch(matchId) {
     window.Swal.fire({
       title: 'Cancel Match',
       text: 'Are you sure you want to cancel this match?',
@@ -338,7 +338,7 @@ let _initialized = false;
     });
   }
 
-  export function exportMatches() {
+  function exportMatches() {
     window.Swal.fire({
       title: 'Export Matches',
       text: 'Choose export format:',
@@ -357,11 +357,11 @@ let _initialized = false;
     });
   }
 
-  export function exportSelectedMatches(matchIds) {
+  function exportSelectedMatches(matchIds) {
     window.Swal.fire('Export Started', `Export of ${matchIds.length} selected matches has been queued.`, 'info');
   }
 
-  export function bulkScheduleMatches() {
+  function bulkScheduleMatches() {
     window.Swal.fire('Bulk Schedule', 'Bulk scheduling functionality would be implemented here.', 'info');
   }
 

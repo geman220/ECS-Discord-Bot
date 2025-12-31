@@ -38,7 +38,7 @@ let _initialized = false;
   /**
    * Initialize on DOM ready
    */
-  export function init() {
+  function init() {
     // Guard against duplicate initialization
     if (_initialized) return;
     _initialized = true;
@@ -69,7 +69,7 @@ let _initialized = false;
   /**
    * Set up event delegation for all team detail interactions
    */
-  export function initializeEventDelegation() {
+  function initializeEventDelegation() {
     document.addEventListener('click', function(e) {
       const target = e.target.closest('[data-action]');
       if (!target) return;
@@ -126,7 +126,7 @@ let _initialized = false;
   /**
    * Handle trigger file input button click
    */
-  export function handleTriggerFileInput(target) {
+  function handleTriggerFileInput(target) {
     const targetName = target.dataset.target;
     const fileInput = document.querySelector(`[data-action="auto-submit"][data-target="${targetName}"]`);
 
@@ -138,7 +138,7 @@ let _initialized = false;
   /**
    * Handle trigger background input button click
    */
-  export function handleTriggerBackgroundInput(target) {
+  function handleTriggerBackgroundInput(target) {
     const targetName = target.dataset.target;
     const fileInput = document.querySelector(`[data-action="load-image-cropping"][data-target="${targetName}"]`);
 
@@ -152,7 +152,7 @@ let _initialized = false;
   /**
    * Setup file input change handlers
    */
-  export function setupFileInputHandlers() {
+  function setupFileInputHandlers() {
     if (_fileInputHandlersSetup) return;
     _fileInputHandlersSetup = true;
 
@@ -170,7 +170,7 @@ let _initialized = false;
   /**
    * Initialize auto-submit for file uploads
    */
-  export function initializeAutoSubmit() {
+  function initializeAutoSubmit() {
     const autoSubmitInputs = document.querySelectorAll('[data-action="auto-submit"]');
 
     autoSubmitInputs.forEach(input => {
@@ -186,7 +186,7 @@ let _initialized = false;
   /**
    * Load image for positioning/cropping
    */
-  export function loadImageForCropping(input) {
+  function loadImageForCropping(input) {
     if (input.files && input.files[0]) {
       const reader = new FileReader();
 
@@ -222,7 +222,7 @@ let _initialized = false;
   /**
    * Initialize image positioning controls
    */
-  export function initializeImagePositioning() {
+  function initializeImagePositioning() {
     const previewWrapper = document.getElementById('previewImageWrapper');
     const zoomSlider = document.getElementById('zoomSlider');
     const xPosSlider = document.getElementById('xPosSlider');
@@ -236,7 +236,7 @@ let _initialized = false;
 
     // Hide drag hint after first interaction
     let firstInteraction = true;
-    export function hideDragHint() {
+    function hideDragHint() {
       if (firstInteraction && dragHint) {
         dragHint.style.display = 'none';
         firstInteraction = false;
@@ -287,7 +287,7 @@ let _initialized = false;
   /**
    * Start dragging
    */
-  export function startDrag(e) {
+  function startDrag(e) {
     isDragging = true;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
@@ -299,7 +299,7 @@ let _initialized = false;
   /**
    * Handle drag movement
    */
-  export function drag(e) {
+  function drag(e) {
     if (!isDragging) return;
 
     const deltaX = e.clientX - dragStartX;
@@ -333,7 +333,7 @@ let _initialized = false;
   /**
    * End dragging
    */
-  export function endDrag() {
+  function endDrag() {
     isDragging = false;
     document.body.style.cursor = '';
   }
@@ -341,7 +341,7 @@ let _initialized = false;
   /**
    * Update preview display
    */
-  export function updatePreview() {
+  function updatePreview() {
     const previewWrapper = document.getElementById('previewImageWrapper');
     const zoomValue = document.getElementById('zoomValue');
 
@@ -361,7 +361,7 @@ let _initialized = false;
   /**
    * Handle zoom adjustment
    */
-  export function handleAdjustZoom(target) {
+  function handleAdjustZoom(target) {
     const delta = parseFloat(target.dataset.delta);
     const slider = document.getElementById('zoomSlider');
 
@@ -376,7 +376,7 @@ let _initialized = false;
   /**
    * Reset image position
    */
-  export function resetImagePosition() {
+  function resetImagePosition() {
     imagePositionData.zoom = 1;
     imagePositionData.xPos = 50;
     imagePositionData.yPos = 50;
@@ -395,7 +395,7 @@ let _initialized = false;
   /**
    * Upload cropped/positioned image
    */
-  export function uploadCroppedImage() {
+  function uploadCroppedImage() {
     if (!imagePositionData.originalImage) return;
 
     const formData = new FormData();
@@ -459,7 +459,7 @@ let _initialized = false;
   /**
    * Get team ID from current URL
    */
-  export function getTeamIdFromUrl() {
+  function getTeamIdFromUrl() {
     const match = window.location.pathname.match(/\/teams\/(\d+)/);
     return match ? match[1] : null;
   }
@@ -467,7 +467,7 @@ let _initialized = false;
   /**
    * Handle Discord role assignment
    */
-  export function handleAssignDiscordRoles(target) {
+  function handleAssignDiscordRoles(target) {
     const teamId = target.dataset.teamId;
 
     if (typeof window.Swal === 'undefined') {
@@ -498,7 +498,7 @@ let _initialized = false;
   /**
    * Assign Discord roles to team
    */
-  export function assignDiscordRolesToTeam(teamId) {
+  function assignDiscordRolesToTeam(teamId) {
     if (typeof window.Swal !== 'undefined') {
       window.Swal.fire({
         title: 'Assigning Discord Roles...',
@@ -558,7 +558,7 @@ let _initialized = false;
   /**
    * Handle Discord status refresh for team
    */
-  export function handleRefreshDiscordStatus(target) {
+  function handleRefreshDiscordStatus(target) {
     const teamId = target.dataset.teamId;
 
     if (typeof window.Swal === 'undefined') {
@@ -588,7 +588,7 @@ let _initialized = false;
   /**
    * Refresh Discord status for team
    */
-  export function refreshDiscordStatusForTeam(teamId) {
+  function refreshDiscordStatusForTeam(teamId) {
     if (typeof window.Swal !== 'undefined') {
       window.Swal.fire({
         title: 'Refreshing Discord Status...',
@@ -651,7 +651,7 @@ let _initialized = false;
   /**
    * Handle individual player Discord refresh
    */
-  export function handleRefreshPlayerDiscord(target) {
+  function handleRefreshPlayerDiscord(target) {
     const playerId = target.dataset.playerId;
     const playerName = target.dataset.playerName;
 
@@ -676,7 +676,7 @@ let _initialized = false;
   /**
    * Refresh single player Discord status
    */
-  export function refreshSinglePlayerDiscordStatus(playerId, playerName, badgeElement) {
+  function refreshSinglePlayerDiscordStatus(playerId, playerName, badgeElement) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
     fetch(`/teams/player/${playerId}/refresh-discord-status`, {
@@ -730,7 +730,7 @@ let _initialized = false;
   /**
    * Initialize Bootstrap tooltips
    */
-  export function initializeTooltips() {
+  function initializeTooltips() {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function(tooltipTriggerEl) {
       return new window.bootstrap.Tooltip(tooltipTriggerEl, {
@@ -742,7 +742,7 @@ let _initialized = false;
   /**
    * Initialize background images from data attributes
    */
-  export function initializeBackgroundImages() {
+  function initializeBackgroundImages() {
     const backgrounds = document.querySelectorAll('[data-background-url]');
     backgrounds.forEach(bg => {
       const url = bg.dataset.backgroundUrl;
@@ -758,7 +758,7 @@ let _initialized = false;
   /**
    * Get theme color with fallback
    */
-  export function getThemeColor(colorName, fallback) {
+  function getThemeColor(colorName, fallback) {
     if (typeof window.ECSTheme !== 'undefined' && window.ECSTheme.getColor) {
       return window.ECSTheme.getColor(colorName);
     }
@@ -772,7 +772,7 @@ let _initialized = false;
   /**
    * Expand all schedule weeks (native details elements)
    */
-  export function handleExpandAllSchedule() {
+  function handleExpandAllSchedule() {
     const weeks = document.querySelectorAll('.c-schedule__week');
     weeks.forEach(week => {
       week.open = true;
@@ -783,7 +783,7 @@ let _initialized = false;
   /**
    * Collapse all schedule weeks (native details elements)
    */
-  export function handleCollapseAllSchedule() {
+  function handleCollapseAllSchedule() {
     const weeks = document.querySelectorAll('.c-schedule__week');
     weeks.forEach(week => {
       week.open = false;
@@ -794,7 +794,7 @@ let _initialized = false;
   /**
    * Update schedule control button states
    */
-  export function updateScheduleControlsState() {
+  function updateScheduleControlsState() {
     const weeks = document.querySelectorAll('.c-schedule__week');
     const expandBtn = document.querySelector('[data-action="expand-all-schedule"]');
     const collapseBtn = document.querySelector('[data-action="collapse-all-schedule"]');
@@ -815,7 +815,7 @@ let _initialized = false;
    * Initialize schedule - open closest upcoming week, close others
    * Uses native <details> elements with data-date attribute
    */
-  export function initializeScheduleAccordion() {
+  function initializeScheduleAccordion() {
     const weeks = document.querySelectorAll('.c-schedule__week[data-date]');
     if (weeks.length === 0) return;
 

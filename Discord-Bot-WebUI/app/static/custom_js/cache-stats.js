@@ -8,7 +8,7 @@
 let _initialized = false;
   let autoRefresh;
 
-  export function init() {
+  function init() {
     if (_initialized) return;
 
     // Page guard - only run on cache stats page
@@ -38,7 +38,7 @@ let _initialized = false;
     }
   }
 
-  export function refreshStats() {
+  function refreshStats() {
     const refreshUrl = document.getElementById('refresh-stats')?.dataset.refreshUrl;
     if (!refreshUrl) return;
 
@@ -52,7 +52,7 @@ let _initialized = false;
       .catch(error => console.error('Error refreshing stats:', error));
   }
 
-  export function testCache() {
+  function testCache() {
     const button = document.getElementById('test-cache');
     const result = document.getElementById('test-result');
     const testUrl = button?.dataset.testUrl;

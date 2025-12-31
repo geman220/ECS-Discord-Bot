@@ -28,7 +28,7 @@
 'use strict';
 
 // Global configuration
-  export const CONFIG = {
+  const CONFIG = {
     MOBILE_BREAKPOINT: 768,
     SWIPE_THRESHOLD: 50,
     DISCORD_PROMPT_DELAY: 5000,
@@ -42,7 +42,7 @@
    * Fixes iOS 100vh issue where viewport height includes browser chrome
    * ============================================================================
    */
-  export function setViewportHeight() {
+  function setViewportHeight() {
     const vh = window.innerHeight * 0.01;
     document.documentElement.style.setProperty('--vh', `${vh}px`);
   }
@@ -53,7 +53,7 @@
    * Enables swipe gestures for tab navigation on mobile devices
    * ============================================================================
    */
-  export function initializeSwipeNavigation() {
+  function initializeSwipeNavigation() {
     // Only apply on mobile
     if (window.innerWidth >= CONFIG.MOBILE_BREAKPOINT) {
       return;
@@ -110,7 +110,7 @@
    * Scrolls active tab into view when it's not fully visible
    * ============================================================================
    */
-  export function initializeTabAutoScroll() {
+  function initializeTabAutoScroll() {
     const tabs = document.querySelectorAll('[data-action="switch-tab"]');
 
     tabs.forEach(tab => {
@@ -144,7 +144,7 @@
    * ============================================================================
    */
   let _modalIosListenerAttached = false;
-  export function initializeModalIosFix() {
+  function initializeModalIosFix() {
     // Only attach listeners once
     if (_modalIosListenerAttached) return;
     _modalIosListenerAttached = true;
@@ -170,7 +170,7 @@
    * ============================================================================
    */
   let _fastClickListenerAttached = false;
-  export function enableFastClick() {
+  function enableFastClick() {
     if (!('ontouchstart' in window)) return;
     if (_fastClickListenerAttached) return;
     _fastClickListenerAttached = true;
@@ -185,7 +185,7 @@
    * Enables offline capabilities and performance improvements
    * ============================================================================
    */
-  export function registerServiceWorker() {
+  function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) {
       console.log('Service Workers not supported');
       return;
@@ -207,7 +207,7 @@
    * Uses cached membership status from database (stored in data attributes)
    * ============================================================================
    */
-  export function initializeDiscordMembershipCheck() {
+  function initializeDiscordMembershipCheck() {
     // Check if player data exists
     const rsvpData = document.getElementById('rsvp-data');
     if (!rsvpData) return;
@@ -227,7 +227,7 @@
     showDiscordMembershipPrompt(discordInServer, discordLastChecked);
   }
 
-  export function showDiscordMembershipPrompt(inServerStatus, lastChecked) {
+  function showDiscordMembershipPrompt(inServerStatus, lastChecked) {
     // Use cached membership status from database (passed via data attributes)
     // Possible values: 'true' (in server), 'false' (not in server), 'unknown' (never checked)
 
@@ -295,7 +295,7 @@
    * Trigger a background check of Discord membership status
    * This updates the database for next page load
    */
-  export function triggerMembershipCheck() {
+  function triggerMembershipCheck() {
     const rsvpData = document.getElementById('rsvp-data');
     if (!rsvpData) return;
 
@@ -319,7 +319,7 @@
     });
   }
 
-  export function showDiscordLinkPrompt() {
+  function showDiscordLinkPrompt() {
     setTimeout(() => {
       // Use SweetAlert2 if available
       if (typeof window.Swal === 'undefined') {

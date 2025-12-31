@@ -36,7 +36,7 @@
   /**
    * Initialize match management
    */
-  export function init() {
+  function init() {
     // Guard against duplicate initialization
     if (_initialized) return;
     _initialized = true;
@@ -55,7 +55,7 @@
   /**
    * Handle all match action clicks
    */
-  export function handleMatchActions(e) {
+  function handleMatchActions(e) {
     const target = e.target.closest('[data-action]');
     if (!target) return;
 
@@ -95,7 +95,7 @@
   /**
    * Initialize Flatpickr date pickers
    */
-  export function initializeDatePickers() {
+  function initializeDatePickers() {
     if (typeof window.flatpickr !== 'undefined') {
       window.flatpickr('.flatpickr', {
         enableTime: true,
@@ -108,7 +108,7 @@
   /**
    * Edit match row
    */
-  export function editMatch(matchId) {
+  function editMatch(matchId) {
     const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
     if (!row) {
       console.error(`Row with match ID ${matchId} not found`);
@@ -158,7 +158,7 @@
   /**
    * Save match edits
    */
-  export function saveMatch(matchId) {
+  function saveMatch(matchId) {
     const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
     const dateValue = document.getElementById(`edit-date-${matchId}`)?.value.trim();
     const competitionValue = document.getElementById(`edit-competition-${matchId}`)?.value.trim();
@@ -204,7 +204,7 @@
   /**
    * Cancel edit mode
    */
-  export function cancelEdit(matchId) {
+  function cancelEdit(matchId) {
     const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
     const dateCell = row.querySelector('td:nth-child(2)');
     const competitionCell = row.querySelector('td:nth-child(3)');
@@ -219,7 +219,7 @@
   /**
    * Reset action buttons to default state
    */
-  export function resetActionButtons(matchId) {
+  function resetActionButtons(matchId) {
     const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
     if (!row) return;
 
@@ -257,7 +257,7 @@
   /**
    * Remove match with confirmation
    */
-  export function removeMatch(matchId) {
+  function removeMatch(matchId) {
     const confirmDelete = typeof window.Swal !== 'undefined'
       ? window.Swal.fire({
           title: 'Are you sure?',
@@ -308,7 +308,7 @@
   /**
    * Clear all matches
    */
-  export function clearAllMatches() {
+  function clearAllMatches() {
     const confirmClear = typeof window.Swal !== 'undefined'
       ? window.Swal.fire({
           title: 'Are you sure?',
@@ -362,7 +362,7 @@
   /**
    * Start live reporting
    */
-  export function startLiveReporting(matchId) {
+  function startLiveReporting(matchId) {
     const startButton = document.querySelector(`[data-action="start-reporting"][data-match-id="${matchId}"]`);
     const stopButton = document.querySelector(`[data-action="stop-reporting"][data-match-id="${matchId}"]`);
 
@@ -400,7 +400,7 @@
   /**
    * Stop live reporting
    */
-  export function stopLiveReporting(matchId) {
+  function stopLiveReporting(matchId) {
     const stopButton = document.querySelector(`[data-action="stop-reporting"][data-match-id="${matchId}"]`);
 
     if (stopButton) stopButton.disabled = true;
@@ -436,7 +436,7 @@
   /**
    * Update match status display
    */
-  export function updateMatchStatus(matchId, status) {
+  function updateMatchStatus(matchId, status) {
     const statusSpan = document.getElementById(`status-${matchId}`);
     const startButton = document.querySelector(`[data-action="start-reporting"][data-match-id="${matchId}"]`);
     const stopButton = document.querySelector(`[data-action="stop-reporting"][data-match-id="${matchId}"]`);
@@ -464,7 +464,7 @@
   /**
    * Update all match statuses
    */
-  export function updateAllMatchStatuses() {
+  function updateAllMatchStatuses() {
     fetch('/bot/admin/get_all_match_statuses')
       .then(response => response.json())
       .then(data => {
@@ -478,7 +478,7 @@
   /**
    * Format date string
    */
-  export function formatDate(dateString) {
+  function formatDate(dateString) {
     const dateObj = new Date(dateString);
     dateObj.setHours(dateObj.getHours() + 25); // Adjust as per original logic
     const options = {

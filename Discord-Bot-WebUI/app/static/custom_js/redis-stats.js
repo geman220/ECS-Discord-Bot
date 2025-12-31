@@ -8,7 +8,7 @@
 let _initialized = false;
   let autoRefreshInterval;
 
-  export function init() {
+  function init() {
     if (_initialized) return;
 
     // Page guard - only run on Redis stats page
@@ -52,7 +52,7 @@ let _initialized = false;
     redisUpdateStats();
   }
 
-  export function redisUpdateStats() {
+  function redisUpdateStats() {
     fetch('/admin/redis/api/stats')
       .then(response => response.json())
       .then(data => {
@@ -105,12 +105,12 @@ let _initialized = false;
       });
   }
 
-  export function updateElement(id, value) {
+  function updateElement(id, value) {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
   }
 
-  export function testConnection() {
+  function testConnection() {
     const testButton = document.getElementById('test-btn');
     if (!testButton) return;
 
@@ -158,7 +158,7 @@ let _initialized = false;
       });
   }
 
-  export function cleanupConnections() {
+  function cleanupConnections() {
     const cleanupButton = document.getElementById('cleanup-btn');
     if (!cleanupButton) return;
 

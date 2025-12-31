@@ -35,7 +35,7 @@
      * @param {string} name - Template name
      * @param {string} content - Template content
      */
-    export function viewTemplate(id, name, content) {
+    function viewTemplate(id, name, content) {
         const titleEl = document.getElementById('view_template_title');
         const contentEl = document.getElementById('view_template_content');
 
@@ -64,7 +64,7 @@
      * @param {string} usageContext - Usage context description
      * @param {boolean} isActive - Template active status
      */
-    export function editTemplate(id, name, description, content, channelType, usageContext, isActive) {
+    function editTemplate(id, name, description, content, channelType, usageContext, isActive) {
         const idInput = document.getElementById('edit_template_id');
         const nameInput = document.getElementById('edit_template_name');
         const descInput = document.getElementById('edit_template_description');
@@ -100,7 +100,7 @@
      * @param {string} toggleUrl - URL to submit toggle request
      * @param {string} csrfToken - CSRF token for form submission
      */
-    export function toggleTemplate(id, name, currentStatus, toggleUrl, csrfToken) {
+    function toggleTemplate(id, name, currentStatus, toggleUrl, csrfToken) {
         const action = currentStatus ? 'deactivate' : 'activate';
         const newStatus = !currentStatus;
 
@@ -153,7 +153,7 @@
      * @param {string} deleteUrl - URL to submit delete request
      * @param {string} csrfToken - CSRF token for form submission
      */
-    export function deleteTemplate(id, name, deleteUrl, csrfToken) {
+    function deleteTemplate(id, name, deleteUrl, csrfToken) {
         window.Swal.fire({
             title: 'Delete Template?',
             text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
@@ -200,7 +200,7 @@
      * @param {string} variable - Variable string to insert
      * @param {string} targetId - ID of textarea to insert into
      */
-    export function insertVariable(variable, targetId) {
+    function insertVariable(variable, targetId) {
         const textarea = document.getElementById(targetId);
         if (!textarea) return;
 
@@ -220,7 +220,7 @@
     /**
      * Initialize variable button click handlers
      */
-    export function initVariableButtons() {
+    function initVariableButtons() {
         document.addEventListener('click', function(e) {
             const varBtn = e.target.closest('.var-btn');
             if (!varBtn) return;
@@ -256,7 +256,7 @@
      * Handle go back action
      * @param {Event} e - The event object
      */
-    export function handleGoBack(e) {
+    function handleGoBack(e) {
         window.history.back();
     }
 
@@ -264,7 +264,7 @@
      * Handle view template action
      * @param {Event} e - The event object
      */
-    export function handleViewTemplate(e) {
+    function handleViewTemplate(e) {
         const viewId = e.target.dataset.templateId;
         const viewName = e.target.dataset.templateName;
         const viewContent = e.target.dataset.templateContent;
@@ -275,7 +275,7 @@
      * Handle edit template action
      * @param {Event} e - The event object
      */
-    export function handleEditTemplate(e) {
+    function handleEditTemplate(e) {
         const editId = e.target.dataset.templateId;
         const editName = e.target.dataset.templateName;
         const editDesc = e.target.dataset.templateDescription;
@@ -290,7 +290,7 @@
      * Handle toggle template action
      * @param {Event} e - The event object
      */
-    export function handleToggleTemplate(e) {
+    function handleToggleTemplate(e) {
         const toggleId = e.target.dataset.templateId;
         const toggleName = e.target.dataset.templateName;
         const toggleActive = e.target.dataset.templateActive === 'true';
@@ -303,7 +303,7 @@
      * Handle delete template action
      * @param {Event} e - The event object
      */
-    export function handleDeleteTemplate(e) {
+    function handleDeleteTemplate(e) {
         const deleteId = e.target.dataset.templateId;
         const deleteName = e.target.dataset.templateName;
         const deleteUrl = e.target.dataset.deleteUrl;

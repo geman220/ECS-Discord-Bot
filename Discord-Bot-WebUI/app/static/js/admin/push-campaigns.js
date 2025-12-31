@@ -29,7 +29,7 @@
     // CONFIGURATION
     // ========================================================================
 
-    export const CampaignsConfig = {
+    const CampaignsConfig = {
         baseUrl: window.CAMPAIGNS_BASE_URL || '/admin-panel',
         csrfToken: window.CAMPAIGNS_CSRF_TOKEN || ''
     };
@@ -305,7 +305,7 @@
      * Handle go back action
      * @param {Event} e - The event object
      */
-    export function handleGoBack(e) {
+    function handleGoBack(e) {
         window.history.back();
     }
 
@@ -313,7 +313,7 @@
      * Handle view campaign action
      * @param {Event} e - The event object
      */
-    export function handleViewCampaign(e) {
+    function handleViewCampaign(e) {
         viewCampaign(e.target.dataset.campaignId);
     }
 
@@ -321,7 +321,7 @@
      * Handle edit campaign action
      * @param {Event} e - The event object
      */
-    export function handleEditCampaign(e) {
+    function handleEditCampaign(e) {
         editCampaign(e.target.dataset.campaignId);
     }
 
@@ -329,7 +329,7 @@
      * Handle send campaign action
      * @param {Event} e - The event object
      */
-    export function handleSendCampaign(e) {
+    function handleSendCampaign(e) {
         sendCampaign(
             e.target.dataset.campaignId,
             e.target.dataset.campaignName
@@ -340,7 +340,7 @@
      * Handle schedule campaign action
      * @param {Event} e - The event object
      */
-    export function handleScheduleCampaign(e) {
+    function handleScheduleCampaign(e) {
         scheduleCampaign(
             e.target.dataset.campaignId,
             e.target.dataset.campaignName
@@ -351,7 +351,7 @@
      * Handle delete campaign action
      * @param {Event} e - The event object
      */
-    export function handleDeleteCampaign(e) {
+    function handleDeleteCampaign(e) {
         deleteCampaign(
             e.target.dataset.campaignId,
             e.target.dataset.campaignName
@@ -362,7 +362,7 @@
      * Handle cancel campaign action
      * @param {Event} e - The event object
      */
-    export function handleCancelCampaign(e) {
+    function handleCancelCampaign(e) {
         cancelCampaign(
             e.target.dataset.campaignId,
             e.target.dataset.campaignName
@@ -373,7 +373,7 @@
      * Handle duplicate campaign action
      * @param {Event} e - The event object
      */
-    export function handleDuplicateCampaign(e) {
+    function handleDuplicateCampaign(e) {
         duplicateCampaign(
             e.target.dataset.campaignId,
             e.target.dataset.campaignName

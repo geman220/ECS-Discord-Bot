@@ -11,7 +11,7 @@
 'use strict';
 
 // Main design system helper
-  export const ECSDesignSystem = {
+  const ECSDesignSystem = {
     // Module-level initialization guard - prevents multiple init calls
     _initialized: false,
 

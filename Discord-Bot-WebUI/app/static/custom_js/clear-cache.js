@@ -12,7 +12,7 @@
    * Call this function manually when cache clearing is needed.
    * Example: <button data-action="clear-cache">Clear Cache</button>
    */
-  export function clearCacheAndRedirect() {
+  function clearCacheAndRedirect() {
     // Files that exist in the production bundle
     const filesToClear = [
       '/static/gen/production.min.css',

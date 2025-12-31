@@ -23,7 +23,7 @@
      * Get CSRF token from meta tag
      * @returns {string} CSRF token value
      */
-    export function getCsrfToken() {
+    function getCsrfToken() {
         const csrfMeta = document.querySelector('meta[name="csrf-token"]');
         return csrfMeta ? csrfMeta.content : '';
     }
@@ -179,7 +179,7 @@
      * ROOT CAUSE FIX: All listeners use document-level delegation
      */
     let _initialized = false;
-    export function init() {
+    function init() {
         // Only initialize once
         if (_initialized) return;
         _initialized = true;

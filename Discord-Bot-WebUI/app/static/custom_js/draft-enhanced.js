@@ -15,7 +15,7 @@
 let _initialized = false;
 
     // JavaScript version of format_position function
-    export function formatPosition(position) {
+    function formatPosition(position) {
         if (!position) return position;
         return position.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }

@@ -358,7 +358,7 @@ export class ScheduleManager {
     window.ScheduleManager = ScheduleManager;
 
     // Initialize function
-    export function init() {
+    function init() {
         if (_initialized) return;
         _initialized = true;
 

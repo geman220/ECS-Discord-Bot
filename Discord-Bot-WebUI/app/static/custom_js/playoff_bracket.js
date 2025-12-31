@@ -485,7 +485,7 @@ export class PlayoffBracket {
     window.PlayoffBracket = PlayoffBracket;
 
     // Initialize function for pages with playoff brackets
-    export function init() {
+    function init() {
         if (_initialized) return;
         _initialized = true;
 

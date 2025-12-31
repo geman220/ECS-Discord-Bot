@@ -12,7 +12,7 @@
 
 let _initialized = false;
 
-  export function init() {
+  function init() {
     if (_initialized) return;
     _initialized = true;
   

@@ -12,7 +12,7 @@
     /**
      * Initialize all UI enhancements when DOM is ready
      */
-    export function init() {
+    function init() {
         initFeatherIcons();
         initMatchHistoryCollapse();
         // NOTE: Dropdown handling removed - navbar-modern.js handles all navbar dropdowns
@@ -23,7 +23,7 @@
      * Re-runs window.feather.replace() to ensure all icons are rendered
      * REFACTORED: Uses UnifiedMutationObserver instead of separate observer
      */
-    export function initFeatherIcons() {
+    function initFeatherIcons() {
         if (typeof window.feather === 'undefined') return;
 
         // Initial replace
@@ -64,7 +64,7 @@
      * ROOT CAUSE FIX: Uses event delegation for click/keydown events
      */
     let matchHistoryListenersRegistered = false;
-    export function initMatchHistoryCollapse() {
+    function initMatchHistoryCollapse() {
         // Set up event delegation ONCE
         if (!matchHistoryListenersRegistered) {
             matchHistoryListenersRegistered = true;

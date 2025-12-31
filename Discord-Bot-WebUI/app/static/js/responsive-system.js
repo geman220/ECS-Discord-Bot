@@ -14,7 +14,7 @@
 'use strict';
 
 // Main responsive system controller
-  export const ResponsiveSystem = {
+  const ResponsiveSystem = {
     // Device detection states
     device: {
       isMobile: false,

@@ -27,7 +27,7 @@ let _initialized = false;
     }
 
     // Function to initialize cropper
-    export function croppingimg(e, ratio) {
+    function croppingimg(e, ratio) {
         const files = e.target.files;
         if (files && files.length > 0) {
             const imgsrc = URL.createObjectURL(files[0]);
@@ -72,7 +72,7 @@ let _initialized = false;
     }
 
     // Function to handle the image upload
-    export function onClickUpload() {
+    function onClickUpload() {
         if (cropper) {
             const canvas = cropper.getCroppedCanvas({
                 width: 300,

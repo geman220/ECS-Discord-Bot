@@ -20,7 +20,7 @@ let _initialized = false;
     /**
      * Initialize the success page functionality
      */
-    export function init() {
+    function init() {
         if (_initialized) return;
         _initialized = true;
 
@@ -32,7 +32,7 @@ let _initialized = false;
      * Handle the Done button click
      * Redirects user back to their player profile
      */
-    export function initDoneButton() {
+    function initDoneButton() {
         const doneBtn = document.querySelector('[data-action="close-window"]');
         if (!doneBtn) return;
 
@@ -56,7 +56,7 @@ let _initialized = false;
      * Extract player ID from the current URL
      * URL format: /players/profile/{id}/mobile/success
      */
-    export function getPlayerId() {
+    function getPlayerId() {
         const path = window.location.pathname;
         const match = path.match(/\/players\/profile\/(\d+)/);
         return match ? match[1] : null;
@@ -66,7 +66,7 @@ let _initialized = false;
      * Optional celebration effects
      * Triggered by data-success-celebration element
      */
-    export function initCelebration() {
+    function initCelebration() {
         const celebrationEl = document.querySelector('[data-success-celebration]');
         if (!celebrationEl) return;
 
@@ -87,7 +87,7 @@ let _initialized = false;
      * Play a subtle success sound
      * Uses Web Audio API for a simple beep
      */
-    export function playSuccessSound() {
+    function playSuccessSound() {
         try {
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = audioContext.createOscillator();

@@ -7,7 +7,7 @@
 
 let _initialized = false;
 
-  export function init() {
+  function init() {
     if (_initialized) return;
     _initialized = true;
 
@@ -19,7 +19,7 @@ let _initialized = false;
     }
   }
 
-  export function addTableLabels() {
+  function addTableLabels() {
     const tables = document.querySelectorAll('.table-responsive table');
 
     tables.forEach(table => {

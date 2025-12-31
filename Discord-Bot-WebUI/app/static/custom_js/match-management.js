@@ -999,7 +999,7 @@ export function forceScheduleMatch(matchId) {
 }
 
     // Initialize function
-    export function init() {
+    function init() {
         if (_initialized) return;
         _initialized = true;
 

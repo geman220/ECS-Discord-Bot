@@ -23,7 +23,7 @@
   // CONFIGURATION
   // ============================================================================
 
-  export const CONFIG = {
+  const CONFIG = {
     api: {
       conversations: '/api/messages',
       messages: (userId) => `/api/messages/${userId}`,
@@ -75,7 +75,7 @@
 
   let elements = {};
 
-  export function cacheElements() {
+  function cacheElements() {
     elements = {
       widget: document.querySelector('.c-chat-widget'),
       trigger: document.querySelector('.c-chat-widget__trigger'),
@@ -113,7 +113,7 @@
   // API FUNCTIONS
   // ============================================================================
 
-  export function getCSRFToken() {
+  function getCSRFToken() {
     const meta = document.querySelector('meta[name="csrf-token"]');
     return meta ? meta.getAttribute('content') : '';
   }
@@ -254,7 +254,7 @@
    * @param {Object} user - User object with role flags
    * @returns {string} HTML string with badge icons
    */
-  export function renderRoleBadges(user) {
+  function renderRoleBadges(user) {
     if (!user) return '';
 
     const badges = [];
@@ -281,7 +281,7 @@
     return badges.length > 0 ? `<span class="c-chat-widget__role-badges">${badges.join('')}</span>` : '';
   }
 
-  export function renderConversations() {
+  function renderConversations() {
     if (!elements.conversationList) return;
 
     if (state.conversations.length === 0) {
@@ -337,7 +337,7 @@
     elements.conversationList.innerHTML = html;
   }
 
-  export function renderMessages() {
+  function renderMessages() {
     if (!elements.messagesContainer) return;
 
     if (state.messages.length === 0) {
@@ -398,7 +398,7 @@
     elements.messagesContainer.innerHTML = html;
   }
 
-  export function handleDeleteMenuClick(element, e) {
+  function handleDeleteMenuClick(element, e) {
     e.stopPropagation();
 
     const messageEl = element.closest('.c-chat-widget__message');
@@ -412,7 +412,7 @@
     showDeleteConfirmation(messageId, isSent);
   }
 
-  export function showDeleteConfirmation(messageId, isSent) {
+  function showDeleteConfirmation(messageId, isSent) {
     // Use SweetAlert2 if available
     if (typeof window.Swal !== 'undefined') {
       const options = {
@@ -492,7 +492,7 @@
   }
 
   // Emoji shortcode conversion
-  export const EMOJI_MAP = {
+  const EMOJI_MAP = {
     ':)': '😊', ':-)': '😊', '=)': '😊',
     ':(': '😞', ':-(': '😞', '=(': '😞',
     ':D': '😃', ':-D': '😃', '=D': '😃',
@@ -518,7 +518,7 @@
     ':cool:': '😎', ':lol:': '😂', ':rofl:': '🤣'
   };
 
-  export function convertEmojiShortcodes(text) {
+  function convertEmojiShortcodes(text) {
     if (!text) return text;
 
     let result = text;
@@ -530,7 +530,7 @@
     return result;
   }
 
-  export function renderSearchResults() {
+  function renderSearchResults() {
     if (!elements.searchResults) {
       console.warn('[ChatWidget] Search results element not found');
       return;
@@ -574,7 +574,7 @@
     console.log('[ChatWidget] Search results dropdown visible');
   }
 
-  export function renderOnlineUsers(users) {
+  function renderOnlineUsers(users) {
     if (!elements.onlineList) return;
 
     const onlineSection = elements.onlineList.closest('.c-chat-widget__online');
@@ -609,7 +609,7 @@
     elements.onlineList.innerHTML = html;
   }
 
-  export function updateBadge() {
+  function updateBadge() {
     if (!elements.badge) return;
 
     if (state.unreadCount > 0) {
@@ -629,7 +629,7 @@
     }
   }
 
-  export function updateSendButton() {
+  function updateSendButton() {
     if (!elements.sendBtn || !elements.composerInput) return;
 
     const hasContent = elements.composerInput.value.trim().length > 0;
@@ -640,7 +640,7 @@
   // VIEW MANAGEMENT
   // ============================================================================
 
-  export function openWidget() {
+  function openWidget() {
     if (!elements.widget) return;
 
     state.isOpen = true;
@@ -673,7 +673,7 @@
     }
   }
 
-  export function closeWidget() {
+  function closeWidget() {
     if (!elements.widget) return;
 
     state.isOpen = false;
@@ -699,7 +699,7 @@
     clearSearch();
   }
 
-  export function toggleWidget() {
+  function toggleWidget() {
     if (state.isOpen) {
       closeWidget();
     } else {
@@ -707,7 +707,7 @@
     }
   }
 
-  export function openConversation(userId, userName, avatarUrl, isOnline, roleInfo) {
+  function openConversation(userId, userName, avatarUrl, isOnline, roleInfo) {
     state.currentView = 'chat';
     state.activeConversation = {
       id: parseInt(userId),
@@ -765,7 +765,7 @@
     }
   }
 
-  export function closeConversation() {
+  function closeConversation() {
     state.currentView = 'list';
     state.activeConversation = null;
     state.messages = [];
@@ -781,7 +781,7 @@
     loadConversations();
   }
 
-  export function scrollToBottom() {
+  function scrollToBottom() {
     if (elements.messagesContainer) {
       requestAnimationFrame(() => {
         elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
@@ -793,13 +793,13 @@
   // EVENT HANDLERS
   // ============================================================================
 
-  export function handleTriggerClick(e) {
+  function handleTriggerClick(e) {
     e.preventDefault();
     e.stopPropagation();
     toggleWidget();
   }
 
-  export function handleConversationClick(e) {
+  function handleConversationClick(e) {
     const conversation = e.target.closest('.c-chat-widget__conversation, .c-chat-widget__online-user, .c-chat-widget__search-result');
     if (!conversation) return;
 
@@ -822,7 +822,7 @@
     clearSearch();
   }
 
-  export function clearSearch() {
+  function clearSearch() {
     state.searchQuery = '';
     state.searchResults = [];
     if (elements.searchInput) {
@@ -834,12 +834,12 @@
     }
   }
 
-  export function handleBackClick(e) {
+  function handleBackClick(e) {
     e.preventDefault();
     closeConversation();
   }
 
-  export function handleSendClick(e) {
+  function handleSendClick(e) {
     e.preventDefault();
     if (!state.activeConversation || !elements.composerInput) return;
 
@@ -849,7 +849,7 @@
     sendMessage(state.activeConversation.id, content);
   }
 
-  export function handleComposerKeydown(e) {
+  function handleComposerKeydown(e) {
     // Send on Enter (without Shift)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -861,13 +861,13 @@
     emitTypingStart();
   }
 
-  export function handleComposerInput() {
+  function handleComposerInput() {
     updateSendButton();
     autoResizeTextarea(elements.composerInput);
   }
 
   let searchDebounceTimer = null;
-  export function handleSearchInput(e) {
+  function handleSearchInput(e) {
     const query = e.target.value.trim();
     state.searchQuery = query;
     console.log('[ChatWidget] Search input:', query);
@@ -878,13 +878,13 @@
     }, CONFIG.ui.searchDebounce);
   }
 
-  export function handleSearchFocus() {
+  function handleSearchFocus() {
     if (state.searchResults.length > 0 && elements.searchResults) {
       elements.searchResults.classList.add('is-visible');
     }
   }
 
-  export function handleSearchBlur() {
+  function handleSearchBlur() {
     // Delay hiding to allow click on results
     setTimeout(() => {
       if (elements.searchResults) {
@@ -893,7 +893,7 @@
     }, 200);
   }
 
-  export function handleKeydown(e) {
+  function handleKeydown(e) {
     // Close on Escape
     if (e.key === 'Escape') {
       if (state.currentView === 'chat') {
@@ -904,7 +904,7 @@
     }
   }
 
-  export function handleClickOutside(e) {
+  function handleClickOutside(e) {
     if (!elements.widget || !state.isOpen) return;
 
     // Don't close if clicking inside widget
@@ -922,7 +922,7 @@
 
   let socket = null;
 
-  export function initWebSocket() {
+  function initWebSocket() {
     // Use SocketManager if available (preferred method)
     if (typeof window.SocketManager !== 'undefined') {
       console.log('[ChatWidget] Using SocketManager');
@@ -979,7 +979,7 @@
     checkSocket();
   }
 
-  export function attachSocketListeners() {
+  function attachSocketListeners() {
     // Use SocketManager for event registration (handles reconnects properly)
     if (typeof window.SocketManager !== 'undefined') {
       // Message events
@@ -1008,7 +1008,7 @@
     attachSocketListenersDirect();
   }
 
-  export function attachSocketListenersDirect() {
+  function attachSocketListenersDirect() {
     if (!window.socket) return;
 
     // Message events
@@ -1032,7 +1032,7 @@
     console.log('[ChatWidget] Socket listeners attached (direct)');
   }
 
-  export function handleMessageDeleted(data) {
+  function handleMessageDeleted(data) {
     const messageId = data.message_id;
     const deletedFor = data.deleted_for;
 
@@ -1050,7 +1050,7 @@
     }
   }
 
-  export function joinMessagingRoom() {
+  function joinMessagingRoom() {
     // Use SocketManager if available
     if (typeof window.SocketManager !== 'undefined') {
       if (window.SocketManager.isConnected()) {
@@ -1065,7 +1065,7 @@
     }
   }
 
-  export function handleNewMessage(message) {
+  function handleNewMessage(message) {
     // Update unread count
     state.unreadCount++;
     updateBadge();
@@ -1093,21 +1093,21 @@
     }
   }
 
-  export function handleMessageSent(data) {
+  function handleMessageSent(data) {
     // Message already added locally, just confirm
     console.log('[ChatWidget] Message sent:', data.message?.id);
   }
 
-  export function handleMessageError(data) {
+  function handleMessageError(data) {
     window.showToast(data.error || 'Failed to send message', 'error');
   }
 
-  export function handleUnreadUpdate(data) {
+  function handleUnreadUpdate(data) {
     state.unreadCount = data.count;
     updateBadge();
   }
 
-  export function handleUserTyping(data) {
+  function handleUserTyping(data) {
     if (!state.activeConversation || data.user_id !== state.activeConversation.id) return;
 
     if (data.typing) {
@@ -1117,7 +1117,7 @@
     }
   }
 
-  export function handleMessagesRead(data) {
+  function handleMessagesRead(data) {
     // Update read receipts in UI
     if (state.activeConversation && data.reader_id === state.activeConversation.id) {
       state.messages.forEach(msg => {
@@ -1129,7 +1129,7 @@
     }
   }
 
-  export function handleUserOnline(data) {
+  function handleUserOnline(data) {
     // Update online status in conversation list
     updateUserOnlineStatus(data.user_id, true);
 
@@ -1146,7 +1146,7 @@
     }
   }
 
-  export function handleUserOffline(data) {
+  function handleUserOffline(data) {
     updateUserOnlineStatus(data.user_id, false);
 
     if (state.activeConversation?.id === data.user_id) {
@@ -1161,12 +1161,12 @@
     }
   }
 
-  export function handleOnlineUsers(data) {
+  function handleOnlineUsers(data) {
     state.onlineUsers = data.users || [];
     renderOnlineUsers(state.onlineUsers);
   }
 
-  export function updateUserOnlineStatus(userId, isOnline) {
+  function updateUserOnlineStatus(userId, isOnline) {
     const convElements = document.querySelectorAll(`[data-user-id="${userId}"]`);
     convElements.forEach(el => {
       el.dataset.online = isOnline;
@@ -1181,7 +1181,7 @@
   // TYPING INDICATOR
   // ============================================================================
 
-  export function emitTypingStart() {
+  function emitTypingStart() {
     if (!state.activeConversation || !state.settings.typingIndicators) return;
 
     // Check if we can emit
@@ -1210,14 +1210,14 @@
     }, CONFIG.ui.typingDebounce);
   }
 
-  export function showTypingIndicator() {
+  function showTypingIndicator() {
     if (elements.typingIndicator) {
       elements.typingIndicator.style.display = 'flex';
       scrollToBottom();
     }
   }
 
-  export function hideTypingIndicator() {
+  function hideTypingIndicator() {
     if (elements.typingIndicator) {
       elements.typingIndicator.style.display = 'none';
     }
@@ -1227,14 +1227,14 @@
   // UTILITIES
   // ============================================================================
 
-  export function escapeHtml(text) {
+  function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
   }
 
-  export function formatMessageTime(isoString) {
+  function formatMessageTime(isoString) {
     if (!isoString) return '';
 
     const date = new Date(isoString);
@@ -1260,7 +1260,7 @@
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
 
-  export function getCurrentUserId() {
+  function getCurrentUserId() {
     // Try to get from global or meta tag
     if (window.currentUserId) return parseInt(window.currentUserId);
 
@@ -1274,14 +1274,14 @@
     return null;
   }
 
-  export function autoResizeTextarea(textarea) {
+  function autoResizeTextarea(textarea) {
     if (!textarea) return;
 
     textarea.style.height = 'auto';
     textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
   }
 
-  export function showToast(message, type = 'info') {
+  function showToast(message, type = 'info') {
     // Use SweetAlert2 if available, otherwise console
     if (typeof window.Swal !== 'undefined') {
       window.Swal.fire({
@@ -1298,7 +1298,7 @@
     }
   }
 
-  export function showNotification(title, body) {
+  function showNotification(title, body) {
     // Browser notification if permitted
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(title, {
@@ -1313,7 +1313,7 @@
   // SMART POSITIONING
   // ============================================================================
 
-  export function updatePosition() {
+  function updatePosition() {
     if (!elements.widget) return;
 
     // Check for mobile bottom nav
@@ -1328,7 +1328,7 @@
   // EVENT DELEGATION REGISTRATION
   // ============================================================================
 
-  export function registerEventHandlers() {
+  function registerEventHandlers() {
     // EventDelegation handler is registered at module scope below
     // This function is kept for consistency but no longer registers handlers
   }
@@ -1337,7 +1337,7 @@
   // INITIALIZATION
   // ============================================================================
 
-  export function bindEvents() {
+  function bindEvents() {
     // Trigger button
     if (elements.trigger) {
       elements.trigger.addEventListener('click', handleTriggerClick);

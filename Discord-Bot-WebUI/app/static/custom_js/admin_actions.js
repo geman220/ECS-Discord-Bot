@@ -10,7 +10,7 @@
      * @param {string} role - The role to toggle
      * @param {number} playerId - The player ID
      */
-    export function toggleRole(role, playerId) {
+    function toggleRole(role, playerId) {
         const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
         const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
         const roleToggle = document.querySelector(`[data-role-toggle="${role}"]`);

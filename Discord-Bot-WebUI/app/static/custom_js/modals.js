@@ -7,7 +7,7 @@
 
 let _initialized = false;
 
-  export function init() {
+  function init() {
     if (_initialized) return;
     _initialized = true;
 
@@ -17,7 +17,7 @@ let _initialized = false;
   /**
    * Trigger the manual review modal based on data attribute
    */
-  export function triggerManualReviewModal() {
+  function triggerManualReviewModal() {
     const reviewData = document.getElementById('manualReviewData');
     if (!reviewData) return;
 

@@ -25,7 +25,7 @@
      * Admin Panel Base Controller
      * Uses data-* selectors for element binding (never classes)
      */
-    export const AdminPanelBase = {
+    const AdminPanelBase = {
         // Configuration
         CONFIG: {
             MOBILE_BREAKPOINT: 768,
@@ -705,7 +705,7 @@
     /**
      * Service Worker Registration (for offline support)
      */
-    export function registerServiceWorker() {
+    function registerServiceWorker() {
         // Guard against duplicate registration attempts
         if (_serviceWorkerRegistered) return;
         _serviceWorkerRegistered = true;

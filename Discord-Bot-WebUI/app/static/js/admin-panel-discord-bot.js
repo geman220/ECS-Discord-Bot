@@ -19,7 +19,7 @@
 'use strict';
 
 // Configuration
-  export const CONFIG = {
+  const CONFIG = {
     botApiUrl: 'http://localhost:5001/api/bot',
     recentLogs: null, // Will be populated from template
     commands: null, // Will be populated from template
@@ -31,7 +31,7 @@
   let _initialized = false;
 
   // Initialize data from template
-  export function initializeData() {
+  function initializeData() {
     // These would be populated from script tags in the template if needed
     // For now, using placeholder data structure
     CONFIG.recentLogs = window.__BOT_RECENT_LOGS__ || [];
@@ -123,7 +123,7 @@
     });
   }
 
-  export function viewBotLogs() {
+  function viewBotLogs() {
     let logsHtml = '';
     const logs = CONFIG.recentLogs;
 
@@ -198,7 +198,7 @@
   // COMMAND MANAGEMENT
   // ============================================================================
 
-  export function viewCommands() {
+  function viewCommands() {
     const commands = CONFIG.commands;
     let commandsHtml = '';
 
@@ -260,12 +260,12 @@
     });
   }
 
-  export function commandPermissions() {
+  function commandPermissions() {
     // Placeholder - would implement permissions management
     window.Swal.fire('Command Permissions', 'Command permissions management interface would appear here.', 'info');
   }
 
-  export function commandUsage() {
+  function commandUsage() {
     const usage = CONFIG.commandUsage;
 
     window.Swal.fire({
@@ -307,7 +307,7 @@
     });
   }
 
-  export function customCommands() {
+  function customCommands() {
     // Placeholder - would implement custom commands interface
     window.Swal.fire('Custom Commands', 'Custom commands management interface would appear here.', 'info');
   }
@@ -316,12 +316,12 @@
   // GUILD MANAGEMENT
   // ============================================================================
 
-  export function manageGuild(element, e) {
+  function manageGuild(element, e) {
     const guildId = element.dataset.guild;
     window.Swal.fire('Guild Management', `Guild management interface for ${guildId} would appear here.`, 'info');
   }
 
-  export function guildStats(element, e) {
+  function guildStats(element, e) {
     const guild = CONFIG.guildInfo;
 
     window.Swal.fire({
@@ -361,7 +361,7 @@
     });
   }
 
-  export function addGuild() {
+  function addGuild() {
     window.Swal.fire({
       title: 'Add Bot to Server',
       html: `
@@ -434,7 +434,7 @@
     }
   }
 
-  export function resetBotConfig() {
+  function resetBotConfig() {
     const prefixEl = document.getElementById('botPrefix');
     const roleEl = document.getElementById('defaultRole');
     const activityTypeEl = document.getElementById('activityType');
@@ -487,7 +487,7 @@
   // INITIALIZATION
   // ============================================================================
 
-  export function init() {
+  function init() {
     // Guard against duplicate initialization
     if (_initialized) return;
     _initialized = true;

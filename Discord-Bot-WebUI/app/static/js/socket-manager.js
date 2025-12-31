@@ -40,7 +40,7 @@
   // CONFIGURATION
   // ============================================================================
 
-  export const CONFIG = {
+  const CONFIG = {
     // Socket.IO connection options
     connection: {
       // Start with polling to establish sticky session, then upgrade to websocket
@@ -83,17 +83,17 @@
   // LOGGING
   // ============================================================================
 
-  export function log(...args) {
+  function log(...args) {
     if (CONFIG.debug) {
       console.log('[SocketManager]', ...args);
     }
   }
 
-  export function warn(...args) {
+  function warn(...args) {
     console.warn('[SocketManager]', ...args);
   }
 
-  export function error(...args) {
+  function error(...args) {
     console.error('[SocketManager]', ...args);
   }
 
@@ -105,7 +105,7 @@
    * Get or create the socket instance
    * @returns {Socket|null} The socket instance or null if Socket.IO not available
    */
-  export function getSocket() {
+  function getSocket() {
     // Return existing socket if available
     if (socket) {
       return window.socket;
@@ -152,7 +152,7 @@
   /**
    * Attach internal event listeners for connection management
    */
-  export function attachInternalListeners() {
+  function attachInternalListeners() {
     if (!window.socket) return;
 
     // Remove existing listeners to prevent duplicates on reconnect
@@ -171,7 +171,7 @@
   /**
    * Handle successful connection
    */
-  export function handleConnect() {
+  function handleConnect() {
     log('Socket connected, id:', socket.id);
     isConnected = true;
     connectionAttempts = 0;
@@ -198,7 +198,7 @@
    * Check if we were recently connected (for optimistic UI across page loads)
    * Returns true if connected within the optimistic delay period
    */
-  export function wasRecentlyConnected() {
+  function wasRecentlyConnected() {
     try {
       const lastConnected = sessionStorage.getItem(OPTIMISTIC_KEY);
       if (!lastConnected) return false;
@@ -214,7 +214,7 @@
    * Handle disconnection
    * Uses optimistic UI - delays firing disconnect callbacks to handle page navigation gracefully
    */
-  export function handleDisconnect(reason) {
+  function handleDisconnect(reason) {
     log('Socket disconnected, reason:', reason);
 
     // Clear any existing timeout
@@ -238,7 +238,7 @@
   /**
    * Handle connection error
    */
-  export function handleConnectError(err) {
+  function handleConnectError(err) {
     connectionAttempts++;
     warn(`Connection error (attempt ${connectionAttempts}):`, err.message);
 
@@ -251,7 +251,7 @@
   /**
    * Fire all registered connect callbacks
    */
-  export function fireConnectCallbacks() {
+  function fireConnectCallbacks() {
     connectCallbacks.forEach((callback, component) => {
       try {
         log(`Firing connect callback for: ${component}`);
@@ -265,7 +265,7 @@
   /**
    * Fire all registered disconnect callbacks
    */
-  export function fireDisconnectCallbacks(reason) {
+  function fireDisconnectCallbacks(reason) {
     disconnectCallbacks.forEach((callback, component) => {
       try {
         callback(reason);
@@ -279,7 +279,7 @@
   // PUBLIC API
   // ============================================================================
 
-  export const SocketManager = {
+  const SocketManager = {
     /**
      * Get the socket instance (creates if needed)
      * @returns {Socket|null}
@@ -468,7 +468,7 @@
   // ============================================================================
 
   // Auto-initialize socket when DOM is ready
-  export function init() {
+  function init() {
     // Only initialize if Socket.IO is available
     if (typeof window.io !== 'undefined') {
       getSocket();
