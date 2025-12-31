@@ -33,7 +33,7 @@
      * Show create season modal
      */
     function createSeason() {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Create New Season',
             html: `
       <div class="text-start">
@@ -61,7 +61,7 @@
             preConfirm: () => {
                 const name = document.getElementById('seasonName').value;
                 if (!name) {
-                    Swal.showValidationMessage('Season name is required');
+                    window.Swal.showValidationMessage('Season name is required');
                     return false;
                 }
                 return {
@@ -100,12 +100,12 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                    window.Swal.fire('Success', data.message, 'success').then(() => location.reload());
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             })
-            .catch(() => Swal.fire('Error', 'Failed to create season', 'error'));
+            .catch(() => window.Swal.fire('Error', 'Failed to create season', 'error'));
     }
 
     /**
@@ -118,7 +118,7 @@
             .then(data => {
                 if (data.success) {
                     const season = data.season;
-                    Swal.fire({
+                    window.Swal.fire({
                         title: season.name,
                         html: `
             <div class="text-start">
@@ -130,10 +130,10 @@
                         icon: 'info'
                     });
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             })
-            .catch(() => Swal.fire('Error', 'Failed to load season details', 'error'));
+            .catch(() => window.Swal.fire('Error', 'Failed to load season details', 'error'));
     }
 
     /**
@@ -148,10 +148,10 @@
                 if (data.success) {
                     showEditSeasonModal(seasonId, data.season);
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             })
-            .catch(() => Swal.fire('Error', 'Failed to load season details', 'error'));
+            .catch(() => window.Swal.fire('Error', 'Failed to load season details', 'error'));
     }
 
     /**
@@ -160,7 +160,7 @@
      * @param {Object} season - Season data
      */
     function showEditSeasonModal(seasonId, season) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Edit Season',
             html: `
       <div class="text-start">
@@ -191,7 +191,7 @@
             preConfirm: () => {
                 const name = document.getElementById('editSeasonName').value;
                 if (!name) {
-                    Swal.showValidationMessage('Season name is required');
+                    window.Swal.showValidationMessage('Season name is required');
                     return false;
                 }
                 return {
@@ -229,12 +229,12 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                    window.Swal.fire('Success', data.message, 'success').then(() => location.reload());
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             })
-            .catch(() => Swal.fire('Error', 'Failed to update season', 'error'));
+            .catch(() => window.Swal.fire('Error', 'Failed to update season', 'error'));
     }
 
     /**
@@ -243,7 +243,7 @@
      * @param {string} seasonName - Season name
      */
     function deleteSeason(seasonId, seasonName) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Delete Season?',
             text: `Are you sure you want to delete "${seasonName}"? This cannot be undone.`,
             icon: 'warning',
@@ -269,12 +269,12 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Deleted', data.message, 'success').then(() => location.reload());
+                    window.Swal.fire('Deleted', data.message, 'success').then(() => location.reload());
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             })
-            .catch(() => Swal.fire('Error', 'Failed to delete season', 'error'));
+            .catch(() => window.Swal.fire('Error', 'Failed to delete season', 'error'));
     }
 
     /**
@@ -282,7 +282,7 @@
      * @param {string} seasonId - Season ID
      */
     function setCurrentSeason(seasonId) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Set Current Season?',
             text: 'This will make this season the active one for new leagues and matches.',
             icon: 'question',
@@ -315,7 +315,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire({
+                    window.Swal.fire({
                         title: 'Success',
                         text: data.message,
                         icon: 'success'
@@ -323,7 +323,7 @@
                         location.reload();
                     });
                 } else {
-                    Swal.fire({
+                    window.Swal.fire({
                         title: 'Error',
                         text: data.message,
                         icon: 'error'
@@ -331,7 +331,7 @@
                 }
             })
             .catch(error => {
-                Swal.fire({
+                window.Swal.fire({
                     title: 'Error',
                     text: 'An error occurred while setting current season',
                     icon: 'error'

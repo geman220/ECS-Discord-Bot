@@ -98,7 +98,7 @@
    */
   function initializeDatePickers() {
     if (typeof window.flatpickr !== 'undefined') {
-      flatpickr('.flatpickr', {
+      window.flatpickr('.flatpickr', {
         enableTime: true,
         dateFormat: "Y-m-d H:i",
         time_24hr: true
@@ -129,7 +129,7 @@
 
     // Re-initialize Flatpickr for the new input
     if (typeof window.flatpickr !== 'undefined') {
-      flatpickr(`#edit-date-${matchId}`, {
+      window.flatpickr(`#edit-date-${matchId}`, {
         enableTime: true,
         dateFormat: "Y-m-d H:i",
         time_24hr: true
@@ -259,8 +259,8 @@
    * Remove match with confirmation
    */
   function removeMatch(matchId) {
-    const confirmDelete = typeof Swal !== 'undefined'
-      ? Swal.fire({
+    const confirmDelete = typeof window.Swal !== 'undefined'
+      ? window.Swal.fire({
           title: 'Are you sure?',
           text: "This action cannot be undone.",
           icon: 'warning',
@@ -287,8 +287,8 @@
             const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
             if (row) row.remove();
 
-            if (typeof Swal !== 'undefined') {
-              Swal.fire('Deleted!', data.message, 'success');
+            if (typeof window.Swal !== 'undefined') {
+              window.Swal.fire('Deleted!', data.message, 'success');
             }
           } else {
             throw new Error(data.message || 'Failed to remove the match.');
@@ -296,8 +296,8 @@
         })
         .catch(error => {
           console.error('Error:', error);
-          if (typeof Swal !== 'undefined') {
-            Swal.fire('Error', error.message, 'error');
+          if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', error.message, 'error');
           } else {
             alert('Error: ' + error.message);
           }
@@ -310,8 +310,8 @@
    * Clear all matches
    */
   function clearAllMatches() {
-    const confirmClear = typeof Swal !== 'undefined'
-      ? Swal.fire({
+    const confirmClear = typeof window.Swal !== 'undefined'
+      ? window.Swal.fire({
           title: 'Are you sure?',
           text: "This will delete ALL matches. This action cannot be undone.",
           icon: 'warning',
@@ -336,8 +336,8 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            if (typeof Swal !== 'undefined') {
-              Swal.fire('Cleared!', 'All matches have been cleared.', 'success').then(() => {
+            if (typeof window.Swal !== 'undefined') {
+              window.Swal.fire('Cleared!', 'All matches have been cleared.', 'success').then(() => {
                 location.reload();
               });
             } else {
@@ -350,8 +350,8 @@
         })
         .catch(error => {
           console.error('Error:', error);
-          if (typeof Swal !== 'undefined') {
-            Swal.fire('Error', error.message, 'error');
+          if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', error.message, 'error');
           } else {
             alert('Error: ' + error.message);
           }

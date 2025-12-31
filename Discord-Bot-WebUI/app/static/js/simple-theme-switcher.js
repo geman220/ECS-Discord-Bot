@@ -272,8 +272,8 @@ class SimpleThemeSwitcher {
    */
   notifyAndReload(variant) {
     // Use SweetAlert2 if available, otherwise just reload
-    if (typeof Swal !== 'undefined') {
-      Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+      window.Swal.fire({
         title: 'Applying Theme',
         text: `Switching to ${variant} theme...`,
         icon: 'info',

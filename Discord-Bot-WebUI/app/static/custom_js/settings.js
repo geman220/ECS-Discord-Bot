@@ -40,7 +40,7 @@
             const newPassword = document.getElementById('new_password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
             if (newPassword !== confirmPassword) {
-                Swal.fire({
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Oops...',
                     text: 'New passwords do not match!',
@@ -61,7 +61,7 @@
     if (unlinkDiscordForm) {
         unlinkDiscordForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Are you sure?',
                 text: 'You want to unlink your Discord account?',
                 icon: 'warning',
@@ -98,7 +98,7 @@
                         smsVerificationStep.classList.remove('is-hidden');
                         document.getElementById('sentPhoneNumber').textContent = phoneNumber;
                     } else {
-                        Swal.fire({
+                        window.Swal.fire({
                             icon: 'warning',
                             title: 'Resubscribe Required',
                             text: data.message,
@@ -128,7 +128,7 @@
                         smsVerificationStep.classList.add('is-hidden');
                         smsConfirmationStep.classList.remove('is-hidden');
                     } else {
-                        Swal.fire({
+                        window.Swal.fire({
                             icon: 'error',
                             title: 'Invalid Code',
                             text: data.message,
@@ -154,7 +154,7 @@
             })
                 .then(response => response.json())
                 .then(data => {
-                    Swal.fire({
+                    window.Swal.fire({
                         icon: 'info',
                         title: 'Code Resent',
                         text: data.message,
@@ -166,7 +166,7 @@
     // Handle SMS opt-out button click
     if (smsOptOutBtn) {
         smsOptOutBtn.addEventListener('click', function () {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Are you sure?',
                 text: 'You want to opt-out of SMS notifications?',
                 icon: 'warning',
@@ -184,7 +184,7 @@
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                Swal.fire({
+                                window.Swal.fire({
                                     icon: 'success',
                                     title: 'Opted Out',
                                     text: data.message,
@@ -192,7 +192,7 @@
                                     location.reload();
                                 });
                             } else {
-                                Swal.fire({
+                                window.Swal.fire({
                                     icon: 'error',
                                     title: 'Error',
                                     text: 'Failed to opt-out. Please try again.',

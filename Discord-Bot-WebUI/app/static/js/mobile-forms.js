@@ -385,7 +385,7 @@
 
           // Show toast
           if (window.Swal) {
-            Swal.fire({
+            window.Swal.fire({
               toast: true,
               position: 'top',
               icon: 'error',

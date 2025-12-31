@@ -137,7 +137,7 @@ function init() {
     //  Carousel initialization
     // ======================
     if (carouselElement) {
-        bootstrapCarousel = new bootstrap.Carousel(carouselElement, {
+        bootstrapCarousel = new window.bootstrap.Carousel(carouselElement, {
             interval: false, // don't auto-slide
             ride: false,
             touch: false,

@@ -116,7 +116,7 @@
 
     tabs.forEach(tab => {
       // Use Bootstrap's shown.bs.tab event if available, otherwise use click
-      const eventName = typeof bootstrap !== 'undefined' ? 'shown.bs.tab' : 'click';
+      const eventName = typeof window.bootstrap !== 'undefined' ? 'shown.bs.tab' : 'click';
 
       tab.addEventListener(eventName, function() {
         const container = this.closest('[data-role="tab-navigation"]');
@@ -323,12 +323,12 @@
   function showDiscordLinkPrompt() {
     setTimeout(() => {
       // Use SweetAlert2 if available
-      if (typeof Swal === 'undefined') {
+      if (typeof window.Swal === 'undefined') {
         console.warn('SweetAlert2 not available for Discord prompt');
         return;
       }
 
-      Swal.fire({
+      window.Swal.fire({
         title: '🔗 Connect Your Discord Account',
         html: `
           <div class="text-start">

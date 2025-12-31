@@ -93,7 +93,7 @@
     }
 
     // Check if SweetAlert is available
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
       // Fallback to native confirm
       if (confirm(`Are you sure you want to delete ${playerName}? This will delete the player and associated user account.`)) {
         submitDeleteForm(playerId);
@@ -102,7 +102,7 @@
     }
 
     // Show SweetAlert confirmation
-    Swal.fire({
+    window.Swal.fire({
       title: 'Are you sure?',
       html: `This will delete <strong>${playerName}</strong> and their associated user account.`,
       icon: 'warning',
@@ -152,14 +152,14 @@
     syncForm.addEventListener('submit', function(e) {
       e.preventDefault();
 
-      if (typeof Swal === 'undefined') {
+      if (typeof window.Swal === 'undefined') {
         // No SweetAlert available, just submit
         this.submit();
         return;
       }
 
       // Show confirmation dialog
-      Swal.fire({
+      window.Swal.fire({
         title: 'Sync with WooCommerce?',
         text: 'This will synchronize player data with WooCommerce orders. Continue?',
         icon: 'warning',
@@ -181,7 +181,7 @@
    */
   function startSyncProcess(form) {
     // Show progress modal
-    Swal.fire({
+    window.Swal.fire({
       title: 'Syncing with WooCommerce',
       html: `
         <div class="text-center">
@@ -265,7 +265,7 @@
     })
     .catch(error => {
       console.error('Error starting sync:', error);
-      Swal.fire({
+      window.Swal.fire({
         title: 'Error!',
         text: error.message || 'An error occurred during synchronization.',
         icon: 'error'
@@ -280,7 +280,7 @@
     const newPlayers = statusData.new_players || 0;
     const potentialInactive = statusData.potential_inactive || 0;
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Sync Results',
       html: `
         <p><strong>${newPlayers}</strong> new players found</p>
@@ -328,7 +328,7 @@
     .then(response => response.json())
     .then(data => {
       if (data.status === 'success') {
-        Swal.fire({
+        window.Swal.fire({
           title: 'Success!',
           text: 'Player data has been synchronized.',
           icon: 'success',
@@ -341,7 +341,7 @@
       }
     })
     .catch(error => {
-      Swal.fire({
+      window.Swal.fire({
         title: 'Error!',
         text: error.message || 'An error occurred during synchronization.',
         icon: 'error',

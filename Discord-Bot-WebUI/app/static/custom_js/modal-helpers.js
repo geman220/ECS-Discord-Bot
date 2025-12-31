@@ -129,7 +129,7 @@
          * Ensures a Bootstrap modal is properly initialized
          * Delegates to ModalManager if available
          * @param {string} modalId - The ID of the modal element
-         * @returns {bootstrap.Modal|null} Modal instance or null if not found
+         * @returns {window.bootstrap.Modal|null} Modal instance or null if not found
          */
         ensureModalInitialized: function(modalId) {
             const modalElement = document.getElementById(modalId);
@@ -144,7 +144,7 @@
             }
 
             // Fallback to direct Bootstrap instance
-            return bootstrap.Modal.getInstance(modalElement);
+            return window.bootstrap.Modal.getInstance(modalElement);
         },
 
         /**
@@ -212,7 +212,7 @@
             const openModals = document.querySelectorAll(`${CONFIG.MODAL_SELECTORS}.${CSS_CLASSES.MODAL_SHOW}`);
             openModals.forEach(modal => {
                 try {
-                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    const modalInstance = window.bootstrap.Modal.getInstance(modal);
                     if (modalInstance) {
                         modalInstance.hide();
                     } else {

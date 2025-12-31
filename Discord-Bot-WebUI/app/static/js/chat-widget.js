@@ -415,7 +415,7 @@
 
   function showDeleteConfirmation(messageId, isSent) {
     // Use SweetAlert2 if available
-    if (typeof Swal !== 'undefined') {
+    if (typeof window.Swal !== 'undefined') {
       const options = {
         title: 'Delete message?',
         icon: 'question',
@@ -436,7 +436,7 @@
         options.denyButtonColor = 'var(--cw-accent, #7c3aed)';
       }
 
-      Swal.fire(options).then((result) => {
+      window.Swal.fire(options).then((result) => {
         if (result.isConfirmed) {
           // Delete for me only
           deleteMessage(messageId, 'me');
@@ -1284,8 +1284,8 @@
 
   function showToast(message, type = 'info') {
     // Use SweetAlert2 if available, otherwise console
-    if (typeof Swal !== 'undefined') {
-      Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+      window.Swal.fire({
         toast: true,
         position: 'top-end',
         icon: type,

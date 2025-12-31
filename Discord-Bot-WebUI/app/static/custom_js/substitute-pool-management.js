@@ -18,8 +18,8 @@ function subPoolShowAlert(type, message) {
     // Try toastr first, fallback to SweetAlert2, then basic alert
     if (typeof toastr !== 'undefined') {
         toastr[type](message);
-    } else if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    } else if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             icon: type === 'success' ? 'success' : type === 'error' ? 'error' : 'info',
             title: type.charAt(0).toUpperCase() + type.slice(1),
             text: message,
@@ -127,7 +127,7 @@ function initializeSearch() {
 function performSearch(query) {
     const leagueFilter = $('#searchLeagueFilter').val();
 
-    $.ajax({
+    window.$.ajax({
         url: '/api/substitute-pools/player-search',
         method: 'GET',
         data: {
@@ -289,7 +289,7 @@ function subPoolInitializeEventHandlers() {
 
 // Player management functions
 function approvePlayer(playerId, league) {
-    $.ajax({
+    window.$.ajax({
         url: `/admin/substitute-pools/${league}/add-player`,
         method: 'POST',
         contentType: 'application/json',
@@ -320,7 +320,7 @@ function removePlayer(playerId, league) {
         return;
     }
 
-    $.ajax({
+    window.$.ajax({
         url: `/admin/substitute-pools/${league}/remove-player`,
         method: 'POST',
         contentType: 'application/json',

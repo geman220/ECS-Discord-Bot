@@ -276,7 +276,7 @@ function formatDuration(seconds) {
 
 // Task control functions
 function revokeTask(taskId, matchId, taskType) {
-    Swal.fire({
+    window.Swal.fire({
         title: 'Revoke Task?',
         text: `Are you sure you want to revoke this ${taskType} task?`,
         icon: 'warning',
@@ -301,21 +301,21 @@ function revokeTask(taskId, matchId, taskType) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Revoked!', data.message, 'success');
+                    window.Swal.fire('Revoked!', data.message, 'success');
                     loadMatchTaskDetails(matchId);
                 } else {
-                    Swal.fire('Error!', data.error, 'error');
+                    window.Swal.fire('Error!', data.error, 'error');
                 }
             })
             .catch(error => {
-                Swal.fire('Error!', 'Failed to revoke task', 'error');
+                window.Swal.fire('Error!', 'Failed to revoke task', 'error');
             });
         }
     });
 }
 
 function rescheduleTask(matchId, taskType) {
-    Swal.fire({
+    window.Swal.fire({
         title: 'Reschedule Task?',
         text: `This will reschedule the ${taskType} task for match ${matchId}`,
         icon: 'question',
@@ -353,7 +353,7 @@ function showTaskInfo(taskId, taskType, taskData) {
         </div>
     `;
     
-    Swal.fire({
+    window.Swal.fire({
         title: 'Task Information',
         html: modalHtml,
         width: '600px',
@@ -515,15 +515,15 @@ function matchMgmtScheduleMatch(matchId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            Swal.fire('Success!', data.message, 'success');
+            window.Swal.fire('Success!', data.message, 'success');
             refreshStatuses();
         } else {
-            Swal.fire('Error!', data.message, 'error');
+            window.Swal.fire('Error!', data.message, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        Swal.fire('Error!', 'An error occurred while scheduling the match.', 'error');
+        window.Swal.fire('Error!', 'An error occurred while scheduling the match.', 'error');
     });
 }
 
@@ -538,15 +538,15 @@ function createThreadNow(matchId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            Swal.fire('Success!', data.message, 'success');
+            window.Swal.fire('Success!', data.message, 'success');
             refreshStatuses();
         } else {
-            Swal.fire('Error!', data.message, 'error');
+            window.Swal.fire('Error!', data.message, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        Swal.fire('Error!', 'An error occurred while creating the thread.', 'error');
+        window.Swal.fire('Error!', 'An error occurred while creating the thread.', 'error');
     });
 }
 
@@ -561,15 +561,15 @@ function startLiveReporting(matchId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            Swal.fire('Success!', data.message, 'success');
+            window.Swal.fire('Success!', data.message, 'success');
             refreshStatuses();
         } else {
-            Swal.fire('Error!', data.message, 'error');
+            window.Swal.fire('Error!', data.message, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        Swal.fire('Error!', 'An error occurred while starting live reporting.', 'error');
+        window.Swal.fire('Error!', 'An error occurred while starting live reporting.', 'error');
     });
 }
 
@@ -584,21 +584,21 @@ function stopLiveReporting(matchId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            Swal.fire('Success!', data.message, 'success');
+            window.Swal.fire('Success!', data.message, 'success');
             refreshStatuses();
         } else {
-            Swal.fire('Error!', data.message, 'error');
+            window.Swal.fire('Error!', data.message, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        Swal.fire('Error!', 'An error occurred while stopping live reporting.', 'error');
+        window.Swal.fire('Error!', 'An error occurred while stopping live reporting.', 'error');
     });
 }
 
 function showTaskDetails(matchId, taskId) {
     // Implementation for showing task details
-    Swal.fire({
+    window.Swal.fire({
         title: 'Task Details',
         html: `
             <div class="text-start">
@@ -633,12 +633,12 @@ function addMatchByDate() {
     console.log('Selected index:', competitionInput.selectedIndex);
     
     if (!date) {
-        Swal.fire('Error!', 'Please select a date.', 'error');
+        window.Swal.fire('Error!', 'Please select a date.', 'error');
         return;
     }
     
     if (!competition) {
-        Swal.fire('Error!', 'Please select a competition.', 'error');
+        window.Swal.fire('Error!', 'Please select a competition.', 'error');
         return;
     }
     
@@ -658,20 +658,20 @@ function addMatchByDate() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            Swal.fire('Success!', data.message, 'success');
+            window.Swal.fire('Success!', data.message, 'success');
             setTimeout(() => location.reload(), 2000);
         } else {
-            Swal.fire('Error!', data.message || data.error, 'error');
+            window.Swal.fire('Error!', data.message || data.error, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        Swal.fire('Error!', 'An error occurred while adding matches.', 'error');
+        window.Swal.fire('Error!', 'An error occurred while adding matches.', 'error');
     });
 }
 
 function scheduleAllMatches() {
-    Swal.fire({
+    window.Swal.fire({
         title: 'Schedule All Matches?',
         text: 'This will schedule Discord threads and live reporting for all matches.',
         icon: 'question',
@@ -689,22 +689,22 @@ function scheduleAllMatches() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Success!', data.message, 'success');
+                    window.Swal.fire('Success!', data.message, 'success');
                     refreshStatuses();
                 } else {
-                    Swal.fire('Error!', data.message, 'error');
+                    window.Swal.fire('Error!', data.message, 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                Swal.fire('Error!', 'An error occurred while scheduling matches.', 'error');
+                window.Swal.fire('Error!', 'An error occurred while scheduling matches.', 'error');
             });
         }
     });
 }
 
 function fetchAllFromESPN() {
-    Swal.fire({
+    window.Swal.fire({
         title: 'Fetch All Matches from ESPN?',
         text: 'This will fetch all matches for the current season from ESPN.',
         icon: 'question',
@@ -712,12 +712,12 @@ function fetchAllFromESPN() {
         confirmButtonText: 'Yes, fetch all!'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Fetching matches...',
                 text: 'This may take a few moments.',
                 allowOutsideClick: false,
                 didOpen: () => {
-                    Swal.showLoading();
+                    window.Swal.showLoading();
                 }
             });
             
@@ -731,22 +731,22 @@ function fetchAllFromESPN() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Success!', data.message, 'success');
+                    window.Swal.fire('Success!', data.message, 'success');
                     setTimeout(() => location.reload(), 2000);
                 } else {
-                    Swal.fire('Error!', data.message, 'error');
+                    window.Swal.fire('Error!', data.message, 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                Swal.fire('Error!', 'An error occurred while fetching matches.', 'error');
+                window.Swal.fire('Error!', 'An error occurred while fetching matches.', 'error');
             });
         }
     });
 }
 
 function clearAllMatches() {
-    Swal.fire({
+    window.Swal.fire({
         title: 'Clear All Matches?',
         text: 'This will remove ALL matches from the database. This action cannot be undone!',
         icon: 'warning',
@@ -765,15 +765,15 @@ function clearAllMatches() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Success!', data.message, 'success');
+                    window.Swal.fire('Success!', data.message, 'success');
                     setTimeout(() => location.reload(), 2000);
                 } else {
-                    Swal.fire('Error!', data.message, 'error');
+                    window.Swal.fire('Error!', data.message, 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                Swal.fire('Error!', 'An error occurred while clearing matches.', 'error');
+                window.Swal.fire('Error!', 'An error occurred while clearing matches.', 'error');
             });
         }
     });
@@ -781,11 +781,11 @@ function clearAllMatches() {
 
 function matchMgmtEditMatch(matchId) {
     // Implementation for editing a match
-    Swal.fire('Info', 'Edit match functionality to be implemented.', 'info');
+    window.Swal.fire('Info', 'Edit match functionality to be implemented.', 'info');
 }
 
 function removeMatch(matchId) {
-    Swal.fire({
+    window.Swal.fire({
         title: 'Remove Match?',
         text: 'This will remove the match from the database.',
         icon: 'warning',
@@ -804,15 +804,15 @@ function removeMatch(matchId) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Success!', data.message, 'success');
+                    window.Swal.fire('Success!', data.message, 'success');
                     setTimeout(() => location.reload(), 2000);
                 } else {
-                    Swal.fire('Error!', data.message, 'error');
+                    window.Swal.fire('Error!', data.message, 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                Swal.fire('Error!', 'An error occurred while removing the match.', 'error');
+                window.Swal.fire('Error!', 'An error occurred while removing the match.', 'error');
             });
         }
     });
@@ -924,12 +924,12 @@ function debugMatchTasks(matchId) {
             if (data.success) {
                 showDebugModal(data.debug_info);
             } else {
-                Swal.fire('Error!', data.message, 'error');
+                window.Swal.fire('Error!', data.message, 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            Swal.fire('Error!', 'An error occurred while fetching debug information.', 'error');
+            window.Swal.fire('Error!', 'An error occurred while fetching debug information.', 'error');
         });
 }
 
@@ -958,7 +958,7 @@ function showDebugModal(debugInfo) {
     
     html += '</div>';
     
-    Swal.fire({
+    window.Swal.fire({
         title: 'Debug Information',
         html: html,
         width: '80%',
@@ -967,7 +967,7 @@ function showDebugModal(debugInfo) {
 }
 
 function forceScheduleMatch(matchId) {
-    Swal.fire({
+    window.Swal.fire({
         title: 'Force Schedule Match?',
         text: 'This will force schedule the match, bypassing normal checks.',
         icon: 'warning',
@@ -985,15 +985,15 @@ function forceScheduleMatch(matchId) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Success!', data.message, 'success');
+                    window.Swal.fire('Success!', data.message, 'success');
                     refreshStatuses();
                 } else {
-                    Swal.fire('Error!', data.message, 'error');
+                    window.Swal.fire('Error!', data.message, 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                Swal.fire('Error!', 'An error occurred while force scheduling the match.', 'error');
+                window.Swal.fire('Error!', 'An error occurred while force scheduling the match.', 'error');
             });
         }
     });

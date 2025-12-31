@@ -39,12 +39,12 @@
      */
     async function requestSub(matchId, leagueType, teamId) {
         // Check if SweetAlert2 is available
-        if (typeof Swal === 'undefined') {
+        if (typeof window.Swal === 'undefined') {
             console.warn('SweetAlert2 not available for substitute request');
             return;
         }
 
-        const result = await Swal.fire({
+        const result = await window.Swal.fire({
             title: 'Request Substitute',
             html: `
                 <div class="mb-3">
@@ -104,7 +104,7 @@
 
             // Both endpoints redirect on success, so any 2xx or 3xx response means success
             if (response.ok || (response.status >= 300 && response.status < 400)) {
-                Swal.fire({
+                window.Swal.fire({
                     icon: 'success',
                     title: 'Sub Requested!',
                     text: 'Substitute request has been created. Notifications are being sent to available substitutes.',
@@ -116,7 +116,7 @@
             }
         } catch (error) {
             console.error('Error:', error);
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'error',
                 title: 'Error',
                 text: error.message || 'Failed to request substitute'
@@ -142,14 +142,14 @@
 
             if (data.success) {
                 // Close modal
-                const modal = bootstrap.Modal.getInstance(
+                const modal = window.bootstrap.Modal.getInstance(
                     document.getElementById(`reportMatchModal-${matchId}`)
                 );
                 if (modal) modal.hide();
 
                 // Show success message and reload
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'Match Reported!',
                         timer: 2000,
@@ -163,8 +163,8 @@
             }
         } catch (error) {
             console.error('Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: error.message || 'Failed to report match'

@@ -21,7 +21,7 @@
             // Initialize tooltips
             const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(tooltipTriggerEl => {
-                return new bootstrap.Tooltip(tooltipTriggerEl, {
+                return new window.bootstrap.Tooltip(tooltipTriggerEl, {
                     delay: { show: 300, hide: 100 }
                 });
             });
@@ -29,7 +29,7 @@
             // Initialize popovers
             const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
             popoverTriggerList.map(popoverTriggerEl => {
-                return new bootstrap.Popover(popoverTriggerEl, {
+                return new window.bootstrap.Popover(popoverTriggerEl, {
                     delay: { show: 100, hide: 100 },
                     container: 'body'
                 });
@@ -42,7 +42,7 @@
             if (activeTabId) {
                 const tabElement = document.getElementById(activeTabId);
                 if (tabElement) {
-                    const tab = new bootstrap.Tab(tabElement);
+                    const tab = new window.bootstrap.Tab(tabElement);
                     tab.show();
                 }
             }

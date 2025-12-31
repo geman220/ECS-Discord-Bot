@@ -46,7 +46,7 @@
   // ============================================================================
 
   async function restartBot() {
-    const result = await Swal.fire({
+    const result = await window.Swal.fire({
       title: 'Restart Discord Bot?',
       text: 'This will temporarily disconnect the bot from Discord while it restarts.',
       icon: 'warning',
@@ -55,12 +55,12 @@
     });
 
     if (result.isConfirmed) {
-      Swal.fire({
+      window.Swal.fire({
         title: 'Restarting Bot...',
         text: 'Please wait while the bot restarts',
         allowOutsideClick: false,
         didOpen: () => {
-          Swal.showLoading();
+          window.Swal.showLoading();
 
           fetch(`${CONFIG.botApiUrl}/restart`, {
             method: 'POST',
@@ -71,14 +71,14 @@
           .then(response => response.json())
           .then(data => {
             if (data.success) {
-              Swal.fire('Restarted!', 'Discord bot restart has been initiated.', 'success');
+              window.Swal.fire('Restarted!', 'Discord bot restart has been initiated.', 'success');
             } else {
-              Swal.fire('Error!', `Failed to restart bot: ${data.message || 'Unknown error'}`, 'error');
+              window.Swal.fire('Error!', `Failed to restart bot: ${data.message || 'Unknown error'}`, 'error');
             }
           })
           .catch(error => {
             console.error('Error restarting bot:', error);
-            Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
+            window.Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
           });
         }
       });
@@ -86,12 +86,12 @@
   }
 
   async function checkBotHealth() {
-    Swal.fire({
+    window.Swal.fire({
       title: 'Running Health Check...',
       text: 'Checking bot connectivity and status',
       allowOutsideClick: false,
       didOpen: () => {
-        Swal.showLoading();
+        window.Swal.showLoading();
 
         fetch(`${CONFIG.botApiUrl}/health-detailed`)
         .then(response => response.json())
@@ -106,19 +106,19 @@
                 ${data.memory_usage_mb ? `<p><strong>Memory Usage:</strong> ${data.memory_usage_mb}MB</p>` : ''}
               </div>
             `;
-            Swal.fire({
+            window.Swal.fire({
               title: 'Bot Health Check',
               html: healthInfo,
               icon: 'success',
               confirmButtonText: 'Close'
             });
           } else {
-            Swal.fire('Bot Offline', `Bot status: ${data.status}. ${data.details || ''}`, 'warning');
+            window.Swal.fire('Bot Offline', `Bot status: ${data.status}. ${data.details || ''}`, 'warning');
           }
         })
         .catch(error => {
           console.error('Error checking bot health:', error);
-          Swal.fire('Connection Error', 'Failed to connect to bot API.', 'error');
+          window.Swal.fire('Connection Error', 'Failed to connect to bot API.', 'error');
         });
       }
     });
@@ -137,7 +137,7 @@
       logsHtml = 'No recent logs available. Bot may not be connected to the API.';
     }
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Discord Bot Logs',
       html: `
         <div class="bot-logs-container" style="max-height: 400px; overflow-y: auto; text-align: left;">
@@ -156,7 +156,7 @@
   }
 
   async function syncCommands() {
-    const result = await Swal.fire({
+    const result = await window.Swal.fire({
       title: 'Sync Commands?',
       text: 'This will synchronize all slash commands with Discord.',
       icon: 'question',
@@ -165,12 +165,12 @@
     });
 
     if (result.isConfirmed) {
-      Swal.fire({
+      window.Swal.fire({
         title: 'Syncing Commands...',
         text: 'Please wait while commands are synchronized',
         allowOutsideClick: false,
         didOpen: () => {
-          Swal.showLoading();
+          window.Swal.showLoading();
 
           fetch(`${CONFIG.botApiUrl}/sync-commands`, {
             method: 'POST',
@@ -181,14 +181,14 @@
           .then(response => response.json())
           .then(data => {
             if (data.success) {
-              Swal.fire('Synced!', `${data.commands_synced || 'All'} commands have been synchronized with Discord.`, 'success');
+              window.Swal.fire('Synced!', `${data.commands_synced || 'All'} commands have been synchronized with Discord.`, 'success');
             } else {
-              Swal.fire('Error!', `Failed to sync commands: ${data.message || 'Unknown error'}`, 'error');
+              window.Swal.fire('Error!', `Failed to sync commands: ${data.message || 'Unknown error'}`, 'error');
             }
           })
           .catch(error => {
             console.error('Error syncing commands:', error);
-            Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
+            window.Swal.fire('Error!', 'Failed to connect to bot API.', 'error');
           });
         }
       });
@@ -249,7 +249,7 @@
       `;
     });
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Discord Bot Commands',
       html: `
         <div class="command-list-container" style="max-height: 500px; overflow-y: auto;">
@@ -263,13 +263,13 @@
 
   function commandPermissions() {
     // Placeholder - would implement permissions management
-    Swal.fire('Command Permissions', 'Command permissions management interface would appear here.', 'info');
+    window.Swal.fire('Command Permissions', 'Command permissions management interface would appear here.', 'info');
   }
 
   function commandUsage() {
     const usage = CONFIG.commandUsage;
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Command Usage Statistics',
       html: `
         <div class="command-usage-stats" style="text-align: left;">
@@ -310,7 +310,7 @@
 
   function customCommands() {
     // Placeholder - would implement custom commands interface
-    Swal.fire('Custom Commands', 'Custom commands management interface would appear here.', 'info');
+    window.Swal.fire('Custom Commands', 'Custom commands management interface would appear here.', 'info');
   }
 
   // ============================================================================
@@ -319,13 +319,13 @@
 
   function manageGuild(element, e) {
     const guildId = element.dataset.guild;
-    Swal.fire('Guild Management', `Guild management interface for ${guildId} would appear here.`, 'info');
+    window.Swal.fire('Guild Management', `Guild management interface for ${guildId} would appear here.`, 'info');
   }
 
   function guildStats(element, e) {
     const guild = CONFIG.guildInfo;
 
-    Swal.fire({
+    window.Swal.fire({
       title: `${guild.name || 'Guild'} Statistics`,
       html: `
         <div class="guild-stats-container" style="text-align: left;">
@@ -363,7 +363,7 @@
   }
 
   function addGuild() {
-    Swal.fire({
+    window.Swal.fire({
       title: 'Add Bot to Server',
       html: `
         <div class="add-guild-container">
@@ -404,12 +404,12 @@
       welcome_messages: document.getElementById('welcomeMessages')?.checked || false
     };
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Saving Configuration...',
       text: 'Please wait while the configuration is being saved',
       allowOutsideClick: false,
       didOpen: () => {
-        Swal.showLoading();
+        window.Swal.showLoading();
       }
     });
 
@@ -425,13 +425,13 @@
       const data = await response.json();
 
       if (data.success) {
-        Swal.fire('Saved!', 'Bot configuration has been updated successfully.', 'success');
+        window.Swal.fire('Saved!', 'Bot configuration has been updated successfully.', 'success');
       } else {
-        Swal.fire('Error!', `Failed to save configuration: ${data.error || 'Unknown error'}`, 'error');
+        window.Swal.fire('Error!', `Failed to save configuration: ${data.error || 'Unknown error'}`, 'error');
       }
     } catch (error) {
       console.error('Error saving bot config:', error);
-      Swal.fire('Error!', 'Failed to connect to bot API. Please check if the bot is running.', 'error');
+      window.Swal.fire('Error!', 'Failed to connect to bot API. Please check if the bot is running.', 'error');
     }
   }
 
@@ -452,7 +452,7 @@
     if (cmdLogEl) cmdLogEl.checked = true;
     if (welcomeEl) welcomeEl.checked = true;
 
-    Swal.fire('Reset!', 'Configuration has been reset to defaults.', 'info');
+    window.Swal.fire('Reset!', 'Configuration has been reset to defaults.', 'info');
   }
 
   async function loadBotConfig() {

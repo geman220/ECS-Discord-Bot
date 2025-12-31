@@ -64,7 +64,7 @@
      * @param {string} csrfToken - CSRF token for form submission
      */
     function deleteCategory(id, name, deleteUrl, csrfToken) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Delete Category?',
             text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
             icon: 'warning',

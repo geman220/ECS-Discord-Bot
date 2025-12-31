@@ -14,7 +14,7 @@
 
         initializeSelect2() {
             // Check if jQuery and Select2 are available
-            if (typeof $ === 'undefined' || typeof $.fn.select2 === 'undefined') {
+            if (typeof window.$ === 'undefined' || typeof window.$.fn.select2 === 'undefined') {
                 console.warn('Select2 or jQuery not available. Using basic select.');
                 return;
             }
@@ -74,7 +74,7 @@
                 if (!permissionsSelect) return;
 
                 // Update selected permissions
-                if (typeof $ !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
+                if (typeof window.$ !== 'undefined' && typeof window.$.fn.select2 !== 'undefined') {
                     // Use Select2 method
                     $('#permissions').val(data.permissions).trigger('change');
                 } else {

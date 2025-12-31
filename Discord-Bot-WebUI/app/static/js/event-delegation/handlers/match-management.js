@@ -114,7 +114,7 @@ window.EventDelegation.register('toggle-historical', function(element, e) {
 
     const target = document.querySelector(targetId);
     if (target && window.bootstrap) {
-        const collapse = bootstrap.Collapse.getOrCreateInstance(target);
+        const collapse = window.bootstrap.Collapse.getOrCreateInstance(target);
         collapse.toggle();
     }
 });

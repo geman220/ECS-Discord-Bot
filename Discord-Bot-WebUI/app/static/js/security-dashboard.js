@@ -40,7 +40,7 @@ class SecurityDashboard {
     initTooltips() {
         // Initialize Bootstrap tooltips
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new window.bootstrap.Tooltip(tooltipTriggerEl));
     }
 
     async refreshAll() {
@@ -374,7 +374,7 @@ class SecurityDashboard {
                 this.showAlert(data.message, 'success');
                 
                 // Close modal and reset form
-                const modal = bootstrap.Modal.getInstance(document.getElementById('banIpModal'));
+                const modal = window.bootstrap.Modal.getInstance(document.getElementById('banIpModal'));
                 modal.hide();
                 form.reset();
                 
@@ -702,8 +702,8 @@ class SecurityDashboard {
 
     showAlert(message, type = 'info') {
         // Use SweetAlert2 if available, otherwise fallback to browser alert
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: type === 'error' ? 'Error' : 'Success',
                 text: message,
                 icon: type === 'error' ? 'error' : 'success',

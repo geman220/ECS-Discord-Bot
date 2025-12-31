@@ -70,7 +70,7 @@
                 if (data.message && data.match_id) {
                     // console.log('RSVP updated successfully with enterprise system');
                     // Show success message
-                    Swal.fire({
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'RSVP Updated',
                         text: data.message || 'Your RSVP status has been updated!',
@@ -90,7 +90,7 @@
                 } else {
                     // Fallback for legacy success format
                     if (data.success) {
-                        Swal.fire({
+                        window.Swal.fire({
                             icon: 'success',
                             title: 'RSVP Updated',
                             text: 'Your RSVP status has been updated!',
@@ -129,7 +129,7 @@
                 this.currentOperationId = null;
                 
                 // Show error message to user with retry option
-                Swal.fire({
+                window.Swal.fire({
                     icon: 'error',
                     title: 'RSVP Error',
                     text: `Could not update your RSVP: ${error.message}`,

@@ -138,24 +138,24 @@
             `;
           }
 
-          Swal.fire({
+          window.Swal.fire({
             title: 'Match Details',
             html: detailsHtml,
             width: '700px',
             confirmButtonText: 'Close'
           });
         } else {
-          Swal.fire('Error', 'Could not load match details', 'error');
+          window.Swal.fire('Error', 'Could not load match details', 'error');
         }
       })
       .catch(error => {
         console.error('Error:', error);
-        Swal.fire('Error', 'Could not load match details', 'error');
+        window.Swal.fire('Error', 'Could not load match details', 'error');
       });
   }
 
   function adminPanelDeleteMatch(matchId, matchName) {
-    Swal.fire({
+    window.Swal.fire({
       title: 'Delete Match?',
       text: `Are you sure you want to delete "${matchName}"? This action cannot be undone.`,
       icon: 'warning',
@@ -173,16 +173,16 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            Swal.fire('Deleted!', 'Match has been deleted.', 'success').then(() => {
+            window.Swal.fire('Deleted!', 'Match has been deleted.', 'success').then(() => {
               location.reload();
             });
           } else {
-            Swal.fire('Error', data.error || 'Could not delete match', 'error');
+            window.Swal.fire('Error', data.error || 'Could not delete match', 'error');
           }
         })
         .catch(error => {
           console.error('Error:', error);
-          Swal.fire('Error', 'Could not delete match', 'error');
+          window.Swal.fire('Error', 'Could not delete match', 'error');
         });
       }
     });
@@ -192,11 +192,11 @@
     const selectedMatches = getSelectedMatches();
 
     if (selectedMatches.length === 0) {
-      Swal.fire('No Selection', 'Please select matches to perform bulk actions.', 'warning');
+      window.Swal.fire('No Selection', 'Please select matches to perform bulk actions.', 'warning');
       return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Bulk Actions',
       text: `Perform action on ${selectedMatches.length} selected matches:`,
       input: 'select',
@@ -221,7 +221,7 @@
   }
 
   function confirmBulkDelete(matchIds) {
-    Swal.fire({
+    window.Swal.fire({
       title: 'Confirm Bulk Delete',
       text: `Are you sure you want to delete ${matchIds.length} matches? This cannot be undone.`,
       icon: 'warning',
@@ -243,23 +243,23 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            Swal.fire('Success!', data.message, 'success').then(() => {
+            window.Swal.fire('Success!', data.message, 'success').then(() => {
               location.reload();
             });
           } else {
-            Swal.fire('Error', data.error, 'error');
+            window.Swal.fire('Error', data.error, 'error');
           }
         })
         .catch(error => {
           console.error('Error:', error);
-          Swal.fire('Error', 'Could not perform bulk delete', 'error');
+          window.Swal.fire('Error', 'Could not perform bulk delete', 'error');
         });
       }
     });
   }
 
   function bulkUpdateStatus(matchIds) {
-    Swal.fire({
+    window.Swal.fire({
       title: 'Update Status',
       text: 'Select new status for selected matches:',
       input: 'select',
@@ -288,44 +288,44 @@
         .then(response => response.json())
         .then(data => {
           if (data.success) {
-            Swal.fire('Success!', data.message, 'success').then(() => {
+            window.Swal.fire('Success!', data.message, 'success').then(() => {
               location.reload();
             });
           } else {
-            Swal.fire('Error', data.error, 'error');
+            window.Swal.fire('Error', data.error, 'error');
           }
         })
         .catch(error => {
           console.error('Error:', error);
-          Swal.fire('Error', 'Could not update status', 'error');
+          window.Swal.fire('Error', 'Could not update status', 'error');
         });
       }
     });
   }
 
   function duplicateMatch(matchId) {
-    Swal.fire({
+    window.Swal.fire({
       title: 'Duplicate Match',
       text: 'This will create a copy of the match. You can edit the details after creation.',
       showCancelButton: true,
       confirmButtonText: 'Duplicate'
     }).then((result) => {
       if (result.isConfirmed) {
-        Swal.fire('Duplicated!', 'Match has been duplicated. Redirecting to edit...', 'success');
+        window.Swal.fire('Duplicated!', 'Match has been duplicated. Redirecting to edit...', 'success');
       }
     });
   }
 
   function adminPanelScheduleMatch(matchId) {
-    Swal.fire('Schedule Match', 'Match scheduling functionality would be implemented here.', 'info');
+    window.Swal.fire('Schedule Match', 'Match scheduling functionality would be implemented here.', 'info');
   }
 
   function postponeMatch(matchId) {
-    Swal.fire('Postpone Match', 'Match postponement functionality would be implemented here.', 'info');
+    window.Swal.fire('Postpone Match', 'Match postponement functionality would be implemented here.', 'info');
   }
 
   function cancelMatch(matchId) {
-    Swal.fire({
+    window.Swal.fire({
       title: 'Cancel Match',
       text: 'Are you sure you want to cancel this match?',
       icon: 'warning',
@@ -333,13 +333,13 @@
       confirmButtonText: 'Yes, cancel it!'
     }).then((result) => {
       if (result.isConfirmed) {
-        Swal.fire('Cancelled!', 'Match has been cancelled.', 'success');
+        window.Swal.fire('Cancelled!', 'Match has been cancelled.', 'success');
       }
     });
   }
 
   function exportMatches() {
-    Swal.fire({
+    window.Swal.fire({
       title: 'Export Matches',
       text: 'Choose export format:',
       input: 'select',
@@ -352,17 +352,17 @@
       confirmButtonText: 'Export'
     }).then((result) => {
       if (result.isConfirmed) {
-        Swal.fire('Export Started', `Export in ${result.value.toUpperCase()} format has been queued.`, 'info');
+        window.Swal.fire('Export Started', `Export in ${result.value.toUpperCase()} format has been queued.`, 'info');
       }
     });
   }
 
   function exportSelectedMatches(matchIds) {
-    Swal.fire('Export Started', `Export of ${matchIds.length} selected matches has been queued.`, 'info');
+    window.Swal.fire('Export Started', `Export of ${matchIds.length} selected matches has been queued.`, 'info');
   }
 
   function bulkScheduleMatches() {
-    Swal.fire('Bulk Schedule', 'Bulk scheduling functionality would be implemented here.', 'info');
+    window.Swal.fire('Bulk Schedule', 'Bulk scheduling functionality would be implemented here.', 'info');
   }
 
   // Register with InitSystem (primary)

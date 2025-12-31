@@ -93,7 +93,7 @@ class DiscordMembershipChecker {
         
         const isUrgent = urgency === 'critical';
         
-        Swal.fire({
+        window.Swal.fire({
             title: title,
             html: `
                 <div class="text-start">
@@ -138,7 +138,7 @@ class DiscordMembershipChecker {
         
         // Show follow-up message
         setTimeout(() => {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Welcome to ECS!',
                 html: `
                     <div class="text-start">
@@ -160,7 +160,7 @@ class DiscordMembershipChecker {
     }
 
     showReminderMessage() {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Important Reminder',
             text: 'Remember to join our Discord server soon! You won\'t receive waitlist notifications without it.',
             icon: 'info',
@@ -175,7 +175,7 @@ class DiscordMembershipChecker {
         // Optional: Show a brief success message if user is already in Discord
         if (this.options.showSuccessMessage) {
             setTimeout(() => {
-                Swal.fire({
+                window.Swal.fire({
                     title: '✅ All Set!',
                     text: 'Great! You\'re already in our Discord server and will receive all notifications.',
                     icon: 'success',

@@ -46,7 +46,7 @@ window.EventDelegation.register('delete-ecs-fc-match', function(element, e) {
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Delete Match?',
         text: `Are you sure you want to delete ${matchName}? This cannot be undone.`,
         icon: 'warning',
@@ -69,15 +69,15 @@ window.EventDelegation.register('delete-ecs-fc-match', function(element, e) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Deleted!', data.message || 'Match deleted.', 'success')
+                    window.Swal.fire('Deleted!', data.message || 'Match deleted.', 'success')
                         .then(() => window.location.reload());
                 } else {
-                    Swal.fire('Error', data.message || 'Failed to delete match.', 'error');
+                    window.Swal.fire('Error', data.message || 'Failed to delete match.', 'error');
                 }
             })
             .catch(error => {
                 console.error('[delete-ecs-fc-match] Error:', error);
-                Swal.fire('Error', 'An error occurred while deleting the match.', 'error');
+                window.Swal.fire('Error', 'An error occurred while deleting the match.', 'error');
             });
         }
     });
@@ -98,7 +98,7 @@ window.EventDelegation.register('deactivate-opponent', function(element, e) {
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Deactivate Opponent?',
         text: `Are you sure you want to deactivate ${opponentName}? You can reactivate them later.`,
         icon: 'warning',
@@ -125,15 +125,15 @@ window.EventDelegation.register('deactivate-opponent', function(element, e) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Deactivated!', data.message || 'Opponent deactivated.', 'success')
+                    window.Swal.fire('Deactivated!', data.message || 'Opponent deactivated.', 'success')
                         .then(() => window.location.reload());
                 } else {
-                    Swal.fire('Error', data.message || 'Failed to deactivate opponent.', 'error');
+                    window.Swal.fire('Error', data.message || 'Failed to deactivate opponent.', 'error');
                 }
             })
             .catch(error => {
                 console.error('[deactivate-opponent] Error:', error);
-                Swal.fire('Error', 'An error occurred.', 'error');
+                window.Swal.fire('Error', 'An error occurred.', 'error');
             });
         }
     });
@@ -148,7 +148,7 @@ window.EventDelegation.register('add-quick-opponent', function(element, e) {
 
     const modal = document.getElementById('addOpponentModal');
     if (modal && window.bootstrap) {
-        const bsModal = bootstrap.Modal.getOrCreateInstance(modal);
+        const bsModal = window.bootstrap.Modal.getOrCreateInstance(modal);
         bsModal.show();
     }
 });
@@ -164,7 +164,7 @@ window.EventDelegation.register('preview-csv-import', function(element, e) {
     const previewContainer = document.getElementById('csvPreview');
 
     if (!fileInput || !fileInput.files[0]) {
-        Swal.fire('Error', 'Please select a CSV file first.', 'warning');
+        window.Swal.fire('Error', 'Please select a CSV file first.', 'warning');
         return;
     }
 
@@ -176,7 +176,7 @@ window.EventDelegation.register('preview-csv-import', function(element, e) {
         const lines = csv.split('\n').filter(line => line.trim());
 
         if (lines.length < 2) {
-            Swal.fire('Error', 'CSV file is empty or has no data rows.', 'error');
+            window.Swal.fire('Error', 'CSV file is empty or has no data rows.', 'error');
             return;
         }
 
@@ -212,7 +212,7 @@ window.EventDelegation.register('preview-csv-import', function(element, e) {
     };
 
     reader.onerror = function() {
-        Swal.fire('Error', 'Failed to read the CSV file.', 'error');
+        window.Swal.fire('Error', 'Failed to read the CSV file.', 'error');
     };
 
     reader.readAsText(file);

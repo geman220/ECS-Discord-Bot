@@ -179,7 +179,7 @@ window.CalendarSubscription = window.CalendarSubscription || (function() {
         }
 
         // Fallback to Toastify
-        if (typeof Toastify !== 'undefined') {
+        if (typeof window.Toastify !== 'undefined') {
             // Use ECSTheme colors with gradient variations for toast backgrounds
             const successColor = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#198754';
             const successLight = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success-light') : '#198754';
@@ -196,7 +196,7 @@ window.CalendarSubscription = window.CalendarSubscription || (function() {
                 info: `linear-gradient(to right, ${infoColor}, ${infoLight})`
             };
 
-            Toastify({
+            window.Toastify({
                 text: message,
                 duration: 3000,
                 gravity: 'top',

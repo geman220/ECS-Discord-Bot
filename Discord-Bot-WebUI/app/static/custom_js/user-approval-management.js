@@ -375,8 +375,8 @@ function getCSRFToken() {
  * @param {string} message - Success message
  */
 function showSuccessAlert(message) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             icon: 'success',
             title: 'Success!',
             text: message,
@@ -395,8 +395,8 @@ function showSuccessAlert(message) {
  * @param {string} message - Error message
  */
 function showErrorAlert(message) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             icon: 'error',
             title: 'Error!',
             text: message,
@@ -412,8 +412,8 @@ function showErrorAlert(message) {
  * @param {string} message - Warning message
  */
 function showWarningAlert(message) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             icon: 'warning',
             title: 'Warning!',
             text: message,
@@ -429,8 +429,8 @@ function showWarningAlert(message) {
  * @param {string} message - Info message
  */
 function showInfoAlert(message) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             icon: 'info',
             title: 'Info',
             text: message,

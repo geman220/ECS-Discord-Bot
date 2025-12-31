@@ -13,7 +13,7 @@
         // Initialize tooltips
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
+            return new window.bootstrap.Tooltip(tooltipTriggerEl);
         });
     });
 
@@ -191,7 +191,7 @@
 
         // Add toast to container
         container.appendChild(toastElement);
-        const toast = new bootstrap.Toast(toastElement);
+        const toast = new window.bootstrap.Toast(toastElement);
         toast.show();
 
         // Remove element after it's hidden

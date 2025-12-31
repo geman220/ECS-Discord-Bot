@@ -746,8 +746,8 @@ const PassStudio = {
     },
 
     showToast(message, type = 'info') {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 toast: true,
                 position: 'top-end',
                 icon: type,

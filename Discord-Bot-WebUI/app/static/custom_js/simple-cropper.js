@@ -285,7 +285,7 @@ window.loadImageIntoCropper = function(fileInput) {
     }).catch(error => {
         console.error('Error loading image:', error);
         if (window.Swal) {
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'error',
                 title: 'Error',
                 text: 'Failed to load image. Please try again.'
@@ -353,7 +353,7 @@ window.getCroppedImage = function() {
     const croppedData = window.getCroppedImage();
     if (!croppedData) {
         if (window.Swal) {
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'warning',
                 title: 'No Image',
                 text: 'Please select and adjust an image first.'
@@ -364,14 +364,14 @@ window.getCroppedImage = function() {
     
     // Show loading state
     if (window.Swal) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Saving Image...',
             text: 'Optimizing and saving your profile picture',
             allowOutsideClick: false,
             allowEscapeKey: false,
             showConfirmButton: false,
             didOpen: () => {
-                Swal.showLoading();
+                window.Swal.showLoading();
             }
         });
     }
@@ -425,7 +425,7 @@ window.getCroppedImage = function() {
         
         // Show success message
         if (window.Swal) {
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'success',
                 title: 'Image Saved!',
                 text: 'Your profile picture has been optimized and saved to your profile.',
@@ -446,7 +446,7 @@ window.getCroppedImage = function() {
         
         // Show error but don't block the flow
         if (window.Swal) {
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'warning',
                 title: 'Image Prepared',
                 text: 'Image cropped successfully. It will be saved when you complete registration.',

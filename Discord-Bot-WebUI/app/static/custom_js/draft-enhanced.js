@@ -146,8 +146,8 @@ function handlePlayerRemovedEvent(data) {
 function handleDraftError(data) {
     if (window.draftSystemInstance && typeof window.draftSystemInstance.showToast === 'function') {
         window.draftSystemInstance.showToast(data.message, 'error');
-    } else if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    } else if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             icon: 'error',
             title: 'Draft Error',
             text: data.message,
@@ -371,8 +371,8 @@ function handleDropOnTeam(playerId, teamId, dropZone) {
         console.log(`[DraftEnhanced] Drafting player ${playerId} to team ${teamId} via global socket`);
     } else {
         console.error('[DraftEnhanced] No connected socket available - cannot draft');
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 icon: 'warning',
                 title: 'Connection Issue',
                 text: 'Not connected to server. Please wait a moment and try again.',
@@ -453,8 +453,8 @@ function handleDropToAvailable(playerId) {
         console.log(`[DraftEnhanced] Undrafting player ${playerId} from team ${teamId} via global socket`);
     } else {
         console.error('[DraftEnhanced] No connected socket available - cannot undraft');
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 icon: 'warning',
                 title: 'Connection Issue',
                 text: 'Not connected to server. Please wait a moment and try again.',
@@ -700,8 +700,8 @@ function confirmDraftPlayer(playerId, playerName, isMultiTeam = false, existingT
     // For multi-team players, show confirmation first
     if (isMultiTeam && existingTeams) {
         // Use SweetAlert2 for the confirmation if available, otherwise use native confirm
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Add to Another ECS FC Team?',
                 html: `<p>This player is already on:</p>
                        <p class="fw-bold text-info">${existingTeams}</p>
@@ -768,7 +768,7 @@ function showDraftTeamSelection(playerId, playerName, existingTeams = '') {
         }
 
         // Close modal
-        bootstrap.Modal.getInstance(document.getElementById('draftConfirmModal')).hide();
+        window.bootstrap.Modal.getInstance(document.getElementById('draftConfirmModal')).hide();
 
         // Get league name from script tag data attribute
         const leagueNameScript = document.querySelector('script[data-league-name]');
@@ -937,7 +937,7 @@ function displayPlayerProfile(data, playerId) {
     draftButton.classList.add('is-visible');
     draftButton.onclick = () => {
         // Close modal and trigger draft
-        bootstrap.Modal.getInstance(document.getElementById('playerProfileModal')).hide();
+        window.bootstrap.Modal.getInstance(document.getElementById('playerProfileModal')).hide();
         confirmDraftPlayer(playerId, data.name);
     };
 }

@@ -73,7 +73,7 @@
           if (window.toastr) {
             toastr.success('RSVP synchronization with Discord has been triggered.', 'Sync Started');
           } else if (window.Swal) {
-            Swal.fire({
+            window.Swal.fire({
               title: 'Success!',
               text: 'RSVP synchronization with Discord has been triggered.',
               icon: 'success',
@@ -87,7 +87,7 @@
           if (window.toastr) {
             toastr.error(data.message || 'An error occurred syncing with Discord.', 'Sync Failed');
           } else if (window.Swal) {
-            Swal.fire({
+            window.Swal.fire({
               title: 'Sync Failed',
               text: data.message || 'An error occurred syncing with Discord.',
               icon: 'error'
@@ -108,7 +108,7 @@
         if (window.toastr) {
           toastr.error('Could not connect to the Discord sync service.', 'Connection Error');
         } else if (window.Swal) {
-          Swal.fire({
+          window.Swal.fire({
             title: 'Connection Error',
             text: 'Could not connect to the Discord sync service.',
             icon: 'error'
@@ -139,12 +139,12 @@
         if (window.bootstrap) {
           var tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
           for (var i = 0; i < tooltipElements.length; i++) {
-            new bootstrap.Tooltip(tooltipElements[i]);
+            new window.bootstrap.Tooltip(tooltipElements[i]);
           }
         }
         
         // Initialize DataTables
-        if ($.fn.DataTable) {
+        if (window.$.fn.DataTable) {
           // Simple table options without complex structures
           var tableOptions = {
             responsive: true,
@@ -283,7 +283,7 @@ function bindEventHandlers() {
       if (window.bootstrap) {
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.map(function(tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl, {
+            return new window.bootstrap.Tooltip(tooltipTriggerEl, {
                 delay: { show: 200, hide: 100 }
             });
         });
@@ -372,7 +372,7 @@ function bindEventHandlers() {
               }
               var smsModal = document.querySelector('[data-modal="send-sms"]');
               if (window.bootstrap && smsModal) {
-                bootstrap.Modal.getInstance(smsModal).hide();
+                window.bootstrap.Modal.getInstance(smsModal).hide();
               }
             } else {
               if (window.toastr) {
@@ -430,7 +430,7 @@ function bindEventHandlers() {
               }
               var discordModal = document.querySelector('[data-modal="send-discord-dm"]');
               if (window.bootstrap && discordModal) {
-                bootstrap.Modal.getInstance(discordModal).hide();
+                window.bootstrap.Modal.getInstance(discordModal).hide();
               }
             } else {
               if (window.toastr) {
@@ -471,8 +471,8 @@ function bindTabHandlers() {
         fixDropdownsAndOverflow();
         
         // Adjust DataTables
-        if ($.fn.dataTable) {
-          $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        if (window.$.fn.dataTable) {
+          window.$.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
         }
       });
     }
@@ -589,7 +589,7 @@ function loadAvailableSubs() {
           if (data.success) {
             // Show success message
             if (window.Swal) {
-              Swal.fire({
+              window.Swal.fire({
                 title: 'Success!',
                 text: data.message || 'Substitute assigned successfully.',
                 icon: 'success',
@@ -610,13 +610,13 @@ function loadAvailableSubs() {
             // Hide modal
             var assignModal = document.querySelector('[data-modal="assign-sub"]');
             if (window.bootstrap && assignModal) {
-              var modal = bootstrap.Modal.getInstance(assignModal);
+              var modal = window.bootstrap.Modal.getInstance(assignModal);
               modal.hide();
             }
           } else {
             // Show error message
             if (window.Swal) {
-              Swal.fire({
+              window.Swal.fire({
                 title: 'Error',
                 text: data.message || 'Failed to assign substitute.',
                 icon: 'error'

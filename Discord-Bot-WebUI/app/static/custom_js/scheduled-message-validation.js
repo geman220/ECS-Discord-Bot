@@ -24,10 +24,10 @@ function initializeValidationPage() {
     setupAutoRefresh();
 
     // Initialize tooltips if Bootstrap tooltips are available
-    if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+    if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Tooltip) {
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
+            return new window.bootstrap.Tooltip(tooltipTriggerEl);
         });
     }
 

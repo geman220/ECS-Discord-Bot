@@ -70,7 +70,7 @@ class ModalManager {
             return;
         }
 
-        if (typeof bootstrap === 'undefined' || typeof bootstrap.Modal === 'undefined') {
+        if (typeof window.bootstrap === 'undefined' || typeof window.bootstrap.Modal === 'undefined') {
             console.error('[ModalManager] Bootstrap not loaded. Cannot initialize modals.');
             return;
         }
@@ -109,11 +109,11 @@ class ModalManager {
 
                 try {
                     // Check if modal already has a Bootstrap instance
-                    let instance = bootstrap.Modal.getInstance(modalEl);
+                    let instance = window.bootstrap.Modal.getInstance(modalEl);
 
                     if (!instance) {
                         // Create new instance if it doesn't exist
-                        instance = new bootstrap.Modal(modalEl);
+                        instance = new window.bootstrap.Modal(modalEl);
                     }
 
                     this.modalInstances.set(modalEl.id, instance);
@@ -223,11 +223,11 @@ class ModalManager {
 
             try {
                 // Check if Bootstrap already initialized it
-                modal = bootstrap.Modal.getInstance(modalElement);
+                modal = window.bootstrap.Modal.getInstance(modalElement);
 
                 if (!modal) {
                     // Create new instance with options
-                    modal = new bootstrap.Modal(modalElement, options);
+                    modal = new window.bootstrap.Modal(modalElement, options);
                 }
 
                 // Cache for future use
@@ -270,7 +270,7 @@ class ModalManager {
             // Try to find it in DOM and get Bootstrap instance
             const modalElement = document.getElementById(modalId);
             if (modalElement) {
-                const instance = bootstrap.Modal.getInstance(modalElement);
+                const instance = window.bootstrap.Modal.getInstance(modalElement);
                 if (instance) {
                     try {
                         instance.hide();
@@ -324,7 +324,7 @@ class ModalManager {
     /**
      * Get a modal instance by ID
      * @param {string} modalId - The ID of the modal
-     * @returns {bootstrap.Modal|null} - The Bootstrap modal instance or null
+     * @returns {window.bootstrap.Modal|null} - The Bootstrap modal instance or null
      */
     static getInstance(modalId) {
         return this.modalInstances.get(modalId) || null;

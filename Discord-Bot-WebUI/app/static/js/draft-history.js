@@ -226,7 +226,7 @@ class DraftHistoryManager {
             
             if (data.success) {
                 this.showAlert('success', data.message);
-                bootstrap.Modal.getInstance(document.getElementById('editDraftPickModal')).hide();
+                window.bootstrap.Modal.getInstance(document.getElementById('editDraftPickModal')).hide();
                 this.reloadPage();
             } else {
                 this.showAlert('error', data.message);
@@ -405,7 +405,7 @@ class DraftHistoryManager {
     initTooltips() {
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
+            return new window.bootstrap.Tooltip(tooltipTriggerEl);
         });
     }
 }

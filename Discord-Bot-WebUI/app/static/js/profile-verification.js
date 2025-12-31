@@ -414,8 +414,8 @@
     showIncompleteWarning: function(uncheckedSections) {
       const sectionList = uncheckedSections.map(s => `• ${s}`).join('<br>');
 
-      if (typeof Swal !== 'undefined') {
-        Swal.fire({
+      if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
           icon: 'warning',
           title: 'Review Required',
           html: `<p>Please review the following sections before confirming:</p><br>${sectionList}`,

@@ -281,12 +281,12 @@ window.EventDelegation.register('rsvp-update-status', function(element, e) {
  */
 function updateRSVPStatus(playerId, matchId, response) {
     // Use SweetAlert2 for confirmation
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         console.error('[updateRSVPStatus] SweetAlert2 not available');
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Update RSVP Status?',
         text: 'Are you sure you want to update this player\'s RSVP status?',
         icon: 'question',
@@ -312,11 +312,11 @@ function updateRSVPStatus(playerId, matchId, response) {
             formData.append('response', response);
 
             // Show loading state
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Updating...',
                 allowOutsideClick: false,
                 didOpen: () => {
-                    Swal.showLoading();
+                    window.Swal.showLoading();
                 }
             });
 
@@ -336,7 +336,7 @@ function updateRSVPStatus(playerId, matchId, response) {
             })
             .then(function(data) {
                 if (data.success) {
-                    Swal.fire({
+                    window.Swal.fire({
                         title: 'Success!',
                         text: 'RSVP updated successfully.',
                         icon: 'success',
@@ -346,7 +346,7 @@ function updateRSVPStatus(playerId, matchId, response) {
                         window.location.reload();
                     });
                 } else {
-                    Swal.fire({
+                    window.Swal.fire({
                         title: 'Error',
                         text: data.message || 'Error updating RSVP.',
                         icon: 'error'
@@ -355,7 +355,7 @@ function updateRSVPStatus(playerId, matchId, response) {
             })
             .catch(function(error) {
                 console.error('[updateRSVPStatus] Error:', error);
-                Swal.fire({
+                window.Swal.fire({
                     title: 'Error',
                     text: 'An error occurred while updating RSVP. Please try again.',
                     icon: 'error'

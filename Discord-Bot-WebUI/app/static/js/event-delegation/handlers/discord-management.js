@@ -28,12 +28,12 @@ window.EventDelegation.register('refresh-all-discord-status', function(element, 
 
     const btn = element;
 
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         console.error('[refresh-all-discord-status] SweetAlert2 not available');
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Refresh All Discord Status',
         text: 'This will refresh Discord status for all players. This may take a moment. Continue?',
         icon: 'question',
@@ -62,7 +62,7 @@ window.EventDelegation.register('refresh-all-discord-status', function(element, 
             }).then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire({
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'Status Updated',
                         text: `Refreshed Discord status for ${data.success_count} players`,
@@ -75,7 +75,7 @@ window.EventDelegation.register('refresh-all-discord-status', function(element, 
                     throw new Error(data.message || 'Failed to refresh status');
                 }
             }).catch(error => {
-                Swal.fire({
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: 'Failed to refresh status: ' + error.message,
@@ -98,12 +98,12 @@ window.EventDelegation.register('refresh-unknown-discord-status', function(eleme
 
     const btn = element;
 
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         console.error('[refresh-unknown-discord-status] SweetAlert2 not available');
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Check Unknown Discord Status',
         text: 'This will check Discord status for all players with unknown status. Continue?',
         icon: 'question',
@@ -132,7 +132,7 @@ window.EventDelegation.register('refresh-unknown-discord-status', function(eleme
             }).then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire({
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'Status Checked',
                         text: `Checked Discord status for ${data.success_count} players with unknown status`,
@@ -145,7 +145,7 @@ window.EventDelegation.register('refresh-unknown-discord-status', function(eleme
                     throw new Error(data.message || 'Failed to check unknown status');
                 }
             }).catch(error => {
-                Swal.fire({
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: 'Failed to check unknown status: ' + error.message,
@@ -191,8 +191,8 @@ window.EventDelegation.register('refresh-player-status', function(element, e) {
     .then(data => {
         if (data.success) {
             // Show success message and reload
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'success',
                     title: 'Status Updated',
                     text: `Discord status refreshed for ${playerName}`,
@@ -208,8 +208,8 @@ window.EventDelegation.register('refresh-player-status', function(element, e) {
             throw new Error(data.message || 'Failed to refresh status');
         }
     }).catch(error => {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 icon: 'error',
                 title: 'Error',
                 text: 'Failed to refresh status: ' + error.message,
@@ -281,8 +281,8 @@ window.EventDelegation.register('submit-discord-dm', function(element, e) {
     const message = document.getElementById('dmMessage')?.value;
 
     if (!message || !message.trim()) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 icon: 'warning',
                 title: 'Message Required',
                 text: 'Please enter a message before sending',
@@ -314,12 +314,12 @@ window.EventDelegation.register('submit-discord-dm', function(element, e) {
         if (data.success) {
             const modalElement = document.getElementById('discordDMModal');
             if (modalElement && window.bootstrap) {
-                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                const modalInstance = window.bootstrap.Modal.getInstance(modalElement);
                 if (modalInstance) modalInstance.hide();
             }
 
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'success',
                     title: 'Message Sent',
                     text: 'Discord message sent successfully!',
@@ -331,8 +331,8 @@ window.EventDelegation.register('submit-discord-dm', function(element, e) {
             throw new Error(data.message || 'Failed to send message');
         }
     }).catch(error => {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 icon: 'error',
                 title: 'Error',
                 text: 'Failed to send Discord message: ' + error.message,

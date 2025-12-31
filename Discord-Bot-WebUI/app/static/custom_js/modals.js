@@ -24,10 +24,10 @@
     const needsReview = reviewData.dataset.needsReview;
     if (needsReview === 'true') {
       const modal = document.getElementById('manualReviewModal');
-      if (modal && typeof bootstrap !== 'undefined') {
-        const bsModal = new bootstrap.Modal(modal);
+      if (modal && typeof window.bootstrap !== 'undefined') {
+        const bsModal = new window.bootstrap.Modal(modal);
         bsModal.show();
-      } else if (typeof $ !== 'undefined') {
+      } else if (typeof window.$ !== 'undefined') {
         // Fallback to jQuery if Bootstrap JS not available
         $('#manualReviewModal').modal('show');
       }

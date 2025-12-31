@@ -162,8 +162,8 @@
    * Uses SweetAlert2 if available, falls back to alert
    */
   function showToast(icon, title, text) {
-    if (typeof Swal !== 'undefined') {
-      Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+      window.Swal.fire({
         icon: icon,
         title: title,
         text: text,

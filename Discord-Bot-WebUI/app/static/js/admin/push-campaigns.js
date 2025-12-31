@@ -46,7 +46,7 @@
 
             if (data.success) {
                 // Show campaign details in modal
-                Swal.fire({
+                window.Swal.fire({
                     title: data.campaign.name,
                     html: `
                         <div class="text-start">
@@ -60,7 +60,7 @@
                 });
             }
         } catch (error) {
-            Swal.fire('Error', 'Failed to load campaign details', 'error');
+            window.Swal.fire('Error', 'Failed to load campaign details', 'error');
         }
     }
 
@@ -73,12 +73,12 @@
                 window.location.href = `${CampaignsConfig.baseUrl}/communication/campaigns/${campaignId}/edit`;
             }
         } catch (error) {
-            Swal.fire('Error', 'Failed to load campaign for editing', 'error');
+            window.Swal.fire('Error', 'Failed to load campaign for editing', 'error');
         }
     }
 
     async function sendCampaign(campaignId, campaignName) {
-        const result = await Swal.fire({
+        const result = await window.Swal.fire({
             title: 'Send Campaign Now?',
             text: `Send "${campaignName}" to all targeted users immediately?`,
             icon: 'question',
@@ -99,18 +99,18 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    Swal.fire('Sent!', data.message, 'success').then(() => location.reload());
+                    window.Swal.fire('Sent!', data.message, 'success').then(() => location.reload());
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             } catch (error) {
-                Swal.fire('Error', 'Failed to send campaign', 'error');
+                window.Swal.fire('Error', 'Failed to send campaign', 'error');
             }
         }
     }
 
     async function scheduleCampaign(campaignId, campaignName) {
-        const result = await Swal.fire({
+        const result = await window.Swal.fire({
             title: 'Schedule Campaign',
             html: `
                 <div class="text-start">
@@ -123,7 +123,7 @@
             preConfirm: () => {
                 const scheduleTime = document.getElementById('scheduleTime').value;
                 if (!scheduleTime) {
-                    Swal.showValidationMessage('Please select a time');
+                    window.Swal.showValidationMessage('Please select a time');
                     return false;
                 }
                 return { scheduleTime };
@@ -143,18 +143,18 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    Swal.fire('Scheduled!', data.message, 'success').then(() => location.reload());
+                    window.Swal.fire('Scheduled!', data.message, 'success').then(() => location.reload());
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             } catch (error) {
-                Swal.fire('Error', 'Failed to schedule campaign', 'error');
+                window.Swal.fire('Error', 'Failed to schedule campaign', 'error');
             }
         }
     }
 
     async function deleteCampaign(campaignId, campaignName) {
-        const result = await Swal.fire({
+        const result = await window.Swal.fire({
             title: 'Delete Campaign?',
             text: `Delete "${campaignName}"? This cannot be undone.`,
             icon: 'warning',
@@ -175,18 +175,18 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    Swal.fire('Deleted!', data.message, 'success').then(() => location.reload());
+                    window.Swal.fire('Deleted!', data.message, 'success').then(() => location.reload());
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             } catch (error) {
-                Swal.fire('Error', 'Failed to delete campaign', 'error');
+                window.Swal.fire('Error', 'Failed to delete campaign', 'error');
             }
         }
     }
 
     async function cancelCampaign(campaignId, campaignName) {
-        const result = await Swal.fire({
+        const result = await window.Swal.fire({
             title: 'Cancel Campaign?',
             text: `Cancel scheduled campaign "${campaignName}"?`,
             icon: 'warning',
@@ -206,18 +206,18 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    Swal.fire('Cancelled!', data.message, 'success').then(() => location.reload());
+                    window.Swal.fire('Cancelled!', data.message, 'success').then(() => location.reload());
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             } catch (error) {
-                Swal.fire('Error', 'Failed to cancel campaign', 'error');
+                window.Swal.fire('Error', 'Failed to cancel campaign', 'error');
             }
         }
     }
 
     async function duplicateCampaign(campaignId, campaignName) {
-        const result = await Swal.fire({
+        const result = await window.Swal.fire({
             title: 'Duplicate Campaign?',
             text: `Create a copy of "${campaignName}"?`,
             icon: 'question',
@@ -237,12 +237,12 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    Swal.fire('Duplicated!', data.message, 'success').then(() => location.reload());
+                    window.Swal.fire('Duplicated!', data.message, 'success').then(() => location.reload());
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             } catch (error) {
-                Swal.fire('Error', 'Failed to duplicate campaign', 'error');
+                window.Swal.fire('Error', 'Failed to duplicate campaign', 'error');
             }
         }
     }

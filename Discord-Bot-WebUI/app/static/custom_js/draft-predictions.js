@@ -237,11 +237,11 @@ class DraftPredictionsManager {
     }
 
     showToast(type, message) {
-        if (typeof Swal !== 'undefined') {
+        if (typeof window.Swal !== 'undefined') {
             const icon = type === 'success' ? 'success' : 'error';
             const title = type === 'success' ? 'Success!' : 'Error';
 
-            Swal.fire({
+            window.Swal.fire({
                 icon: icon,
                 title: title,
                 text: message,

@@ -374,7 +374,7 @@ function handleMatchFormSubmit(e) {
             ecsFcShowAlert('success', data.message);
 
             // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('createMatchModal'));
+            const modal = window.bootstrap.Modal.getInstance(document.getElementById('createMatchModal'));
             if (modal) modal.hide();
 
             // Refresh displays
@@ -546,7 +546,7 @@ function handleImportFormSubmit(e) {
             ecsFcShowAlert('success', data.message);
 
             // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('importMatchesModal'));
+            const modal = window.bootstrap.Modal.getInstance(document.getElementById('importMatchesModal'));
             if (modal) modal.hide();
 
             // Refresh displays

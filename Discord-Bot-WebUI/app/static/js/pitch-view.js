@@ -847,7 +847,7 @@ class PitchViewSystem {
                 'info': 'info'
             };
 
-            Swal.fire({
+            window.Swal.fire({
                 title: message,
                 icon: iconMap[type] || 'info',
                 toast: true,
@@ -906,7 +906,7 @@ function switchTeamView(teamId) {
     // Switch to the team's tab
     const tabButton = document.getElementById(`team-${teamId}-tab`);
     if (tabButton) {
-        const tab = new bootstrap.Tab(tabButton);
+        const tab = new window.bootstrap.Tab(tabButton);
         tab.show();
     }
 }

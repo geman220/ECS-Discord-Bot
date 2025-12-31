@@ -52,7 +52,7 @@
         hammer.on('swipedown', (ev) => {
           // Only dismiss if swiping from near the top (drag handle area)
           if (ev.center.y < 100) {
-            const bootstrapModal = bootstrap.Modal.getInstance(modal);
+            const bootstrapModal = window.bootstrap.Modal.getInstance(modal);
             if (bootstrapModal) {
               if (window.Haptics) window.Haptics.modalClose();
               bootstrapModal.hide();
@@ -88,7 +88,7 @@
 
           if (deltaY > 100) {
             // Threshold reached, dismiss modal
-            const bootstrapModal = bootstrap.Modal.getInstance(modal);
+            const bootstrapModal = window.bootstrap.Modal.getInstance(modal);
             if (bootstrapModal) {
               if (window.Haptics) window.Haptics.modalClose();
               bootstrapModal.hide();

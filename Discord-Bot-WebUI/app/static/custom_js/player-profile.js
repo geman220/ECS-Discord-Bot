@@ -49,8 +49,8 @@
      */
     function showToast(message, type = 'info') {
         // Check if SweetAlert2 is available
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 toast: true,
                 position: 'top-end',
                 icon: type,
@@ -105,8 +105,8 @@
      * @param {string} verifyUrl - URL to verification page (GET request)
      */
     function showVerificationDialog(verifyUrl) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Verify Your Profile',
                 text: 'Please review your profile information and confirm it is accurate.',
                 icon: 'info',
@@ -155,8 +155,8 @@
      * @param {string} discordUrl - Discord OAuth URL
      */
     function showDiscordLinkDialog(discordUrl) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Link Your Discord Account',
                 text: 'Connect your Discord account to receive notifications and access exclusive features.',
                 icon: 'info',
@@ -360,7 +360,7 @@
                     form.reset();
 
                     // Close modal
-                    const modalInstance = bootstrap.Modal.getInstance(contactModal);
+                    const modalInstance = window.bootstrap.Modal.getInstance(contactModal);
                     if (modalInstance) modalInstance.hide();
                 } else {
                     showToast(data.message || 'Failed to send message', 'error');
@@ -407,11 +407,11 @@
      * Activates all elements with data-bs-toggle="tooltip"
      */
     function initTooltips() {
-        if (typeof bootstrap === 'undefined') return;
+        if (typeof window.bootstrap === 'undefined') return;
 
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
+            return new window.bootstrap.Tooltip(tooltipTriggerEl);
         });
 
         console.log(`[Player Profile] Initialized ${tooltipList.length} tooltips`);
@@ -458,8 +458,8 @@
         const removeUrl = button.dataset.removeUrl;
         if (!removeUrl) return;
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Remove Profile Picture?',
                 text: 'Your profile picture will be removed.',
                 icon: 'warning',
@@ -574,8 +574,8 @@
                 const currentMinute = data.minute || '';
 
                 // Use SweetAlert2 for edit modal
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         title: `Edit ${eventLabel}`,
                         html: `
                             <div class="mb-3 text-start">
@@ -655,8 +655,8 @@
         const badge = row ? row.querySelector('.c-badge') : null;
         const eventText = badge ? badge.textContent.trim() : 'this stat';
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Remove Stat?',
                 text: `Are you sure you want to remove "${eventText}"? This will also update the player's overall stats.`,
                 icon: 'warning',

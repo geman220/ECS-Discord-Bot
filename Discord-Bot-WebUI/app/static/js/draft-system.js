@@ -598,7 +598,7 @@ class DraftSystemV2 {
         });
 
         if (window.Swal) {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Draft Player',
                 html: `Select a team for <strong>${playerName}</strong>:`,
                 input: 'select',
@@ -1374,7 +1374,7 @@ class DraftSystemV2 {
                 'info': 'info'
             };
 
-            Swal.fire({
+            window.Swal.fire({
                 title: message,
                 icon: iconMap[type] || 'info',
                 toast: true,
@@ -1394,7 +1394,7 @@ class DraftSystemV2 {
     closeModals() {
         const modals = document.querySelectorAll('[data-component="modal"][data-state="open"]');
         modals.forEach(modal => {
-            const bsModal = bootstrap.Modal.getInstance(modal);
+            const bsModal = window.bootstrap.Modal.getInstance(modal);
             if (bsModal) bsModal.hide();
         });
     }
@@ -1683,7 +1683,7 @@ function confirmRemovePlayer(playerId, teamId, playerName, teamName) {
     if (!draftSystemInstance) return;
 
     if (window.Swal) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Remove Player',
             text: `Remove ${playerName} from ${teamName}?`,
             icon: 'warning',

@@ -322,7 +322,7 @@
       if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.hide('newConversationModal');
       } else {
-        const bsModal = bootstrap.Modal.getInstance(modal);
+        const bsModal = window.bootstrap.Modal.getInstance(modal);
         if (bsModal) bsModal.hide();
       }
     }
@@ -798,8 +798,8 @@
       // Use ModalManager if available, fallback to Bootstrap
       if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('newConversationModal');
-      } else if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        const bsModal = new bootstrap.Modal(modal);
+      } else if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+        const bsModal = new window.bootstrap.Modal(modal);
         bsModal.show();
       } else {
         console.error('[MessagesInbox] Neither ModalManager nor Bootstrap available');

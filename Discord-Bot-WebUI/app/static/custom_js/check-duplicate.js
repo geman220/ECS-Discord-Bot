@@ -27,7 +27,7 @@
             const playerEmail = button.getAttribute('data-player-email');
 
             // Show confirmation with SweetAlert
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Claim This Account?',
                 html: `
                     <p class="mb-2">You're claiming the account for:</p>
@@ -55,14 +55,14 @@
                     actionField.value = 'claim';
 
                     // Show loading state
-                    Swal.fire({
+                    window.Swal.fire({
                         title: 'Sending Verification Email...',
                         text: 'Please wait while we process your request.',
                         icon: 'info',
                         allowOutsideClick: false,
                         showConfirmButton: false,
                         didOpen: () => {
-                            Swal.showLoading();
+                            window.Swal.showLoading();
                         }
                     });
 
@@ -75,7 +75,7 @@
         const createNewBtn = document.getElementById('create-new-btn');
         if (createNewBtn) {
             createNewBtn.addEventListener('click', function () {
-                Swal.fire({
+                window.Swal.fire({
                     title: 'Create New Account?',
                     text: 'This will create a brand new profile for you. Are you sure none of the existing profiles are yours?',
                     icon: 'question',
@@ -91,14 +91,14 @@
                         actionField.value = 'new';
 
                         // Show loading state
-                        Swal.fire({
+                        window.Swal.fire({
                             title: 'Creating Your Account...',
                             text: 'Please wait while we set up your new profile.',
                             icon: 'info',
                             allowOutsideClick: false,
                             showConfirmButton: false,
                             didOpen: () => {
-                                Swal.showLoading();
+                                window.Swal.showLoading();
                             }
                         });
 

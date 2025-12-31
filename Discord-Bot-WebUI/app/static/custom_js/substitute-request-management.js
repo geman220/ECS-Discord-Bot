@@ -81,7 +81,7 @@ function loadLeagueStatistics(league) {
     $('#modalPendingApproval').text(pendingCount);
     
     // Load additional statistics via AJAX
-    $.ajax({
+    window.$.ajax({
         url: `/admin/substitute-pools/${league}/statistics`,
         method: 'GET',
         success: function(response) {
@@ -116,7 +116,7 @@ function loadRecentActivity(league) {
         </tr>
     `);
     
-    $.ajax({
+    window.$.ajax({
         url: `/admin/substitute-pools/${league}/history`,
         method: 'GET',
         timeout: 10000,
@@ -212,7 +212,7 @@ function loadSubstituteRequests(league) {
         </tr>
     `);
     
-    $.ajax({
+    window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests`,
         method: 'GET',
         timeout: 10000,
@@ -365,8 +365,8 @@ function resendSubstituteRequest(requestId, league, teamName, createdAt) {
         const confirmMessage = `This substitute request for ${teamName} was sent only ${diffMins} minutes ago. Are you sure you want to send notifications again?`;
         
         // Use SweetAlert2 if available, fallback to confirm
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Resend Confirmation',
                 text: confirmMessage,
                 icon: 'warning',
@@ -395,7 +395,7 @@ function performResendRequest(requestId, league) {
     btn.prop('disabled', true);
     btn.html('<i class="ti ti-loader spinner-border spinner-border-sm"></i>');
     
-    $.ajax({
+    window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests/${requestId}/resend`,
         method: 'POST',
         success: function(response) {
@@ -410,8 +410,8 @@ function performResendRequest(requestId, league) {
             const errorResponse = xhr.responseJSON;
             if (errorResponse && errorResponse.requires_confirmation) {
                 const confirmMessage = `${errorResponse.message} Send anyway?`;
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         title: 'Force Resend?',
                         text: confirmMessage,
                         icon: 'question',
@@ -450,7 +450,7 @@ function cancelSubstituteRequest(requestId, league, teamName) {
     btn.prop('disabled', true);
     btn.html('<i class="ti ti-loader spinner-border spinner-border-sm"></i>');
     
-    $.ajax({
+    window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests/${requestId}/cancel`,
         method: 'POST',
         success: function(response) {
@@ -489,7 +489,7 @@ function loadMatchSubstituteRequests(matchId) {
         </tr>
     `);
     
-    $.ajax({
+    window.$.ajax({
         url: `/admin/substitute-pools/match/${matchId}/requests`,
         method: 'GET',
         timeout: 10000,
@@ -707,8 +707,8 @@ function resendMatchSubstituteRequest(requestId, league, teamName, createdAt) {
         const confirmMessage = `This substitute request for ${teamName} was sent only ${diffMins} minutes ago. Are you sure you want to send notifications again?`;
         
         // Use SweetAlert2 if available, fallback to confirm
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Resend Confirmation',
                 text: confirmMessage,
                 icon: 'warning',
@@ -737,7 +737,7 @@ function performMatchResendRequest(requestId, league) {
     btn.prop('disabled', true);
     btn.html('<i class="ti ti-loader spinner-border spinner-border-sm"></i>');
     
-    $.ajax({
+    window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests/${requestId}/resend`,
         method: 'POST',
         success: function(response) {
@@ -754,8 +754,8 @@ function performMatchResendRequest(requestId, league) {
             const errorResponse = xhr.responseJSON;
             if (errorResponse && errorResponse.requires_confirmation) {
                 const confirmMessage = `${errorResponse.message} Send anyway?`;
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         title: 'Force Resend?',
                         text: confirmMessage,
                         icon: 'question',
@@ -793,7 +793,7 @@ function cancelMatchSubstituteRequest(requestId, league, teamName) {
     btn.prop('disabled', true);
     btn.html('<i class="ti ti-loader spinner-border spinner-border-sm"></i>');
     
-    $.ajax({
+    window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests/${requestId}/cancel`,
         method: 'POST',
         success: function(response) {
@@ -818,8 +818,8 @@ function cancelMatchSubstituteRequest(requestId, league, teamName) {
 
 function deleteSubstituteRequest(requestId, league, teamName) {
     // Use SweetAlert2 if available
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             title: 'Delete Request?',
             text: `Are you sure you want to delete this cancelled substitute request for ${teamName}? This action cannot be undone.`,
             icon: 'warning',
@@ -839,7 +839,7 @@ function deleteSubstituteRequest(requestId, league, teamName) {
 }
 
 function performDeleteRequest(requestId, league) {
-    $.ajax({
+    window.$.ajax({
         url: `/api/substitute-pools/requests/${requestId}`,
         method: 'DELETE',
         success: function(response) {
@@ -996,7 +996,7 @@ function exportPoolData(league) {
 // View request details function
 function viewRequestDetails(requestId, league) {
     // Load request details via AJAX
-    $.ajax({
+    window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests/${requestId}`,
         method: 'GET',
         success: function(response) {
@@ -1206,8 +1206,8 @@ $(document).on('click', '[data-action="assign-substitute"]', function() {
     const playerName = $(this).data('player-name');
     const league = $(this).data('league');
     
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             title: 'Assign Substitute',
             text: `Assign ${playerName} as substitute for this match?`,
             input: 'text',
@@ -1231,7 +1231,7 @@ $(document).on('click', '[data-action="assign-substitute"]', function() {
 });
 
 function assignSubstitute(requestId, playerId, league, position) {
-    $.ajax({
+    window.$.ajax({
         url: `/admin/substitute-pools/${league}/requests/${requestId}/assign`,
         method: 'POST',
         contentType: 'application/json',

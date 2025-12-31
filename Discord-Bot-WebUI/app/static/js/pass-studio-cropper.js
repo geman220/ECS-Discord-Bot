@@ -131,7 +131,7 @@ const AssetCropper = {
 
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'warning',
                 title: 'Invalid File',
                 text: 'Please select an image file (PNG, JPG, etc.)'
@@ -155,7 +155,7 @@ const AssetCropper = {
                 document.getElementById('cropper-change-btn').classList.remove('d-none');
             };
             img.onerror = () => {
-                Swal.fire({
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Load Error',
                     text: 'Failed to load the image. Please try another file.'
@@ -419,7 +419,7 @@ const AssetCropper = {
     async saveAndUpload() {
         const croppedData = this.getCroppedImageData();
         if (!croppedData) {
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'warning',
                 title: 'No Image',
                 text: 'Please select an image first.'
@@ -428,12 +428,12 @@ const AssetCropper = {
         }
 
         // Show loading
-        Swal.fire({
+        window.Swal.fire({
             title: 'Uploading...',
             text: 'Saving your asset',
             allowOutsideClick: false,
             showConfirmButton: false,
-            didOpen: () => Swal.showLoading()
+            didOpen: () => window.Swal.showLoading()
         });
 
         try {
@@ -456,7 +456,7 @@ const AssetCropper = {
             const result = await response.json();
 
             if (result.success) {
-                Swal.fire({
+                window.Swal.fire({
                     icon: 'success',
                     title: 'Asset Saved!',
                     text: result.message,
@@ -465,7 +465,7 @@ const AssetCropper = {
                 });
 
                 // Close modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('assetCropperModal'));
+                const modal = window.bootstrap.Modal.getInstance(document.getElementById('assetCropperModal'));
                 if (modal) modal.hide();
 
                 // Notify PassStudio to update preview
@@ -477,7 +477,7 @@ const AssetCropper = {
             }
         } catch (error) {
             console.error('Upload error:', error);
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'error',
                 title: 'Upload Failed',
                 text: error.message || 'An error occurred while uploading the asset.'
@@ -494,7 +494,7 @@ const AssetCropper = {
         }
 
         // Confirm deletion
-        const result = await Swal.fire({
+        const result = await window.Swal.fire({
             title: 'Remove Asset?',
             text: `Are you sure you want to remove the ${this.DIMENSIONS[this.currentAssetType]?.label || this.currentAssetType} image?`,
             icon: 'warning',
@@ -509,12 +509,12 @@ const AssetCropper = {
         }
 
         // Show loading
-        Swal.fire({
+        window.Swal.fire({
             title: 'Removing...',
             text: 'Deleting asset',
             allowOutsideClick: false,
             showConfirmButton: false,
-            didOpen: () => Swal.showLoading()
+            didOpen: () => window.Swal.showLoading()
         });
 
         try {
@@ -533,7 +533,7 @@ const AssetCropper = {
             const responseData = await response.json();
 
             if (responseData.success) {
-                Swal.fire({
+                window.Swal.fire({
                     icon: 'success',
                     title: 'Asset Removed!',
                     text: responseData.message,
@@ -542,7 +542,7 @@ const AssetCropper = {
                 });
 
                 // Close modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('assetCropperModal'));
+                const modal = window.bootstrap.Modal.getInstance(document.getElementById('assetCropperModal'));
                 if (modal) modal.hide();
 
                 // Notify PassStudio to update preview
@@ -554,7 +554,7 @@ const AssetCropper = {
             }
         } catch (error) {
             console.error('Delete error:', error);
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'error',
                 title: 'Delete Failed',
                 text: error.message || 'An error occurred while removing the asset.'

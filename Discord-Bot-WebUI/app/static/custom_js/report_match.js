@@ -84,7 +84,7 @@ function initReportMatch() {
     // Set up CSRF token for all AJAX requests
     var csrftoken = $('input[name="csrf_token"]').val();
 
-    $.ajaxSetup({
+    window.$.ajaxSetup({
         beforeSend: function (xhr, settings) {
             if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
                 xhr.setRequestHeader("X-CSRFToken", csrftoken);
@@ -111,7 +111,7 @@ if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
 }
 
 // Fallback - use jQuery ready if available, otherwise DOMContentLoaded
-if (typeof $ !== 'undefined') {
+if (typeof window.$ !== 'undefined') {
     $(document).ready(initReportMatch);
 } else if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initReportMatch);
@@ -383,8 +383,8 @@ window.removeEvent = function(button) {
         jQueryEntry.hide();
         
         // Show a simple toast or notification if available
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Removed',
                 icon: 'success',
                 toast: true,
@@ -395,7 +395,7 @@ window.removeEvent = function(button) {
         }
     } else {
         // Full confirmation dialog for desktop
-        Swal.fire({
+        window.Swal.fire({
             title: 'Remove Event?',
             text: "Do you want to remove this event?",
             icon: 'question',
@@ -410,7 +410,7 @@ window.removeEvent = function(button) {
                 jQueryEntry.hide();
     
                 // Show a brief message
-                Swal.fire({
+                window.Swal.fire({
                     title: 'Removed',
                     text: 'Save your changes to apply',
                     icon: 'success',
@@ -467,17 +467,17 @@ function handleEditButtonClick(matchId) {
     // Edit button clicked for match
     
     // Show loading spinner
-    Swal.fire({
+    window.Swal.fire({
         title: 'Loading...',
         text: 'Fetching match data',
         allowOutsideClick: false,
         didOpen: () => {
-            Swal.showLoading();
+            window.Swal.showLoading();
         }
     });
     
     // Request match data 
-    $.ajax({
+    window.$.ajax({
         url: `/teams/report_match/${matchId}`,
         type: 'GET',
         headers: {
@@ -491,7 +491,7 @@ function handleEditButtonClick(matchId) {
             window.currentMatchData = data;
             window.currentMatchData.matchId = matchId;
             
-            Swal.close();
+            window.Swal.close();
             
             // Set up and display the modal
             setupAndShowModal(matchId, data);
@@ -499,7 +499,7 @@ function handleEditButtonClick(matchId) {
         error: function(xhr, status, error) {
             // Error fetching match data
             
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'error',
                 title: 'Error',
                 text: 'Failed to load match data. Please try again later.'
@@ -525,7 +525,7 @@ function setupAndShowModal(matchId, data) {
         // Modal not found, generating one dynamically
         
         // First try to load all modals
-        $.ajax({
+        window.$.ajax({
             url: '/modals/render_modals',
             method: 'GET',
             success: function(modalContent) {
@@ -715,7 +715,7 @@ function createDynamicModal(matchId, data) {
         // Populate the modal with the data
         populateModal(modal, data);
     } else {
-        Swal.fire({
+        window.Swal.fire({
             icon: 'error',
             title: 'Error',
             text: 'Failed to create the match modal. Please refresh the page and try again.'
@@ -756,7 +756,7 @@ function populateModal(modal, data) {
     // Check if player data is available
     if (Object.keys(playerChoices[matchId]).length === 0) {
         // No player data available for match
-        Swal.fire({
+        window.Swal.fire({
             icon: 'error',
             title: 'Error',
             text: 'Match data is not loaded yet. Please try again in a moment.'
@@ -880,9 +880,9 @@ function populateModal(modal, data) {
     // Initialize and show the modal safely
     try {
         // Check if Bootstrap is available
-        if (typeof bootstrap !== 'undefined') {
+        if (typeof window.bootstrap !== 'undefined') {
             // Look for existing modal instance and dispose it if needed
-            let existingModal = bootstrap.Modal.getInstance(modal);
+            let existingModal = window.bootstrap.Modal.getInstance(modal);
             if (existingModal) {
                 existingModal.dispose();
             }
@@ -905,7 +905,7 @@ function populateModal(modal, data) {
             }, 50);
         } else {
             // Fallback to jQuery if available
-            if (typeof $ !== 'undefined' && typeof $.fn.modal !== 'undefined') {
+            if (typeof window.$ !== 'undefined' && typeof window.$.fn.modal !== 'undefined') {
                 $(modal).modal('show');
             } else {
                 // Neither Bootstrap nor jQuery modal available
@@ -922,7 +922,7 @@ function populateModal(modal, data) {
     } catch (error) {
         // Error showing modal
         // Last resort fallback
-        Swal.fire({
+        window.Swal.fire({
             icon: 'error', 
             title: 'Error',
             text: 'Could not show match edit form. Please refresh and try again.'
@@ -1163,7 +1163,7 @@ function reportMatchUpdateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd
     if (missingVerifications.length > 0 && (homeTeamCheckbox.length > 0 || awayTeamCheckbox.length > 0)) {
         // If user can verify but hasn't checked any boxes, require verification
         if (!verifyHomeTeam && !verifyAwayTeam) {
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'warning',
                 title: 'Verification Required',
                 text: `Please verify the match results for your team before submitting.`,
@@ -1173,7 +1173,7 @@ function reportMatchUpdateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd
         }
     }
 
-    $.ajax({
+    window.$.ajax({
         url: `/teams/report_match/${matchId}`,
         method: 'POST',
         contentType: 'application/json',
@@ -1213,7 +1213,7 @@ function reportMatchUpdateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd
                     }
                 }
                 
-                Swal.fire({
+                window.Swal.fire({
                     icon: 'success',
                     title: 'Success!',
                     text: successMessage
@@ -1222,7 +1222,7 @@ function reportMatchUpdateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd
                     try {
                         const modalElem = document.getElementById(`reportMatchModal-${matchId}`);
                         if (modalElem) {
-                            const bsModal = bootstrap.Modal.getInstance(modalElem);
+                            const bsModal = window.bootstrap.Modal.getInstance(modalElem);
                             if (bsModal) {
                                 bsModal.hide();
                             } else {
@@ -1237,7 +1237,7 @@ function reportMatchUpdateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd
                     location.reload();
                 });
             } else {
-                Swal.fire({
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error!',
                     text: response.message || 'There was an error submitting your report.'
@@ -1279,7 +1279,7 @@ function reportMatchUpdateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd
                 swalOptions.cancelButtonText = 'Cancel';
             }
             
-            Swal.fire(swalOptions).then((result) => {
+            window.Swal.fire(swalOptions).then((result) => {
                 if (result.isConfirmed && showRefreshOption) {
                     location.reload();
                 } else {
@@ -1444,7 +1444,7 @@ $(document).on('submit', '.report-match-form', function (e) {
     // Events to add/remove
 
     // Confirmation before submitting
-    Swal.fire({
+    window.Swal.fire({
         title: 'Confirm Submission',
         text: "Are you sure you want to submit this match report?",
         icon: 'question',

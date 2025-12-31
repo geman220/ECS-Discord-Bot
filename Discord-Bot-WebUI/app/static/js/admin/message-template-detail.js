@@ -105,7 +105,7 @@
         const action = currentStatus ? 'deactivate' : 'activate';
         const newStatus = !currentStatus;
 
-        Swal.fire({
+        window.Swal.fire({
             title: `${action.charAt(0).toUpperCase() + action.slice(1)} Template?`,
             text: `Are you sure you want to ${action} "${name}"?`,
             icon: 'question',
@@ -155,7 +155,7 @@
      * @param {string} csrfToken - CSRF token for form submission
      */
     function deleteTemplate(id, name, deleteUrl, csrfToken) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Delete Template?',
             text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
             icon: 'warning',

@@ -89,8 +89,8 @@
         const playerData = window.playerData || {};
 
         if (!playerData.id) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     title: 'No Player Profile',
                     text: 'No player profile found. Please contact an administrator.',
                     icon: 'error'
@@ -114,9 +114,9 @@
             }
         }
 
-        if (typeof Swal === 'undefined') return;
+        if (typeof window.Swal === 'undefined') return;
 
-        Swal.fire({
+        window.Swal.fire({
             title: isEditing ? 'Save & Verify Profile' : 'Verify Profile Information',
             html: `<div class="text-start">
                    <p class="mb-2">Please confirm that your profile information is current and accurate.</p>
@@ -161,22 +161,22 @@
                     }
                 })
                 .catch(error => {
-                    Swal.showValidationMessage('Error: ' + error.message);
+                    window.Swal.showValidationMessage('Error: ' + error.message);
                 });
             }
         }).then((result) => {
             if (result.isConfirmed) {
                 // Hide the profile modal
                 const modalEl = document.getElementById('profileModal');
-                if (modalEl && typeof bootstrap !== 'undefined') {
-                    const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modalEl && typeof window.bootstrap !== 'undefined') {
+                    const modal = window.bootstrap.Modal.getInstance(modalEl);
                     if (modal) {
                         modal.hide();
                     }
                 }
 
                 // Show success message
-                Swal.fire({
+                window.Swal.fire({
                     title: isEditing ? 'Profile Updated & Verified!' : 'Profile Verified!',
                     text: isEditing ? 'Your profile has been updated and verified successfully.' : 'Thank you for confirming your profile information is current.',
                     icon: 'success',

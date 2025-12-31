@@ -23,12 +23,12 @@
         const isChecked = roleToggle.checked;
 
         // Check if jQuery is available
-        if (typeof $ === 'undefined') {
+        if (typeof window.$ === 'undefined') {
             console.error('jQuery is required for toggleRole');
             return;
         }
 
-        $.ajax({
+        window.$.ajax({
             url: '/players/player_profile/' + playerId,
             method: 'POST',
             data: {
@@ -38,21 +38,21 @@
                 update_role: 1
             },
             beforeSend: function () {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         title: 'Updating...',
                         text: 'Please wait while the role is being updated.',
                         allowOutsideClick: false,
                         didOpen: () => {
-                            Swal.showLoading();
+                            window.Swal.showLoading();
                         }
                     });
                 }
             },
             success: function (response) {
                 if (response.success) {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire(
+                    if (typeof window.Swal !== 'undefined') {
+                        window.Swal.fire(
                             'Success!',
                             'Player role updated successfully.',
                             'success'
@@ -64,8 +64,8 @@
                         location.reload();
                     }
                 } else {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire(
+                    if (typeof window.Swal !== 'undefined') {
+                        window.Swal.fire(
                             'Error!',
                             response.message || 'Failed to update player role.',
                             'error'
@@ -77,8 +77,8 @@
                 }
             },
             error: function () {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire(
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire(
                         'Error!',
                         'Failed to update player role. Please try again.',
                         'error'

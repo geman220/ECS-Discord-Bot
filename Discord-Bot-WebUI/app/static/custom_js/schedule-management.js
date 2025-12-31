@@ -137,7 +137,7 @@ class ScheduleManager {
             });
             const result = await resp.json();
             if (result.success) {
-                bootstrap.Modal.getInstance(document.getElementById('addSingleWeekModal')).hide();
+                window.bootstrap.Modal.getInstance(document.getElementById('addSingleWeekModal')).hide();
                 location.reload();
             } else {
                 alert(result.message || 'Error adding single week');

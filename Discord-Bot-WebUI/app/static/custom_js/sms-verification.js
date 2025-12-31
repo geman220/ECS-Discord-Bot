@@ -46,7 +46,7 @@ function sendVerificationCode() {
     var verificationCodeInput = document.getElementById('verificationCodeInput');
 
     if (!phoneInput || !phoneInput.value.trim()) {
-        Swal.fire({
+        window.Swal.fire({
             icon: 'warning',
             title: 'Phone Number Required',
             text: 'Please enter your phone number to receive the verification code.',
@@ -94,14 +94,14 @@ function sendVerificationCode() {
         if (data.success) {
             verificationCodeInput.classList.remove('d-none');
             verificationCodeInput.classList.add('d-block');
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'success',
                 title: 'Code Sent!',
                 text: 'Verification code sent to your phone number.',
                 confirmButtonText: 'OK'
             });
         } else {
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'error',
                 title: 'Error',
                 text: data.message || 'Failed to send verification code. Please try again.',
@@ -113,7 +113,7 @@ function sendVerificationCode() {
         // console.error('Error sending verification code:', error);
         sendButton.disabled = false;
         sendButton.innerHTML = '<i class="ti ti-send me-1"></i> Send Verification Code';
-        Swal.fire({
+        window.Swal.fire({
             icon: 'error',
             title: 'Error',
             text: 'An error occurred while sending the verification code. Please try again.',
@@ -131,7 +131,7 @@ function verifyCode() {
     var verifiedFlagInput = document.getElementById('smsVerified');
 
     if (!codeInput || !codeInput.value.trim()) {
-        Swal.fire({
+        window.Swal.fire({
             icon: 'warning',
             title: 'Code Required',
             text: 'Please enter the verification code sent to your phone.',
@@ -179,14 +179,14 @@ function verifyCode() {
                 warningAlert.classList.add('d-none');
             }
 
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'success',
                 title: 'Phone Verified!',
                 text: 'Your phone number has been successfully verified.',
                 confirmButtonText: 'Great!'
             });
         } else {
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'error',
                 title: 'Verification Failed',
                 text: data.message || 'Invalid verification code. Please try again.',
@@ -198,7 +198,7 @@ function verifyCode() {
         // console.error('Error verifying code:', error);
         verifyButton.disabled = false;
         verifyButton.innerHTML = '<i class="ti ti-check me-1"></i> Verify Code';
-        Swal.fire({
+        window.Swal.fire({
             icon: 'error',
             title: 'Error',
             text: 'An error occurred while verifying your code. Please try again.',

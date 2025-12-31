@@ -31,9 +31,9 @@
                 const btn = this;
                 const originalText = btn.innerHTML;
 
-                if (typeof Swal === 'undefined') return;
+                if (typeof window.Swal === 'undefined') return;
 
-                Swal.fire({
+                window.Swal.fire({
                     title: 'Resend Verification Email?',
                     text: `We'll send another verification email to ${data.oldEmail}.`,
                     icon: 'question',
@@ -63,7 +63,7 @@
                         .then(response => response.json())
                         .then(responseData => {
                             if (responseData.success) {
-                                Swal.fire({
+                                window.Swal.fire({
                                     title: 'Email Sent!',
                                     text: 'We\'ve sent another verification email. Please check your inbox.',
                                     icon: 'success',
@@ -74,7 +74,7 @@
                             }
                         })
                         .catch(error => {
-                            Swal.fire({
+                            window.Swal.fire({
                                 title: 'Error',
                                 text: 'Failed to send verification email. Please try again later.',
                                 icon: 'error',

@@ -15,7 +15,7 @@
         if (!pollsTable) return;
 
         // Check jQuery and DataTables are available
-        if (typeof $ === 'undefined' || typeof $.fn.DataTable === 'undefined') {
+        if (typeof window.$ === 'undefined' || typeof window.$.fn.DataTable === 'undefined') {
             console.warn('[Manage Polls] jQuery or DataTables not available');
             return;
         }
@@ -23,7 +23,7 @@
         _initialized = true;
 
         // Destroy existing DataTable if it exists
-        if ($.fn.DataTable.isDataTable('#pollsTable')) {
+        if (window.$.fn.DataTable.isDataTable('#pollsTable')) {
             $('#pollsTable').DataTable().destroy();
         }
 
@@ -48,7 +48,7 @@
     }
 
     // Fallback - use jQuery ready if available
-    if (typeof $ !== 'undefined') {
+    if (typeof window.$ !== 'undefined') {
         $(document).ready(init);
     } else if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

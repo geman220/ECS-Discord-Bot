@@ -1935,7 +1935,7 @@ function showModal(id, title, message, type = 'info', callback = null) {
     
     if (cfg.autoClose) {
         setTimeout(() => {
-            bootstrap.Modal.getInstance(document.getElementById(id))?.hide();
+            window.bootstrap.Modal.getInstance(document.getElementById(id))?.hide();
             if (callback) callback();
         }, cfg.autoClose);
     }

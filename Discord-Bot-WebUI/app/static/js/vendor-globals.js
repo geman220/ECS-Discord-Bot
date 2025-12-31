@@ -64,7 +64,7 @@ import 'datatables.net-responsive-bs5';
 // jQuery must be on window BEFORE this import (done above)
 // ============================================================================
 import 'select2/dist/css/select2.min.css';
-import 'select2'; // Attaches $.fn.select2 to jQuery
+import 'select2'; // Attaches window.$.fn.select2 to jQuery
 
 // ============================================================================
 // 10. SWEETALERT2 - Beautiful alerts and dialogs

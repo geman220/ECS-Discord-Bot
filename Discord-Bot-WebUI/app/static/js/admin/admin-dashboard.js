@@ -173,7 +173,7 @@
             const currentPermissionsList = context.querySelector(CONFIG.selectors.currentPermissionsList);
 
             // Initialize Select2 for permissions dropdown
-            if (permissionsSelect && typeof $ !== 'undefined' && $.fn.select2) {
+            if (permissionsSelect && typeof window.$ !== 'undefined' && window.$.fn.select2) {
                 $(permissionsSelect).select2({
                     theme: 'bootstrap-5',
                     placeholder: 'Select permissions...',
@@ -603,7 +603,7 @@
         },
 
         revokeTask: async function(taskId) {
-            const result = await Swal.fire({
+            const result = await window.Swal.fire({
                 title: 'DESTROY Task?',
                 html: `
                     <div class="text-start">
@@ -641,7 +641,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    Swal.fire({
+                    window.Swal.fire({
                         title: 'DESTROYED! 💥',
                         text: 'The task has been completely obliterated.',
                         icon: 'success',
@@ -650,11 +650,11 @@
                     });
                     setTimeout(() => this.refreshTaskList(), 1000);
                 } else {
-                    Swal.fire({ title: 'Error!', text: data.error || 'Failed to destroy task', icon: 'error' });
+                    window.Swal.fire({ title: 'Error!', text: data.error || 'Failed to destroy task', icon: 'error' });
                 }
             } catch (error) {
                 console.error('Error destroying task:', error);
-                Swal.fire({ title: 'Error!', text: 'Failed to destroy task', icon: 'error' });
+                window.Swal.fire({ title: 'Error!', text: 'Failed to destroy task', icon: 'error' });
             }
         },
 
@@ -677,7 +677,7 @@
                         </div>
                     `;
 
-                    Swal.fire({
+                    window.Swal.fire({
                         title: 'Task Details',
                         html: detailsHtml,
                         icon: 'info',
@@ -685,16 +685,16 @@
                         confirmButtonText: 'Close'
                     });
                 } else {
-                    Swal.fire({ title: 'Error!', text: data.error || 'Failed to load task details', icon: 'error' });
+                    window.Swal.fire({ title: 'Error!', text: data.error || 'Failed to load task details', icon: 'error' });
                 }
             } catch (error) {
                 console.error('Error fetching task details:', error);
-                Swal.fire({ title: 'Error!', text: 'Failed to load task details', icon: 'error' });
+                window.Swal.fire({ title: 'Error!', text: 'Failed to load task details', icon: 'error' });
             }
         },
 
         removeTask: async function(taskId) {
-            const result = await Swal.fire({
+            const result = await window.Swal.fire({
                 title: 'Remove Task?',
                 text: 'This will remove the task from the list. Are you sure?',
                 icon: 'question',
@@ -719,7 +719,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    Swal.fire({
+                    window.Swal.fire({
                         title: 'Removed!',
                         text: 'The task has been removed from the list.',
                         icon: 'success',
@@ -728,16 +728,16 @@
                     });
                     setTimeout(() => this.refreshTaskList(), 500);
                 } else {
-                    Swal.fire({ title: 'Error!', text: data.error || 'Failed to remove task', icon: 'error' });
+                    window.Swal.fire({ title: 'Error!', text: data.error || 'Failed to remove task', icon: 'error' });
                 }
             } catch (error) {
                 console.error('Error removing task:', error);
-                Swal.fire({ title: 'Error!', text: 'Failed to remove task', icon: 'error' });
+                window.Swal.fire({ title: 'Error!', text: 'Failed to remove task', icon: 'error' });
             }
         },
 
         cleanupOldTasks: async function() {
-            const result = await Swal.fire({
+            const result = await window.Swal.fire({
                 title: 'Cleanup Old Tasks?',
                 html: `
                     <div class="text-start">
@@ -772,7 +772,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    Swal.fire({
+                    window.Swal.fire({
                         title: 'Cleanup Complete! 🧹',
                         html: `
                             <div class="text-start">
@@ -790,11 +790,11 @@
                     });
                     setTimeout(() => this.refreshTaskList(), 1000);
                 } else {
-                    Swal.fire({ title: 'Error!', text: data.error || 'Failed to cleanup tasks', icon: 'error' });
+                    window.Swal.fire({ title: 'Error!', text: data.error || 'Failed to cleanup tasks', icon: 'error' });
                 }
             } catch (error) {
                 console.error('Error cleaning up tasks:', error);
-                Swal.fire({ title: 'Error!', text: 'Failed to cleanup tasks', icon: 'error' });
+                window.Swal.fire({ title: 'Error!', text: 'Failed to cleanup tasks', icon: 'error' });
             }
         },
 
@@ -840,8 +840,8 @@
             container.insertAdjacentHTML('beforeend', toastHTML);
 
             const toastElement = document.getElementById(toastId);
-            if (toastElement && typeof bootstrap !== 'undefined') {
-                const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 5000 });
+            if (toastElement && typeof window.bootstrap !== 'undefined') {
+                const toast = new window.bootstrap.Toast(toastElement, { autohide: true, delay: 5000 });
                 toast.show();
 
                 toastElement.addEventListener('hidden.bs.toast', function() {

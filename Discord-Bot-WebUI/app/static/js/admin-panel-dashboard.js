@@ -96,12 +96,12 @@
   // ============================================================================
 
   function openNavigationSettings() {
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
       alert('SweetAlert2 is required for this feature');
       return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Navigation Settings',
       html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading navigation settings...</p></div>',
       showConfirmButton: false,
@@ -114,12 +114,12 @@
         if (data.success) {
           showNavigationSettingsModal(data.settings);
         } else {
-          Swal.fire('Error', data.message || 'Failed to load navigation settings', 'error');
+          window.Swal.fire('Error', data.message || 'Failed to load navigation settings', 'error');
         }
       })
       .catch(error => {
         console.error('Navigation settings error:', error);
-        Swal.fire('Error', 'Failed to load navigation settings', 'error');
+        window.Swal.fire('Error', 'Failed to load navigation settings', 'error');
       });
   }
 
@@ -145,7 +145,7 @@
       </div>
     `;
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Navigation Settings',
       html: html,
       width: '800px',
@@ -154,10 +154,10 @@
       cancelButtonText: 'Cancel',
       showLoaderOnConfirm: true,
       preConfirm: () => saveNavigationSettings(),
-      allowOutsideClick: () => !Swal.isLoading()
+      allowOutsideClick: () => !window.Swal.isLoading()
     }).then((result) => {
       if (result.isConfirmed) {
-        Swal.fire({
+        window.Swal.fire({
           title: 'Settings Saved!',
           text: 'Navigation settings have been updated successfully. Changes will take effect immediately.',
           icon: 'success'
@@ -202,12 +202,12 @@
   // ============================================================================
 
   function openRegistrationSettings() {
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
       alert('SweetAlert2 is required for this feature');
       return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Registration Settings',
       html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading registration settings...</p></div>',
       showConfirmButton: false,
@@ -220,12 +220,12 @@
         if (data.success) {
           showRegistrationSettingsModal(data.settings, data.available_roles);
         } else {
-          Swal.fire('Error', data.message || 'Failed to load registration settings', 'error');
+          window.Swal.fire('Error', data.message || 'Failed to load registration settings', 'error');
         }
       })
       .catch(error => {
         console.error('Registration settings error:', error);
-        Swal.fire('Error', 'Failed to load registration settings', 'error');
+        window.Swal.fire('Error', 'Failed to load registration settings', 'error');
       });
   }
 
@@ -272,7 +272,7 @@
       </div>
     `;
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Registration Settings',
       html: html,
       width: '900px',
@@ -281,10 +281,10 @@
       cancelButtonText: 'Cancel',
       showLoaderOnConfirm: true,
       preConfirm: () => saveRegistrationSettings(),
-      allowOutsideClick: () => !Swal.isLoading()
+      allowOutsideClick: () => !window.Swal.isLoading()
     }).then((result) => {
       if (result.isConfirmed) {
-        Swal.fire({
+        window.Swal.fire({
           title: 'Settings Saved!',
           text: 'Registration settings have been updated successfully. Changes will affect new registrations immediately.',
           icon: 'success'
@@ -332,12 +332,12 @@
   // ============================================================================
 
   function openTaskMonitor() {
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
       alert('SweetAlert2 is required for this feature');
       return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Task Monitor',
       html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading task information...</p></div>',
       width: '800px',
@@ -352,7 +352,7 @@
       })
       .catch(error => {
         console.error('Error loading task monitor:', error);
-        Swal.fire('Error', 'Failed to load task monitor data', 'error');
+        window.Swal.fire('Error', 'Failed to load task monitor data', 'error');
       });
   }
 
@@ -424,7 +424,7 @@
       </div>
     `;
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Task Monitor',
       html: html,
       width: '900px',
@@ -437,12 +437,12 @@
   // ============================================================================
 
   function openDatabaseMonitor() {
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
       alert('SweetAlert2 is required for this feature');
       return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Database Monitor',
       html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading system information...</p></div>',
       width: '900px',
@@ -457,7 +457,7 @@
       })
       .catch(error => {
         console.error('Error loading database monitor:', error);
-        Swal.fire('Error', 'Failed to load system monitor data', 'error');
+        window.Swal.fire('Error', 'Failed to load system monitor data', 'error');
       });
   }
 
@@ -502,7 +502,7 @@
       </div>
     `;
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'System Monitor',
       html: html,
       width: '900px',
@@ -515,12 +515,12 @@
   // ============================================================================
 
   function openMatchReports() {
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
       alert('SweetAlert2 is required for this feature');
       return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Match Reports',
       html: `
         <div class="text-start">

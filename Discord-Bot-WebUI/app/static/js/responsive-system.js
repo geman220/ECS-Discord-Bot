@@ -351,7 +351,7 @@
           modalDialog.classList.add('swipe-animating', 'swipe-dismiss');
 
           setTimeout(() => {
-            const bsModal = bootstrap.Modal.getInstance(modal);
+            const bsModal = window.bootstrap.Modal.getInstance(modal);
             if (bsModal) {
               bsModal.hide();
             }
@@ -456,7 +456,7 @@
       }
 
       // Enhance Select2 if available
-      if (typeof $.fn !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
+      if (typeof window.$.fn !== 'undefined' && typeof window.$.fn.select2 !== 'undefined') {
         try {
           setTimeout(() => {
             $('.select2-container').each(function () {

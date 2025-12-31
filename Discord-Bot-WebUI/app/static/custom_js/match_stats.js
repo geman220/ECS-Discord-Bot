@@ -45,7 +45,7 @@
             var formData = $(this).serialize();  // Serialize the form data
             var csrfToken = $('input[name="csrf_token"]').val();  // Get CSRF token
 
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Confirm Changes',
                 text: "Are you sure you want to save these changes?",
                 icon: 'question',
@@ -56,7 +56,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     // Proceed with AJAX submission
-                    $.ajax({
+                    window.$.ajax({
                         url: '/edit_match_stat/' + statId,
                         method: 'POST',
                         data: formData,
@@ -64,18 +64,18 @@
                             'X-CSRFToken': csrfToken,
                         },
                         beforeSend: function () {
-                            Swal.fire({
+                            window.Swal.fire({
                                 title: 'Saving...',
                                 text: 'Please wait while your changes are being saved.',
                                 allowOutsideClick: false,
                                 didOpen: () => {
-                                    Swal.showLoading()
+                                    window.Swal.showLoading()
                                 }
                             });
                         },
                         success: function (response) {
                             if (response.success) {
-                                Swal.fire(
+                                window.Swal.fire(
                                     'Success!',
                                     'Match stat has been updated successfully.',
                                     'success'
@@ -84,7 +84,7 @@
                                     location.reload();
                                 });
                             } else {
-                                Swal.fire(
+                                window.Swal.fire(
                                     'Error!',
                                     response.message || 'Failed to update match stat.',
                                     'error'
@@ -92,7 +92,7 @@
                             }
                         },
                         error: function () {
-                            Swal.fire(
+                            window.Swal.fire(
                                 'Error!',
                                 'Failed to update match stat. Please try again.',
                                 'error'
@@ -121,7 +121,7 @@
     function matchStatsEditMatch(statId) {
         var csrfToken = $('input[name="csrf_token"]').val();
 
-        $.ajax({
+        window.$.ajax({
             url: '/edit_match_stat/' + statId,
             method: 'GET',
             headers: {
@@ -136,7 +136,7 @@
                 $('#editMatchStatModal').modal('show');
             },
             error: function () {
-                Swal.fire({
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: 'Failed to load match stats. Please try again.',
@@ -147,7 +147,7 @@
 
     // Function to remove a match stat with SA2 confirmation
     function removeMatchStat(statId) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Are you sure?',
             text: "Do you want to remove this stat?",
             icon: 'warning',
@@ -158,25 +158,25 @@
         }).then((result) => {
             if (result.isConfirmed) {
                 var csrfToken = $('input[name="csrf_token"]').val();
-                $.ajax({
+                window.$.ajax({
                     url: '/remove_match_stat/' + statId,
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': csrfToken
                     },
                     beforeSend: function () {
-                        Swal.fire({
+                        window.Swal.fire({
                             title: 'Removing...',
                             text: 'Please wait while the stat is being removed.',
                             allowOutsideClick: false,
                             didOpen: () => {
-                                Swal.showLoading()
+                                window.Swal.showLoading()
                             }
                         });
                     },
                     success: function (response) {
                         if (response.success) {
-                            Swal.fire(
+                            window.Swal.fire(
                                 'Removed!',
                                 'The stat has been removed successfully.',
                                 'success'
@@ -184,7 +184,7 @@
                                 location.reload();
                             });
                         } else {
-                            Swal.fire(
+                            window.Swal.fire(
                                 'Error!',
                                 response.message || 'Failed to remove the stat.',
                                 'error'
@@ -192,7 +192,7 @@
                         }
                     },
                     error: function () {
-                        Swal.fire(
+                        window.Swal.fire(
                             'Error!',
                             'Failed to remove match stat. Please try again.',
                             'error'

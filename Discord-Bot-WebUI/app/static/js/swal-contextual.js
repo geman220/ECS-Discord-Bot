@@ -1,11 +1,11 @@
 /**
  * SweetAlert2 Contextual Helper
  *
- * Extends Swal.fire with smart contextual defaults for button text,
+ * Extends window.Swal.fire with smart contextual defaults for button text,
  * icons, and colors based on the action being performed.
  *
  * Usage:
- *   // Instead of Swal.fire({...})
+ *   // Instead of window.Swal.fire({...})
  *   SwalContextual.confirm({
  *       title: 'Delete Item',
  *       text: 'Are you sure you want to delete this item?'
@@ -212,7 +212,7 @@
          * @returns {Promise} SweetAlert2 promise
          */
         confirm: function(options) {
-            if (typeof Swal === 'undefined') {
+            if (typeof window.Swal === 'undefined') {
                 console.error('SweetAlert2 not loaded');
                 return Promise.resolve({ isConfirmed: confirm(options.text || options.title) });
             }
@@ -221,14 +221,14 @@
             const detectedAction = detectAction(options.title) || detectAction(options.text);
             const config = buildConfig(options, detectedAction);
 
-            return Swal.fire(config);
+            return window.Swal.fire(config);
         },
 
         /**
          * Success notification
          */
         success: function(title, text) {
-            return Swal.fire({
+            return window.Swal.fire({
                 icon: 'success',
                 title: title,
                 text: text,
@@ -241,7 +241,7 @@
          * Error notification
          */
         error: function(title, text) {
-            return Swal.fire({
+            return window.Swal.fire({
                 icon: 'error',
                 title: title,
                 text: text
@@ -252,7 +252,7 @@
          * Info notification
          */
         info: function(title, text) {
-            return Swal.fire({
+            return window.Swal.fire({
                 icon: 'info',
                 title: title,
                 text: text
@@ -263,7 +263,7 @@
          * Warning notification
          */
         warning: function(title, text) {
-            return Swal.fire({
+            return window.Swal.fire({
                 icon: 'warning',
                 title: title,
                 text: text

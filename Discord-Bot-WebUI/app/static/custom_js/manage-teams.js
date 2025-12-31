@@ -114,8 +114,8 @@
             const teamId = target.dataset.teamId;
             const teamName = target.dataset.teamName;
 
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     title: 'Are you sure?',
                     html: `Do you really want to delete <strong>${teamName}</strong>?<br><br>` +
                           '<span class="text-danger">This action cannot be undone.</span>',

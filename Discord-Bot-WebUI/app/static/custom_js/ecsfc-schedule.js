@@ -288,8 +288,8 @@ class ECSFCScheduleManager {
 
     showAlert(message, type = 'info') {
         // Use SweetAlert if available, otherwise use native alert
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 icon: type === 'warning' ? 'warning' : type === 'danger' ? 'error' : 'info',
                 title: message,
                 toast: true,

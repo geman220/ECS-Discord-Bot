@@ -21,8 +21,8 @@ window.EventDelegation.register('onboarding-create-profile', function(element, e
     // Get bootstrap carousel instance and advance to next slide
     const carouselElement = document.getElementById('modalCarouselControls');
     if (carouselElement && window.bootstrap) {
-        const bootstrapCarousel = bootstrap.Carousel.getInstance(carouselElement) ||
-                                 new bootstrap.Carousel(carouselElement);
+        const bootstrapCarousel = window.bootstrap.Carousel.getInstance(carouselElement) ||
+                                 new window.bootstrap.Carousel(carouselElement);
         bootstrapCarousel.next();
     }
 });
@@ -150,7 +150,7 @@ window.EventDelegation.register('onboarding-previous', function(element, e) {
 
     const carouselElement = document.getElementById('modalCarouselControls');
     if (carouselElement && window.bootstrap) {
-        const bootstrapCarousel = bootstrap.Carousel.getInstance(carouselElement);
+        const bootstrapCarousel = window.bootstrap.Carousel.getInstance(carouselElement);
         if (bootstrapCarousel) bootstrapCarousel.prev();
     }
 });

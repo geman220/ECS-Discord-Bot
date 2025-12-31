@@ -54,7 +54,7 @@
         const scheduleDate = document.getElementById('schedule_date')?.value;
 
         if (!title || !content || !type || !channel) {
-            Swal.fire('Error', 'Please fill in all required fields before previewing', 'error');
+            window.Swal.fire('Error', 'Please fill in all required fields before previewing', 'error');
             return;
         }
 
@@ -142,7 +142,7 @@
                     const message = data.message;
                     const scheduledTime = message.scheduled_send_time ? message.scheduled_send_time.slice(0, 16) : '';
 
-                    Swal.fire({
+                    window.Swal.fire({
                         title: 'Edit Scheduled Message',
                         html: `
                             <div class="text-start">
@@ -173,7 +173,7 @@
                         preConfirm: () => {
                             const scheduledTime = document.getElementById('editScheduledTime')?.value;
                             if (!scheduledTime) {
-                                Swal.showValidationMessage('Scheduled time is required');
+                                window.Swal.showValidationMessage('Scheduled time is required');
                                 return false;
                             }
                             return {
@@ -195,19 +195,19 @@
                             .then(response => response.json())
                             .then(data => {
                                 if (data.success) {
-                                    Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                                    window.Swal.fire('Success', data.message, 'success').then(() => location.reload());
                                 } else {
-                                    Swal.fire('Error', data.message, 'error');
+                                    window.Swal.fire('Error', data.message, 'error');
                                 }
                             })
-                            .catch(() => Swal.fire('Error', 'Failed to update message', 'error'));
+                            .catch(() => window.Swal.fire('Error', 'Failed to update message', 'error'));
                         }
                     });
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             })
-            .catch(() => Swal.fire('Error', 'Failed to load message details', 'error'));
+            .catch(() => window.Swal.fire('Error', 'Failed to load message details', 'error'));
     }
 
     // ========================================================================
@@ -222,7 +222,7 @@
      * @param {string} csrfToken - CSRF token for form submission
      */
     function cancelScheduledMessage(messageId, messageTitle, cancelUrl, csrfToken) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Cancel Scheduled Message?',
             text: `Cancel the scheduled message "${messageTitle}"? This action cannot be undone.`,
             icon: 'warning',
@@ -267,7 +267,7 @@
      * @param {string} csrfToken - CSRF token for form submission
      */
     function retryScheduledMessage(messageId, messageTitle, retryUrl, csrfToken) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Retry Scheduled Message?',
             text: `Retry sending the failed message "${messageTitle}"?`,
             icon: 'question',

@@ -322,7 +322,7 @@
             e.preventDefault();
             e.stopPropagation();
 
-            Swal.fire({
+            window.Swal.fire({
               title: 'Remove Player?',
               text: 'Are you sure you want to remove this player from the team?',
               icon: 'warning',

@@ -204,7 +204,7 @@
           // Show the modal
           const modalElement = document.getElementById('cropBackgroundModal');
           if (modalElement) {
-            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            const modal = window.bootstrap.Modal.getOrCreateInstance(modalElement);
             modal.show();
 
             // Initialize positioning after modal is shown
@@ -471,14 +471,14 @@
   function handleAssignDiscordRoles(target) {
     const teamId = target.dataset.teamId;
 
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
       if (confirm('Are you sure you want to assign Discord roles to all players on this team?')) {
         assignDiscordRolesToTeam(teamId);
       }
       return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Assign Discord Roles?',
       html: 'This will assign Discord roles to all players on this team.<br><br>' +
             '<small class="text-info">This is a manual fix for the draft role assignment issue.</small>',
@@ -500,8 +500,8 @@
    * Assign Discord roles to team
    */
   function assignDiscordRolesToTeam(teamId) {
-    if (typeof Swal !== 'undefined') {
-      Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+      window.Swal.fire({
         title: 'Assigning Discord Roles...',
         html: 'Processing role assignments for this team.',
         icon: 'info',
@@ -509,7 +509,7 @@
         allowEscapeKey: false,
         showConfirmButton: false,
         didOpen: () => {
-          Swal.showLoading();
+          window.Swal.showLoading();
         }
       });
     }
@@ -526,8 +526,8 @@
     .then(response => response.json())
     .then(data => {
       if (data.success) {
-        if (typeof Swal !== 'undefined') {
-          Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+          window.Swal.fire({
             icon: 'success',
             title: 'Discord Roles Assigned!',
             html: `Successfully processed Discord role assignments.<br><br>` +
@@ -544,8 +544,8 @@
     })
     .catch(error => {
       console.error('Error:', error);
-      if (typeof Swal !== 'undefined') {
-        Swal.fire({
+      if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
           icon: 'error',
           title: 'Error',
           text: error.message || 'Failed to assign Discord roles. Please try again.'
@@ -562,14 +562,14 @@
   function handleRefreshDiscordStatus(target) {
     const teamId = target.dataset.teamId;
 
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
       if (confirm('Are you sure you want to refresh Discord status for all players on this team?')) {
         refreshDiscordStatusForTeam(teamId);
       }
       return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
       title: 'Refresh Discord Status?',
       html: 'This will check the current Discord server status for all players on this team.',
       icon: 'question',
@@ -590,8 +590,8 @@
    * Refresh Discord status for team
    */
   function refreshDiscordStatusForTeam(teamId) {
-    if (typeof Swal !== 'undefined') {
-      Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+      window.Swal.fire({
         title: 'Refreshing Discord Status...',
         html: 'Checking Discord server status for all players.',
         icon: 'info',
@@ -599,7 +599,7 @@
         allowEscapeKey: false,
         showConfirmButton: false,
         didOpen: () => {
-          Swal.showLoading();
+          window.Swal.showLoading();
         }
       });
     }
@@ -616,8 +616,8 @@
     .then(response => response.json())
     .then(data => {
       if (data.success) {
-        if (typeof Swal !== 'undefined') {
-          Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+          window.Swal.fire({
             icon: 'success',
             title: 'Discord Status Refreshed!',
             html: `Successfully refreshed Discord status.<br><br>` +
@@ -637,8 +637,8 @@
     })
     .catch(error => {
       console.error('Error:', error);
-      if (typeof Swal !== 'undefined') {
-        Swal.fire({
+      if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
           icon: 'error',
           title: 'Error',
           text: error.message || 'Failed to refresh Discord status. Please try again.'
@@ -656,8 +656,8 @@
     const playerId = target.dataset.playerId;
     const playerName = target.dataset.playerName;
 
-    if (typeof Swal !== 'undefined') {
-      Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+      window.Swal.fire({
         title: 'Refresh Discord Status?',
         html: `Check if <strong>${playerName}</strong> has joined the Discord server?`,
         icon: 'question',
@@ -698,8 +698,8 @@
           badgeElement.classList.add('c-discord-badge--inactive');
         }
 
-        if (typeof Swal !== 'undefined') {
-          Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+          window.Swal.fire({
             icon: data.in_server ? 'success' : 'warning',
             title: 'Discord Status Updated!',
             html: `<strong>${playerName}</strong><br>Status: ${data.status_change}`,
@@ -715,8 +715,8 @@
     })
     .catch(error => {
       console.error('Error:', error);
-      if (typeof Swal !== 'undefined') {
-        Swal.fire({
+      if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
           icon: 'error',
           title: 'Error',
           text: error.message || `Failed to check Discord status for ${playerName}.`,
@@ -734,7 +734,7 @@
   function initializeTooltips() {
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function(tooltipTriggerEl) {
-      return new bootstrap.Tooltip(tooltipTriggerEl, {
+      return new window.bootstrap.Tooltip(tooltipTriggerEl, {
         delay: { show: 500, hide: 100 }
       });
     });

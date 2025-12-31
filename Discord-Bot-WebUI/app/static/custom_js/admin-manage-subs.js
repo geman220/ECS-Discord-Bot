@@ -51,7 +51,7 @@
     // ========================================================================
 
     function initDataTable() {
-        if (!$.fn.DataTable || !document.getElementById('subsTable')) {
+        if (!window.$.fn.DataTable || !document.getElementById('subsTable')) {
             return;
         }
 
@@ -230,9 +230,9 @@
         container.innerHTML = html;
 
         // Initialize tooltips if Bootstrap is available
-        if (typeof bootstrap !== 'undefined') {
+        if (typeof window.bootstrap !== 'undefined') {
             const tooltipTriggerList = container.querySelectorAll('[data-bs-toggle="tooltip"]');
-            [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
+            [...tooltipTriggerList].map(el => new window.bootstrap.Tooltip(el));
         }
     }
 
@@ -285,7 +285,7 @@
         modalTitle.innerHTML = `<i class="ti ti-user-plus me-2"></i>Assign ${playerName} as Substitute`;
 
         // Open modal
-        const modal = new bootstrap.Modal(document.getElementById('assignSubModal'));
+        const modal = new window.bootstrap.Modal(document.getElementById('assignSubModal'));
         modal.show();
     }
 
@@ -314,7 +314,7 @@
                 showToast('success', data.message);
 
                 // Close modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('assignSubModal'));
+                const modal = window.bootstrap.Modal.getInstance(document.getElementById('assignSubModal'));
                 modal.hide();
 
                 // Reset form

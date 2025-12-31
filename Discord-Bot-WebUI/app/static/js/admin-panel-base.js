@@ -90,7 +90,7 @@
 
                 const navbarCollapse = document.querySelector('[data-navbar-collapse], .navbar-collapse');
                 if (window.innerWidth < self.CONFIG.TABLET_BREAKPOINT && navbarCollapse && navbarCollapse.classList.contains('show')) {
-                    const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
+                    const bsCollapse = window.bootstrap.Collapse.getInstance(navbarCollapse);
                     if (bsCollapse) {
                         bsCollapse.hide();
                     }
@@ -518,7 +518,7 @@
             if (container) {
                 container.appendChild(toast);
 
-                const toastInstance = new bootstrap.Toast(toast, {
+                const toastInstance = new window.bootstrap.Toast(toast, {
                     autohide: true,
                     delay: this.isMobile() ? this.CONFIG.TOAST_DURATION_MOBILE : this.CONFIG.TOAST_DURATION_DESKTOP
                 });
@@ -623,8 +623,8 @@
                 }
             } else {
                 // Use SweetAlert2 on desktop if available
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         title: title,
                         text: message,
                         icon: icon,

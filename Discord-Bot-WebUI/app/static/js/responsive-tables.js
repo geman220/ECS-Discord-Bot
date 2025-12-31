@@ -163,9 +163,9 @@
      */
     setupDataTables: function() {
       // Only proceed if DataTables is available
-      if (typeof $.fn.dataTable !== 'undefined') {
+      if (typeof window.$.fn.dataTable !== 'undefined') {
         // Default DataTables setup for mobile
-        $.extend(true, $.fn.dataTable.defaults, {
+        window.$.extend(true, window.$.fn.dataTable.defaults, {
           responsive: true,
           drawCallback: function() {
             // Ensure mobile card processing on DataTables
