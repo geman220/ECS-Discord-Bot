@@ -44,8 +44,8 @@ COPY . .
 # Rebuild native modules for Linux (fixes platform mismatch from Windows/Mac dev)
 RUN npm rebuild
 
-# Build Vite assets for production
-RUN npm run build
+# Lint JS to catch TDZ-prone bare globals, then build Vite assets
+RUN npm run lint && npm run build
 
 # Add healthcheck
 COPY healthcheck.py .
