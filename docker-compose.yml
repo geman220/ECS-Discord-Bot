@@ -290,6 +290,7 @@ services:
       - GOOGLE_WALLET_ISSUER_ID=${GOOGLE_WALLET_ISSUER_ID}
     volumes:
       - ./Discord-Bot-WebUI/app/wallet_pass/certs/google-service-account.json:/app/credentials/google-service-account.json:ro
+      - pass_converter_data:/app/data
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
       interval: 30s
@@ -510,3 +511,4 @@ volumes:
   celery_sync_data:
   celery_enterprise_data:
   realtime_logs:
+  pass_converter_data:

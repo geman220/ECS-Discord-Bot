@@ -11,6 +11,9 @@ RUN git clone https://github.com/google-wallet/pass-converter.git .
 # Install dependencies
 RUN npm install
 
+# Create data directory for SQLite database
+RUN mkdir -p /app/data
+
 # Copy our configuration template
 COPY config.json /app/config.template.json
 

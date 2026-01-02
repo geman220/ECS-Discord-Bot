@@ -11,6 +11,7 @@
 
   "database": {
     "type": "sqlite",
+    "database": "/app/data/passes.db",
     "synchronize": true
   },
 
