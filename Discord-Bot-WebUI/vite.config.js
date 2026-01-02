@@ -63,8 +63,8 @@ export default defineConfig({
       },
     },
 
-    // Minification (esbuild is faster and uses less memory than terser)
-    minify: 'esbuild',
+    // Temporarily disable minification for debugging TDZ error
+    minify: false,
 
     // Disable source maps in production to save memory
     sourcemap: false,
