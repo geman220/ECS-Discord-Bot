@@ -31,8 +31,10 @@ export class DiscordMembershipChecker {
             console.warn('Discord membership check error:', window.discordError);
             this.showDiscordJoinPrompt('error');
         } else {
-            // No Discord info - prompt to join
-            this.showDiscordJoinPrompt('no_info');
+            // No Discord info available - this means the backend didn't check membership
+            // (e.g., page doesn't pass discord_membership_status to template)
+            // Don't prompt in this case - only prompt when we KNOW user is not in server
+            console.log('Discord membership status not available on this page - skipping check');
         }
     }
 
@@ -78,11 +80,6 @@ export class DiscordMembershipChecker {
                 title = '⚠️ Discord Connection Issue';
                 message = 'We had trouble checking your Discord membership.';
                 urgency = 'warning';
-                break;
-            case 'no_info':
-                title = '📢 Join Our Discord Community';
-                message = 'Connect with us on Discord for the best experience!';
-                urgency = 'info';
                 break;
             case 'manual':
                 title = '💡 Pro Tip: Join Discord First!';
