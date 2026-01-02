@@ -473,12 +473,8 @@ export const ProgressiveDisclosure = {
       description: 'Progressive disclosure / accordion component',
       reinitializable: true
     });
-  } else {
-    // Fallback: Initialize on DOMContentLoaded
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => window.ProgressiveDisclosure.init());
-    } else {
-      window.ProgressiveDisclosure.init();
-    }
   }
+
+// Fallback
+// InitSystem handles initialization
 

@@ -254,12 +254,8 @@ InitSystem.register('admin-discord-overview', init, {
     description: 'Admin Discord overview page functionality'
 });
 
-// Fallback for non-module usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Export for ES modules
 export {

@@ -362,12 +362,8 @@ InitSystem.register('message-template-detail', initWithGuard, {
     description: 'Message template detail management'
 });
 
-// Fallback for non-bundled usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initWithGuard);
-} else {
-    initWithGuard();
-}
+// Fallback
+// InitSystem handles initialization
 
 /* ========================================================================
    PUBLIC API

@@ -516,14 +516,10 @@ if (typeof window.InitSystem !== 'undefined') {
     }, {
         priority: 20 // After responsive (10) and admin-base (15), before page-specific components
     });
-} else {
-    // Fallback to DOMContentLoaded
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => ModalManager.init());
-    } else {
-        ModalManager.init();
-    }
 }
+
+// Fallback
+// InitSystem handles initialization
 
 // Try to register event handlers immediately (works in Vite bundle)
 // MUST use window.EventDelegation to avoid TDZ errors

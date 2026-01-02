@@ -547,11 +547,7 @@ InitSystem.register('admin-panel-discord-bot', init, {
 });
 
 // Fallback
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// InitSystem handles initialization
 
 // Backward compatibility exports
 window.CONFIG = CONFIG;

@@ -838,12 +838,8 @@ InitSystem.register('messages-inbox', initWithGuard, {
     description: 'Messages inbox interface'
 });
 
-// Fallback for non-bundled usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initWithGuard);
-} else {
-    initWithGuard();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Backward compatibility
 window.MessagesInbox = {

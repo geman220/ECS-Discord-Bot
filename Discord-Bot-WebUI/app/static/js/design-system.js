@@ -557,14 +557,8 @@ InitSystem.register('design-system', function() {
   reinitializable: false
 });
 
-// Fallback: Initialize on DOM ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function() {
-    ECSDesignSystem.init();
-  });
-} else {
-  ECSDesignSystem.init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Backward compatibility
 window.ECSDesignSystem = ECSDesignSystem;

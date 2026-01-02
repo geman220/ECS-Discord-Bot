@@ -278,12 +278,8 @@ InitSystem.register('admin-navigation', initAdminNavigation, {
   description: 'Admin panel navigation controller'
 });
 
-// Fallback: Initialize on DOM ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAdminNavigation);
-} else {
-  initAdminNavigation();
-}
+// Fallback
+// InitSystem handles initialization
 
 // ========================================================================
 // EVENT DELEGATION - Registered at module scope

@@ -75,12 +75,7 @@ if (InitSystem.register) {
     });
 }
 
-// Fallback
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => ViewStandings.init());
-} else {
-    ViewStandings.init();
-}
+// InitSystem handles initialization
 
 // Backward compatibility
 window.ViewStandings = ViewStandings;

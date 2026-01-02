@@ -591,10 +591,6 @@ export const MobileGestures = {
     });
   }
 
-  // Fallback initialization
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => window.MobileGestures.init());
-  } else {
-    window.MobileGestures.init();
-  }
+  // Fallback
+// InitSystem handles initialization
 

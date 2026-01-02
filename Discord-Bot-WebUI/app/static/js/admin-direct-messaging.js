@@ -487,12 +487,8 @@ InitSystem.register('admin-direct-messaging', init, {
     description: 'Admin direct messaging page functionality'
 });
 
-// Fallback for non-module usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Export for ES modules
 export {

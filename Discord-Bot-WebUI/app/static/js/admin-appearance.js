@@ -550,12 +550,8 @@ InitSystem.register('admin-appearance', init, {
     description: 'Admin appearance/theme customization page functionality'
 });
 
-// Fallback for non-module usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Export for ES modules
 export {

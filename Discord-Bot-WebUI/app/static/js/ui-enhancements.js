@@ -132,12 +132,8 @@ if (typeof InitSystem !== 'undefined' && InitSystem.register) {
     });
 }
 
-// Fallback: Initialize on DOM ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Re-initialize after turbo/ajax page loads
 // FIXED: Added guard to prevent duplicate global event listener registration

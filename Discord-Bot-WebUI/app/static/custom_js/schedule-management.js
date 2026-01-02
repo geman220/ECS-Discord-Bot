@@ -378,11 +378,7 @@ export class ScheduleManager {
 
     // Fallback - ScheduleManager has its own DOMContentLoaded in constructor
     // So we just register it, the constructor handles the DOM wait
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+    // InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

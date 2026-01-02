@@ -290,11 +290,7 @@ if (true && InitSystem.register) {
 }
 
 // Fallback
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSmsVerification);
-} else {
-    initSmsVerification();
-}
+// InitSystem handles initialization
 
 // Backward compatibility
 window.initSmsVerification = initSmsVerification;

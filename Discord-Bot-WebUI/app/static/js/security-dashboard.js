@@ -746,12 +746,8 @@ InitSystem.register('security-dashboard', initSecurityDashboard, {
     description: 'Security dashboard interface'
 });
 
-// Fallback for non-bundled usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSecurityDashboard);
-} else {
-    initSecurityDashboard();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {

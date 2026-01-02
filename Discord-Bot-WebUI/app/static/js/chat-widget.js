@@ -1468,12 +1468,8 @@ if (InitSystem && InitSystem.register) {
   });
 }
 
-// Fallback: Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // ============================================================================
 // EVENT DELEGATION - Registered at module scope

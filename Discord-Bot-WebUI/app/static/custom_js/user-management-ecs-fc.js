@@ -200,13 +200,7 @@ if (InitSystem.register) {
     }, {
         priority: 30 // After form selects
     });
-} else {
-    // Fallback to DOMContentLoaded
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            window.EcsFcTeamManager.init(document);
-        });
-    } else {
-        window.EcsFcTeamManager.init(document);
-    }
 }
+
+// Fallback
+// InitSystem handles initialization

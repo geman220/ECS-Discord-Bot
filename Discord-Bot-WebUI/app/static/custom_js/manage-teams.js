@@ -193,12 +193,7 @@ if (InitSystem && InitSystem.register) {
     });
 }
 
-// Fallback
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => ManageTeams.init());
-} else {
-    ManageTeams.init();
-}
+// InitSystem handles initialization
 
 // Backward compatibility
 window.ManageTeams = ManageTeams;

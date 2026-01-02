@@ -512,12 +512,8 @@ InitSystem.register('scheduled-messages', initWithGuard, {
     description: 'Scheduled messages management'
 });
 
-// Fallback for non-bundled usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initWithGuard);
-} else {
-    initWithGuard();
-}
+// Fallback
+// InitSystem handles initialization
 
 /* ========================================================================
    PUBLIC API

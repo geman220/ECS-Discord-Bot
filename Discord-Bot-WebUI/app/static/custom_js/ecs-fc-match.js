@@ -104,11 +104,7 @@ import { InitSystem } from '../js/init-system.js';
     });
 
     // Fallback for non-module usage
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+    // InitSystem handles initialization
 
     // Expose module globally
     window.ECSFCMatch = {

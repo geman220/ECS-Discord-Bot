@@ -103,11 +103,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback for direct script loading
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// InitSystem handles initialization
 
 // Export for ES modules
 export { AdminEcsFcMatchFormManager, getManager, init };

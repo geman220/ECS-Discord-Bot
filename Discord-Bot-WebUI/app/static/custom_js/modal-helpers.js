@@ -420,16 +420,10 @@ if (InitSystem && InitSystem.register) {
     }, {
         priority: 25 // After ModalManager (20)
     });
-} else {
-    // Fallback to DOMContentLoaded
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            ModalHelpers.init(document);
-        });
-    } else {
-        ModalHelpers.init(document);
-    }
 }
+
+// Fallback
+// InitSystem handles initialization
 
 // Backward compatibility
 window.CONFIG = CONFIG;

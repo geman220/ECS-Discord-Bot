@@ -242,9 +242,5 @@ if (InitSystem && InitSystem.register) {
     });
 }
 
-// Fallback initialization
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Fallback
+// InitSystem handles initialization

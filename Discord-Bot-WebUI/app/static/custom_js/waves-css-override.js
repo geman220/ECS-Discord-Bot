@@ -16,8 +16,8 @@ export function init() {
     if (_initialized) return;
     _initialized = true;
 
-    if (!window.Waves) {
-        console.warn('[Waves CSS Override] Waves library not loaded');
+    if (!window.Waves || !window.Waves.Effect) {
+        console.warn('[Waves CSS Override] Waves library not fully loaded');
         return;
     }
 
@@ -89,11 +89,7 @@ if (InitSystem.register) {
 }
 
 // Fallback
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

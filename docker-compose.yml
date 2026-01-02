@@ -281,6 +281,30 @@ services:
         reservations:
           memory: 256M
 
+  pass-converter:
+    build:
+      context: ./Discord-Bot-WebUI/pass-converter
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - GOOGLE_WALLET_ISSUER_ID=${GOOGLE_WALLET_ISSUER_ID}
+    volumes:
+      - ./Discord-Bot-WebUI/app/wallet_pass/certs/google-service-account.json:/app/credentials/google-service-account.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - web
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
   celery-beat:
     build:
       context: ./Discord-Bot-WebUI

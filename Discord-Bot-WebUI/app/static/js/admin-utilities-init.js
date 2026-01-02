@@ -49,12 +49,8 @@ InitSystem.register('admin-utilities', init, {
     description: 'Initialize admin utility helpers (progress bars, theme colors)'
 });
 
-// Fallback for non-InitSystem environments
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => init(document));
-} else {
-    init(document);
-}
+// Fallback
+// InitSystem handles initialization
 
 // Backward compatibility
 window.initAdminUtilities = init;

@@ -410,20 +410,6 @@ InitSystem.register('mobile-haptics', () => Haptics.init(), {
   description: 'Mobile haptic feedback'
 });
 
-// Fallback initialization only if InitSystem doesn't run
-// Uses guard to prevent "undefined" errors during bundling
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    if (window.Haptics && !_initialized) {
-      window.Haptics.init();
-    }
-  });
-} else if (window.Haptics && !_initialized) {
-  // Defer to next tick to ensure all modules are loaded
-  setTimeout(() => {
-    if (window.Haptics && !_initialized) {
-      window.Haptics.init();
-    }
-  }, 0);
-}
+// Fallback
+// InitSystem handles initialization
 

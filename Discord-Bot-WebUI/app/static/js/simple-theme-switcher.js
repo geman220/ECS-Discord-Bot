@@ -390,12 +390,8 @@ InitSystem.register('simple-theme-switcher', initThemeSwitcher, {
   description: 'Theme switcher (light/dark mode)'
 });
 
-// Fallback: Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initThemeSwitcher);
-} else {
-  initThemeSwitcher();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Backward compatibility
 window.SimpleThemeSwitcher = SimpleThemeSwitcher;

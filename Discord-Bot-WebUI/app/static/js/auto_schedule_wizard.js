@@ -2335,12 +2335,8 @@ InitSystem.register('auto-schedule-wizard', initAutoScheduleWizard, {
     description: 'Auto schedule wizard functionality'
 });
 
-// Fallback for non-bundled usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAutoScheduleWizard);
-} else {
-    initAutoScheduleWizard();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Backward compatibility
 window.applyThemeColor = applyThemeColor;

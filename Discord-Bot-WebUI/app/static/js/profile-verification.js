@@ -456,14 +456,8 @@ if (InitSystem && InitSystem.register) {
   });
 }
 
-// Fallback: Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    ProfileVerification.init();
-  });
-} else {
-  ProfileVerification.init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Backward compatibility - expose to global scope
 window.ProfileVerification = ProfileVerification;

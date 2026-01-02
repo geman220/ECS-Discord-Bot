@@ -369,11 +369,7 @@ if (InitSystem && InitSystem.register) {
     });
 }
 
-// Fallback initialization
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAutoRefresh);
-} else {
-    initAutoRefresh();
-}
+// Fallback
+// InitSystem handles initialization
 
 console.log('[EventDelegation] Admin waitlist handlers loaded');

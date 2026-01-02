@@ -377,11 +377,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initCalendarSubscription);
-} else {
-    initCalendarSubscription();
-}
+// InitSystem handles initialization
 
 // Backward compatibility
 window.initCalendarSubscription = initCalendarSubscription;

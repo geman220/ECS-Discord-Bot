@@ -574,10 +574,6 @@ export const MobileKeyboard = {
     });
   }
 
-  // Fallback initialization
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => window.MobileKeyboard.init());
-  } else {
-    window.MobileKeyboard.init();
-  }
+  // Fallback
+// InitSystem handles initialization
 

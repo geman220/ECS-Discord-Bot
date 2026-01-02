@@ -121,11 +121,7 @@ let _initialized = false;
     }
 
     // Fallback
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+    // InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

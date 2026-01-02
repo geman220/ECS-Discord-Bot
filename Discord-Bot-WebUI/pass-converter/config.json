@@ -1,0 +1,25 @@
+{
+  "googleServiceAccountJsonPath": "/app/credentials/google-service-account.json",
+  "googleIssuerId": "${GOOGLE_WALLET_ISSUER_ID}",
+
+  "defaultPlaceholder": "N/A",
+  "defaultOrganization": "ECS FC",
+  "defaultLanguage": "en",
+
+  "bindHost": "0.0.0.0",
+  "bindPort": 3000,
+
+  "database": {
+    "type": "sqlite",
+    "synchronize": true
+  },
+
+  "fieldHints": {
+    "eventName": ["event", "show", "concert", "game"],
+    "confirmationCode": ["confirmation", "booking", "reference", "order"],
+    "memberName": ["member", "name", "holder", "player"],
+    "memberNumber": ["member_id", "membership_number", "id"],
+    "validFrom": ["valid_from", "start_date", "issue_date"],
+    "validThrough": ["valid_until", "expiry", "end_date", "expires"]
+  }
+}

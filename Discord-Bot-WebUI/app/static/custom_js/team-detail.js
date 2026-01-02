@@ -64,11 +64,7 @@ if (InitSystem.register) {
 }
 
 // Fallback
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// InitSystem handles initialization
 
 /**
  * Set up event delegation for all team detail interactions

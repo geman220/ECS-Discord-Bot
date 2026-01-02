@@ -321,11 +321,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initEcsfcSchedule);
-} else {
-    initEcsfcSchedule();
-}
+// InitSystem handles initialization
 
 // Backward compatibility
 window.ECSFCScheduleManager = ECSFCScheduleManager;

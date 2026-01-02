@@ -800,9 +800,5 @@ InitSystem.register('pass-studio', initPassStudio, {
     description: 'Pass studio wallet management'
 });
 
-// Fallback for non-bundled usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPassStudio);
-} else {
-    initPassStudio();
-}
+// Fallback
+// InitSystem handles initialization

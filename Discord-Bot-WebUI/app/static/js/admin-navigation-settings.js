@@ -227,12 +227,8 @@ InitSystem.register('admin-navigation-settings', init, {
     description: 'Admin navigation settings page functionality'
 });
 
-// Fallback for non-module usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Export for ES modules
 export {

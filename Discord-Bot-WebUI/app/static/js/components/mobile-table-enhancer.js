@@ -505,12 +505,8 @@ export const MobileTableEnhancer = {
       description: 'Enhances tables for mobile card transformation',
       reinitializable: true
     });
-  } else {
-    // Fallback: Initialize on DOMContentLoaded
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => window.MobileTableEnhancer.init());
-    } else {
-      window.MobileTableEnhancer.init();
-    }
   }
+
+// Fallback
+// InitSystem handles initialization
 

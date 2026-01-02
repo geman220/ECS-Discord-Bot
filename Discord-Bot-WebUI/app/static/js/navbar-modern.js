@@ -1361,14 +1361,8 @@ InitSystem.register('navbar-modern', initNavbar, {
   reinitializable: false
 });
 
-// Fallback to ensure initialization even if InitSystem fails to run
-// The guard prevents double initialization
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initNavbar);
-} else {
-  // DOM already ready - initialize now
-  initNavbar();
-}
+// Fallback
+// InitSystem handles initialization
 
 // ============================================================================
 // EVENT DELEGATION HANDLERS - Safe registration

@@ -320,11 +320,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initDiscordChecker);
-} else {
-    initDiscordChecker();
-}
+// InitSystem handles initialization
 
 // Backward compatibility
 window.initDiscordChecker = initDiscordChecker;

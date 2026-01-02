@@ -160,12 +160,8 @@ InitSystem.register('admin-discord-players', init, {
     description: 'Admin Discord players page functionality'
 });
 
-// Fallback for non-module usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Export for ES modules
 export {

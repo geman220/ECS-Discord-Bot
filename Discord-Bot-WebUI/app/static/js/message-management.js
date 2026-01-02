@@ -35,12 +35,8 @@ InitSystem.register('message-management', init, {
     description: 'Message management interface'
 });
 
-// Fallback for non-bundled usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Preview message template
 export function previewTemplate(templateId) {

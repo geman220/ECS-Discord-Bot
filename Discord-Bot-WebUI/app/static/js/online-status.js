@@ -238,12 +238,8 @@ if (InitSystem && InitSystem.register) {
   });
 }
 
-// Fallback: Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initIfNeeded);
-} else {
-  initIfNeeded();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Backward compatibility - expose to global scope
 window.OnlineStatusManager = onlineStatusManagerInstance;

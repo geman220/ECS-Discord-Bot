@@ -783,14 +783,8 @@ if (InitSystem && InitSystem.register) {
   });
 }
 
-// Fallback: Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    messengerWidgetInstance.init();
-  });
-} else {
-  messengerWidgetInstance.init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {

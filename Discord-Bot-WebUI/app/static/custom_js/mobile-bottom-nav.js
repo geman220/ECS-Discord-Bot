@@ -145,11 +145,7 @@ InitSystem.register('mobile-bottom-nav', init, {
 });
 
 // Fallback for non-module usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// InitSystem handles initialization
 
 // Expose toggleTheme globally for backward compatibility
 window.toggleTheme = toggleTheme;

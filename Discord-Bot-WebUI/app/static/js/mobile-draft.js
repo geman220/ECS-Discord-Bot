@@ -601,12 +601,8 @@ InitSystem.register('mobile-draft', initMobileDraft, {
     description: 'Mobile draft system enhancements'
 });
 
-// Fallback for non-bundled usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initMobileDraft);
-} else {
-    initMobileDraft();
-}
+// Fallback
+// InitSystem handles initialization
 
   // Expose globally
   window.MobileDraft = MobileDraft;

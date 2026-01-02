@@ -128,12 +128,7 @@ if (InitSystem && InitSystem.register) {
     });
 }
 
-// Fallback
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => ManageRoles.init());
-} else {
-    ManageRoles.init();
-}
+// InitSystem handles initialization
 
 // Backward compatibility
 window.ManageRoles = ManageRoles;

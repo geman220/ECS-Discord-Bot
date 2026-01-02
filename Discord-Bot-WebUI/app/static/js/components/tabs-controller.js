@@ -238,14 +238,10 @@ export const TabsController = {
             description: 'BEM tabs navigation controller',
             reinitializable: true
         });
-    } else {
-        // Fallback: Initialize on DOMContentLoaded
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => window.TabsController.init());
-        } else {
-            window.TabsController.init();
-        }
     }
+
+// Fallback
+// InitSystem handles initialization
 
     // Listen for hash changes
     window.addEventListener('hashchange', () => {

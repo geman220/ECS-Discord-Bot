@@ -761,11 +761,7 @@ import { InitSystem } from '../js/init-system.js';
     }
 
     // Fallback
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+    // InitSystem handles initialization
 
     // Expose public API
     window.PlayerProfile = {

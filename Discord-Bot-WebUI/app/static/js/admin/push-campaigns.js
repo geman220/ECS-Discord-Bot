@@ -443,12 +443,8 @@ InitSystem.register('push-campaigns', init, {
     description: 'Push campaigns management'
 });
 
-// Fallback for non-bundled usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Fallback
+// InitSystem handles initialization
 
 /* ========================================================================
    PUBLIC API

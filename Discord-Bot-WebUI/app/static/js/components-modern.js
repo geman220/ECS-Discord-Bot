@@ -629,14 +629,10 @@ export function init() {
       description: 'Modern UI components (toast, tooltip, dropdown, table, form)',
       reinitializable: true
     });
-  } else {
-    // Fallback: Initialize on DOM ready
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
-    } else {
-      init();
-    }
   }
+
+// Fallback
+// InitSystem handles initialization
 
   // ============================================================================
   // EVENT DELEGATION - Registered at module scope

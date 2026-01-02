@@ -115,11 +115,7 @@ if (true && InitSystem.register) {
 }
 
 // Fallback for non-module usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initReportMatch);
-} else {
-    initReportMatch();
-}
+// InitSystem handles initialization
 
 // Ensure the playerChoices object is available globally
 window.playerChoices = window.playerChoices || {};

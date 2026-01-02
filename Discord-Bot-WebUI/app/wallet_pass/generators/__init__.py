@@ -5,7 +5,7 @@ Wallet Pass Generators
 
 This package contains generators for different wallet platforms:
 - Apple Wallet (.pkpass files)
-- Google Wallet (JWT-based passes)
+- Google Wallet (via pass-converter, converts Apple passes to Google Wallet format)
 """
 
 from .base import BasePassGenerator

@@ -187,12 +187,7 @@ if (InitSystem && InitSystem.register) {
     });
 }
 
-// Fallback
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => SettingsTabs.init());
-} else {
-    SettingsTabs.init();
-}
+// InitSystem handles initialization
 
 // Handle hash changes
 window.addEventListener('hashchange', () => SettingsTabs.handleHash());

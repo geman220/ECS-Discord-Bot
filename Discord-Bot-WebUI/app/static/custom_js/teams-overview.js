@@ -55,12 +55,7 @@ if (InitSystem.register) {
     });
 }
 
-// Fallback
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => TeamsOverview.init());
-} else {
-    TeamsOverview.init();
-}
+// InitSystem handles initialization
 
 // Backward compatibility
 window.TeamsOverview = TeamsOverview;

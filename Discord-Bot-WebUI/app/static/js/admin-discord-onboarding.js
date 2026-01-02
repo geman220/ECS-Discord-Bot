@@ -131,12 +131,8 @@ InitSystem.register('admin-discord-onboarding', init, {
     description: 'Admin Discord onboarding page functionality'
 });
 
-// Fallback for non-module usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Export for ES modules
 export {

@@ -47,8 +47,4 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback for non-module usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// InitSystem handles initialization

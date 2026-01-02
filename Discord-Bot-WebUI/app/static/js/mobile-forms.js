@@ -602,12 +602,8 @@ export const MobileForms = {
       description: 'Mobile form optimizations (input groups, swipe, quick actions)',
       reinitializable: true
     });
-  } else {
-    // Fallback: Auto-initialize
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => window.MobileForms.init());
-    } else {
-      window.MobileForms.init();
-    }
   }
+
+// Fallback
+// InitSystem handles initialization
 

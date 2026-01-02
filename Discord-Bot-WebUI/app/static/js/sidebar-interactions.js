@@ -588,13 +588,8 @@ InitSystem.register('sidebar-interactions', init, {
   reinitializable: false
 });
 
-// Fallback to ensure initialization even if InitSystem fails to run
-// The internal guard (State._initialized) prevents double initialization
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Backward compatibility
 window.SidebarInteractions = SidebarInteractions;

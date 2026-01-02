@@ -463,12 +463,8 @@ InitSystem.register('draft-history', init, {
     description: 'Draft history admin interface'
 });
 
-// Fallback for non-bundled usage
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Fallback
+// InitSystem handles initialization
 
 // Backward compatibility
 window.DraftHistoryManager = DraftHistoryManager;
