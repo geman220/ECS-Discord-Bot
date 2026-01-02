@@ -198,20 +198,10 @@
         window.history.back();
     }
 
-    // Register with EventDelegation if available
-    if (typeof EventDelegation !== 'undefined') {
-        EventDelegation.register('back', goBack);
-        EventDelegation.register('approve-all', approveAllPending);
-        EventDelegation.register('view-user', function(element) {
-            viewUserDetails(element.dataset.userId, element.dataset.userName);
-        });
-        EventDelegation.register('approve-user', function(element) {
-            approveUser(element.dataset.userId, element.dataset.userName);
-        });
-        EventDelegation.register('reject-user', function(element) {
-            rejectUser(element.dataset.userId, element.dataset.userName);
-        });
-    }
+    // Note: EventDelegation handlers are registered in:
+    // - waitlist-management.js: view-user
+    // - user-management-comprehensive.js: approve-user
+    // This file exposes functions globally for those handlers to use
 
     // Register with InitSystem if available
     if (typeof InitSystem !== 'undefined') {

@@ -389,5 +389,5 @@ if (document.readyState === 'loading') {
 // Backward compatibility
 window.init = init;
 
-// Backward compatibility
-window.getCurrentStep = getCurrentStep;
+// Backward compatibility - getCurrentStep is exposed via window.OnboardingWizard.getCurrentStep
+// window.getCurrentStep = getCurrentStep; // Removed - getCurrentStep is inside init() scope

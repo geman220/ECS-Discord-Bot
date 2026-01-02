@@ -279,16 +279,13 @@
         }
     }
 
-    // Register event handlers with EventDelegation if available
+    // Note: EventDelegation handlers are registered in:
+    // - admin-panel-dashboard.js: generate-report
+    // - mobile-features-handlers.js: export-analytics
+    // This file exposes functions globally for those handlers to use
     if (typeof EventDelegation !== 'undefined') {
         EventDelegation.register('export-role-data', exportRoleData);
         EventDelegation.register('export-league-data', exportLeagueData);
-        EventDelegation.register('generate-report', generateReport);
-        EventDelegation.register('export-analytics', function(element) {
-            const type = element.dataset.exportType;
-            const format = element.dataset.exportFormat;
-            exportAnalytics(type, format);
-        });
     }
 
     // Expose functions globally for backward compatibility

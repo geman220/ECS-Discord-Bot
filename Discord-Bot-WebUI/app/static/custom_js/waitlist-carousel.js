@@ -378,14 +378,15 @@ function selectImage() {
 }
 
 // Register with EventDelegation system
+// Note: Using 'waitlist-*' prefix to avoid conflicts with season-wizard.js
 if (typeof EventDelegation !== 'undefined') {
-    EventDelegation.register('next-step', function(element, event) {
+    EventDelegation.register('waitlist-next-step', function(element, event) {
         event.preventDefault();
         event.stopPropagation();
         handleNextStep();
     });
 
-    EventDelegation.register('previous-step', function(element, event) {
+    EventDelegation.register('waitlist-previous-step', function(element, event) {
         handlePrevStep();
     });
 

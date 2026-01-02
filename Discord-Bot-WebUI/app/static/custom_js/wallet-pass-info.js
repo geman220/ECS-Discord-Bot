@@ -82,12 +82,8 @@ function showCopyFeedback(feedbackEl) {
     }
 }
 
-// Register with EventDelegation system
-if (typeof EventDelegation !== 'undefined') {
-    EventDelegation.register('copy-link', function(element, event) {
-        copyPageLink();
-    });
-}
+// Note: 'copy-link' handler is registered in admin-wallet.js
+// This file exposes copyPageLink globally for that handler to use
 
 // Register with InitSystem
 InitSystem.register('wallet-pass-info', init, {

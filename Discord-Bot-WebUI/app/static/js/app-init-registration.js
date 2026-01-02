@@ -56,29 +56,7 @@ export function init() {
     // ============================================================================
     // PRIORITY 70: ADMIN UTILITIES
     // ============================================================================
-    InitSystem.register('admin-utilities', function(context) {
-        const root = context || document;
-
-        const progressBars = root.querySelectorAll('[data-width]');
-        progressBars.forEach(bar => {
-            const width = bar.dataset.width;
-            if (width) {
-                bar.style.width = width + '%';
-            }
-        });
-
-        const themedElements = root.querySelectorAll('[data-theme-color]');
-        themedElements.forEach(el => {
-            const color = el.dataset.themeColor;
-            if (color) {
-                el.style.backgroundColor = color;
-            }
-        });
-    }, {
-        priority: 70,
-        description: 'Initialize admin utility helpers (progress bars, theme colors)',
-        reinitializable: true
-    });
+    // Note: 'admin-utilities' is registered in admin-utilities-init.js
 
     // ============================================================================
     // PRIORITY 30: UI FIXES AND ENHANCEMENTS
@@ -157,73 +135,7 @@ export function init() {
         reinitializable: true
     });
 
-    // Mobile Menu Fix
-    InitSystem.register('mobile-menu-fix', function() {
-        const layoutMenu = document.getElementById('layout-menu');
-        const closeIcon = document.getElementById('close-icon');
-        let layoutOverlay = document.querySelector('.layout-overlay');
-
-        if (!layoutOverlay) {
-            const overlayDiv = document.createElement('div');
-            overlayDiv.className = 'layout-overlay';
-            document.body.appendChild(overlayDiv);
-            layoutOverlay = overlayDiv;
-        }
-
-        function closeMenu() {
-            document.documentElement.classList.remove('layout-menu-expanded');
-            document.body.classList.remove('layout-menu-expanded');
-            if (layoutMenu) {
-                layoutMenu.classList.remove('menu-open');
-            }
-            if (closeIcon) {
-                closeIcon.classList.add('d-none');
-            }
-        }
-
-        if (!window._mobileMenuOverlayListenerRegistered) {
-            window._mobileMenuOverlayListenerRegistered = true;
-            document.addEventListener('click', function(e) {
-                if (e.target.classList.contains('layout-overlay') &&
-                    document.documentElement.classList.contains('layout-menu-expanded')) {
-                    closeMenu();
-                }
-            });
-        }
-
-        const menuItems = document.querySelectorAll('.menu-item a');
-        menuItems.forEach(item => {
-            item.removeAttribute('inert');
-            item.classList.add('pointer-events-auto');
-        });
-
-        if (layoutMenu) {
-            layoutMenu.removeAttribute('inert');
-            layoutMenu.classList.add('pointer-events-auto', 'user-select-auto', 'touch-action-auto');
-        }
-
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-        if (isIOS) {
-            document.documentElement.classList.add('ios-device');
-
-            if (layoutMenu) {
-                layoutMenu.classList.add('ios-overflow-scrolling');
-            }
-
-            const menuLinks = document.querySelectorAll('.menu-link, .menu-toggle');
-            menuLinks.forEach(link => {
-                link.addEventListener('touchstart', function(e) {
-                    e.stopPropagation();
-                }, { passive: true });
-            });
-        }
-    }, {
-        priority: 30,
-        description: 'Enhance mobile menu interactions and iOS compatibility',
-        reinitializable: false
-    });
+    // Note: 'mobile-menu-fix' is registered in custom_js/mobile-menu-fix.js
 
     // Waitlist Registration Focus
     InitSystem.register('waitlist-register-focus', function() {

@@ -79,8 +79,5 @@ export { clearCacheAndRedirect };
 // Expose globally for external use
 window.clearCacheAndRedirect = clearCacheAndRedirect;
 
-// Register EventDelegation handler if available
-// MUST use EventDelegation to avoid TDZ errors in bundled code
-if (EventDelegation && EventDelegation.register) {
-    EventDelegation.register('clear-cache', clearCacheAndRedirect, { preventDefault: true });
-}
+// Note: EventDelegation handler 'clear-cache' is registered in monitoring-handlers.js
+// This file exposes clearCacheAndRedirect globally for that handler to use
