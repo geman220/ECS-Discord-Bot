@@ -486,4 +486,4 @@ window.EventDelegation.register('submit-assign-role-form', function(element, e) 
     });
 });
 
-console.log('[window.EventDelegation] Admin roles handlers loaded');
+// Handlers loaded

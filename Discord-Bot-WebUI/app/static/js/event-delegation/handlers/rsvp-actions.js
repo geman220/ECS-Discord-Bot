@@ -520,7 +520,7 @@ function updateSubstituteSlots() {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] RSVP handlers loaded');
+// Handlers loaded
 
 // Backward compatibility
 window.updateRSVPStatus = updateRSVPStatus;

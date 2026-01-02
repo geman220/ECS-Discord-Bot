@@ -909,4 +909,4 @@ window.EventDelegation.register('scroll-to-section', (element, event) => {
     }
 });
 
-console.log('[window.EventDelegation] Wallet config handlers loaded');
+// Handlers loaded

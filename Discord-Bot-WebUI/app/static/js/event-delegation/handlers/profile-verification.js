@@ -85,4 +85,4 @@ window.EventDelegation.register('verify-profile-submit', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Profile verification handlers loaded');
+// Handlers loaded

@@ -279,4 +279,4 @@ window.EventDelegation.register('bulk-rsvp-update', function(element, e) {
     });
 });
 
-console.log('[window.EventDelegation] Admin reports handlers loaded');
+// Handlers loaded

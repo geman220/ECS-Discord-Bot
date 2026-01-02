@@ -255,4 +255,4 @@ window.EventDelegation.register('verify-code', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Onboarding wizard handlers loaded');
+// Handlers loaded

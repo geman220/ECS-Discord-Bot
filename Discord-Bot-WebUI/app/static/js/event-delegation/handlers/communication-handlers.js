@@ -648,4 +648,4 @@ window.EventDelegation.register('test-webhook', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Communication handlers loaded');
+// Handlers loaded

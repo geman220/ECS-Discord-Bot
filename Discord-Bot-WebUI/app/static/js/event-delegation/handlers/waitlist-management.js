@@ -394,4 +394,4 @@ function submitBulkWaitlistAction(action, selectedIds) {
     form.submit();
 }
 
-console.log('[window.EventDelegation] Waitlist management handlers loaded');
+// Handlers loaded

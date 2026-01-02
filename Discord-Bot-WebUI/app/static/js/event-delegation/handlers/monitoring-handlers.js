@@ -682,4 +682,4 @@ Exception: Sample error occurred
     });
 });
 
-console.log('[window.EventDelegation] Monitoring handlers loaded');
+// Handlers loaded

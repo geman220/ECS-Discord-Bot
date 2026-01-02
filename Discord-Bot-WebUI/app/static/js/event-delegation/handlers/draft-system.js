@@ -132,4 +132,4 @@ window.EventDelegation.register('sort-players', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Draft system handlers loaded');
+// Handlers loaded

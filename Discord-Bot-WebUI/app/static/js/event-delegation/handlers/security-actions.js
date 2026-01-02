@@ -201,4 +201,4 @@ window.EventDelegation.register('clear-all-rate-limits', async function(element,
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Security handlers loaded');
+// Handlers loaded

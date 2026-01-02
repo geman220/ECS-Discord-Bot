@@ -420,4 +420,4 @@ window.EventDelegation.register('edit-subgroup', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Pass studio handlers loaded');
+// Handlers loaded

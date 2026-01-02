@@ -565,4 +565,4 @@ window.EventDelegation.register('reload-page', (element, event) => {
     location.reload();
 });
 
-console.log('[window.EventDelegation] Admin wallet handlers loaded');
+// Handlers loaded

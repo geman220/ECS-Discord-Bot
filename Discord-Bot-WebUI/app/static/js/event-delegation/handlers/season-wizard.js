@@ -450,4 +450,4 @@ window.EventDelegation.register('close-toast', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Season wizard handlers loaded');
+// Handlers loaded

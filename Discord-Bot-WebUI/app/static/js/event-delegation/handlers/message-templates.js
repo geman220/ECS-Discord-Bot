@@ -225,4 +225,4 @@ window.EventDelegation.register('preview-new-template', function(element, e) {
 window.previewTemplate = previewTemplate;
 window.copyTemplate = copyTemplate;
 
-console.log('[window.EventDelegation] Message templates handlers loaded');
+// Handlers loaded

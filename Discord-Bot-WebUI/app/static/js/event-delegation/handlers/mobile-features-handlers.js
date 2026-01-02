@@ -1607,4 +1607,4 @@ window.EventDelegation.register('cleanup-old', (element, event) => {
     });
 });
 
-console.log('[window.EventDelegation] Mobile features handlers loaded');
+// Handlers loaded

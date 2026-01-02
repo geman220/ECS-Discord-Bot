@@ -233,4 +233,4 @@ window.EventDelegation.register('show-discord-channel-info', function(element, e
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Match management handlers loaded');
+// Match management handlers loaded

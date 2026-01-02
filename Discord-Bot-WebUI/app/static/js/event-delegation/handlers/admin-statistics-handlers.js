@@ -171,4 +171,4 @@ window.EventDelegation.register('export-stats', function(element, e) {
     });
 });
 
-console.log('[window.EventDelegation] Admin statistics handlers loaded');
+// Handlers loaded

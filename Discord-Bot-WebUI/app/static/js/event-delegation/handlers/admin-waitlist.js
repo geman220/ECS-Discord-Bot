@@ -372,4 +372,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-console.log('[window.EventDelegation] Admin waitlist handlers loaded');
+// Handlers loaded

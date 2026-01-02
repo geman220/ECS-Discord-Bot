@@ -791,4 +791,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-console.log('[window.EventDelegation] User management comprehensive handlers loaded');
+// Handlers loaded

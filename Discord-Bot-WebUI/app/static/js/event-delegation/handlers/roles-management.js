@@ -157,4 +157,4 @@ window.EventDelegation.register('view-users', function(element, e) {
     window.location.href = getUserApprovalsUrl(roleId);
 }, { preventDefault: true });
 
-console.log('[window.EventDelegation] Roles management handlers loaded');
+// Handlers loaded

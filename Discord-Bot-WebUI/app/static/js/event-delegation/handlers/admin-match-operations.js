@@ -619,4 +619,4 @@ window.EventDelegation.register('schedule-match', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Admin match operations handlers loaded');
+// Handlers loaded

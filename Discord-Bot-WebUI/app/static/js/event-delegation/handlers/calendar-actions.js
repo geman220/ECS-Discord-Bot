@@ -215,7 +215,7 @@ export function setCalendarLoading(loading) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Calendar handlers loaded');
+// Handlers loaded
 
 // Backward compatibility
 window.showCalendarToast = showCalendarToast;

@@ -577,4 +577,4 @@ window.EventDelegation.register('mls-view-task-logs', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] MLS handlers loaded');
+// Handlers loaded

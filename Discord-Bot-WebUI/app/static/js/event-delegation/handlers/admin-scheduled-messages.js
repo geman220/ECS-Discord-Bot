@@ -173,4 +173,4 @@ window.EventDelegation.register('export-pdf', (element, event) => {
     if (pdfBtn) pdfBtn.click();
 });
 
-console.log('[window.EventDelegation] Admin scheduled messages handlers loaded');
+// Handlers loaded

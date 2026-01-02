@@ -114,4 +114,4 @@ window.EventDelegation.register('deny-user', function(element, e) {
     }
 });
 
-console.log('[window.EventDelegation] User approval handlers loaded');
+// Handlers loaded

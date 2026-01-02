@@ -528,4 +528,4 @@ window.viewNotificationLogs = viewNotificationLogs;
 window.manageTokens = manageTokens;
 window.cleanupInvalidTokens = cleanupInvalidTokens;
 
-console.log('[window.EventDelegation] Push notification handlers loaded');
+// Handlers loaded

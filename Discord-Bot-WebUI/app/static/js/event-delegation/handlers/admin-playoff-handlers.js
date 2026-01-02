@@ -327,4 +327,4 @@ window.EventDelegation.register('use-template', function(element, e) {
     });
 });
 
-console.log('[window.EventDelegation] Admin playoff handlers loaded');
+// Handlers loaded

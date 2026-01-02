@@ -283,4 +283,4 @@ window.EventDelegation.register('remove-from-pool', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] ECS FC management handlers loaded');
+// Handlers loaded

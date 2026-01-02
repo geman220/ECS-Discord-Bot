@@ -225,4 +225,4 @@ window.updateDraftCacheStats = updateDraftCacheStats;
 window.warmCache = warmCache;
 window.invalidateAllCache = invalidateAllCache;
 
-console.log('[window.EventDelegation] Admin cache handlers loaded');
+// Handlers loaded

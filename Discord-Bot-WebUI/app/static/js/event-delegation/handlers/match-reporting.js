@@ -184,4 +184,4 @@ window.EventDelegation.register('remove-own-goal', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Match reporting handlers loaded');
+// Handlers loaded

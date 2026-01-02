@@ -743,4 +743,4 @@ function loadSubAvailability(requestId) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Substitute pool handlers loaded');
+// Handlers loaded

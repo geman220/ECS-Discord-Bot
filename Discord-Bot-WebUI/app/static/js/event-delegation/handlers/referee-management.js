@@ -123,4 +123,4 @@ window.EventDelegation.register('update-referee-status', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Referee management handlers loaded');
+// Handlers loaded

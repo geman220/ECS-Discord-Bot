@@ -602,4 +602,4 @@ window.EventDelegation.register('remove-item-variant', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Store handlers loaded');
+// Handlers loaded

@@ -327,4 +327,4 @@ window.EventDelegation.register('duplicate-prompt', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] AI prompts handlers loaded');
+// Handlers loaded

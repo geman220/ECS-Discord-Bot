@@ -500,6 +500,17 @@ export const InitSystem = {
  */
 export const InitSystemDebug = {
     /**
+     * Log a debug message for a component
+     * @param {string} component - Component name
+     * @param {string} message - Message to log
+     */
+    log(component, message) {
+        if (window.InitSystem.config.logging) {
+            console.log(`[${component}] ${message}`);
+        }
+    },
+
+    /**
      * Print initialization order
      */
     printOrder() {

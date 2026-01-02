@@ -649,4 +649,4 @@ window.EventDelegation.register('save-custom-action', function(element, e) {
     });
 });
 
-console.log('[window.EventDelegation] Admin quick actions handlers loaded');
+// Handlers loaded

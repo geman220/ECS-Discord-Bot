@@ -810,4 +810,4 @@ window.EventDelegation.register('mls-cancel-task', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] System handlers loaded');
+// Handlers loaded

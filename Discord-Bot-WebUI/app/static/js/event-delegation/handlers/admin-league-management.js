@@ -615,4 +615,4 @@ window.EventDelegation.register('lookup-player-history', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Admin league management handlers loaded');
+// Handlers loaded

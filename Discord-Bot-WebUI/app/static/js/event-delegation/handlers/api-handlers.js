@@ -529,4 +529,4 @@ window.EventDelegation.register('view-api-log-details', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] API handlers loaded');
+// Handlers loaded

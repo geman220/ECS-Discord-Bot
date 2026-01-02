@@ -351,4 +351,4 @@ window.EventDelegation.register('submit-discord-dm', function(element, e) {
 
 // ============================================================================
 
-console.log('[window.EventDelegation] Discord management handlers loaded');
+// Handlers loaded
