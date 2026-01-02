@@ -36,6 +36,9 @@ let dragStartY = 0;
 let startXPos = 50;
 let startYPos = 50;
 
+// File input handlers setup flag
+let _fileInputHandlersSetup = false;
+
 /**
  * Initialize on DOM ready
  */
@@ -147,8 +150,6 @@ export function handleTriggerBackgroundInput(target) {
         fileInput.click();
     }
 }
-
-let _fileInputHandlersSetup = false;
 
 /**
  * Setup file input change handlers
