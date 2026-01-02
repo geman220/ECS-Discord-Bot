@@ -166,33 +166,33 @@ export const SettingsTabs = {
         }
     };
 
-    // Add _initialized guard to init method
-    const originalInit = window.SettingsTabs.init;
-    let _initialized = false;
-    window.SettingsTabs.init = function() {
-        if (_initialized) return;
-        _initialized = true;
-        originalInit.call(this);
-    };
+// Expose globally FIRST (before any code references window.SettingsTabs)
+window.SettingsTabs = SettingsTabs;
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('settings-tabs', () => window.SettingsTabs.init(), {
-            priority: 50,
-            reinitializable: true,
-            description: 'Settings page tab controller'
-        });
-    }
+// Add _initialized guard to init method
+const originalInit = SettingsTabs.init;
+let _initialized = false;
+SettingsTabs.init = function() {
+    if (_initialized) return;
+    _initialized = true;
+    originalInit.call(SettingsTabs);
+};
 
-    // Expose globally (MUST be before any callbacks)
-    window.SettingsTabs = SettingsTabs;
+// Register with InitSystem (primary)
+if (InitSystem && InitSystem.register) {
+    InitSystem.register('settings-tabs', () => SettingsTabs.init(), {
+        priority: 50,
+        reinitializable: true,
+        description: 'Settings page tab controller'
+    });
+}
 
-    // Fallback
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => window.SettingsTabs.init());
-    } else {
-        window.SettingsTabs.init();
-    }
+// Fallback
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => SettingsTabs.init());
+} else {
+    SettingsTabs.init();
+}
 
-    // Handle hash changes
-    window.addEventListener('hashchange', () => window.SettingsTabs.handleHash());
+// Handle hash changes
+window.addEventListener('hashchange', () => SettingsTabs.handleHash());
