@@ -15,9 +15,10 @@ import { EventDelegation } from '../core.js';
 // ============================================================================
 
 /**
- * Confirm delete message form submission
+ * Confirm delete scheduled message form submission
+ * Note: Renamed from 'delete-message' to avoid conflict with communication-handlers.js
  */
-EventDelegation.register('delete-message', (element, event) => {
+EventDelegation.register('delete-scheduled-message', (element, event) => {
     event.preventDefault();
     const form = element.closest('form');
 

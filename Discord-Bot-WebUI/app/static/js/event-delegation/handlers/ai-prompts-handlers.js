@@ -156,16 +156,17 @@ EventDelegation.register('test-prompt', function(element, e) {
 });
 
 /**
- * Load Template
+ * Load AI Prompt Template
  * Loads an AI prompt template into the form
+ * Note: Renamed from 'load-template' to avoid conflict with mobile-features-handlers.js
  */
-EventDelegation.register('load-template', function(element, e) {
+EventDelegation.register('load-ai-template', function(element, e) {
     e.preventDefault();
 
     const templateId = element.dataset.templateId;
 
     if (!templateId) {
-        console.error('[load-template] Missing template ID');
+        console.error('[load-ai-template] Missing template ID');
         return;
     }
 
@@ -210,16 +211,17 @@ EventDelegation.register('load-template', function(element, e) {
 });
 
 /**
- * Use Template
+ * Use AI Prompt Template
  * Redirects to create page with template ID
+ * Note: Renamed from 'use-template' to avoid conflict with admin-playoff-handlers.js
  */
-EventDelegation.register('use-template', function(element, e) {
+EventDelegation.register('use-ai-template', function(element, e) {
     e.preventDefault();
 
     const templateId = element.dataset.templateId;
 
     if (!templateId) {
-        console.error('[use-template] Missing template ID');
+        console.error('[use-ai-template] Missing template ID');
         return;
     }
 

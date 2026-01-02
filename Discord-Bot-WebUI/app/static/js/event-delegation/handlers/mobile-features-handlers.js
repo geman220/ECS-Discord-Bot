@@ -1353,9 +1353,10 @@ EventDelegation.register('view-campaign-details', (element, event) => {
 });
 
 /**
- * Duplicate campaign
+ * Duplicate Mobile Campaign
+ * Note: Renamed from 'duplicate-campaign' to avoid conflict with admin/push-campaigns.js
  */
-EventDelegation.register('duplicate-campaign', (element, event) => {
+EventDelegation.register('duplicate-mobile-campaign', (element, event) => {
     event.preventDefault();
     const campaignId = element.dataset.campaignId;
 

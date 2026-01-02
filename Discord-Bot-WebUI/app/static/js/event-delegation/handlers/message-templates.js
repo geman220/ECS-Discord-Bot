@@ -195,14 +195,15 @@ EventDelegation.register('delete-announcement', function(element, e) {
 }, { preventDefault: true });
 
 /**
- * Preview Message
+ * Preview Template Message
+ * Note: Renamed from 'preview-message' to avoid conflict with admin/scheduled-messages.js
  */
-EventDelegation.register('preview-message', function(element, e) {
+EventDelegation.register('preview-template-message', function(element, e) {
     e.preventDefault();
     if (typeof window.previewMessage === 'function') {
         window.previewMessage();
     } else {
-        console.error('[preview-message] previewMessage function not found');
+        console.error('[preview-template-message] previewMessage function not found');
     }
 }, { preventDefault: true });
 

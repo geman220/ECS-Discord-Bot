@@ -78,9 +78,10 @@ EventDelegation.register('print-page', (element, event) => {
 // ============================================================================
 
 /**
- * Delete template confirmation
+ * Delete Wallet Template confirmation
+ * Note: Renamed from 'delete-template' to avoid conflict with admin/message-template-detail.js
  */
-EventDelegation.register('delete-template', (element, event) => {
+EventDelegation.register('delete-wallet-template', (element, event) => {
     event.preventDefault();
     const form = element.closest('form');
     const templateName = form?.querySelector('input[name="template_name"]')?.value || 'this template';
@@ -124,9 +125,10 @@ EventDelegation.register('set-default-template', (element, event) => {
 });
 
 /**
- * Edit template - open modal with template data
+ * Edit Wallet Template - open modal with template data
+ * Note: Renamed from 'edit-template' to avoid conflict with admin/message-template-detail.js
  */
-EventDelegation.register('edit-template', (element, event) => {
+EventDelegation.register('edit-wallet-template', (element, event) => {
     event.preventDefault();
     const templateId = element.dataset.templateId;
     const templateName = element.dataset.templateName;
@@ -167,9 +169,10 @@ EventDelegation.register('edit-template', (element, event) => {
 });
 
 /**
- * Create new template - open modal
+ * Create new Wallet Template - open modal
+ * Note: Renamed from 'create-template' to avoid conflict with message-templates.js
  */
-EventDelegation.register('create-template', (element, event) => {
+EventDelegation.register('create-wallet-template', (element, event) => {
     event.preventDefault();
     const passTypeId = element.dataset.passTypeId;
 

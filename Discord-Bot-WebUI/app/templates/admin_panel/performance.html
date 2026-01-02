@@ -108,7 +108,7 @@
                     </h5>
                     <form method="POST" action="{{ url_for('admin_panel.clear_performance_cache') }}" data-form="cache-clear">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger" data-action="clear-cache">
+                        <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger" data-action="performance-clear-cache">
                             <i class="ti ti-trash"></i> Clear Cache
                         </button>
                     </form>
@@ -197,7 +197,7 @@
                     Real-time Performance Metrics
                 </h5>
                 <div class="c-perf-realtime__controls">
-                    <button data-action="toggle-auto-refresh" class="c-btn c-btn--sm c-btn--outline-primary">
+                    <button data-action="performance-toggle-auto-refresh" class="c-btn c-btn--sm c-btn--outline-primary">
                         <i class="ti ti-refresh"></i> Auto Refresh: <span data-status="auto-refresh">ON</span>
                     </button>
                     <small class="c-perf-realtime__timestamp">

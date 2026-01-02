@@ -115,16 +115,17 @@ EventDelegation.register('create-campaign', function(element, e) {
 });
 
 /**
- * Edit Campaign
+ * Edit Communication Campaign
  * Opens campaign for editing
+ * Note: Renamed from 'edit-campaign' to avoid conflict with admin/push-campaigns.js
  */
-EventDelegation.register('edit-campaign', function(element, e) {
+EventDelegation.register('edit-comm-campaign', function(element, e) {
     e.preventDefault();
 
     const campaignId = element.dataset.campaignId;
 
     if (!campaignId) {
-        console.error('[edit-campaign] Missing campaign ID');
+        console.error('[edit-comm-campaign] Missing campaign ID');
         return;
     }
 
@@ -132,17 +133,18 @@ EventDelegation.register('edit-campaign', function(element, e) {
 });
 
 /**
- * Delete Campaign
+ * Delete Communication Campaign
  * Deletes a campaign with confirmation
+ * Note: Renamed from 'delete-campaign' to avoid conflict with admin/push-campaigns.js
  */
-EventDelegation.register('delete-campaign', function(element, e) {
+EventDelegation.register('delete-comm-campaign', function(element, e) {
     e.preventDefault();
 
     const campaignId = element.dataset.campaignId;
     const campaignName = element.dataset.campaignName || 'this campaign';
 
     if (!campaignId) {
-        console.error('[delete-campaign] Missing campaign ID');
+        console.error('[delete-comm-campaign] Missing campaign ID');
         return;
     }
 
@@ -439,10 +441,11 @@ EventDelegation.register('create-category', function(element, e) {
 });
 
 /**
- * Edit Category
+ * Edit Communication Category
  * Opens category edit modal with pre-filled data
+ * Note: Renamed from 'edit-category' to avoid conflict with admin/message-categories.js
  */
-EventDelegation.register('edit-category', function(element, e) {
+EventDelegation.register('edit-comm-category', function(element, e) {
     e.preventDefault();
 
     const categoryId = element.dataset.categoryId;
@@ -466,17 +469,18 @@ EventDelegation.register('edit-category', function(element, e) {
 });
 
 /**
- * Delete Category
+ * Delete Communication Category
  * Deletes a category with confirmation
+ * Note: Renamed from 'delete-category' to avoid conflict with admin/message-categories.js
  */
-EventDelegation.register('delete-category', function(element, e) {
+EventDelegation.register('delete-comm-category', function(element, e) {
     e.preventDefault();
 
     const categoryId = element.dataset.categoryId;
     const categoryName = element.dataset.categoryName || 'this category';
 
     if (!categoryId) {
-        console.error('[delete-category] Missing category ID');
+        console.error('[delete-comm-category] Missing category ID');
         return;
     }
 

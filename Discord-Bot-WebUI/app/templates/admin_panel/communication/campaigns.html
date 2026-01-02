@@ -178,7 +178,7 @@
                                                 <i class="ti ti-eye"></i>
                                             </button>
                                             {% if campaign.status == 'draft' %}
-                                            <button class="c-btn c-btn--outline-warning js-edit-campaign" data-action="edit-campaign" data-campaign-id="{{ campaign.id }}" title="Edit">
+                                            <button class="c-btn c-btn--outline-warning js-edit-campaign" data-action="edit-comm-campaign" data-campaign-id="{{ campaign.id }}" title="Edit">
                                                 <i class="ti ti-edit"></i>
                                             </button>
                                             <button class="c-btn c-btn--outline-success js-send-campaign" data-action="send-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}" title="Send Now">
@@ -187,7 +187,7 @@
                                             <button class="c-btn c-btn--outline-primary js-schedule-campaign" data-action="schedule-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}" title="Schedule">
                                                 <i class="ti ti-clock"></i>
                                             </button>
-                                            <button class="c-btn c-btn--outline-danger js-delete-campaign" data-action="delete-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}" title="Delete">
+                                            <button class="c-btn c-btn--outline-danger js-delete-campaign" data-action="delete-comm-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}" title="Delete">
                                                 <i class="ti ti-trash"></i>
                                             </button>
                                             {% elif campaign.status == 'scheduled' %}

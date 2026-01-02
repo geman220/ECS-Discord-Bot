@@ -54,7 +54,7 @@
                     {% if not notification.read %}
                     <a href="{{ url_for('main.mark_as_read', notification_id=notification.id) }}"
                        class="c-notification-card__btn"
-                       data-action="mark-read"
+                       data-action="mark-push-notification-read"
                        data-notification-id="{{ notification.id }}"
                        title="Mark as read">
                         <i class="ti ti-check"></i>

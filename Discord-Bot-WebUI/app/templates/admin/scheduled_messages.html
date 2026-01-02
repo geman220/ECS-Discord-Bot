@@ -284,7 +284,7 @@
                                     {% endif %}
                                     <form action="{{ url_for('admin.delete_message', message_id=message.id) }}" method="post">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="c-btn c-btn--sm c-btn--icon-only c-btn--danger" data-action="delete-message" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Message">
+                                        <button type="submit" class="c-btn c-btn--sm c-btn--icon-only c-btn--danger" data-action="delete-scheduled-message" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Message">
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </form>

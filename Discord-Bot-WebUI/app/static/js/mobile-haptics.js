@@ -323,14 +323,13 @@ export const Haptics = {
      */
     custom: function (pattern) {
       return this._vibrate(pattern);
-    }
-  };
+    },
 
-  /**
-   * Initialize haptics with event delegation
-   * ROOT CAUSE FIX: Uses document-level event delegation instead of per-element listeners
-   */
-  window.Haptics.init = function () {
+    /**
+     * Initialize haptics with event delegation
+     * ROOT CAUSE FIX: Uses document-level event delegation instead of per-element listeners
+     */
+    init: function () {
     // Only initialize once - event delegation handles all elements
     if (_initialized) return;
     _initialized = true;
@@ -398,32 +397,33 @@ export const Haptics = {
     // that may call Haptics.modalOpen() / Haptics.modalClose() directly
 
     console.log('Haptics: Initialized with event delegation');
-  };
-
-  // Expose globally (MUST be before any callbacks or registrations)
-  window.Haptics = Haptics;
-
-  // Register with InitSystem (primary initialization method)
-  InitSystem.register('mobile-haptics', () => Haptics.init(), {
-    priority: 35,
-    reinitializable: false,
-    description: 'Mobile haptic feedback'
-  });
-
-  // Fallback initialization only if InitSystem doesn't run
-  // Uses guard to prevent "undefined" errors during bundling
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      if (window.Haptics && !_initialized) {
-        window.Haptics.init();
-      }
-    });
-  } else if (window.Haptics && !_initialized) {
-    // Defer to next tick to ensure all modules are loaded
-    setTimeout(() => {
-      if (window.Haptics && !_initialized) {
-        window.Haptics.init();
-      }
-    }, 0);
   }
+};
+
+// Expose globally (MUST be before any callbacks or registrations)
+window.Haptics = Haptics;
+
+// Register with InitSystem (primary initialization method)
+InitSystem.register('mobile-haptics', () => Haptics.init(), {
+  priority: 35,
+  reinitializable: false,
+  description: 'Mobile haptic feedback'
+});
+
+// Fallback initialization only if InitSystem doesn't run
+// Uses guard to prevent "undefined" errors during bundling
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.Haptics && !_initialized) {
+      window.Haptics.init();
+    }
+  });
+} else if (window.Haptics && !_initialized) {
+  // Defer to next tick to ensure all modules are loaded
+  setTimeout(() => {
+    if (window.Haptics && !_initialized) {
+      window.Haptics.init();
+    }
+  }, 0);
+}
 

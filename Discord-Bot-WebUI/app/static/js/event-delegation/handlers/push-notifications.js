@@ -484,11 +484,12 @@ EventDelegation.register('mark-all-notifications-read', function(element, e) {
 }, { preventDefault: true });
 
 /**
- * Mark Single Notification as Read
- * Adds visual feedback (fade) when marking a notification as read
- * Usage: <a data-action="mark-read" href="/mark_notification_read/123">
+ * Mark Push Notification as Read
+ * Adds visual feedback (fade) when marking a push notification as read
+ * Note: Renamed from 'mark-read' to avoid conflict with navbar-modern.js
+ * Usage: <a data-action="mark-push-notification-read" href="/mark_notification_read/123">
  */
-EventDelegation.register('mark-read', function(element, e) {
+EventDelegation.register('mark-push-notification-read', function(element, e) {
     // Don't prevent default - let the link navigate naturally
     const card = element.closest('.c-notification-card');
     if (card) {

@@ -197,7 +197,7 @@
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
                                         {% if task.state in ['failed', 'expired'] %}
-                                        <button type="button" class="c-btn c-btn--outline-primary" data-action="retry-task" data-task-id="{{ task.id }}" title="Retry Task">
+                                        <button type="button" class="c-btn c-btn--outline-primary" data-action="mls-retry-task" data-task-id="{{ task.id }}" title="Retry Task">
                                             <i class="ti ti-reload"></i>
                                         </button>
                                         {% endif %}

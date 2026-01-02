@@ -24,7 +24,7 @@
                             <button class="c-btn c-btn--success" data-action="fetch-espn">
                                 <i class="ti ti-download me-2"></i>Fetch ESPN
                             </button>
-                            <button class="c-btn c-btn--info" data-action="schedule-all-matches">
+                            <button class="c-btn c-btn--info" data-action="mls-schedule-all-matches">
                                 <i class="ti ti-calendar-event me-2"></i>Schedule All
                             </button>
                             <button class="c-btn c-btn--outline-secondary" data-action="refresh-match-statuses">
@@ -92,7 +92,7 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm mb-1">
-                                        <button class="c-btn c-btn--outline-primary js-schedule-match" data-action="schedule-match" data-match-id="{{ match.id }}" title="Schedule Tasks">
+                                        <button class="c-btn c-btn--outline-primary js-schedule-match" data-action="mls-schedule-match" data-match-id="{{ match.id }}" title="Schedule Tasks">
                                             <i class="ti ti-calendar-event"></i>
                                         </button>
                                         {% if not match.thread_created %}

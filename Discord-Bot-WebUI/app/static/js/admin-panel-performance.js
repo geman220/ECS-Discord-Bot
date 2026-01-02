@@ -294,8 +294,9 @@ function getCSSVariable(varName) {
 // EVENT DELEGATION - Registered at module scope
 // ============================================================================
 
-EventDelegation.register('toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
-EventDelegation.register('clear-cache', handleClearCache, { preventDefault: true });
+// Note: Renamed from 'toggle-auto-refresh' and 'clear-cache' to avoid conflicts
+EventDelegation.register('performance-toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
+EventDelegation.register('performance-clear-cache', handleClearCache, { preventDefault: true });
 
 // Register with InitSystem
 InitSystem.register('admin-panel-performance', init, {

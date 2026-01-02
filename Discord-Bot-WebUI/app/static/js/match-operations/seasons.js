@@ -355,10 +355,8 @@ export function init() {
             editSeason(seasonId);
         }, { preventDefault: true });
 
-        EventDelegation.register('set-current-season', function(element, e) {
-            const seasonId = element.dataset.seasonId;
-            setCurrentSeason(seasonId);
-        }, { preventDefault: true });
+        // Note: 'set-current-season' handler is registered in admin-league-management.js
+        // This file uses that shared handler
     }
 }
 

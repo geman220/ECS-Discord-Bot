@@ -84,21 +84,10 @@ EventDelegation.register('reschedule-task', function(element, e) {
     }
 });
 
-/**
- * Refresh Tasks Action
- * Manually refreshes task status for all matches
- */
-EventDelegation.register('refresh-tasks', function(element, e) {
-    e.preventDefault();
-
-    if (typeof loadAllTaskDetails === 'function') {
-        window.loadAllTaskDetails();
-    } else if (typeof refreshStatuses === 'function') {
-        window.refreshStatuses();
-    } else {
-        console.error('[refresh-tasks] No refresh function found');
-    }
-});
+// ============================================================================
+// TASK ACTIONS - Handled by monitoring-handlers.js
+// ============================================================================
+// Removed: refresh-tasks (duplicate of monitoring-handlers.js)
 
 /**
  * Toggle Historical Matches Action
@@ -120,26 +109,10 @@ EventDelegation.register('toggle-historical', function(element, e) {
     }
 });
 
-/**
- * Schedule Match Action
- * Schedules all tasks for a match (thread + reporting)
- */
-EventDelegation.register('schedule-match', function(element, e) {
-    e.preventDefault();
-
-    const matchId = element.dataset.matchId;
-
-    if (!matchId) {
-        console.error('[schedule-match] Missing match ID');
-        return;
-    }
-
-    if (typeof scheduleMatch === 'function') {
-        scheduleMatch(matchId);
-    } else {
-        console.error('[schedule-match] Function not found');
-    }
-});
+// ============================================================================
+// SCHEDULE MATCH - Handled by admin-match-operations.js
+// ============================================================================
+// Note: 'schedule-match' handler moved to admin-match-operations.js
 
 /**
  * Verify Match Action
@@ -165,26 +138,10 @@ EventDelegation.register('verify-match', function(element, e) {
     }
 });
 
-/**
- * Edit Match Action
- * Opens match editing modal/page
- */
-EventDelegation.register('edit-match', function(element, e) {
-    e.preventDefault();
-
-    const matchId = element.dataset.matchId;
-
-    if (!matchId) {
-        console.error('[edit-match] Missing match ID');
-        return;
-    }
-
-    if (typeof editMatch === 'function') {
-        editMatch(matchId);
-    } else {
-        console.error('[edit-match] Function not found');
-    }
-});
+// ============================================================================
+// EDIT MATCH - Handled by admin-match-operations.js
+// ============================================================================
+// Note: 'edit-match' handler moved to admin-match-operations.js
 
 // ============================================================================
 // LIVE REPORTING ACTIONS
@@ -225,53 +182,17 @@ EventDelegation.register('stop-session', function(element, e) {
 // WALLET MANAGEMENT ACTIONS
 // ============================================================================
 
-/**
- * Bulk Generate Passes
- */
-EventDelegation.register('bulk-generate-wallet-passes', function(element, e) {
-    e.preventDefault();
-    if (typeof window.bulkGeneratePasses === 'function') {
-        window.bulkGeneratePasses();
-    }
-}, { preventDefault: true });
-
-/**
- * Check Player Eligibility
- */
-EventDelegation.register('check-player-eligibility', function(element, e) {
-    e.preventDefault();
-    const playerId = element.dataset.playerId;
-    if (typeof window.checkPlayerEligibility === 'function') {
-        window.checkPlayerEligibility(playerId);
-    }
-}, { preventDefault: true });
+// ============================================================================
+// WALLET PASS ACTIONS - Handled by admin-wallet.js
+// ============================================================================
+// Removed: bulk-generate-wallet-passes (duplicate of admin-wallet.js)
+// Removed: check-player-eligibility (duplicate of admin-wallet.js)
 
 // ============================================================================
-// MLS MATCH ACTIONS
+// MLS MATCH ACTIONS - Handled by mls-handlers.js
 // ============================================================================
-
-/**
- * Schedule All Matches
- * Schedules all MLS matches at once
- */
-EventDelegation.register('schedule-all-matches', function(element, e) {
-    e.preventDefault();
-    if (typeof window.scheduleAllMatches === 'function') {
-        window.scheduleAllMatches();
-    }
-}, { preventDefault: true });
-
-/**
- * Auto Assign Playoffs
- * Automatically assigns teams to playoff matches based on standings
- */
-EventDelegation.register('auto-assign-playoffs', function(element, e) {
-    e.preventDefault();
-    const leagueId = element.dataset.leagueId;
-    if (typeof window.autoAssignPlayoffs === 'function') {
-        window.autoAssignPlayoffs(leagueId);
-    }
-}, { preventDefault: true });
+// Removed: schedule-all-matches (duplicate - use mls-schedule-all-matches for MLS)
+// Removed: auto-assign-playoffs (duplicate of admin-league-management.js)
 
 // ============================================================================
 // SORTING AND FILTERING ACTIONS
@@ -299,15 +220,7 @@ EventDelegation.register('change-sort', function(element, e) {
 // ============================================================================
 // GENERIC UTILITY ACTIONS
 // ============================================================================
-
-/**
- * Reload Page
- * Simple page refresh action
- */
-EventDelegation.register('reload-page', function(element, e) {
-    e.preventDefault();
-    location.reload();
-}, { preventDefault: true });
+// Removed: reload-page (duplicate of admin-wallet.js)
 
 /**
  * Show Discord Channel Info

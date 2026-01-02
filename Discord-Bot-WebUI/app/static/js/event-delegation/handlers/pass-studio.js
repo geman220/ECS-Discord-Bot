@@ -288,217 +288,30 @@ EventDelegation.register('insert-variable', function(element, e) {
 });
 
 // ============================================================================
-// DIAGNOSTICS PAGE ACTIONS
+// DIAGNOSTICS PAGE ACTIONS - Handled by wallet-config-handlers.js
 // ============================================================================
-
-/**
- * Print Page Action
- */
-EventDelegation.register('print-page', function(element, e) {
-    e.preventDefault();
-    window.print();
-}, { preventDefault: true });
-
-/**
- * Toggle Detail Section
- */
-EventDelegation.register('toggle-detail', function(element, e) {
-    e.preventDefault();
-    const detailId = element.dataset.detailId;
-    if (!detailId) {
-        console.error('[toggle-detail] Missing detail ID');
-        return;
-    }
-    if (typeof window.toggleDetail === 'function') {
-        window.toggleDetail(detailId);
-    } else {
-        // Fallback: simple toggle
-        const detailEl = document.getElementById(detailId);
-        if (detailEl) {
-            detailEl.classList.toggle('is-hidden');
-            element.classList.toggle('is-expanded');
-        }
-    }
-}, { preventDefault: true });
-
-/**
- * Run Admin Command
- */
-EventDelegation.register('run-admin-command', function(element, e) {
-    e.preventDefault();
-    const command = element.dataset.command;
-    if (!command) {
-        console.error('[run-admin-command] Missing command');
-        return;
-    }
-    if (typeof window.runCommand === 'function') {
-        window.runCommand(command);
-    } else {
-        console.error('[run-admin-command] runCommand function not found');
-    }
-}, { preventDefault: true });
+// Removed: print-page, toggle-detail, run-admin-command (duplicates)
 
 // ============================================================================
-// WALLET PASS MANAGEMENT ACTIONS
+// WALLET PASS MANAGEMENT ACTIONS - Handled by admin-wallet.js
 // ============================================================================
-
-/**
- * Bulk Void Passes
- */
-EventDelegation.register('bulk-void-passes', function(element, e) {
-    e.preventDefault();
-    if (typeof window.bulkVoid === 'function') {
-        window.bulkVoid();
-    } else {
-        console.error('[bulk-void-passes] bulkVoid function not found');
-    }
-}, { preventDefault: true });
-
-/**
- * Bulk Reactivate Passes
- */
-EventDelegation.register('bulk-reactivate-passes', function(element, e) {
-    e.preventDefault();
-    if (typeof window.bulkReactivate === 'function') {
-        window.bulkReactivate();
-    } else {
-        console.error('[bulk-reactivate-passes] bulkReactivate function not found');
-    }
-}, { preventDefault: true });
-
-/**
- * Clear Selection
- */
-EventDelegation.register('clear-pass-selection', function(element, e) {
-    e.preventDefault();
-    if (typeof window.clearSelection === 'function') {
-        window.clearSelection();
-    } else {
-        console.error('[clear-pass-selection] clearSelection function not found');
-    }
-}, { preventDefault: true });
-
-/**
- * Void Pass
- */
-EventDelegation.register('void-pass', function(element, e) {
-    e.preventDefault();
-    const passId = element.dataset.passId;
-    if (!passId) {
-        console.error('[void-pass] Missing pass ID');
-        return;
-    }
-    if (typeof window.voidPass === 'function') {
-        window.voidPass(passId);
-    } else {
-        console.error('[void-pass] voidPass function not found');
-    }
-}, { preventDefault: true });
-
-/**
- * Reactivate Pass
- */
-EventDelegation.register('reactivate-pass', function(element, e) {
-    e.preventDefault();
-    const passId = element.dataset.passId;
-    if (!passId) {
-        console.error('[reactivate-pass] Missing pass ID');
-        return;
-    }
-    if (typeof window.reactivatePass === 'function') {
-        window.reactivatePass(passId);
-    } else {
-        console.error('[reactivate-pass] reactivatePass function not found');
-    }
-}, { preventDefault: true });
-
-/**
- * Bulk Generate Passes
- */
-EventDelegation.register('bulk-generate-passes', function(element, e) {
-    e.preventDefault();
-    if (typeof window.bulkGenerate === 'function') {
-        window.bulkGenerate();
-    } else {
-        console.error('[bulk-generate-passes] bulkGenerate function not found');
-    }
-}, { preventDefault: true });
-
-/**
- * Confirm Bulk Void
- */
-EventDelegation.register('confirm-bulk-void', function(element, e) {
-    e.preventDefault();
-    if (typeof window.confirmBulkVoid === 'function') {
-        window.confirmBulkVoid();
-    } else {
-        console.error('[confirm-bulk-void] confirmBulkVoid function not found');
-    }
-}, { preventDefault: true });
+// Removed: bulk-void-passes, bulk-reactivate-passes, clear-pass-selection,
+// void-pass, reactivate-pass, bulk-generate-passes, confirm-bulk-void (duplicates)
 
 // ============================================================================
-// WOOCOMMERCE INTEGRATION ACTIONS
+// WOOCOMMERCE INTEGRATION ACTIONS - Handled by wallet-config-handlers.js
 // ============================================================================
-
-/**
- * Copy To Clipboard
- */
-EventDelegation.register('copy-to-clipboard', function(element, e) {
-    e.preventDefault();
-    const targetId = element.dataset.targetId;
-    if (!targetId) {
-        console.error('[copy-to-clipboard] Missing target ID');
-        return;
-    }
-    if (typeof window.copyToClipboard === 'function') {
-        window.copyToClipboard(targetId);
-    } else {
-        console.error('[copy-to-clipboard] copyToClipboard function not found');
-    }
-}, { preventDefault: true });
-
-/**
- * Save WooCommerce URL
- */
-EventDelegation.register('save-woocommerce-url', function(element, e) {
-    e.preventDefault();
-    if (typeof window.saveWooCommerceUrl === 'function') {
-        window.saveWooCommerceUrl();
-    } else {
-        console.error('[save-woocommerce-url] saveWooCommerceUrl function not found');
-    }
-}, { preventDefault: true });
-
-/**
- * Generate Secret
- */
-EventDelegation.register('generate-secret', function(element, e) {
-    e.preventDefault();
-    if (typeof window.generateSecret === 'function') {
-        window.generateSecret();
-    } else {
-        console.error('[generate-secret] generateSecret function not found');
-    }
-}, { preventDefault: true });
-
-/**
- * Validate Plugin Connection
- */
-EventDelegation.register('validate-plugin-connection', function(element, e) {
-    e.preventDefault();
-    if (typeof window.validatePluginConnection === 'function') {
-        window.validatePluginConnection();
-    } else {
-        console.error('[validate-plugin-connection] validatePluginConnection function not found');
-    }
-}, { preventDefault: true });
+// Removed: copy-to-clipboard, save-woocommerce-url, generate-secret,
+// validate-plugin-connection (duplicates)
 
 // ============================================================================
 // SPONSORS/LOCATIONS/SUBGROUPS ACTIONS
+// Note: delete-sponsor and delete-subgroup are also in wallet-config-handlers.js
+// These are pass-studio specific implementations for the sponsors/subgroups tabs
 // ============================================================================
 
 /**
- * Add/Edit/Toggle/Delete Sponsor
+ * Add/Edit/Toggle Sponsor - Pass Studio specific
  */
 EventDelegation.register('add-sponsor', function(element, e) {
     e.preventDefault();
@@ -526,17 +339,10 @@ EventDelegation.register('toggle-sponsor', function(element, e) {
     }
 }, { preventDefault: true });
 
-EventDelegation.register('delete-sponsor', function(element, e) {
-    e.preventDefault();
-    const sponsorId = element.dataset.sponsorId;
-    const sponsorName = element.dataset.sponsorName;
-    if (typeof window.deleteSponsor === 'function') {
-        window.deleteSponsor(sponsorId, sponsorName);
-    }
-}, { preventDefault: true });
+// Removed: delete-sponsor (handled by wallet-config-handlers.js)
 
 /**
- * Add/Edit/Toggle/Delete Location
+ * Add/Edit/Toggle Location - Pass Studio specific
  */
 EventDelegation.register('add-location', function(element, e) {
     e.preventDefault();
@@ -574,7 +380,7 @@ EventDelegation.register('delete-location', function(element, e) {
 }, { preventDefault: true });
 
 /**
- * Add/Edit/Delete Subgroup
+ * Add/Edit Subgroup - Pass Studio specific
  */
 EventDelegation.register('add-subgroup', function(element, e) {
     e.preventDefault();
@@ -596,94 +402,21 @@ EventDelegation.register('edit-subgroup', function(element, e) {
     }
 }, { preventDefault: true });
 
-EventDelegation.register('delete-subgroup', function(element, e) {
-    e.preventDefault();
-    const subgroupId = element.dataset.subgroupId;
-    const subgroupName = element.dataset.subgroupName;
-    if (typeof window.deleteSubgroup === 'function') {
-        window.deleteSubgroup(subgroupId, subgroupName);
-    }
-}, { preventDefault: true });
+// Removed: delete-subgroup (handled by wallet-config-handlers.js)
 
 // ============================================================================
-// TEMPLATE SECTION ACTIONS
+// TEMPLATE SECTION ACTIONS - Handled by wallet-config-handlers.js / message-templates.js
 // ============================================================================
-
-/**
- * Edit Category
- */
-EventDelegation.register('edit-category', function(element, e) {
-    e.preventDefault();
-    const categoryId = element.dataset.categoryId;
-    const categoryName = element.dataset.categoryName;
-    const categoryDescription = element.dataset.categoryDescription || '';
-    if (typeof window.editCategory === 'function') {
-        window.editCategory(categoryId, categoryName, categoryDescription);
-    }
-}, { preventDefault: true });
-
-/**
- * Edit Template
- */
-EventDelegation.register('edit-template', function(element, e) {
-    e.preventDefault();
-    const templateId = element.dataset.templateId;
-    if (typeof window.editTemplate === 'function') {
-        window.editTemplate(templateId);
-    }
-}, { preventDefault: true });
-
-/**
- * Preview Template
- */
-EventDelegation.register('preview-template', function(element, e) {
-    e.preventDefault();
-    const templateId = element.dataset.templateId;
-    if (typeof window.previewTemplate === 'function') {
-        window.previewTemplate(templateId);
-    }
-}, { preventDefault: true });
-
-/**
- * Copy Template
- */
-EventDelegation.register('copy-template', function(element, e) {
-    e.preventDefault();
-    const templateId = element.dataset.templateId;
-    if (typeof window.copyTemplate === 'function') {
-        window.copyTemplate(templateId);
-    }
-}, { preventDefault: true });
+// Removed: edit-category (handled by communication-handlers.js)
+// Removed: edit-template (handled by wallet-config-handlers.js)
+// Removed: preview-template (handled by message-templates.js)
+// Removed: copy-template (handled by message-templates.js)
 
 // ============================================================================
-// FORM UTILITY ACTIONS
+// FORM UTILITY ACTIONS - Handled by wallet-config-handlers.js / form-actions.js
 // ============================================================================
-
-/**
- * Reset Form
- * Resets form to original values
- */
-EventDelegation.register('reset-form', function(element, e) {
-    e.preventDefault();
-    if (typeof window.resetForm === 'function') {
-        window.resetForm();
-    } else {
-        console.error('[reset-form] resetForm function not found');
-    }
-}, { preventDefault: true });
-
-/**
- * Clear Selection
- * Clears the current selection (used in direct messaging)
- */
-EventDelegation.register('clear-selection', function(element, e) {
-    e.preventDefault();
-    if (typeof window.clearSelection === 'function') {
-        window.clearSelection();
-    } else {
-        console.error('[clear-selection] clearSelection function not found');
-    }
-}, { preventDefault: true });
+// Removed: reset-form (handled by wallet-config-handlers.js)
+// Removed: clear-selection (handled by form-actions.js)
 
 // ============================================================================
 

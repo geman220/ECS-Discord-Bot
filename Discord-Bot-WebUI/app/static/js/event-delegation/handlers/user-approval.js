@@ -86,16 +86,17 @@ EventDelegation.register('show-denial-modal', function(element, e) {
 });
 
 /**
- * Approve User Action
- * Submits user approval form
+ * Submit User Approval Action
+ * Submits user approval form from approval modal
+ * Note: Renamed from 'approve-user' to avoid conflict with user-management-comprehensive.js
  */
-EventDelegation.register('approve-user', function(element, e) {
+EventDelegation.register('submit-user-approval', function(element, e) {
     e.preventDefault();
 
     if (typeof window.submitApproval === 'function') {
         window.submitApproval();
     } else {
-        console.error('[approve-user] submitApproval function not found');
+        console.error('[submit-user-approval] submitApproval function not found');
     }
 });
 

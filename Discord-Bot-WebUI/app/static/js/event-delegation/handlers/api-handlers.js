@@ -492,16 +492,17 @@ EventDelegation.register('filter-api-logs', function(element, e) {
 });
 
 /**
- * View Log Details
- * Shows full details for a log entry
+ * View API Log Details
+ * Shows full details for an API log entry
+ * Note: Renamed from 'view-log-details' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('view-log-details', function(element, e) {
+EventDelegation.register('view-api-log-details', function(element, e) {
     e.preventDefault();
 
     const logId = element.dataset.logId;
 
     if (!logId) {
-        console.error('[view-log-details] Missing log ID');
+        console.error('[view-api-log-details] Missing log ID');
         return;
     }
 

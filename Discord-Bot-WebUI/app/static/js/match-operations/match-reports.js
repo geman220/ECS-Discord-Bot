@@ -207,16 +207,16 @@ export function registerEventHandlers() {
         viewLeagueStandings();
     }, { preventDefault: true });
 
-    // Export Actions
-    EventDelegation.register('export-pdf', function(element, e) {
+    // Export Actions (Renamed from export-* to avoid conflicts with admin-scheduled-messages.js)
+    EventDelegation.register('export-report-pdf', function(element, e) {
         exportPDF();
     }, { preventDefault: true });
 
-    EventDelegation.register('export-excel', function(element, e) {
+    EventDelegation.register('export-report-excel', function(element, e) {
         exportExcel();
     }, { preventDefault: true });
 
-    EventDelegation.register('export-csv', function(element, e) {
+    EventDelegation.register('export-report-csv', function(element, e) {
         exportCSV();
     }, { preventDefault: true });
 

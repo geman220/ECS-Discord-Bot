@@ -40,14 +40,15 @@ EventDelegation.register('refresh-events', async function(element, e) {
 /**
  * Refresh Security Logs Action
  * Reloads security logs display
+ * Note: Renamed from 'refresh-logs' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('refresh-logs', async function(element, e) {
+EventDelegation.register('refresh-security-logs', async function(element, e) {
     e.preventDefault();
 
     if (window.securityDashboard && typeof window.securityDashboard.loadSecurityLogs === 'function') {
         await window.securityDashboard.loadSecurityLogs();
     } else {
-        console.error('[refresh-logs] SecurityDashboard instance not available');
+        console.error('[refresh-security-logs] SecurityDashboard instance not available');
     }
 });
 

@@ -44,10 +44,11 @@ EventDelegation.register('fetch-espn', function(element, e) {
 });
 
 /**
- * Schedule All Matches
- * Schedules tasks for all upcoming matches
+ * Schedule All MLS Matches
+ * Schedules tasks for all upcoming MLS matches
+ * Note: Renamed from 'schedule-all-matches' to avoid conflict with match-management.js
  */
-EventDelegation.register('schedule-all-matches', function(element, e) {
+EventDelegation.register('mls-schedule-all-matches', function(element, e) {
     e.preventDefault();
 
     if (!confirm('Schedule tasks for all upcoming matches?')) return;
@@ -79,16 +80,17 @@ EventDelegation.register('schedule-all-matches', function(element, e) {
 });
 
 /**
- * Schedule Match
- * Schedules tasks for a specific match
+ * Schedule MLS Match
+ * Schedules tasks for a specific MLS match
+ * Note: Renamed from 'schedule-match' to avoid conflict with match-management.js
  */
-EventDelegation.register('schedule-match', function(element, e) {
+EventDelegation.register('mls-schedule-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
 
     if (!matchId) {
-        console.error('[schedule-match] Missing match ID');
+        console.error('[mls-schedule-match] Missing match ID');
         return;
     }
 
@@ -379,8 +381,9 @@ EventDelegation.register('refresh-match-statuses', function(element, e) {
 /**
  * Toggle Auto Refresh
  * Toggles auto-refresh for live reporting dashboard
+ * Note: Renamed from 'toggle-auto-refresh' to avoid conflict with admin-panel-performance.js
  */
-EventDelegation.register('toggle-auto-refresh', function(element, e) {
+EventDelegation.register('mls-toggle-auto-refresh', function(element, e) {
     const isChecked = element.checked;
 
     if (typeof window.LiveReportingDashboard !== 'undefined') {
@@ -411,16 +414,17 @@ EventDelegation.register('refresh-live-dashboard', function(element, e) {
 // ============================================================================
 
 /**
- * Retry Task
- * Retries a failed task
+ * Retry MLS Task
+ * Retries a failed MLS task
+ * Note: Renamed from 'retry-task' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('retry-task', function(element, e) {
+EventDelegation.register('mls-retry-task', function(element, e) {
     e.preventDefault();
 
     const taskId = element.dataset.taskId;
 
     if (!taskId) {
-        console.error('[retry-task] Missing task ID');
+        console.error('[mls-retry-task] Missing task ID');
         return;
     }
 
@@ -535,16 +539,17 @@ EventDelegation.register('manual-refresh', function(element, e) {
 });
 
 /**
- * View Task Logs
- * Shows logs for a specific task
+ * View MLS Task Logs
+ * Shows logs for a specific MLS task
+ * Note: Renamed from 'view-task-logs' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('view-task-logs', function(element, e) {
+EventDelegation.register('mls-view-task-logs', function(element, e) {
     e.preventDefault();
 
     const taskId = element.dataset.taskId;
 
     if (!taskId) {
-        console.error('[view-task-logs] Missing task ID');
+        console.error('[mls-view-task-logs] Missing task ID');
         return;
     }
 

@@ -228,7 +228,7 @@
                                                         <form action="{{ url_for('wallet_config.delete_template', template_id=template.id) }}" method="post" class="d-inline ms-1">
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                             <input type="hidden" name="template_name" value="{{ template.name }}">
-                                                            <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger" data-action="delete-template">Delete</button>
+                                                            <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger" data-action="delete-wallet-template">Delete</button>
                                                         </form>
                                                     </div>
                                                 </td>
@@ -365,7 +365,7 @@
                                                         <form action="{{ url_for('wallet_config.delete_template', template_id=template.id) }}" method="post" class="d-inline ms-1">
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                             <input type="hidden" name="template_name" value="{{ template.name }}">
-                                                            <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger" data-action="delete-template">Delete</button>
+                                                            <button type="submit" class="c-btn c-btn--sm c-btn--outline-danger" data-action="delete-wallet-template">Delete</button>
                                                         </form>
                                                     </div>
                                                 </td>
@@ -593,7 +593,7 @@
     }
 })();
 </script>
-{# Delete template handler is now in wallet-config-handlers.js using data-action="delete-template" #}
+{# Delete template handler is now in wallet-config-handlers.js using data-action="delete-wallet-template" #}
 {% endblock %}
 {% endif %}
 {% endblock %}

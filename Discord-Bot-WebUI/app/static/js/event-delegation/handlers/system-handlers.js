@@ -744,21 +744,22 @@ EventDelegation.register('toggle-task-details', function(element, e) {
 });
 
 /**
- * Cancel Task
- * Cancels a running task
+ * Cancel MLS Task
+ * Cancels a running MLS task
+ * Note: Renamed from 'cancel-task' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('cancel-task', function(element, e) {
+EventDelegation.register('mls-cancel-task', function(element, e) {
     e.preventDefault();
 
     const taskId = element.dataset.taskId;
 
     if (!taskId) {
-        console.error('[cancel-task] Missing task ID');
+        console.error('[mls-cancel-task] Missing task ID');
         return;
     }
 
     if (typeof window.Swal === 'undefined') {
-        console.error('[cancel-task] SweetAlert2 not available');
+        console.error('[mls-cancel-task] SweetAlert2 not available');
         return;
     }
 

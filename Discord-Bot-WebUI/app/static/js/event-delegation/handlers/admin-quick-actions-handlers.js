@@ -16,14 +16,15 @@ import { EventDelegation } from '../core.js';
 // ============================================================================
 
 /**
- * Clear All Cache
- * Clears all cached data from the system
+ * Quick Clear All Cache
+ * Clears all cached data from the system (quick actions menu)
+ * Note: Renamed from 'clear-cache' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('clear-cache', function(element, e) {
+EventDelegation.register('quick-clear-cache', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
-        console.error('[clear-cache] SweetAlert2 not available');
+        console.error('[quick-clear-cache] SweetAlert2 not available');
         return;
     }
 
@@ -104,10 +105,11 @@ EventDelegation.register('initialize-settings', function(element, e) {
 });
 
 /**
- * Restart Bot
+ * Restart Bot (Quick Actions)
  * Restarts the Discord bot
+ * Note: Renamed from 'restart-bot' to avoid conflict with admin-panel-discord-bot.js
  */
-EventDelegation.register('restart-bot', function(element, e) {
+EventDelegation.register('quick-restart-bot', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -280,14 +282,15 @@ EventDelegation.register('sync-templates', function(element, e) {
 });
 
 /**
- * Test Notifications
- * Sends a test push notification
+ * Quick Test Notifications
+ * Sends a test push notification (quick actions menu)
+ * Note: Renamed from 'test-notifications' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('test-notifications', function(element, e) {
+EventDelegation.register('quick-test-notifications', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
-        console.error('[test-notifications] SweetAlert2 not available');
+        console.error('[quick-test-notifications] SweetAlert2 not available');
         return;
     }
 
