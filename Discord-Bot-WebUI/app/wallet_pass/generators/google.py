@@ -30,9 +30,9 @@ try:
     )
     from GoogleWalletPassGenerator.serializer import serialize_to_json
     GOOGLE_WALLET_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     GOOGLE_WALLET_AVAILABLE = False
-    logger.warning("GoogleWalletPassGenerator not installed. Google Wallet passes will not be available.")
+    logger.warning(f"GoogleWalletPassGenerator import failed: {e}. Google Wallet passes will not be available.")
 
 
 class GooglePassConfig:
