@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles navigation settings page interactions using data-attribute hooks
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -143,13 +143,13 @@ function saveAllSettings() {
  * Reset all settings to defaults
  */
 function resetToDefaults() {
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         if (!confirm('This will enable all navigation items. Are you sure?')) return;
         performReset();
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Reset to Defaults?',
         text: 'This will enable all navigation items. Are you sure?',
         icon: 'warning',
@@ -208,8 +208,8 @@ function updateCardBorder(toggle) {
 function showToast(message, type) {
     if (typeof AdminPanel !== 'undefined' && AdminPanel.showMobileToast) {
         AdminPanel.showMobileToast(message, type);
-    } else if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    } else if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             toast: true,
             position: 'top-end',
             icon: type === 'error' ? 'error' : 'success',
@@ -220,15 +220,15 @@ function showToast(message, type) {
     }
 }
 
-// Register with InitSystem
-InitSystem.register('admin-navigation-settings', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-navigation-settings', init, {
     priority: 30,
     reinitializable: true,
     description: 'Admin navigation settings page functionality'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

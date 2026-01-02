@@ -13,7 +13,7 @@ import { ModalManager } from '../../modal-manager.js';
  * Refresh Security Stats Action
  * Refreshes all security dashboard data (stats, events, logs)
  */
-EventDelegation.register('refresh-stats', async function(element, e) {
+window.EventDelegation.register('refresh-stats', async function(element, e) {
     e.preventDefault();
 
     if (window.securityDashboard && typeof window.securityDashboard.refreshAll === 'function') {
@@ -27,7 +27,7 @@ EventDelegation.register('refresh-stats', async function(element, e) {
  * Refresh Security Events Action
  * Reloads recent security events list
  */
-EventDelegation.register('refresh-events', async function(element, e) {
+window.EventDelegation.register('refresh-events', async function(element, e) {
     e.preventDefault();
 
     if (window.securityDashboard && typeof window.securityDashboard.loadSecurityEvents === 'function') {
@@ -42,7 +42,7 @@ EventDelegation.register('refresh-events', async function(element, e) {
  * Reloads security logs display
  * Note: Renamed from 'refresh-logs' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('refresh-security-logs', async function(element, e) {
+window.EventDelegation.register('refresh-security-logs', async function(element, e) {
     e.preventDefault();
 
     if (window.securityDashboard && typeof window.securityDashboard.loadSecurityLogs === 'function') {
@@ -56,7 +56,7 @@ EventDelegation.register('refresh-security-logs', async function(element, e) {
  * Unban IP Action
  * Removes an IP address from the blacklist
  */
-EventDelegation.register('unban-ip', async function(element, e) {
+window.EventDelegation.register('unban-ip', async function(element, e) {
     e.preventDefault();
 
     const ip = element.dataset.ip;
@@ -77,7 +77,7 @@ EventDelegation.register('unban-ip', async function(element, e) {
  * Quick Ban IP Action
  * Quickly bans an IP from the security events list
  */
-EventDelegation.register('ban-ip-quick', async function(element, e) {
+window.EventDelegation.register('ban-ip-quick', async function(element, e) {
     e.preventDefault();
 
     const ip = element.dataset.ip;
@@ -99,7 +99,7 @@ EventDelegation.register('ban-ip-quick', async function(element, e) {
  * Ban IP Confirm Action
  * Confirms and submits the ban IP form from the modal
  */
-EventDelegation.register('ban-ip-confirm', async function(element, e) {
+window.EventDelegation.register('ban-ip-confirm', async function(element, e) {
     e.preventDefault();
 
     if (window.securityDashboard && typeof window.securityDashboard.banIP === 'function') {
@@ -113,7 +113,7 @@ EventDelegation.register('ban-ip-confirm', async function(element, e) {
  * Clear All Bans Action
  * Removes all IP addresses from the blacklist
  */
-EventDelegation.register('clear-all-bans', async function(element, e) {
+window.EventDelegation.register('clear-all-bans', async function(element, e) {
     e.preventDefault();
 
     if (window.securityDashboard && typeof window.securityDashboard.clearAllBans === 'function') {
@@ -130,7 +130,7 @@ EventDelegation.register('clear-all-bans', async function(element, e) {
  * Show Ban IP Modal Action (Admin Panel)
  * Opens the modal to manually ban an IP address
  */
-EventDelegation.register('show-ban-ip-modal', function(element, e) {
+window.EventDelegation.register('show-ban-ip-modal', function(element, e) {
     e.preventDefault();
 
     if (typeof showBanIpModal === 'function') {
@@ -139,7 +139,7 @@ EventDelegation.register('show-ban-ip-modal', function(element, e) {
         // Fallback: directly show the modal
         const modalElement = document.getElementById('banIpModal');
         if (modalElement) {
-            ModalManager.show('banIpModal');
+            window.ModalManager.show('banIpModal');
         }
     } else {
         console.error('[show-ban-ip-modal] No showBanIpModal function available');
@@ -150,7 +150,7 @@ EventDelegation.register('show-ban-ip-modal', function(element, e) {
  * Ban IP Action (Admin Panel)
  * Submits the ban IP form from the admin panel modal
  */
-EventDelegation.register('ban-ip', async function(element, e) {
+window.EventDelegation.register('ban-ip', async function(element, e) {
     e.preventDefault();
 
     if (typeof banIp === 'function') {
@@ -167,7 +167,7 @@ EventDelegation.register('ban-ip', async function(element, e) {
  * Clears rate limit counters for a specific IP address
  * This resets request counts and attack counts, allowing the IP to make requests again
  */
-EventDelegation.register('clear-rate-limit', async function(element, e) {
+window.EventDelegation.register('clear-rate-limit', async function(element, e) {
     e.preventDefault();
 
     const ip = element.dataset.ip;
@@ -189,7 +189,7 @@ EventDelegation.register('clear-rate-limit', async function(element, e) {
  * Clears all rate limit counters for all IPs
  * This resets all request counts and attack counts (but not bans)
  */
-EventDelegation.register('clear-all-rate-limits', async function(element, e) {
+window.EventDelegation.register('clear-all-rate-limits', async function(element, e) {
     e.preventDefault();
 
     if (window.securityDashboard && typeof window.securityDashboard.clearAllRateLimits === 'function') {
@@ -201,4 +201,4 @@ EventDelegation.register('clear-all-rate-limits', async function(element, e) {
 
 // ============================================================================
 
-console.log('[EventDelegation] Security handlers loaded');
+console.log('[window.EventDelegation] Security handlers loaded');

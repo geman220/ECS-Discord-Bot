@@ -52,8 +52,8 @@ import { InitSystem } from '../js/init-system.js';
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'Reminder Sent!',
                         text: data.message,
@@ -68,8 +68,8 @@ import { InitSystem } from '../js/init-system.js';
         })
         .catch(error => {
             console.error('[ECSFCMatch] Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: error.message || 'Failed to send reminder'
@@ -97,14 +97,14 @@ import { InitSystem } from '../js/init-system.js';
         }
     });
 
-    // Register with InitSystem
-    InitSystem.register('ecs-fc-match', init, {
+    // Register with window.InitSystem
+    window.InitSystem.register('ecs-fc-match', init, {
         priority: 30,
         description: 'ECS FC match details module'
     });
 
     // Fallback for non-module usage
-    // InitSystem handles initialization
+    // window.InitSystem handles initialization
 
     // Expose module globally
     window.ECSFCMatch = {

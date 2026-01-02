@@ -10,7 +10,7 @@
  *   - Role permissions management
  *   - Event delegation for dynamic elements
  *
- * Uses InitSystem for registration and data-* selectors for JS hooks.
+ * Uses window.InitSystem for registration and data-* selectors for JS hooks.
  *
  * ============================================================================
  */
@@ -175,7 +175,7 @@ const AdminDashboard = {
         // Initialize Select2 for permissions dropdown
         if (permissionsSelect && typeof window.$ !== 'undefined' && window.$.fn.select2) {
             $(permissionsSelect).select2({
-                theme: 'bootstrap-5',
+                theme: 'window.bootstrap-5',
                 placeholder: 'Select permissions...',
                 allowClear: true,
                 width: '100%'
@@ -858,8 +858,8 @@ const AdminDashboard = {
 // Expose for external access (MUST be before any callbacks or registrations)
 window.AdminDashboard = AdminDashboard;
 
-if (typeof InitSystem !== 'undefined') {
-    InitSystem.register('AdminDashboard', function(context) {
+if (typeof window.InitSystem !== 'undefined') {
+    window.InitSystem.register('AdminDashboard', function(context) {
         window.AdminDashboard.init(context);
     }, {
         priority: 50

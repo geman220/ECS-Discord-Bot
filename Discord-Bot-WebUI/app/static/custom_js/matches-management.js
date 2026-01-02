@@ -491,9 +491,9 @@ function formatDate(dateString) {
     return dateObj.toLocaleString('en-US', options).replace(',', '');
 }
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('matches-management', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('matches-management', init, {
         priority: 40,
         reinitializable: false,
         description: 'Matches management (deprecated page)'
@@ -501,7 +501,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles API endpoints page interactions using data-attribute hooks
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -161,8 +161,8 @@ function viewEndpointDetails(endpointPath) {
                     `;
                 }
 
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         title: 'Endpoint Details',
                         html: detailsHtml,
                         width: '800px',
@@ -183,9 +183,9 @@ function viewEndpointDetails(endpointPath) {
  * Test endpoint
  */
 function testEndpoint(endpoint, methods) {
-    if (typeof Swal === 'undefined') return;
+    if (typeof window.Swal === 'undefined') return;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Test Endpoint',
         html: `
             <div class="text-start">
@@ -217,7 +217,7 @@ function testEndpoint(endpoint, methods) {
                 try {
                     parameters = JSON.parse(paramsText);
                 } catch (e) {
-                    Swal.showValidationMessage('Invalid JSON in parameters');
+                    window.Swal.showValidationMessage('Invalid JSON in parameters');
                     return false;
                 }
             }
@@ -256,8 +256,8 @@ function testEndpointWithData(data) {
                 </div>
             `;
 
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     title: 'Test Results',
                     html: resultHtml,
                     icon: result.status_code < 400 ? 'success' : 'warning',
@@ -280,8 +280,8 @@ function testEndpointWithData(data) {
  */
 function copyEndpoint(endpoint) {
     navigator.clipboard.writeText(endpoint).then(() => {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 icon: 'success',
                 title: 'Copied!',
                 text: 'Endpoint path copied to clipboard',
@@ -298,9 +298,9 @@ function copyEndpoint(endpoint) {
  * Show documentation for endpoint
  */
 function showDocumentation(endpoint) {
-    if (typeof Swal === 'undefined') return;
+    if (typeof window.Swal === 'undefined') return;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'API Documentation',
         html: `
             <div class="text-start">
@@ -324,9 +324,9 @@ function showDocumentation(endpoint) {
 function toggleEndpointStatus(endpoint, newStatus) {
     const action = newStatus === 'active' ? 'enable' : 'disable';
 
-    if (typeof Swal === 'undefined') return;
+    if (typeof window.Swal === 'undefined') return;
 
-    Swal.fire({
+    window.Swal.fire({
         title: `${action.charAt(0).toUpperCase() + action.slice(1)} Endpoint`,
         text: `Are you sure you want to ${action} this endpoint?`,
         icon: 'question',
@@ -335,7 +335,7 @@ function toggleEndpointStatus(endpoint, newStatus) {
     }).then((result) => {
         if (result.isConfirmed) {
             // Mock endpoint status toggle
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Status Updated',
                 text: `Endpoint has been ${action}d successfully.`,
                 icon: 'success',
@@ -352,8 +352,8 @@ function toggleEndpointStatus(endpoint, newStatus) {
  * Export endpoints data
  */
 function exportEndpoints(format) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             title: 'Export Started',
             text: `API endpoints export in ${format.toUpperCase()} format has been queued.`,
             icon: 'info',
@@ -374,22 +374,22 @@ function refreshEndpoints() {
  * Show error message
  */
 function showError(message) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire('Error', message, 'error');
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire('Error', message, 'error');
     } else {
         alert(message);
     }
 }
 
-// Register with InitSystem
-InitSystem.register('admin-api-endpoints', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-api-endpoints', init, {
     priority: 30,
     reinitializable: true,
     description: 'Admin API endpoints page functionality'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

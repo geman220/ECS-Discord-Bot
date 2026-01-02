@@ -12,7 +12,7 @@ import { EventDelegation } from '../core.js';
  * Show Create Team Modal Action
  * Opens the modal to create a new team
  */
-EventDelegation.register('show-create-team-modal', function(element, e) {
+window.EventDelegation.register('show-create-team-modal', function(element, e) {
     e.preventDefault();
 
     if (typeof showCreateTeamModal === 'function') {
@@ -22,12 +22,12 @@ EventDelegation.register('show-create-team-modal', function(element, e) {
         const form = document.getElementById('createTeamForm');
         if (form) form.reset();
 
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('createTeamModal');
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('createTeamModal');
         } else {
             const modalEl = document.getElementById('createTeamModal');
-            if (modalEl && typeof bootstrap !== 'undefined') {
-                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            if (modalEl && typeof window.bootstrap !== 'undefined') {
+                window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
             }
         }
     }
@@ -37,7 +37,7 @@ EventDelegation.register('show-create-team-modal', function(element, e) {
  * Show Edit Team Modal Action
  * Opens modal to edit a team
  */
-EventDelegation.register('show-edit-team-modal', function(element, e) {
+window.EventDelegation.register('show-edit-team-modal', function(element, e) {
     e.preventDefault();
 
     const teamId = element.dataset.teamId;
@@ -55,12 +55,12 @@ EventDelegation.register('show-edit-team-modal', function(element, e) {
         if (editTeamName) editTeamName.value = teamName || '';
         if (editLeagueId) editLeagueId.value = leagueId || '';
 
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('editTeamModal');
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('editTeamModal');
         } else {
             const modalEl = document.getElementById('editTeamModal');
-            if (modalEl && typeof bootstrap !== 'undefined') {
-                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            if (modalEl && typeof window.bootstrap !== 'undefined') {
+                window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
             }
         }
     }
@@ -70,7 +70,7 @@ EventDelegation.register('show-edit-team-modal', function(element, e) {
  * Submit Create Team Action
  * Submits the create team form
  */
-EventDelegation.register('submit-create-team', function(element, e) {
+window.EventDelegation.register('submit-create-team', function(element, e) {
     e.preventDefault();
 
     if (typeof submitCreateTeam === 'function') {
@@ -87,7 +87,7 @@ EventDelegation.register('submit-create-team', function(element, e) {
  * Submit Edit Team Action
  * Submits the edit team form
  */
-EventDelegation.register('submit-edit-team', function(element, e) {
+window.EventDelegation.register('submit-edit-team', function(element, e) {
     e.preventDefault();
 
     if (typeof submitEditTeam === 'function') {
@@ -104,7 +104,7 @@ EventDelegation.register('submit-edit-team', function(element, e) {
  * Confirm Delete Team Action (match operations version)
  * Shows confirmation before deleting team
  */
-EventDelegation.register('confirm-delete-team', function(element, e) {
+window.EventDelegation.register('confirm-delete-team', function(element, e) {
     e.preventDefault();
 
     const teamId = element.dataset.teamId;
@@ -115,8 +115,8 @@ EventDelegation.register('confirm-delete-team', function(element, e) {
     } else {
         const confirmMessage = `Are you sure you want to delete "${teamName}"? This cannot be undone.`;
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Delete Team?',
                 text: confirmMessage,
                 icon: 'warning',
@@ -148,15 +148,15 @@ function deleteTeamById(teamId) {
     .then(response => response.json())
     .then(result => {
         if (result.success) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Deleted!', result.message, 'success').then(() => window.location.reload());
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Deleted!', result.message, 'success').then(() => window.location.reload());
             } else {
                 alert(result.message);
                 window.location.reload();
             }
         } else {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Error', result.message, 'error');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', result.message, 'error');
             } else {
                 alert(result.message);
             }
@@ -164,8 +164,8 @@ function deleteTeamById(teamId) {
     })
     .catch(error => {
         console.error('[confirm-delete-team] Error:', error);
-        if (typeof Swal !== 'undefined') {
-            Swal.fire('Error', 'Failed to delete team', 'error');
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', 'Failed to delete team', 'error');
         }
     });
 }
@@ -177,7 +177,7 @@ function deleteTeamById(teamId) {
  * Preview Schedule Action
  * Previews the schedule before committing
  */
-EventDelegation.register('preview-schedule', function(element, e) {
+window.EventDelegation.register('preview-schedule', function(element, e) {
     e.preventDefault();
 
     if (typeof previewSchedule === 'function') {
@@ -191,7 +191,7 @@ EventDelegation.register('preview-schedule', function(element, e) {
  * Generate Schedule Action
  * Generates a new match schedule
  */
-EventDelegation.register('generate-schedule', function(element, e) {
+window.EventDelegation.register('generate-schedule', function(element, e) {
     e.preventDefault();
 
     if (typeof generateSchedule === 'function') {
@@ -205,14 +205,14 @@ EventDelegation.register('generate-schedule', function(element, e) {
  * Create Single Match Action
  * Opens modal to create a single match
  */
-EventDelegation.register('create-single-match', function(element, e) {
+window.EventDelegation.register('create-single-match', function(element, e) {
     e.preventDefault();
 
     if (typeof showCreateMatchModal === 'function') {
         showCreateMatchModal();
     } else {
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('createMatchModal');
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('createMatchModal');
         }
     }
 });
@@ -221,7 +221,7 @@ EventDelegation.register('create-single-match', function(element, e) {
  * Submit Single Match Action
  * Submits the single match creation form
  */
-EventDelegation.register('submit-single-match', function(element, e) {
+window.EventDelegation.register('submit-single-match', function(element, e) {
     e.preventDefault();
 
     if (typeof submitSingleMatch === 'function') {
@@ -241,7 +241,7 @@ EventDelegation.register('submit-single-match', function(element, e) {
  * Enter Match Result Action
  * Opens modal to enter match result
  */
-EventDelegation.register('enter-match-result', function(element, e) {
+window.EventDelegation.register('enter-match-result', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -263,8 +263,8 @@ EventDelegation.register('enter-match-result', function(element, e) {
         if (resultHomeScore) resultHomeScore.value = '';
         if (resultAwayScore) resultAwayScore.value = '';
 
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('matchResultModal');
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('matchResultModal');
         }
     }
 });
@@ -273,7 +273,7 @@ EventDelegation.register('enter-match-result', function(element, e) {
  * Submit Match Result Action
  * Submits match result
  */
-EventDelegation.register('submit-match-result', function(element, e) {
+window.EventDelegation.register('submit-match-result', function(element, e) {
     e.preventDefault();
 
     if (typeof submitMatchResult === 'function') {
@@ -297,15 +297,15 @@ EventDelegation.register('submit-match-result', function(element, e) {
         .then(response => response.json())
         .then(result => {
             if (result.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Success', result.message, 'success').then(() => window.location.reload());
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Success', result.message, 'success').then(() => window.location.reload());
                 } else {
                     alert(result.message);
                     window.location.reload();
                 }
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', result.message, 'error');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', result.message, 'error');
                 }
             }
         })
@@ -319,7 +319,7 @@ EventDelegation.register('submit-match-result', function(element, e) {
  * View Match Details Action
  * Opens modal with match details
  */
-EventDelegation.register('view-match-details', function(element, e) {
+window.EventDelegation.register('view-match-details', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -334,8 +334,8 @@ EventDelegation.register('view-match-details', function(element, e) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
+                    if (typeof window.Swal !== 'undefined') {
+                        window.Swal.fire({
                             title: 'Match Details',
                             html: data.html || `<pre>${JSON.stringify(data.match, null, 2)}</pre>`,
                             width: '600px'
@@ -356,7 +356,7 @@ EventDelegation.register('view-match-details', function(element, e) {
  * Show Transfer Player Modal Action
  * Opens modal to transfer a player
  */
-EventDelegation.register('show-transfer-modal', function(element, e) {
+window.EventDelegation.register('show-transfer-modal', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -376,8 +376,8 @@ EventDelegation.register('show-transfer-modal', function(element, e) {
         if (transferCurrentTeam) transferCurrentTeam.textContent = currentTeam || 'No Team';
         if (transferTargetTeam) transferTargetTeam.value = '';
 
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('transferModal');
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('transferModal');
         }
     }
 });
@@ -386,7 +386,7 @@ EventDelegation.register('show-transfer-modal', function(element, e) {
  * Submit Transfer Action
  * Submits player transfer
  */
-EventDelegation.register('submit-transfer', function(element, e) {
+window.EventDelegation.register('submit-transfer', function(element, e) {
     e.preventDefault();
 
     if (typeof submitTransfer === 'function') {
@@ -397,8 +397,8 @@ EventDelegation.register('submit-transfer', function(element, e) {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
         if (!targetTeamId) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Error', 'Please select a target team', 'warning');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', 'Please select a target team', 'warning');
             }
             return;
         }
@@ -416,15 +416,15 @@ EventDelegation.register('submit-transfer', function(element, e) {
         .then(response => response.json())
         .then(result => {
             if (result.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Success', result.message, 'success').then(() => window.location.reload());
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Success', result.message, 'success').then(() => window.location.reload());
                 } else {
                     alert(result.message);
                     window.location.reload();
                 }
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', result.message, 'error');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', result.message, 'error');
                 }
             }
         })
@@ -438,14 +438,14 @@ EventDelegation.register('submit-transfer', function(element, e) {
  * Bulk Transfer Action
  * Opens bulk transfer interface
  */
-EventDelegation.register('bulk-transfer', function(element, e) {
+window.EventDelegation.register('bulk-transfer', function(element, e) {
     e.preventDefault();
 
     if (typeof showBulkTransferModal === 'function') {
         showBulkTransferModal();
     } else {
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('bulkTransferModal');
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('bulkTransferModal');
         }
     }
 });
@@ -457,14 +457,14 @@ EventDelegation.register('bulk-transfer', function(element, e) {
  * Manage Player Assignments Action
  * Opens player assignment interface
  */
-EventDelegation.register('manage-player-assignments', function(element, e) {
+window.EventDelegation.register('manage-player-assignments', function(element, e) {
     e.preventDefault();
 
     if (typeof managePlayerAssignments === 'function') {
         managePlayerAssignments();
     } else {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Assign Players',
                 text: 'Player assignment functionality coming soon!',
                 icon: 'info'
@@ -477,7 +477,7 @@ EventDelegation.register('manage-player-assignments', function(element, e) {
  * View Team Roster Action
  * Shows detailed team roster
  */
-EventDelegation.register('view-team-roster', function(element, e) {
+window.EventDelegation.register('view-team-roster', function(element, e) {
     e.preventDefault();
 
     const teamId = element.dataset.teamId;
@@ -485,8 +485,8 @@ EventDelegation.register('view-team-roster', function(element, e) {
     if (typeof viewTeamRoster === 'function') {
         viewTeamRoster(teamId);
     } else {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'View Team Roster',
                 text: 'Team roster details functionality coming soon!',
                 icon: 'info'
@@ -499,7 +499,7 @@ EventDelegation.register('view-team-roster', function(element, e) {
  * Edit Team Roster Action
  * Opens team roster editing interface
  */
-EventDelegation.register('edit-team-roster', function(element, e) {
+window.EventDelegation.register('edit-team-roster', function(element, e) {
     e.preventDefault();
 
     const teamId = element.dataset.teamId;
@@ -507,8 +507,8 @@ EventDelegation.register('edit-team-roster', function(element, e) {
     if (typeof editTeamRoster === 'function') {
         editTeamRoster(teamId);
     } else {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Edit Team Roster',
                 text: 'Team roster editing functionality coming soon!',
                 icon: 'info'
@@ -521,7 +521,7 @@ EventDelegation.register('edit-team-roster', function(element, e) {
  * Show Teams Without Players Action
  * Shows list of teams without assigned players
  */
-EventDelegation.register('show-teams-without-players', function(element, e) {
+window.EventDelegation.register('show-teams-without-players', function(element, e) {
     e.preventDefault();
 
     if (typeof showTeamsWithoutPlayers === 'function') {
@@ -531,8 +531,8 @@ EventDelegation.register('show-teams-without-players', function(element, e) {
         const teamsWithoutPlayers = window.ROSTER_CONFIG?.teamsWithoutPlayers || [];
 
         if (teamsWithoutPlayers.length > 0) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     title: 'Teams Without Players',
                     html: '<ul class="text-start">' + teamsWithoutPlayers.map(team => '<li>' + team + '</li>').join('') + '</ul>',
                     icon: 'warning',
@@ -555,7 +555,7 @@ EventDelegation.register('show-teams-without-players', function(element, e) {
  * View Match Action (Upcoming Matches)
  * Shows match details
  */
-EventDelegation.register('view-match', function(element, e) {
+window.EventDelegation.register('view-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -563,8 +563,8 @@ EventDelegation.register('view-match', function(element, e) {
     if (typeof viewMatch === 'function') {
         viewMatch(matchId);
     } else {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Match Details',
                 text: 'Match details functionality coming soon!',
                 icon: 'info'
@@ -577,7 +577,7 @@ EventDelegation.register('view-match', function(element, e) {
  * Edit Match Action (Upcoming Matches)
  * Opens match editing interface
  */
-EventDelegation.register('edit-match', function(element, e) {
+window.EventDelegation.register('edit-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -585,8 +585,8 @@ EventDelegation.register('edit-match', function(element, e) {
     if (typeof editMatch === 'function') {
         editMatch(matchId);
     } else {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Edit Match',
                 text: 'Match editing functionality coming soon!',
                 icon: 'info'
@@ -599,7 +599,7 @@ EventDelegation.register('edit-match', function(element, e) {
  * Schedule Match Action (Upcoming Matches)
  * Opens match scheduling interface
  */
-EventDelegation.register('schedule-match', function(element, e) {
+window.EventDelegation.register('schedule-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -607,8 +607,8 @@ EventDelegation.register('schedule-match', function(element, e) {
     if (typeof scheduleMatch === 'function') {
         scheduleMatch(matchId);
     } else {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Schedule Match',
                 text: 'Match scheduling functionality coming soon!',
                 icon: 'info'
@@ -619,4 +619,4 @@ EventDelegation.register('schedule-match', function(element, e) {
 
 // ============================================================================
 
-console.log('[EventDelegation] Admin match operations handlers loaded');
+console.log('[window.EventDelegation] Admin match operations handlers loaded');

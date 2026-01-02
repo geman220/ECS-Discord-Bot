@@ -20,7 +20,7 @@ import { EventDelegation } from '../core.js';
  * Clears all cached data from the system (quick actions menu)
  * Note: Renamed from 'clear-cache' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('quick-clear-cache', function(element, e) {
+window.EventDelegation.register('quick-clear-cache', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -56,7 +56,7 @@ EventDelegation.register('quick-clear-cache', function(element, e) {
  * Check Database Health
  * Runs database health checks
  */
-EventDelegation.register('check-db-health', function(element, e) {
+window.EventDelegation.register('check-db-health', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -82,7 +82,7 @@ EventDelegation.register('check-db-health', function(element, e) {
  * Initialize Settings
  * Resets admin settings to defaults
  */
-EventDelegation.register('initialize-settings', function(element, e) {
+window.EventDelegation.register('initialize-settings', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -109,7 +109,7 @@ EventDelegation.register('initialize-settings', function(element, e) {
  * Restarts the Discord bot
  * Note: Renamed from 'restart-bot' to avoid conflict with admin-panel-discord-bot.js
  */
-EventDelegation.register('quick-restart-bot', function(element, e) {
+window.EventDelegation.register('quick-restart-bot', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -148,7 +148,7 @@ EventDelegation.register('quick-restart-bot', function(element, e) {
  * Approve All Pending
  * Approves all pending user registrations
  */
-EventDelegation.register('approve-all-pending', function(element, e) {
+window.EventDelegation.register('approve-all-pending', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -174,7 +174,7 @@ EventDelegation.register('approve-all-pending', function(element, e) {
  * Process Waitlist
  * Processes all users from the waitlist
  */
-EventDelegation.register('process-waitlist', function(element, e) {
+window.EventDelegation.register('process-waitlist', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -200,7 +200,7 @@ EventDelegation.register('process-waitlist', function(element, e) {
  * Send Bulk Notifications
  * Opens dialog to send bulk notifications
  */
-EventDelegation.register('send-bulk-notifications', function(element, e) {
+window.EventDelegation.register('send-bulk-notifications', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -259,7 +259,7 @@ EventDelegation.register('send-bulk-notifications', function(element, e) {
  * Sync Templates
  * Synchronizes message templates
  */
-EventDelegation.register('sync-templates', function(element, e) {
+window.EventDelegation.register('sync-templates', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -286,7 +286,7 @@ EventDelegation.register('sync-templates', function(element, e) {
  * Sends a test push notification (quick actions menu)
  * Note: Renamed from 'test-notifications' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('quick-test-notifications', function(element, e) {
+window.EventDelegation.register('quick-test-notifications', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -312,7 +312,7 @@ EventDelegation.register('quick-test-notifications', function(element, e) {
  * Send Emergency Alert
  * Sends an emergency alert to all users
  */
-EventDelegation.register('send-emergency-alert', function(element, e) {
+window.EventDelegation.register('send-emergency-alert', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -365,7 +365,7 @@ EventDelegation.register('send-emergency-alert', function(element, e) {
  * Export System Data
  * Exports system data in various formats
  */
-EventDelegation.register('export-system-data', function(element, e) {
+window.EventDelegation.register('export-system-data', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -422,7 +422,7 @@ EventDelegation.register('export-system-data', function(element, e) {
  * Toggle Maintenance Mode
  * Enables/disables system maintenance mode
  */
-EventDelegation.register('toggle-maintenance-mode', function(element, e) {
+window.EventDelegation.register('toggle-maintenance-mode', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -449,7 +449,7 @@ EventDelegation.register('toggle-maintenance-mode', function(element, e) {
  * Clear System Logs
  * Clears all system and error logs
  */
-EventDelegation.register('clear-system-logs', function(element, e) {
+window.EventDelegation.register('clear-system-logs', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -476,7 +476,7 @@ EventDelegation.register('clear-system-logs', function(element, e) {
  * Generate System Report
  * Generates a comprehensive system status report
  */
-EventDelegation.register('generate-system-report', function(element, e) {
+window.EventDelegation.register('generate-system-report', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -516,7 +516,7 @@ EventDelegation.register('generate-system-report', function(element, e) {
  * Execute Custom Action
  * Executes a custom administrative action
  */
-EventDelegation.register('execute-custom-action', function(element, e) {
+window.EventDelegation.register('execute-custom-action', function(element, e) {
     e.preventDefault();
 
     const actionType = document.getElementById('actionType')?.value;
@@ -578,7 +578,7 @@ EventDelegation.register('execute-custom-action', function(element, e) {
  * Validate Custom Action
  * Validates a custom action without executing
  */
-EventDelegation.register('validate-custom-action', function(element, e) {
+window.EventDelegation.register('validate-custom-action', function(element, e) {
     e.preventDefault();
 
     const actionType = document.getElementById('actionType')?.value;
@@ -601,7 +601,7 @@ EventDelegation.register('validate-custom-action', function(element, e) {
  * Save Custom Action
  * Saves a custom action as a template
  */
-EventDelegation.register('save-custom-action', function(element, e) {
+window.EventDelegation.register('save-custom-action', function(element, e) {
     e.preventDefault();
 
     const actionType = document.getElementById('actionType')?.value;
@@ -649,4 +649,4 @@ EventDelegation.register('save-custom-action', function(element, e) {
     });
 });
 
-console.log('[EventDelegation] Admin quick actions handlers loaded');
+console.log('[window.EventDelegation] Admin quick actions handlers loaded');

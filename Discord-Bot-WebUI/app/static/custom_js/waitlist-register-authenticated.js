@@ -43,7 +43,7 @@ export function init() {
 
 // Show profile verification modal
 export function showProfileModal() {
-    ModalManager.show('profileModal');
+    window.ModalManager.show('profileModal');
 }
 
 // Toggle edit mode
@@ -188,9 +188,9 @@ export function verifyProfile() {
     });
 }
 
-// Register with InitSystem (primary)
-if (InitSystem.register) {
-    InitSystem.register('waitlist-register-authenticated', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem.register) {
+    window.InitSystem.register('waitlist-register-authenticated', init, {
         priority: 20,
         reinitializable: false,
         description: 'Waitlist registration for authenticated users'
@@ -198,7 +198,7 @@ if (InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.showProfileModal = showProfileModal;

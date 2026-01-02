@@ -8,7 +8,7 @@
  * for better maintainability, performance, and separation of concerns.
  *
  * @version 1.0.2
- * @updated 2025-12-26 - Code review for EventDelegation (no changes needed)
+ * @updated 2025-12-26 - Code review for window.EventDelegation (no changes needed)
  */
 // ES Module
 'use strict';
@@ -466,7 +466,7 @@ export const ResponsiveSystem = {
               if (selectElement.length) {
                 // Configure Select2 with mobile-friendly options
                 const config = {
-                  theme: 'bootstrap-5',
+                  theme: 'window.bootstrap-5',
                   width: '100%',
                   // Set dropdown to modal if in modal context
                   dropdownParent: $(selectElement).closest('.modal').length ?
@@ -825,9 +825,9 @@ export const ResponsiveSystem = {
   // Make available globally
   window.ResponsiveSystem = ResponsiveSystem;
 
-  // Register with InitSystem if available
-  if (true && InitSystem.register) {
-    InitSystem.register('responsive-system', function() {
+  // Register with window.InitSystem if available
+  if (true && window.InitSystem.register) {
+    window.InitSystem.register('responsive-system', function() {
       window.ResponsiveSystem.init();
     }, {
       priority: 85,

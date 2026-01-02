@@ -5,7 +5,7 @@
  * Handles debounced search for help topics
  *
  * @module help-search
- * @requires InitSystem
+ * @requires window.InitSystem
  */
 
 import { InitSystem } from '../js/init-system.js';
@@ -131,8 +131,8 @@ const HelpSearch = {
     }
 };
 
-// Register with InitSystem
-InitSystem.register('help-search', () => {
+// Register with window.InitSystem
+window.InitSystem.register('help-search', () => {
     // Only initialize on help index page
     if (document.querySelector('[data-action="search-topics"]') ||
         document.querySelector('[data-topics-list]')) {

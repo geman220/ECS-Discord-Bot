@@ -198,7 +198,7 @@ class AdminTeamsManager {
         if (editTeamId) editTeamId.value = teamId;
         if (editTeamName) editTeamName.value = teamName;
 
-        ModalManager.show('editTeamModal');
+        window.ModalManager.show('editTeamModal');
     }
 
     /**
@@ -355,9 +355,9 @@ function init() {
     window.deleteTeam = (teamId, teamName) => manager.deleteTeam(teamId, teamName);
 }
 
-// Register with InitSystem
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('admin-teams-management', init, {
+// Register with window.InitSystem
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('admin-teams-management', init, {
         priority: 40,
         reinitializable: false,
         description: 'Admin teams management'
@@ -365,7 +365,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback for direct script loading
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export { AdminTeamsManager, getManager, init };

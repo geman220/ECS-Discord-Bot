@@ -14,7 +14,7 @@ import { EventDelegation } from '../core.js';
  */
 let dashboardRefreshInterval = null;
 
-EventDelegation.register('refresh-dashboard-stats', function(element, e) {
+window.EventDelegation.register('refresh-dashboard-stats', function(element, e) {
     e.preventDefault();
 
     if (typeof refreshDashboardStats === 'function') {
@@ -42,7 +42,7 @@ EventDelegation.register('refresh-dashboard-stats', function(element, e) {
  * Set Current Season Action
  * Opens modal to set a season as current
  */
-EventDelegation.register('set-current-season', function(element, e) {
+window.EventDelegation.register('set-current-season', function(element, e) {
     e.preventDefault();
 
     const seasonId = element.dataset.seasonId;
@@ -67,8 +67,8 @@ EventDelegation.register('set-current-season', function(element, e) {
         if (performRollover) performRollover.checked = false;
         if (rolloverPreview) rolloverPreview.classList.add('d-none');
 
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('setCurrentModal');
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('setCurrentModal');
         }
     }
 });
@@ -77,7 +77,7 @@ EventDelegation.register('set-current-season', function(element, e) {
  * Confirm Set Current Season Action
  * Confirms setting a season as current with optional rollover
  */
-EventDelegation.register('confirm-set-current', function(element, e) {
+window.EventDelegation.register('confirm-set-current', function(element, e) {
     e.preventDefault();
 
     if (typeof confirmSetCurrent === 'function') {
@@ -126,7 +126,7 @@ EventDelegation.register('confirm-set-current', function(element, e) {
  * Delete Season Action
  * Deletes a season with confirmation
  */
-EventDelegation.register('delete-season', function(element, e) {
+window.EventDelegation.register('delete-season', function(element, e) {
     e.preventDefault();
 
     const seasonId = element.dataset.seasonId;
@@ -146,8 +146,8 @@ EventDelegation.register('delete-season', function(element, e) {
             AdminPanel.confirmAction(confirmMessage, () => {
                 performDeleteSeason(seasonId);
             });
-        } else if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        } else if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Delete Season?',
                 text: confirmMessage,
                 icon: 'warning',
@@ -200,7 +200,7 @@ function performDeleteSeason(seasonId) {
  * Save Season Action
  * Saves changes to a season
  */
-EventDelegation.register('save-season', function(element, e) {
+window.EventDelegation.register('save-season', function(element, e) {
     e.preventDefault();
 
     if (typeof saveSeasonChanges === 'function') {
@@ -256,7 +256,7 @@ EventDelegation.register('save-season', function(element, e) {
  * Create Team Action
  * Creates a new team
  */
-EventDelegation.register('create-team', function(element, e) {
+window.EventDelegation.register('create-team', function(element, e) {
     e.preventDefault();
 
     if (typeof createTeam === 'function') {
@@ -308,7 +308,7 @@ EventDelegation.register('create-team', function(element, e) {
  * Edit Team Action
  * Opens modal to edit a team
  */
-EventDelegation.register('edit-team', function(element, e) {
+window.EventDelegation.register('edit-team', function(element, e) {
     e.preventDefault();
 
     const teamId = element.dataset.teamId;
@@ -328,8 +328,8 @@ EventDelegation.register('edit-team', function(element, e) {
         if (editTeamId) editTeamId.value = teamId;
         if (editTeamName) editTeamName.value = teamName || '';
 
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('editTeamModal');
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('editTeamModal');
         }
     }
 });
@@ -338,7 +338,7 @@ EventDelegation.register('edit-team', function(element, e) {
  * Save Team Edit Action
  * Saves team name changes
  */
-EventDelegation.register('save-team-edit', function(element, e) {
+window.EventDelegation.register('save-team-edit', function(element, e) {
     e.preventDefault();
 
     if (typeof saveTeamEdit === 'function') {
@@ -389,7 +389,7 @@ EventDelegation.register('save-team-edit', function(element, e) {
  * Sync Discord Action
  * Syncs Discord resources for a team
  */
-EventDelegation.register('sync-discord', function(element, e) {
+window.EventDelegation.register('sync-discord', function(element, e) {
     e.preventDefault();
 
     const teamId = element.dataset.teamId;
@@ -438,7 +438,7 @@ EventDelegation.register('sync-discord', function(element, e) {
  * Delete Team Action
  * Deletes a team with confirmation
  */
-EventDelegation.register('delete-team', function(element, e) {
+window.EventDelegation.register('delete-team', function(element, e) {
     e.preventDefault();
 
     const teamId = element.dataset.teamId;
@@ -497,7 +497,7 @@ EventDelegation.register('delete-team', function(element, e) {
  * Auto-Assign Playoffs Action
  * Automatically assigns playoff teams based on standings
  */
-EventDelegation.register('auto-assign-playoffs', function(element, e) {
+window.EventDelegation.register('auto-assign-playoffs', function(element, e) {
     e.preventDefault();
 
     const leagueId = element.dataset.leagueId;
@@ -587,7 +587,7 @@ EventDelegation.register('auto-assign-playoffs', function(element, e) {
  * Select Player Action (from search results)
  * Selects a player from search results for history lookup
  */
-EventDelegation.register('select-player', function(element, e) {
+window.EventDelegation.register('select-player', function(element, e) {
     e.preventDefault();
 
     const playerIndex = parseInt(element.dataset.playerIndex, 10);
@@ -603,7 +603,7 @@ EventDelegation.register('select-player', function(element, e) {
  * Lookup Player History Action
  * Looks up player team history
  */
-EventDelegation.register('lookup-player-history', function(element, e) {
+window.EventDelegation.register('lookup-player-history', function(element, e) {
     e.preventDefault();
 
     if (typeof lookupPlayerHistory === 'function') {
@@ -615,4 +615,4 @@ EventDelegation.register('lookup-player-history', function(element, e) {
 
 // ============================================================================
 
-console.log('[EventDelegation] Admin league management handlers loaded');
+console.log('[window.EventDelegation] Admin league management handlers loaded');

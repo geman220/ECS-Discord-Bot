@@ -469,9 +469,9 @@ window.getCroppedImage = function() {
         // but we export the class for use by templates
     }
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('simple-cropper', init, {
+    // Register with window.InitSystem (primary)
+    if (true && window.InitSystem.register) {
+        window.InitSystem.register('simple-cropper', init, {
             priority: 45,
             reinitializable: false,
             description: 'Simple image cropper for modals'
@@ -479,7 +479,7 @@ window.getCroppedImage = function() {
     }
 
     // Fallback
-    // InitSystem handles initialization
+    // window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

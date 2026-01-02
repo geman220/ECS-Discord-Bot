@@ -19,7 +19,7 @@
  * - onboarding-previous: Navigate to previous step
  * - onboarding-toggle-sms: Toggle SMS notification section
  *
- * @version 2.1.0 (InitSystem)
+ * @version 2.1.0 (window.InitSystem)
  * @date 2025-12-29
  */
 // ES Module
@@ -63,7 +63,7 @@ export function init() {
     if (modalElement) {
         // console.log("Initializing onboarding modal");
         try {
-            const onboardingModal = ModalManager.getInstance(modalElement.id, {
+            const onboardingModal = window.ModalManager.getInstance(modalElement.id, {
                 backdrop: 'static',
                 keyboard: false
             });
@@ -90,7 +90,7 @@ export function init() {
 
             // Initialize Select2 dropdowns
             $(modal).find('.select2-single').select2({
-                theme: 'bootstrap-5',
+                theme: 'window.bootstrap-5',
                 width: '100%',
                 placeholder: 'Select an option',
                 allowClear: true,
@@ -98,7 +98,7 @@ export function init() {
             });
 
             $(modal).find('.select2-multiple').select2({
-                theme: 'bootstrap-5',
+                theme: 'window.bootstrap-5',
                 width: '100%',
                 placeholder: 'Select options',
                 allowClear: true,
@@ -370,9 +370,9 @@ export function init() {
     updateProgress();
 }
 
-// Register with InitSystem (primary)
-if (true && InitSystem.register) {
-    InitSystem.register('onboarding', init, {
+// Register with window.InitSystem (primary)
+if (true && window.InitSystem.register) {
+    window.InitSystem.register('onboarding', init, {
         priority: 45,
         reinitializable: false,
         description: 'Onboarding wizard carousel'
@@ -380,7 +380,7 @@ if (true && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

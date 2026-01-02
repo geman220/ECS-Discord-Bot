@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles cache management page interactions using data-attribute hooks
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -88,13 +88,13 @@ function initializeKeyboardShortcuts() {
  * Clear cache by type with confirmation
  */
 async function clearCacheByType(cacheType, title) {
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         if (!confirm(`${title}\nThis action cannot be undone. Continue?`)) return;
         performClearCache(cacheType);
         return;
     }
 
-    const result = await Swal.fire({
+    const result = await window.Swal.fire({
         title: title,
         text: 'This action cannot be undone. Continue?',
         icon: 'warning',
@@ -130,8 +130,8 @@ async function performClearCache(cacheType) {
         if (response.redirected) {
             window.location.href = response.url;
         } else {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'success',
                     title: 'Cache Cleared',
                     text: 'The cache has been successfully cleared.',
@@ -173,13 +173,13 @@ function clearSessionCache() {
  * Refresh cache statistics
  */
 function refreshCacheStats() {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             title: 'Refreshing...',
             text: 'Updating cache statistics',
             allowOutsideClick: false,
             didOpen: () => {
-                Swal.showLoading();
+                window.Swal.showLoading();
                 setTimeout(() => {
                     location.reload();
                 }, 1000);
@@ -201,8 +201,8 @@ async function updateCacheConfig() {
     };
 
     // In a real implementation, this would save to the server
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             icon: 'success',
             title: 'Configuration Saved',
             text: 'Cache configuration has been updated.',
@@ -224,8 +224,8 @@ function resetCacheConfig() {
     if (policySelect) policySelect.value = 'allkeys-lru';
     if (enableCheck) enableCheck.checked = true;
 
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             icon: 'info',
             title: 'Reset Complete',
             text: 'Configuration has been reset to defaults.'
@@ -237,22 +237,22 @@ function resetCacheConfig() {
  * Show error message
  */
 function showError(message) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire('Error', message, 'error');
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire('Error', message, 'error');
     } else {
         alert(message);
     }
 }
 
-// Register with InitSystem
-InitSystem.register('admin-cache-management', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-cache-management', init, {
     priority: 30,
     reinitializable: true,
     description: 'Admin cache management page functionality'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

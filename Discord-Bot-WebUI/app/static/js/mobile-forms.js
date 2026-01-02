@@ -593,9 +593,9 @@ export const MobileForms = {
   // Expose globally (MUST be before any callbacks or registrations)
   window.MobileForms = MobileForms;
 
-  // Register with InitSystem if available
-  if (true && InitSystem.register) {
-    InitSystem.register('mobile-forms', function() {
+  // Register with window.InitSystem if available
+  if (true && window.InitSystem.register) {
+    window.InitSystem.register('mobile-forms', function() {
       window.MobileForms.init();
     }, {
       priority: 60,
@@ -605,5 +605,5 @@ export const MobileForms = {
   }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 

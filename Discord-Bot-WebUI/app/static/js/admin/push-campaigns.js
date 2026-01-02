@@ -18,7 +18,7 @@
  * Dependencies:
  * - Bootstrap 5.x (modals)
  * - SweetAlert2 (confirmations)
- * - EventDelegation (centralized event handling)
+ * - window.EventDelegation (centralized event handling)
  *
  * ============================================================================
  */
@@ -399,7 +399,7 @@ function init() {
     _initialized = true;
 
     console.log('[Push Campaigns] Initializing...');
-    // EventDelegation handlers are registered at module scope below
+    // window.EventDelegation handlers are registered at module scope below
 
     // Initialize target type selector
     const targetTypeSelect = document.getElementById('campaign_target_type');
@@ -422,14 +422,14 @@ function init() {
    EVENT DELEGATION - Registered at module scope
    ======================================================================== */
 
-EventDelegation.register('go-back-campaigns', handleGoBack, { preventDefault: true });
-EventDelegation.register('view-campaign', handleViewCampaign, { preventDefault: true });
-EventDelegation.register('edit-campaign', handleEditCampaign, { preventDefault: true });
-EventDelegation.register('send-campaign', handleSendCampaign, { preventDefault: true });
-EventDelegation.register('schedule-campaign', handleScheduleCampaign, { preventDefault: true });
-EventDelegation.register('delete-campaign', handleDeleteCampaign, { preventDefault: true });
-EventDelegation.register('cancel-campaign', handleCancelCampaign, { preventDefault: true });
-EventDelegation.register('duplicate-campaign', handleDuplicateCampaign, { preventDefault: true });
+window.EventDelegation.register('go-back-campaigns', handleGoBack, { preventDefault: true });
+window.EventDelegation.register('view-campaign', handleViewCampaign, { preventDefault: true });
+window.EventDelegation.register('edit-campaign', handleEditCampaign, { preventDefault: true });
+window.EventDelegation.register('send-campaign', handleSendCampaign, { preventDefault: true });
+window.EventDelegation.register('schedule-campaign', handleScheduleCampaign, { preventDefault: true });
+window.EventDelegation.register('delete-campaign', handleDeleteCampaign, { preventDefault: true });
+window.EventDelegation.register('cancel-campaign', handleCancelCampaign, { preventDefault: true });
+window.EventDelegation.register('duplicate-campaign', handleDuplicateCampaign, { preventDefault: true });
 
 /* ========================================================================
    REGISTER WITH INITSYSTEM
@@ -437,14 +437,14 @@ EventDelegation.register('duplicate-campaign', handleDuplicateCampaign, { preven
 
 import { InitSystem } from '../init-system.js';
 
-InitSystem.register('push-campaigns', init, {
+window.InitSystem.register('push-campaigns', init, {
     priority: 30,
     reinitializable: false,
     description: 'Push campaigns management'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 /* ========================================================================
    PUBLIC API

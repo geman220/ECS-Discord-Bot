@@ -3,7 +3,7 @@
  * Handles multi-select dropdown for ECS FC team assignments in user management modal.
  * Allows ECS FC players to be on multiple teams within the same ECS FC league.
  *
- * Uses InitSystem with priority 30 (after form selects).
+ * Uses window.InitSystem with priority 30 (after form selects).
  */
 'use strict';
 
@@ -193,9 +193,9 @@ export const EcsFcTeamManager = {
 // Expose for external use (MUST be before any callbacks or registrations)
 window.EcsFcTeamManager = EcsFcTeamManager;
 
-// Register with InitSystem if available
-if (InitSystem.register) {
-    InitSystem.register('EcsFcTeamManager', function(context) {
+// Register with window.InitSystem if available
+if (window.InitSystem.register) {
+    window.InitSystem.register('EcsFcTeamManager', function(context) {
         window.EcsFcTeamManager.init(context);
     }, {
         priority: 30 // After form selects
@@ -203,4 +203,4 @@ if (InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization

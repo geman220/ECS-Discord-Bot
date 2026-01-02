@@ -13,7 +13,7 @@ import { EventDelegation } from '../core.js';
  * Handles when user checks/unchecks a profile section as reviewed
  * Updates progress indicator and confirm button state
  */
-EventDelegation.register('verify-section-reviewed', function(element, e) {
+window.EventDelegation.register('verify-section-reviewed', function(element, e) {
     // This handler is triggered by the change event via data-on-change
     // The ProfileVerification module will handle the actual logic
     if (window.ProfileVerification && typeof window.ProfileVerification.handleCheckboxChange === 'function') {
@@ -29,7 +29,7 @@ EventDelegation.register('verify-section-reviewed', function(element, e) {
  * Used on the main profile page to start the verification flow.
  * The /verify route auto-detects mobile vs desktop and redirects appropriately.
  */
-EventDelegation.register('verify-profile', function(element, e) {
+window.EventDelegation.register('verify-profile', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -53,7 +53,7 @@ EventDelegation.register('verify-profile', function(element, e) {
  * Submits the profile verification form
  * Validates that all sections have been reviewed before allowing submission
  */
-EventDelegation.register('verify-profile-submit', function(element, e) {
+window.EventDelegation.register('verify-profile-submit', function(element, e) {
     // Check if all sections are reviewed before allowing submission
     if (window.ProfileVerification && typeof window.ProfileVerification.areAllSectionsReviewed === 'function') {
         const allReviewed = window.ProfileVerification.areAllSectionsReviewed();
@@ -85,4 +85,4 @@ EventDelegation.register('verify-profile-submit', function(element, e) {
 
 // ============================================================================
 
-console.log('[EventDelegation] Profile verification handlers loaded');
+console.log('[window.EventDelegation] Profile verification handlers loaded');

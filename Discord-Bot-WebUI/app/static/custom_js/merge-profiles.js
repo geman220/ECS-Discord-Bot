@@ -70,9 +70,9 @@ function updateMergePreview() {
 window.initializeMergeProfileUI = initializeMergeProfileUI;
 window.updateMergePreview = updateMergePreview;
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('merge-profiles', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('merge-profiles', init, {
         priority: 45,
         reinitializable: false,
         description: 'Profile merge management'
@@ -80,4 +80,4 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization

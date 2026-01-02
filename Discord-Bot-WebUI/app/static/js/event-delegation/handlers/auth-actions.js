@@ -94,19 +94,19 @@ function handleTermsAgreement(event, element) {
 // REGISTER HANDLERS
 // ============================================================================
 
-EventDelegation.register('toggle-password', handleTogglePassword, {
+window.EventDelegation.register('toggle-password', handleTogglePassword, {
     preventDefault: true
 });
 
-EventDelegation.register('toggle-password-confirm', handleTogglePasswordConfirm, {
+window.EventDelegation.register('toggle-password-confirm', handleTogglePasswordConfirm, {
     preventDefault: true
 });
 
-EventDelegation.register('toggle-options', handleToggleOptions, {
+window.EventDelegation.register('toggle-options', handleToggleOptions, {
     preventDefault: false
 });
 
-EventDelegation.register('terms-agreement', handleTermsAgreement, {
+window.EventDelegation.register('terms-agreement', handleTermsAgreement, {
     preventDefault: false,
     events: ['change']
 });

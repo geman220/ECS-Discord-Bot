@@ -740,14 +740,14 @@ function initSecurityDashboard() {
     window.securityDashboard = new SecurityDashboard();
 }
 
-InitSystem.register('security-dashboard', initSecurityDashboard, {
+window.InitSystem.register('security-dashboard', initSecurityDashboard, {
     priority: 30,
     reinitializable: false,
     description: 'Security dashboard interface'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {

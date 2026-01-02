@@ -37,9 +37,9 @@ function init() {
     });
 }
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('manage-polls', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('manage-polls', init, {
         priority: 35,
         reinitializable: true,
         description: 'Manage polls DataTable'
@@ -47,4 +47,4 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback for non-module usage
-// InitSystem handles initialization
+// window.InitSystem handles initialization

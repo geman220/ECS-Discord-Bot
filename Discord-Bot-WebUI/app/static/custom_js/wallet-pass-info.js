@@ -85,8 +85,8 @@ function showCopyFeedback(feedbackEl) {
 // Note: 'copy-link' handler is registered in admin-wallet.js
 // This file exposes copyPageLink globally for that handler to use
 
-// Register with InitSystem
-InitSystem.register('wallet-pass-info', init, {
+// Register with window.InitSystem
+window.InitSystem.register('wallet-pass-info', init, {
     priority: 30,
     description: 'Wallet pass info module'
 });

@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles push notifications dashboard page interactions using data-attribute hooks
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -60,15 +60,15 @@ function refreshNotifications() {
     location.reload();
 }
 
-// Register with InitSystem
-InitSystem.register('admin-push-notifications-dashboard', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-push-notifications-dashboard', init, {
     priority: 30,
     reinitializable: true,
     description: 'Admin push notifications dashboard functionality'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

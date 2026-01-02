@@ -40,13 +40,13 @@
             contentEl.innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
         }
 
-        // Show modal using ModalManager if available
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('userDetailsModal');
-        } else if (typeof bootstrap !== 'undefined') {
+        // Show modal using window.ModalManager if available
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('userDetailsModal');
+        } else if (typeof window.bootstrap !== 'undefined') {
             const modalEl = document.getElementById('userDetailsModal');
             if (modalEl) {
-                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
                 modal.show();
             }
         }
@@ -82,8 +82,8 @@
         const confirmColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745';
         const cancelColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d';
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Approve User?',
                 text: `Are you sure you want to approve "${userName}"?`,
                 icon: 'question',
@@ -110,8 +110,8 @@
         const confirmColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545';
         const cancelColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d';
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Reject User?',
                 text: `Are you sure you want to reject "${userName}"?`,
                 icon: 'warning',
@@ -137,8 +137,8 @@
         const confirmColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745';
         const cancelColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d';
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Approve All Pending Users?',
                 text: `This will approve ${pendingCount} pending users. This action cannot be undone.`,
                 icon: 'question',
@@ -198,15 +198,15 @@
         window.history.back();
     }
 
-    // Note: EventDelegation handlers are registered in:
+    // Note: window.EventDelegation handlers are registered in:
     // - waitlist-management.js: view-user
     // - user-management-comprehensive.js: approve-user
     // This file exposes functions globally for those handlers to use
 
-    // Register with InitSystem if available
-    if (typeof InitSystem !== 'undefined') {
-        InitSystem.register('userApprovals', function() {
-            console.log('[UserApprovals] Module loaded via InitSystem');
+    // Register with window.InitSystem if available
+    if (typeof window.InitSystem !== 'undefined') {
+        window.InitSystem.register('userApprovals', function() {
+            console.log('[UserApprovals] Module loaded via window.InitSystem');
         }, { requires: [], priority: 10 });
     }
 

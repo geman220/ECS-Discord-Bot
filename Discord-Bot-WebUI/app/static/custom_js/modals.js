@@ -33,9 +33,9 @@ function triggerManualReviewModal() {
     }
 }
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('modals', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('modals', init, {
         priority: 25,
         reinitializable: true,
         description: 'Manual review modal trigger'
@@ -43,7 +43,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

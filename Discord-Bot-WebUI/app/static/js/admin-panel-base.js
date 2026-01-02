@@ -14,7 +14,7 @@
  * - Global admin utilities
  *
  * Dependencies: Bootstrap 5
- * Registration: InitSystem (priority 15)
+ * Registration: window.InitSystem (priority 15)
  *
  * ============================================================================
  */
@@ -728,8 +728,8 @@ export function registerServiceWorker() {
 window.AdminPanel = AdminPanelBase;
 window.AdminPanelBase = AdminPanelBase;
 
-// Register with InitSystem
-InitSystem.register('AdminPanelBase', function(context) {
+// Register with window.InitSystem
+window.InitSystem.register('AdminPanelBase', function(context) {
     AdminPanelBase.init(context);
     registerServiceWorker();
 }, {

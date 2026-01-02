@@ -5,7 +5,7 @@
  * Handles markdown editor modal functionality for help topic creation
  *
  * @module help-topic-editor
- * @requires InitSystem
+ * @requires window.InitSystem
  * @requires EasyMDE (loaded externally)
  */
 
@@ -234,8 +234,8 @@ const HelpTopicEditor = {
     }
 };
 
-// Register with InitSystem
-InitSystem.register('help-topic-editor', () => {
+// Register with window.InitSystem
+window.InitSystem.register('help-topic-editor', () => {
     // Only initialize on help topic editor page
     if (document.querySelector('[data-component="help-editor-form"]') ||
         document.getElementById('markdown-editor-modal')) {

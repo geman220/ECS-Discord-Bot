@@ -46,16 +46,16 @@ export const TeamsOverview = {
     }
 };
 
-// Register with InitSystem (primary)
-if (InitSystem.register) {
-    InitSystem.register('teams-overview', () => TeamsOverview.init(), {
+// Register with window.InitSystem (primary)
+if (window.InitSystem.register) {
+    window.InitSystem.register('teams-overview', () => TeamsOverview.init(), {
         priority: 35,
         reinitializable: true,
         description: 'Teams overview page functionality'
     });
 }
 
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.TeamsOverview = TeamsOverview;

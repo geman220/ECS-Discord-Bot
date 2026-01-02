@@ -13,7 +13,7 @@ import { EventDelegation } from '../core.js';
  * Refresh Health Dashboard
  * Refreshes health dashboard data
  */
-EventDelegation.register('refresh-health', function(element, e) {
+window.EventDelegation.register('refresh-health', function(element, e) {
     e.preventDefault();
     window.location.reload();
 });
@@ -22,7 +22,7 @@ EventDelegation.register('refresh-health', function(element, e) {
  * Toggle Service Details
  * Shows/hides detailed information for a service
  */
-EventDelegation.register('toggle-service-details', function(element, e) {
+window.EventDelegation.register('toggle-service-details', function(element, e) {
     e.preventDefault();
     const targetId = element.dataset.targetId;
     if (!targetId) {
@@ -45,7 +45,7 @@ EventDelegation.register('toggle-service-details', function(element, e) {
  * Clear Redis Cache
  * Clears specific Redis cache or all caches
  */
-EventDelegation.register('clear-redis-cache', function(element, e) {
+window.EventDelegation.register('clear-redis-cache', function(element, e) {
     e.preventDefault();
 
     const cacheType = element.dataset.cacheType || 'all';
@@ -112,7 +112,7 @@ EventDelegation.register('clear-redis-cache', function(element, e) {
  * Refresh Redis Stats
  * Refreshes Redis statistics
  */
-EventDelegation.register('refresh-redis-stats', function(element, e) {
+window.EventDelegation.register('refresh-redis-stats', function(element, e) {
     e.preventDefault();
     window.location.reload();
 });
@@ -121,7 +121,7 @@ EventDelegation.register('refresh-redis-stats', function(element, e) {
  * View Redis Key
  * Views details of a specific Redis key
  */
-EventDelegation.register('view-redis-key', function(element, e) {
+window.EventDelegation.register('view-redis-key', function(element, e) {
     e.preventDefault();
     const keyName = element.dataset.keyName;
 
@@ -141,7 +141,7 @@ EventDelegation.register('view-redis-key', function(element, e) {
  * Delete Redis Key
  * Deletes a specific Redis key
  */
-EventDelegation.register('delete-redis-key', function(element, e) {
+window.EventDelegation.register('delete-redis-key', function(element, e) {
     e.preventDefault();
     const keyName = element.dataset.keyName;
 
@@ -216,7 +216,7 @@ function performDeleteRedisKey(keyName, element) {
  * Restart Docker Container
  * Restarts a specific Docker container
  */
-EventDelegation.register('restart-container', function(element, e) {
+window.EventDelegation.register('restart-container', function(element, e) {
     e.preventDefault();
 
     const containerId = element.dataset.containerId;
@@ -284,7 +284,7 @@ EventDelegation.register('restart-container', function(element, e) {
  * Stop Docker Container
  * Stops a specific Docker container
  */
-EventDelegation.register('stop-container', function(element, e) {
+window.EventDelegation.register('stop-container', function(element, e) {
     e.preventDefault();
 
     const containerId = element.dataset.containerId;
@@ -352,7 +352,7 @@ EventDelegation.register('stop-container', function(element, e) {
  * Start Docker Container
  * Starts a specific Docker container
  */
-EventDelegation.register('start-container', function(element, e) {
+window.EventDelegation.register('start-container', function(element, e) {
     e.preventDefault();
 
     const containerId = element.dataset.containerId;
@@ -403,7 +403,7 @@ EventDelegation.register('start-container', function(element, e) {
  * View Container Logs
  * Shows logs for a specific Docker container
  */
-EventDelegation.register('view-container-logs', function(element, e) {
+window.EventDelegation.register('view-container-logs', function(element, e) {
     e.preventDefault();
 
     const containerId = element.dataset.containerId;
@@ -426,7 +426,7 @@ EventDelegation.register('view-container-logs', function(element, e) {
  * Refresh Docker Status
  * Refreshes Docker container status
  */
-EventDelegation.register('refresh-docker-status', function(element, e) {
+window.EventDelegation.register('refresh-docker-status', function(element, e) {
     e.preventDefault();
     window.location.reload();
 });
@@ -439,7 +439,7 @@ EventDelegation.register('refresh-docker-status', function(element, e) {
  * Clear Draft Cache
  * Clears draft cache for specific or all entries
  */
-EventDelegation.register('clear-draft-cache', function(element, e) {
+window.EventDelegation.register('clear-draft-cache', function(element, e) {
     e.preventDefault();
 
     const cacheKey = element.dataset.cacheKey;
@@ -505,7 +505,7 @@ EventDelegation.register('clear-draft-cache', function(element, e) {
  * View Draft Cache Entry
  * Shows details of a specific cache entry
  */
-EventDelegation.register('view-draft-cache-entry', function(element, e) {
+window.EventDelegation.register('view-draft-cache-entry', function(element, e) {
     e.preventDefault();
 
     const cacheKey = element.dataset.cacheKey;
@@ -530,7 +530,7 @@ EventDelegation.register('view-draft-cache-entry', function(element, e) {
  * Block IP Address
  * Blocks a specific IP address
  */
-EventDelegation.register('block-ip', function(element, e) {
+window.EventDelegation.register('block-ip', function(element, e) {
     e.preventDefault();
 
     const ipAddress = element.dataset.ipAddress;
@@ -597,7 +597,7 @@ EventDelegation.register('block-ip', function(element, e) {
  * Unblock IP Address
  * Unblocks a specific IP address
  */
-EventDelegation.register('unblock-ip', function(element, e) {
+window.EventDelegation.register('unblock-ip', function(element, e) {
     e.preventDefault();
 
     const ipAddress = element.dataset.ipAddress;
@@ -647,7 +647,7 @@ EventDelegation.register('unblock-ip', function(element, e) {
  * Refresh Security Dashboard
  * Refreshes security monitoring data
  */
-EventDelegation.register('refresh-security', function(element, e) {
+window.EventDelegation.register('refresh-security', function(element, e) {
     e.preventDefault();
     window.location.reload();
 });
@@ -660,7 +660,7 @@ EventDelegation.register('refresh-security', function(element, e) {
  * Trigger MLS Sync
  * Manually triggers MLS data synchronization
  */
-EventDelegation.register('trigger-mls-sync', function(element, e) {
+window.EventDelegation.register('trigger-mls-sync', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -719,7 +719,7 @@ EventDelegation.register('trigger-mls-sync', function(element, e) {
  * Refresh MLS Overview
  * Refreshes MLS overview data
  */
-EventDelegation.register('refresh-mls-overview', function(element, e) {
+window.EventDelegation.register('refresh-mls-overview', function(element, e) {
     e.preventDefault();
     window.location.reload();
 });
@@ -728,7 +728,7 @@ EventDelegation.register('refresh-mls-overview', function(element, e) {
  * Toggle Task Details
  * Shows/hides task monitoring details
  */
-EventDelegation.register('toggle-task-details', function(element, e) {
+window.EventDelegation.register('toggle-task-details', function(element, e) {
     e.preventDefault();
 
     const taskId = element.dataset.taskId;
@@ -748,7 +748,7 @@ EventDelegation.register('toggle-task-details', function(element, e) {
  * Cancels a running MLS task
  * Note: Renamed from 'cancel-task' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('mls-cancel-task', function(element, e) {
+window.EventDelegation.register('mls-cancel-task', function(element, e) {
     e.preventDefault();
 
     const taskId = element.dataset.taskId;
@@ -810,4 +810,4 @@ EventDelegation.register('mls-cancel-task', function(element, e) {
 
 // ============================================================================
 
-console.log('[EventDelegation] System handlers loaded');
+console.log('[window.EventDelegation] System handlers loaded');

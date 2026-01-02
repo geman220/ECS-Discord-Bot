@@ -410,9 +410,9 @@ let _initialized = false;
   // Uncomment to enable live search
   // initializeLiveSearch();
 
-  // Register with InitSystem (primary)
-  if (true && InitSystem.register) {
-    InitSystem.register('players-list', init, {
+  // Register with window.InitSystem (primary)
+  if (true && window.InitSystem.register) {
+    window.InitSystem.register('players-list', init, {
       priority: 35,
       reinitializable: true,
       description: 'Players list page functionality'
@@ -420,7 +420,7 @@ let _initialized = false;
   }
 
   // Fallback
-  // InitSystem handles initialization
+  // window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

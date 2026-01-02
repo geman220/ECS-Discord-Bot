@@ -166,7 +166,7 @@ export function startSeasonWizard() {
     cleanupCalendarState();
 
     document.getElementById('seasonWizardModal').classList.add('wizard-modal--visible');
-    ModalManager.show('seasonWizardModal');
+    window.ModalManager.show('seasonWizardModal');
     
     // Set default start date to next Sunday (you can change this to any day)
     const today = new Date();
@@ -1934,7 +1934,7 @@ export function showModal(id, title, message, type = 'info', callback = null) {
     document.getElementById(id)?.remove();
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-    ModalManager.show(id);
+    window.ModalManager.show(id);
     
     if (cfg.autoClose) {
         setTimeout(() => {
@@ -2300,11 +2300,11 @@ export function getEnabledSpecialWeeksCount() {
 
 /**
  * CONVERTED TO EVENT DELEGATION: DOMContentLoaded handler removed
- * All event listeners are now handled by the centralized EventDelegation system
+ * All event listeners are now handled by the centralized window.EventDelegation system
  * via data-action, data-on-change, and data-on-input attributes
  *
  * Initialization functions are called when needed (e.g., when wizard opens)
- * Change events are handled through EventDelegation.handleChange() via data-on-change
+ * Change events are handled through window.EventDelegation.handleChange() via data-on-change
  */
 
 // Initialize on page load if needed
@@ -2328,15 +2328,15 @@ export function initAutoScheduleWizard() {
     updateWizardPracticeWeekOptions();
 }
 
-// Register with InitSystem
-InitSystem.register('auto-schedule-wizard', initAutoScheduleWizard, {
+// Register with window.InitSystem
+window.InitSystem.register('auto-schedule-wizard', initAutoScheduleWizard, {
     priority: 30,
     reinitializable: false,
     description: 'Auto schedule wizard functionality'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.applyThemeColor = applyThemeColor;

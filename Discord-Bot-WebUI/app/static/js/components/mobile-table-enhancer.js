@@ -496,9 +496,9 @@ export const MobileTableEnhancer = {
   // Expose globally for programmatic access (MUST be before any callbacks or registrations)
   window.MobileTableEnhancer = MobileTableEnhancer;
 
-  // MUST use InitSystem and window.MobileTableEnhancer to avoid TDZ errors in bundled code
-  if (true && InitSystem.register) {
-    InitSystem.register('mobile-table-enhancer', function(context) {
+  // MUST use window.InitSystem and window.MobileTableEnhancer to avoid TDZ errors in bundled code
+  if (true && window.InitSystem.register) {
+    window.InitSystem.register('mobile-table-enhancer', function(context) {
       window.MobileTableEnhancer.init(context);
     }, {
       priority: 65, // Run before most UI components
@@ -508,5 +508,5 @@ export const MobileTableEnhancer = {
   }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 

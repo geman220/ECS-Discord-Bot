@@ -16,7 +16,7 @@
  * Dependencies:
  * - Bootstrap 5.x (modals)
  * - SweetAlert2 (confirmations)
- * - EventDelegation (centralized event handling)
+ * - window.EventDelegation (centralized event handling)
  *
  * ============================================================================
  */
@@ -48,7 +48,7 @@ function editCategory(id, name, description) {
     // Show edit modal
     const modalEl = document.getElementById('editCategoryModal');
     if (modalEl) {
-        ModalManager.show('editCategoryModal');
+        window.ModalManager.show('editCategoryModal');
     }
 }
 
@@ -139,7 +139,7 @@ function init() {
     }
 
     console.log('[Message Categories] Initializing...');
-    // EventDelegation handlers are registered at module scope below
+    // window.EventDelegation handlers are registered at module scope below
     console.log('[Message Categories] Initialization complete');
 }
 
@@ -147,8 +147,8 @@ function init() {
    EVENT DELEGATION - Registered at module scope
    ======================================================================== */
 
-EventDelegation.register('edit-category', handleEditCategory, { preventDefault: true });
-EventDelegation.register('delete-category', handleDeleteCategory, { preventDefault: true });
+window.EventDelegation.register('edit-category', handleEditCategory, { preventDefault: true });
+window.EventDelegation.register('delete-category', handleDeleteCategory, { preventDefault: true });
 
 /* ========================================================================
    REGISTER WITH INITSYSTEM
@@ -164,14 +164,14 @@ function initWithGuard() {
     init();
 }
 
-InitSystem.register('message-categories', initWithGuard, {
+window.InitSystem.register('message-categories', initWithGuard, {
     priority: 30,
     reinitializable: false,
     description: 'Message categories management'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 /* ========================================================================
    PUBLIC API

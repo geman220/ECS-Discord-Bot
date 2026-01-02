@@ -12,7 +12,7 @@ import { EventDelegation } from '../core.js';
  * Edit Match Report Action
  * Opens modal to edit/create match report
  */
-EventDelegation.register('edit-match-report', function(element, e) {
+window.EventDelegation.register('edit-match-report', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -34,7 +34,7 @@ EventDelegation.register('edit-match-report', function(element, e) {
  * Add Goal Action
  * Adds goal scorer to match report
  */
-EventDelegation.register('add-goal', function(element, e) {
+window.EventDelegation.register('add-goal', function(element, e) {
     e.preventDefault();
 
     // Extract matchId from onclick attribute or data attribute
@@ -65,7 +65,7 @@ EventDelegation.register('add-goal', function(element, e) {
  * Add Assist Action
  * Adds assist provider to match report
  */
-EventDelegation.register('add-assist', function(element, e) {
+window.EventDelegation.register('add-assist', function(element, e) {
     e.preventDefault();
 
     // Extract matchId from onclick attribute or data attribute
@@ -96,7 +96,7 @@ EventDelegation.register('add-assist', function(element, e) {
  * Add Yellow Card Action
  * Adds yellow card to match report
  */
-EventDelegation.register('add-yellow-card', function(element, e) {
+window.EventDelegation.register('add-yellow-card', function(element, e) {
     e.preventDefault();
 
     // Extract matchId from onclick attribute or data attribute
@@ -127,7 +127,7 @@ EventDelegation.register('add-yellow-card', function(element, e) {
  * Add Red Card Action
  * Adds red card to match report
  */
-EventDelegation.register('add-red-card', function(element, e) {
+window.EventDelegation.register('add-red-card', function(element, e) {
     e.preventDefault();
 
     // Extract matchId from onclick attribute or data attribute
@@ -158,7 +158,7 @@ EventDelegation.register('add-red-card', function(element, e) {
  * Remove Event Action (Generic)
  * Removes any event entry (goal, assist, card) from match report
  */
-EventDelegation.register('remove-event', function(element, e) {
+window.EventDelegation.register('remove-event', function(element, e) {
     e.preventDefault();
 
     if (typeof window.removeEvent === 'function') {
@@ -172,7 +172,7 @@ EventDelegation.register('remove-event', function(element, e) {
  * Remove Own Goal Action
  * Removes own goal from match report
  */
-EventDelegation.register('remove-own-goal', function(element, e) {
+window.EventDelegation.register('remove-own-goal', function(element, e) {
     e.preventDefault();
 
     if (typeof window.removeEvent === 'function') {
@@ -184,4 +184,4 @@ EventDelegation.register('remove-own-goal', function(element, e) {
 
 // ============================================================================
 
-console.log('[EventDelegation] Match reporting handlers loaded');
+console.log('[window.EventDelegation] Match reporting handlers loaded');

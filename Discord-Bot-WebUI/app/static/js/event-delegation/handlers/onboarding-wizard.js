@@ -13,13 +13,13 @@ import { EventDelegation } from '../core.js';
  * User clicks "Create Profile" button on intro screen
  * Advances carousel to first step and sets form action
  */
-EventDelegation.register('onboarding-create-profile', function(element, e) {
+window.EventDelegation.register('onboarding-create-profile', function(element, e) {
     e.preventDefault();
 
     const formActionInput = document.getElementById('form_action');
     if (formActionInput) formActionInput.value = 'create_profile';
 
-    // Get bootstrap carousel instance and advance to next slide
+    // Get window.bootstrap carousel instance and advance to next slide
     const carouselElement = document.getElementById('modalCarouselControls');
     if (carouselElement && window.bootstrap) {
         const bootstrapCarousel = window.bootstrap.Carousel.getInstance(carouselElement) ||
@@ -33,7 +33,7 @@ EventDelegation.register('onboarding-create-profile', function(element, e) {
  * User clicks "Skip for now" button on intro screen
  * Submits form with skip_profile action
  */
-EventDelegation.register('onboarding-skip-profile', function(element, e) {
+window.EventDelegation.register('onboarding-skip-profile', function(element, e) {
     e.preventDefault();
 
     const formActionInput = document.getElementById('form_action');
@@ -49,7 +49,7 @@ EventDelegation.register('onboarding-skip-profile', function(element, e) {
  * Handles "Next" button clicks (validation + navigation) and "Save and Finish" on final step
  * Validates current step before advancing, or submits form on final step
  */
-EventDelegation.register('onboarding-next', function(element, e) {
+window.EventDelegation.register('onboarding-next', function(element, e) {
     e.preventDefault();
     e.stopPropagation();
 
@@ -146,7 +146,7 @@ EventDelegation.register('onboarding-next', function(element, e) {
  * Previous Button Action
  * Navigates to previous step in onboarding carousel
  */
-EventDelegation.register('onboarding-previous', function(element, e) {
+window.EventDelegation.register('onboarding-previous', function(element, e) {
     e.preventDefault();
 
     const carouselElement = document.getElementById('modalCarouselControls');
@@ -161,7 +161,7 @@ EventDelegation.register('onboarding-previous', function(element, e) {
  * Shows/hides SMS opt-in section with animation when checkbox changes
  * Triggered by data-on-change attribute on SMS toggle checkbox
  */
-EventDelegation.register('onboarding-toggle-sms', function(element, e) {
+window.EventDelegation.register('onboarding-toggle-sms', function(element, e) {
     // Element is the checkbox that was changed
     if (window.OnboardingWizard && typeof window.OnboardingWizard.handleSmsToggle === 'function') {
         window.OnboardingWizard.handleSmsToggle(element);
@@ -175,7 +175,7 @@ EventDelegation.register('onboarding-toggle-sms', function(element, e) {
  * Shows/hides SMS verification workflow when consent checkbox changes
  * Usage: <input data-action="toggle-sms-consent">
  */
-EventDelegation.register('toggle-sms-consent', function(element, e) {
+window.EventDelegation.register('toggle-sms-consent', function(element, e) {
     if (typeof window.toggleSmsConsent === 'function') {
         window.toggleSmsConsent(element.checked);
     } else {
@@ -199,7 +199,7 @@ EventDelegation.register('toggle-sms-consent', function(element, e) {
  * Shows/hides SMS verification workflow when consent checkbox changes
  * Usage: <input data-action="toggle-sms-verification">
  */
-EventDelegation.register('toggle-sms-verification', function(element, e) {
+window.EventDelegation.register('toggle-sms-verification', function(element, e) {
     if (typeof window.toggleSmsVerification === 'function') {
         window.toggleSmsVerification(element.checked);
     } else {
@@ -216,7 +216,7 @@ EventDelegation.register('toggle-sms-verification', function(element, e) {
  * Sends a verification code to the user's phone
  * Usage: <button data-action="send-code">
  */
-EventDelegation.register('send-code', function(element, e) {
+window.EventDelegation.register('send-code', function(element, e) {
     e.preventDefault();
     if (typeof window.sendVerificationCode === 'function') {
         window.sendVerificationCode();
@@ -230,7 +230,7 @@ EventDelegation.register('send-code', function(element, e) {
  * Resends a verification code to the user's phone
  * Usage: <button data-action="resend-code">
  */
-EventDelegation.register('resend-code', function(element, e) {
+window.EventDelegation.register('resend-code', function(element, e) {
     e.preventDefault();
     if (typeof window.sendVerificationCode === 'function') {
         window.sendVerificationCode();
@@ -244,7 +244,7 @@ EventDelegation.register('resend-code', function(element, e) {
  * Verifies the entered SMS code
  * Usage: <button data-action="verify-code">
  */
-EventDelegation.register('verify-code', function(element, e) {
+window.EventDelegation.register('verify-code', function(element, e) {
     e.preventDefault();
     if (typeof window.verifyCode === 'function') {
         window.verifyCode();
@@ -255,4 +255,4 @@ EventDelegation.register('verify-code', function(element, e) {
 
 // ============================================================================
 
-console.log('[EventDelegation] Onboarding wizard handlers loaded');
+console.log('[window.EventDelegation] Onboarding wizard handlers loaded');

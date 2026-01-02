@@ -45,8 +45,8 @@ function init() {
     form = modalElement ? modalElement.querySelector('form[data-form], form.needs-validation') : null;
 
     // Initialize modal
-    if (modalElement && typeof ModalManager !== 'undefined') {
-        ModalManager.getInstance('waitlistModal', {
+    if (modalElement && typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.getInstance('waitlistModal', {
             backdrop: 'static',
             keyboard: false
         });
@@ -57,8 +57,8 @@ function init() {
     }
 
     // Initialize carousel
-    if (carouselElement && typeof bootstrap !== 'undefined') {
-        bootstrapCarousel = new bootstrap.Carousel(carouselElement, {
+    if (carouselElement && typeof window.bootstrap !== 'undefined') {
+        bootstrapCarousel = new window.bootstrap.Carousel(carouselElement, {
             interval: false,
             ride: false,
             touch: false,
@@ -355,8 +355,8 @@ function cropAndSaveProfileImage() {
             }
         } catch (err) {
             console.error('Error cropping image:', err);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: 'Error cropping image. Please try again.'
@@ -377,38 +377,38 @@ function selectImage() {
     }
 }
 
-// Register with EventDelegation system
+// Register with window.EventDelegation system
 // Note: Using 'waitlist-*' prefix to avoid conflicts with season-wizard.js
-if (typeof EventDelegation !== 'undefined') {
-    EventDelegation.register('waitlist-next-step', function(element, event) {
+if (typeof window.EventDelegation !== 'undefined') {
+    window.EventDelegation.register('waitlist-next-step', function(element, event) {
         event.preventDefault();
         event.stopPropagation();
         handleNextStep();
     });
 
-    EventDelegation.register('waitlist-previous-step', function(element, event) {
+    window.EventDelegation.register('waitlist-previous-step', function(element, event) {
         handlePrevStep();
     });
 
-    EventDelegation.register('select-image', function(element, event) {
+    window.EventDelegation.register('select-image', function(element, event) {
         selectImage();
     });
 
-    EventDelegation.register('skip-picture', function(element, event) {
+    window.EventDelegation.register('skip-picture', function(element, event) {
         skipProfilePicture();
     });
 
-    EventDelegation.register('reset-image', function(element, event) {
+    window.EventDelegation.register('reset-image', function(element, event) {
         resetImageSelection();
     });
 
-    EventDelegation.register('crop-save', function(element, event) {
+    window.EventDelegation.register('crop-save', function(element, event) {
         cropAndSaveProfileImage();
     });
 }
 
-// Register with InitSystem
-InitSystem.register('waitlist-carousel', init, {
+// Register with window.InitSystem
+window.InitSystem.register('waitlist-carousel', init, {
     priority: 30,
     description: 'Waitlist registration carousel module'
 });

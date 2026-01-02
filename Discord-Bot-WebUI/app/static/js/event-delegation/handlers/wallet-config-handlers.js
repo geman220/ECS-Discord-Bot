@@ -24,7 +24,7 @@ import { EventDelegation } from '../core.js';
 /**
  * Toggle detail sections in diagnostics view
  */
-EventDelegation.register('toggle-detail', (element, event) => {
+window.EventDelegation.register('toggle-detail', (element, event) => {
     event.preventDefault();
     const detailId = element.dataset.detailId;
     const detailElement = document.getElementById(detailId);
@@ -44,7 +44,7 @@ EventDelegation.register('toggle-detail', (element, event) => {
 /**
  * Run admin command (show modal with command)
  */
-EventDelegation.register('run-admin-command', (element, event) => {
+window.EventDelegation.register('run-admin-command', (element, event) => {
     event.preventDefault();
     const command = element.dataset.command;
     const commandTextElement = document.getElementById('commandText');
@@ -53,13 +53,13 @@ EventDelegation.register('run-admin-command', (element, event) => {
         commandTextElement.textContent = command;
     }
 
-    if (typeof ModalManager !== 'undefined') {
-        ModalManager.show('commandModal');
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('commandModal');
     } else {
         // Fallback to Bootstrap modal
         const modal = document.getElementById('commandModal');
-        if (modal && typeof bootstrap !== 'undefined') {
-            const bsModal = new bootstrap.Modal(modal);
+        if (modal && typeof window.bootstrap !== 'undefined') {
+            const bsModal = new window.bootstrap.Modal(modal);
             bsModal.show();
         }
     }
@@ -68,7 +68,7 @@ EventDelegation.register('run-admin-command', (element, event) => {
 /**
  * Print the current page (diagnostic report)
  */
-EventDelegation.register('print-page', (element, event) => {
+window.EventDelegation.register('print-page', (element, event) => {
     event.preventDefault();
     window.print();
 });
@@ -81,12 +81,12 @@ EventDelegation.register('print-page', (element, event) => {
  * Delete Wallet Template confirmation
  * Note: Renamed from 'delete-template' to avoid conflict with admin/message-template-detail.js
  */
-EventDelegation.register('delete-wallet-template', (element, event) => {
+window.EventDelegation.register('delete-wallet-template', (element, event) => {
     event.preventDefault();
     const form = element.closest('form');
     const templateName = form?.querySelector('input[name="template_name"]')?.value || 'this template';
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Delete Template?',
         text: `Are you sure you want to delete "${templateName}"? This action cannot be undone.`,
         icon: 'warning',
@@ -105,12 +105,12 @@ EventDelegation.register('delete-wallet-template', (element, event) => {
 /**
  * Set template as default
  */
-EventDelegation.register('set-default-template', (element, event) => {
+window.EventDelegation.register('set-default-template', (element, event) => {
     event.preventDefault();
     const form = element.closest('form');
     const templateName = element.dataset.templateName || 'this template';
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Set Default Template?',
         text: `Make "${templateName}" the default template for this pass type?`,
         icon: 'question',
@@ -128,7 +128,7 @@ EventDelegation.register('set-default-template', (element, event) => {
  * Edit Wallet Template - open modal with template data
  * Note: Renamed from 'edit-template' to avoid conflict with admin/message-template-detail.js
  */
-EventDelegation.register('edit-wallet-template', (element, event) => {
+window.EventDelegation.register('edit-wallet-template', (element, event) => {
     event.preventDefault();
     const templateId = element.dataset.templateId;
     const templateName = element.dataset.templateName;
@@ -157,12 +157,12 @@ EventDelegation.register('edit-wallet-template', (element, event) => {
     }
 
     // Show modal
-    if (typeof ModalManager !== 'undefined') {
-        ModalManager.show('editTemplateModal');
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('editTemplateModal');
     } else {
         const modal = document.getElementById('editTemplateModal');
-        if (modal && typeof bootstrap !== 'undefined') {
-            const bsModal = new bootstrap.Modal(modal);
+        if (modal && typeof window.bootstrap !== 'undefined') {
+            const bsModal = new window.bootstrap.Modal(modal);
             bsModal.show();
         }
     }
@@ -172,7 +172,7 @@ EventDelegation.register('edit-wallet-template', (element, event) => {
  * Create new Wallet Template - open modal
  * Note: Renamed from 'create-template' to avoid conflict with message-templates.js
  */
-EventDelegation.register('create-wallet-template', (element, event) => {
+window.EventDelegation.register('create-wallet-template', (element, event) => {
     event.preventDefault();
     const passTypeId = element.dataset.passTypeId;
 
@@ -181,12 +181,12 @@ EventDelegation.register('create-wallet-template', (element, event) => {
     if (passTypeField) passTypeField.value = passTypeId;
 
     // Show modal
-    if (typeof ModalManager !== 'undefined') {
-        ModalManager.show('createTemplateModal');
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('createTemplateModal');
     } else {
         const modal = document.getElementById('createTemplateModal');
-        if (modal && typeof bootstrap !== 'undefined') {
-            const bsModal = new bootstrap.Modal(modal);
+        if (modal && typeof window.bootstrap !== 'undefined') {
+            const bsModal = new window.bootstrap.Modal(modal);
             bsModal.show();
         }
     }
@@ -199,10 +199,10 @@ EventDelegation.register('create-wallet-template', (element, event) => {
 /**
  * Reset visual editor form to original values
  */
-EventDelegation.register('reset-form', (element, event) => {
+window.EventDelegation.register('reset-form', (element, event) => {
     event.preventDefault();
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Reset Changes?',
         text: 'This will reset all changes to their original values.',
         icon: 'question',
@@ -220,7 +220,7 @@ EventDelegation.register('reset-form', (element, event) => {
                 if (form) {
                     form.reset();
                 }
-                Swal.fire({
+                window.Swal.fire({
                     title: 'Reset Complete',
                     icon: 'success',
                     timer: 1500,
@@ -234,7 +234,7 @@ EventDelegation.register('reset-form', (element, event) => {
 /**
  * Save visual editor changes
  */
-EventDelegation.register('save-visual-editor', (element, event) => {
+window.EventDelegation.register('save-visual-editor', (element, event) => {
     event.preventDefault();
     const form = document.getElementById('visualEditorForm');
 
@@ -267,7 +267,7 @@ EventDelegation.register('save-visual-editor', (element, event) => {
         }
 
         if (errors.length > 0) {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Validation Error',
                 html: errors.join('<br>'),
                 icon: 'error'
@@ -286,12 +286,12 @@ EventDelegation.register('save-visual-editor', (element, event) => {
 /**
  * Delete wallet asset
  */
-EventDelegation.register('delete-asset', (element, event) => {
+window.EventDelegation.register('delete-asset', (element, event) => {
     event.preventDefault();
     const assetId = element.dataset.assetId;
     const assetName = element.dataset.assetName || 'this asset';
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Delete Asset?',
         text: `Are you sure you want to delete "${assetName}"? This action cannot be undone.`,
         icon: 'warning',
@@ -319,14 +319,14 @@ EventDelegation.register('delete-asset', (element, event) => {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        Swal.fire('Deleted!', 'Asset has been deleted.', 'success')
+                        window.Swal.fire('Deleted!', 'Asset has been deleted.', 'success')
                             .then(() => location.reload());
                     } else {
-                        Swal.fire('Error', data.message || 'Failed to delete asset', 'error');
+                        window.Swal.fire('Error', data.message || 'Failed to delete asset', 'error');
                     }
                 })
                 .catch(error => {
-                    Swal.fire('Error', 'Failed to delete asset', 'error');
+                    window.Swal.fire('Error', 'Failed to delete asset', 'error');
                 });
             }
         }
@@ -336,12 +336,12 @@ EventDelegation.register('delete-asset', (element, event) => {
 /**
  * Preview asset in modal
  */
-EventDelegation.register('preview-asset', (element, event) => {
+window.EventDelegation.register('preview-asset', (element, event) => {
     event.preventDefault();
     const assetUrl = element.dataset.assetUrl;
     const assetName = element.dataset.assetName || 'Asset Preview';
 
-    Swal.fire({
+    window.Swal.fire({
         title: assetName,
         imageUrl: assetUrl,
         imageAlt: assetName,
@@ -354,7 +354,7 @@ EventDelegation.register('preview-asset', (element, event) => {
 /**
  * Upload asset - trigger file input
  */
-EventDelegation.register('upload-asset', (element, event) => {
+window.EventDelegation.register('upload-asset', (element, event) => {
     event.preventDefault();
     const fileInput = element.dataset.fileInput || 'assetFileInput';
     const input = document.getElementById(fileInput);
@@ -370,12 +370,12 @@ EventDelegation.register('upload-asset', (element, event) => {
 /**
  * Delete certificate
  */
-EventDelegation.register('delete-certificate', (element, event) => {
+window.EventDelegation.register('delete-certificate', (element, event) => {
     event.preventDefault();
     const certId = element.dataset.certId;
     const certName = element.dataset.certName || 'this certificate';
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Delete Certificate?',
         text: `Are you sure you want to delete "${certName}"? This will affect wallet pass generation.`,
         icon: 'warning',
@@ -396,21 +396,21 @@ EventDelegation.register('delete-certificate', (element, event) => {
 /**
  * Validate certificate
  */
-EventDelegation.register('validate-certificate', (element, event) => {
+window.EventDelegation.register('validate-certificate', (element, event) => {
     event.preventDefault();
     const certId = element.dataset.certId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Validating Certificate...',
         text: 'Checking certificate integrity and expiration',
         allowOutsideClick: false,
         timer: 2000,
         didOpen: () => {
-            Swal.showLoading();
+            window.Swal.showLoading();
         }
     }).then(() => {
         // Simulate validation result
-        Swal.fire({
+        window.Swal.fire({
             title: 'Certificate Valid',
             html: `
                 <div class="text-start">
@@ -428,14 +428,14 @@ EventDelegation.register('validate-certificate', (element, event) => {
 /**
  * Download certificate
  */
-EventDelegation.register('download-certificate', (element, event) => {
+window.EventDelegation.register('download-certificate', (element, event) => {
     event.preventDefault();
     const downloadUrl = element.dataset.downloadUrl;
 
     if (downloadUrl) {
         window.location.href = downloadUrl;
     } else {
-        Swal.fire('Error', 'Download URL not available', 'error');
+        window.Swal.fire('Error', 'Download URL not available', 'error');
     }
 });
 
@@ -446,7 +446,7 @@ EventDelegation.register('download-certificate', (element, event) => {
 /**
  * Wizard step navigation
  */
-EventDelegation.register('wizard-next', (element, event) => {
+window.EventDelegation.register('wizard-next', (element, event) => {
     event.preventDefault();
     const currentStep = parseInt(element.dataset.currentStep || '1');
     const nextStep = currentStep + 1;
@@ -460,7 +460,7 @@ EventDelegation.register('wizard-next', (element, event) => {
 /**
  * Wizard previous step
  */
-EventDelegation.register('wizard-prev', (element, event) => {
+window.EventDelegation.register('wizard-prev', (element, event) => {
     event.preventDefault();
     const currentStep = parseInt(element.dataset.currentStep || '2');
     const prevStep = currentStep - 1;
@@ -473,10 +473,10 @@ EventDelegation.register('wizard-prev', (element, event) => {
 /**
  * Complete wizard
  */
-EventDelegation.register('wizard-complete', (element, event) => {
+window.EventDelegation.register('wizard-complete', (element, event) => {
     event.preventDefault();
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Complete Setup?',
         text: 'This will save all your configuration and enable wallet pass generation.',
         icon: 'question',
@@ -530,7 +530,7 @@ function showWizardStep(step) {
 /**
  * Refresh wallet statistics
  */
-EventDelegation.register('refresh-wallet-stats', (element, event) => {
+window.EventDelegation.register('refresh-wallet-stats', (element, event) => {
     event.preventDefault();
     const button = element.closest('button') || element;
     const originalHtml = button.innerHTML;
@@ -545,11 +545,11 @@ EventDelegation.register('refresh-wallet-stats', (element, event) => {
 /**
  * Generate sample pass
  */
-EventDelegation.register('generate-sample-pass', (element, event) => {
+window.EventDelegation.register('generate-sample-pass', (element, event) => {
     event.preventDefault();
     const passType = element.dataset.passType || 'ecs';
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Generate Sample Pass?',
         text: 'This will create a sample wallet pass for testing.',
         icon: 'question',
@@ -558,14 +558,14 @@ EventDelegation.register('generate-sample-pass', (element, event) => {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Generating...',
                 text: 'Creating sample wallet pass',
                 allowOutsideClick: false,
                 didOpen: () => {
-                    Swal.showLoading();
+                    window.Swal.showLoading();
                     setTimeout(() => {
-                        Swal.fire('Sample Pass Generated!', 'Your sample pass is ready for download.', 'success');
+                        window.Swal.fire('Sample Pass Generated!', 'Your sample pass is ready for download.', 'success');
                     }, 2000);
                 }
             });
@@ -576,11 +576,11 @@ EventDelegation.register('generate-sample-pass', (element, event) => {
 /**
  * View pass statistics
  */
-EventDelegation.register('view-pass-stats', (element, event) => {
+window.EventDelegation.register('view-pass-stats', (element, event) => {
     event.preventDefault();
     const passType = element.dataset.passType || 'all';
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Pass Statistics',
         html: `
             <div class="text-start">
@@ -614,10 +614,10 @@ EventDelegation.register('view-pass-stats', (element, event) => {
 /**
  * Export pass data
  */
-EventDelegation.register('export-pass-data', (element, event) => {
+window.EventDelegation.register('export-pass-data', (element, event) => {
     event.preventDefault();
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Export Pass Data',
         html: `
             <div class="text-start">
@@ -653,7 +653,7 @@ EventDelegation.register('export-pass-data', (element, event) => {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Export Started', 'Your export will download shortly.', 'success');
+            window.Swal.fire('Export Started', 'Your export will download shortly.', 'success');
         }
     });
 });
@@ -665,12 +665,12 @@ EventDelegation.register('export-pass-data', (element, event) => {
 /**
  * Delete sponsor confirmation
  */
-EventDelegation.register('delete-sponsor', (element, event) => {
+window.EventDelegation.register('delete-sponsor', (element, event) => {
     event.preventDefault();
     const id = element.dataset.id;
     const name = element.dataset.name || 'this sponsor';
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Delete Sponsor?',
         text: `Are you sure you want to delete "${name}"?`,
         icon: 'warning',
@@ -703,12 +703,12 @@ EventDelegation.register('delete-sponsor', (element, event) => {
 /**
  * Delete subgroup confirmation
  */
-EventDelegation.register('delete-subgroup', (element, event) => {
+window.EventDelegation.register('delete-subgroup', (element, event) => {
     event.preventDefault();
     const id = element.dataset.id;
     const name = element.dataset.name || 'this subgroup';
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Delete Subgroup?',
         text: `Are you sure you want to delete "${name}"?`,
         icon: 'warning',
@@ -741,7 +741,7 @@ EventDelegation.register('delete-subgroup', (element, event) => {
 /**
  * Copy text to clipboard
  */
-EventDelegation.register('copy-to-clipboard', (element, event) => {
+window.EventDelegation.register('copy-to-clipboard', (element, event) => {
     event.preventDefault();
     const targetId = element.dataset.targetId;
     const targetElement = document.getElementById(targetId);
@@ -762,7 +762,7 @@ EventDelegation.register('copy-to-clipboard', (element, event) => {
 /**
  * Generate webhook secret
  */
-EventDelegation.register('generate-secret', (element, event) => {
+window.EventDelegation.register('generate-secret', (element, event) => {
     event.preventDefault();
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let secret = '';
@@ -778,7 +778,7 @@ EventDelegation.register('generate-secret', (element, event) => {
 /**
  * Save WooCommerce URL
  */
-EventDelegation.register('save-woocommerce-url', (element, event) => {
+window.EventDelegation.register('save-woocommerce-url', (element, event) => {
     event.preventDefault();
     const urlInput = document.getElementById('woocommerceSiteUrl');
     const statusDiv = document.getElementById('wooUrlStatus');
@@ -825,7 +825,7 @@ EventDelegation.register('save-woocommerce-url', (element, event) => {
 /**
  * Validate plugin connection
  */
-EventDelegation.register('validate-plugin-connection', (element, event) => {
+window.EventDelegation.register('validate-plugin-connection', (element, event) => {
     event.preventDefault();
     const resultDiv = document.getElementById('plugin-validation-result');
 
@@ -896,7 +896,7 @@ EventDelegation.register('validate-plugin-connection', (element, event) => {
 /**
  * Smooth scroll to section
  */
-EventDelegation.register('scroll-to-section', (element, event) => {
+window.EventDelegation.register('scroll-to-section', (element, event) => {
     event.preventDefault();
     const targetId = element.getAttribute('href')?.substring(1) || element.dataset.target;
     const targetElement = document.getElementById(targetId);
@@ -909,4 +909,4 @@ EventDelegation.register('scroll-to-section', (element, event) => {
     }
 });
 
-console.log('[EventDelegation] Wallet config handlers loaded');
+console.log('[window.EventDelegation] Wallet config handlers loaded');

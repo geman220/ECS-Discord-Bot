@@ -221,9 +221,9 @@ window.CoachDashboard = {
     getCsrfToken
 };
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('coach-dashboard', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('coach-dashboard', init, {
         priority: 40,
         reinitializable: false,
         description: 'Coach dashboard functionality'
@@ -231,7 +231,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.getCsrfToken = getCsrfToken;

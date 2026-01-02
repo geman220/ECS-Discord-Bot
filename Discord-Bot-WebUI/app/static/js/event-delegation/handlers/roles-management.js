@@ -54,7 +54,7 @@ function getUserApprovalsUrl(roleId) {
  * Handle View Role button click
  * Opens the role details modal and loads role information via AJAX
  */
-EventDelegation.register('view-role', function(element, e) {
+window.EventDelegation.register('view-role', function(element, e) {
     e.preventDefault();
 
     const roleId = element.dataset.roleId;
@@ -78,13 +78,13 @@ EventDelegation.register('view-role', function(element, e) {
     }
 
     // Show the modal
-    if (typeof ModalManager !== 'undefined') {
-        ModalManager.show('roleDetailsModal');
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('roleDetailsModal');
     } else {
-        // Fallback to Bootstrap modal if ModalManager not available
+        // Fallback to Bootstrap modal if window.ModalManager not available
         const modalEl = document.getElementById('roleDetailsModal');
-        if (modalEl && typeof bootstrap !== 'undefined') {
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modalEl && typeof window.bootstrap !== 'undefined') {
+            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
         }
     }
@@ -119,7 +119,7 @@ EventDelegation.register('view-role', function(element, e) {
  * Handle Manage Permissions button click
  * Redirects to the feature toggles page with roles section selected
  */
-EventDelegation.register('manage-permissions', function(element, e) {
+window.EventDelegation.register('manage-permissions', function(element, e) {
     e.preventDefault();
 
     const roleId = element.dataset.roleId;
@@ -142,7 +142,7 @@ EventDelegation.register('manage-permissions', function(element, e) {
  * Handle View Users button click
  * Redirects to user approvals page filtered by the selected role
  */
-EventDelegation.register('view-users', function(element, e) {
+window.EventDelegation.register('view-users', function(element, e) {
     e.preventDefault();
 
     const roleId = element.dataset.roleId;
@@ -157,4 +157,4 @@ EventDelegation.register('view-users', function(element, e) {
     window.location.href = getUserApprovalsUrl(roleId);
 }, { preventDefault: true });
 
-console.log('[EventDelegation] Roles management handlers loaded');
+console.log('[window.EventDelegation] Roles management handlers loaded');

@@ -14,7 +14,7 @@ import { ModalManager } from '../../modal-manager.js';
  * Preview Announcement
  * Shows preview of announcement before sending
  */
-EventDelegation.register('preview-announcement', function(element, e) {
+window.EventDelegation.register('preview-announcement', function(element, e) {
     e.preventDefault();
 
     const title = document.getElementById('announcement-title')?.value || '';
@@ -35,7 +35,7 @@ EventDelegation.register('preview-announcement', function(element, e) {
     if (previewMessage) previewMessage.innerHTML = message.replace(/\n/g, '<br>');
 
     if (previewModal) {
-        ModalManager.show('announcementPreviewModal');
+        window.ModalManager.show('announcementPreviewModal');
     }
 });
 
@@ -43,7 +43,7 @@ EventDelegation.register('preview-announcement', function(element, e) {
  * Send Announcement
  * Sends announcement to selected channels
  */
-EventDelegation.register('send-announcement', function(element, e) {
+window.EventDelegation.register('send-announcement', function(element, e) {
     e.preventDefault();
 
     const form = document.getElementById('announcement-form');
@@ -85,14 +85,14 @@ EventDelegation.register('send-announcement', function(element, e) {
  * Schedule Announcement
  * Schedules announcement for later
  */
-EventDelegation.register('schedule-announcement', function(element, e) {
+window.EventDelegation.register('schedule-announcement', function(element, e) {
     e.preventDefault();
 
     if (typeof window.scheduleAnnouncement === 'function') {
         window.scheduleAnnouncement();
     } else {
         // Show schedule modal
-        ModalManager.show('scheduleAnnouncementModal');
+        window.ModalManager.show('scheduleAnnouncementModal');
     }
 });
 
@@ -104,7 +104,7 @@ EventDelegation.register('schedule-announcement', function(element, e) {
  * Create Campaign
  * Opens campaign creation modal/page
  */
-EventDelegation.register('create-campaign', function(element, e) {
+window.EventDelegation.register('create-campaign', function(element, e) {
     e.preventDefault();
 
     if (typeof window.createCampaign === 'function') {
@@ -119,7 +119,7 @@ EventDelegation.register('create-campaign', function(element, e) {
  * Opens campaign for editing
  * Note: Renamed from 'edit-campaign' to avoid conflict with admin/push-campaigns.js
  */
-EventDelegation.register('edit-comm-campaign', function(element, e) {
+window.EventDelegation.register('edit-comm-campaign', function(element, e) {
     e.preventDefault();
 
     const campaignId = element.dataset.campaignId;
@@ -137,7 +137,7 @@ EventDelegation.register('edit-comm-campaign', function(element, e) {
  * Deletes a campaign with confirmation
  * Note: Renamed from 'delete-campaign' to avoid conflict with admin/push-campaigns.js
  */
-EventDelegation.register('delete-comm-campaign', function(element, e) {
+window.EventDelegation.register('delete-comm-campaign', function(element, e) {
     e.preventDefault();
 
     const campaignId = element.dataset.campaignId;
@@ -208,7 +208,7 @@ function performDeleteCampaign(campaignId, element) {
  * Toggle Campaign Status
  * Activates or pauses a campaign
  */
-EventDelegation.register('toggle-campaign', function(element, e) {
+window.EventDelegation.register('toggle-campaign', function(element, e) {
     e.preventDefault();
 
     const campaignId = element.dataset.campaignId;
@@ -259,7 +259,7 @@ EventDelegation.register('toggle-campaign', function(element, e) {
  * View Message Details
  * Shows full message details
  */
-EventDelegation.register('view-message', function(element, e) {
+window.EventDelegation.register('view-message', function(element, e) {
     e.preventDefault();
 
     const messageId = element.dataset.messageId;
@@ -280,7 +280,7 @@ EventDelegation.register('view-message', function(element, e) {
  * Delete Message
  * Deletes a message with confirmation
  */
-EventDelegation.register('delete-message', function(element, e) {
+window.EventDelegation.register('delete-message', function(element, e) {
     e.preventDefault();
 
     const messageId = element.dataset.messageId;
@@ -353,7 +353,7 @@ function performDeleteMessage(messageId, element) {
  * Resend Message
  * Resends a previously sent message
  */
-EventDelegation.register('resend-message', function(element, e) {
+window.EventDelegation.register('resend-message', function(element, e) {
     e.preventDefault();
 
     const messageId = element.dataset.messageId;
@@ -430,13 +430,13 @@ function performResendMessage(messageId, element) {
  * Create Category
  * Opens modal to create new category
  */
-EventDelegation.register('create-category', function(element, e) {
+window.EventDelegation.register('create-category', function(element, e) {
     e.preventDefault();
 
     if (typeof window.createCategory === 'function') {
         window.createCategory();
     } else {
-        ModalManager.show('categoryModal');
+        window.ModalManager.show('categoryModal');
     }
 });
 
@@ -445,7 +445,7 @@ EventDelegation.register('create-category', function(element, e) {
  * Opens category edit modal with pre-filled data
  * Note: Renamed from 'edit-category' to avoid conflict with admin/message-categories.js
  */
-EventDelegation.register('edit-comm-category', function(element, e) {
+window.EventDelegation.register('edit-comm-category', function(element, e) {
     e.preventDefault();
 
     const categoryId = element.dataset.categoryId;
@@ -464,7 +464,7 @@ EventDelegation.register('edit-comm-category', function(element, e) {
         if (descInput) descInput.value = categoryDescription;
         if (idInput) idInput.value = categoryId;
 
-        ModalManager.show('categoryModal');
+        window.ModalManager.show('categoryModal');
     }
 });
 
@@ -473,7 +473,7 @@ EventDelegation.register('edit-comm-category', function(element, e) {
  * Deletes a category with confirmation
  * Note: Renamed from 'delete-category' to avoid conflict with admin/message-categories.js
  */
-EventDelegation.register('delete-comm-category', function(element, e) {
+window.EventDelegation.register('delete-comm-category', function(element, e) {
     e.preventDefault();
 
     const categoryId = element.dataset.categoryId;
@@ -545,7 +545,7 @@ function performDeleteCategory(categoryId, element) {
  * Save Messaging Settings
  * Saves messaging configuration
  */
-EventDelegation.register('save-messaging-settings', function(element, e) {
+window.EventDelegation.register('save-messaging-settings', function(element, e) {
     e.preventDefault();
 
     const form = document.getElementById('messaging-settings-form');
@@ -593,7 +593,7 @@ EventDelegation.register('save-messaging-settings', function(element, e) {
  * Test Webhook
  * Tests webhook configuration
  */
-EventDelegation.register('test-webhook', function(element, e) {
+window.EventDelegation.register('test-webhook', function(element, e) {
     e.preventDefault();
 
     const webhookUrl = document.getElementById('webhook-url')?.value;
@@ -648,4 +648,4 @@ EventDelegation.register('test-webhook', function(element, e) {
 
 // ============================================================================
 
-console.log('[EventDelegation] Communication handlers loaded');
+console.log('[window.EventDelegation] Communication handlers loaded');

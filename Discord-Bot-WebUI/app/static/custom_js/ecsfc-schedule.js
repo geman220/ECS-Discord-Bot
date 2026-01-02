@@ -10,7 +10,7 @@
  * - Event delegation for dynamic content
  *
  * Dependencies:
- * - ModalManager (from modal-helpers.js)
+ * - window.ModalManager (from modal-helpers.js)
  * - Bootstrap 5.x
  *
  * ============================================================================
@@ -305,15 +305,15 @@ export class ECSFCScheduleManager {
     }
 }
 
-// Initialize function for InitSystem
+// Initialize function for window.InitSystem
 export function initEcsfcSchedule() {
     if (window._ecsfcInitialized) return;
     window.ecsfcScheduleManager = new ECSFCScheduleManager();
 }
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('ecsfc-schedule', initEcsfcSchedule, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('ecsfc-schedule', initEcsfcSchedule, {
         priority: 40,
         reinitializable: false,
         description: 'ECS FC schedule management'
@@ -321,7 +321,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.ECSFCScheduleManager = ECSFCScheduleManager;

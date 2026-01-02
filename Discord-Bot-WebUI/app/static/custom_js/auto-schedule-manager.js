@@ -37,14 +37,14 @@
      * @param {string} seasonName - Season name for confirmation dialog
      */
     function confirmDeleteSeason(seasonId, seasonName) {
-        if (typeof Swal === 'undefined') {
+        if (typeof window.Swal === 'undefined') {
             if (confirm(`Are you sure you want to delete the season "${seasonName}"? This action cannot be undone!`)) {
                 document.getElementById('deleteSeasonForm' + seasonId).submit();
             }
             return;
         }
 
-        Swal.fire({
+        window.Swal.fire({
             title: 'Are you sure?',
             html: `You are about to <strong>COMPLETELY DELETE</strong> the season "<strong>${seasonName}</strong>".<br><br>This will remove:<br>- All teams<br>- All matches<br>- Discord channels<br>- Player assignments<br><br><strong>This action cannot be undone!</strong>`,
             icon: 'warning',
@@ -66,14 +66,14 @@
      * @param {string} seasonName - Season name for confirmation dialog
      */
     function recreateDiscordResources(seasonId, seasonName) {
-        if (typeof Swal === 'undefined') {
+        if (typeof window.Swal === 'undefined') {
             if (confirm(`Recreate Discord resources for "${seasonName}"?`)) {
                 performRecreateDiscordResources(seasonId);
             }
             return;
         }
 
-        Swal.fire({
+        window.Swal.fire({
             title: 'Recreate Discord Resources?',
             html: `This will recreate all Discord resources for "<strong>${seasonName}</strong>":<br><br>- Discord roles for each team<br>- Discord channels for each team<br>- Proper permissions and channel access<br><br>This is safe to run and will not delete existing data.`,
             icon: 'question',
@@ -95,15 +95,15 @@
      */
     function performRecreateDiscordResources(seasonId) {
         // Show processing dialog
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Creating Discord Resources...',
                 html: 'Please wait while Discord roles and channels are created.',
                 icon: 'info',
                 allowOutsideClick: false,
                 showConfirmButton: false,
                 didOpen: () => {
-                    Swal.showLoading();
+                    window.Swal.showLoading();
                 }
             });
         }
@@ -121,16 +121,16 @@
         })
         .then(response => response.json())
         .then(data => {
-            if (typeof Swal !== 'undefined') {
+            if (typeof window.Swal !== 'undefined') {
                 if (data.success) {
-                    Swal.fire({
+                    window.Swal.fire({
                         title: 'Success!',
                         html: `Discord resources have been queued for creation.<br><br>${data.message}`,
                         icon: 'success',
                         confirmButtonText: 'OK'
                     });
                 } else {
-                    Swal.fire({
+                    window.Swal.fire({
                         title: 'Error',
                         html: `Failed to recreate Discord resources:<br><br>${data.message}`,
                         icon: 'error',
@@ -143,8 +143,8 @@
         })
         .catch(error => {
             console.error('[AutoScheduleManager] Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     title: 'Error',
                     text: 'An unexpected error occurred while recreating Discord resources.',
                     icon: 'error',
@@ -202,16 +202,16 @@
             if (data.success) {
                 window.location.reload();
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', data.message || 'Failed to set active season', 'error');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', data.message || 'Failed to set active season', 'error');
                 } else {
                     alert('Error: ' + (data.message || 'Failed to set active season'));
                 }
             }
         } catch (error) {
             console.error('[AutoScheduleManager] Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Error', 'An unexpected error occurred', 'error');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', 'An unexpected error occurred', 'error');
             } else {
                 alert('An unexpected error occurred');
             }

@@ -44,9 +44,9 @@ function init() {
 
 export { init };
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('create-poll', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('create-poll', init, {
         priority: 35,
         reinitializable: true,
         description: 'Create poll live preview'
@@ -54,7 +54,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.createPollInit = init;

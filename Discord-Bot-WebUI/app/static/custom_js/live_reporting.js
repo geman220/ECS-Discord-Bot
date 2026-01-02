@@ -816,9 +816,9 @@ function init() {
     // when the page provides the required configuration
 }
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('live-reporting', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('live-reporting', init, {
         priority: 45,
         reinitializable: false,
         description: 'Live match reporting client'
@@ -826,7 +826,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.initLiveReporting = initLiveReporting;

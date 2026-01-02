@@ -565,9 +565,9 @@ export const MobileKeyboard = {
   // Expose globally (MUST be before any callbacks or registrations)
   window.MobileKeyboard = MobileKeyboard;
 
-  // Register with InitSystem
-  if (InitSystem && InitSystem.register) {
-    InitSystem.register('mobile-keyboard', () => MobileKeyboard.init(), {
+  // Register with window.InitSystem
+  if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('mobile-keyboard', () => MobileKeyboard.init(), {
       priority: 45,
       reinitializable: false,
       description: 'Mobile keyboard handlers'
@@ -575,5 +575,5 @@ export const MobileKeyboard = {
   }
 
   // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 

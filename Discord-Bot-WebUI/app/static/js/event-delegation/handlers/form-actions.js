@@ -141,27 +141,27 @@ function handleClearSelection(event, element) {
 // REGISTER HANDLERS
 // ============================================================================
 
-EventDelegation.register('auto-submit-form', handleAutoSubmitForm, {
+window.EventDelegation.register('auto-submit-form', handleAutoSubmitForm, {
     preventDefault: false,
     events: ['change']
 });
 
-EventDelegation.register('toggle-select-all', handleToggleSelectAll, {
+window.EventDelegation.register('toggle-select-all', handleToggleSelectAll, {
     preventDefault: false,
     events: ['change']
 });
 
-EventDelegation.register('filter-by-value', handleFilterByValue, {
+window.EventDelegation.register('filter-by-value', handleFilterByValue, {
     preventDefault: false,
     events: ['change']
 });
 
-EventDelegation.register('update-selection', handleUpdateSelection, {
+window.EventDelegation.register('update-selection', handleUpdateSelection, {
     preventDefault: false,
     events: ['change']
 });
 
-EventDelegation.register('clear-selection', handleClearSelection, {
+window.EventDelegation.register('clear-selection', handleClearSelection, {
     preventDefault: true
 });
 

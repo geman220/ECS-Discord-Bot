@@ -343,14 +343,14 @@ export function init() {
 
     if (!isSeasonsPage) return;
 
-    // Register event handlers if EventDelegation is available
+    // Register event handlers if window.EventDelegation is available
     if (true) {
-        EventDelegation.register('view-season', function(element, e) {
+        window.EventDelegation.register('view-season', function(element, e) {
             const seasonId = element.dataset.seasonId;
             viewSeason(seasonId);
         }, { preventDefault: true });
 
-        EventDelegation.register('edit-season', function(element, e) {
+        window.EventDelegation.register('edit-season', function(element, e) {
             const seasonId = element.dataset.seasonId;
             editSeason(seasonId);
         }, { preventDefault: true });
@@ -360,9 +360,9 @@ export function init() {
     }
 }
 
-// Register with InitSystem
-if (true && InitSystem.register) {
-    InitSystem.register('seasons', init, {
+// Register with window.InitSystem
+if (true && window.InitSystem.register) {
+    window.InitSystem.register('seasons', init, {
         priority: 50,
         reinitializable: true,
         description: 'Seasons management'
@@ -370,7 +370,7 @@ if (true && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.createSeason = createSeason;

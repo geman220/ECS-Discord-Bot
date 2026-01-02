@@ -447,9 +447,9 @@ export const ProfileVerification = {
   }
 };
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-  InitSystem.register('profile-verification', () => ProfileVerification.init(), {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+  window.InitSystem.register('profile-verification', () => ProfileVerification.init(), {
     priority: 30,
     reinitializable: true,
     description: 'Profile verification checkbox system'
@@ -457,7 +457,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility - expose to global scope
 window.ProfileVerification = ProfileVerification;

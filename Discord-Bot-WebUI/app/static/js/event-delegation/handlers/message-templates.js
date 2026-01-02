@@ -13,7 +13,7 @@ import { ModalManager } from '../../modal-manager.js';
  * Preview Template
  * Shows preview modal with rendered template content
  */
-EventDelegation.register('preview-template', function(element, e) {
+window.EventDelegation.register('preview-template', function(element, e) {
     e.preventDefault();
     const templateId = element.dataset.templateId;
     if (!templateId) {
@@ -27,7 +27,7 @@ EventDelegation.register('preview-template', function(element, e) {
  * Copy Template Content
  * Copies template content to clipboard
  */
-EventDelegation.register('copy-template', function(element, e) {
+window.EventDelegation.register('copy-template', function(element, e) {
     e.preventDefault();
     const templateId = element.dataset.templateId;
     if (!templateId) {
@@ -46,7 +46,7 @@ function previewTemplate(templateId) {
                          document.getElementById('previewModal');
 
     if (previewModal) {
-        ModalManager.showByElement(previewModal);
+        window.ModalManager.showByElement(previewModal);
     }
 
     // Load preview content
@@ -133,7 +133,7 @@ function copyTemplate(templateId) {
 /**
  * Create Template
  */
-EventDelegation.register('create-template', function(element, e) {
+window.EventDelegation.register('create-template', function(element, e) {
     e.preventDefault();
     const categoryId = element.dataset.categoryId;
     const categoryName = element.dataset.categoryName;
@@ -151,7 +151,7 @@ EventDelegation.register('create-template', function(element, e) {
 /**
  * Create Announcement
  */
-EventDelegation.register('create-announcement', function(element, e) {
+window.EventDelegation.register('create-announcement', function(element, e) {
     e.preventDefault();
     if (typeof window.createAnnouncement === 'function') {
         window.createAnnouncement();
@@ -163,7 +163,7 @@ EventDelegation.register('create-announcement', function(element, e) {
 /**
  * Edit Announcement
  */
-EventDelegation.register('edit-announcement', function(element, e) {
+window.EventDelegation.register('edit-announcement', function(element, e) {
     e.preventDefault();
     const announcementId = element.dataset.announcementId;
     if (!announcementId) {
@@ -180,7 +180,7 @@ EventDelegation.register('edit-announcement', function(element, e) {
 /**
  * Delete Announcement
  */
-EventDelegation.register('delete-announcement', function(element, e) {
+window.EventDelegation.register('delete-announcement', function(element, e) {
     e.preventDefault();
     const announcementId = element.dataset.announcementId;
     if (!announcementId) {
@@ -198,7 +198,7 @@ EventDelegation.register('delete-announcement', function(element, e) {
  * Preview Template Message
  * Note: Renamed from 'preview-message' to avoid conflict with admin/scheduled-messages.js
  */
-EventDelegation.register('preview-template-message', function(element, e) {
+window.EventDelegation.register('preview-template-message', function(element, e) {
     e.preventDefault();
     if (typeof window.previewMessage === 'function') {
         window.previewMessage();
@@ -210,7 +210,7 @@ EventDelegation.register('preview-template-message', function(element, e) {
 /**
  * Preview New Template
  */
-EventDelegation.register('preview-new-template', function(element, e) {
+window.EventDelegation.register('preview-new-template', function(element, e) {
     e.preventDefault();
     if (typeof window.previewNewTemplate === 'function') {
         window.previewNewTemplate();
@@ -225,4 +225,4 @@ EventDelegation.register('preview-new-template', function(element, e) {
 window.previewTemplate = previewTemplate;
 window.copyTemplate = copyTemplate;
 
-console.log('[EventDelegation] Message templates handlers loaded');
+console.log('[window.EventDelegation] Message templates handlers loaded');

@@ -5,7 +5,7 @@
  * Handles store item management, order management, and bulk operations
  *
  * @module store-admin
- * @requires InitSystem
+ * @requires window.InitSystem
  */
 
 import { InitSystem } from '../js/init-system.js';
@@ -146,8 +146,8 @@ const StoreAdmin = {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'Item Created!',
                         text: data.message
@@ -158,8 +158,8 @@ const StoreAdmin = {
                     window.location.reload();
                 }
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'error',
                         title: 'Error',
                         text: data.message
@@ -169,8 +169,8 @@ const StoreAdmin = {
         })
         .catch(error => {
             console.error('Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: 'An error occurred while creating the item.'
@@ -195,8 +195,8 @@ const StoreAdmin = {
             const itemId = deleteBtn.getAttribute('data-item-id');
             const itemName = deleteBtn.getAttribute('data-item-name');
 
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     title: 'Delete Item',
                     text: `Are you sure you want to delete "${itemName}"? This will also delete all associated orders.`,
                     icon: 'warning',
@@ -232,8 +232,8 @@ const StoreAdmin = {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'Deleted!',
                         text: data.message
@@ -244,8 +244,8 @@ const StoreAdmin = {
                     window.location.reload();
                 }
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'error',
                         title: 'Error',
                         text: data.message
@@ -255,8 +255,8 @@ const StoreAdmin = {
         })
         .catch(error => {
             console.error('Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: 'An error occurred while deleting the item.'
@@ -293,8 +293,8 @@ const StoreAdmin = {
             .then(data => {
                 if (data.success) {
                     statusSelect.setAttribute('data-current-status', newStatus);
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
+                    if (typeof window.Swal !== 'undefined') {
+                        window.Swal.fire({
                             icon: 'success',
                             title: 'Updated!',
                             text: data.message,
@@ -305,8 +305,8 @@ const StoreAdmin = {
                 } else {
                     // Revert the select back to the previous status
                     statusSelect.value = currentStatus;
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
+                    if (typeof window.Swal !== 'undefined') {
+                        window.Swal.fire({
                             icon: 'error',
                             title: 'Error',
                             text: data.message
@@ -318,8 +318,8 @@ const StoreAdmin = {
                 console.error('Error:', error);
                 // Revert the select back to the previous status
                 statusSelect.value = currentStatus;
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'error',
                         title: 'Error',
                         text: 'An error occurred while updating the order status.'
@@ -432,8 +432,8 @@ const StoreAdmin = {
 
         const orderIds = Array.from(checkedBoxes).map(cb => cb.value);
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Bulk Update Orders',
                 text: `Are you sure you want to update ${orderIds.length} orders to "${newStatus}"?`,
                 icon: 'question',
@@ -476,8 +476,8 @@ const StoreAdmin = {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'Orders Updated!',
                         text: data.message
@@ -488,8 +488,8 @@ const StoreAdmin = {
                     window.location.reload();
                 }
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'error',
                         title: 'Update Failed',
                         text: data.message
@@ -499,8 +499,8 @@ const StoreAdmin = {
         })
         .catch(error => {
             console.error('Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: 'An error occurred while updating the orders.'
@@ -523,8 +523,8 @@ const StoreAdmin = {
 
         const orderIds = Array.from(checkedBoxes).map(cb => cb.value);
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Delete Orders',
                 text: `Are you sure you want to permanently delete ${orderIds.length} orders? This action cannot be undone.`,
                 icon: 'warning',
@@ -565,8 +565,8 @@ const StoreAdmin = {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'Orders Deleted!',
                         text: data.message
@@ -577,8 +577,8 @@ const StoreAdmin = {
                     window.location.reload();
                 }
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'error',
                         title: 'Delete Failed',
                         text: data.message
@@ -588,8 +588,8 @@ const StoreAdmin = {
         })
         .catch(error => {
             console.error('Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: 'An error occurred while deleting the orders.'
@@ -612,16 +612,16 @@ const StoreAdmin = {
         confirmResetBtn.addEventListener('click', () => {
             const resetTypeInput = document.querySelector('input[name="resetType"]:checked');
             const resetType = resetTypeInput ? resetTypeInput.value : 'all';
-            const modal = typeof bootstrap !== 'undefined'
-                ? bootstrap.Modal.getInstance(document.getElementById('resetOrderingModal'))
+            const modal = typeof window.bootstrap !== 'undefined'
+                ? window.bootstrap.Modal.getInstance(document.getElementById('resetOrderingModal'))
                 : null;
 
             const actionText = resetType === 'all'
                 ? 'delete all orders for the current season'
                 : 'reset ordering eligibility for the current season';
 
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     title: 'Confirm Reset',
                     text: `Are you sure you want to ${actionText}? This action cannot be undone.`,
                     icon: 'warning',
@@ -664,8 +664,8 @@ const StoreAdmin = {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'Season Reset Complete!',
                         text: data.message
@@ -678,8 +678,8 @@ const StoreAdmin = {
                     window.location.reload();
                 }
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'error',
                         title: 'Reset Failed',
                         text: data.message
@@ -689,8 +689,8 @@ const StoreAdmin = {
         })
         .catch(error => {
             console.error('Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: 'An error occurred while resetting season ordering.'
@@ -716,8 +716,8 @@ const StoreAdmin = {
             const orderInfo = deleteBtn.getAttribute('data-order-info');
             const customerName = deleteBtn.getAttribute('data-customer-name');
 
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     title: 'Delete Order',
                     text: `Are you sure you want to delete ${orderInfo} from ${customerName}? This action cannot be undone.`,
                     icon: 'warning',
@@ -751,8 +751,8 @@ const StoreAdmin = {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'Order Deleted!',
                         text: data.message
@@ -763,8 +763,8 @@ const StoreAdmin = {
                     window.location.reload();
                 }
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'error',
                         title: 'Delete Failed',
                         text: data.message
@@ -774,8 +774,8 @@ const StoreAdmin = {
         })
         .catch(error => {
             console.error('Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: 'An error occurred while deleting the order.'
@@ -785,8 +785,8 @@ const StoreAdmin = {
     }
 };
 
-// Register with InitSystem
-InitSystem.register('store-admin', () => {
+// Register with window.InitSystem
+window.InitSystem.register('store-admin', () => {
     // Only initialize on store admin page
     if (document.querySelector('[data-component="store-items-table"]') ||
         document.querySelector('[data-component="orders-table"]')) {

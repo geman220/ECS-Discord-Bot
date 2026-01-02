@@ -38,9 +38,9 @@ function addTableLabels() {
     });
 }
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('mobile-tables', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('mobile-tables', init, {
         priority: 40,
         reinitializable: true,
         description: 'Mobile table label injection'
@@ -48,7 +48,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

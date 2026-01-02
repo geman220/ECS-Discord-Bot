@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles API management page interactions using data-attribute hooks
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -107,8 +107,8 @@ function viewEndpointDetails(endpointPath) {
                     `;
                 }
 
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         title: 'Endpoint Details',
                         html: detailsHtml,
                         width: '700px',
@@ -129,9 +129,9 @@ function viewEndpointDetails(endpointPath) {
  * Test endpoint (general)
  */
 function testEndpoint() {
-    if (typeof Swal === 'undefined') return;
+    if (typeof window.Swal === 'undefined') return;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Test API Endpoint',
         html: `
             <div class="text-start">
@@ -162,7 +162,7 @@ function testEndpoint() {
             const paramsText = document.getElementById('test-params').value;
 
             if (!endpoint) {
-                Swal.showValidationMessage('Please enter an endpoint path');
+                window.Swal.showValidationMessage('Please enter an endpoint path');
                 return false;
             }
 
@@ -171,7 +171,7 @@ function testEndpoint() {
                 try {
                     parameters = JSON.parse(paramsText);
                 } catch (e) {
-                    Swal.showValidationMessage('Invalid JSON in parameters');
+                    window.Swal.showValidationMessage('Invalid JSON in parameters');
                     return false;
                 }
             }
@@ -189,9 +189,9 @@ function testEndpoint() {
  * Test specific endpoint
  */
 function testSpecificEndpoint(endpoint, methods) {
-    if (typeof Swal === 'undefined') return;
+    if (typeof window.Swal === 'undefined') return;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Test Endpoint',
         text: `Test ${endpoint} with method:`,
         input: 'select',
@@ -236,8 +236,8 @@ function testSpecificEndpointWithData(data) {
                 </div>
             `;
 
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     title: 'Test Results',
                     html: resultHtml,
                     icon: 'success',
@@ -258,9 +258,9 @@ function testSpecificEndpointWithData(data) {
  * Export API data
  */
 function exportAPIData() {
-    if (typeof Swal === 'undefined') return;
+    if (typeof window.Swal === 'undefined') return;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Export API Data',
         text: 'Choose export format:',
         input: 'select',
@@ -273,7 +273,7 @@ function exportAPIData() {
         confirmButtonText: 'Export'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Export Started', `API data export in ${result.value.toUpperCase()} format has been queued.`, 'info');
+            window.Swal.fire('Export Started', `API data export in ${result.value.toUpperCase()} format has been queued.`, 'info');
         }
     });
 }
@@ -282,22 +282,22 @@ function exportAPIData() {
  * Show error message
  */
 function showError(message) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire('Error', message, 'error');
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire('Error', message, 'error');
     } else {
         alert(message);
     }
 }
 
-// Register with InitSystem
-InitSystem.register('admin-api-management', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-api-management', init, {
     priority: 30,
     reinitializable: true,
     description: 'Admin API management page functionality'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

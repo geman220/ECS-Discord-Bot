@@ -1331,7 +1331,7 @@ function updatePosition() {
 // ============================================================================
 
 function registerEventHandlers() {
-  // EventDelegation handler is registered at module scope below
+  // window.EventDelegation handler is registered at module scope below
   // This function is kept for consistency but no longer registers handlers
 }
 
@@ -1459,9 +1459,9 @@ function init() {
   console.log('[ChatWidget] Initialized');
 }
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-  InitSystem.register('chat-widget', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+  window.InitSystem.register('chat-widget', init, {
     priority: 35,
     reinitializable: true,
     description: 'Floating chat widget'
@@ -1469,14 +1469,14 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // ============================================================================
 // EVENT DELEGATION - Registered at module scope
 // ============================================================================
-// MUST use EventDelegation to avoid TDZ errors in bundled code
+// MUST use window.EventDelegation to avoid TDZ errors in bundled code
 
-EventDelegation.register('delete-menu', handleDeleteMenuClick, { preventDefault: true });
+window.EventDelegation.register('delete-menu', handleDeleteMenuClick, { preventDefault: true });
 
 // ============================================================================
 // PUBLIC API

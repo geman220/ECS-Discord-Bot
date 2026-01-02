@@ -289,7 +289,7 @@ function resolveMultiOrder(issueId) {
     const storedAssignments = resolutions.multiOrders[issueId];
 
     if (!storedAssignments || storedAssignments.length === 0) {
-        Swal.fire({
+        window.Swal.fire({
             icon: 'warning',
             title: 'No Assignments Made',
             text: 'Please assign all orders to players before resolving.',
@@ -302,7 +302,7 @@ function resolveMultiOrder(issueId) {
     const totalOrders = orderData.orders.length;
 
     if (storedAssignments.length < totalOrders) {
-        Swal.fire({
+        window.Swal.fire({
             icon: 'warning',
             title: 'Incomplete Assignments',
             text: `Please assign all ${totalOrders} orders to players before resolving.`,
@@ -319,7 +319,7 @@ function resolveMultiOrder(issueId) {
         summaryText += `Order #${orderInfo.order.order_id}: ${assignment.playerName}\n`;
     });
 
-    Swal.fire({
+    window.Swal.fire({
         icon: 'success',
         title: 'Multi-Order Resolved!',
         text: summaryText,
@@ -349,7 +349,7 @@ function searchExistingPlayers(issueId) {
  * Flag order as invalid
  */
 function flagAsInvalid(issueId) {
-    Swal.fire({
+    window.Swal.fire({
         title: 'Mark as Invalid?',
         text: 'This will exclude the order from processing. Are you sure?',
         icon: 'warning',
@@ -449,7 +449,7 @@ function populateCommitSummary() {
  * Commit all changes
  */
 function commitAllChanges() {
-    Swal.fire({
+    window.Swal.fire({
         title: 'Commit All Changes?',
         text: 'This will apply all resolutions to your database. This action cannot be undone.',
         icon: 'warning',
@@ -495,7 +495,7 @@ function executeCommit() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'success',
                 title: 'Changes Committed!',
                 text: 'All sync changes have been successfully applied.',
@@ -508,7 +508,7 @@ function executeCommit() {
         }
     })
     .catch(error => {
-        Swal.fire({
+        window.Swal.fire({
             icon: 'error',
             title: 'Commit Failed',
             text: 'Error committing changes: ' + error.message,
@@ -648,7 +648,7 @@ function assignToPlayer(issueId, orderIndex, playerId, playerName) {
     // Update inactive player counts since we assigned someone
     updateProgressBar();
 
-    Swal.fire({
+    window.Swal.fire({
         icon: 'success',
         title: 'Player Assigned!',
         text: `Order assigned to ${playerName}`,
@@ -665,7 +665,7 @@ function createNewPlayerFromForm(issueId, orderIndex) {
     const name = nameInput?.value.trim();
 
     if (!name) {
-        Swal.fire({
+        window.Swal.fire({
             icon: 'warning',
             title: 'Name Required',
             text: 'Please enter a player name',
@@ -750,7 +750,7 @@ function createNewPlayerFromForm(issueId, orderIndex) {
             // Update inactive player counts since we created someone
             updateProgressBar();
 
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'success',
                 title: 'Player Created!',
                 html: `<strong>${data.player.name}</strong><br>
@@ -761,7 +761,7 @@ function createNewPlayerFromForm(issueId, orderIndex) {
                 showConfirmButton: false
             });
         } else {
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'error',
                 title: 'Creation Failed',
                 text: 'Error creating player: ' + (data.error || 'Unknown error'),
@@ -775,7 +775,7 @@ function createNewPlayerFromForm(issueId, orderIndex) {
             createBtn.innerHTML = originalText;
         }
         console.error('Create player error:', error);
-        Swal.fire({
+        window.Swal.fire({
             icon: 'error',
             title: 'Creation Failed',
             text: 'Failed to create player',
@@ -880,84 +880,84 @@ function showAssignment(issueId, orderIndex, assignmentText) {
     if (createDiv) createDiv.classList.add('d-none');
 }
 
-// Register with EventDelegation system
-if (typeof EventDelegation !== 'undefined') {
+// Register with window.EventDelegation system
+if (typeof window.EventDelegation !== 'undefined') {
     // Refresh sync data
-    EventDelegation.register('refresh-sync', function(element, event) {
+    window.EventDelegation.register('refresh-sync', function(element, event) {
         refreshSyncData();
     });
 
     // Remove assignment
-    EventDelegation.register('remove-assignment', function(element, event) {
+    window.EventDelegation.register('remove-assignment', function(element, event) {
         const issueId = element.dataset.issueId;
         const orderIndex = element.dataset.orderIndex;
         removeAssignment(issueId, orderIndex);
     });
 
     // Create player from form
-    EventDelegation.register('create-player-form', function(element, event) {
+    window.EventDelegation.register('create-player-form', function(element, event) {
         const issueId = element.dataset.issueId;
         const orderIndex = element.dataset.orderIndex;
         createNewPlayerFromForm(issueId, orderIndex);
     });
 
     // Cancel creation
-    EventDelegation.register('cancel-creation', function(element, event) {
+    window.EventDelegation.register('cancel-creation', function(element, event) {
         const issueId = element.dataset.issueId;
         const orderIndex = element.dataset.orderIndex;
         cancelPlayerCreation(issueId, orderIndex);
     });
 
     // Cancel search
-    EventDelegation.register('cancel-search', function(element, event) {
+    window.EventDelegation.register('cancel-search', function(element, event) {
         const issueId = element.dataset.issueId;
         const orderIndex = element.dataset.orderIndex;
         cancelPlayerSearch(issueId, orderIndex);
     });
 
     // Resolve multi-order
-    EventDelegation.register('resolve-multi-order', function(element, event) {
+    window.EventDelegation.register('resolve-multi-order', function(element, event) {
         const issueId = element.dataset.issueId;
         resolveMultiOrder(issueId);
     });
 
     // Create new player
-    EventDelegation.register('create-new-player', function(element, event) {
+    window.EventDelegation.register('create-new-player', function(element, event) {
         const issueId = element.dataset.issueId;
         createNewPlayer(issueId);
     });
 
     // Search existing players
-    EventDelegation.register('search-existing', function(element, event) {
+    window.EventDelegation.register('search-existing', function(element, event) {
         const issueId = element.dataset.issueId;
         searchExistingPlayers(issueId);
     });
 
     // Flag as invalid
-    EventDelegation.register('flag-invalid', function(element, event) {
+    window.EventDelegation.register('flag-invalid', function(element, event) {
         const issueId = element.dataset.issueId;
         flagAsInvalid(issueId);
     });
 
     // Confirm match
-    EventDelegation.register('confirm-match', function(element, event) {
+    window.EventDelegation.register('confirm-match', function(element, event) {
         const issueId = element.dataset.issueId;
         confirmPlayerMatch(issueId);
     });
 
     // Create separate player
-    EventDelegation.register('create-separate', function(element, event) {
+    window.EventDelegation.register('create-separate', function(element, event) {
         const issueId = element.dataset.issueId;
         createSeparatePlayer(issueId);
     });
 
     // Commit changes
-    EventDelegation.register('commit-changes', function(element, event) {
+    window.EventDelegation.register('commit-changes', function(element, event) {
         commitAllChanges();
     });
 
     // Assign player (dynamically added search results)
-    EventDelegation.register('assign-player', function(element, event) {
+    window.EventDelegation.register('assign-player', function(element, event) {
         const issueId = element.dataset.issueId;
         const orderIndex = element.dataset.orderIndex;
         const playerId = element.dataset.playerId;
@@ -979,8 +979,8 @@ function initPlayerSearchHandlers() {
     });
 }
 
-// Register with InitSystem
-InitSystem.register('sync-review', initPlayerSearchHandlers, {
+// Register with window.InitSystem
+window.InitSystem.register('sync-review', initPlayerSearchHandlers, {
     priority: 30,
     description: 'Sync review player search handlers'
 });

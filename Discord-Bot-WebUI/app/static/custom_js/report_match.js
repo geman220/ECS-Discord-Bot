@@ -105,9 +105,9 @@ export function initReportMatch() {
     setupEditMatchButtons();
 }
 
-// Register with InitSystem (primary)
-if (true && InitSystem.register) {
-    InitSystem.register('report-match', initReportMatch, {
+// Register with window.InitSystem (primary)
+if (true && window.InitSystem.register) {
+    window.InitSystem.register('report-match', initReportMatch, {
         priority: 45,
         reinitializable: true,
         description: 'Match reporting functionality'
@@ -115,7 +115,7 @@ if (true && InitSystem.register) {
 }
 
 // Fallback for non-module usage
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Ensure the playerChoices object is available globally
 window.playerChoices = window.playerChoices || {};
@@ -884,7 +884,7 @@ export function populateModal(modal, data) {
             }
             
             // Create new modal instance with safety options
-            const bsModal = ModalManager.getInstance(modal.id, {
+            const bsModal = window.ModalManager.getInstance(modal.id, {
                 backdrop: 'static',
                 keyboard: false
             });

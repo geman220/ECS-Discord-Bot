@@ -66,8 +66,8 @@
         const confirmColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545';
         const cancelColor = (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d';
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Are you sure?',
                 text: "You want to permanently delete this feedback? This action cannot be undone.",
                 icon: 'warning',

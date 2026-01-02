@@ -210,9 +210,9 @@ let _initialized = false;
     }
   }
 
-  // Register with InitSystem (primary)
-  if (true && InitSystem.register) {
-    InitSystem.register('settings', init, {
+  // Register with window.InitSystem (primary)
+  if (true && window.InitSystem.register) {
+    window.InitSystem.register('settings', init, {
       priority: 50,
       reinitializable: true,
       description: 'Settings page functionality'
@@ -220,7 +220,7 @@ let _initialized = false;
   }
 
   // Fallback
-  // InitSystem handles initialization
+  // window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

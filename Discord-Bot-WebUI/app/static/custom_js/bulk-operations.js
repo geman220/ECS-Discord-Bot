@@ -43,7 +43,7 @@
      */
     function initializeRoleDistributionChart() {
         const ctx = document.getElementById('roleDistributionChart');
-        if (!ctx || typeof Chart === 'undefined') return;
+        if (!ctx || typeof window.Chart === 'undefined') return;
 
         const roleStats = config.roleStats;
         const labels = Object.keys(roleStats);
@@ -53,7 +53,7 @@
             '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
         ];
 
-        roleDistributionChart = new Chart(ctx.getContext('2d'), {
+        roleDistributionChart = new window.Chart(ctx.getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: labels,
@@ -83,10 +83,10 @@
      * Show bulk approval modal
      */
     function showBulkApprovalModal() {
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('bulkApprovalModal');
-        } else if (typeof bootstrap !== 'undefined') {
-            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkApprovalModal'));
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('bulkApprovalModal');
+        } else if (typeof window.bootstrap !== 'undefined') {
+            const modal = window.bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkApprovalModal'));
             modal.show();
         }
         loadPendingUsersForApproval();
@@ -96,10 +96,10 @@
      * Show bulk role modal
      */
     function showBulkRoleModal() {
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('bulkRoleModal');
-        } else if (typeof bootstrap !== 'undefined') {
-            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkRoleModal'));
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('bulkRoleModal');
+        } else if (typeof window.bootstrap !== 'undefined') {
+            const modal = window.bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkRoleModal'));
             modal.show();
         }
         loadRoleAssignmentInterface();
@@ -109,10 +109,10 @@
      * Show bulk waitlist modal
      */
     function showBulkWaitlistModal() {
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('bulkWaitlistModal');
-        } else if (typeof bootstrap !== 'undefined') {
-            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkWaitlistModal'));
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('bulkWaitlistModal');
+        } else if (typeof window.bootstrap !== 'undefined') {
+            const modal = window.bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkWaitlistModal'));
             modal.show();
         }
         loadWaitlistUsersForProcessing();
@@ -274,16 +274,16 @@
         const selectedUserIds = []; // Would be populated from checkboxes
 
         if (selectedUserIds.length === 0) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Warning', 'Please select at least one user to approve', 'warning');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Warning', 'Please select at least one user to approve', 'warning');
             } else {
                 alert('Please select at least one user to approve');
             }
             return;
         }
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Confirm Bulk Approval',
                 text: `Approve ${selectedUserIds.length} users for ${defaultLeague} league?`,
                 icon: 'question',
@@ -317,14 +317,14 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Success', data.message, 'success');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Success', data.message, 'success');
                 }
                 hideModal('bulkApprovalModal');
                 location.reload();
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', data.message, 'error');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', data.message, 'error');
                 } else {
                     alert('Error: ' + data.message);
                 }
@@ -332,8 +332,8 @@
         })
         .catch(error => {
             console.error('[BulkOperations] Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Error', 'Failed to process bulk approval', 'error');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', 'Failed to process bulk approval', 'error');
             }
         });
     }
@@ -349,8 +349,8 @@
         const selectedUserIds = []; // Would be populated from user checkboxes
 
         if (selectedRoleIds.length === 0 || selectedUserIds.length === 0) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Warning', 'Please select both roles and users', 'warning');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Warning', 'Please select both roles and users', 'warning');
             } else {
                 alert('Please select both roles and users');
             }
@@ -371,21 +371,21 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Success', data.message, 'success');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Success', data.message, 'success');
                 }
                 hideModal('bulkRoleModal');
                 location.reload();
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', data.message, 'error');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             }
         })
         .catch(error => {
             console.error('[BulkOperations] Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Error', 'Failed to process bulk role assignment', 'error');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', 'Failed to process bulk role assignment', 'error');
             }
         });
     }
@@ -399,8 +399,8 @@
         const selectedUserIds = []; // Would be populated from checkboxes
 
         if (selectedUserIds.length === 0) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Warning', 'Please select at least one user to process', 'warning');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Warning', 'Please select at least one user to process', 'warning');
             } else {
                 alert('Please select at least one user to process');
             }
@@ -420,21 +420,21 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Success', data.message, 'success');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Success', data.message, 'success');
                 }
                 hideModal('bulkWaitlistModal');
                 location.reload();
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', data.message, 'error');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             }
         })
         .catch(error => {
             console.error('[BulkOperations] Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Error', 'Failed to process waitlist users', 'error');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', 'Failed to process waitlist users', 'error');
             }
         });
     }
@@ -443,10 +443,10 @@
      * Hide a modal
      */
     function hideModal(modalId) {
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.hide(modalId);
-        } else if (typeof bootstrap !== 'undefined') {
-            const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.hide(modalId);
+        } else if (typeof window.bootstrap !== 'undefined') {
+            const modal = window.bootstrap.Modal.getInstance(document.getElementById(modalId));
             if (modal) modal.hide();
         }
     }
@@ -470,18 +470,18 @@
         window.location.href = config.urls.rolesManagement;
     }
 
-    // Register with EventDelegation if available
-    if (typeof EventDelegation !== 'undefined') {
-        EventDelegation.register('show-bulk-approval-modal', showBulkApprovalModal);
-        EventDelegation.register('show-bulk-role-modal', showBulkRoleModal);
-        EventDelegation.register('show-bulk-waitlist-modal', showBulkWaitlistModal);
-        EventDelegation.register('load-pending-users', loadPendingUsers);
-        EventDelegation.register('load-waitlist-users', loadWaitlistUsers);
-        EventDelegation.register('view-role-distribution', viewRoleDistribution);
-        EventDelegation.register('refresh-operation-history', refreshOperationHistory);
-        EventDelegation.register('process-bulk-approval', processBulkApproval);
-        EventDelegation.register('process-bulk-role-assignment', processBulkRoleAssignment);
-        EventDelegation.register('process-bulk-waitlist', processBulkWaitlist);
+    // Register with window.EventDelegation if available
+    if (typeof window.EventDelegation !== 'undefined') {
+        window.EventDelegation.register('show-bulk-approval-modal', showBulkApprovalModal);
+        window.EventDelegation.register('show-bulk-role-modal', showBulkRoleModal);
+        window.EventDelegation.register('show-bulk-waitlist-modal', showBulkWaitlistModal);
+        window.EventDelegation.register('load-pending-users', loadPendingUsers);
+        window.EventDelegation.register('load-waitlist-users', loadWaitlistUsers);
+        window.EventDelegation.register('view-role-distribution', viewRoleDistribution);
+        window.EventDelegation.register('refresh-operation-history', refreshOperationHistory);
+        window.EventDelegation.register('process-bulk-approval', processBulkApproval);
+        window.EventDelegation.register('process-bulk-role-assignment', processBulkRoleAssignment);
+        window.EventDelegation.register('process-bulk-waitlist', processBulkWaitlist);
     }
 
     // Expose module globally

@@ -234,10 +234,10 @@
             if (data.success) {
                 const modal = document.getElementById('stackTraceModal');
                 modal.querySelector('.stack-trace-content').textContent = data.details?.stack_trace || 'No stack trace captured';
-                if (typeof ModalManager !== 'undefined') {
-                    ModalManager.show('stackTraceModal');
-                } else if (typeof bootstrap !== 'undefined') {
-                    bootstrap.Modal.getOrCreateInstance(modal).show();
+                if (typeof window.ModalManager !== 'undefined') {
+                    window.ModalManager.show('stackTraceModal');
+                } else if (typeof window.bootstrap !== 'undefined') {
+                    window.bootstrap.Modal.getOrCreateInstance(modal).show();
                 }
             } else {
                 showAlert('Failed to fetch stack trace: ' + (data.error || 'Unknown error'), 'danger');
@@ -252,10 +252,10 @@
             const modal = document.getElementById('queryModal');
             const content = modal.querySelector('.query-content');
             content.textContent = query || 'No query available';
-            if (typeof ModalManager !== 'undefined') {
-                ModalManager.show('queryModal');
-            } else if (typeof bootstrap !== 'undefined') {
-                bootstrap.Modal.getOrCreateInstance(modal).show();
+            if (typeof window.ModalManager !== 'undefined') {
+                window.ModalManager.show('queryModal');
+            } else if (typeof window.bootstrap !== 'undefined') {
+                window.bootstrap.Modal.getOrCreateInstance(modal).show();
             }
         } catch (error) {
             console.error('Error showing query:', error);

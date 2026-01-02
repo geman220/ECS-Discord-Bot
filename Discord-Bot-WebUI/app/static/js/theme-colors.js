@@ -148,7 +148,7 @@ export function getAllColors() {
 }
 
 /**
- * Get colors formatted for chart libraries (ApexCharts, Chart.js, etc.)
+ * Get colors formatted for chart libraries (ApexCharts, window.Chart.js, etc.)
  * @returns {object} Color palette for charts
  */
 export function getChartColors() {
@@ -233,9 +233,9 @@ window.getChartColors = getChartColors;
 window.getSwalColors = getSwalColors;
 window.invalidateCache = invalidateCache;
 
-// Register with InitSystem
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('theme-colors', init, {
+// Register with window.InitSystem
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('theme-colors', init, {
         priority: 5,
         reinitializable: false,
         description: 'Theme color CSS variable observer'
@@ -243,4 +243,4 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization

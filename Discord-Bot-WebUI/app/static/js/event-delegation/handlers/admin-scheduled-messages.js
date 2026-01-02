@@ -18,14 +18,14 @@ import { EventDelegation } from '../core.js';
  * Confirm delete scheduled message form submission
  * Note: Renamed from 'delete-message' to avoid conflict with communication-handlers.js
  */
-EventDelegation.register('delete-scheduled-message', (element, event) => {
+window.EventDelegation.register('delete-scheduled-message', (element, event) => {
     event.preventDefault();
     const form = element.closest('form');
 
     if (!form) return;
 
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             title: 'Delete Message?',
             text: 'Are you sure you want to delete this scheduled message?',
             icon: 'warning',
@@ -50,7 +50,7 @@ EventDelegation.register('delete-scheduled-message', (element, event) => {
 /**
  * Confirm cleanup old messages form submission
  */
-EventDelegation.register('cleanup-old-messages', (element, event) => {
+window.EventDelegation.register('cleanup-old-messages', (element, event) => {
     event.preventDefault();
     const form = element.closest('form');
 
@@ -59,8 +59,8 @@ EventDelegation.register('cleanup-old-messages', (element, event) => {
     const daysInput = form.querySelector('input[name="days_old"]');
     const days = daysInput ? daysInput.value : '7';
 
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             title: 'Clean Up Old Messages?',
             text: `Are you sure you want to delete all sent and failed messages older than ${days} days?`,
             icon: 'warning',
@@ -85,7 +85,7 @@ EventDelegation.register('cleanup-old-messages', (element, event) => {
 /**
  * Filter messages by league type
  */
-EventDelegation.register('filter-by-league', (element, event) => {
+window.EventDelegation.register('filter-by-league', (element, event) => {
     event.preventDefault();
     const filter = element.dataset.filter;
     const filterText = element.textContent.trim();
@@ -140,7 +140,7 @@ EventDelegation.register('filter-by-league', (element, event) => {
 /**
  * Trigger DataTable copy export
  */
-EventDelegation.register('export-copy', (element, event) => {
+window.EventDelegation.register('export-copy', (element, event) => {
     event.preventDefault();
     const copyBtn = document.querySelector('.buttons-copy');
     if (copyBtn) copyBtn.click();
@@ -149,7 +149,7 @@ EventDelegation.register('export-copy', (element, event) => {
 /**
  * Trigger DataTable excel export
  */
-EventDelegation.register('export-excel', (element, event) => {
+window.EventDelegation.register('export-excel', (element, event) => {
     event.preventDefault();
     const excelBtn = document.querySelector('.buttons-excel');
     if (excelBtn) excelBtn.click();
@@ -158,7 +158,7 @@ EventDelegation.register('export-excel', (element, event) => {
 /**
  * Trigger DataTable csv export
  */
-EventDelegation.register('export-csv', (element, event) => {
+window.EventDelegation.register('export-csv', (element, event) => {
     event.preventDefault();
     const csvBtn = document.querySelector('.buttons-csv');
     if (csvBtn) csvBtn.click();
@@ -167,10 +167,10 @@ EventDelegation.register('export-csv', (element, event) => {
 /**
  * Trigger DataTable pdf export
  */
-EventDelegation.register('export-pdf', (element, event) => {
+window.EventDelegation.register('export-pdf', (element, event) => {
     event.preventDefault();
     const pdfBtn = document.querySelector('.buttons-pdf');
     if (pdfBtn) pdfBtn.click();
 });
 
-console.log('[EventDelegation] Admin scheduled messages handlers loaded');
+console.log('[window.EventDelegation] Admin scheduled messages handlers loaded');

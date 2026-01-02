@@ -280,9 +280,9 @@ window.toggleSmsVerification = toggleSmsVerification;
 window.sendVerificationCode = sendVerificationCode;
 window.verifyCode = verifyCode;
 
-// Register with InitSystem (primary)
-if (true && InitSystem.register) {
-    InitSystem.register('sms-verification', initSmsVerification, {
+// Register with window.InitSystem (primary)
+if (true && window.InitSystem.register) {
+    window.InitSystem.register('sms-verification', initSmsVerification, {
         priority: 45,
         reinitializable: false,
         description: 'SMS verification functionality'
@@ -290,7 +290,7 @@ if (true && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.initSmsVerification = initSmsVerification;

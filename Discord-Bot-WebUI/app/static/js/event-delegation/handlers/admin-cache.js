@@ -142,7 +142,7 @@ function toggleAutoRefresh(enabled) {
 /**
  * Refresh Draft Cache Stats
  */
-EventDelegation.register('refresh-draft-cache', function(element, e) {
+window.EventDelegation.register('refresh-draft-cache', function(element, e) {
     e.preventDefault();
     updateDraftCacheStats();
 }, { preventDefault: true });
@@ -150,7 +150,7 @@ EventDelegation.register('refresh-draft-cache', function(element, e) {
 /**
  * Invalidate All Cache
  */
-EventDelegation.register('invalidate-all-cache', function(element, e) {
+window.EventDelegation.register('invalidate-all-cache', function(element, e) {
     e.preventDefault();
     invalidateAllCache();
 }, { preventDefault: true });
@@ -158,7 +158,7 @@ EventDelegation.register('invalidate-all-cache', function(element, e) {
 /**
  * Warm Cache for League
  */
-EventDelegation.register('warm-cache', function(element, e) {
+window.EventDelegation.register('warm-cache', function(element, e) {
     e.preventDefault();
     const leagueName = element.dataset.league;
     if (leagueName) {
@@ -171,7 +171,7 @@ EventDelegation.register('warm-cache', function(element, e) {
 /**
  * Toggle Auto Refresh
  */
-EventDelegation.register('toggle-draft-cache-auto-refresh', function(element, e) {
+window.EventDelegation.register('toggle-draft-cache-auto-refresh', function(element, e) {
     const enabled = element.checked;
     toggleAutoRefresh(enabled);
 });
@@ -179,7 +179,7 @@ EventDelegation.register('toggle-draft-cache-auto-refresh', function(element, e)
 // INITIALIZATION
 // ============================================================================
 
-InitSystem.register('draftCacheStats', function() {
+window.InitSystem.register('draftCacheStats', function() {
     // Check if we're on the draft cache stats page
     const refreshBtn = document.getElementById('draft-cache-refresh-btn');
     const invalidateBtn = document.getElementById('invalidate-all-btn');
@@ -225,4 +225,4 @@ window.updateDraftCacheStats = updateDraftCacheStats;
 window.warmCache = warmCache;
 window.invalidateAllCache = invalidateAllCache;
 
-console.log('[EventDelegation] Admin cache handlers loaded');
+console.log('[window.EventDelegation] Admin cache handlers loaded');

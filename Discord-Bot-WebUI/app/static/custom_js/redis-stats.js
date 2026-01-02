@@ -186,9 +186,9 @@ let _initialized = false;
       });
   }
 
-  // Register with InitSystem (primary)
-  if (true && InitSystem.register) {
-    InitSystem.register('redis-stats', init, {
+  // Register with window.InitSystem (primary)
+  if (true && window.InitSystem.register) {
+    window.InitSystem.register('redis-stats', init, {
       priority: 30,
       reinitializable: true,
       description: 'Redis connection statistics'
@@ -196,7 +196,7 @@ let _initialized = false;
   }
 
   // Fallback
-  // InitSystem handles initialization
+  // window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

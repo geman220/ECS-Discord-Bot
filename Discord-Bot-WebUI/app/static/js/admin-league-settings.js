@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles league settings page interactions using data-attribute hooks
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -105,15 +105,15 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Register with InitSystem
-InitSystem.register('admin-league-settings', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-league-settings', init, {
     priority: 30,
     reinitializable: true,
     description: 'Admin league settings page functionality'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

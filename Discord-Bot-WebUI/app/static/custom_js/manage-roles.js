@@ -21,7 +21,7 @@ export const ManageRoles = {
         window.$('#permissions').select2({
             placeholder: 'Select permissions...',
             width: '100%',
-            theme: 'bootstrap-5',
+            theme: 'window.bootstrap-5',
             closeOnSelect: false
         });
     },
@@ -119,16 +119,16 @@ ManageRoles.init = function() {
     originalInit.call(this);
 };
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('manage-roles', () => ManageRoles.init(), {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('manage-roles', () => ManageRoles.init(), {
         priority: 35,
         reinitializable: true,
         description: 'Manage roles page functionality'
     });
 }
 
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.ManageRoles = ManageRoles;

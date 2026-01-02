@@ -415,14 +415,14 @@ import { InitSystem } from '../js/init-system.js';
         }
     });
 
-    // Register with InitSystem
-    InitSystem.register('auto-schedule-config', init, {
+    // Register with window.InitSystem
+    window.InitSystem.register('auto-schedule-config', init, {
         priority: 30,
         description: 'Auto schedule configuration module'
     });
 
     // Fallback for non-module usage
-    // InitSystem handles initialization
+    // window.InitSystem handles initialization
 
     // Expose module globally
     window.AutoScheduleConfig = {

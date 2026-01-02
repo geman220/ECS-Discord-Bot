@@ -403,13 +403,13 @@ export const Haptics = {
 // Expose globally (MUST be before any callbacks or registrations)
 window.Haptics = Haptics;
 
-// Register with InitSystem (primary initialization method)
-InitSystem.register('mobile-haptics', () => Haptics.init(), {
+// Register with window.InitSystem (primary initialization method)
+window.InitSystem.register('mobile-haptics', () => Haptics.init(), {
   priority: 35,
   reinitializable: false,
   description: 'Mobile haptic feedback'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 

@@ -774,9 +774,9 @@ export class MessengerWidget {
 // Create singleton instance
 const messengerWidgetInstance = new MessengerWidget();
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-  InitSystem.register('messenger-widget', () => messengerWidgetInstance.init(), {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+  window.InitSystem.register('messenger-widget', () => messengerWidgetInstance.init(), {
     priority: 35,
     reinitializable: true,
     description: 'Messenger sidebar widget'
@@ -784,7 +784,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {

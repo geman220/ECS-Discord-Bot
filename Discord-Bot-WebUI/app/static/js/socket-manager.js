@@ -479,9 +479,9 @@ function init() {
   }
 }
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-  InitSystem.register('socket-manager', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+  window.InitSystem.register('socket-manager', init, {
     priority: 85,
     reinitializable: false,
     description: 'WebSocket connection manager'
@@ -489,7 +489,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Handle page visibility changes
 document.addEventListener('visibilitychange', function() {

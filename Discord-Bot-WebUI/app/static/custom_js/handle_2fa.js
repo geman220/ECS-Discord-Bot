@@ -28,8 +28,8 @@ function init() {
                     if (modal) {
                         modal.setAttribute('data-secret', data.secret);
                     }
-                    // Use ModalManager for safe modal handling
-                    ModalManager.show('enable2FAModal');
+                    // Use window.ModalManager for safe modal handling
+                    window.ModalManager.show('enable2FAModal');
                 });
         });
     }
@@ -73,9 +73,9 @@ function init() {
     }
 }
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('handle-2fa', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('handle-2fa', init, {
         priority: 45,
         reinitializable: false,
         description: '2FA enable/disable handler'
@@ -83,4 +83,4 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization

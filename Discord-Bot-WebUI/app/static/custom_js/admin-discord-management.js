@@ -34,7 +34,7 @@
 import { InitSystem } from '../js/init-system.js';
 
 // This file intentionally left minimal - all functionality moved to event delegation system
-// No initialization required - EventDelegation.init() is called automatically
+// No initialization required - window.EventDelegation.init() is called automatically
 
 function init() {
     console.log('[admin-discord-management] Loaded - using event delegation system');
@@ -42,9 +42,9 @@ function init() {
 
 export { init };
 
-// Register with InitSystem
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('admin-discord-management', init, {
+// Register with window.InitSystem
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('admin-discord-management', init, {
         priority: 30,
         reinitializable: true,
         description: 'Admin Discord management (event delegation)'
@@ -52,7 +52,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.adminDiscordManagementInit = init;

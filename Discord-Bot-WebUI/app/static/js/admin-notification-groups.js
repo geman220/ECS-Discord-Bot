@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles notification groups page interactions using data-attribute hooks
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -221,7 +221,7 @@ async function submitCreateGroup(event) {
  * View group details
  */
 async function viewGroup(groupId) {
-    ModalManager.show('viewGroupModal');
+    window.ModalManager.show('viewGroupModal');
 
     const content = document.getElementById('viewGroupContent');
     content.innerHTML = '<div class="text-center py-4"><div class="spinner-border" role="status" data-spinner></div></div>';
@@ -303,7 +303,7 @@ async function editGroup(groupId) {
                 dynamicCriteria.classList.add('d-none');
             }
 
-            ModalManager.show('editGroupModal');
+            window.ModalManager.show('editGroupModal');
         } else {
             showError('Failed to load group data');
         }
@@ -355,13 +355,13 @@ async function submitEditGroup(event) {
  * Delete group
  */
 function deleteGroup(groupId, groupName) {
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         if (!confirm(`Are you sure you want to delete "${groupName}"? This action cannot be undone.`)) return;
         performDeleteGroup(groupId);
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Delete Group?',
         text: `Are you sure you want to delete "${groupName}"? This action cannot be undone.`,
         icon: 'warning',
@@ -418,7 +418,7 @@ async function manageMembers(groupId, groupName) {
     document.getElementById('manage_members_group_id').value = groupId;
     document.getElementById('memberGroupName').textContent = groupName;
 
-    ModalManager.show('manageMembersModal');
+    window.ModalManager.show('manageMembersModal');
 
     // Load current members
     await loadMembers();
@@ -565,8 +565,8 @@ function escapeHtml(text) {
  * Show success message
  */
 function showSuccess(message, callback) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire('Success', message, 'success').then(() => {
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire('Success', message, 'success').then(() => {
             if (callback) callback();
         });
     } else {
@@ -579,8 +579,8 @@ function showSuccess(message, callback) {
  * Show error message
  */
 function showError(message) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire('Error', message, 'error');
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire('Error', message, 'error');
     } else {
         alert(message);
     }
@@ -597,8 +597,8 @@ function cleanup() {
     }
 }
 
-// Register with InitSystem
-InitSystem.register('admin-notification-groups', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-notification-groups', init, {
     priority: 30,
     reinitializable: true,
     cleanup: cleanup,
@@ -606,7 +606,7 @@ InitSystem.register('admin-notification-groups', init, {
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

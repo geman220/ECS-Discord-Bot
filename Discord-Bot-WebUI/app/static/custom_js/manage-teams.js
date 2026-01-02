@@ -184,16 +184,16 @@ ManageTeams.init = function() {
     originalInit.call(this);
 };
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('manage-teams', () => ManageTeams.init(), {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('manage-teams', () => ManageTeams.init(), {
         priority: 35,
         reinitializable: true,
         description: 'Manage teams page functionality'
     });
 }
 
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.ManageTeams = ManageTeams;

@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles Discord role sync page interactions using data-attribute hooks
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -203,8 +203,8 @@ function pollTaskStatus() {
 function showToast(message, type) {
     if (typeof AdminPanel !== 'undefined' && AdminPanel.showMobileToast) {
         AdminPanel.showMobileToast(message, type);
-    } else if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    } else if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             toast: true,
             position: 'top-end',
             icon: type === 'danger' ? 'error' : 'success',
@@ -222,8 +222,8 @@ function cleanup() {
     activeTaskId = null;
 }
 
-// Register with InitSystem
-InitSystem.register('admin-discord-roles', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-discord-roles', init, {
     priority: 30,
     reinitializable: true,
     cleanup: cleanup,
@@ -231,7 +231,7 @@ InitSystem.register('admin-discord-roles', init, {
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

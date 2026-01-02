@@ -8,8 +8,8 @@
  *
  * Architecture:
  * 1. Vendor libraries load first (jQuery, Bootstrap, etc.)
- * 2. Core systems initialize (EventDelegation, Helpers, etc.)
- * 3. Modules register their handlers with EventDelegation
+ * 2. Core systems initialize (window.EventDelegation, Helpers, etc.)
+ * 3. Modules register their handlers with window.EventDelegation
  * 4. No duplicate event listeners - single source of truth
  *
  * ============================================================================
@@ -27,7 +27,7 @@ import './vendor-globals.js';
 // 1. CORE SYSTEMS - Must load after vendors
 // ============================================================================
 
-// InitSystem - MUST be first so all modules can register with it
+// window.InitSystem - MUST be first so all modules can register with it
 import './init-system.js';
 
 // Unified MutationObserver - MUST load before any modules that use MutationObservers
@@ -36,7 +36,7 @@ import './unified-mutation-observer.js';
 
 // Event delegation system - modular architecture
 // Core + handlers loaded from event-delegation/index.js
-// NOTE: EventDelegation.init() is called at END of file after all handlers register
+// NOTE: window.EventDelegation.init() is called at END of file after all handlers register
 import './event-delegation/index.js';
 
 // Core utilities
@@ -257,15 +257,15 @@ import '../assets/js/main.js';
 // 13. FINAL INITIALIZATION - AFTER ALL IMPORTS
 // ============================================================================
 // All modules have been imported and registered their handlers.
-// Now initialize EventDelegation (with all 140+ handlers) and InitSystem.
+// Now initialize window.EventDelegation (with all 140+ handlers) and window.InitSystem.
 
-// Initialize EventDelegation - handlers are now registered via imports above
+// Initialize window.EventDelegation - handlers are now registered via imports above
 if (typeof window.EventDelegation !== 'undefined') {
     window.EventDelegation.init();
-    console.log(`[Main Entry] EventDelegation initialized with ${window.EventDelegation.handlers.size} handlers`);
+    console.log(`[Main Entry] window.EventDelegation initialized with ${window.EventDelegation.handlers.size} handlers`);
 }
 
-// Initialize all InitSystem components in priority order
+// Initialize all window.InitSystem components in priority order
 function initializeApp() {
     if (typeof window.InitSystem !== 'undefined' && !window.InitSystem.initialized) {
         console.log('[Main Entry] Triggering window.InitSystem.init()');

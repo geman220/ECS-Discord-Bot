@@ -111,9 +111,9 @@ let _initialized = false;
         }
     }
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('profile-success', init, {
+    // Register with window.InitSystem (primary)
+    if (true && window.InitSystem.register) {
+        window.InitSystem.register('profile-success', init, {
             priority: 50,
             reinitializable: false,
             description: 'Profile success page'
@@ -121,7 +121,7 @@ let _initialized = false;
     }
 
     // Fallback
-    // InitSystem handles initialization
+    // window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

@@ -1285,9 +1285,9 @@ function init() {
     // All handlers are set up above at the module level
 }
 
-// Register with InitSystem (primary)
-if (InitSystem.register) {
-    InitSystem.register('substitute-request-management', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem.register) {
+    window.InitSystem.register('substitute-request-management', init, {
         priority: 40,
         reinitializable: false,
         description: 'Substitute request management'
@@ -1295,7 +1295,7 @@ if (InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export functions to window for template compatibility
 window.openLeagueManagementModal = openLeagueManagementModal;

@@ -123,9 +123,9 @@ export function initMatchHistoryCollapse() {
 // 2. Conflicting with navbar-modern.js which uses 'toggle-navbar-dropdown'
 // ============================================================================
 
-// Register with InitSystem (primary)
-if (typeof InitSystem !== 'undefined' && InitSystem.register) {
-    InitSystem.register('ui-enhancements', init, {
+// Register with window.InitSystem (primary)
+if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('ui-enhancements', init, {
         priority: 50,
         reinitializable: true,
         description: 'UI enhancements and fixes'
@@ -133,7 +133,7 @@ if (typeof InitSystem !== 'undefined' && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Re-initialize after turbo/ajax page loads
 // FIXED: Added guard to prevent duplicate global event listener registration

@@ -595,14 +595,14 @@ function initMobileDraft() {
     window.MobileDraft.init();
 }
 
-InitSystem.register('mobile-draft', initMobileDraft, {
+window.InitSystem.register('mobile-draft', initMobileDraft, {
     priority: 30,
     reinitializable: false,
     description: 'Mobile draft system enhancements'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
   // Expose globally
   window.MobileDraft = MobileDraft;
@@ -610,15 +610,15 @@ InitSystem.register('mobile-draft', initMobileDraft, {
   // ========================================================================
   // EVENT DELEGATION REGISTRATIONS
   // ========================================================================
-  // MUST use EventDelegation to avoid TDZ errors in bundled code
+  // MUST use window.EventDelegation to avoid TDZ errors in bundled code
 
   if (true) {
-    EventDelegation.register('close-quick-draft-panel', function(element) {
+    window.EventDelegation.register('close-quick-draft-panel', function(element) {
       const panel = element.closest('.mobile-quick-draft-panel');
       if (panel) panel.remove();
     }, { preventDefault: true });
 
-    EventDelegation.register('quick-draft', function(element) {
+    window.EventDelegation.register('quick-draft', function(element) {
       const playerId = element.dataset.playerId;
       const team = element.dataset.team || 'default';
       if (playerId && window.MobileDraft) {
@@ -626,7 +626,7 @@ InitSystem.register('mobile-draft', initMobileDraft, {
       }
     }, { preventDefault: true });
 
-    EventDelegation.register('show-team-selector', function(element) {
+    window.EventDelegation.register('show-team-selector', function(element) {
       const playerId = element.dataset.playerId;
       if (playerId && window.MobileDraft) {
         window.MobileDraft.showTeamSelector(playerId);

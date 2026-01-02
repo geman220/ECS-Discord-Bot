@@ -517,9 +517,9 @@ function init() {
     window.createSeason = () => manager.createSeason();
 }
 
-// Register with InitSystem
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('admin-season-wizard', init, {
+// Register with window.InitSystem
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('admin-season-wizard', init, {
         priority: 40,
         reinitializable: false,
         description: 'Admin season wizard'
@@ -527,7 +527,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback for direct script loading
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export { AdminSeasonWizardManager, getManager, init };

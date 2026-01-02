@@ -8,7 +8,7 @@
  * that only handles what we actually need: theme switching.
  *
  * @version 1.1.0
- * @updated 2025-12-26 - Refactored to use EventDelegation
+ * @updated 2025-12-26 - Refactored to use window.EventDelegation
  */
 
 import { InitSystem } from './init-system.js';
@@ -105,7 +105,7 @@ export class SimpleThemeSwitcher {
 
   /**
    * Setup event listeners for theme switching
-   * Note: EventDelegation handlers are registered at module scope below
+   * Note: window.EventDelegation handlers are registered at module scope below
    */
   setupEventListeners() {
     // Handle keyboard shortcuts (optional)
@@ -383,15 +383,15 @@ function initThemeSwitcher() {
   // No need to call setTheme() - theme is already applied correctly
 }
 
-// Register with InitSystem
-InitSystem.register('simple-theme-switcher', initThemeSwitcher, {
+// Register with window.InitSystem
+window.InitSystem.register('simple-theme-switcher', initThemeSwitcher, {
   priority: 75,
   reinitializable: false,
   description: 'Theme switcher (light/dark mode)'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.SimpleThemeSwitcher = SimpleThemeSwitcher;
@@ -399,13 +399,13 @@ window.SimpleThemeSwitcher = SimpleThemeSwitcher;
 // ============================================================================
 // EVENT DELEGATION - Registered at module scope
 // ============================================================================
-// MUST use EventDelegation to avoid TDZ errors in bundled code.
-// In Vite/Rollup bundles, bare `EventDelegation` reference can throw ReferenceError
+// MUST use window.EventDelegation to avoid TDZ errors in bundled code.
+// In Vite/Rollup bundles, bare `window.EventDelegation` reference can throw ReferenceError
 // if the variable is hoisted but not yet initialized (Temporal Dead Zone).
 // Handlers delegate to window.themeSwitcher which is set on DOMContentLoaded.
 
 // Handle settings page theme buttons (data-action="set-theme")
-EventDelegation.register('set-theme', (element, e) => {
+window.EventDelegation.register('set-theme', (element, e) => {
   if (!window.themeSwitcher) return;
 
   const theme = element.getAttribute('data-theme');
@@ -424,7 +424,7 @@ EventDelegation.register('set-theme', (element, e) => {
 }, { preventDefault: true });
 
 // Handle navbar dropdown theme options (data-action="select-theme")
-EventDelegation.register('select-theme', (element, e) => {
+window.EventDelegation.register('select-theme', (element, e) => {
   if (!window.themeSwitcher) return;
 
   const theme = element.getAttribute('data-theme');

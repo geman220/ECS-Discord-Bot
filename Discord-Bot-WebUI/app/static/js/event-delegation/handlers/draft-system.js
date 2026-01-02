@@ -12,7 +12,7 @@ import { EventDelegation } from '../core.js';
  * Draft Player Action
  * Shows modal to select team and draft player
  */
-EventDelegation.register('draft-player', function(element, e) {
+window.EventDelegation.register('draft-player', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -37,7 +37,7 @@ EventDelegation.register('draft-player', function(element, e) {
  * Remove Player Action
  * Removes player from team and returns to available pool
  */
-EventDelegation.register('remove-player', function(element, e) {
+window.EventDelegation.register('remove-player', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -62,7 +62,7 @@ EventDelegation.register('remove-player', function(element, e) {
  * View Player Profile Action
  * Opens modal with player details
  */
-EventDelegation.register('view-player-profile', function(element, e) {
+window.EventDelegation.register('view-player-profile', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -86,7 +86,7 @@ EventDelegation.register('view-player-profile', function(element, e) {
  * Search Players Action (triggered by input event)
  * Filters available players by name
  */
-EventDelegation.register('search-players', function(element, e) {
+window.EventDelegation.register('search-players', function(element, e) {
     const searchTerm = element.value.toLowerCase().trim();
 
     if (window.draftSystemInstance && typeof window.draftSystemInstance.handleSearch === 'function') {
@@ -105,7 +105,7 @@ EventDelegation.register('search-players', function(element, e) {
 /**
  * Filter Players by Position (triggered by change event)
  */
-EventDelegation.register('filter-position', function(element, e) {
+window.EventDelegation.register('filter-position', function(element, e) {
     if (window.draftSystemInstance && typeof window.draftSystemInstance.handleFilter === 'function') {
         window.draftSystemInstance.handleFilter(e);
     } else {
@@ -122,7 +122,7 @@ EventDelegation.register('filter-position', function(element, e) {
 /**
  * Sort Players (triggered by change event)
  */
-EventDelegation.register('sort-players', function(element, e) {
+window.EventDelegation.register('sort-players', function(element, e) {
     if (window.draftSystemInstance && typeof window.draftSystemInstance.handleSort === 'function') {
         window.draftSystemInstance.handleSort(e);
     } else {
@@ -132,4 +132,4 @@ EventDelegation.register('sort-players', function(element, e) {
 
 // ============================================================================
 
-console.log('[EventDelegation] Draft system handlers loaded');
+console.log('[window.EventDelegation] Draft system handlers loaded');

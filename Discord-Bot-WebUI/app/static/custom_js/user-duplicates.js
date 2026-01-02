@@ -166,8 +166,8 @@
     function showToast(message, type) {
         if (typeof AdminPanel !== 'undefined' && AdminPanel.showMobileToast) {
             AdminPanel.showMobileToast(message, type);
-        } else if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        } else if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: type === 'success' ? 'Success' : type === 'danger' ? 'Error' : 'Notice',
                 text: message,
                 icon: type === 'danger' ? 'error' : type,

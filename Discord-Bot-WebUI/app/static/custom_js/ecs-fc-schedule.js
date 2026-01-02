@@ -343,7 +343,7 @@ export function showCreateMatchModal(selectedDate = null) {
     }
 
     // Show modal
-    ModalManager.show(modal.id);
+    window.ModalManager.show(modal.id);
 }
 
 /**
@@ -424,7 +424,7 @@ export function ecsFcEditMatch(matchId) {
     }
 
     // Show modal
-    ModalManager.show('createMatchModal');
+    window.ModalManager.show('createMatchModal');
 }
 
 /**
@@ -511,7 +511,7 @@ export function showImportMatchesModal() {
     const modal = document.getElementById('importMatchesModal');
     if (!modal) return;
 
-    ModalManager.show(modal.id);
+    window.ModalManager.show(modal.id);
 }
 
 /**
@@ -712,9 +712,9 @@ window.ecsFcFormatDate = ecsFcFormatDate;
 window.formatTime = formatTime;
 window.ecsFcShowAlert = ecsFcShowAlert;
 
-// Register with InitSystem
-if (InitSystem.register) {
-    InitSystem.register('ecs-fc-schedule', initializeEcsFcSchedule, {
+// Register with window.InitSystem
+if (window.InitSystem.register) {
+    window.InitSystem.register('ecs-fc-schedule', initializeEcsFcSchedule, {
         priority: 30,
         reinitializable: false,
         description: 'ECS FC schedule management'

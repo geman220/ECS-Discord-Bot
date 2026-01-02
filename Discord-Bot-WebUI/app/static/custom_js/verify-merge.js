@@ -92,9 +92,9 @@ export function init() {
     }
 }
 
-// Register with InitSystem (primary)
-if (InitSystem.register) {
-    InitSystem.register('verify-merge', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem.register) {
+    window.InitSystem.register('verify-merge', init, {
         priority: 45,
         reinitializable: false,
         description: 'Verify merge account handler'
@@ -102,7 +102,7 @@ if (InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

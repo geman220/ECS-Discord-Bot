@@ -54,9 +54,9 @@ export function init() {
     initializeScheduleAccordion();
 }
 
-// Register with InitSystem (primary)
-if (InitSystem.register) {
-    InitSystem.register('team-detail', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem.register) {
+    window.InitSystem.register('team-detail', init, {
         priority: 40,
         reinitializable: false,
         description: 'Team detail page functionality'
@@ -64,7 +64,7 @@ if (InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 /**
  * Set up event delegation for all team detail interactions

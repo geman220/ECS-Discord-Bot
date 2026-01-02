@@ -178,16 +178,16 @@ SettingsTabs.init = function() {
     originalInit.call(SettingsTabs);
 };
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('settings-tabs', () => SettingsTabs.init(), {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('settings-tabs', () => SettingsTabs.init(), {
         priority: 50,
         reinitializable: true,
         description: 'Settings page tab controller'
     });
 }
 
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Handle hash changes
 window.addEventListener('hashchange', () => SettingsTabs.handleHash());

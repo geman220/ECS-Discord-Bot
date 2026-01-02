@@ -4,13 +4,13 @@
  * Handles chart initialization, data export, and analytics functionality
  */
 
-// Initialize when DOM is ready or via InitSystem
+// Initialize when DOM is ready or via window.InitSystem
 (function() {
     'use strict';
 
-    // Register with InitSystem if available
-    if (typeof InitSystem !== 'undefined') {
-        InitSystem.register('userAnalytics', initUserAnalytics, {
+    // Register with window.InitSystem if available
+    if (typeof window.InitSystem !== 'undefined') {
+        window.InitSystem.register('userAnalytics', initUserAnalytics, {
             requires: [],
             priority: 10
         });
@@ -57,7 +57,7 @@
     }
 
     /**
-     * Initialize Registration Trends Chart
+     * Initialize Registration Trends window.Chart
      */
     function initializeRegistrationTrendsChart() {
         const ctx = document.getElementById('registrationTrendsChart');
@@ -69,7 +69,7 @@
         const labels = trendsData.map(item => item.month);
         const data = trendsData.map(item => item.count);
 
-        registrationTrendsChart = new Chart(ctx.getContext('2d'), {
+        registrationTrendsChart = new window.Chart(ctx.getContext('2d'), {
             type: 'line',
             data: {
                 labels: labels,
@@ -104,7 +104,7 @@
     }
 
     /**
-     * Initialize Approval Status Chart
+     * Initialize Approval Status window.Chart
      */
     function initializeApprovalStatusChart() {
         const ctx = document.getElementById('approvalStatusChart');
@@ -113,7 +113,7 @@
         // Get approvals data from global variable or data attribute
         const approvalData = window.analyticsApprovalsData || { approved: 0, pending: 0, denied: 0 };
 
-        approvalStatusChart = new Chart(ctx.getContext('2d'), {
+        approvalStatusChart = new window.Chart(ctx.getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: ['Approved', 'Pending', 'Denied'],
@@ -146,13 +146,13 @@
      */
     function exportAnalytics(type, format) {
         // Show loading
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Exporting Analytics',
                 text: 'Preparing your export...',
                 allowOutsideClick: false,
                 didOpen: () => {
-                    Swal.showLoading();
+                    window.Swal.showLoading();
                 }
             });
         }
@@ -171,8 +171,8 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         title: 'Export Ready',
                         text: 'Your analytics export is ready for download.',
                         icon: 'success',
@@ -188,8 +188,8 @@
                     window.open(data.download_url, '_blank');
                 }
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', data.message || 'Export failed', 'error');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', data.message || 'Export failed', 'error');
                 } else {
                     alert('Error: ' + (data.message || 'Export failed'));
                 }
@@ -197,8 +197,8 @@
         })
         .catch(error => {
             console.error('Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Error', 'Could not export analytics data', 'error');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', 'Could not export analytics data', 'error');
             } else {
                 alert('Could not export analytics data');
             }
@@ -223,8 +223,8 @@
      * Generate comprehensive report
      */
     function generateReport() {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Generate Comprehensive Report',
                 text: 'This will generate a detailed analytics report including all metrics.',
                 icon: 'info',
@@ -279,13 +279,13 @@
         }
     }
 
-    // Note: EventDelegation handlers are registered in:
+    // Note: window.EventDelegation handlers are registered in:
     // - admin-panel-dashboard.js: generate-report
     // - mobile-features-handlers.js: export-analytics
     // This file exposes functions globally for those handlers to use
-    if (typeof EventDelegation !== 'undefined') {
-        EventDelegation.register('export-role-data', exportRoleData);
-        EventDelegation.register('export-league-data', exportLeagueData);
+    if (typeof window.EventDelegation !== 'undefined') {
+        window.EventDelegation.register('export-role-data', exportRoleData);
+        window.EventDelegation.register('export-league-data', exportLeagueData);
     }
 
     // Expose functions globally for backward compatibility

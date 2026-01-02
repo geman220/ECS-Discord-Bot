@@ -13,7 +13,7 @@ import { EventDelegation } from '../core.js';
  * Toggle Prompt Status
  * Toggles an AI prompt between active and inactive
  */
-EventDelegation.register('toggle-prompt', function(element, e) {
+window.EventDelegation.register('toggle-prompt', function(element, e) {
     e.preventDefault();
 
     const promptId = element.dataset.promptId;
@@ -61,7 +61,7 @@ EventDelegation.register('toggle-prompt', function(element, e) {
  * Delete Prompt
  * Deletes an AI prompt with confirmation
  */
-EventDelegation.register('delete-prompt', function(element, e) {
+window.EventDelegation.register('delete-prompt', function(element, e) {
     e.preventDefault();
 
     const form = element.closest('form');
@@ -81,7 +81,7 @@ EventDelegation.register('delete-prompt', function(element, e) {
  * Confirm Delete Prompt
  * Handles delete confirmation from view page
  */
-EventDelegation.register('confirm-delete-prompt', function(element, e) {
+window.EventDelegation.register('confirm-delete-prompt', function(element, e) {
     e.preventDefault();
 
     const form = element.closest('form');
@@ -99,7 +99,7 @@ EventDelegation.register('confirm-delete-prompt', function(element, e) {
  * Test Prompt
  * Tests an AI prompt with sample data
  */
-EventDelegation.register('test-prompt', function(element, e) {
+window.EventDelegation.register('test-prompt', function(element, e) {
     e.preventDefault();
 
     const promptId = element.dataset.promptId;
@@ -160,7 +160,7 @@ EventDelegation.register('test-prompt', function(element, e) {
  * Loads an AI prompt template into the form
  * Note: Renamed from 'load-template' to avoid conflict with mobile-features-handlers.js
  */
-EventDelegation.register('load-ai-template', function(element, e) {
+window.EventDelegation.register('load-ai-template', function(element, e) {
     e.preventDefault();
 
     const templateId = element.dataset.templateId;
@@ -215,7 +215,7 @@ EventDelegation.register('load-ai-template', function(element, e) {
  * Redirects to create page with template ID
  * Note: Renamed from 'use-template' to avoid conflict with admin-playoff-handlers.js
  */
-EventDelegation.register('use-ai-template', function(element, e) {
+window.EventDelegation.register('use-ai-template', function(element, e) {
     e.preventDefault();
 
     const templateId = element.dataset.templateId;
@@ -232,7 +232,7 @@ EventDelegation.register('use-ai-template', function(element, e) {
  * Filter Prompts
  * Filters prompts list by type and status
  */
-EventDelegation.register('filter-prompts', function(element, e) {
+window.EventDelegation.register('filter-prompts', function(element, e) {
     const typeFilter = document.getElementById('typeFilter');
     const activeOnly = document.getElementById('activeOnly');
 
@@ -252,7 +252,7 @@ EventDelegation.register('filter-prompts', function(element, e) {
  * Update Personality Slider
  * Updates the display value for personality trait sliders
  */
-EventDelegation.register('update-personality-slider', function(element, e) {
+window.EventDelegation.register('update-personality-slider', function(element, e) {
     const targetId = element.dataset.target;
     if (!targetId) return;
 
@@ -266,7 +266,7 @@ EventDelegation.register('update-personality-slider', function(element, e) {
  * Update Temperature
  * Updates the temperature slider display value
  */
-EventDelegation.register('update-temperature', function(element, e) {
+window.EventDelegation.register('update-temperature', function(element, e) {
     const tempValue = document.getElementById('temp-value');
     if (tempValue) {
         tempValue.textContent = element.value;
@@ -277,7 +277,7 @@ EventDelegation.register('update-temperature', function(element, e) {
  * Update Rivalry Intensity
  * Updates the rivalry intensity slider display value
  */
-EventDelegation.register('update-rivalry-intensity', function(element, e) {
+window.EventDelegation.register('update-rivalry-intensity', function(element, e) {
     const rivalryValue = document.getElementById('rivalry-value');
     if (rivalryValue) {
         rivalryValue.textContent = element.value;
@@ -288,7 +288,7 @@ EventDelegation.register('update-rivalry-intensity', function(element, e) {
  * Validate Rivalry Teams JSON
  * Validates JSON format on blur
  */
-EventDelegation.register('validate-rivalry-json', function(element, e) {
+window.EventDelegation.register('validate-rivalry-json', function(element, e) {
     const value = element.value.trim();
 
     if (value && value !== '') {
@@ -309,7 +309,7 @@ EventDelegation.register('validate-rivalry-json', function(element, e) {
  * Duplicate Prompt
  * Duplicates an existing prompt
  */
-EventDelegation.register('duplicate-prompt', function(element, e) {
+window.EventDelegation.register('duplicate-prompt', function(element, e) {
     e.preventDefault();
 
     const promptId = element.dataset.promptId;
@@ -327,4 +327,4 @@ EventDelegation.register('duplicate-prompt', function(element, e) {
 
 // ============================================================================
 
-console.log('[EventDelegation] AI prompts handlers loaded');
+console.log('[window.EventDelegation] AI prompts handlers loaded');

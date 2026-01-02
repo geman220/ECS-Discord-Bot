@@ -92,7 +92,7 @@ class AdminSeasonsManager {
         if (performRollover) performRollover.checked = false;
         if (rolloverPreview) rolloverPreview.classList.add('d-none');
 
-        ModalManager.show('setCurrentModal');
+        window.ModalManager.show('setCurrentModal');
     }
 
     /**
@@ -241,7 +241,7 @@ class AdminSeasonsManager {
                 console.error('[AdminSeasonsManager] Error loading season details:', error);
             });
 
-        ModalManager.show('editSeasonModal');
+        window.ModalManager.show('editSeasonModal');
     }
 
     /**
@@ -398,9 +398,9 @@ function init() {
     window.loadRolloverPreview = () => manager.loadRolloverPreview();
 }
 
-// Register with InitSystem
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('admin-seasons-management', init, {
+// Register with window.InitSystem
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('admin-seasons-management', init, {
         priority: 40,
         reinitializable: false,
         description: 'Admin seasons management'
@@ -408,7 +408,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback for direct script loading
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export { AdminSeasonsManager, getManager, init };

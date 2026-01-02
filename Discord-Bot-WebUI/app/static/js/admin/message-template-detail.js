@@ -18,7 +18,7 @@
  * Dependencies:
  * - Bootstrap 5.x (modals)
  * - SweetAlert2 (confirmations)
- * - EventDelegation (centralized event handling)
+ * - window.EventDelegation (centralized event handling)
  *
  * ============================================================================
  */
@@ -47,7 +47,7 @@ function viewTemplate(id, name, content) {
     // Show modal
     const modalEl = document.getElementById('viewTemplateModal');
     if (modalEl) {
-        ModalManager.show('viewTemplateModal');
+        window.ModalManager.show('viewTemplateModal');
     }
 }
 
@@ -86,7 +86,7 @@ function editTemplate(id, name, description, content, channelType, usageContext,
     // Show edit modal
     const modalEl = document.getElementById('editTemplateModal');
     if (modalEl) {
-        ModalManager.show('editTemplateModal');
+        window.ModalManager.show('editTemplateModal');
     }
 }
 
@@ -327,7 +327,7 @@ function init() {
     }
 
     console.log('[Template Detail] Initializing...');
-    // EventDelegation handlers are registered at module scope below
+    // window.EventDelegation handlers are registered at module scope below
     initVariableButtons();
     console.log('[Template Detail] Initialization complete');
 }
@@ -336,11 +336,11 @@ function init() {
    EVENT DELEGATION - Registered at module scope
    ======================================================================== */
 
-EventDelegation.register('go-back-templates', handleGoBack, { preventDefault: true });
-EventDelegation.register('view-template', handleViewTemplate, { preventDefault: true });
-EventDelegation.register('edit-template', handleEditTemplate, { preventDefault: true });
-EventDelegation.register('toggle-template', handleToggleTemplate, { preventDefault: true });
-EventDelegation.register('delete-template', handleDeleteTemplate, { preventDefault: true });
+window.EventDelegation.register('go-back-templates', handleGoBack, { preventDefault: true });
+window.EventDelegation.register('view-template', handleViewTemplate, { preventDefault: true });
+window.EventDelegation.register('edit-template', handleEditTemplate, { preventDefault: true });
+window.EventDelegation.register('toggle-template', handleToggleTemplate, { preventDefault: true });
+window.EventDelegation.register('delete-template', handleDeleteTemplate, { preventDefault: true });
 
 /* ========================================================================
    REGISTER WITH INITSYSTEM
@@ -356,14 +356,14 @@ function initWithGuard() {
     init();
 }
 
-InitSystem.register('message-template-detail', initWithGuard, {
+window.InitSystem.register('message-template-detail', initWithGuard, {
     priority: 30,
     reinitializable: false,
     description: 'Message template detail management'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 /* ========================================================================
    PUBLIC API

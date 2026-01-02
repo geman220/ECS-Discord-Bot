@@ -14,7 +14,7 @@ import { ModalManager } from '../../modal-manager.js';
  * Toggle Item Availability
  * Toggles whether a store item is available for purchase
  */
-EventDelegation.register('toggle-item-availability', function(element, e) {
+window.EventDelegation.register('toggle-item-availability', function(element, e) {
     e.preventDefault();
 
     const itemId = element.dataset.itemId;
@@ -67,7 +67,7 @@ EventDelegation.register('toggle-item-availability', function(element, e) {
  * Edit Store Item
  * Opens edit modal for a store item
  */
-EventDelegation.register('edit-store-item', function(element, e) {
+window.EventDelegation.register('edit-store-item', function(element, e) {
     e.preventDefault();
 
     const itemId = element.dataset.itemId;
@@ -89,7 +89,7 @@ EventDelegation.register('edit-store-item', function(element, e) {
  * Delete Store Item
  * Deletes a store item with confirmation
  */
-EventDelegation.register('delete-store-item', function(element, e) {
+window.EventDelegation.register('delete-store-item', function(element, e) {
     e.preventDefault();
 
     const itemId = element.dataset.itemId;
@@ -160,7 +160,7 @@ function performDeleteStoreItem(itemId, element) {
  * Duplicate Store Item
  * Creates a copy of an existing store item
  */
-EventDelegation.register('duplicate-store-item', function(element, e) {
+window.EventDelegation.register('duplicate-store-item', function(element, e) {
     e.preventDefault();
 
     const itemId = element.dataset.itemId;
@@ -220,7 +220,7 @@ EventDelegation.register('duplicate-store-item', function(element, e) {
  * View Order Details
  * Opens modal showing order details
  */
-EventDelegation.register('view-order-details', function(element, e) {
+window.EventDelegation.register('view-order-details', function(element, e) {
     e.preventDefault();
 
     const orderId = element.dataset.orderId;
@@ -242,7 +242,7 @@ EventDelegation.register('view-order-details', function(element, e) {
  * Update Order Status
  * Changes the status of an order
  */
-EventDelegation.register('update-order-status', function(element, e) {
+window.EventDelegation.register('update-order-status', function(element, e) {
     e.preventDefault();
 
     const orderId = element.dataset.orderId;
@@ -293,7 +293,7 @@ EventDelegation.register('update-order-status', function(element, e) {
  * Mark Order Fulfilled
  * Marks an order as fulfilled
  */
-EventDelegation.register('fulfill-order', function(element, e) {
+window.EventDelegation.register('fulfill-order', function(element, e) {
     e.preventDefault();
 
     const orderId = element.dataset.orderId;
@@ -369,7 +369,7 @@ function performFulfillOrder(orderId, element) {
  * Cancel Order
  * Cancels an order with confirmation
  */
-EventDelegation.register('cancel-order', function(element, e) {
+window.EventDelegation.register('cancel-order', function(element, e) {
     e.preventDefault();
 
     const orderId = element.dataset.orderId;
@@ -439,7 +439,7 @@ function performCancelOrder(orderId, element) {
  * Resend Order Confirmation
  * Resends order confirmation email
  */
-EventDelegation.register('resend-order-confirmation', function(element, e) {
+window.EventDelegation.register('resend-order-confirmation', function(element, e) {
     e.preventDefault();
 
     const orderId = element.dataset.orderId;
@@ -497,7 +497,7 @@ EventDelegation.register('resend-order-confirmation', function(element, e) {
  * Export Analytics
  * Exports store analytics data
  */
-EventDelegation.register('export-store-analytics', function(element, e) {
+window.EventDelegation.register('export-store-analytics', function(element, e) {
     e.preventDefault();
 
     const format = element.dataset.format || 'csv';
@@ -510,7 +510,7 @@ EventDelegation.register('export-store-analytics', function(element, e) {
  * Refresh Analytics
  * Refreshes analytics dashboard
  */
-EventDelegation.register('refresh-store-analytics', function(element, e) {
+window.EventDelegation.register('refresh-store-analytics', function(element, e) {
     e.preventDefault();
     window.location.reload();
 });
@@ -519,7 +519,7 @@ EventDelegation.register('refresh-store-analytics', function(element, e) {
  * Change Date Range
  * Changes analytics date range filter
  */
-EventDelegation.register('change-analytics-range', function(element, e) {
+window.EventDelegation.register('change-analytics-range', function(element, e) {
     const range = element.value || element.dataset.range;
 
     if (!range) {
@@ -540,7 +540,7 @@ EventDelegation.register('change-analytics-range', function(element, e) {
  * Preview Item Image
  * Shows preview of uploaded item image
  */
-EventDelegation.register('preview-item-image', function(element, e) {
+window.EventDelegation.register('preview-item-image', function(element, e) {
     const file = element.files?.[0];
     if (!file) return;
 
@@ -559,7 +559,7 @@ EventDelegation.register('preview-item-image', function(element, e) {
  * Remove Item Image
  * Removes the current item image
  */
-EventDelegation.register('remove-item-image', function(element, e) {
+window.EventDelegation.register('remove-item-image', function(element, e) {
     e.preventDefault();
 
     const preview = document.getElementById('item-image-preview');
@@ -575,7 +575,7 @@ EventDelegation.register('remove-item-image', function(element, e) {
  * Add Item Variant
  * Adds a new variant option to the item
  */
-EventDelegation.register('add-item-variant', function(element, e) {
+window.EventDelegation.register('add-item-variant', function(element, e) {
     e.preventDefault();
 
     if (typeof window.addItemVariant === 'function') {
@@ -589,7 +589,7 @@ EventDelegation.register('add-item-variant', function(element, e) {
  * Remove Item Variant
  * Removes a variant option from the item
  */
-EventDelegation.register('remove-item-variant', function(element, e) {
+window.EventDelegation.register('remove-item-variant', function(element, e) {
     e.preventDefault();
 
     const variantIndex = element.dataset.variantIndex;
@@ -602,4 +602,4 @@ EventDelegation.register('remove-item-variant', function(element, e) {
 
 // ============================================================================
 
-console.log('[EventDelegation] Store handlers loaded');
+console.log('[window.EventDelegation] Store handlers loaded');

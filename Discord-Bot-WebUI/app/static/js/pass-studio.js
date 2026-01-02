@@ -794,11 +794,11 @@ function initPassStudio() {
     window.PassStudio.init(passTypeCode);
 }
 
-InitSystem.register('pass-studio', initPassStudio, {
+window.InitSystem.register('pass-studio', initPassStudio, {
     priority: 30,
     reinitializable: false,
     description: 'Pass studio wallet management'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization

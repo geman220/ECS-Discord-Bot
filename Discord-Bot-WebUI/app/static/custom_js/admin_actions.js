@@ -103,9 +103,9 @@ function init() {
 
 export { toggleRole, init };
 
-// Register with InitSystem
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('admin-actions', init, {
+// Register with window.InitSystem
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('admin-actions', init, {
         priority: 30,
         reinitializable: true,
         description: 'Admin actions role toggle'

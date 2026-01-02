@@ -20,7 +20,7 @@ import { EventDelegation } from '../core.js';
  * Close Feedback
  * Closes a feedback item
  */
-EventDelegation.register('close-feedback', function(element, e) {
+window.EventDelegation.register('close-feedback', function(element, e) {
     e.preventDefault();
 
     const feedbackId = element.dataset.feedbackId;
@@ -71,7 +71,7 @@ EventDelegation.register('close-feedback', function(element, e) {
  * Delete Feedback
  * Deletes a feedback item with confirmation
  */
-EventDelegation.register('delete-feedback', function(element, e) {
+window.EventDelegation.register('delete-feedback', function(element, e) {
     e.preventDefault();
 
     const feedbackId = element.dataset.feedbackId;
@@ -122,7 +122,7 @@ EventDelegation.register('delete-feedback', function(element, e) {
  * Filter by Priority
  * Changes the priority filter for feedback list
  */
-EventDelegation.register('filter-feedback-priority', function(element, e) {
+window.EventDelegation.register('filter-feedback-priority', function(element, e) {
     const priority = element.value;
     const url = new URL(window.location.href);
 
@@ -143,7 +143,7 @@ EventDelegation.register('filter-feedback-priority', function(element, e) {
  * Update RSVP
  * Updates RSVP status for a player
  */
-EventDelegation.register('update-rsvp', function(element, e) {
+window.EventDelegation.register('update-rsvp', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -212,7 +212,7 @@ EventDelegation.register('update-rsvp', function(element, e) {
  * Bulk RSVP Update
  * Updates multiple RSVP statuses at once
  */
-EventDelegation.register('bulk-rsvp-update', function(element, e) {
+window.EventDelegation.register('bulk-rsvp-update', function(element, e) {
     e.preventDefault();
 
     const action = element.dataset.action;
@@ -279,4 +279,4 @@ EventDelegation.register('bulk-rsvp-update', function(element, e) {
     });
 });
 
-console.log('[EventDelegation] Admin reports handlers loaded');
+console.log('[window.EventDelegation] Admin reports handlers loaded');

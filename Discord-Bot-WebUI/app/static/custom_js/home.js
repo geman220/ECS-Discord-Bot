@@ -399,9 +399,9 @@ function init() {
     console.log('Home page initialized');
 }
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('home-page', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('home-page', init, {
         priority: 35,
         reinitializable: false,
         description: 'Home/dashboard page functionality'
@@ -409,7 +409,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Expose API for external use (if needed)
 window.HomePage = {

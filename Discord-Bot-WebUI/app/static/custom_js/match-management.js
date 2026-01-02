@@ -1132,7 +1132,7 @@ export function showCacheStatus() {
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
 
                 // Show modal
-                ModalManager.show('cacheStatusModal');
+                window.ModalManager.show('cacheStatusModal');
 
                 // Clean up when modal is hidden
                 document.getElementById('cacheStatusModal').addEventListener('hidden.bs.modal', function () {
@@ -1173,9 +1173,9 @@ window.debugMatchTasks = debugMatchTasks;
 window.forceScheduleMatch = forceScheduleMatch;
 window.showCacheStatus = showCacheStatus;
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('match-management', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('match-management', init, {
         priority: 40,
         reinitializable: false,
         description: 'Match management admin page'
@@ -1183,7 +1183,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.initializeCSRFToken = initializeCSRFToken;

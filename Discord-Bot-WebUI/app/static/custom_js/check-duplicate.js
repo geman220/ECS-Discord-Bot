@@ -128,9 +128,9 @@ function init() {
 
 export { init };
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('check-duplicate', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('check-duplicate', init, {
         priority: 45,
         reinitializable: false,
         description: 'Duplicate account detection and claim'
@@ -138,7 +138,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.checkDuplicateInit = init;

@@ -265,9 +265,9 @@ function init() {
     window.lookupPlayerHistory = () => manager.lookupPlayerHistory();
 }
 
-// Register with InitSystem
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('admin-league-history', init, {
+// Register with window.InitSystem
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('admin-league-history', init, {
         priority: 40,
         reinitializable: false,
         description: 'Admin league history lookup'
@@ -275,7 +275,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback for direct script loading
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export { AdminLeagueHistoryManager, getManager, init };

@@ -74,14 +74,14 @@ class AdminISpyManager {
      * Show create season modal
      */
     createNewSeason() {
-        ModalManager.show('createSeasonModal');
+        window.ModalManager.show('createSeasonModal');
     }
 
     /**
      * Show create category modal
      */
     createNewCategory() {
-        ModalManager.show('createCategoryModal');
+        window.ModalManager.show('createCategoryModal');
     }
 
     /**
@@ -97,7 +97,7 @@ class AdminISpyManager {
         };
 
         if (!formData.name) {
-            Swal.fire('Error', 'Season name is required', 'error');
+            window.Swal.fire('Error', 'Season name is required', 'error');
             return;
         }
 
@@ -112,16 +112,16 @@ class AdminISpyManager {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                Swal.fire('Success', data.message, 'success');
-                ModalManager.hide('createSeasonModal');
+                window.Swal.fire('Success', data.message, 'success');
+                window.ModalManager.hide('createSeasonModal');
                 location.reload();
             } else {
-                Swal.fire('Error', data.message, 'error');
+                window.Swal.fire('Error', data.message, 'error');
             }
         })
         .catch(error => {
             console.error('[AdminISpyManager] Error:', error);
-            Swal.fire('Error', 'Failed to create season', 'error');
+            window.Swal.fire('Error', 'Failed to create season', 'error');
         });
     }
 
@@ -138,7 +138,7 @@ class AdminISpyManager {
         };
 
         if (!formData.name) {
-            Swal.fire('Error', 'Category name is required', 'error');
+            window.Swal.fire('Error', 'Category name is required', 'error');
             return;
         }
 
@@ -153,16 +153,16 @@ class AdminISpyManager {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                Swal.fire('Success', data.message, 'success');
-                ModalManager.hide('createCategoryModal');
+                window.Swal.fire('Success', data.message, 'success');
+                window.ModalManager.hide('createCategoryModal');
                 location.reload();
             } else {
-                Swal.fire('Error', data.message, 'error');
+                window.Swal.fire('Error', data.message, 'error');
             }
         })
         .catch(error => {
             console.error('[AdminISpyManager] Error:', error);
-            Swal.fire('Error', 'Failed to create category', 'error');
+            window.Swal.fire('Error', 'Failed to create category', 'error');
         });
     }
 
@@ -235,9 +235,9 @@ function init() {
     window.showGameStats = (type, e) => manager.showGameStats(type, e);
 }
 
-// Register with InitSystem
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('admin-ispy-management', init, {
+// Register with window.InitSystem
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('admin-ispy-management', init, {
         priority: 40,
         reinitializable: false,
         description: 'Admin I-Spy management'
@@ -245,7 +245,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback for direct script loading
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export { AdminISpyManager, getManager, init };

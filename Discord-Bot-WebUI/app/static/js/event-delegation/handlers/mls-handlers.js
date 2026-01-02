@@ -13,7 +13,7 @@ import { EventDelegation } from '../core.js';
  * Fetch ESPN Matches
  * Fetches match data from ESPN API
  */
-EventDelegation.register('fetch-espn', function(element, e) {
+window.EventDelegation.register('fetch-espn', function(element, e) {
     e.preventDefault();
 
     const originalText = element.innerHTML;
@@ -48,7 +48,7 @@ EventDelegation.register('fetch-espn', function(element, e) {
  * Schedules tasks for all upcoming MLS matches
  * Note: Renamed from 'schedule-all-matches' to avoid conflict with match-management.js
  */
-EventDelegation.register('mls-schedule-all-matches', function(element, e) {
+window.EventDelegation.register('mls-schedule-all-matches', function(element, e) {
     e.preventDefault();
 
     if (!confirm('Schedule tasks for all upcoming matches?')) return;
@@ -84,7 +84,7 @@ EventDelegation.register('mls-schedule-all-matches', function(element, e) {
  * Schedules tasks for a specific MLS match
  * Note: Renamed from 'schedule-match' to avoid conflict with match-management.js
  */
-EventDelegation.register('mls-schedule-match', function(element, e) {
+window.EventDelegation.register('mls-schedule-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -124,7 +124,7 @@ EventDelegation.register('mls-schedule-match', function(element, e) {
  * Create Thread
  * Creates a Discord thread for a match
  */
-EventDelegation.register('create-thread', function(element, e) {
+window.EventDelegation.register('create-thread', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -165,7 +165,7 @@ EventDelegation.register('create-thread', function(element, e) {
  * Start Reporting
  * Starts live reporting for a match
  */
-EventDelegation.register('start-reporting', function(element, e) {
+window.EventDelegation.register('start-reporting', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -206,7 +206,7 @@ EventDelegation.register('start-reporting', function(element, e) {
  * Stop Reporting
  * Stops live reporting for a match
  */
-EventDelegation.register('stop-reporting', function(element, e) {
+window.EventDelegation.register('stop-reporting', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -249,7 +249,7 @@ EventDelegation.register('stop-reporting', function(element, e) {
  * Resync Match
  * Resyncs a match to fix any issues
  */
-EventDelegation.register('resync-match', function(element, e) {
+window.EventDelegation.register('resync-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -296,7 +296,7 @@ EventDelegation.register('resync-match', function(element, e) {
  * Remove Match
  * Removes a match from the system
  */
-EventDelegation.register('remove-match', function(element, e) {
+window.EventDelegation.register('remove-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -340,7 +340,7 @@ EventDelegation.register('remove-match', function(element, e) {
  * Refresh Statuses
  * Refreshes status display for all matches
  */
-EventDelegation.register('refresh-match-statuses', function(element, e) {
+window.EventDelegation.register('refresh-match-statuses', function(element, e) {
     e.preventDefault();
 
     const originalText = element.innerHTML;
@@ -383,7 +383,7 @@ EventDelegation.register('refresh-match-statuses', function(element, e) {
  * Toggles auto-refresh for live reporting dashboard
  * Note: Renamed from 'toggle-auto-refresh' to avoid conflict with admin-panel-performance.js
  */
-EventDelegation.register('mls-toggle-auto-refresh', function(element, e) {
+window.EventDelegation.register('mls-toggle-auto-refresh', function(element, e) {
     const isChecked = element.checked;
 
     if (typeof window.LiveReportingDashboard !== 'undefined') {
@@ -399,7 +399,7 @@ EventDelegation.register('mls-toggle-auto-refresh', function(element, e) {
  * Manual Refresh Dashboard
  * Manually refreshes the live reporting dashboard
  */
-EventDelegation.register('refresh-live-dashboard', function(element, e) {
+window.EventDelegation.register('refresh-live-dashboard', function(element, e) {
     e.preventDefault();
 
     if (typeof window.LiveReportingDashboard !== 'undefined') {
@@ -418,7 +418,7 @@ EventDelegation.register('refresh-live-dashboard', function(element, e) {
  * Retries a failed MLS task
  * Note: Renamed from 'retry-task' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('mls-retry-task', function(element, e) {
+window.EventDelegation.register('mls-retry-task', function(element, e) {
     e.preventDefault();
 
     const taskId = element.dataset.taskId;
@@ -468,7 +468,7 @@ EventDelegation.register('mls-retry-task', function(element, e) {
  * Expire Task
  * Marks a task as expired
  */
-EventDelegation.register('expire-task', function(element, e) {
+window.EventDelegation.register('expire-task', function(element, e) {
     e.preventDefault();
 
     const taskId = element.dataset.taskId;
@@ -516,7 +516,7 @@ EventDelegation.register('expire-task', function(element, e) {
  * Toggle Auto Refresh Status
  * Toggles auto-refresh for task monitoring page
  */
-EventDelegation.register('toggle-auto-refresh-status', function(element, e) {
+window.EventDelegation.register('toggle-auto-refresh-status', function(element, e) {
     // Toggle auto-refresh state stored in a global or element data attribute
     const currentState = element.dataset.autoRefresh !== 'false';
     const newState = !currentState;
@@ -533,7 +533,7 @@ EventDelegation.register('toggle-auto-refresh-status', function(element, e) {
  * Manual Refresh
  * Manually refreshes the task monitoring page
  */
-EventDelegation.register('manual-refresh', function(element, e) {
+window.EventDelegation.register('manual-refresh', function(element, e) {
     e.preventDefault();
     location.reload();
 });
@@ -543,7 +543,7 @@ EventDelegation.register('manual-refresh', function(element, e) {
  * Shows logs for a specific MLS task
  * Note: Renamed from 'view-task-logs' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('mls-view-task-logs', function(element, e) {
+window.EventDelegation.register('mls-view-task-logs', function(element, e) {
     e.preventDefault();
 
     const taskId = element.dataset.taskId;
@@ -577,4 +577,4 @@ EventDelegation.register('mls-view-task-logs', function(element, e) {
 
 // ============================================================================
 
-console.log('[EventDelegation] MLS handlers loaded');
+console.log('[window.EventDelegation] MLS handlers loaded');

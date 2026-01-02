@@ -32,11 +32,11 @@ function getCSRFToken() {
 }
 
 /**
- * Show notification using Swal if available
+ * Show notification using window.Swal if available
  */
 function showNotification(title, message, type = 'info') {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             title: title,
             text: message,
             icon: type
@@ -47,27 +47,27 @@ function showNotification(title, message, type = 'info') {
 }
 
 /**
- * Show modal using ModalManager or bootstrap
+ * Show modal using window.ModalManager or window.bootstrap
  */
 function showModal(modalId) {
-    if (typeof ModalManager !== 'undefined') {
-        ModalManager.show(modalId);
-    } else if (typeof bootstrap !== 'undefined') {
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show(modalId);
+    } else if (typeof window.bootstrap !== 'undefined') {
         const modalEl = document.getElementById(modalId);
         if (modalEl) {
-            const modal = new bootstrap.Modal(modalEl);
+            const modal = new window.bootstrap.Modal(modalEl);
             modal.show();
         }
     }
 }
 
 /**
- * Hide modal using bootstrap
+ * Hide modal using window.bootstrap
  */
 function hideModal(modalId) {
     const modalEl = document.getElementById(modalId);
-    if (modalEl && typeof bootstrap !== 'undefined') {
-        const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modalEl && typeof window.bootstrap !== 'undefined') {
+        const modal = window.bootstrap.Modal.getInstance(modalEl);
         if (modal) modal.hide();
     }
 }
@@ -79,7 +79,7 @@ function hideModal(modalId) {
 /**
  * Refresh page action
  */
-EventDelegation.register('refresh', (element, event) => {
+window.EventDelegation.register('refresh', (element, event) => {
     event.preventDefault();
     location.reload();
 });
@@ -91,7 +91,7 @@ EventDelegation.register('refresh', (element, event) => {
 /**
  * View player details in modal
  */
-EventDelegation.register('view-player', (element, event) => {
+window.EventDelegation.register('view-player', (element, event) => {
     event.preventDefault();
     const userId = element.dataset.userId;
     if (!userId) return;
@@ -195,7 +195,7 @@ function buildPlayerDetailsHTML(user) {
 /**
  * Open contact modal
  */
-EventDelegation.register('contact-modal', (element, event) => {
+window.EventDelegation.register('contact-modal', (element, event) => {
     event.preventDefault();
     currentUserId = element.dataset.userId;
 
@@ -211,7 +211,7 @@ EventDelegation.register('contact-modal', (element, event) => {
 /**
  * Submit contact form
  */
-EventDelegation.register('submit-contact', (element, event) => {
+window.EventDelegation.register('submit-contact', (element, event) => {
     event.preventDefault();
 
     const method = document.getElementById('contact-method')?.value;
@@ -256,7 +256,7 @@ EventDelegation.register('submit-contact', (element, event) => {
 /**
  * Open removal modal
  */
-EventDelegation.register('removal-modal', (element, event) => {
+window.EventDelegation.register('removal-modal', (element, event) => {
     event.preventDefault();
     currentUserId = element.dataset.userId;
 
@@ -269,7 +269,7 @@ EventDelegation.register('removal-modal', (element, event) => {
 /**
  * Submit removal form
  */
-EventDelegation.register('submit-removal', (element, event) => {
+window.EventDelegation.register('submit-removal', (element, event) => {
     event.preventDefault();
 
     const reason = document.getElementById('removal-reason')?.value?.trim();
@@ -297,8 +297,8 @@ EventDelegation.register('submit-removal', (element, event) => {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     title: 'Success',
                     text: data.message,
                     icon: 'success'
@@ -357,12 +357,12 @@ function initAutoRefresh() {
             });
     }, 30000);
 
-    console.log('[EventDelegation] Admin waitlist auto-refresh initialized');
+    console.log('[window.EventDelegation] Admin waitlist auto-refresh initialized');
 }
 
-// Register with InitSystem
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('admin-waitlist', initAutoRefresh, {
+// Register with window.InitSystem
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('admin-waitlist', initAutoRefresh, {
         priority: 50,
         reinitializable: false,
         description: 'Admin waitlist auto-refresh stats'
@@ -370,6 +370,6 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
-console.log('[EventDelegation] Admin waitlist handlers loaded');
+console.log('[window.EventDelegation] Admin waitlist handlers loaded');

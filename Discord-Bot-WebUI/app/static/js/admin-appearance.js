@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles theme appearance/color customization page interactions
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -375,8 +375,8 @@ function saveColors() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'success',
                     title: 'Colors Saved',
                     text: data.message,
@@ -399,13 +399,13 @@ function saveColors() {
  * Reset colors to defaults
  */
 function resetColors() {
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         if (!confirm('This will reset all colors to their default values. Continue?')) return;
         performResetColors();
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Reset Colors?',
         text: 'This will reset all colors to their default values.',
         icon: 'warning',
@@ -432,8 +432,8 @@ function performResetColors() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'success',
                     title: 'Colors Reset',
                     text: data.message,
@@ -473,7 +473,7 @@ function exportColors() {
  * Show import modal
  */
 function showImportModal() {
-    ModalManager.show('importModal');
+    window.ModalManager.show('importModal');
 }
 
 /**
@@ -506,9 +506,9 @@ function importColors() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                ModalManager.hide('importModal');
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                window.ModalManager.hide('importModal');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'Colors Imported',
                         text: data.message,
@@ -536,22 +536,22 @@ function importColors() {
  * Show error message
  */
 function showError(message) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire('Error', message, 'error');
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire('Error', message, 'error');
     } else {
         alert(message);
     }
 }
 
-// Register with InitSystem
-InitSystem.register('admin-appearance', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-appearance', init, {
     priority: 30,
     reinitializable: true,
     description: 'Admin appearance/theme customization page functionality'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

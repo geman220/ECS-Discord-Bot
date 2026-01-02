@@ -227,9 +227,9 @@ export const ResponsiveTables = {
   // Make available globally
   window.ResponsiveTables = ResponsiveTables;
 
-  // Register with InitSystem if available
-  if (true && InitSystem.register) {
-    InitSystem.register('responsive-tables', function() {
+  // Register with window.InitSystem if available
+  if (true && window.InitSystem.register) {
+    window.InitSystem.register('responsive-tables', function() {
       window.ResponsiveTables.init();
     }, {
       priority: 60,

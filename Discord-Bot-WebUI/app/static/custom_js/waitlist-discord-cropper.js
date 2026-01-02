@@ -358,8 +358,8 @@ function applyCrop() {
 
     // Close modal
     const modalEl = document.getElementById('profileImageModal');
-    if (modalEl && typeof bootstrap !== 'undefined') {
-        const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modalEl && typeof window.bootstrap !== 'undefined') {
+        const modal = window.bootstrap.Modal.getInstance(modalEl);
         if (modal) modal.hide();
     }
 
@@ -375,15 +375,15 @@ function applyCrop() {
     console.log('[WaitlistDiscordCropper] Image cropped and applied');
 }
 
-// Register with EventDelegation system
-if (typeof EventDelegation !== 'undefined') {
-    EventDelegation.register('apply-crop', function(element, event) {
+// Register with window.EventDelegation system
+if (typeof window.EventDelegation !== 'undefined') {
+    window.EventDelegation.register('apply-crop', function(element, event) {
         applyCrop();
     });
 }
 
-// Register with InitSystem
-InitSystem.register('waitlist-discord-cropper', init, {
+// Register with window.InitSystem
+window.InitSystem.register('waitlist-discord-cropper', init, {
     priority: 30,
     description: 'Waitlist Discord cropper module'
 });

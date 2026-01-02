@@ -88,9 +88,9 @@ function testCache() {
 
 export { init, refreshStats, testCache };
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('cache-stats', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('cache-stats', init, {
         priority: 30,
         reinitializable: true,
         description: 'Cache statistics management'
@@ -98,7 +98,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.cacheStatsInit = init;

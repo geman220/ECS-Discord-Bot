@@ -548,8 +548,8 @@ export const ECSDesignSystem = {
   }
 };
 
-// Register with InitSystem
-InitSystem.register('design-system', function() {
+// Register with window.InitSystem
+window.InitSystem.register('design-system', function() {
   ECSDesignSystem.init();
 }, {
   priority: 90,
@@ -558,7 +558,7 @@ InitSystem.register('design-system', function() {
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.ECSDesignSystem = ECSDesignSystem;

@@ -35,7 +35,7 @@ function initRoleModals() {
  * Create Role
  * Opens modal to create a new role
  */
-EventDelegation.register('create-role', function(element, e) {
+window.EventDelegation.register('create-role', function(element, e) {
     e.preventDefault();
     initRoleModals();
 
@@ -63,8 +63,8 @@ EventDelegation.register('create-role', function(element, e) {
     } else {
         // Fallback to Bootstrap modal
         const modalEl = document.getElementById('roleModal');
-        if (modalEl && typeof bootstrap !== 'undefined') {
-            const bsModal = new bootstrap.Modal(modalEl);
+        if (modalEl && typeof window.bootstrap !== 'undefined') {
+            const bsModal = new window.bootstrap.Modal(modalEl);
             bsModal.show();
         }
     }
@@ -74,7 +74,7 @@ EventDelegation.register('create-role', function(element, e) {
  * Edit Role
  * Loads role data and opens edit modal
  */
-EventDelegation.register('edit-role', function(element, e) {
+window.EventDelegation.register('edit-role', function(element, e) {
     e.preventDefault();
     initRoleModals();
 
@@ -142,7 +142,7 @@ EventDelegation.register('edit-role', function(element, e) {
  * View Role Details
  * Shows detailed role information in modal
  */
-EventDelegation.register('view-role-details', function(element, e) {
+window.EventDelegation.register('view-role-details', function(element, e) {
     e.preventDefault();
     initRoleModals();
 
@@ -228,7 +228,7 @@ EventDelegation.register('view-role-details', function(element, e) {
  * View Role Users
  * Navigates to role users page
  */
-EventDelegation.register('view-role-users', function(element, e) {
+window.EventDelegation.register('view-role-users', function(element, e) {
     e.preventDefault();
 
     const roleId = element.dataset.roleId;
@@ -246,7 +246,7 @@ EventDelegation.register('view-role-users', function(element, e) {
  * Assign Role
  * Opens modal to assign role to a user
  */
-EventDelegation.register('assign-role', function(element, e) {
+window.EventDelegation.register('assign-role', function(element, e) {
     e.preventDefault();
     initRoleModals();
 
@@ -322,7 +322,7 @@ EventDelegation.register('assign-role', function(element, e) {
  * Delete Role
  * Deletes a role with confirmation
  */
-EventDelegation.register('delete-role', function(element, e) {
+window.EventDelegation.register('delete-role', function(element, e) {
     e.preventDefault();
 
     const roleId = element.dataset.roleId;
@@ -380,7 +380,7 @@ EventDelegation.register('delete-role', function(element, e) {
  * Export Roles
  * Exports role data
  */
-EventDelegation.register('export-roles', function(element, e) {
+window.EventDelegation.register('export-roles', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal !== 'undefined') {
@@ -396,7 +396,7 @@ EventDelegation.register('export-roles', function(element, e) {
  * Submit Role Form
  * Handles role creation/edit form submission
  */
-EventDelegation.register('submit-role-form', function(element, e) {
+window.EventDelegation.register('submit-role-form', function(element, e) {
     e.preventDefault();
     initRoleModals();
 
@@ -443,7 +443,7 @@ EventDelegation.register('submit-role-form', function(element, e) {
  * Submit Assign Role Form
  * Handles role assignment form submission
  */
-EventDelegation.register('submit-assign-role-form', function(element, e) {
+window.EventDelegation.register('submit-assign-role-form', function(element, e) {
     e.preventDefault();
     initRoleModals();
 
@@ -486,4 +486,4 @@ EventDelegation.register('submit-assign-role-form', function(element, e) {
     });
 });
 
-console.log('[EventDelegation] Admin roles handlers loaded');
+console.log('[window.EventDelegation] Admin roles handlers loaded');

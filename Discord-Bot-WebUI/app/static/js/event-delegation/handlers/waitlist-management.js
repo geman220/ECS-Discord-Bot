@@ -74,7 +74,7 @@ let selectedUserId = null;
  * Handle View User button click
  * Opens the user details modal and loads user information via AJAX
  */
-EventDelegation.register('view-user', function(element, e) {
+window.EventDelegation.register('view-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -101,12 +101,12 @@ EventDelegation.register('view-user', function(element, e) {
     }
 
     // Show the modal
-    if (typeof ModalManager !== 'undefined') {
-        ModalManager.show('waitlistUserModal');
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('waitlistUserModal');
     } else {
         const modalEl = document.getElementById('waitlistUserModal');
-        if (modalEl && typeof bootstrap !== 'undefined') {
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modalEl && typeof window.bootstrap !== 'undefined') {
+            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
         }
     }
@@ -141,7 +141,7 @@ EventDelegation.register('view-user', function(element, e) {
  * Handle Process User button click
  * Shows confirmation dialog and processes user from waitlist
  */
-EventDelegation.register('process-user', function(element, e) {
+window.EventDelegation.register('process-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -152,15 +152,15 @@ EventDelegation.register('process-user', function(element, e) {
         return;
     }
 
-    // Check if Swal is available
-    if (typeof Swal === 'undefined') {
+    // Check if window.Swal is available
+    if (typeof window.Swal === 'undefined') {
         if (confirm(`Process "${userName}" from the waitlist and approve their registration?`)) {
             submitWaitlistAction(userId, 'process');
         }
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Process User from Waitlist?',
         text: `Process "${userName}" from the waitlist and approve their registration?`,
         icon: 'question',
@@ -183,7 +183,7 @@ EventDelegation.register('process-user', function(element, e) {
  * Handle Remove User button click
  * Shows confirmation dialog and removes user from waitlist
  */
-EventDelegation.register('remove-waitlist-user', function(element, e) {
+window.EventDelegation.register('remove-waitlist-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -194,15 +194,15 @@ EventDelegation.register('remove-waitlist-user', function(element, e) {
         return;
     }
 
-    // Check if Swal is available
-    if (typeof Swal === 'undefined') {
+    // Check if window.Swal is available
+    if (typeof window.Swal === 'undefined') {
         if (confirm(`Remove "${userName}" from the waitlist? This action cannot be undone.`)) {
             submitWaitlistAction(userId, 'remove');
         }
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Remove from Waitlist?',
         text: `Remove "${userName}" from the waitlist? This action cannot be undone.`,
         icon: 'warning',
@@ -225,13 +225,13 @@ EventDelegation.register('remove-waitlist-user', function(element, e) {
  * Handle Process All button click
  * Processes all selected users or all users if none selected
  */
-EventDelegation.register('process-all', function(element, e) {
+window.EventDelegation.register('process-all', function(element, e) {
     e.preventDefault();
 
     const checkboxes = document.querySelectorAll('.js-user-checkbox:checked');
     const selectedCount = checkboxes.length;
 
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         // Fallback without SweetAlert
         if (selectedCount === 0) {
             if (confirm('Process all users from the waitlist and approve their registrations?')) {
@@ -248,7 +248,7 @@ EventDelegation.register('process-all', function(element, e) {
 
     if (selectedCount === 0) {
         // Process all users
-        Swal.fire({
+        window.Swal.fire({
             title: 'Process All Users?',
             text: 'Process all users from the waitlist and approve their registrations?',
             icon: 'question',
@@ -263,7 +263,7 @@ EventDelegation.register('process-all', function(element, e) {
         });
     } else {
         // Process selected users
-        Swal.fire({
+        window.Swal.fire({
             title: `Process ${selectedCount} Selected Users?`,
             text: `Process ${selectedCount} selected users from the waitlist?`,
             icon: 'question',
@@ -288,19 +288,19 @@ EventDelegation.register('process-all', function(element, e) {
  * Handle Process From Modal button click
  * Processes the currently selected user from within the modal
  */
-EventDelegation.register('process-from-modal', function(element, e) {
+window.EventDelegation.register('process-from-modal', function(element, e) {
     e.preventDefault();
 
     if (selectedUserId) {
-        // Check if Swal is available
-        if (typeof Swal === 'undefined') {
+        // Check if window.Swal is available
+        if (typeof window.Swal === 'undefined') {
             if (confirm('Process this user from the waitlist and approve their registration?')) {
                 submitWaitlistAction(selectedUserId, 'process');
             }
             return;
         }
 
-        Swal.fire({
+        window.Swal.fire({
             title: 'Process User from Waitlist?',
             text: 'Process this user from the waitlist and approve their registration?',
             icon: 'question',
@@ -394,4 +394,4 @@ function submitBulkWaitlistAction(action, selectedIds) {
     form.submit();
 }
 
-console.log('[EventDelegation] Waitlist management handlers loaded');
+console.log('[window.EventDelegation] Waitlist management handlers loaded');

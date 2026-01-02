@@ -79,5 +79,5 @@ export { clearCacheAndRedirect };
 // Expose globally for external use
 window.clearCacheAndRedirect = clearCacheAndRedirect;
 
-// Note: EventDelegation handler 'clear-cache' is registered in monitoring-handlers.js
+// Note: window.EventDelegation handler 'clear-cache' is registered in monitoring-handlers.js
 // This file exposes clearCacheAndRedirect globally for that handler to use

@@ -305,9 +305,9 @@ export {
     clearHistory
 };
 
-// Register with InitSystem
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('wallet-scanner', init, {
+// Register with window.InitSystem
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('wallet-scanner', init, {
         priority: 30,
         reinitializable: false,
         description: 'Wallet pass QR scanner'
@@ -315,7 +315,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback initialization
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.WalletScanner = {

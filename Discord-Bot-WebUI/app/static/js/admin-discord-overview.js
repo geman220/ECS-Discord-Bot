@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles Discord overview page interactions using data-attribute hooks
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -235,8 +235,8 @@ function massSyncRoles() {
 function showToast(message, type) {
     if (typeof AdminPanel !== 'undefined' && AdminPanel.showMobileToast) {
         AdminPanel.showMobileToast(message, type);
-    } else if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    } else if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             toast: true,
             position: 'top-end',
             icon: type === 'danger' ? 'error' : 'success',
@@ -247,15 +247,15 @@ function showToast(message, type) {
     }
 }
 
-// Register with InitSystem
-InitSystem.register('admin-discord-overview', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-discord-overview', init, {
     priority: 30,
     reinitializable: true,
     description: 'Admin Discord overview page functionality'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

@@ -228,10 +228,10 @@ export const TabsController = {
     // Expose globally for programmatic access (MUST be before any callbacks or registrations)
     window.TabsController = TabsController;
 
-    // Register with InitSystem if available
-    // MUST use InitSystem and window.TabsController to avoid TDZ errors in bundled code
-    if (true && InitSystem.register) {
-        InitSystem.register('tabs-controller', function(context) {
+    // Register with window.InitSystem if available
+    // MUST use window.InitSystem and window.TabsController to avoid TDZ errors in bundled code
+    if (true && window.InitSystem.register) {
+        window.InitSystem.register('tabs-controller', function(context) {
             window.TabsController.init(context);
         }, {
             priority: 75,
@@ -241,7 +241,7 @@ export const TabsController = {
     }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
     // Listen for hash changes
     window.addEventListener('hashchange', () => {

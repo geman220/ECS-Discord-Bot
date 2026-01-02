@@ -12,7 +12,7 @@ import { EventDelegation } from '../core.js';
  * Show Task Info Action
  * Displays detailed information about a scheduled task
  */
-EventDelegation.register('show-task-info', function(element, e) {
+window.EventDelegation.register('show-task-info', function(element, e) {
     e.preventDefault();
 
     const taskId = element.dataset.taskId;
@@ -43,7 +43,7 @@ EventDelegation.register('show-task-info', function(element, e) {
  * Revoke Task Action
  * Cancels a scheduled task (thread creation, reporting, etc.)
  */
-EventDelegation.register('revoke-task', function(element, e) {
+window.EventDelegation.register('revoke-task', function(element, e) {
     e.preventDefault();
 
     const taskId = element.dataset.taskId;
@@ -66,7 +66,7 @@ EventDelegation.register('revoke-task', function(element, e) {
  * Reschedule Task Action
  * Re-schedules a task to run at a different time
  */
-EventDelegation.register('reschedule-task', function(element, e) {
+window.EventDelegation.register('reschedule-task', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -93,7 +93,7 @@ EventDelegation.register('reschedule-task', function(element, e) {
  * Toggle Historical Matches Action
  * Shows/hides historical matches section
  */
-EventDelegation.register('toggle-historical', function(element, e) {
+window.EventDelegation.register('toggle-historical', function(element, e) {
     e.preventDefault();
 
     const targetId = element.dataset.target;
@@ -118,7 +118,7 @@ EventDelegation.register('toggle-historical', function(element, e) {
  * Verify Match Action
  * Opens match verification modal/page
  */
-EventDelegation.register('verify-match', function(element, e) {
+window.EventDelegation.register('verify-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -150,7 +150,7 @@ EventDelegation.register('verify-match', function(element, e) {
 /**
  * Force Sync Dashboard
  */
-EventDelegation.register('force-sync', function(element, e) {
+window.EventDelegation.register('force-sync', function(element, e) {
     e.preventDefault();
     if (typeof window.forceSync === 'function') {
         window.forceSync();
@@ -160,7 +160,7 @@ EventDelegation.register('force-sync', function(element, e) {
 /**
  * Refresh Dashboard
  */
-EventDelegation.register('refresh-dashboard', function(element, e) {
+window.EventDelegation.register('refresh-dashboard', function(element, e) {
     e.preventDefault();
     if (typeof window.refreshDashboard === 'function') {
         window.refreshDashboard();
@@ -170,7 +170,7 @@ EventDelegation.register('refresh-dashboard', function(element, e) {
 /**
  * Stop Session
  */
-EventDelegation.register('stop-session', function(element, e) {
+window.EventDelegation.register('stop-session', function(element, e) {
     e.preventDefault();
     const sessionId = element.dataset.sessionId;
     if (typeof window.stopSession === 'function') {
@@ -203,7 +203,7 @@ EventDelegation.register('stop-session', function(element, e) {
  * Updates URL with sort parameter and reloads page
  * Usage: <a data-action="change-sort" data-sort-type="name">Sort by Name</a>
  */
-EventDelegation.register('change-sort', function(element, e) {
+window.EventDelegation.register('change-sort', function(element, e) {
     e.preventDefault();
     const sortType = element.dataset.sortType;
     const currentUrl = new URL(window.location.href);
@@ -226,11 +226,11 @@ EventDelegation.register('change-sort', function(element, e) {
  * Show Discord Channel Info
  * Displays info alert about Discord channel
  */
-EventDelegation.register('show-discord-channel-info', function(element, e) {
+window.EventDelegation.register('show-discord-channel-info', function(element, e) {
     e.preventDefault();
     alert('Check Discord #pl-new-players channel for notifications');
 }, { preventDefault: true });
 
 // ============================================================================
 
-console.log('[EventDelegation] Match management handlers loaded');
+console.log('[window.EventDelegation] Match management handlers loaded');

@@ -20,7 +20,7 @@
  * Dependencies:
  * - Bootstrap 5.x (modals)
  * - SweetAlert2 (confirmations)
- * - EventDelegation (centralized event handling)
+ * - window.EventDelegation (centralized event handling)
  *
  * ============================================================================
  */
@@ -75,7 +75,7 @@ function previewMessage() {
     // Show modal
     const modalEl = document.getElementById('messagePreviewModal');
     if (modalEl) {
-        ModalManager.show('messagePreviewModal');
+        window.ModalManager.show('messagePreviewModal');
     }
 }
 
@@ -103,7 +103,7 @@ function viewScheduledMessage(messageId, messageTitle) {
     // Show modal
     const modalEl = document.getElementById('messageDetailsModal');
     if (modalEl) {
-        ModalManager.show('messageDetailsModal');
+        window.ModalManager.show('messageDetailsModal');
     }
 
     // Load message details via AJAX
@@ -476,7 +476,7 @@ function init() {
     initRecurringToggle();
     initQueueFiltering();
     initMinDateTime();
-    // EventDelegation handlers are registered at module scope below
+    // window.EventDelegation handlers are registered at module scope below
 
     console.log('[Scheduled Messages] Initialization complete');
 }
@@ -485,12 +485,12 @@ function init() {
    EVENT DELEGATION - Registered at module scope
    ======================================================================== */
 
-EventDelegation.register('go-back-scheduled', handleGoBack, { preventDefault: true });
-EventDelegation.register('preview-message', handlePreviewMessage, { preventDefault: true });
-EventDelegation.register('view-scheduled-message', handleViewScheduledMessage, { preventDefault: true });
-EventDelegation.register('edit-scheduled-message', handleEditScheduledMessage, { preventDefault: true });
-EventDelegation.register('cancel-scheduled-message', handleCancelScheduledMessage, { preventDefault: true });
-EventDelegation.register('retry-scheduled-message', handleRetryScheduledMessage, { preventDefault: true });
+window.EventDelegation.register('go-back-scheduled', handleGoBack, { preventDefault: true });
+window.EventDelegation.register('preview-message', handlePreviewMessage, { preventDefault: true });
+window.EventDelegation.register('view-scheduled-message', handleViewScheduledMessage, { preventDefault: true });
+window.EventDelegation.register('edit-scheduled-message', handleEditScheduledMessage, { preventDefault: true });
+window.EventDelegation.register('cancel-scheduled-message', handleCancelScheduledMessage, { preventDefault: true });
+window.EventDelegation.register('retry-scheduled-message', handleRetryScheduledMessage, { preventDefault: true });
 
 /* ========================================================================
    REGISTER WITH INITSYSTEM
@@ -506,14 +506,14 @@ function initWithGuard() {
     init();
 }
 
-InitSystem.register('scheduled-messages', initWithGuard, {
+window.InitSystem.register('scheduled-messages', initWithGuard, {
     priority: 30,
     reinitializable: false,
     description: 'Scheduled messages management'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 /* ========================================================================
    PUBLIC API

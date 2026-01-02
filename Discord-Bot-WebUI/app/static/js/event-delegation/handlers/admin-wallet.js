@@ -23,11 +23,11 @@ function getCSRFToken() {
 }
 
 /**
- * Show notification using Swal if available
+ * Show notification using window.Swal if available
  */
 function showNotification(title, message, type = 'info') {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             title: title,
             text: message,
             icon: type,
@@ -43,8 +43,8 @@ function showNotification(title, message, type = 'info') {
  * Show toast notification
  */
 function showToast(title, type = 'success') {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             toast: true,
             position: 'top-end',
             icon: type,
@@ -62,16 +62,16 @@ function showToast(title, type = 'success') {
 /**
  * Void a single pass (from detail page)
  */
-EventDelegation.register('void-pass', (element, event) => {
+window.EventDelegation.register('void-pass', (element, event) => {
     event.preventDefault();
     const passId = element.dataset.passId;
 
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         console.error('SweetAlert2 not loaded');
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Void This Pass?',
         html: '<p class="mb-3">The member will no longer be able to use this pass for check-ins.</p><input id="void-reason" class="form-control" placeholder="Reason for voiding (optional)" data-form-control>',
         icon: 'warning',
@@ -92,13 +92,13 @@ EventDelegation.register('void-pass', (element, event) => {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Pass Voided', 'The pass has been marked as invalid.', 'success')
+                    window.Swal.fire('Pass Voided', 'The pass has been marked as invalid.', 'success')
                         .then(() => location.reload());
                 } else {
-                    Swal.fire('Error', data.error || 'Failed to void pass', 'error');
+                    window.Swal.fire('Error', data.error || 'Failed to void pass', 'error');
                 }
             })
-            .catch(err => Swal.fire('Error', 'Failed to void pass. Please try again.', 'error'));
+            .catch(err => window.Swal.fire('Error', 'Failed to void pass. Please try again.', 'error'));
         }
     });
 });
@@ -106,16 +106,16 @@ EventDelegation.register('void-pass', (element, event) => {
 /**
  * Reactivate a single pass (from detail page)
  */
-EventDelegation.register('reactivate-pass', (element, event) => {
+window.EventDelegation.register('reactivate-pass', (element, event) => {
     event.preventDefault();
     const passId = element.dataset.passId;
 
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         console.error('SweetAlert2 not loaded');
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Reactivate This Pass?',
         text: 'The pass will become valid again and can be used for check-ins.',
         icon: 'question',
@@ -134,13 +134,13 @@ EventDelegation.register('reactivate-pass', (element, event) => {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Pass Reactivated', 'The pass is now active and valid.', 'success')
+                    window.Swal.fire('Pass Reactivated', 'The pass is now active and valid.', 'success')
                         .then(() => location.reload());
                 } else {
-                    Swal.fire('Error', data.error || 'Failed to reactivate pass', 'error');
+                    window.Swal.fire('Error', data.error || 'Failed to reactivate pass', 'error');
                 }
             })
-            .catch(err => Swal.fire('Error', 'Failed to reactivate pass. Please try again.', 'error'));
+            .catch(err => window.Swal.fire('Error', 'Failed to reactivate pass. Please try again.', 'error'));
         }
     });
 });
@@ -148,7 +148,7 @@ EventDelegation.register('reactivate-pass', (element, event) => {
 /**
  * Copy download link to clipboard
  */
-EventDelegation.register('copy-link', (element, event) => {
+window.EventDelegation.register('copy-link', (element, event) => {
     event.preventDefault();
     const linkInput = document.getElementById('download-link');
     if (linkInput) {
@@ -191,7 +191,7 @@ EventDelegation.register('copy-link', (element, event) => {
 /**
  * Clear all selections
  */
-EventDelegation.register('clear-pass-selection', (element, event) => {
+window.EventDelegation.register('clear-pass-selection', (element, event) => {
     event.preventDefault();
     const checkboxes = document.querySelectorAll('.pass-checkbox');
     checkboxes.forEach(cb => cb.checked = false);
@@ -234,7 +234,7 @@ function getSelectedIds() {
 /**
  * Open bulk void modal
  */
-EventDelegation.register('bulk-void-passes', (element, event) => {
+window.EventDelegation.register('bulk-void-passes', (element, event) => {
     event.preventDefault();
     const ids = getSelectedIds();
     if (ids.length === 0) return;
@@ -242,10 +242,10 @@ EventDelegation.register('bulk-void-passes', (element, event) => {
     const voidCountEl = document.getElementById('voidCount');
     if (voidCountEl) voidCountEl.textContent = ids.length;
 
-    if (typeof ModalManager !== 'undefined') {
-        ModalManager.show('bulkVoidModal');
-    } else if (typeof bootstrap !== 'undefined') {
-        const modal = new bootstrap.Modal(document.getElementById('bulkVoidModal'));
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('bulkVoidModal');
+    } else if (typeof window.bootstrap !== 'undefined') {
+        const modal = new window.bootstrap.Modal(document.getElementById('bulkVoidModal'));
         modal.show();
     }
 });
@@ -253,7 +253,7 @@ EventDelegation.register('bulk-void-passes', (element, event) => {
 /**
  * Confirm bulk void
  */
-EventDelegation.register('confirm-bulk-void', (element, event) => {
+window.EventDelegation.register('confirm-bulk-void', (element, event) => {
     event.preventDefault();
     const ids = getSelectedIds();
     const reason = document.getElementById('voidReason')?.value || 'Bulk voided by admin';
@@ -266,8 +266,8 @@ EventDelegation.register('confirm-bulk-void', (element, event) => {
     .then(response => response.json())
     .then(data => {
         const modal = document.getElementById('bulkVoidModal');
-        if (modal && typeof bootstrap !== 'undefined') {
-            bootstrap.Modal.getInstance(modal)?.hide();
+        if (modal && typeof window.bootstrap !== 'undefined') {
+            window.bootstrap.Modal.getInstance(modal)?.hide();
         }
         showNotification('Bulk Void Complete', `Voided ${data.success?.length || 0} passes. ${data.failed?.length || 0} failed.`, 'success');
         location.reload();
@@ -278,7 +278,7 @@ EventDelegation.register('confirm-bulk-void', (element, event) => {
 /**
  * Bulk reactivate passes
  */
-EventDelegation.register('bulk-reactivate-passes', (element, event) => {
+window.EventDelegation.register('bulk-reactivate-passes', (element, event) => {
     event.preventDefault();
     const ids = getSelectedIds();
     if (ids.length === 0) return;
@@ -305,7 +305,7 @@ EventDelegation.register('bulk-reactivate-passes', (element, event) => {
 /**
  * Handle pass type change in bulk generate modal
  */
-EventDelegation.register('bulk-pass-type-change', (element, event) => {
+window.EventDelegation.register('bulk-pass-type-change', (element, event) => {
     const yearField = document.getElementById('yearField');
     const seasonField = document.getElementById('seasonField');
 
@@ -321,7 +321,7 @@ EventDelegation.register('bulk-pass-type-change', (element, event) => {
 /**
  * Bulk generate passes
  */
-EventDelegation.register('bulk-generate-passes', (element, event) => {
+window.EventDelegation.register('bulk-generate-passes', (element, event) => {
     event.preventDefault();
     const passType = document.getElementById('bulkPassType')?.value;
     const year = document.getElementById('bulkYear')?.value;
@@ -386,7 +386,7 @@ EventDelegation.register('bulk-generate-passes', (element, event) => {
 /**
  * Check player eligibility and show modal
  */
-EventDelegation.register('check-player-eligibility', (element, event) => {
+window.EventDelegation.register('check-player-eligibility', (element, event) => {
     event.preventDefault();
     const playerId = element.dataset.playerId;
 
@@ -394,10 +394,10 @@ EventDelegation.register('check-player-eligibility', (element, event) => {
 
     const modalBody = document.getElementById('eligibilityModalBody');
 
-    if (typeof ModalManager !== 'undefined') {
-        ModalManager.show('eligibilityModal');
-    } else if (typeof bootstrap !== 'undefined') {
-        const modal = new bootstrap.Modal(document.getElementById('eligibilityModal'));
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('eligibilityModal');
+    } else if (typeof window.bootstrap !== 'undefined') {
+        const modal = new window.bootstrap.Modal(document.getElementById('eligibilityModal'));
         modal.show();
     }
 
@@ -468,7 +468,7 @@ EventDelegation.register('check-player-eligibility', (element, event) => {
 /**
  * Bulk generate wallet passes
  */
-EventDelegation.register('bulk-generate-wallet-passes', (element, event) => {
+window.EventDelegation.register('bulk-generate-wallet-passes', (element, event) => {
     event.preventDefault();
 
     if (!confirm('Generate passes for all eligible players?\n\nThis will create passes that can be downloaded by each player. Continue?')) {
@@ -560,9 +560,9 @@ EventDelegation.register('bulk-generate-wallet-passes', (element, event) => {
 /**
  * Reload page action
  */
-EventDelegation.register('reload-page', (element, event) => {
+window.EventDelegation.register('reload-page', (element, event) => {
     event.preventDefault();
     location.reload();
 });
 
-console.log('[EventDelegation] Admin wallet handlers loaded');
+console.log('[window.EventDelegation] Admin wallet handlers loaded');

@@ -187,16 +187,16 @@ export function displaySearchResults(players) {
 }
 
 // Event handlers
-// NOTE: Event handlers have been migrated to the centralized EventDelegation system
+// NOTE: Event handlers have been migrated to the centralized window.EventDelegation system
 // See: /app/static/js/event-delegation.js
 // Actions registered: approve-pool-player, remove-pool-player, edit-pool-preferences,
 // view-pool-player-details, add-player-to-league, toggle-pool-view, filter-pool,
 // manage-league-pool, save-pool-preferences, pool-pagination
 export function subPoolInitializeEventHandlers() {
-    // All jQuery delegation has been replaced with EventDelegation.register()
+    // All jQuery delegation has been replaced with window.EventDelegation.register()
     // See event-delegation.js for the centralized handlers
 
-    // The following event handlers are now handled by EventDelegation:
+    // The following event handlers are now handled by window.EventDelegation:
     // - approve-pool-player: Approve pending player
     // - remove-pool-player: Remove player from pool (with confirmation)
     // - edit-pool-preferences: Open preferences modal
@@ -235,7 +235,7 @@ export function approvePlayer(playerId, league) {
 }
 
 export function removePlayer(playerId, league) {
-    // Confirmation is now handled by the EventDelegation system
+    // Confirmation is now handled by the window.EventDelegation system
     // But we keep it here as a safety check for direct function calls
     if (!confirm('Are you sure you want to remove this player from the substitute pool?')) {
         return;
@@ -273,7 +273,7 @@ export function openPlayerDetailsModal(playerId) {
     detailsData.classList.remove('d-block');
     detailsData.classList.add('d-none');
 
-    ModalManager.show('playerDetailsModal');
+    window.ModalManager.show('playerDetailsModal');
 
     fetch(`/players/api/player_profile/${playerId}`)
         .then(response => response.json())
@@ -469,9 +469,9 @@ function init() {
     subPoolInitializeEventHandlers();
 }
 
-// Register with InitSystem (primary)
-if (InitSystem.register) {
-    InitSystem.register('substitute-pool-management', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem.register) {
+    window.InitSystem.register('substitute-pool-management', init, {
         priority: 40,
         reinitializable: false,
         description: 'Substitute pool management'
@@ -479,7 +479,7 @@ if (InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export to window for template compatibility
 window.paginationState = paginationState;

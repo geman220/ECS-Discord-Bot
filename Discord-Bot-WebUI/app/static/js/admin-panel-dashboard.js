@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles all interactions for the admin panel dashboard.
- * Uses the centralized EventDelegation system for all click handling.
+ * Uses the centralized window.EventDelegation system for all click handling.
  *
  * Features:
  * - Navigation handling
@@ -14,7 +14,7 @@
  * - Match reports
  *
  * Architecture:
- * - Registers handlers with EventDelegation (no duplicate listeners)
+ * - Registers handlers with window.EventDelegation (no duplicate listeners)
  * - Data-action attribute driven
  * - No inline event handlers
  *
@@ -56,7 +56,7 @@ function init() {
 
 function registerEventHandlers() {
     // Handlers are now registered at module scope for proper timing
-    // See bottom of file for EventDelegation.register() calls
+    // See bottom of file for window.EventDelegation.register() calls
 }
 
 function setupNavigationCards() {
@@ -576,27 +576,27 @@ function getCSRFToken() {
 // EVENT DELEGATION - Registered at module scope
 // ============================================================================
 
-EventDelegation.register('navigate', handleNavigate);
-EventDelegation.register('open-navigation-settings', openNavigationSettings, { preventDefault: true });
-EventDelegation.register('open-registration-settings', openRegistrationSettings, { preventDefault: true });
-EventDelegation.register('open-task-monitor', openTaskMonitor, { preventDefault: true });
-EventDelegation.register('open-database-monitor', openDatabaseMonitor, { preventDefault: true });
-EventDelegation.register('open-match-reports', openMatchReports, { preventDefault: true });
-EventDelegation.register('generate-report', generateReport, { preventDefault: true });
+window.EventDelegation.register('navigate', handleNavigate);
+window.EventDelegation.register('open-navigation-settings', openNavigationSettings, { preventDefault: true });
+window.EventDelegation.register('open-registration-settings', openRegistrationSettings, { preventDefault: true });
+window.EventDelegation.register('open-task-monitor', openTaskMonitor, { preventDefault: true });
+window.EventDelegation.register('open-database-monitor', openDatabaseMonitor, { preventDefault: true });
+window.EventDelegation.register('open-match-reports', openMatchReports, { preventDefault: true });
+window.EventDelegation.register('generate-report', generateReport, { preventDefault: true });
 
 // ============================================================================
 // AUTO-INITIALIZE
 // ============================================================================
 
-// Register with InitSystem
-InitSystem.register('admin-panel-dashboard', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-panel-dashboard', init, {
     priority: 30,
     reinitializable: true,
     description: 'Admin panel dashboard'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility exports
 window.init = init;

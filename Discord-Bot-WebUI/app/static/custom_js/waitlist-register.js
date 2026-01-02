@@ -2,7 +2,7 @@
  * Waitlist Register Focus Handler
  * Auto-focuses Discord registration button and shows membership prompts
  *
- * This component is registered in InitSystem via app-init-registration.js
+ * This component is registered in window.InitSystem via app-init-registration.js
  * Component Name: waitlist-register-focus
  * Priority: 20 (Enhancements)
  */
@@ -35,9 +35,9 @@ export function init() {
     }
 }
 
-// Register with InitSystem (primary)
-if (InitSystem.register) {
-    InitSystem.register('waitlist-register-focus', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem.register) {
+    window.InitSystem.register('waitlist-register-focus', init, {
         priority: 20,
         reinitializable: false,
         description: 'Waitlist register focus and Discord prompt'
@@ -45,7 +45,7 @@ if (InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

@@ -13,7 +13,7 @@ import { ModalManager } from '../../modal-manager.js';
  * RSVP Yes Action
  * Player confirms attendance (admin can set for players)
  */
-EventDelegation.register('rsvp-yes', function(element, e) {
+window.EventDelegation.register('rsvp-yes', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -48,7 +48,7 @@ EventDelegation.register('rsvp-yes', function(element, e) {
  * RSVP No Action
  * Player confirms they cannot attend
  */
-EventDelegation.register('rsvp-no', function(element, e) {
+window.EventDelegation.register('rsvp-no', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -78,7 +78,7 @@ EventDelegation.register('rsvp-no', function(element, e) {
  * RSVP Maybe Action
  * Player is unsure about attendance
  */
-EventDelegation.register('rsvp-maybe', function(element, e) {
+window.EventDelegation.register('rsvp-maybe', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -108,7 +108,7 @@ EventDelegation.register('rsvp-maybe', function(element, e) {
  * Withdraw RSVP Action
  * Player cancels their RSVP
  */
-EventDelegation.register('rsvp-withdraw', function(element, e) {
+window.EventDelegation.register('rsvp-withdraw', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
@@ -140,7 +140,7 @@ EventDelegation.register('rsvp-withdraw', function(element, e) {
  * Send SMS Action
  * Opens modal to send SMS to player
  */
-EventDelegation.register('rsvp-request-sms', function(element, e) {
+window.EventDelegation.register('rsvp-request-sms', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -175,7 +175,7 @@ EventDelegation.register('rsvp-request-sms', function(element, e) {
             // Show modal
             const smsModal = document.querySelector('[data-modal="send-sms"]');
             if (smsModal) {
-                ModalManager.showByElement(smsModal);
+                window.ModalManager.showByElement(smsModal);
             }
         } catch (err) {
             console.error('[rsvp-request-sms] Error opening modal:', err);
@@ -197,7 +197,7 @@ EventDelegation.register('rsvp-request-sms', function(element, e) {
             if (messageEl) messageEl.value = '';
             if (charCountEl) charCountEl.textContent = '0';
 
-            ModalManager.showByElement(smsModal);
+            window.ModalManager.showByElement(smsModal);
         }
     }
 });
@@ -206,7 +206,7 @@ EventDelegation.register('rsvp-request-sms', function(element, e) {
  * Send Discord DM Action
  * Opens modal to send Discord direct message
  */
-EventDelegation.register('rsvp-request-discord-dm', function(element, e) {
+window.EventDelegation.register('rsvp-request-discord-dm', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -231,7 +231,7 @@ EventDelegation.register('rsvp-request-discord-dm', function(element, e) {
 
             const discordModal = document.querySelector('[data-modal="send-discord-dm"]');
             if (discordModal) {
-                ModalManager.showByElement(discordModal);
+                window.ModalManager.showByElement(discordModal);
             }
         } catch (err) {
             console.error('[rsvp-request-discord-dm] Error opening modal:', err);
@@ -252,7 +252,7 @@ EventDelegation.register('rsvp-request-discord-dm', function(element, e) {
             if (messageEl) messageEl.value = '';
             if (charCountEl) charCountEl.textContent = '0';
 
-            ModalManager.showByElement(discordModal);
+            window.ModalManager.showByElement(discordModal);
         }
     }
 });
@@ -262,7 +262,7 @@ EventDelegation.register('rsvp-request-discord-dm', function(element, e) {
  * Admin manually updates player RSVP status
  * This is the main handler that triggers the update via AJAX
  */
-EventDelegation.register('rsvp-update-status', function(element, e) {
+window.EventDelegation.register('rsvp-update-status', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -374,7 +374,7 @@ export function updateRSVPStatus(playerId, matchId, response) {
 /**
  * Send RSVP Reminder to all players
  */
-EventDelegation.register('send-rsvp-reminder', function(element, e) {
+window.EventDelegation.register('send-rsvp-reminder', function(element, e) {
     e.preventDefault();
     if (typeof window.sendReminder === 'function') {
         window.sendReminder();
@@ -386,7 +386,7 @@ EventDelegation.register('send-rsvp-reminder', function(element, e) {
 /**
  * Filter RSVP responses by type
  */
-EventDelegation.register('filter-rsvp-responses', function(element, e) {
+window.EventDelegation.register('filter-rsvp-responses', function(element, e) {
     e.preventDefault();
     const filterType = element.dataset.filterType || 'all';
     if (typeof window.filterResponses === 'function') {
@@ -399,7 +399,7 @@ EventDelegation.register('filter-rsvp-responses', function(element, e) {
 /**
  * Update player RSVP (admin action)
  */
-EventDelegation.register('update-player-rsvp-admin', function(element, e) {
+window.EventDelegation.register('update-player-rsvp-admin', function(element, e) {
     e.preventDefault();
     const playerId = element.dataset.playerId;
     const response = element.dataset.response;
@@ -417,7 +417,7 @@ EventDelegation.register('update-player-rsvp-admin', function(element, e) {
 /**
  * Send individual reminder to specific player
  */
-EventDelegation.register('send-individual-reminder', function(element, e) {
+window.EventDelegation.register('send-individual-reminder', function(element, e) {
     e.preventDefault();
     const playerId = element.dataset.playerId;
     if (!playerId) {
@@ -439,7 +439,7 @@ EventDelegation.register('send-individual-reminder', function(element, e) {
  * Toggle Card Expansion (Mobile)
  * Expands/collapses RSVP card details on mobile
  */
-EventDelegation.register('toggle-card-expansion', function(element, e) {
+window.EventDelegation.register('toggle-card-expansion', function(element, e) {
     e.preventDefault();
     const card = element.closest('.rsvp-mobile-card');
     if (!card) return;
@@ -462,7 +462,7 @@ EventDelegation.register('toggle-card-expansion', function(element, e) {
  * Update Substitute Slots
  * Dynamically generates substitute slot form fields
  */
-EventDelegation.register('update-substitute-slots', function(element, e) {
+window.EventDelegation.register('update-substitute-slots', function(element, e) {
     updateSubstituteSlots();
 });
 
@@ -520,7 +520,7 @@ function updateSubstituteSlots() {
 
 // ============================================================================
 
-console.log('[EventDelegation] RSVP handlers loaded');
+console.log('[window.EventDelegation] RSVP handlers loaded');
 
 // Backward compatibility
 window.updateRSVPStatus = updateRSVPStatus;

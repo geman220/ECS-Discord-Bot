@@ -8,7 +8,7 @@
  * Usage: Automatically initializes on DOMContentLoaded
  *
  * @version 1.0.1
- * @updated 2025-12-26 - Code review for EventDelegation (no changes needed - uses Hammer.js)
+ * @updated 2025-12-26 - Code review for window.EventDelegation (no changes needed - uses Hammer.js)
  */
 // ES Module
 'use strict';
@@ -582,9 +582,9 @@ export const MobileGestures = {
   // Expose globally (MUST be before any callbacks or registrations)
   window.MobileGestures = MobileGestures;
 
-  // Register with InitSystem
-  if (InitSystem && InitSystem.register) {
-    InitSystem.register('mobile-gestures', () => MobileGestures.init(), {
+  // Register with window.InitSystem
+  if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('mobile-gestures', () => MobileGestures.init(), {
       priority: 40,
       reinitializable: false,
       description: 'Mobile gesture handlers'
@@ -592,5 +592,5 @@ export const MobileGestures = {
   }
 
   // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 

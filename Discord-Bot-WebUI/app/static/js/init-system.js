@@ -12,7 +12,7 @@
  * Usage:
  *
  *   // Register a component
- *   InitSystem.register('my-component', function() {
+ *   window.InitSystem.register('my-component', function() {
  *       // Initialization code here
  *       setupEventListeners();
  *       enhanceUI();
@@ -23,12 +23,12 @@
  *   });
  *
  *   // Check if initialized
- *   if (InitSystem.isInitialized('my-component')) {
+ *   if (window.InitSystem.isInitialized('my-component')) {
  *       // Component is ready
  *   }
  *
  *   // Re-initialize specific components (for AJAX/HTMX)
- *   InitSystem.reinit(['tooltips', 'popovers', 'form-validation']);
+ *   window.InitSystem.reinit(['tooltips', 'popovers', 'form-validation']);
  *
  * Priority Levels:
  *   100-90: Core systems (helpers, menu, design-system, responsive-system)
@@ -503,14 +503,14 @@ export const InitSystemDebug = {
      * Print initialization order
      */
     printOrder() {
-        console.table(InitSystem.getInitOrder());
+        console.table(window.InitSystem.getInitOrder());
     },
 
     /**
      * Print component status
      */
     printStatus() {
-        const status = InitSystem._getStatus();
+        const status = window.InitSystem._getStatus();
         console.log('Initialization Status:', status);
         console.log(`Total: ${status.total}, Initialized: ${status.initializedCount}, Failed: ${status.failed}, Pending: ${status.pending}`);
 
@@ -528,7 +528,7 @@ export const InitSystemDebug = {
      */
     async testReinit(componentNames) {
         console.log('Testing re-initialization:', componentNames);
-        const results = await InitSystem.reinit(componentNames);
+        const results = await window.InitSystem.reinit(componentNames);
         console.log('Results:', results);
     },
 
@@ -536,7 +536,7 @@ export const InitSystemDebug = {
      * Get component details
      */
     getComponent(name) {
-        const component = InitSystem.getComponent(name);
+        const component = window.InitSystem.getComponent(name);
         if (component) {
             console.log(`Component: ${name}`, component);
         } else {
@@ -550,13 +550,13 @@ window.InitSystem = InitSystem;
 window.InitSystemDebug = InitSystemDebug;
 
 // Auto-initialize on DOMContentLoaded (if enabled)
-if (InitSystem.config.autoInit) {
+if (window.InitSystem.config.autoInit) {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-            InitSystem.init();
+            window.InitSystem.init();
         });
     } else {
         // DOM already loaded, init immediately
-        InitSystem.init();
+        window.InitSystem.init();
     }
 }

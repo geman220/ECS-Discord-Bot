@@ -8,18 +8,18 @@ import { EventDelegation } from './core.js';
  * Modular event delegation system with domain-specific handlers.
  *
  * Structure:
- * - core.js: EventDelegation object, event listeners, duplicate detection
+ * - core.js: window.EventDelegation object, event listeners, duplicate detection
  * - handlers/: Domain-specific action handlers
  *
  * Usage:
  *   import './event-delegation/index.js';
  *
- * The EventDelegation object is available globally via EventDelegation
+ * The window.EventDelegation object is available globally via window.EventDelegation
  *
  * ============================================================================
  */
 
-// Import core system (sets up EventDelegation)
+// Import core system (sets up window.EventDelegation)
 import './core.js';
 
 // ============================================================================
@@ -110,6 +110,6 @@ import './handlers/admin-cache.js';              // Draft cache stats, cache war
 // Admin Panel - Role Management
 import './handlers/admin-roles-handlers.js';     // Role CRUD, assignment, permissions
 
-// EventDelegation is available globally via EventDelegation
+// window.EventDelegation is available globally via window.EventDelegation
 
-console.log('[EventDelegation] Modular system fully loaded');
+console.log('[window.EventDelegation] Modular system fully loaded');

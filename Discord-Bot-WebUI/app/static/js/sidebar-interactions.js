@@ -581,15 +581,15 @@ export const SidebarInteractions = {
  * ============================================================================
  */
 
-// Register with InitSystem
-InitSystem.register('sidebar-interactions', init, {
+// Register with window.InitSystem
+window.InitSystem.register('sidebar-interactions', init, {
   priority: 80,
   description: 'Sidebar toggle, collapse, and mobile drawer interactions',
   reinitializable: false
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.SidebarInteractions = SidebarInteractions;

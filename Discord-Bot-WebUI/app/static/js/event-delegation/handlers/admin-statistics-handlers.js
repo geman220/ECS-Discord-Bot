@@ -19,7 +19,7 @@ import { EventDelegation } from '../core.js';
  * Recalculate Statistics
  * Opens dialog to recalculate statistics with scope selection
  */
-EventDelegation.register('recalculate-stats', function(element, e) {
+window.EventDelegation.register('recalculate-stats', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -110,7 +110,7 @@ function performRecalculation(scope, element) {
  * Export Statistics
  * Exports statistics data in specified format
  */
-EventDelegation.register('export-stats', function(element, e) {
+window.EventDelegation.register('export-stats', function(element, e) {
     e.preventDefault();
 
     const type = element.dataset.type || 'all';
@@ -171,4 +171,4 @@ EventDelegation.register('export-stats', function(element, e) {
     });
 });
 
-console.log('[EventDelegation] Admin statistics handlers loaded');
+console.log('[window.EventDelegation] Admin statistics handlers loaded');

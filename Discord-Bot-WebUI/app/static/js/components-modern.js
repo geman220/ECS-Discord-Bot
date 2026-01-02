@@ -44,7 +44,7 @@ export const ModalController = {
       // Helper to safely get element from event target
       const getElement = (target) => target instanceof Element ? target : null;
 
-      // EventDelegation handlers are registered at module scope below
+      // window.EventDelegation handlers are registered at module scope below
 
       // Close on backdrop click
       document.addEventListener('click', (e) => {
@@ -167,7 +167,7 @@ export const ToastController = {
         document.body.appendChild(this.container);
       }
 
-      // EventDelegation handler is registered at module scope below
+      // window.EventDelegation handler is registered at module scope below
     },
 
     show(options = {}) {
@@ -366,7 +366,7 @@ export const DropdownController = {
       }
       this._initialized = true;
 
-      // EventDelegation handler is registered at module scope below
+      // window.EventDelegation handler is registered at module scope below
 
       // Close if clicking outside
       document.addEventListener('click', (e) => {
@@ -598,8 +598,8 @@ export const FormController = {
  * ============================================================================
  */
 export function init() {
-    // NOTE: ModalController is DISABLED to prevent conflicts with ModalManager
-    // ModalManager (modal-manager.js) handles all Bootstrap modals (.modal class)
+    // NOTE: ModalController is DISABLED to prevent conflicts with window.ModalManager
+    // window.ModalManager (modal-manager.js) handles all Bootstrap modals (.modal class)
     // ModalController was designed for .c-modal-modern class which is not used in templates
     // Keeping the controller code for reference but not initializing it
     // ModalController.init();
@@ -622,9 +622,9 @@ export function init() {
     Form: FormController
   };
 
-  // Register with InitSystem if available
-  if (true && InitSystem.register) {
-    InitSystem.register('components-modern', init, {
+  // Register with window.InitSystem if available
+  if (true && window.InitSystem.register) {
+    window.InitSystem.register('components-modern', init, {
       priority: 70,
       description: 'Modern UI components (toast, tooltip, dropdown, table, form)',
       reinitializable: true
@@ -632,16 +632,16 @@ export function init() {
   }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
   // ============================================================================
   // EVENT DELEGATION - Registered at module scope
   // ============================================================================
-  // MUST use EventDelegation to avoid TDZ errors in bundled code.
+  // MUST use window.EventDelegation to avoid TDZ errors in bundled code.
   // Handlers registered when IIFE executes, delegating to controller instances
 
   // Toast dismiss action
-  EventDelegation.register('dismiss-toast', (element, e) => {
+  window.EventDelegation.register('dismiss-toast', (element, e) => {
     const toastId = element.dataset.toastId;
     if (toastId && window.ModernComponents?.Toast) {
       window.ModernComponents.Toast.dismiss(toastId);
@@ -649,7 +649,7 @@ export function init() {
   }, { preventDefault: true });
 
   // Dropdown trigger action
-  EventDelegation.register('dropdown-trigger', (element, e) => {
+  window.EventDelegation.register('dropdown-trigger', (element, e) => {
     const dropdownId = element.dataset.dropdownTrigger;
     if (dropdownId && window.ModernComponents?.Dropdown) {
       window.ModernComponents.Dropdown.toggle(dropdownId);

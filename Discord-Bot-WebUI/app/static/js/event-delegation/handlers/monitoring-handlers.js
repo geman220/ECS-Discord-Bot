@@ -24,14 +24,14 @@ import { EventDelegation } from '../core.js';
 /**
  * Refresh system status
  */
-EventDelegation.register('refresh-status', (element, event) => {
+window.EventDelegation.register('refresh-status', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Refreshing Status...',
         text: 'Checking all system services',
         allowOutsideClick: false,
         didOpen: () => {
-            Swal.showLoading();
+            window.Swal.showLoading();
             setTimeout(() => {
                 location.reload();
             }, 2000);
@@ -42,7 +42,7 @@ EventDelegation.register('refresh-status', (element, event) => {
 /**
  * View system logs
  */
-EventDelegation.register('view-logs', (element, event) => {
+window.EventDelegation.register('view-logs', (element, event) => {
     event.preventDefault();
     // Navigate to system logs page
     const logsUrl = element.dataset.logsUrl || '/admin/monitoring/logs';
@@ -52,9 +52,9 @@ EventDelegation.register('view-logs', (element, event) => {
 /**
  * Clear system cache
  */
-EventDelegation.register('clear-cache', (element, event) => {
+window.EventDelegation.register('clear-cache', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Clear System Cache?',
         text: 'This will clear all cached data',
         icon: 'warning',
@@ -63,7 +63,7 @@ EventDelegation.register('clear-cache', (element, event) => {
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Cache Cleared!', 'System cache has been cleared successfully.', 'success');
+            window.Swal.fire('Cache Cleared!', 'System cache has been cleared successfully.', 'success');
         }
     });
 });
@@ -71,9 +71,9 @@ EventDelegation.register('clear-cache', (element, event) => {
 /**
  * Toggle emergency mode
  */
-EventDelegation.register('emergency-mode', (element, event) => {
+window.EventDelegation.register('emergency-mode', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Emergency Mode',
         text: 'Emergency system controls coming soon!',
         icon: 'info'
@@ -87,7 +87,7 @@ EventDelegation.register('emergency-mode', (element, event) => {
 /**
  * Load historical performance data
  */
-EventDelegation.register('load-historical', (element, event) => {
+window.EventDelegation.register('load-historical', (element, event) => {
     event.preventDefault();
     const period = element.dataset.period;
 
@@ -98,14 +98,14 @@ EventDelegation.register('load-historical', (element, event) => {
         element.classList.add('active');
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Loading Data...',
         text: `Loading ${period} historical data`,
         allowOutsideClick: false,
         didOpen: () => {
-            Swal.showLoading();
+            window.Swal.showLoading();
             setTimeout(() => {
-                Swal.close();
+                window.Swal.close();
                 // Charts would update with new data here
             }, 1000);
         }
@@ -119,11 +119,11 @@ EventDelegation.register('load-historical', (element, event) => {
 /**
  * Acknowledge an alert
  */
-EventDelegation.register('acknowledge-alert', (element, event) => {
+window.EventDelegation.register('acknowledge-alert', (element, event) => {
     event.preventDefault();
     const alertId = element.dataset.alertId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Acknowledge Alert?',
         text: 'This will mark the alert as acknowledged but keep it active',
         icon: 'question',
@@ -131,7 +131,7 @@ EventDelegation.register('acknowledge-alert', (element, event) => {
         confirmButtonText: 'Acknowledge'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Alert Acknowledged!', 'The alert has been acknowledged.', 'success');
+            window.Swal.fire('Alert Acknowledged!', 'The alert has been acknowledged.', 'success');
         }
     });
 });
@@ -139,11 +139,11 @@ EventDelegation.register('acknowledge-alert', (element, event) => {
 /**
  * View alert details
  */
-EventDelegation.register('view-alert', (element, event) => {
+window.EventDelegation.register('view-alert', (element, event) => {
     event.preventDefault();
     const alertId = element.dataset.alertId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Alert Details',
         html: `
             <div class="text-start">
@@ -175,11 +175,11 @@ EventDelegation.register('view-alert', (element, event) => {
 /**
  * Resolve an alert
  */
-EventDelegation.register('resolve-alert', (element, event) => {
+window.EventDelegation.register('resolve-alert', (element, event) => {
     event.preventDefault();
     const alertId = element.dataset.alertId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Resolve Alert?',
         input: 'textarea',
         inputLabel: 'Resolution Notes (optional)',
@@ -188,7 +188,7 @@ EventDelegation.register('resolve-alert', (element, event) => {
         confirmButtonText: 'Resolve Alert'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Alert Resolved!', 'The alert has been marked as resolved.', 'success');
+            window.Swal.fire('Alert Resolved!', 'The alert has been marked as resolved.', 'success');
             location.reload();
         }
     });
@@ -197,17 +197,17 @@ EventDelegation.register('resolve-alert', (element, event) => {
 /**
  * Save alert configuration
  */
-EventDelegation.register('save-alert-config', (element, event) => {
+window.EventDelegation.register('save-alert-config', (element, event) => {
     event.preventDefault();
-    Swal.fire('Configuration Saved!', 'Alert settings have been updated.', 'success');
+    window.Swal.fire('Configuration Saved!', 'Alert settings have been updated.', 'success');
 });
 
 /**
  * Test notification channels
  */
-EventDelegation.register('test-notifications', (element, event) => {
+window.EventDelegation.register('test-notifications', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Send Test Notifications?',
         text: 'This will send test alerts to all configured notification channels',
         icon: 'question',
@@ -215,7 +215,7 @@ EventDelegation.register('test-notifications', (element, event) => {
         confirmButtonText: 'Send Test'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Test Sent!', 'Test notifications have been sent to all channels.', 'success');
+            window.Swal.fire('Test Sent!', 'Test notifications have been sent to all channels.', 'success');
         }
     });
 });
@@ -227,7 +227,7 @@ EventDelegation.register('test-notifications', (element, event) => {
 /**
  * Run database health check
  */
-EventDelegation.register('run-health-check', (element, event) => {
+window.EventDelegation.register('run-health-check', (element, event) => {
     event.preventDefault();
     const button = element.closest('button') || element;
     const originalText = button.innerHTML;
@@ -247,14 +247,14 @@ EventDelegation.register('run-health-check', (element, event) => {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            Swal.fire('Success', 'Database health check completed successfully!', 'success');
+            window.Swal.fire('Success', 'Database health check completed successfully!', 'success');
             setTimeout(() => window.location.reload(), 2000);
         } else {
-            Swal.fire('Error', 'Health check failed: ' + (data.message || 'Unknown error'), 'error');
+            window.Swal.fire('Error', 'Health check failed: ' + (data.message || 'Unknown error'), 'error');
         }
     })
     .catch(error => {
-        Swal.fire('Error', 'Failed to run health check', 'error');
+        window.Swal.fire('Error', 'Failed to run health check', 'error');
     })
     .finally(() => {
         button.innerHTML = originalText;
@@ -265,9 +265,9 @@ EventDelegation.register('run-health-check', (element, event) => {
 /**
  * Refresh database connections
  */
-EventDelegation.register('refresh-connections', (element, event) => {
+window.EventDelegation.register('refresh-connections', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Refresh Connections?',
         text: 'This will reset all idle database connections.',
         icon: 'question',
@@ -276,7 +276,7 @@ EventDelegation.register('refresh-connections', (element, event) => {
         confirmButtonText: 'Yes, refresh!'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Success', 'Database connections refreshed!', 'success');
+            window.Swal.fire('Success', 'Database connections refreshed!', 'success');
         }
     });
 });
@@ -284,9 +284,9 @@ EventDelegation.register('refresh-connections', (element, event) => {
 /**
  * Flush query cache
  */
-EventDelegation.register('flush-query-cache', (element, event) => {
+window.EventDelegation.register('flush-query-cache', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Flush Query Cache?',
         text: 'This will clear all cached query results.',
         icon: 'warning',
@@ -295,7 +295,7 @@ EventDelegation.register('flush-query-cache', (element, event) => {
         confirmButtonText: 'Yes, flush cache!'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Success', 'Query cache flushed!', 'success');
+            window.Swal.fire('Success', 'Query cache flushed!', 'success');
         }
     });
 });
@@ -303,9 +303,9 @@ EventDelegation.register('flush-query-cache', (element, event) => {
 /**
  * Analyze database performance
  */
-EventDelegation.register('analyze-performance', (element, event) => {
+window.EventDelegation.register('analyze-performance', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Analyze Performance?',
         text: 'This will run a comprehensive performance analysis.',
         icon: 'info',
@@ -313,7 +313,7 @@ EventDelegation.register('analyze-performance', (element, event) => {
         confirmButtonText: 'Yes, analyze!'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Info', 'Performance analysis started. Results will be available shortly.', 'info');
+            window.Swal.fire('Info', 'Performance analysis started. Results will be available shortly.', 'info');
         }
     });
 });
@@ -321,9 +321,9 @@ EventDelegation.register('analyze-performance', (element, event) => {
 /**
  * Optimize database
  */
-EventDelegation.register('optimize-database', (element, event) => {
+window.EventDelegation.register('optimize-database', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Optimize Database?',
         text: 'This will run database optimization routines. This may take a few minutes.',
         icon: 'question',
@@ -332,7 +332,7 @@ EventDelegation.register('optimize-database', (element, event) => {
         confirmButtonText: 'Yes, optimize!'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Success', 'Database optimization completed!', 'success');
+            window.Swal.fire('Success', 'Database optimization completed!', 'success');
         }
     });
 });
@@ -344,7 +344,7 @@ EventDelegation.register('optimize-database', (element, event) => {
 /**
  * View task details
  */
-EventDelegation.register('view-task', (element, event) => {
+window.EventDelegation.register('view-task', (element, event) => {
     event.preventDefault();
     const taskId = element.dataset.taskId;
     const taskDetailsUrl = element.dataset.taskDetailsUrl || `/admin/monitoring/tasks/${taskId}/details`;
@@ -353,29 +353,29 @@ EventDelegation.register('view-task', (element, event) => {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                Swal.fire({
+                window.Swal.fire({
                     title: `Task Details: ${taskId.substring(0, 8)}`,
                     html: data.html,
                     width: '800px',
                     confirmButtonText: 'Close'
                 });
             } else {
-                Swal.fire('Error', data.message || 'Failed to load task details', 'error');
+                window.Swal.fire('Error', data.message || 'Failed to load task details', 'error');
             }
         })
         .catch(error => {
-            Swal.fire('Error', 'Failed to load task details', 'error');
+            window.Swal.fire('Error', 'Failed to load task details', 'error');
         });
 });
 
 /**
  * Retry a failed task
  */
-EventDelegation.register('retry-task', (element, event) => {
+window.EventDelegation.register('retry-task', (element, event) => {
     event.preventDefault();
     const taskId = element.dataset.taskId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Retry Task?',
         text: 'This will attempt to run the failed task again',
         icon: 'question',
@@ -383,7 +383,7 @@ EventDelegation.register('retry-task', (element, event) => {
         confirmButtonText: 'Retry Task'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Task Queued!', 'The task has been queued for retry.', 'success');
+            window.Swal.fire('Task Queued!', 'The task has been queued for retry.', 'success');
         }
     });
 });
@@ -391,11 +391,11 @@ EventDelegation.register('retry-task', (element, event) => {
 /**
  * Kill a zombie task
  */
-EventDelegation.register('kill-task', (element, event) => {
+window.EventDelegation.register('kill-task', (element, event) => {
     event.preventDefault();
     const taskId = element.dataset.taskId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Kill Zombie Task?',
         text: 'This will forcefully terminate the zombie task',
         icon: 'warning',
@@ -404,7 +404,7 @@ EventDelegation.register('kill-task', (element, event) => {
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Task Killed!', 'The zombie task has been terminated.', 'success');
+            window.Swal.fire('Task Killed!', 'The zombie task has been terminated.', 'success');
         }
     });
 });
@@ -412,9 +412,9 @@ EventDelegation.register('kill-task', (element, event) => {
 /**
  * Cleanup all zombie tasks
  */
-EventDelegation.register('cleanup-zombies', (element, event) => {
+window.EventDelegation.register('cleanup-zombies', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Cleanup All Zombie Tasks?',
         text: 'This will terminate all zombie tasks',
         icon: 'warning',
@@ -423,7 +423,7 @@ EventDelegation.register('cleanup-zombies', (element, event) => {
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Zombies Cleaned!', 'All zombie tasks have been terminated.', 'success');
+            window.Swal.fire('Zombies Cleaned!', 'All zombie tasks have been terminated.', 'success');
         }
     });
 });
@@ -435,7 +435,7 @@ EventDelegation.register('cleanup-zombies', (element, event) => {
 /**
  * Refresh active tasks
  */
-EventDelegation.register('refresh-tasks', (element, event) => {
+window.EventDelegation.register('refresh-tasks', (element, event) => {
     event.preventDefault();
     const button = element.closest('button') || element;
     const originalText = button.innerHTML;
@@ -450,7 +450,7 @@ EventDelegation.register('refresh-tasks', (element, event) => {
 /**
  * View task details from task monitor
  */
-EventDelegation.register('view-task-details', (element, event) => {
+window.EventDelegation.register('view-task-details', (element, event) => {
     event.preventDefault();
     const taskId = element.dataset.taskId;
     const taskName = element.dataset.taskName || 'Task';
@@ -461,8 +461,8 @@ EventDelegation.register('view-task-details', (element, event) => {
     if (modalTitle) modalTitle.textContent = `Details for ${taskName}`;
     if (modalContent) modalContent.innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
 
-    if (typeof ModalManager !== 'undefined') {
-        ModalManager.show('taskDetailsModal');
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('taskDetailsModal');
     }
 
     const taskDetailsUrl = element.dataset.taskDetailsUrl || '/admin/monitoring/tasks/details';
@@ -486,7 +486,7 @@ EventDelegation.register('view-task-details', (element, event) => {
 /**
  * View task logs
  */
-EventDelegation.register('view-task-logs', (element, event) => {
+window.EventDelegation.register('view-task-logs', (element, event) => {
     event.preventDefault();
     const taskId = element.dataset.taskId;
     const taskName = element.dataset.taskName || 'Task';
@@ -497,8 +497,8 @@ EventDelegation.register('view-task-logs', (element, event) => {
     if (modalTitle) modalTitle.textContent = `Logs for ${taskName}`;
     if (modalContent) modalContent.innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
 
-    if (typeof ModalManager !== 'undefined') {
-        ModalManager.show('taskLogsModal');
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('taskLogsModal');
     }
 
     const taskLogsUrl = element.dataset.taskLogsUrl || '/admin/monitoring/tasks/logs';
@@ -522,12 +522,12 @@ EventDelegation.register('view-task-logs', (element, event) => {
 /**
  * Cancel a running task
  */
-EventDelegation.register('cancel-task', (element, event) => {
+window.EventDelegation.register('cancel-task', (element, event) => {
     event.preventDefault();
     const taskId = element.dataset.taskId;
     const taskName = element.dataset.taskName || 'this task';
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Cancel Task?',
         text: `Cancel the running task "${taskName}"? This action cannot be undone.`,
         icon: 'warning',
@@ -569,7 +569,7 @@ EventDelegation.register('cancel-task', (element, event) => {
 /**
  * Refresh logs
  */
-EventDelegation.register('refresh-logs', (element, event) => {
+window.EventDelegation.register('refresh-logs', (element, event) => {
     event.preventDefault();
     location.reload();
 });
@@ -577,7 +577,7 @@ EventDelegation.register('refresh-logs', (element, event) => {
 /**
  * Export logs
  */
-EventDelegation.register('export-logs', (element, event) => {
+window.EventDelegation.register('export-logs', (element, event) => {
     event.preventDefault();
     const params = new URLSearchParams(window.location.search);
     params.set('export', 'true');
@@ -587,9 +587,9 @@ EventDelegation.register('export-logs', (element, event) => {
 /**
  * Clear old logs
  */
-EventDelegation.register('clear-old-logs', (element, event) => {
+window.EventDelegation.register('clear-old-logs', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Clear Old Logs?',
         text: 'This will delete log entries older than 30 days',
         icon: 'warning',
@@ -597,7 +597,7 @@ EventDelegation.register('clear-old-logs', (element, event) => {
         confirmButtonText: 'Clear Old Logs'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Logs Cleared!', 'Old log entries have been removed.', 'success');
+            window.Swal.fire('Logs Cleared!', 'Old log entries have been removed.', 'success');
         }
     });
 });
@@ -605,7 +605,7 @@ EventDelegation.register('clear-old-logs', (element, event) => {
 /**
  * Start live tail
  */
-EventDelegation.register('start-tail', (element, event) => {
+window.EventDelegation.register('start-tail', (element, event) => {
     event.preventDefault();
     const liveTailArea = document.getElementById('liveTailArea');
     const liveTailContent = document.getElementById('liveTailContent');
@@ -629,7 +629,7 @@ EventDelegation.register('start-tail', (element, event) => {
 /**
  * Stop live tail
  */
-EventDelegation.register('stop-tail', (element, event) => {
+window.EventDelegation.register('stop-tail', (element, event) => {
     event.preventDefault();
     const liveTailArea = document.getElementById('liveTailArea');
 
@@ -646,11 +646,11 @@ EventDelegation.register('stop-tail', (element, event) => {
 /**
  * View log details
  */
-EventDelegation.register('view-log-details', (element, event) => {
+window.EventDelegation.register('view-log-details', (element, event) => {
     event.preventDefault();
     const logId = element.dataset.logId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Log Entry Details',
         html: `
             <div class="text-start">
@@ -682,4 +682,4 @@ Exception: Sample error occurred
     });
 });
 
-console.log('[EventDelegation] Monitoring handlers loaded');
+console.log('[window.EventDelegation] Monitoring handlers loaded');

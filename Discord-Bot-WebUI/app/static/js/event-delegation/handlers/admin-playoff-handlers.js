@@ -19,7 +19,7 @@ import { EventDelegation } from '../core.js';
  * Create Playoff
  * Opens dialog to create a new playoff tournament
  */
-EventDelegation.register('create-playoff', function(element, e) {
+window.EventDelegation.register('create-playoff', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -81,7 +81,7 @@ EventDelegation.register('create-playoff', function(element, e) {
  * View Active Playoffs
  * Shows active playoff tournaments
  */
-EventDelegation.register('view-active', function(element, e) {
+window.EventDelegation.register('view-active', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -101,7 +101,7 @@ EventDelegation.register('view-active', function(element, e) {
  * Bracket Generator
  * Opens the bracket generator tool
  */
-EventDelegation.register('bracket-gen', function(element, e) {
+window.EventDelegation.register('bracket-gen', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -121,7 +121,7 @@ EventDelegation.register('bracket-gen', function(element, e) {
  * Seed Teams
  * Opens team seeding interface
  */
-EventDelegation.register('seed-teams', function(element, e) {
+window.EventDelegation.register('seed-teams', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -145,7 +145,7 @@ EventDelegation.register('seed-teams', function(element, e) {
  * Update Results
  * Opens match results update interface
  */
-EventDelegation.register('update-results', function(element, e) {
+window.EventDelegation.register('update-results', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -165,7 +165,7 @@ EventDelegation.register('update-results', function(element, e) {
  * View Brackets
  * Shows bracket visualization
  */
-EventDelegation.register('view-brackets', function(element, e) {
+window.EventDelegation.register('view-brackets', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -185,7 +185,7 @@ EventDelegation.register('view-brackets', function(element, e) {
  * Playoff History
  * Shows historical playoff data
  */
-EventDelegation.register('playoff-history', function(element, e) {
+window.EventDelegation.register('playoff-history', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -205,7 +205,7 @@ EventDelegation.register('playoff-history', function(element, e) {
  * Generate Reports
  * Generates playoff reports
  */
-EventDelegation.register('generate-reports', function(element, e) {
+window.EventDelegation.register('generate-reports', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -229,7 +229,7 @@ EventDelegation.register('generate-reports', function(element, e) {
  * Manage Tournament
  * Opens tournament management interface
  */
-EventDelegation.register('manage-tournament', function(element, e) {
+window.EventDelegation.register('manage-tournament', function(element, e) {
     e.preventDefault();
 
     const tournamentId = element.dataset.tournamentId;
@@ -256,7 +256,7 @@ EventDelegation.register('manage-tournament', function(element, e) {
  * View Bracket
  * Shows bracket for specific tournament
  */
-EventDelegation.register('view-bracket', function(element, e) {
+window.EventDelegation.register('view-bracket', function(element, e) {
     e.preventDefault();
 
     const tournamentId = element.dataset.tournamentId;
@@ -287,7 +287,7 @@ EventDelegation.register('view-bracket', function(element, e) {
  * Use Template
  * Uses a playoff template to create a tournament
  */
-EventDelegation.register('use-template', function(element, e) {
+window.EventDelegation.register('use-template', function(element, e) {
     e.preventDefault();
 
     const templateType = element.dataset.template;
@@ -327,4 +327,4 @@ EventDelegation.register('use-template', function(element, e) {
     });
 });
 
-console.log('[EventDelegation] Admin playoff handlers loaded');
+console.log('[window.EventDelegation] Admin playoff handlers loaded');

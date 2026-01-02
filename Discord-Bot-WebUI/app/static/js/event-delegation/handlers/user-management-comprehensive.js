@@ -65,8 +65,8 @@ let editUserForm = null;
  * Initialize modal references when DOM is ready
  */
 function initModalReferences() {
-    if (typeof ModalManager !== 'undefined') {
-        editUserModal = ModalManager.getInstance('editUserModal');
+    if (typeof window.ModalManager !== 'undefined') {
+        editUserModal = window.ModalManager.getInstance('editUserModal');
     }
     editUserForm = document.getElementById('editUserForm');
 }
@@ -101,8 +101,8 @@ function filterTeamsByLeague(leagueId, teamSelect, showLeagueName = false) {
  * Show loading dialog
  */
 function showLoading(title = 'Loading...') {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             title: title,
             html: '<div class="text-center"><div class="spinner-border text-primary" role="status" data-spinner></div></div>',
             allowOutsideClick: false,
@@ -112,11 +112,11 @@ function showLoading(title = 'Loading...') {
 }
 
 /**
- * Close any open Swal dialog
+ * Close any open window.Swal dialog
  */
 function closeLoading() {
-    if (typeof Swal !== 'undefined') {
-        Swal.close();
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.close();
     }
 }
 
@@ -124,8 +124,8 @@ function closeLoading() {
  * Show notification
  */
 function showNotification(title, message, type = 'info') {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire(title, message, type);
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire(title, message, type);
     } else {
         alert(`${title}: ${message}`);
     }
@@ -239,7 +239,7 @@ function getSelectedUserIds() {
  * Handle Reset Password button click
  * Opens the reset password modal for a user
  */
-EventDelegation.register('reset-user-password', function(element, e) {
+window.EventDelegation.register('reset-user-password', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -266,7 +266,7 @@ EventDelegation.register('reset-user-password', function(element, e) {
  * Handle Approve User button click (manage_users.html variant)
  * Approves a pending user via global handler
  */
-EventDelegation.register('approve-user-status', function(element, e) {
+window.EventDelegation.register('approve-user-status', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -291,7 +291,7 @@ EventDelegation.register('approve-user-status', function(element, e) {
  * Handle Remove User button click
  * Removes a user via global handler
  */
-EventDelegation.register('remove-user', function(element, e) {
+window.EventDelegation.register('remove-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -316,7 +316,7 @@ EventDelegation.register('remove-user', function(element, e) {
  * Handle Edit User button click
  * Loads user data and opens the edit modal
  */
-EventDelegation.register('edit-user', function(element, e) {
+window.EventDelegation.register('edit-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -337,10 +337,10 @@ EventDelegation.register('edit-user', function(element, e) {
                 if (editUserModal) {
                     editUserModal.show();
                 } else {
-                    // Fallback to bootstrap modal
+                    // Fallback to window.bootstrap modal
                     const modalEl = document.getElementById('editUserModal');
-                    if (modalEl && typeof bootstrap !== 'undefined') {
-                        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    if (modalEl && typeof window.bootstrap !== 'undefined') {
+                        const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
                         modal.show();
                     }
                 }
@@ -358,7 +358,7 @@ EventDelegation.register('edit-user', function(element, e) {
 // APPROVE USER
 // ============================================================================
 
-EventDelegation.register('approve-user', function(element, e) {
+window.EventDelegation.register('approve-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -367,14 +367,14 @@ EventDelegation.register('approve-user', function(element, e) {
         return;
     }
 
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         if (confirm('Approve this user? This will allow them to access the system.')) {
             performUserAction(userId, 'approve');
         }
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Approve User?',
         text: 'This will approve the user and allow them to access the system.',
         icon: 'question',
@@ -392,7 +392,7 @@ EventDelegation.register('approve-user', function(element, e) {
 // DEACTIVATE USER
 // ============================================================================
 
-EventDelegation.register('deactivate-user', function(element, e) {
+window.EventDelegation.register('deactivate-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -401,14 +401,14 @@ EventDelegation.register('deactivate-user', function(element, e) {
         return;
     }
 
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         if (confirm('Deactivate this user? This will prevent them from accessing the system.')) {
             performUserAction(userId, 'deactivate');
         }
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Deactivate User?',
         text: 'This will prevent the user from accessing the system.',
         icon: 'warning',
@@ -426,7 +426,7 @@ EventDelegation.register('deactivate-user', function(element, e) {
 // ACTIVATE USER
 // ============================================================================
 
-EventDelegation.register('activate-user', function(element, e) {
+window.EventDelegation.register('activate-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -435,14 +435,14 @@ EventDelegation.register('activate-user', function(element, e) {
         return;
     }
 
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         if (confirm('Activate this user? This will allow them to access the system.')) {
             performUserAction(userId, 'activate');
         }
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Activate User?',
         text: 'This will allow the user to access the system.',
         icon: 'question',
@@ -460,7 +460,7 @@ EventDelegation.register('activate-user', function(element, e) {
 // DELETE USER
 // ============================================================================
 
-EventDelegation.register('delete-user', function(element, e) {
+window.EventDelegation.register('delete-user', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -469,14 +469,14 @@ EventDelegation.register('delete-user', function(element, e) {
         return;
     }
 
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         if (confirm('DELETE this user? This action cannot be undone!')) {
             performUserAction(userId, 'delete');
         }
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Delete User?',
         text: 'This will permanently delete the user. This action cannot be undone!',
         icon: 'warning',
@@ -534,7 +534,7 @@ function performUserAction(userId, action) {
 // BULK ACTIONS
 // ============================================================================
 
-EventDelegation.register('bulk-action', function(element, e) {
+window.EventDelegation.register('bulk-action', function(element, e) {
     e.preventDefault();
 
     const action = element.dataset.bulkAction;
@@ -552,14 +552,14 @@ EventDelegation.register('bulk-action', function(element, e) {
 
     const actionText = action.charAt(0).toUpperCase() + action.slice(1);
 
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         if (confirm(`${actionText} ${selectedUsers.length} selected users?`)) {
             performBulkAction(action, selectedUsers);
         }
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: `${actionText} Selected Users?`,
         text: `This will ${action} ${selectedUsers.length} selected users.`,
         icon: 'question',
@@ -576,7 +576,7 @@ EventDelegation.register('bulk-action', function(element, e) {
 /**
  * Handle bulk approve button (convenience action)
  */
-EventDelegation.register('bulk-approve-users', function(element, e) {
+window.EventDelegation.register('bulk-approve-users', function(element, e) {
     e.preventDefault();
 
     const selectedUsers = getSelectedUserIds();
@@ -586,14 +586,14 @@ EventDelegation.register('bulk-approve-users', function(element, e) {
         return;
     }
 
-    if (typeof Swal === 'undefined') {
+    if (typeof window.Swal === 'undefined') {
         if (confirm(`Approve ${selectedUsers.length} selected users?`)) {
             performBulkAction('approve', selectedUsers);
         }
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Approve Selected Users?',
         text: `This will approve ${selectedUsers.length} selected users.`,
         icon: 'question',
@@ -647,7 +647,7 @@ function performBulkAction(action, selectedUsers) {
 // CREATE USER
 // ============================================================================
 
-EventDelegation.register('create-user', function(element, e) {
+window.EventDelegation.register('create-user', function(element, e) {
     e.preventDefault();
     showNotification('Feature Coming Soon', 'User creation functionality will be added soon.', 'info');
 }, { preventDefault: true });
@@ -656,7 +656,7 @@ EventDelegation.register('create-user', function(element, e) {
 // EXPORT USERS
 // ============================================================================
 
-EventDelegation.register('export-users', function(element, e) {
+window.EventDelegation.register('export-users', function(element, e) {
     e.preventDefault();
     const exportType = element.dataset.exportType || 'all';
     showNotification('Feature Coming Soon', `User export (${exportType}) functionality will be added soon.`, 'info');
@@ -666,7 +666,7 @@ EventDelegation.register('export-users', function(element, e) {
 // SYNC USERS
 // ============================================================================
 
-EventDelegation.register('sync-users', function(element, e) {
+window.EventDelegation.register('sync-users', function(element, e) {
     e.preventDefault();
     showNotification('Feature Coming Soon', 'WooCommerce sync functionality will be added soon.', 'info');
 }, { preventDefault: true });
@@ -734,8 +734,8 @@ function handleEditUserSubmit(e) {
             editUserModal.hide();
         } else {
             const modalEl = document.getElementById('editUserModal');
-            if (modalEl && typeof bootstrap !== 'undefined') {
-                const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modalEl && typeof window.bootstrap !== 'undefined') {
+                const modal = window.bootstrap.Modal.getInstance(modalEl);
                 if (modal) modal.hide();
             }
         }
@@ -776,12 +776,12 @@ function init() {
         form.addEventListener('submit', handleEditUserSubmit);
     }
 
-    console.log('[EventDelegation] User management comprehensive initialized');
+    console.log('[window.EventDelegation] User management comprehensive initialized');
 }
 
-// Register with InitSystem
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('user-management-comprehensive', init, {
+// Register with window.InitSystem
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('user-management-comprehensive', init, {
         priority: 50,
         reinitializable: false,
         description: 'Comprehensive user management handlers'
@@ -789,6 +789,6 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
-console.log('[EventDelegation] User management comprehensive handlers loaded');
+console.log('[window.EventDelegation] User management comprehensive handlers loaded');

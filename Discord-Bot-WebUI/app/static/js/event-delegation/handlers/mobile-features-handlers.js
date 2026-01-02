@@ -27,9 +27,9 @@ import { EventDelegation } from '../core.js';
 /**
  * Emergency kill switch for all mobile features
  */
-EventDelegation.register('emergency-kill-switch', (element, event) => {
+window.EventDelegation.register('emergency-kill-switch', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Emergency Kill Switch',
         text: 'This will immediately disable ALL mobile features for ALL users!',
         icon: 'error',
@@ -39,18 +39,18 @@ EventDelegation.register('emergency-kill-switch', (element, event) => {
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Disabling All Features...',
                 text: 'Emergency shutdown in progress',
                 allowOutsideClick: false,
                 didOpen: () => {
-                    Swal.showLoading();
+                    window.Swal.showLoading();
                     setTimeout(() => {
                         // Disable all feature toggles
                         document.querySelectorAll('input[data-feature]').forEach(toggle => {
                             toggle.checked = false;
                         });
-                        Swal.fire('Emergency Shutdown Complete!', 'All mobile features have been disabled.', 'warning');
+                        window.Swal.fire('Emergency Shutdown Complete!', 'All mobile features have been disabled.', 'warning');
                     }, 3000);
                 }
             });
@@ -61,7 +61,7 @@ EventDelegation.register('emergency-kill-switch', (element, event) => {
 /**
  * Export feature configuration
  */
-EventDelegation.register('export-feature-config', (element, event) => {
+window.EventDelegation.register('export-feature-config', (element, event) => {
     event.preventDefault();
     const config = {
         features: {},
@@ -89,13 +89,13 @@ EventDelegation.register('export-feature-config', (element, event) => {
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
 
-    Swal.fire('Config Exported!', 'Feature configuration has been downloaded.', 'success');
+    window.Swal.fire('Config Exported!', 'Feature configuration has been downloaded.', 'success');
 });
 
 /**
  * Save feature rollout settings
  */
-EventDelegation.register('save-feature-settings', (element, event) => {
+window.EventDelegation.register('save-feature-settings', (element, event) => {
     event.preventDefault();
     const settings = {
         defaultFeatureState: document.getElementById('defaultFeatureState')?.value,
@@ -104,7 +104,7 @@ EventDelegation.register('save-feature-settings', (element, event) => {
         autoRollbackEnabled: document.getElementById('autoRollbackEnabled')?.checked
     };
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Save Feature Settings?',
         text: 'This will update the global feature rollout configuration',
         icon: 'question',
@@ -112,13 +112,13 @@ EventDelegation.register('save-feature-settings', (element, event) => {
         confirmButtonText: 'Save Settings'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Saving Settings...',
                 allowOutsideClick: false,
                 didOpen: () => {
-                    Swal.showLoading();
+                    window.Swal.showLoading();
                     setTimeout(() => {
-                        Swal.fire('Settings Saved!', 'Feature rollout settings have been updated.', 'success');
+                        window.Swal.fire('Settings Saved!', 'Feature rollout settings have been updated.', 'success');
                     }, 2000);
                 }
             });
@@ -133,7 +133,7 @@ EventDelegation.register('save-feature-settings', (element, event) => {
 /**
  * Update chart with time period
  */
-EventDelegation.register('update-chart', (element, event) => {
+window.EventDelegation.register('update-chart', (element, event) => {
     event.preventDefault();
     const period = element.dataset.period;
 
@@ -144,13 +144,13 @@ EventDelegation.register('update-chart', (element, event) => {
         element.classList.add('active');
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Loading Data...',
         text: `Loading ${period} analytics data`,
         allowOutsideClick: false,
         timer: 1500,
         didOpen: () => {
-            Swal.showLoading();
+            window.Swal.showLoading();
         }
     });
 });
@@ -158,9 +158,9 @@ EventDelegation.register('update-chart', (element, event) => {
 /**
  * Export analytics data
  */
-EventDelegation.register('export-analytics', (element, event) => {
+window.EventDelegation.register('export-analytics', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Export Analytics',
         text: 'Choose export format and date range',
         icon: 'info',
@@ -189,7 +189,7 @@ EventDelegation.register('export-analytics', (element, event) => {
         `
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Export Started', 'Your analytics export will download shortly.', 'success');
+            window.Swal.fire('Export Started', 'Your analytics export will download shortly.', 'success');
         }
     });
 });
@@ -197,7 +197,7 @@ EventDelegation.register('export-analytics', (element, event) => {
 /**
  * Refresh analytics data
  */
-EventDelegation.register('refresh-analytics', (element, event) => {
+window.EventDelegation.register('refresh-analytics', (element, event) => {
     event.preventDefault();
     location.reload();
 });
@@ -205,9 +205,9 @@ EventDelegation.register('refresh-analytics', (element, event) => {
 /**
  * View detailed user flow analysis
  */
-EventDelegation.register('view-detailed-flow', (element, event) => {
+window.EventDelegation.register('view-detailed-flow', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'User Flow Analysis',
         html: `
             <div class="text-start">
@@ -243,9 +243,9 @@ EventDelegation.register('view-detailed-flow', (element, event) => {
 /**
  * Export error data
  */
-EventDelegation.register('export-errors', (element, event) => {
+window.EventDelegation.register('export-errors', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Export Errors',
         html: `
             <div class="text-start">
@@ -275,7 +275,7 @@ EventDelegation.register('export-errors', (element, event) => {
             const format = document.getElementById('exportFormat')?.value || 'csv';
             const exportUrl = element.dataset.exportUrl || '/admin/mobile/errors';
             window.location.href = `${exportUrl}?export=true&days=${days}&format=${format}`;
-            Swal.fire('Exporting...', 'Your download will start shortly.', 'info');
+            window.Swal.fire('Exporting...', 'Your download will start shortly.', 'info');
         }
     });
 });
@@ -287,16 +287,16 @@ EventDelegation.register('export-errors', (element, event) => {
 /**
  * Execute error data cleanup
  */
-EventDelegation.register('execute-cleanup', (element, event) => {
+window.EventDelegation.register('execute-cleanup', (element, event) => {
     event.preventDefault();
     const confirmCheckbox = document.getElementById('confirmCleanup');
 
     if (!confirmCheckbox?.checked) {
-        Swal.fire('Confirmation Required', 'Please check the confirmation box before proceeding.', 'warning');
+        window.Swal.fire('Confirmation Required', 'Please check the confirmation box before proceeding.', 'warning');
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Execute Cleanup?',
         html: `
             <p>This will permanently delete old error data based on retention settings.</p>
@@ -310,12 +310,12 @@ EventDelegation.register('execute-cleanup', (element, event) => {
     }).then(async (result) => {
         if (!result.isConfirmed) return;
 
-        Swal.fire({
+        window.Swal.fire({
             title: 'Executing Cleanup...',
             text: 'Please wait while old data is being deleted',
             allowOutsideClick: false,
             didOpen: () => {
-                Swal.showLoading();
+                window.Swal.showLoading();
             }
         });
 
@@ -335,7 +335,7 @@ EventDelegation.register('execute-cleanup', (element, event) => {
             const data = await response.json();
 
             if (data.status === 'success') {
-                await Swal.fire({
+                await window.Swal.fire({
                     icon: 'success',
                     title: 'Cleanup Complete',
                     html: `
@@ -350,11 +350,11 @@ EventDelegation.register('execute-cleanup', (element, event) => {
                 });
                 location.reload();
             } else {
-                Swal.fire('Error', data.error || 'Cleanup failed', 'error');
+                window.Swal.fire('Error', data.error || 'Cleanup failed', 'error');
             }
         } catch (error) {
             console.error('Cleanup error:', error);
-            Swal.fire('Error', 'Failed to execute cleanup. Please try again.', 'error');
+            window.Swal.fire('Error', 'Failed to execute cleanup. Please try again.', 'error');
         }
     });
 });
@@ -366,12 +366,12 @@ EventDelegation.register('execute-cleanup', (element, event) => {
 /**
  * Copy device token to clipboard
  */
-EventDelegation.register('copy-token', (element, event) => {
+window.EventDelegation.register('copy-token', (element, event) => {
     event.preventDefault();
     const token = element.dataset.token;
 
     navigator.clipboard.writeText(token).then(() => {
-        Swal.fire({
+        window.Swal.fire({
             icon: 'success',
             title: 'Token Copied!',
             text: 'Device token has been copied to clipboard',
@@ -387,7 +387,7 @@ EventDelegation.register('copy-token', (element, event) => {
         document.execCommand('copy');
         document.body.removeChild(textarea);
 
-        Swal.fire({
+        window.Swal.fire({
             icon: 'success',
             title: 'Token Copied!',
             text: 'Device token has been copied to clipboard',
@@ -400,11 +400,11 @@ EventDelegation.register('copy-token', (element, event) => {
 /**
  * View device token details
  */
-EventDelegation.register('view-token', (element, event) => {
+window.EventDelegation.register('view-token', (element, event) => {
     event.preventDefault();
     const tokenId = element.dataset.tokenId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Device Token Details',
         html: `
             <div class="text-start">
@@ -440,11 +440,11 @@ EventDelegation.register('view-token', (element, event) => {
 /**
  * Send test notification to device
  */
-EventDelegation.register('test-notification', (element, event) => {
+window.EventDelegation.register('test-notification', (element, event) => {
     event.preventDefault();
     const tokenId = element.dataset.tokenId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Send Test Notification',
         html: `
             <div class="text-start">
@@ -469,7 +469,7 @@ EventDelegation.register('test-notification', (element, event) => {
         preConfirm: () => {
             const message = document.getElementById('testMessage')?.value;
             if (!message?.trim()) {
-                Swal.showValidationMessage('Please enter a test message');
+                window.Swal.showValidationMessage('Please enter a test message');
                 return false;
             }
             return {
@@ -479,7 +479,7 @@ EventDelegation.register('test-notification', (element, event) => {
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Test Sent!', 'Test notification has been sent to the device.', 'success');
+            window.Swal.fire('Test Sent!', 'Test notification has been sent to the device.', 'success');
         }
     });
 });
@@ -487,11 +487,11 @@ EventDelegation.register('test-notification', (element, event) => {
 /**
  * Activate a device token
  */
-EventDelegation.register('activate-token', (element, event) => {
+window.EventDelegation.register('activate-token', (element, event) => {
     event.preventDefault();
     const tokenId = element.dataset.tokenId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Activate Token?',
         text: 'This will enable push notifications for this device',
         icon: 'question',
@@ -499,7 +499,7 @@ EventDelegation.register('activate-token', (element, event) => {
         confirmButtonText: 'Activate'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Token Activated!', 'Push notifications enabled for this device.', 'success')
+            window.Swal.fire('Token Activated!', 'Push notifications enabled for this device.', 'success')
                 .then(() => location.reload());
         }
     });
@@ -508,13 +508,13 @@ EventDelegation.register('activate-token', (element, event) => {
 /**
  * Deactivate a device token
  */
-EventDelegation.register('deactivate-token', (element, event) => {
+window.EventDelegation.register('deactivate-token', (element, event) => {
     event.preventDefault();
     const tokenId = element.dataset.tokenId;
     const deactivateUrl = element.dataset.deactivateUrl || '/admin/mobile/push/deactivate';
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Deactivate Token?',
         text: 'This will disable push notifications for this device',
         icon: 'warning',
@@ -534,14 +534,14 @@ EventDelegation.register('deactivate-token', (element, event) => {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Token Deactivated!', 'Push notifications disabled for this device.', 'success')
+                    window.Swal.fire('Token Deactivated!', 'Push notifications disabled for this device.', 'success')
                         .then(() => location.reload());
                 } else {
-                    Swal.fire('Error', data.message || 'Failed to deactivate token', 'error');
+                    window.Swal.fire('Error', data.message || 'Failed to deactivate token', 'error');
                 }
             })
             .catch(error => {
-                Swal.fire('Error', 'Failed to deactivate token', 'error');
+                window.Swal.fire('Error', 'Failed to deactivate token', 'error');
             });
         }
     });
@@ -550,11 +550,11 @@ EventDelegation.register('deactivate-token', (element, event) => {
 /**
  * Delete a device token
  */
-EventDelegation.register('delete-token', (element, event) => {
+window.EventDelegation.register('delete-token', (element, event) => {
     event.preventDefault();
     const tokenId = element.dataset.tokenId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Delete Token?',
         text: 'This will permanently remove this device token. This action cannot be undone.',
         icon: 'error',
@@ -563,7 +563,7 @@ EventDelegation.register('delete-token', (element, event) => {
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Token Deleted!', 'Device token has been permanently removed.', 'success')
+            window.Swal.fire('Token Deleted!', 'Device token has been permanently removed.', 'success')
                 .then(() => location.reload());
         }
     });
@@ -572,16 +572,16 @@ EventDelegation.register('delete-token', (element, event) => {
 /**
  * Bulk activate selected tokens
  */
-EventDelegation.register('bulk-activate', (element, event) => {
+window.EventDelegation.register('bulk-activate', (element, event) => {
     event.preventDefault();
     const selectedTokens = Array.from(document.querySelectorAll('.token-checkbox:checked')).map(cb => cb.value);
 
     if (selectedTokens.length === 0) {
-        Swal.fire('No Tokens Selected', 'Please select tokens to activate.', 'warning');
+        window.Swal.fire('No Tokens Selected', 'Please select tokens to activate.', 'warning');
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: `Activate ${selectedTokens.length} Tokens?`,
         text: 'This will enable push notifications for all selected devices',
         icon: 'question',
@@ -589,7 +589,7 @@ EventDelegation.register('bulk-activate', (element, event) => {
         confirmButtonText: 'Activate All'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Tokens Activated!', `${selectedTokens.length} device tokens have been activated.`, 'success')
+            window.Swal.fire('Tokens Activated!', `${selectedTokens.length} device tokens have been activated.`, 'success')
                 .then(() => location.reload());
         }
     });
@@ -598,16 +598,16 @@ EventDelegation.register('bulk-activate', (element, event) => {
 /**
  * Bulk deactivate selected tokens
  */
-EventDelegation.register('bulk-deactivate', (element, event) => {
+window.EventDelegation.register('bulk-deactivate', (element, event) => {
     event.preventDefault();
     const selectedTokens = Array.from(document.querySelectorAll('.token-checkbox:checked')).map(cb => cb.value);
 
     if (selectedTokens.length === 0) {
-        Swal.fire('No Tokens Selected', 'Please select tokens to deactivate.', 'warning');
+        window.Swal.fire('No Tokens Selected', 'Please select tokens to deactivate.', 'warning');
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: `Deactivate ${selectedTokens.length} Tokens?`,
         text: 'This will disable push notifications for all selected devices',
         icon: 'warning',
@@ -616,7 +616,7 @@ EventDelegation.register('bulk-deactivate', (element, event) => {
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Tokens Deactivated!', `${selectedTokens.length} device tokens have been deactivated.`, 'success')
+            window.Swal.fire('Tokens Deactivated!', `${selectedTokens.length} device tokens have been deactivated.`, 'success')
                 .then(() => location.reload());
         }
     });
@@ -625,9 +625,9 @@ EventDelegation.register('bulk-deactivate', (element, event) => {
 /**
  * Cleanup inactive tokens
  */
-EventDelegation.register('cleanup-inactive', (element, event) => {
+window.EventDelegation.register('cleanup-inactive', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Cleanup Inactive Tokens?',
         text: 'This will permanently remove tokens that have been inactive for 30+ days',
         icon: 'warning',
@@ -636,14 +636,14 @@ EventDelegation.register('cleanup-inactive', (element, event) => {
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Cleaning Up...',
                 text: 'Removing inactive device tokens',
                 allowOutsideClick: false,
                 didOpen: () => {
-                    Swal.showLoading();
+                    window.Swal.showLoading();
                     setTimeout(() => {
-                        Swal.fire('Cleanup Complete!', 'Inactive tokens have been removed.', 'success')
+                        window.Swal.fire('Cleanup Complete!', 'Inactive tokens have been removed.', 'success')
                             .then(() => location.reload());
                     }, 2000);
                 }
@@ -655,11 +655,11 @@ EventDelegation.register('cleanup-inactive', (element, event) => {
 /**
  * Export subscription data
  */
-EventDelegation.register('export-subscriptions', (element, event) => {
+window.EventDelegation.register('export-subscriptions', (element, event) => {
     event.preventDefault();
     const selectedTokens = Array.from(document.querySelectorAll('.token-checkbox:checked')).map(cb => cb.value);
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Export Subscriptions?',
         text: selectedTokens.length > 0 ? `Export ${selectedTokens.length} selected subscriptions?` : 'Export all visible subscriptions?',
         icon: 'question',
@@ -667,7 +667,7 @@ EventDelegation.register('export-subscriptions', (element, event) => {
         confirmButtonText: 'Export Data'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Export Started!', 'Subscription data export is being prepared for download.', 'success');
+            window.Swal.fire('Export Started!', 'Subscription data export is being prepared for download.', 'success');
         }
     });
 });
@@ -679,25 +679,25 @@ EventDelegation.register('export-subscriptions', (element, event) => {
 /**
  * Test mobile configuration
  */
-EventDelegation.register('test-config', (element, event) => {
+window.EventDelegation.register('test-config', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Testing Configuration...',
         text: 'Validating mobile app configuration settings',
         allowOutsideClick: false,
         timer: 2000,
         didOpen: () => {
-            Swal.showLoading();
+            window.Swal.showLoading();
         }
     }).then(() => {
-        Swal.fire('Configuration Valid', 'All mobile configuration settings are valid.', 'success');
+        window.Swal.fire('Configuration Valid', 'All mobile configuration settings are valid.', 'success');
     });
 });
 
 /**
  * Export mobile configuration
  */
-EventDelegation.register('export-config', (element, event) => {
+window.EventDelegation.register('export-config', (element, event) => {
     event.preventDefault();
     const form = document.getElementById('mobile-config-form');
     const config = {};
@@ -718,15 +718,15 @@ EventDelegation.register('export-config', (element, event) => {
     linkElement.setAttribute('download', exportFileName);
     linkElement.click();
 
-    Swal.fire('Config Exported!', 'Mobile configuration has been downloaded.', 'success');
+    window.Swal.fire('Config Exported!', 'Mobile configuration has been downloaded.', 'success');
 });
 
 /**
  * Reset mobile configuration to defaults
  */
-EventDelegation.register('reset-config', (element, event) => {
+window.EventDelegation.register('reset-config', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Reset to Defaults?',
         text: 'This will reset all mobile configuration settings to their default values',
         icon: 'warning',
@@ -735,7 +735,7 @@ EventDelegation.register('reset-config', (element, event) => {
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Settings Reset!', 'Mobile configuration has been reset to defaults.', 'success')
+            window.Swal.fire('Settings Reset!', 'Mobile configuration has been reset to defaults.', 'success')
                 .then(() => location.reload());
         }
     });
@@ -748,12 +748,12 @@ EventDelegation.register('reset-config', (element, event) => {
 /**
  * View error details
  */
-EventDelegation.register('view-error', async (element, event) => {
+window.EventDelegation.register('view-error', async (element, event) => {
     event.preventDefault();
     const errorUrl = element.dataset.errorUrl;
 
     if (!errorUrl) {
-        Swal.fire('Error', 'Error details URL not available', 'error');
+        window.Swal.fire('Error', 'Error details URL not available', 'error');
         return;
     }
 
@@ -762,11 +762,11 @@ EventDelegation.register('view-error', async (element, event) => {
         const data = await response.json();
 
         if (data.error) {
-            Swal.fire('Error', data.error, 'error');
+            window.Swal.fire('Error', data.error, 'error');
             return;
         }
 
-        Swal.fire({
+        window.Swal.fire({
             title: 'Error Details',
             html: `
                 <div class="text-start">
@@ -805,7 +805,7 @@ EventDelegation.register('view-error', async (element, event) => {
         });
     } catch (error) {
         console.error('Error fetching error details:', error);
-        Swal.fire('Error', 'Failed to load error details', 'error');
+        window.Swal.fire('Error', 'Failed to load error details', 'error');
     }
 });
 
@@ -816,12 +816,12 @@ EventDelegation.register('view-error', async (element, event) => {
 /**
  * View mobile user details
  */
-EventDelegation.register('view-user-details', async (element, event) => {
+window.EventDelegation.register('view-user-details', async (element, event) => {
     event.preventDefault();
     const userId = element.dataset.userId;
 
     if (!userId) {
-        Swal.fire('Error', 'User ID not available', 'error');
+        window.Swal.fire('Error', 'User ID not available', 'error');
         return;
     }
 
@@ -851,7 +851,7 @@ EventDelegation.register('view-user-details', async (element, event) => {
                 deviceTokensHtml = '<p class="text-muted">No device tokens found</p>';
             }
 
-            Swal.fire({
+            window.Swal.fire({
                 title: `User Details: ${user.username || 'Unknown'}`,
                 html: `
                     <div class="text-start">
@@ -871,22 +871,22 @@ EventDelegation.register('view-user-details', async (element, event) => {
                 confirmButtonText: 'Close'
             });
         } else {
-            Swal.fire('Error', data.message || 'Failed to load user details', 'error');
+            window.Swal.fire('Error', data.message || 'Failed to load user details', 'error');
         }
     } catch (error) {
         console.error('Error fetching user details:', error);
-        Swal.fire('Error', 'Failed to load user details', 'error');
+        window.Swal.fire('Error', 'Failed to load user details', 'error');
     }
 });
 
 /**
  * Send notification to a single user
  */
-EventDelegation.register('send-notification', (element, event) => {
+window.EventDelegation.register('send-notification', (element, event) => {
     event.preventDefault();
     const userId = element.dataset.userId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Send Push Notification',
         html: `
             <div class="text-start">
@@ -916,7 +916,7 @@ EventDelegation.register('send-notification', (element, event) => {
             const message = document.getElementById('notificationMessage').value;
 
             if (!title || !message) {
-                Swal.showValidationMessage('Please fill in both title and message');
+                window.Swal.showValidationMessage('Please fill in both title and message');
                 return false;
             }
 
@@ -928,7 +928,7 @@ EventDelegation.register('send-notification', (element, event) => {
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Notification Sent!', 'Push notification has been sent to the user.', 'success');
+            window.Swal.fire('Notification Sent!', 'Push notification has been sent to the user.', 'success');
         }
     });
 });
@@ -936,11 +936,11 @@ EventDelegation.register('send-notification', (element, event) => {
 /**
  * Manage devices for a user
  */
-EventDelegation.register('manage-devices', (element, event) => {
+window.EventDelegation.register('manage-devices', (element, event) => {
     event.preventDefault();
     const userId = element.dataset.userId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Device Management',
         html: `
             <div class="text-start">
@@ -975,13 +975,13 @@ EventDelegation.register('manage-devices', (element, event) => {
 /**
  * Deactivate a device
  */
-EventDelegation.register('deactivate-device', (element, event) => {
+window.EventDelegation.register('deactivate-device', (element, event) => {
     event.preventDefault();
     const tokenId = element.dataset.tokenId;
     const deactivateUrl = element.dataset.deactivateUrl || '/admin-panel/mobile/deactivate-device';
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Deactivate Device?',
         text: 'This will stop push notifications to this device',
         icon: 'warning',
@@ -1001,13 +1001,13 @@ EventDelegation.register('deactivate-device', (element, event) => {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Device Deactivated!', 'The device has been deactivated successfully.', 'success');
+                    window.Swal.fire('Device Deactivated!', 'The device has been deactivated successfully.', 'success');
                 } else {
-                    Swal.fire('Error', data.message || 'Failed to deactivate device', 'error');
+                    window.Swal.fire('Error', data.message || 'Failed to deactivate device', 'error');
                 }
             })
             .catch(error => {
-                Swal.fire('Error', 'Failed to deactivate device', 'error');
+                window.Swal.fire('Error', 'Failed to deactivate device', 'error');
             });
         }
     });
@@ -1016,16 +1016,16 @@ EventDelegation.register('deactivate-device', (element, event) => {
 /**
  * Send bulk notification
  */
-EventDelegation.register('send-bulk-notification', (element, event) => {
+window.EventDelegation.register('send-bulk-notification', (element, event) => {
     event.preventDefault();
     const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
 
     if (selectedUsers.length === 0) {
-        Swal.fire('No Users Selected', 'Please select users to send notifications to.', 'warning');
+        window.Swal.fire('No Users Selected', 'Please select users to send notifications to.', 'warning');
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: `Send Bulk Notification (${selectedUsers.length} users)`,
         html: `
             <div class="text-start">
@@ -1054,7 +1054,7 @@ EventDelegation.register('send-bulk-notification', (element, event) => {
             const message = document.getElementById('bulkNotificationMessage').value;
 
             if (!title || !message) {
-                Swal.showValidationMessage('Please fill in both title and message');
+                window.Swal.showValidationMessage('Please fill in both title and message');
                 return false;
             }
 
@@ -1066,7 +1066,7 @@ EventDelegation.register('send-bulk-notification', (element, event) => {
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Bulk Notification Sent!', `Notification sent to ${selectedUsers.length} users.`, 'success');
+            window.Swal.fire('Bulk Notification Sent!', `Notification sent to ${selectedUsers.length} users.`, 'success');
         }
     });
 });
@@ -1074,11 +1074,11 @@ EventDelegation.register('send-bulk-notification', (element, event) => {
 /**
  * Export user data
  */
-EventDelegation.register('export-user-data', (element, event) => {
+window.EventDelegation.register('export-user-data', (element, event) => {
     event.preventDefault();
     const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Export User Data?',
         text: selectedUsers.length > 0 ? `Export data for ${selectedUsers.length} selected users?` : 'Export data for all visible users?',
         icon: 'question',
@@ -1086,7 +1086,7 @@ EventDelegation.register('export-user-data', (element, event) => {
         confirmButtonText: 'Export Data'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Export Started!', 'User data export is being prepared for download.', 'success');
+            window.Swal.fire('Export Started!', 'User data export is being prepared for download.', 'success');
         }
     });
 });
@@ -1094,16 +1094,16 @@ EventDelegation.register('export-user-data', (element, event) => {
 /**
  * Bulk device management
  */
-EventDelegation.register('bulk-device-management', (element, event) => {
+window.EventDelegation.register('bulk-device-management', (element, event) => {
     event.preventDefault();
     const selectedUsers = Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value);
 
     if (selectedUsers.length === 0) {
-        Swal.fire('No Users Selected', 'Please select users to manage their devices.', 'warning');
+        window.Swal.fire('No Users Selected', 'Please select users to manage their devices.', 'warning');
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: `Bulk Device Management (${selectedUsers.length} users)`,
         html: `
             <div class="text-start">
@@ -1136,9 +1136,9 @@ EventDelegation.register('bulk-device-management', (element, event) => {
 /**
  * Bulk deactivate devices
  */
-EventDelegation.register('bulk-deactivate-devices', (element, event) => {
+window.EventDelegation.register('bulk-deactivate-devices', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Deactivate All Devices?',
         text: 'This will stop push notifications for all selected users',
         icon: 'warning',
@@ -1147,7 +1147,7 @@ EventDelegation.register('bulk-deactivate-devices', (element, event) => {
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Devices Deactivated!', 'All devices for selected users have been deactivated.', 'success');
+            window.Swal.fire('Devices Deactivated!', 'All devices for selected users have been deactivated.', 'success');
         }
     });
 });
@@ -1155,9 +1155,9 @@ EventDelegation.register('bulk-deactivate-devices', (element, event) => {
 /**
  * Bulk reactivate devices
  */
-EventDelegation.register('bulk-reactivate-devices', (element, event) => {
+window.EventDelegation.register('bulk-reactivate-devices', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Reactivate All Devices?',
         text: 'This will resume push notifications for all selected users',
         icon: 'question',
@@ -1165,7 +1165,7 @@ EventDelegation.register('bulk-reactivate-devices', (element, event) => {
         confirmButtonText: 'Reactivate All'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Devices Reactivated!', 'All devices for selected users have been reactivated.', 'success');
+            window.Swal.fire('Devices Reactivated!', 'All devices for selected users have been reactivated.', 'success');
         }
     });
 });
@@ -1173,9 +1173,9 @@ EventDelegation.register('bulk-reactivate-devices', (element, event) => {
 /**
  * Cleanup inactive devices
  */
-EventDelegation.register('cleanup-inactive-devices', (element, event) => {
+window.EventDelegation.register('cleanup-inactive-devices', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Cleanup Inactive Devices?',
         text: 'This will remove device tokens not used in the last 30 days',
         icon: 'warning',
@@ -1183,7 +1183,7 @@ EventDelegation.register('cleanup-inactive-devices', (element, event) => {
         confirmButtonText: 'Cleanup Devices'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Cleanup Complete!', 'Inactive devices have been removed.', 'success');
+            window.Swal.fire('Cleanup Complete!', 'Inactive devices have been removed.', 'success');
         }
     });
 });
@@ -1195,7 +1195,7 @@ EventDelegation.register('cleanup-inactive-devices', (element, event) => {
 /**
  * Preview campaign
  */
-EventDelegation.register('preview-campaign', (element, event) => {
+window.EventDelegation.register('preview-campaign', (element, event) => {
     event.preventDefault();
     const form = document.getElementById('campaignForm');
     if (!form) return;
@@ -1206,7 +1206,7 @@ EventDelegation.register('preview-campaign', (element, event) => {
     const audience = formData.get('target_audience') || 'all';
     const schedule = formData.get('send_schedule') || 'immediate';
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Campaign Preview',
         html: `
             <div class="text-start">
@@ -1248,9 +1248,9 @@ EventDelegation.register('preview-campaign', (element, event) => {
 /**
  * Save draft
  */
-EventDelegation.register('save-draft', (element, event) => {
+window.EventDelegation.register('save-draft', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Save Draft?',
         text: 'This will save the campaign as a draft for later editing',
         icon: 'question',
@@ -1258,7 +1258,7 @@ EventDelegation.register('save-draft', (element, event) => {
         confirmButtonText: 'Save Draft'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Draft Saved!', 'Campaign has been saved as a draft.', 'success');
+            window.Swal.fire('Draft Saved!', 'Campaign has been saved as a draft.', 'success');
         }
     });
 });
@@ -1266,7 +1266,7 @@ EventDelegation.register('save-draft', (element, event) => {
 /**
  * Load template
  */
-EventDelegation.register('load-template', (element, event) => {
+window.EventDelegation.register('load-template', (element, event) => {
     event.preventDefault();
     const templateId = element.dataset.templateId;
 
@@ -1310,18 +1310,18 @@ EventDelegation.register('load-template', (element, event) => {
         if (audienceSelect) audienceSelect.value = template.audience;
         if (counter) counter.textContent = template.message.length;
 
-        Swal.fire('Template Loaded!', `${template.name} template has been applied.`, 'success');
+        window.Swal.fire('Template Loaded!', `${template.name} template has been applied.`, 'success');
     }
 });
 
 /**
  * View campaign details
  */
-EventDelegation.register('view-campaign-details', (element, event) => {
+window.EventDelegation.register('view-campaign-details', (element, event) => {
     event.preventDefault();
     const campaignId = element.dataset.campaignId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: `Campaign Details`,
         html: `
             <div class="text-start">
@@ -1356,11 +1356,11 @@ EventDelegation.register('view-campaign-details', (element, event) => {
  * Duplicate Mobile Campaign
  * Note: Renamed from 'duplicate-campaign' to avoid conflict with admin/push-campaigns.js
  */
-EventDelegation.register('duplicate-mobile-campaign', (element, event) => {
+window.EventDelegation.register('duplicate-mobile-campaign', (element, event) => {
     event.preventDefault();
     const campaignId = element.dataset.campaignId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Duplicate Campaign?',
         text: 'This will create a copy of this campaign that you can edit',
         icon: 'question',
@@ -1380,7 +1380,7 @@ EventDelegation.register('duplicate-mobile-campaign', (element, event) => {
             if (typeSelect) typeSelect.value = 'match_reminder';
             if (audienceSelect) audienceSelect.value = 'active';
 
-            Swal.fire('Campaign Duplicated!', 'Campaign has been loaded into the form for editing.', 'success');
+            window.Swal.fire('Campaign Duplicated!', 'Campaign has been loaded into the form for editing.', 'success');
         }
     });
 });
@@ -1388,11 +1388,11 @@ EventDelegation.register('duplicate-mobile-campaign', (element, event) => {
 /**
  * Download report
  */
-EventDelegation.register('download-report', (element, event) => {
+window.EventDelegation.register('download-report', (element, event) => {
     event.preventDefault();
     const campaignId = element.dataset.campaignId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Download Campaign Report?',
         text: 'This will generate a detailed analytics report for this campaign',
         icon: 'question',
@@ -1400,7 +1400,7 @@ EventDelegation.register('download-report', (element, event) => {
         confirmButtonText: 'Download Report'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Report Generating...', 'Your campaign report is being prepared for download.', 'success');
+            window.Swal.fire('Report Generating...', 'Your campaign report is being prepared for download.', 'success');
         }
     });
 });
@@ -1412,11 +1412,11 @@ EventDelegation.register('download-report', (element, event) => {
 /**
  * View notification details
  */
-EventDelegation.register('view-notification', (element, event) => {
+window.EventDelegation.register('view-notification', (element, event) => {
     event.preventDefault();
     const notificationId = element.dataset.notificationId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: `Notification Details`,
         html: `
             <div class="text-start">
@@ -1451,11 +1451,11 @@ EventDelegation.register('view-notification', (element, event) => {
 /**
  * Retry notification
  */
-EventDelegation.register('retry-notification', (element, event) => {
+window.EventDelegation.register('retry-notification', (element, event) => {
     event.preventDefault();
     const notificationId = element.dataset.notificationId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Retry Notification?',
         text: 'This will attempt to resend the failed notification',
         icon: 'question',
@@ -1463,14 +1463,14 @@ EventDelegation.register('retry-notification', (element, event) => {
         confirmButtonText: 'Retry Send'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Retrying...',
                 text: 'Attempting to resend notification',
                 allowOutsideClick: false,
                 didOpen: () => {
-                    Swal.showLoading();
+                    window.Swal.showLoading();
                     setTimeout(() => {
-                        Swal.fire('Notification Retried!', 'The notification has been queued for retry.', 'success')
+                        window.Swal.fire('Notification Retried!', 'The notification has been queued for retry.', 'success')
                             .then(() => location.reload());
                     }, 2000);
                 }
@@ -1482,11 +1482,11 @@ EventDelegation.register('retry-notification', (element, event) => {
 /**
  * Duplicate notification
  */
-EventDelegation.register('duplicate-notification', (element, event) => {
+window.EventDelegation.register('duplicate-notification', (element, event) => {
     event.preventDefault();
     const notificationId = element.dataset.notificationId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Duplicate Notification?',
         text: 'This will create a copy of this notification that you can send again',
         icon: 'question',
@@ -1494,7 +1494,7 @@ EventDelegation.register('duplicate-notification', (element, event) => {
         confirmButtonText: 'Duplicate'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Notification Duplicated!', 'The notification has been copied to a new campaign.', 'success');
+            window.Swal.fire('Notification Duplicated!', 'The notification has been copied to a new campaign.', 'success');
         }
     });
 });
@@ -1502,11 +1502,11 @@ EventDelegation.register('duplicate-notification', (element, event) => {
 /**
  * Delete notification
  */
-EventDelegation.register('delete-notification', (element, event) => {
+window.EventDelegation.register('delete-notification', (element, event) => {
     event.preventDefault();
     const notificationId = element.dataset.notificationId;
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Delete Notification?',
         text: 'This will permanently remove this notification from history',
         icon: 'warning',
@@ -1515,7 +1515,7 @@ EventDelegation.register('delete-notification', (element, event) => {
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Notification Deleted!', 'The notification has been removed from history.', 'success')
+            window.Swal.fire('Notification Deleted!', 'The notification has been removed from history.', 'success')
                 .then(() => location.reload());
         }
     });
@@ -1524,16 +1524,16 @@ EventDelegation.register('delete-notification', (element, event) => {
 /**
  * Retry failed notifications
  */
-EventDelegation.register('retry-failed', (element, event) => {
+window.EventDelegation.register('retry-failed', (element, event) => {
     event.preventDefault();
     const selectedNotifications = Array.from(document.querySelectorAll('.notification-checkbox:checked')).map(cb => cb.value);
 
     if (selectedNotifications.length === 0) {
-        Swal.fire('No Notifications Selected', 'Please select failed notifications to retry.', 'warning');
+        window.Swal.fire('No Notifications Selected', 'Please select failed notifications to retry.', 'warning');
         return;
     }
 
-    Swal.fire({
+    window.Swal.fire({
         title: `Retry ${selectedNotifications.length} Failed Notifications?`,
         text: 'This will attempt to resend all selected failed notifications',
         icon: 'question',
@@ -1541,14 +1541,14 @@ EventDelegation.register('retry-failed', (element, event) => {
         confirmButtonText: 'Retry All'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Retrying Notifications...',
                 text: 'Processing retry requests',
                 allowOutsideClick: false,
                 didOpen: () => {
-                    Swal.showLoading();
+                    window.Swal.showLoading();
                     setTimeout(() => {
-                        Swal.fire('Retry Complete!', `${selectedNotifications.length} notifications have been queued for retry.`, 'success')
+                        window.Swal.fire('Retry Complete!', `${selectedNotifications.length} notifications have been queued for retry.`, 'success')
                             .then(() => location.reload());
                     }, 3000);
                 }
@@ -1560,11 +1560,11 @@ EventDelegation.register('retry-failed', (element, event) => {
 /**
  * Export history
  */
-EventDelegation.register('export-history', (element, event) => {
+window.EventDelegation.register('export-history', (element, event) => {
     event.preventDefault();
     const selectedNotifications = Array.from(document.querySelectorAll('.notification-checkbox:checked')).map(cb => cb.value);
 
-    Swal.fire({
+    window.Swal.fire({
         title: 'Export Push History?',
         text: selectedNotifications.length > 0 ? `Export ${selectedNotifications.length} selected notifications?` : 'Export all visible notifications?',
         icon: 'question',
@@ -1572,7 +1572,7 @@ EventDelegation.register('export-history', (element, event) => {
         confirmButtonText: 'Export Data'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Export Started!', 'Push history export is being prepared for download.', 'success');
+            window.Swal.fire('Export Started!', 'Push history export is being prepared for download.', 'success');
         }
     });
 });
@@ -1580,9 +1580,9 @@ EventDelegation.register('export-history', (element, event) => {
 /**
  * Cleanup old notifications
  */
-EventDelegation.register('cleanup-old', (element, event) => {
+window.EventDelegation.register('cleanup-old', (element, event) => {
     event.preventDefault();
-    Swal.fire({
+    window.Swal.fire({
         title: 'Cleanup Old Notifications?',
         text: 'This will permanently remove push notifications older than 90 days',
         icon: 'warning',
@@ -1591,14 +1591,14 @@ EventDelegation.register('cleanup-old', (element, event) => {
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Cleaning Up...',
                 text: 'Removing old push notifications',
                 allowOutsideClick: false,
                 didOpen: () => {
-                    Swal.showLoading();
+                    window.Swal.showLoading();
                     setTimeout(() => {
-                        Swal.fire('Cleanup Complete!', '247 old notifications have been removed.', 'success')
+                        window.Swal.fire('Cleanup Complete!', '247 old notifications have been removed.', 'success')
                             .then(() => location.reload());
                     }, 2000);
                 }
@@ -1607,4 +1607,4 @@ EventDelegation.register('cleanup-old', (element, event) => {
     });
 });
 
-console.log('[EventDelegation] Mobile features handlers loaded');
+console.log('[window.EventDelegation] Mobile features handlers loaded');

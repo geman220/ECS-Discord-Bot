@@ -45,7 +45,7 @@ export class AdminNavigationController {
     // Close dropdowns on escape key
     document.addEventListener('keydown', this.handleEscapeKey.bind(this));
 
-    // Register actions with EventDelegation
+    // Register actions with window.EventDelegation
     this.registerActions();
   }
 
@@ -55,12 +55,12 @@ export class AdminNavigationController {
    */
   registerActions() {
     // Handlers are now registered at module scope for proper timing
-    // See bottom of file for EventDelegation.register() calls
+    // See bottom of file for window.EventDelegation.register() calls
   }
 
   /**
    * Handle toggle dropdown action
-   * @param {Element} element - The element that was clicked (from EventDelegation)
+   * @param {Element} element - The element that was clicked (from window.EventDelegation)
    * @param {Event} e - The click event
    */
   handleToggleDropdown(element, e) {
@@ -69,7 +69,7 @@ export class AdminNavigationController {
 
   /**
    * Handle close dropdown action
-   * @param {Element} element - The element that was clicked (from EventDelegation)
+   * @param {Element} element - The element that was clicked (from window.EventDelegation)
    * @param {Event} e - The click event
    */
   handleCloseDropdown(element, e) {
@@ -216,7 +216,7 @@ export class AdminNavigationController {
    * @param {Event} e - Click event
    */
   handleNavigation(element, e) {
-    // EventDelegation passes (element, event) - element is the clicked link
+    // window.EventDelegation passes (element, event) - element is the clicked link
     if (!element || !element.classList) return;
 
     // Remove active state from all links
@@ -271,20 +271,20 @@ function initAdminNavigation() {
   });
 }
 
-// Register with InitSystem
-InitSystem.register('admin-navigation', initAdminNavigation, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-navigation', initAdminNavigation, {
   priority: 70,
   reinitializable: true,
   description: 'Admin panel navigation controller'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // ========================================================================
 // EVENT DELEGATION - Registered at module scope
 // ========================================================================
-// Handlers registered when module executes, ensuring EventDelegation is available.
+// Handlers registered when module executes, ensuring window.EventDelegation is available.
 // Handlers find the controller instance on the closest nav element.
 
 /**
@@ -295,22 +295,22 @@ function getController(element) {
   return nav ? nav.adminNavController : null;
 }
 
-// Register EventDelegation handlers
-EventDelegation.register('toggle-admin-dropdown', (element, e) => {
+// Register window.EventDelegation handlers
+window.EventDelegation.register('toggle-admin-dropdown', (element, e) => {
   const controller = getController(element);
   if (controller) {
     controller.toggleDropdown(element);
   }
 }, { preventDefault: true });
 
-EventDelegation.register('admin-navigate', (element, e) => {
+window.EventDelegation.register('admin-navigate', (element, e) => {
   const controller = getController(element);
   if (controller) {
     controller.handleNavigation(element, e);
   }
 }, { preventDefault: false });
 
-EventDelegation.register('close-admin-dropdown', (element, e) => {
+window.EventDelegation.register('close-admin-dropdown', (element, e) => {
   const controller = getController(element);
   if (controller) {
     controller.closeDropdown(element);

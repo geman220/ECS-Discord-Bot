@@ -144,9 +144,9 @@ export function init() {
     }
 }
 
-// Register with InitSystem (primary)
-if (InitSystem.register) {
-    InitSystem.register('tour', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem.register) {
+    window.InitSystem.register('tour', init, {
         priority: 25,
         reinitializable: false,
         description: 'Shepherd.js onboarding tour'
@@ -154,7 +154,7 @@ if (InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

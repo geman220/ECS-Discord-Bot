@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles API analytics page interactions using data-attribute hooks
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -63,12 +63,12 @@ function initializeEventDelegation() {
 }
 
 /**
- * Initialize Chart.js charts
+ * Initialize window.Chart.js charts
  */
 function initializeCharts() {
     if (chartsInitialized) return;
-    if (typeof Chart === 'undefined') {
-        console.warn('[admin-api-analytics] Chart.js not loaded');
+    if (typeof window.Chart === 'undefined') {
+        console.warn('[admin-api-analytics] window.Chart.js not loaded');
         return;
     }
 
@@ -81,10 +81,10 @@ function initializeCharts() {
     const requestsData = window.analyticsData?.dailyRequests || [];
     const errorData = window.analyticsData?.errorTypes || [];
 
-    // API Requests Over Time Chart
+    // API Requests Over Time window.Chart
     if (requestsCanvas && requestsData.length > 0) {
         const requestsCtx = requestsCanvas.getContext('2d');
-        new Chart(requestsCtx, {
+        new window.Chart(requestsCtx, {
             type: 'line',
             data: {
                 labels: requestsData.map(d => d.date),
@@ -139,7 +139,7 @@ function initializeCharts() {
         });
     }
 
-    // Error Distribution Chart
+    // Error Distribution window.Chart
     if (errorCanvas && errorData.length > 0) {
         const errorLabels = errorData.map(d => d.type);
         const errorCounts = errorData.map(d => d.count);
@@ -152,7 +152,7 @@ function initializeCharts() {
         ];
 
         const errorCtx = errorCanvas.getContext('2d');
-        new Chart(errorCtx, {
+        new window.Chart(errorCtx, {
             type: 'doughnut',
             data: {
                 labels: errorLabels,
@@ -200,8 +200,8 @@ function exportAnalytics(format) {
     const dateFrom = new URLSearchParams(window.location.search).get('date_from') || window.analyticsData?.dateRange?.start || '';
     const dateTo = new URLSearchParams(window.location.search).get('date_to') || window.analyticsData?.dateRange?.end || '';
 
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             title: 'Export Started',
             text: `API analytics export in ${format.toUpperCase()} format for ${dateFrom} to ${dateTo} has been queued.`,
             icon: 'info',
@@ -222,8 +222,8 @@ function toggleAutoRefresh() {
             location.reload();
         }, 30000); // Refresh every 30 seconds
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Auto-refresh Enabled',
                 text: 'Analytics will refresh every 30 seconds',
                 icon: 'info',
@@ -237,8 +237,8 @@ function toggleAutoRefresh() {
             refreshInterval = null;
         }
 
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Auto-refresh Disabled',
                 icon: 'info',
                 timer: 1500,
@@ -260,8 +260,8 @@ function cleanup() {
     chartsInitialized = false;
 }
 
-// Register with InitSystem
-InitSystem.register('admin-api-analytics', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-api-analytics', init, {
     priority: 30,
     reinitializable: true,
     cleanup: cleanup,
@@ -269,7 +269,7 @@ InitSystem.register('admin-api-analytics', init, {
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

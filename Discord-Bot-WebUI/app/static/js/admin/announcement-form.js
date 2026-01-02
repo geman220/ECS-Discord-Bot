@@ -196,8 +196,8 @@ const AnnouncementForm = {
 // Expose for external access
 window.AnnouncementForm = AnnouncementForm;
 
-if (typeof InitSystem !== 'undefined') {
-    InitSystem.register('AnnouncementForm', function(context) {
+if (typeof window.InitSystem !== 'undefined') {
+    window.InitSystem.register('AnnouncementForm', function(context) {
         window.AnnouncementForm.init(context);
     }, {
         priority: 50

@@ -5,7 +5,7 @@
  * Handles color/size field management for store item editing
  *
  * @module store-edit-item
- * @requires InitSystem
+ * @requires window.InitSystem
  */
 
 import { InitSystem } from '../js/init-system.js';
@@ -116,8 +116,8 @@ const StoreEditItem = {
     }
 };
 
-// Register with InitSystem
-InitSystem.register('store-edit-item', () => {
+// Register with window.InitSystem
+window.InitSystem.register('store-edit-item', () => {
     // Only initialize on store edit item page
     if (document.querySelector('[data-component="store-edit-form"]') ||
         document.querySelector('[data-form="edit-item"]')) {

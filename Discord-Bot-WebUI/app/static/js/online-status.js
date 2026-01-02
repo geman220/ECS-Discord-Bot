@@ -229,9 +229,9 @@ function initIfNeeded() {
   onlineStatusManagerInstance.init();
 }
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-  InitSystem.register('online-status', initIfNeeded, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+  window.InitSystem.register('online-status', initIfNeeded, {
     priority: 40,
     reinitializable: true,
     description: 'Online status indicator manager'
@@ -239,7 +239,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility - expose to global scope
 window.OnlineStatusManager = onlineStatusManagerInstance;

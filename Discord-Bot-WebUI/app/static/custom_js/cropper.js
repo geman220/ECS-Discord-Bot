@@ -104,9 +104,9 @@ export { init, croppingimg, onClickUpload };
 window.onClickUpload = onClickUpload;
 window.croppingimg = croppingimg;
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('cropper', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('cropper', init, {
         priority: 45,
         reinitializable: false,
         description: 'Image cropper for profile photos'
@@ -114,4 +114,4 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization

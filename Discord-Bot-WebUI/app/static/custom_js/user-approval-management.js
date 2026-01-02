@@ -33,15 +33,15 @@ export function initializeModals() {
     const playerDetailsModalElement = document.getElementById('playerDetailsModal');
 
     if (approvalModalElement) {
-        approvalModal = ModalManager.getInstance('approvalModal');
+        approvalModal = window.ModalManager.getInstance('approvalModal');
     }
 
     if (denialModalElement) {
-        denialModal = ModalManager.getInstance('denialModal');
+        denialModal = window.ModalManager.getInstance('denialModal');
     }
 
     if (playerDetailsModalElement) {
-        playerDetailsModal = ModalManager.getInstance('playerDetailsModal');
+        playerDetailsModal = window.ModalManager.getInstance('playerDetailsModal');
     }
 }
 
@@ -605,9 +605,9 @@ export function showPlayerDetails(userId) {
         });
 }
 
-// Register with InitSystem (primary)
-if (InitSystem.register) {
-    InitSystem.register('user-approval-management', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem.register) {
+    window.InitSystem.register('user-approval-management', init, {
         priority: 30,
         reinitializable: true,
         description: 'User approval management page'
@@ -615,7 +615,7 @@ if (InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export functions for global use
 window.showApprovalModal = showApprovalModal;

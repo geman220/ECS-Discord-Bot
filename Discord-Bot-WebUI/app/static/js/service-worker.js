@@ -12,7 +12,7 @@ const PRECACHE_ASSETS = [
   '/static/js/config.js',
   '/static/js/helpers.js',
   '/static/js/menu.js',
-  '/static/vendor/js/bootstrap.bundle.js', // Fixed: was bootstrap.js
+  '/static/vendor/js/window.bootstrap.bundle.js', // Fixed: was window.bootstrap.js
   '/static/vendor/libs/jquery/jquery.js',
   '/static/custom_js/rsvp.js',
   '/static/custom_js/report_match.js',

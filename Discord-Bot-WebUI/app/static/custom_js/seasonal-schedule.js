@@ -5,7 +5,7 @@
  * Handles schedule viewing, filtering, editing, and export functionality
  *
  * @module seasonal-schedule
- * @requires InitSystem
+ * @requires window.InitSystem
  */
 
 import { InitSystem } from '../js/init-system.js';
@@ -320,8 +320,8 @@ const SeasonalSchedule = {
      * @param {string} weekNum - Week number
      */
     deleteWeek(weekNum) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Delete Entire Week?',
                 text: 'Are you sure you want to delete this entire week and all its matches? This action cannot be undone.',
                 icon: 'warning',
@@ -358,8 +358,8 @@ const SeasonalSchedule = {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'Deleted!',
                         text: data.message,
@@ -372,8 +372,8 @@ const SeasonalSchedule = {
                     location.reload();
                 }
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'error',
                         title: 'Error',
                         text: data.error
@@ -383,8 +383,8 @@ const SeasonalSchedule = {
         })
         .catch(error => {
             console.error('Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: 'An error occurred while deleting the week'
@@ -430,10 +430,10 @@ const SeasonalSchedule = {
         this.updateAddMatchTeams();
 
         // Show modal
-        if (typeof ModalManager !== 'undefined') {
-            ModalManager.show('addMatchModal');
-        } else if (typeof bootstrap !== 'undefined') {
-            const modal = new bootstrap.Modal(document.getElementById('addMatchModal'));
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('addMatchModal');
+        } else if (typeof window.bootstrap !== 'undefined') {
+            const modal = new window.bootstrap.Modal(document.getElementById('addMatchModal'));
             modal.show();
         }
     },
@@ -534,10 +534,10 @@ const SeasonalSchedule = {
                     }
 
                     // Show modal
-                    if (typeof ModalManager !== 'undefined') {
-                        ModalManager.show('editMatchModal');
-                    } else if (typeof bootstrap !== 'undefined') {
-                        const modal = new bootstrap.Modal(document.getElementById('editMatchModal'));
+                    if (typeof window.ModalManager !== 'undefined') {
+                        window.ModalManager.show('editMatchModal');
+                    } else if (typeof window.bootstrap !== 'undefined') {
+                        const modal = new window.bootstrap.Modal(document.getElementById('editMatchModal'));
                         modal.show();
                     }
                 } else {
@@ -555,8 +555,8 @@ const SeasonalSchedule = {
      * @param {string} matchId - Match ID
      */
     deleteMatch(matchId) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Delete Match?',
                 text: 'Are you sure you want to delete this match? This action cannot be undone.',
                 icon: 'warning',
@@ -591,8 +591,8 @@ const SeasonalSchedule = {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'success',
                         title: 'Deleted!',
                         text: data.message,
@@ -605,8 +605,8 @@ const SeasonalSchedule = {
                     location.reload();
                 }
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
                         icon: 'error',
                         title: 'Error',
                         text: data.error
@@ -616,8 +616,8 @@ const SeasonalSchedule = {
         })
         .catch(error => {
             console.error('Error:', error);
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
                     icon: 'error',
                     title: 'Error',
                     text: 'An error occurred while deleting the match'
@@ -689,9 +689,9 @@ const SeasonalSchedule = {
             if (data.success) {
                 this.showAlert('success', data.message);
                 // Hide modal
-                if (typeof bootstrap !== 'undefined') {
+                if (typeof window.bootstrap !== 'undefined') {
                     const modalEl = document.getElementById('editMatchModal');
-                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    const modal = window.bootstrap.Modal.getInstance(modalEl);
                     if (modal) modal.hide();
                 }
                 location.reload();
@@ -744,9 +744,9 @@ const SeasonalSchedule = {
             if (data.success) {
                 this.showAlert('success', data.message);
                 // Hide modal
-                if (typeof bootstrap !== 'undefined') {
+                if (typeof window.bootstrap !== 'undefined') {
                     const modalEl = document.getElementById('addMatchModal');
-                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    const modal = window.bootstrap.Modal.getInstance(modalEl);
                     if (modal) modal.hide();
                 }
                 location.reload();
@@ -955,8 +955,8 @@ const SeasonalSchedule = {
     }
 };
 
-// Register with InitSystem
-InitSystem.register('seasonal-schedule', () => {
+// Register with window.InitSystem
+window.InitSystem.register('seasonal-schedule', () => {
     // Only initialize on seasonal schedule page
     if (document.getElementById('scheduleContainer') ||
         document.querySelector('.week-container')) {

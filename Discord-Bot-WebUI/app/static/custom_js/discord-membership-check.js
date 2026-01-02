@@ -310,9 +310,9 @@ export function initDiscordChecker() {
     }
 }
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('discord-membership-check', initDiscordChecker, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('discord-membership-check', initDiscordChecker, {
         priority: 45,
         reinitializable: false,
         description: 'Discord membership checker and join prompts'
@@ -320,7 +320,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.initDiscordChecker = initDiscordChecker;

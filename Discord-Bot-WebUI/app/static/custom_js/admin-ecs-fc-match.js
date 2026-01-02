@@ -93,9 +93,9 @@ function init() {
     window.toggleOpponentSource = () => manager.toggleOpponentSource();
 }
 
-// Register with InitSystem
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('admin-ecs-fc-match', init, {
+// Register with window.InitSystem
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('admin-ecs-fc-match', init, {
         priority: 40,
         reinitializable: false,
         description: 'Admin ECS FC match form'
@@ -103,7 +103,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback for direct script loading
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export { AdminEcsFcMatchFormManager, getManager, init };

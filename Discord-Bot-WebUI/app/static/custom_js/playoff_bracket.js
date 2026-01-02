@@ -406,7 +406,7 @@ export class PlayoffBracket {
         const existingModal = document.getElementById(modalId);
 
         if (existingModal) {
-            ModalManager.show(existingModal.id);
+            window.ModalManager.show(existingModal.id);
         } else {
             // If modal doesn't exist, redirect to a page where it does or show a message
             console.warn('Match report modal not found on page. You may need to load it first.');
@@ -503,9 +503,9 @@ export class PlayoffBracket {
         }
     }
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('playoff-bracket', init, {
+    // Register with window.InitSystem (primary)
+    if (true && window.InitSystem.register) {
+        window.InitSystem.register('playoff-bracket', init, {
             priority: 40,
             reinitializable: false,
             description: 'Playoff bracket manager'
@@ -513,7 +513,7 @@ export class PlayoffBracket {
     }
 
     // Fallback
-    // InitSystem handles initialization
+    // window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

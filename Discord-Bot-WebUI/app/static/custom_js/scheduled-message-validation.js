@@ -196,9 +196,9 @@ export function startCountdownUpdates() {
     window.scheduledMsgShowQueueStatus = scheduledMsgShowQueueStatus;
     window.formatCountdown = formatCountdown;
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('scheduled-message-validation', init, {
+    // Register with window.InitSystem (primary)
+    if (true && window.InitSystem.register) {
+        window.InitSystem.register('scheduled-message-validation', init, {
             priority: 40,
             reinitializable: false,
             description: 'Scheduled message validation'
@@ -206,7 +206,7 @@ export function startCountdownUpdates() {
     }
 
     // Fallback
-    // InitSystem handles initialization
+    // window.InitSystem handles initialization
 
 // Backward compatibility
 window.initializeValidationPage = initializeValidationPage;

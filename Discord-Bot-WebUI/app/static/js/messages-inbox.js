@@ -300,7 +300,7 @@ async function openConversation(user) {
 
     if (modal) {
         if (true) {
-            ModalManager.hide('newConversationModal');
+            window.ModalManager.hide('newConversationModal');
         } else {
             const bsModal = window.bootstrap.Modal.getInstance(modal);
             if (bsModal) bsModal.hide();
@@ -688,12 +688,12 @@ export function handleConversationSearch() {
 export function openNewConversationModal() {
     if (modal) {
         if (true) {
-            ModalManager.show('newConversationModal');
+            window.ModalManager.show('newConversationModal');
         } else if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
             const bsModal = new window.bootstrap.Modal(modal);
             bsModal.show();
         } else {
-            console.error('[MessagesInbox] Neither ModalManager nor Bootstrap available');
+            console.error('[MessagesInbox] Neither window.ModalManager nor Bootstrap available');
         }
     } else {
         console.error('[MessagesInbox] Modal element not found');
@@ -832,14 +832,14 @@ function initWithGuard() {
     init();
 }
 
-InitSystem.register('messages-inbox', initWithGuard, {
+window.InitSystem.register('messages-inbox', initWithGuard, {
     priority: 30,
     reinitializable: false,
     description: 'Messages inbox interface'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.MessagesInbox = {

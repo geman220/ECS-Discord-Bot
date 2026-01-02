@@ -66,16 +66,16 @@ export const ViewStandings = {
     }
 };
 
-// Register with InitSystem (primary)
-if (InitSystem.register) {
-    InitSystem.register('view-standings', () => ViewStandings.init(), {
+// Register with window.InitSystem (primary)
+if (window.InitSystem.register) {
+    window.InitSystem.register('view-standings', () => ViewStandings.init(), {
         priority: 35,
         reinitializable: true,
         description: 'View standings page functionality'
     });
 }
 
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.ViewStandings = ViewStandings;

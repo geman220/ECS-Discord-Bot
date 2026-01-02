@@ -27,12 +27,12 @@ function init() {
 
 /**
  * Bind event handlers
- * NOTE: Event handlers are now managed by the centralized EventDelegation system.
+ * NOTE: Event handlers are now managed by the centralized window.EventDelegation system.
  * Actions are registered in /app/static/js/event-delegation.js
  * Elements use data-action and data-on-change attributes for delegation.
  */
 function bindEvents() {
-    // All event handlers moved to EventDelegation system:
+    // All event handlers moved to window.EventDelegation system:
     // - copy-subscription-url (click)
     // - regenerate-subscription-token (click)
     // - subscribe-webcal (click)
@@ -128,7 +128,7 @@ function renderSubscription() {
 }
 
 /**
- * NOTE: Event handler functions removed - now handled by EventDelegation system
+ * NOTE: Event handler functions removed - now handled by window.EventDelegation system
  * See /app/static/js/event-delegation.js for implementations:
  * - copy-subscription-url
  * - regenerate-subscription-token
@@ -367,9 +367,9 @@ window.CalendarSubscription = {
     getCardHTML
 };
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('calendar-subscription', initCalendarSubscription, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('calendar-subscription', initCalendarSubscription, {
         priority: 35,
         reinitializable: false,
         description: 'Calendar subscription management'
@@ -377,7 +377,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.initCalendarSubscription = initCalendarSubscription;

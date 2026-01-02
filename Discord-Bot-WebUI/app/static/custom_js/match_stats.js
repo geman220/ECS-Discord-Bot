@@ -206,9 +206,9 @@ window.filterMatchStats = filterMatchStats;
 window.matchStatsEditMatch = matchStatsEditMatch;
 window.removeMatchStat = removeMatchStat;
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('match-stats', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('match-stats', init, {
         priority: 40,
         reinitializable: false,
         description: 'Match stats management'
@@ -216,4 +216,4 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization

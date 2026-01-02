@@ -19,9 +19,9 @@ export function init() {
     }
 }
 
-// Register with InitSystem (primary)
-if (InitSystem.register) {
-    InitSystem.register('waitlist-login-register', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem.register) {
+    window.InitSystem.register('waitlist-login-register', init, {
         priority: 20,
         reinitializable: false,
         description: 'Waitlist login/register page'
@@ -29,7 +29,7 @@ if (InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

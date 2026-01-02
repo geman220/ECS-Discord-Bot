@@ -751,9 +751,9 @@ import { InitSystem } from '../js/init-system.js';
         originalInit();
     };
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('player-profile', init, {
+    // Register with window.InitSystem (primary)
+    if (true && window.InitSystem.register) {
+        window.InitSystem.register('player-profile', init, {
             priority: 45,
             reinitializable: false,
             description: 'Player profile page functionality'
@@ -761,7 +761,7 @@ import { InitSystem } from '../js/init-system.js';
     }
 
     // Fallback
-    // InitSystem handles initialization
+    // window.InitSystem handles initialization
 
     // Expose public API
     window.PlayerProfile = {

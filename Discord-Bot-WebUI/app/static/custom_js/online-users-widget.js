@@ -133,14 +133,14 @@ import { InitSystem } from '../js/init-system.js';
         console.log('[OnlineUsersWidget] Initialized');
     }
 
-    // Register with InitSystem
-    InitSystem.register('online-users-widget', init, {
+    // Register with window.InitSystem
+    window.InitSystem.register('online-users-widget', init, {
         priority: 40,
         description: 'Online users widget module'
     });
 
     // Fallback for non-module usage
-    // InitSystem handles initialization
+    // window.InitSystem handles initialization
 
     // Expose module globally
     window.OnlineUsersWidget = {

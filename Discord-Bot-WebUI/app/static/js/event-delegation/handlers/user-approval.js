@@ -12,7 +12,7 @@ import { EventDelegation } from '../core.js';
  * Refresh Approval Stats Action
  * Manually refreshes user approval statistics display
  */
-EventDelegation.register('refresh-approval-stats', function(element, e) {
+window.EventDelegation.register('refresh-approval-stats', function(element, e) {
     e.preventDefault();
 
     if (typeof window.refreshStats === 'function') {
@@ -26,7 +26,7 @@ EventDelegation.register('refresh-approval-stats', function(element, e) {
  * Show Player Details Action
  * Opens modal showing detailed player information
  */
-EventDelegation.register('show-player-details', function(element, e) {
+window.EventDelegation.register('show-player-details', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -47,7 +47,7 @@ EventDelegation.register('show-player-details', function(element, e) {
  * Show Approval Modal Action
  * Opens modal to approve a user and assign them to a league
  */
-EventDelegation.register('show-approval-modal', function(element, e) {
+window.EventDelegation.register('show-approval-modal', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -68,7 +68,7 @@ EventDelegation.register('show-approval-modal', function(element, e) {
  * Show Denial Modal Action
  * Opens modal to deny a user application
  */
-EventDelegation.register('show-denial-modal', function(element, e) {
+window.EventDelegation.register('show-denial-modal', function(element, e) {
     e.preventDefault();
 
     const userId = element.dataset.userId;
@@ -90,7 +90,7 @@ EventDelegation.register('show-denial-modal', function(element, e) {
  * Submits user approval form from approval modal
  * Note: Renamed from 'approve-user' to avoid conflict with user-management-comprehensive.js
  */
-EventDelegation.register('submit-user-approval', function(element, e) {
+window.EventDelegation.register('submit-user-approval', function(element, e) {
     e.preventDefault();
 
     if (typeof window.submitApproval === 'function') {
@@ -104,7 +104,7 @@ EventDelegation.register('submit-user-approval', function(element, e) {
  * Deny User Action
  * Submits user denial form
  */
-EventDelegation.register('deny-user', function(element, e) {
+window.EventDelegation.register('deny-user', function(element, e) {
     e.preventDefault();
 
     if (typeof window.submitDenial === 'function') {
@@ -114,4 +114,4 @@ EventDelegation.register('deny-user', function(element, e) {
     }
 });
 
-console.log('[EventDelegation] User approval handlers loaded');
+console.log('[window.EventDelegation] User approval handlers loaded');

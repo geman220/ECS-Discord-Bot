@@ -3,7 +3,7 @@
  * MODAL HELPERS - Consolidated Modal Lifecycle Management
  * ============================================================================
  *
- * Complementary to ModalManager - handles modal lifecycle events:
+ * Complementary to window.ModalManager - handles modal lifecycle events:
  * - Modal initialization and lifecycle events
  * - Backdrop cleanup
  * - iOS-specific fixes
@@ -11,16 +11,16 @@
  * - Button transform prevention (via CSS classes)
  *
  * RELATIONSHIP TO MODAL MANAGER:
- * - ModalManager: instance management, show/hide, caching
+ * - window.ModalManager: instance management, show/hide, caching
  * - ModalHelpers: lifecycle events, cleanup, iOS fixes, mobile viewport
  *
  * NO INLINE STYLES - Uses CSS classes and data attributes instead
  *
- * InitSystem Registration: Priority 25 (after ModalManager at 20)
+ * window.InitSystem Registration: Priority 25 (after window.ModalManager at 20)
  *
  * Dependencies:
  * - Bootstrap 5.x
- * - ModalManager
+ * - window.ModalManager
  * - /css/components/modals.css
  *
  * ============================================================================
@@ -126,7 +126,7 @@ const ModalHelpers = {
 
     /**
      * Ensures a Bootstrap modal is properly initialized
-     * Delegates to ModalManager if available
+     * Delegates to window.ModalManager if available
      * @param {string} modalId - The ID of the modal element
      * @returns {window.bootstrap.Modal|null} Modal instance or null if not found
      */
@@ -137,9 +137,9 @@ const ModalHelpers = {
             return null;
         }
 
-        // Use ModalManager if available
-        if (ModalManager) {
-            return ModalManager.getInstance(modalElement.id);
+        // Use window.ModalManager if available
+        if (window.ModalManager) {
+            return window.ModalManager.getInstance(modalElement.id);
         }
 
         // Fallback to direct Bootstrap instance
@@ -165,9 +165,9 @@ const ModalHelpers = {
                     jQuery('body').append(modalContent);
                     console.log('[Modal Helpers] Modals loaded dynamically');
 
-                    // Reinitialize ModalManager if available
-                    if (ModalManager) {
-                        ModalManager.reinit();
+                    // Reinitialize window.ModalManager if available
+                    if (window.ModalManager) {
+                        window.ModalManager.reinit();
                     }
 
                     resolve(true);
@@ -413,17 +413,17 @@ const ModalHelpers = {
 // Expose public API for external use (MUST be before any callbacks or registrations)
 window.ModalHelpers = ModalHelpers;
 
-// Register with InitSystem if available
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('ModalHelpers', function(context) {
+// Register with window.InitSystem if available
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('ModalHelpers', function(context) {
         ModalHelpers.init(context);
     }, {
-        priority: 25 // After ModalManager (20)
+        priority: 25 // After window.ModalManager (20)
     });
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.CONFIG = CONFIG;

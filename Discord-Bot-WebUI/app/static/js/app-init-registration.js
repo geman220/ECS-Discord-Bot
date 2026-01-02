@@ -2,7 +2,7 @@
  * Application Initialization Registration
  * ========================================
  *
- * Central registration file for simple page components using InitSystem.
+ * Central registration file for simple page components using window.InitSystem.
  * This file consolidates scattered DOMContentLoaded listeners into a single,
  * organized initialization system with proper dependency management and ordering.
  *
@@ -24,9 +24,9 @@ import { EventDelegation } from './event-delegation/core.js';
  * Initialize all app components
  */
 export function init() {
-    // Ensure InitSystem is loaded
-    if (typeof InitSystem === 'undefined') {
-        console.error('[App Init] InitSystem not loaded! Please include init-system.js before this file.');
+    // Ensure window.InitSystem is loaded
+    if (typeof window.InitSystem === 'undefined') {
+        console.error('[App Init] window.InitSystem not loaded! Please include init-system.js before this file.');
         return;
     }
 
@@ -35,7 +35,7 @@ export function init() {
     // ============================================================================
     // PRIORITY 85: PAGE LOADER
     // ============================================================================
-    InitSystem.register('page-loader', function() {
+    window.InitSystem.register('page-loader', function() {
         setTimeout(function() {
             const loader = document.getElementById('page-loader');
             if (loader) {
@@ -63,7 +63,7 @@ export function init() {
     // ============================================================================
 
     // Design System Fixes
-    InitSystem.register('design-system-fixes', function() {
+    window.InitSystem.register('design-system-fixes', function() {
         if (!window.ECSDesignSystem) {
             return;
         }
@@ -118,7 +118,7 @@ export function init() {
     });
 
     // Dropdown Menu Fix
-    InitSystem.register('dropdown-menu-fix', function(context) {
+    window.InitSystem.register('dropdown-menu-fix', function(context) {
         const root = context || document;
 
         const userManagementTables = root.querySelectorAll('.table');
@@ -138,7 +138,7 @@ export function init() {
     // Note: 'mobile-menu-fix' is registered in custom_js/mobile-menu-fix.js
 
     // Waitlist Registration Focus
-    InitSystem.register('waitlist-register-focus', function() {
+    window.InitSystem.register('waitlist-register-focus', function() {
         const discordBtn = document.querySelector('a[href*="waitlist_discord_register"]');
         if (!discordBtn) {
             return;
@@ -174,11 +174,11 @@ export function init() {
  * Register event delegation handlers
  */
 export function registerEventHandlers() {
-    if (typeof EventDelegation === 'undefined') {
+    if (typeof window.EventDelegation === 'undefined') {
         return;
     }
 
-    EventDelegation.register('toggle-mobile-menu', function(element, e) {
+    window.EventDelegation.register('toggle-mobile-menu', function(element, e) {
         e.preventDefault();
         if (document.documentElement.classList.contains('layout-menu-expanded')) {
             document.documentElement.classList.remove('layout-menu-expanded');
@@ -189,7 +189,7 @@ export function registerEventHandlers() {
         }
     }, { preventDefault: true });
 
-    EventDelegation.register('close-mobile-menu', function(element, e) {
+    window.EventDelegation.register('close-mobile-menu', function(element, e) {
         e.preventDefault();
         document.documentElement.classList.remove('layout-menu-expanded');
         document.body.classList.remove('sidebar-open');
@@ -201,7 +201,7 @@ if (true) {
     init();
     registerEventHandlers();
 } else {
-    // Wait for InitSystem to be available
+    // Wait for window.InitSystem to be available
     document.addEventListener('DOMContentLoaded', function() {
         if (true) {
             init();

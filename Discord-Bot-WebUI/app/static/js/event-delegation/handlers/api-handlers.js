@@ -14,7 +14,7 @@ import { ModalManager } from '../../modal-manager.js';
  * Generate API Key
  * Generates a new API key
  */
-EventDelegation.register('generate-api-key', function(element, e) {
+window.EventDelegation.register('generate-api-key', function(element, e) {
     e.preventDefault();
 
     const keyName = document.getElementById('api-key-name')?.value;
@@ -88,7 +88,7 @@ EventDelegation.register('generate-api-key', function(element, e) {
  * Revoke API Key
  * Revokes an existing API key
  */
-EventDelegation.register('revoke-api-key', function(element, e) {
+window.EventDelegation.register('revoke-api-key', function(element, e) {
     e.preventDefault();
 
     const keyId = element.dataset.keyId;
@@ -159,7 +159,7 @@ function performRevokeApiKey(keyId, element) {
  * Toggle API Key Status
  * Enables or disables an API key
  */
-EventDelegation.register('toggle-api-key', function(element, e) {
+window.EventDelegation.register('toggle-api-key', function(element, e) {
     e.preventDefault();
 
     const keyId = element.dataset.keyId;
@@ -211,7 +211,7 @@ EventDelegation.register('toggle-api-key', function(element, e) {
  * View API Key Details
  * Shows details and usage for an API key
  */
-EventDelegation.register('view-api-key-details', function(element, e) {
+window.EventDelegation.register('view-api-key-details', function(element, e) {
     e.preventDefault();
 
     const keyId = element.dataset.keyId;
@@ -232,7 +232,7 @@ EventDelegation.register('view-api-key-details', function(element, e) {
  * Copy API Key ID
  * Copies the API key ID to clipboard
  */
-EventDelegation.register('copy-api-key-id', function(element, e) {
+window.EventDelegation.register('copy-api-key-id', function(element, e) {
     e.preventDefault();
 
     const keyId = element.dataset.keyId;
@@ -265,7 +265,7 @@ EventDelegation.register('copy-api-key-id', function(element, e) {
  * Save API Config
  * Saves API configuration settings
  */
-EventDelegation.register('save-api-config', function(element, e) {
+window.EventDelegation.register('save-api-config', function(element, e) {
     e.preventDefault();
 
     const form = document.getElementById('api-config-form');
@@ -313,7 +313,7 @@ EventDelegation.register('save-api-config', function(element, e) {
  * Reset API Config
  * Resets API configuration to defaults
  */
-EventDelegation.register('reset-api-config', function(element, e) {
+window.EventDelegation.register('reset-api-config', function(element, e) {
     e.preventDefault();
 
     if (typeof window.Swal === 'undefined') {
@@ -380,7 +380,7 @@ function performResetApiConfig(element) {
  * Refresh API Logs
  * Refreshes the API logs view
  */
-EventDelegation.register('refresh-api-logs', function(element, e) {
+window.EventDelegation.register('refresh-api-logs', function(element, e) {
     e.preventDefault();
     window.location.reload();
 });
@@ -389,7 +389,7 @@ EventDelegation.register('refresh-api-logs', function(element, e) {
  * Clear API Logs
  * Clears old API logs
  */
-EventDelegation.register('clear-api-logs', function(element, e) {
+window.EventDelegation.register('clear-api-logs', function(element, e) {
     e.preventDefault();
 
     const daysToKeep = element.dataset.daysToKeep || 30;
@@ -462,7 +462,7 @@ function performClearApiLogs(daysToKeep, element) {
  * Export API Logs
  * Exports API logs to file
  */
-EventDelegation.register('export-api-logs', function(element, e) {
+window.EventDelegation.register('export-api-logs', function(element, e) {
     e.preventDefault();
 
     const format = element.dataset.format || 'csv';
@@ -474,7 +474,7 @@ EventDelegation.register('export-api-logs', function(element, e) {
  * Filter API Logs
  * Applies filters to API logs
  */
-EventDelegation.register('filter-api-logs', function(element, e) {
+window.EventDelegation.register('filter-api-logs', function(element, e) {
     e.preventDefault();
 
     const statusFilter = document.getElementById('log-status-filter')?.value || '';
@@ -496,7 +496,7 @@ EventDelegation.register('filter-api-logs', function(element, e) {
  * Shows full details for an API log entry
  * Note: Renamed from 'view-log-details' to avoid conflict with monitoring-handlers.js
  */
-EventDelegation.register('view-api-log-details', function(element, e) {
+window.EventDelegation.register('view-api-log-details', function(element, e) {
     e.preventDefault();
 
     const logId = element.dataset.logId;
@@ -529,4 +529,4 @@ EventDelegation.register('view-api-log-details', function(element, e) {
 
 // ============================================================================
 
-console.log('[EventDelegation] API handlers loaded');
+console.log('[window.EventDelegation] API handlers loaded');

@@ -389,9 +389,9 @@ export {
     bulkScheduleMatches
 };
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('admin-panel-match-list', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('admin-panel-match-list', init, {
         priority: 30,
         reinitializable: true,
         description: 'Admin panel match list management'
@@ -399,7 +399,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

@@ -183,7 +183,7 @@ export class DraftHistoryManager {
         document.getElementById('editDraftPosition').value = position;
         document.getElementById('editNotes').value = notes || '';
 
-        ModalManager.show('editDraftPickModal');
+        window.ModalManager.show('editDraftPickModal');
     }
 
     // Handle edit form submission
@@ -457,14 +457,14 @@ function init() {
     console.log('Draft History interface loaded successfully');
 }
 
-InitSystem.register('draft-history', init, {
+window.InitSystem.register('draft-history', init, {
     priority: 30,
     reinitializable: false,
     description: 'Draft history admin interface'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.DraftHistoryManager = DraftHistoryManager;

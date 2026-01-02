@@ -169,7 +169,7 @@ function loadRecentActivity() {
 function sendTestNotification() {
     const modal = document.getElementById('testNotificationModal');
     if (modal) {
-        ModalManager.showByElement(modal);
+        window.ModalManager.showByElement(modal);
     }
 }
 
@@ -178,7 +178,7 @@ function sendTestNotification() {
  */
 function confirmSendTest() {
     const modal = document.getElementById('testNotificationModal');
-    const bsModal = modal ? bootstrap.Modal.getInstance(modal) : null;
+    const bsModal = modal ? window.bootstrap.Modal.getInstance(modal) : null;
 
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value ||
                       document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -249,7 +249,7 @@ function sendBroadcast() {
     }
 
     const modal = document.getElementById('broadcastModal');
-    const bsModal = modal ? bootstrap.Modal.getInstance(modal) : null;
+    const bsModal = modal ? window.bootstrap.Modal.getInstance(modal) : null;
 
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value ||
                       document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -395,7 +395,7 @@ function cleanupInvalidTokens() {
 /**
  * Refresh Notification Status
  */
-EventDelegation.register('refresh-notification-status', function(element, e) {
+window.EventDelegation.register('refresh-notification-status', function(element, e) {
     e.preventDefault();
     refreshNotificationStatus();
 }, { preventDefault: true });
@@ -403,7 +403,7 @@ EventDelegation.register('refresh-notification-status', function(element, e) {
 /**
  * Send Test Notification
  */
-EventDelegation.register('send-test-notification', function(element, e) {
+window.EventDelegation.register('send-test-notification', function(element, e) {
     e.preventDefault();
     sendTestNotification();
 }, { preventDefault: true });
@@ -411,7 +411,7 @@ EventDelegation.register('send-test-notification', function(element, e) {
 /**
  * Send Match Reminder
  */
-EventDelegation.register('send-match-reminder', function(element, e) {
+window.EventDelegation.register('send-match-reminder', function(element, e) {
     e.preventDefault();
     sendMatchReminder();
 }, { preventDefault: true });
@@ -419,7 +419,7 @@ EventDelegation.register('send-match-reminder', function(element, e) {
 /**
  * Send RSVP Reminder
  */
-EventDelegation.register('send-rsvp-reminder-notification', function(element, e) {
+window.EventDelegation.register('send-rsvp-reminder-notification', function(element, e) {
     e.preventDefault();
     sendRSVPReminder();
 }, { preventDefault: true });
@@ -427,7 +427,7 @@ EventDelegation.register('send-rsvp-reminder-notification', function(element, e)
 /**
  * View Notification Logs
  */
-EventDelegation.register('view-notification-logs', function(element, e) {
+window.EventDelegation.register('view-notification-logs', function(element, e) {
     e.preventDefault();
     viewNotificationLogs();
 }, { preventDefault: true });
@@ -435,7 +435,7 @@ EventDelegation.register('view-notification-logs', function(element, e) {
 /**
  * Manage Tokens
  */
-EventDelegation.register('manage-push-tokens', function(element, e) {
+window.EventDelegation.register('manage-push-tokens', function(element, e) {
     e.preventDefault();
     manageTokens();
 }, { preventDefault: true });
@@ -443,7 +443,7 @@ EventDelegation.register('manage-push-tokens', function(element, e) {
 /**
  * Cleanup Invalid Tokens
  */
-EventDelegation.register('cleanup-invalid-tokens', function(element, e) {
+window.EventDelegation.register('cleanup-invalid-tokens', function(element, e) {
     e.preventDefault();
     cleanupInvalidTokens();
 }, { preventDefault: true });
@@ -451,7 +451,7 @@ EventDelegation.register('cleanup-invalid-tokens', function(element, e) {
 /**
  * Send Broadcast
  */
-EventDelegation.register('send-broadcast', function(element, e) {
+window.EventDelegation.register('send-broadcast', function(element, e) {
     e.preventDefault();
     sendBroadcast();
 }, { preventDefault: true });
@@ -459,7 +459,7 @@ EventDelegation.register('send-broadcast', function(element, e) {
 /**
  * Confirm Send Test
  */
-EventDelegation.register('confirm-send-test', function(element, e) {
+window.EventDelegation.register('confirm-send-test', function(element, e) {
     e.preventDefault();
     confirmSendTest();
 }, { preventDefault: true });
@@ -469,7 +469,7 @@ EventDelegation.register('confirm-send-test', function(element, e) {
  * Prompts user then navigates to mark-all endpoint
  * Usage: <button data-action="mark-all-notifications-read" data-url="/mark_all_as_read">
  */
-EventDelegation.register('mark-all-notifications-read', function(element, e) {
+window.EventDelegation.register('mark-all-notifications-read', function(element, e) {
     e.preventDefault();
     if (confirm('Mark all notifications as read?')) {
         const url = element.dataset.url;
@@ -489,7 +489,7 @@ EventDelegation.register('mark-all-notifications-read', function(element, e) {
  * Note: Renamed from 'mark-read' to avoid conflict with navbar-modern.js
  * Usage: <a data-action="mark-push-notification-read" href="/mark_notification_read/123">
  */
-EventDelegation.register('mark-push-notification-read', function(element, e) {
+window.EventDelegation.register('mark-push-notification-read', function(element, e) {
     // Don't prevent default - let the link navigate naturally
     const card = element.closest('.c-notification-card');
     if (card) {
@@ -502,7 +502,7 @@ EventDelegation.register('mark-push-notification-read', function(element, e) {
 // INITIALIZATION
 // ============================================================================
 
-InitSystem.register('pushNotifications', function() {
+window.InitSystem.register('pushNotifications', function() {
     // Check if we're on the push notifications page
     const statusIndicator = document.getElementById('firebase-status-indicator');
     if (!statusIndicator) return;
@@ -528,4 +528,4 @@ window.viewNotificationLogs = viewNotificationLogs;
 window.manageTokens = manageTokens;
 window.cleanupInvalidTokens = cleanupInvalidTokens;
 
-console.log('[EventDelegation] Push notification handlers loaded');
+console.log('[window.EventDelegation] Push notification handlers loaded');

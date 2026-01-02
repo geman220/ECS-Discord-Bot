@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles performance monitoring charts and real-time updates
- * Uses Chart.js for visualizations and event delegation for interactions
+ * Uses window.Chart.js for visualizations and event delegation for interactions
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -48,7 +48,7 @@ function init() {
 }
 
 /**
- * Initialize Chart.js visualizations
+ * Initialize window.Chart.js visualizations
  */
 function initializeCharts() {
     // Get data from hidden data element
@@ -59,7 +59,7 @@ function initializeCharts() {
     const cacheActive = parseInt(perfData.dataset.cacheActive || 0);
     const cacheExpired = parseInt(perfData.dataset.cacheExpired || 0);
 
-    // Query Performance Chart
+    // Query Performance window.Chart
     const queryCtx = document.querySelector('[data-chart="query-performance"]');
     if (queryCtx) {
         queryPerformanceChart = new window.Chart(queryCtx.getContext('2d'), {
@@ -103,7 +103,7 @@ function initializeCharts() {
         });
     }
 
-    // Cache Usage Chart
+    // Cache Usage window.Chart
     const cacheCtx = document.querySelector('[data-chart="cache-usage"]');
     if (cacheCtx) {
         cacheUsageChart = new window.Chart(cacheCtx.getContext('2d'), {
@@ -137,7 +137,7 @@ function initializeCharts() {
  */
 function registerEventHandlers() {
     // Handlers are now registered at module scope for proper timing
-    // See bottom of file for EventDelegation.register() calls
+    // See bottom of file for window.EventDelegation.register() calls
 }
 
 /**
@@ -295,18 +295,18 @@ function getCSSVariable(varName) {
 // ============================================================================
 
 // Note: Renamed from 'toggle-auto-refresh' and 'clear-cache' to avoid conflicts
-EventDelegation.register('performance-toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
-EventDelegation.register('performance-clear-cache', handleClearCache, { preventDefault: true });
+window.EventDelegation.register('performance-toggle-auto-refresh', handleToggleAutoRefresh, { preventDefault: true });
+window.EventDelegation.register('performance-clear-cache', handleClearCache, { preventDefault: true });
 
-// Register with InitSystem
-InitSystem.register('admin-panel-performance', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-panel-performance', init, {
     priority: 30,
     reinitializable: true,
     description: 'Admin panel performance monitoring'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility exports
 window.init = init;

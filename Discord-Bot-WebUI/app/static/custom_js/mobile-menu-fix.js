@@ -3,7 +3,7 @@
  * ====================================
  *
  * This component is now registered in /app/static/js/app-init-registration.js
- * using InitSystem with priority 30.
+ * using window.InitSystem with priority 30.
  *
  * Original DOMContentLoaded logic has been moved to centralized registration.
  * This file is kept for reference but the init logic is no longer executed here.
@@ -131,9 +131,9 @@ function init() {
     }
 }
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('mobile-menu-fix', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('mobile-menu-fix', init, {
         priority: 30,
         reinitializable: false,
         description: 'Enhance mobile menu interactions and iOS compatibility'
@@ -141,7 +141,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.openMenu = openMenu;

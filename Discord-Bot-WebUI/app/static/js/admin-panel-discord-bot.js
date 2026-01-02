@@ -506,7 +506,7 @@ function init() {
     // Initialize data
     initializeData();
 
-    // EventDelegation handlers are registered at module scope below
+    // window.EventDelegation handlers are registered at module scope below
 
     // Load bot configuration
     loadBotConfig();
@@ -519,35 +519,35 @@ function init() {
 // ============================================================================
 
 // Bot Control
-EventDelegation.register('restart-bot', restartBot, { preventDefault: true });
-EventDelegation.register('check-bot-health', checkBotHealth, { preventDefault: true });
-EventDelegation.register('view-bot-logs', viewBotLogs, { preventDefault: true });
-EventDelegation.register('sync-commands', syncCommands, { preventDefault: true });
+window.EventDelegation.register('restart-bot', restartBot, { preventDefault: true });
+window.EventDelegation.register('check-bot-health', checkBotHealth, { preventDefault: true });
+window.EventDelegation.register('view-bot-logs', viewBotLogs, { preventDefault: true });
+window.EventDelegation.register('sync-commands', syncCommands, { preventDefault: true });
 
 // Command Management
-EventDelegation.register('view-commands', viewCommands, { preventDefault: true });
-EventDelegation.register('command-permissions', commandPermissions, { preventDefault: true });
-EventDelegation.register('command-usage', commandUsage, { preventDefault: true });
-EventDelegation.register('custom-commands', customCommands, { preventDefault: true });
+window.EventDelegation.register('view-commands', viewCommands, { preventDefault: true });
+window.EventDelegation.register('command-permissions', commandPermissions, { preventDefault: true });
+window.EventDelegation.register('command-usage', commandUsage, { preventDefault: true });
+window.EventDelegation.register('custom-commands', customCommands, { preventDefault: true });
 
 // Guild Management
-EventDelegation.register('manage-guild', manageGuild, { preventDefault: true });
-EventDelegation.register('guild-stats', guildStats, { preventDefault: true });
-EventDelegation.register('add-guild', addGuild, { preventDefault: true });
+window.EventDelegation.register('manage-guild', manageGuild, { preventDefault: true });
+window.EventDelegation.register('guild-stats', guildStats, { preventDefault: true });
+window.EventDelegation.register('add-guild', addGuild, { preventDefault: true });
 
 // Configuration
-EventDelegation.register('save-bot-config', saveBotConfig, { preventDefault: true });
-EventDelegation.register('reset-bot-config', resetBotConfig, { preventDefault: true });
+window.EventDelegation.register('save-bot-config', saveBotConfig, { preventDefault: true });
+window.EventDelegation.register('reset-bot-config', resetBotConfig, { preventDefault: true });
 
-// Register with InitSystem
-InitSystem.register('admin-panel-discord-bot', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-panel-discord-bot', init, {
     priority: 30,
     reinitializable: true,
     description: 'Admin panel Discord bot management'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility exports
 window.CONFIG = CONFIG;

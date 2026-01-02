@@ -27,7 +27,7 @@ export class ScheduleManager {
             // Hook up the Edit/Match modal
             const modalEl = document.getElementById('editMatchModal');
             if (modalEl) {
-                this.editMatchModal = ModalManager.getInstance('editMatchModal');
+                this.editMatchModal = window.ModalManager.getInstance('editMatchModal');
 
                 // The form inside the modal
                 const editForm = document.getElementById('editMatchForm');
@@ -367,9 +367,9 @@ export class ScheduleManager {
         window.scheduleManager = new window.ScheduleManager();
     }
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('schedule-management', init, {
+    // Register with window.InitSystem (primary)
+    if (true && window.InitSystem.register) {
+        window.InitSystem.register('schedule-management', init, {
             priority: 40,
             reinitializable: false,
             description: 'Schedule management'
@@ -378,7 +378,7 @@ export class ScheduleManager {
 
     // Fallback - ScheduleManager has its own DOMContentLoaded in constructor
     // So we just register it, the constructor handles the DOM wait
-    // InitSystem handles initialization
+    // window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

@@ -99,8 +99,8 @@ function toggleTheme() {
 
     // Close offcanvas
     const offcanvasEl = document.getElementById('mobileMoreMenu');
-    if (offcanvasEl && typeof bootstrap !== 'undefined') {
-        const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+    if (offcanvasEl && typeof window.bootstrap !== 'undefined') {
+        const offcanvas = window.bootstrap.Offcanvas.getInstance(offcanvasEl);
         if (offcanvas) offcanvas.hide();
     }
 }
@@ -130,22 +130,22 @@ function init() {
     console.log('[MobileBottomNav] Initialized');
 }
 
-// Register with EventDelegation system
-if (typeof EventDelegation !== 'undefined') {
-    EventDelegation.register('toggle-theme', function(element, event) {
+// Register with window.EventDelegation system
+if (typeof window.EventDelegation !== 'undefined') {
+    window.EventDelegation.register('toggle-theme', function(element, event) {
         event.preventDefault();
         toggleTheme();
     });
 }
 
-// Register with InitSystem
-InitSystem.register('mobile-bottom-nav', init, {
+// Register with window.InitSystem
+window.InitSystem.register('mobile-bottom-nav', init, {
     priority: 25,
     description: 'Mobile bottom navigation module'
 });
 
 // Fallback for non-module usage
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Expose toggleTheme globally for backward compatibility
 window.toggleTheme = toggleTheme;

@@ -158,9 +158,9 @@ export const Visibility = {
     }
 };
 
-// Register with InitSystem if available (no init needed, just utility functions)
-if (typeof InitSystem !== 'undefined' && InitSystem.register) {
-    InitSystem.register('visibility-utils', function() {
+// Register with window.InitSystem if available (no init needed, just utility functions)
+if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
+    window.InitSystem.register('visibility-utils', function() {
         // No initialization needed, just logs availability
     }, {
         priority: 100,

@@ -162,15 +162,15 @@ function showToast(icon, title, text) {
     }
 }
 
-// Register with InitSystem
-InitSystem.register('admin-panel-feature-toggles', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-panel-feature-toggles', init, {
     priority: 30,
     reinitializable: true,
     description: 'Admin panel feature toggles'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility exports
 window.init = init;

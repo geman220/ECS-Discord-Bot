@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles audit logs page interactions using data-attribute hooks
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -82,8 +82,8 @@ function showLogDetails(logId, oldValue, newValue, ipAddress) {
 
     detailsHtml += '</div>';
 
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             title: 'Log Details',
             html: detailsHtml,
             icon: 'info',
@@ -101,8 +101,8 @@ function exportLogs(format) {
     const url = exportLogsUrl || window.auditLogsConfig?.exportLogsUrl || '/admin-panel/audit-logs/export';
     const exportUrl = `${url}?${params.toString()}`;
 
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             title: 'Export Audit Logs',
             text: 'This will download a CSV file with the filtered audit log entries. Continue?',
             icon: 'question',
@@ -130,15 +130,15 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Register with InitSystem
-InitSystem.register('admin-audit-logs', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-audit-logs', init, {
     priority: 30,
     reinitializable: true,
     description: 'Admin audit logs page functionality'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

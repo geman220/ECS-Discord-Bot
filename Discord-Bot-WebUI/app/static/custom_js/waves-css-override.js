@@ -79,9 +79,9 @@ export function init() {
     console.log('[Waves CSS Override] Inline style injection prevented - using CSS classes');
 }
 
-// Register with InitSystem (primary)
-if (InitSystem.register) {
-    InitSystem.register('waves-css-override', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem.register) {
+    window.InitSystem.register('waves-css-override', init, {
         priority: 30,
         reinitializable: false,
         description: 'Waves CSS override for ripple effects'
@@ -89,7 +89,7 @@ if (InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

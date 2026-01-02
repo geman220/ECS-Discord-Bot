@@ -84,7 +84,7 @@ export const AssetCropper = {
         }
 
         // Open modal
-        ModalManager.show('assetCropperModal');
+        window.ModalManager.show('assetCropperModal');
     },
 
     /**

@@ -11,10 +11,10 @@
  *    <button data-bs-toggle="modal" data-bs-target="#myModal">Show Modal</button>
  *
  * 2. Programmatic (simple one-liner):
- *    ModalManager.show('myModal');
+ *    window.ModalManager.show('myModal');
  *
  * 3. With options:
- *    ModalManager.show('myModal', { backdrop: 'static', keyboard: false });
+ *    window.ModalManager.show('myModal', { backdrop: 'static', keyboard: false });
  *
  * 4. Event delegation (preferred):
  *    <button data-action="show-modal" data-modal-id="myModal">Show</button>
@@ -26,7 +26,7 @@
  * - Auto-discovery of all modals on page
  * - Event delegation support via data-action attributes
  * - Memory cleanup
- * - InitSystem registration (priority 20)
+ * - window.InitSystem registration (priority 20)
  *
  * SELECTOR CONVENTION:
  * --------------------
@@ -70,7 +70,7 @@ export class ModalManager {
      * Initialize the Modal Manager
      * - Auto-discovers all modals on the page
      * - Sets up event delegation for data-action triggers
-     * - Called automatically via InitSystem or DOMContentLoaded
+     * - Called automatically via window.InitSystem or DOMContentLoaded
      *
      * @param {Element} context - Optional context element (defaults to document)
      */
@@ -81,7 +81,7 @@ export class ModalManager {
         }
 
         if (typeof window.bootstrap === 'undefined' || typeof window.bootstrap.Modal === 'undefined') {
-            console.error('[ModalManager] Bootstrap not loaded. Cannot initialize modals.');
+            console.error('[window.ModalManager] Bootstrap not loaded. Cannot initialize modals.');
             return;
         }
 
@@ -129,21 +129,21 @@ export class ModalManager {
                     this.modalInstances.set(modalEl.id, instance);
                     this.log(`Cached modal: ${modalEl.id}`);
                 } catch (error) {
-                    console.error(`[ModalManager] Failed to initialize modal ${modalEl.id}:`, error);
+                    console.error(`[window.ModalManager] Failed to initialize modal ${modalEl.id}:`, error);
                 }
             } else {
-                console.warn('[ModalManager] Found modal without ID. Modals should have unique IDs:', modalEl);
+                console.warn('[window.ModalManager] Found modal without ID. Modals should have unique IDs:', modalEl);
             }
         });
     }
 
     /**
      * Set up event delegation for data-action triggers
-     * Note: EventDelegation handlers are registered at module scope below
+     * Note: window.EventDelegation handlers are registered at module scope below
      * @private
      */
     static setupEventDelegation() {
-        // EventDelegation handlers are registered at module scope for proper timing
+        // window.EventDelegation handlers are registered at module scope for proper timing
         this.log('Event delegation handlers are registered at module scope');
     }
 
@@ -211,7 +211,7 @@ export class ModalManager {
      */
     static show(modalId, options = null) {
         if (!modalId) {
-            console.error('[ModalManager] show() requires a modal ID');
+            console.error('[window.ModalManager] show() requires a modal ID');
             return false;
         }
 
@@ -225,7 +225,7 @@ export class ModalManager {
             const modalElement = document.getElementById(modalId);
 
             if (!modalElement) {
-                console.error(`[ModalManager] Modal element not found: ${modalId}`);
+                console.error(`[window.ModalManager] Modal element not found: ${modalId}`);
                 return false;
             }
 
@@ -242,7 +242,7 @@ export class ModalManager {
                 this.modalInstances.set(modalId, modal);
                 this.log(`Created and cached new modal: ${modalId}`);
             } catch (error) {
-                console.error(`[ModalManager] Failed to initialize modal ${modalId}:`, error);
+                console.error(`[window.ModalManager] Failed to initialize modal ${modalId}:`, error);
                 return false;
             }
         }
@@ -252,7 +252,7 @@ export class ModalManager {
             modal.show();
             return true;
         } catch (error) {
-            console.error(`[ModalManager] Failed to show modal ${modalId}:`, error);
+            console.error(`[window.ModalManager] Failed to show modal ${modalId}:`, error);
             return false;
         }
     }
@@ -264,7 +264,7 @@ export class ModalManager {
      */
     static hide(modalId) {
         if (!modalId) {
-            console.error('[ModalManager] hide() requires a modal ID');
+            console.error('[window.ModalManager] hide() requires a modal ID');
             return false;
         }
 
@@ -273,7 +273,7 @@ export class ModalManager {
         const modal = this.modalInstances.get(modalId);
 
         if (!modal) {
-            console.warn(`[ModalManager] Modal not found in cache: ${modalId}`);
+            console.warn(`[window.ModalManager] Modal not found in cache: ${modalId}`);
 
             // Try to find it in DOM and get Bootstrap instance
             const modalElement = document.getElementById(modalId);
@@ -284,7 +284,7 @@ export class ModalManager {
                         instance.hide();
                         return true;
                     } catch (error) {
-                        console.error(`[ModalManager] Failed to hide modal ${modalId}:`, error);
+                        console.error(`[window.ModalManager] Failed to hide modal ${modalId}:`, error);
                         return false;
                     }
                 }
@@ -297,7 +297,7 @@ export class ModalManager {
             modal.hide();
             return true;
         } catch (error) {
-            console.error(`[ModalManager] Failed to hide modal ${modalId}:`, error);
+            console.error(`[window.ModalManager] Failed to hide modal ${modalId}:`, error);
             return false;
         }
     }
@@ -309,7 +309,7 @@ export class ModalManager {
      */
     static toggle(modalId) {
         if (!modalId) {
-            console.error('[ModalManager] toggle() requires a modal ID');
+            console.error('[window.ModalManager] toggle() requires a modal ID');
             return false;
         }
 
@@ -324,7 +324,7 @@ export class ModalManager {
             modal.toggle();
             return true;
         } catch (error) {
-            console.error(`[ModalManager] Failed to toggle modal ${modalId}:`, error);
+            console.error(`[window.ModalManager] Failed to toggle modal ${modalId}:`, error);
             return false;
         }
     }
@@ -332,7 +332,7 @@ export class ModalManager {
     /**
      * Get a modal instance by ID
      * @param {string} modalId - The ID of the modal
-     * @returns {bootstrap.Modal|null} - The Bootstrap modal instance or null
+     * @returns {window.bootstrap.Modal|null} - The Bootstrap modal instance or null
      */
     static getInstance(modalId) {
         return this.modalInstances.get(modalId) || null;
@@ -350,7 +350,7 @@ export class ModalManager {
                 const modal = this.modalInstances.get(modalId);
                 modal.dispose();
             } catch (error) {
-                console.warn(`[ModalManager] Error disposing modal ${modalId}:`, error);
+                console.warn(`[window.ModalManager] Error disposing modal ${modalId}:`, error);
             }
 
             this.modalInstances.delete(modalId);
@@ -367,7 +367,7 @@ export class ModalManager {
             try {
                 modal.dispose();
             } catch (error) {
-                console.warn(`[ModalManager] Error disposing modal ${modalId}:`, error);
+                console.warn(`[window.ModalManager] Error disposing modal ${modalId}:`, error);
             }
         });
 
@@ -389,7 +389,7 @@ export class ModalManager {
      */
     static enableDebug() {
         this.DEBUG = true;
-        console.log('[ModalManager] Debug mode enabled');
+        console.log('[window.ModalManager] Debug mode enabled');
     }
 
     /**
@@ -406,43 +406,43 @@ export class ModalManager {
      */
     static log(...args) {
         if (this.DEBUG) {
-            console.log('[ModalManager]', ...args);
+            console.log('[window.ModalManager]', ...args);
         }
     }
 }
 
 /**
- * Deprecated helper function - use ModalManager.getInstance() instead
+ * Deprecated helper function - use window.ModalManager.getInstance() instead
  * @deprecated
  * @param {string} modalId - Modal ID
- * @returns {bootstrap.Modal|null} Modal instance or null
+ * @returns {window.bootstrap.Modal|null} Modal instance or null
  */
 export function safeGetModal(modalId) {
-    console.warn('[Deprecated] safeGetModal() is deprecated. Use ModalManager.getInstance() instead.');
-    return ModalManager.getInstance(modalId);
+    console.warn('[Deprecated] safeGetModal() is deprecated. Use window.ModalManager.getInstance() instead.');
+    return window.ModalManager.getInstance(modalId);
 }
 
 /**
- * Deprecated helper function - use ModalManager.show() instead
+ * Deprecated helper function - use window.ModalManager.show() instead
  * @deprecated
  * @param {string} modalId - Modal ID
  * @returns {boolean} Success status
  */
 export function safeShowModal(modalId) {
-    console.warn('[Deprecated] safeShowModal() is deprecated. Use ModalManager.show() instead.');
-    return ModalManager.show(modalId);
+    console.warn('[Deprecated] safeShowModal() is deprecated. Use window.ModalManager.show() instead.');
+    return window.ModalManager.show(modalId);
 }
 
 /**
- * Register modal event handlers with EventDelegation
+ * Register modal event handlers with window.EventDelegation
  * @private
  */
 function registerModalManagerEventHandlers() {
     // Safety check - MUST use window.EventDelegation to avoid TDZ errors in bundled code
-    // In Vite/Rollup bundles, bare `EventDelegation` reference can throw ReferenceError
+    // In Vite/Rollup bundles, bare `window.EventDelegation` reference can throw ReferenceError
     // if the variable is hoisted but not yet initialized (Temporal Dead Zone)
     if (typeof window.EventDelegation === 'undefined' || typeof window.EventDelegation.register !== 'function') {
-        console.warn('[ModalManager] EventDelegation not available, handlers not registered');
+        console.warn('[window.ModalManager] window.EventDelegation not available, handlers not registered');
         return;
     }
 
@@ -456,10 +456,10 @@ function registerModalManagerEventHandlers() {
     window.EventDelegation.register('show-modal', (element, e) => {
         const modalId = element.dataset.modalId;
         if (modalId) {
-            const options = ModalManager.parseOptionsFromElement(element);
-            ModalManager.show(modalId, options);
+            const options = window.ModalManager.parseOptionsFromElement(element);
+            window.ModalManager.show(modalId, options);
         } else {
-            console.error('[ModalManager] data-action="show-modal" requires data-modal-id attribute');
+            console.error('[window.ModalManager] data-action="show-modal" requires data-modal-id attribute');
         }
     }, { preventDefault: true });
 
@@ -467,12 +467,12 @@ function registerModalManagerEventHandlers() {
     window.EventDelegation.register('hide-modal', (element, e) => {
         const modalId = element.dataset.modalId;
         if (modalId) {
-            ModalManager.hide(modalId);
+            window.ModalManager.hide(modalId);
         } else {
             // Try to find the closest modal and close it
             const closestModal = element.closest('[data-modal], .modal');
             if (closestModal && closestModal.id) {
-                ModalManager.hide(closestModal.id);
+                window.ModalManager.hide(closestModal.id);
             }
         }
     }, { preventDefault: true });
@@ -481,12 +481,12 @@ function registerModalManagerEventHandlers() {
     window.EventDelegation.register('close-modal', (element, e) => {
         const modalId = element.dataset.modalId;
         if (modalId) {
-            ModalManager.hide(modalId);
+            window.ModalManager.hide(modalId);
         } else {
             // Support Bootstrap .modal, custom [data-modal], and .c-modal-modern
             const closestModal = element.closest('[data-modal], .modal, .c-modal-modern');
             if (closestModal && closestModal.id) {
-                ModalManager.hide(closestModal.id);
+                window.ModalManager.hide(closestModal.id);
             }
         }
     }, { preventDefault: true });
@@ -495,13 +495,13 @@ function registerModalManagerEventHandlers() {
     window.EventDelegation.register('toggle-modal', (element, e) => {
         const modalId = element.dataset.modalId;
         if (modalId) {
-            ModalManager.toggle(modalId);
+            window.ModalManager.toggle(modalId);
         } else {
-            console.error('[ModalManager] data-action="toggle-modal" requires data-modal-id attribute');
+            console.error('[window.ModalManager] data-action="toggle-modal" requires data-modal-id attribute');
         }
     }, { preventDefault: true });
 
-    console.log('[ModalManager] Event delegation handlers registered');
+    console.log('[window.ModalManager] Event delegation handlers registered');
 }
 
 // Backward compatibility - keep window.ModalManager for legacy code
@@ -509,17 +509,17 @@ window.ModalManager = ModalManager;
 window.safeGetModal = safeGetModal;
 window.safeShowModal = safeShowModal;
 
-// Register with InitSystem if available
+// Register with window.InitSystem if available
 if (typeof window.InitSystem !== 'undefined') {
-    window.InitSystem.register('ModalManager', function(context) {
-        ModalManager.init(context);
+    window.InitSystem.register('window.ModalManager', function(context) {
+        window.ModalManager.init(context);
     }, {
         priority: 20 // After responsive (10) and admin-base (15), before page-specific components
     });
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Try to register event handlers immediately (works in Vite bundle)
 // MUST use window.EventDelegation to avoid TDZ errors

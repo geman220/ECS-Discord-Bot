@@ -309,7 +309,7 @@ export class DraftPredictionsManager {
         modalName.textContent = playerName;
         modalLabel.textContent = `${playerName} - Player Photo`;
 
-        ModalManager.show(modal.id);
+        window.ModalManager.show(modal.id);
 
         modalImg.onerror = function() {
             modalImg.src = imgElement.src;
@@ -368,9 +368,9 @@ function init() {
 
 export { init };
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('draft-predictions', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('draft-predictions', init, {
         priority: 40,
         reinitializable: false,
         description: 'Draft predictions auto-save'
@@ -378,7 +378,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.draftPredictionsInit = init;

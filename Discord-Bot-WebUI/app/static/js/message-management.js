@@ -29,18 +29,18 @@ function init() {
     });
 }
 
-InitSystem.register('message-management', init, {
+window.InitSystem.register('message-management', init, {
     priority: 30,
     reinitializable: false,
     description: 'Message management interface'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Preview message template
 export function previewTemplate(templateId) {
-    ModalManager.show('previewModal');
+    window.ModalManager.show('previewModal');
 
     // Set loading state
     const previewContent = document.getElementById('previewContent');
@@ -128,7 +128,7 @@ export function previewMessage() {
         return;
     }
 
-    ModalManager.show('previewModal');
+    window.ModalManager.show('previewModal');
 
     // Create a preview with sample data
     const sampleData = {

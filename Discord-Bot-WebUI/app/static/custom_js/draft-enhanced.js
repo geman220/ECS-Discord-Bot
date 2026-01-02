@@ -791,7 +791,7 @@ function showDraftTeamSelection(playerId, playerName, existingTeams = '') {
     };
 
     // Show the modal
-    ModalManager.show('draftConfirmModal');
+    window.ModalManager.show('draftConfirmModal');
 }
 
 /**
@@ -806,7 +806,7 @@ function openPlayerModal(playerId) {
     document.getElementById('draftFromModal').classList.remove('is-visible');
 
     // Open modal
-    ModalManager.show('playerProfileModal');
+    window.ModalManager.show('playerProfileModal');
 
     // Fetch player data
     fetch(`/players/api/player_profile/${playerId}`)
@@ -997,9 +997,9 @@ window.handleDropToAvailable = handleDropToAvailable;
 window.sortPlayers = sortPlayers;
 window.showDraftTeamSelection = showDraftTeamSelection;
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('draft-enhanced', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('draft-enhanced', init, {
         priority: 40,
         reinitializable: false,
         description: 'Draft enhanced page functionality'
@@ -1007,4 +1007,4 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization

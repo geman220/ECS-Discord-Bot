@@ -426,9 +426,9 @@ export {
     showToast
 };
 
-// Register with InitSystem (primary)
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('admin-manage-subs', init, {
+// Register with window.InitSystem (primary)
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('admin-manage-subs', init, {
         priority: 30,
         reinitializable: true,
         description: 'Admin manage substitutes page'
@@ -436,7 +436,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.adminManageSubsInit = init;

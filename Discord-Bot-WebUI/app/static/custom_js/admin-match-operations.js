@@ -114,7 +114,7 @@ class AdminMatchOperationsManager {
             `<option value="${l.id}">${l.name}${l.leagueType ? ` (${l.leagueType})` : ''}</option>`
         ).join('');
 
-        Swal.fire({
+        window.Swal.fire({
             title: 'Create New Team',
             html: `
                 <div class="text-start">
@@ -138,7 +138,7 @@ class AdminMatchOperationsManager {
             preConfirm: () => {
                 const name = document.getElementById('teamName').value;
                 if (!name) {
-                    Swal.showValidationMessage('Team name is required');
+                    window.Swal.showValidationMessage('Team name is required');
                     return false;
                 }
                 return {
@@ -165,12 +165,12 @@ class AdminMatchOperationsManager {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                        window.Swal.fire('Success', data.message, 'success').then(() => location.reload());
                     } else {
-                        Swal.fire('Error', data.message, 'error');
+                        window.Swal.fire('Error', data.message, 'error');
                     }
                 })
-                .catch(() => Swal.fire('Error', 'Failed to create team', 'error'));
+                .catch(() => window.Swal.fire('Error', 'Failed to create team', 'error'));
             }
         });
     }
@@ -181,7 +181,7 @@ class AdminMatchOperationsManager {
             .then(data => {
                 if (data.success) {
                     const team = data.team;
-                    Swal.fire({
+                    window.Swal.fire({
                         title: team.name,
                         html: `
                             <div class="text-start">
@@ -193,10 +193,10 @@ class AdminMatchOperationsManager {
                         icon: 'info'
                     });
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             })
-            .catch(() => Swal.fire('Error', 'Failed to load team details', 'error'));
+            .catch(() => window.Swal.fire('Error', 'Failed to load team details', 'error'));
     }
 
     editTeam(teamId) {
@@ -205,7 +205,7 @@ class AdminMatchOperationsManager {
             .then(data => {
                 if (data.success) {
                     const team = data.team;
-                    Swal.fire({
+                    window.Swal.fire({
                         title: 'Edit Team',
                         html: `
                             <div class="text-start">
@@ -225,7 +225,7 @@ class AdminMatchOperationsManager {
                         preConfirm: () => {
                             const name = document.getElementById('editTeamName').value;
                             if (!name) {
-                                Swal.showValidationMessage('Team name is required');
+                                window.Swal.showValidationMessage('Team name is required');
                                 return false;
                             }
                             return { name: name };
@@ -245,25 +245,25 @@ class AdminMatchOperationsManager {
                             .then(response => response.json())
                             .then(data => {
                                 if (data.success) {
-                                    Swal.fire('Success', data.message, 'success').then(() => location.reload());
+                                    window.Swal.fire('Success', data.message, 'success').then(() => location.reload());
                                 } else {
-                                    Swal.fire('Error', data.message, 'error');
+                                    window.Swal.fire('Error', data.message, 'error');
                                 }
                             })
-                            .catch(() => Swal.fire('Error', 'Failed to update team', 'error'));
+                            .catch(() => window.Swal.fire('Error', 'Failed to update team', 'error'));
                         } else if (result.isDenied) {
                             this.deleteTeam(teamId, team.name);
                         }
                     });
                 } else {
-                    Swal.fire('Error', data.message, 'error');
+                    window.Swal.fire('Error', data.message, 'error');
                 }
             })
-            .catch(() => Swal.fire('Error', 'Failed to load team details', 'error'));
+            .catch(() => window.Swal.fire('Error', 'Failed to load team details', 'error'));
     }
 
     deleteTeam(teamId, teamName) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Delete Team?',
             text: `Are you sure you want to delete "${teamName}"? This cannot be undone.`,
             icon: 'warning',
@@ -282,12 +282,12 @@ class AdminMatchOperationsManager {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        Swal.fire('Deleted', data.message, 'success').then(() => location.reload());
+                        window.Swal.fire('Deleted', data.message, 'success').then(() => location.reload());
                     } else {
-                        Swal.fire('Error', data.message, 'error');
+                        window.Swal.fire('Error', data.message, 'error');
                     }
                 })
-                .catch(() => Swal.fire('Error', 'Failed to delete team', 'error'));
+                .catch(() => window.Swal.fire('Error', 'Failed to delete team', 'error'));
             }
         });
     }
@@ -299,7 +299,7 @@ class AdminMatchOperationsManager {
 
     // Match Scheduling Methods
     scheduleMatch(matchId) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Schedule Match',
             html: `
                 <form id="scheduleForm" class="text-start">
@@ -326,7 +326,7 @@ class AdminMatchOperationsManager {
                 const location = document.getElementById('matchLocation').value;
 
                 if (!date || !time) {
-                    Swal.showValidationMessage('Please enter both date and time');
+                    window.Swal.showValidationMessage('Please enter both date and time');
                     return false;
                 }
 
@@ -351,22 +351,22 @@ class AdminMatchOperationsManager {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        Swal.fire('Scheduled!', 'Match has been scheduled.', 'success').then(() => {
+                        window.Swal.fire('Scheduled!', 'Match has been scheduled.', 'success').then(() => {
                             location.reload();
                         });
                     } else {
-                        Swal.fire('Error', data.message || 'Failed to schedule match', 'error');
+                        window.Swal.fire('Error', data.message || 'Failed to schedule match', 'error');
                     }
                 })
                 .catch(() => {
-                    Swal.fire('Error', 'Failed to schedule match', 'error');
+                    window.Swal.fire('Error', 'Failed to schedule match', 'error');
                 });
             }
         });
     }
 
     quickSchedule() {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Quick Schedule',
             text: 'This will automatically schedule all unscheduled matches. Continue?',
             icon: 'question',
@@ -375,13 +375,13 @@ class AdminMatchOperationsManager {
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                Swal.fire({
+                window.Swal.fire({
                     title: 'Scheduling...',
                     text: 'Please wait while matches are being scheduled.',
                     allowOutsideClick: false,
                     showConfirmButton: false,
                     didOpen: () => {
-                        Swal.showLoading();
+                        window.Swal.showLoading();
                     }
                 });
 
@@ -397,18 +397,18 @@ class AdminMatchOperationsManager {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        Swal.fire({
+                        window.Swal.fire({
                             title: 'Schedule Created!',
                             text: data.message,
                             icon: 'success'
                         }).then(() => location.reload());
                     } else {
-                        Swal.fire('Error', data.message, 'error');
+                        window.Swal.fire('Error', data.message, 'error');
                     }
                 })
                 .catch(error => {
                     console.error('[AdminMatchOperationsManager] Error:', error);
-                    Swal.fire('Error', 'Failed to create schedule', 'error');
+                    window.Swal.fire('Error', 'Failed to create schedule', 'error');
                 });
             }
         });
@@ -418,7 +418,7 @@ class AdminMatchOperationsManager {
         const teamsData = window.SCHEDULE_CONFIG?.teamsData || [];
         let teamOptions = teamsData.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
 
-        Swal.fire({
+        window.Swal.fire({
             title: 'Create New Match',
             html: `
                 <form id="newMatchForm" class="text-start">
@@ -454,12 +454,12 @@ class AdminMatchOperationsManager {
                 const awayTeam = document.getElementById('awayTeam').value;
 
                 if (!homeTeam || !awayTeam) {
-                    Swal.showValidationMessage('Please select both teams');
+                    window.Swal.showValidationMessage('Please select both teams');
                     return false;
                 }
 
                 if (homeTeam === awayTeam) {
-                    Swal.showValidationMessage('Home and Away teams must be different');
+                    window.Swal.showValidationMessage('Home and Away teams must be different');
                     return false;
                 }
 
@@ -489,25 +489,25 @@ class AdminMatchOperationsManager {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        Swal.fire({
+                        window.Swal.fire({
                             title: 'Match Created!',
                             text: data.message,
                             icon: 'success'
                         }).then(() => location.reload());
                     } else {
-                        Swal.fire('Error', data.message, 'error');
+                        window.Swal.fire('Error', data.message, 'error');
                     }
                 })
                 .catch(error => {
                     console.error('[AdminMatchOperationsManager] Error:', error);
-                    Swal.fire('Error', 'Failed to create match', 'error');
+                    window.Swal.fire('Error', 'Failed to create match', 'error');
                 });
             }
         });
     }
 
     viewMatch(matchId) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Match Details',
             text: 'Match details functionality coming soon!',
             icon: 'info'
@@ -515,7 +515,7 @@ class AdminMatchOperationsManager {
     }
 
     editMatch(matchId) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Edit Match',
             text: 'Match editing functionality coming soon!',
             icon: 'info'
@@ -523,7 +523,7 @@ class AdminMatchOperationsManager {
     }
 
     enterResult(matchId) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Enter Match Result',
             text: 'Result entry feature will be implemented here',
             icon: 'info'
@@ -532,7 +532,7 @@ class AdminMatchOperationsManager {
 
     // Transfer Methods
     approveTransfer(requestId) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Approve Transfer?',
             text: 'This will complete the player transfer.',
             icon: 'question',
@@ -541,7 +541,7 @@ class AdminMatchOperationsManager {
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                Swal.fire({
+                window.Swal.fire({
                     title: 'Transfer Approved',
                     text: 'Transfer approval functionality coming soon!',
                     icon: 'success'
@@ -551,7 +551,7 @@ class AdminMatchOperationsManager {
     }
 
     rejectTransfer(requestId) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Reject Transfer?',
             text: 'This will reject the player transfer request.',
             icon: 'question',
@@ -560,7 +560,7 @@ class AdminMatchOperationsManager {
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                Swal.fire({
+                window.Swal.fire({
                     title: 'Transfer Rejected',
                     text: 'Transfer rejection functionality coming soon!',
                     icon: 'info'
@@ -570,7 +570,7 @@ class AdminMatchOperationsManager {
     }
 
     exportTransferHistory() {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Export Transfer History',
             text: 'Export functionality coming soon!',
             icon: 'info'
@@ -579,7 +579,7 @@ class AdminMatchOperationsManager {
 
     // Team Roster Methods
     managePlayerAssignments() {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Assign Players',
             text: 'Player assignment functionality coming soon!',
             icon: 'info'
@@ -587,7 +587,7 @@ class AdminMatchOperationsManager {
     }
 
     viewTeamRoster(teamId) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'View Team Roster',
             text: 'Team roster details functionality coming soon!',
             icon: 'info'
@@ -595,7 +595,7 @@ class AdminMatchOperationsManager {
     }
 
     editTeamRoster(teamId) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Edit Team Roster',
             text: 'Team roster editing functionality coming soon!',
             icon: 'info'
@@ -606,7 +606,7 @@ class AdminMatchOperationsManager {
         const teamsWithoutPlayers = window.TEAM_ROSTERS_CONFIG?.teamsWithoutPlayers || [];
 
         if (teamsWithoutPlayers.length > 0) {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Teams Without Players',
                 html: '<ul class="text-start">' + teamsWithoutPlayers.map(team => '<li>' + team + '</li>').join('') + '</ul>',
                 icon: 'warning',
@@ -657,9 +657,9 @@ function init() {
     window.enterResult = (matchId) => manager.enterResult(matchId);
 }
 
-// Register with InitSystem
-if (InitSystem && InitSystem.register) {
-    InitSystem.register('admin-match-operations', init, {
+// Register with window.InitSystem
+if (window.InitSystem && window.InitSystem.register) {
+    window.InitSystem.register('admin-match-operations', init, {
         priority: 40,
         reinitializable: false,
         description: 'Admin match operations management'
@@ -667,7 +667,7 @@ if (InitSystem && InitSystem.register) {
 }
 
 // Fallback for direct script loading
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export { AdminMatchOperationsManager, getManager, init };

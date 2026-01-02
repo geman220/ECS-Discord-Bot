@@ -42,15 +42,15 @@ function init(context) {
     });
 }
 
-// Register with InitSystem
-InitSystem.register('admin-utilities', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-utilities', init, {
     priority: 70,
     reinitializable: true,
     description: 'Initialize admin utility helpers (progress bars, theme colors)'
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.initAdminUtilities = init;

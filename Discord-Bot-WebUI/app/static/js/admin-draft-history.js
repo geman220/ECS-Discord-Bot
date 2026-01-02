@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles draft history page interactions using data-attribute hooks
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -43,7 +43,7 @@ function init() {
     }
 
     // Initialize modal
-    editModal = ModalManager.getInstance('editPickModal');
+    editModal = window.ModalManager.getInstance('editPickModal');
 
     initializeEventDelegation();
     initializeAutoSubmitFilters();
@@ -227,8 +227,8 @@ function normalizePositions(seasonId, leagueId) {
 function showToast(message, type) {
     if (typeof AdminPanel !== 'undefined' && AdminPanel.showMobileToast) {
         AdminPanel.showMobileToast(message, type);
-    } else if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    } else if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             toast: true,
             position: 'top-end',
             icon: type === 'danger' ? 'error' : 'success',
@@ -246,8 +246,8 @@ function cleanup() {
     editModal = null;
 }
 
-// Register with InitSystem
-InitSystem.register('admin-draft-history', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-draft-history', init, {
     priority: 30,
     reinitializable: true,
     cleanup: cleanup,
@@ -255,7 +255,7 @@ InitSystem.register('admin-draft-history', init, {
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

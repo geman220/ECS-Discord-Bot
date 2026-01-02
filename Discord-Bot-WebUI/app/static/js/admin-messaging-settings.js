@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles messaging settings page interactions using data-attribute hooks
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -38,8 +38,8 @@ function init() {
 
     // Initialize modal
     const editModalEl = document.getElementById('editPermissionsModal');
-    if (editModalEl && typeof bootstrap !== 'undefined') {
-        editModal = new bootstrap.Modal(editModalEl);
+    if (editModalEl && typeof window.bootstrap !== 'undefined') {
+        editModal = new window.bootstrap.Modal(editModalEl);
     }
 
     initializeEventDelegation();
@@ -278,8 +278,8 @@ async function loadMessageStats() {
  * Show toast notification
  */
 function showToast(message, type = 'info') {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             toast: true,
             position: 'top-end',
             icon: type,
@@ -298,8 +298,8 @@ function cleanup() {
     editModal = null;
 }
 
-// Register with InitSystem
-InitSystem.register('admin-messaging-settings', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-messaging-settings', init, {
     priority: 30,
     reinitializable: true,
     cleanup: cleanup,
@@ -307,7 +307,7 @@ InitSystem.register('admin-messaging-settings', init, {
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

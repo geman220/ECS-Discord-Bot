@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Handles direct messaging admin page interactions
- * Follows event delegation pattern with InitSystem registration
+ * Follows event delegation pattern with window.InitSystem registration
  *
  * ARCHITECTURAL COMPLIANCE:
  * - Event delegation pattern
@@ -457,8 +457,8 @@ function initializeMutationObserver() {
  * Show toast notification
  */
 function showToast(title, message, type) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             icon: type === 'error' ? 'error' : 'success',
             title: title,
             text: message,
@@ -479,8 +479,8 @@ function cleanup() {
     }
 }
 
-// Register with InitSystem
-InitSystem.register('admin-direct-messaging', init, {
+// Register with window.InitSystem
+window.InitSystem.register('admin-direct-messaging', init, {
     priority: 30,
     reinitializable: true,
     cleanup: cleanup,
@@ -488,7 +488,7 @@ InitSystem.register('admin-direct-messaging', init, {
 });
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Export for ES modules
 export {

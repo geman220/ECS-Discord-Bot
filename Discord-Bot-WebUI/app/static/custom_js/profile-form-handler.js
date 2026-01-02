@@ -33,7 +33,7 @@ let _initialized = false;
     // ========================================================================
 
     const CONFIG = {
-        SELECT2_THEME: 'bootstrap-5',
+        SELECT2_THEME: 'window.bootstrap-5',
         UNSAVED_WARNING_MESSAGE: 'You have unsaved changes. Are you sure you want to leave?'
     };
 
@@ -374,9 +374,9 @@ let _initialized = false;
         init
     };
 
-    // Register with InitSystem (primary)
-    if (true && InitSystem.register) {
-        InitSystem.register('profile-form-handler', init, {
+    // Register with window.InitSystem (primary)
+    if (true && window.InitSystem.register) {
+        window.InitSystem.register('profile-form-handler', init, {
             priority: 50,
             reinitializable: false,
             description: 'Profile form validation and interactions'
@@ -384,7 +384,7 @@ let _initialized = false;
     }
 
     // Fallback
-    // InitSystem handles initialization
+    // window.InitSystem handles initialization
 
 // Backward compatibility
 window.CONFIG = CONFIG;

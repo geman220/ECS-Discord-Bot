@@ -231,9 +231,9 @@ export function init() {
     setInitialRSVPs(csrfToken);
 }
 
-// Register with InitSystem (primary)
-if (true && InitSystem.register) {
-    InitSystem.register('rsvp', init, {
+// Register with window.InitSystem (primary)
+if (true && window.InitSystem.register) {
+    window.InitSystem.register('rsvp', init, {
         priority: 50,
         reinitializable: true,
         description: 'RSVP functionality'
@@ -241,7 +241,7 @@ if (true && InitSystem.register) {
 }
 
 // Fallback
-// InitSystem handles initialization
+// window.InitSystem handles initialization
 
 // Backward compatibility
 window.init = init;

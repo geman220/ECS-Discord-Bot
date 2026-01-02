@@ -12,7 +12,7 @@ import { EventDelegation } from '../core.js';
  * Approve Pool Player Action
  * Adds a pending player to the active substitute pool
  */
-EventDelegation.register('approve-pool-player', function(element, e) {
+window.EventDelegation.register('approve-pool-player', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -35,7 +35,7 @@ EventDelegation.register('approve-pool-player', function(element, e) {
  * Removes a player from the active substitute pool
  * Supports both pool management (with league) and pool detail (with playerName) contexts
  */
-EventDelegation.register('remove-pool-player', function(element, e) {
+window.EventDelegation.register('remove-pool-player', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -64,7 +64,7 @@ EventDelegation.register('remove-pool-player', function(element, e) {
  * Edit Pool Preferences Action
  * Opens modal to edit player's substitute pool preferences
  */
-EventDelegation.register('edit-pool-preferences', function(element, e) {
+window.EventDelegation.register('edit-pool-preferences', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -86,7 +86,7 @@ EventDelegation.register('edit-pool-preferences', function(element, e) {
  * View Pool Player Details Action
  * Opens modal with detailed player information
  */
-EventDelegation.register('view-pool-player-details', function(element, e) {
+window.EventDelegation.register('view-pool-player-details', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -107,7 +107,7 @@ EventDelegation.register('view-pool-player-details', function(element, e) {
  * Add Player to League Action
  * Adds a player to a specific league's substitute pool (from search results)
  */
-EventDelegation.register('add-player-to-league', function(element, e) {
+window.EventDelegation.register('add-player-to-league', function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -129,7 +129,7 @@ EventDelegation.register('add-player-to-league', function(element, e) {
  * Toggle Pool View Action
  * Switches between grid and list view for substitute pool
  */
-EventDelegation.register('toggle-pool-view', function(element, e) {
+window.EventDelegation.register('toggle-pool-view', function(element, e) {
     e.preventDefault();
 
     const view = element.dataset.view;
@@ -163,7 +163,7 @@ EventDelegation.register('toggle-pool-view', function(element, e) {
  * Filter Pool Action (triggered by input event)
  * Filters player cards by search text
  */
-EventDelegation.register('filter-pool', function(element, e) {
+window.EventDelegation.register('filter-pool', function(element, e) {
     const filterText = element.value.toLowerCase().trim();
     const league = element.dataset.league;
     const section = element.dataset.section;
@@ -194,7 +194,7 @@ EventDelegation.register('filter-pool', function(element, e) {
  * Manage League Pool Action
  * Opens modal for league-specific pool management
  */
-EventDelegation.register('manage-league-pool', function(element, e) {
+window.EventDelegation.register('manage-league-pool', function(element, e) {
     e.preventDefault();
 
     const league = element.dataset.league;
@@ -215,7 +215,7 @@ EventDelegation.register('manage-league-pool', function(element, e) {
  * Save Pool Preferences Action
  * Saves edited preferences for a substitute pool player
  */
-EventDelegation.register('save-pool-preferences', function(element, e) {
+window.EventDelegation.register('save-pool-preferences', function(element, e) {
     e.preventDefault();
 
     if (typeof savePreferences === 'function') {
@@ -229,7 +229,7 @@ EventDelegation.register('save-pool-preferences', function(element, e) {
  * Pagination Click Handler for Pool Pages
  * Handles page navigation for substitute pool pagination
  */
-EventDelegation.register('pool-pagination', function(element, e) {
+window.EventDelegation.register('pool-pagination', function(element, e) {
     e.preventDefault();
 
     const page = parseInt(element.dataset.page);
@@ -257,7 +257,7 @@ EventDelegation.register('pool-pagination', function(element, e) {
  * Add to Pool Action (Admin Panel variant)
  * Adds a player to substitute pool (admin panel version)
  */
-EventDelegation.register('add-to-pool', async function(element, e) {
+window.EventDelegation.register('add-to-pool', async function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -279,7 +279,7 @@ EventDelegation.register('add-to-pool', async function(element, e) {
  * Reject Player Action (Admin Panel)
  * Rejects a player from being added to substitute pool
  */
-EventDelegation.register('reject-player', async function(element, e) {
+window.EventDelegation.register('reject-player', async function(element, e) {
     e.preventDefault();
 
     const playerId = element.dataset.playerId;
@@ -305,7 +305,7 @@ EventDelegation.register('reject-player', async function(element, e) {
  * Load Stats Action (Admin Panel)
  * Opens statistics modal for substitute pool
  */
-EventDelegation.register('load-stats', async function(element, e) {
+window.EventDelegation.register('load-stats', async function(element, e) {
     e.preventDefault();
 
     if (typeof loadStatistics === 'function') {
@@ -319,7 +319,7 @@ EventDelegation.register('load-stats', async function(element, e) {
  * Add Player Action (Admin Panel)
  * Opens modal to add player to substitute pool
  */
-EventDelegation.register('add-player', function(element, e) {
+window.EventDelegation.register('add-player', function(element, e) {
     e.preventDefault();
 
     if (typeof showAddPlayerModal === 'function') {
@@ -335,7 +335,7 @@ EventDelegation.register('add-player', function(element, e) {
  * Refresh Pools Action
  * Refreshes all substitute pools
  */
-EventDelegation.register('refresh-pools', function(element, e) {
+window.EventDelegation.register('refresh-pools', function(element, e) {
     e.preventDefault();
     if (typeof window.refreshPools === 'function') {
         window.refreshPools();
@@ -350,7 +350,7 @@ EventDelegation.register('refresh-pools', function(element, e) {
  * Show Sub Assignment Modal
  * Opens the substitute assignment modal for a match/request
  */
-EventDelegation.register('show-sub-assignment', function(element, e) {
+window.EventDelegation.register('show-sub-assignment', function(element, e) {
     e.preventDefault();
 
     const requestId = element.dataset.requestId || null;
@@ -386,12 +386,12 @@ EventDelegation.register('show-sub-assignment', function(element, e) {
     }
 
     // Show the modal
-    if (typeof ModalManager !== 'undefined') {
-        ModalManager.show('subAssignmentModal');
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('subAssignmentModal');
     } else {
         const modalEl = document.getElementById('subAssignmentModal');
-        if (modalEl && typeof bootstrap !== 'undefined') {
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modalEl && typeof window.bootstrap !== 'undefined') {
+            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
         }
     }
@@ -401,7 +401,7 @@ EventDelegation.register('show-sub-assignment', function(element, e) {
  * Show Contact Subs Modal
  * Opens the modal to contact substitutes for a request
  */
-EventDelegation.register('show-contact-subs', function(element, e) {
+window.EventDelegation.register('show-contact-subs', function(element, e) {
     e.preventDefault();
 
     const requestId = element.dataset.requestId;
@@ -430,12 +430,12 @@ EventDelegation.register('show-contact-subs', function(element, e) {
     }
 
     // Show the modal
-    if (typeof ModalManager !== 'undefined') {
-        ModalManager.show('contactSubsModal');
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('contactSubsModal');
     } else {
         const modalEl = document.getElementById('contactSubsModal');
-        if (modalEl && typeof bootstrap !== 'undefined') {
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modalEl && typeof window.bootstrap !== 'undefined') {
+            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
         }
     }
@@ -515,7 +515,7 @@ EventDelegation.register('show-contact-subs', function(element, e) {
  * Send to All Subs
  * Sends notification to all available substitutes
  */
-EventDelegation.register('send-to-all-subs', function(element, e) {
+window.EventDelegation.register('send-to-all-subs', function(element, e) {
     e.preventDefault();
 
     const requestId = document.getElementById('contactRequestId')?.value;
@@ -529,8 +529,8 @@ EventDelegation.register('send-to-all-subs', function(element, e) {
     if (document.getElementById('channelDiscord')?.checked) channels.push('DISCORD');
 
     if (channels.length === 0) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire('Error', 'Please select at least one notification channel.', 'error');
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', 'Please select at least one notification channel.', 'error');
         } else {
             alert('Please select at least one notification channel.');
         }
@@ -539,12 +539,12 @@ EventDelegation.register('send-to-all-subs', function(element, e) {
 
     const confirmAndSend = () => {
         // Show loading
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 title: 'Sending...',
                 text: 'Please wait while we contact the subs.',
                 allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
+                didOpen: () => window.Swal.showLoading()
             });
         }
 
@@ -562,36 +562,36 @@ EventDelegation.register('send-to-all-subs', function(element, e) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Sent!', `Successfully contacted ${data.notifications_sent} subs.`, 'success');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Sent!', `Successfully contacted ${data.notifications_sent} subs.`, 'success');
                 } else {
                     alert(`Successfully contacted ${data.notifications_sent} subs.`);
                 }
                 // Close modal
                 const modalEl = document.getElementById('contactSubsModal');
-                if (modalEl && typeof bootstrap !== 'undefined') {
-                    const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modalEl && typeof window.bootstrap !== 'undefined') {
+                    const modal = window.bootstrap.Modal.getInstance(modalEl);
                     if (modal) modal.hide();
                 }
             } else {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error', data.errors?.join(', ') || 'Failed to send notifications.', 'error');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', data.errors?.join(', ') || 'Failed to send notifications.', 'error');
                 } else {
                     alert(data.errors?.join(', ') || 'Failed to send notifications.');
                 }
             }
         })
         .catch(err => {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire('Error', 'Network error. Please try again.', 'error');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', 'Network error. Please try again.', 'error');
             } else {
                 alert('Network error. Please try again.');
             }
         });
     };
 
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
             title: 'Send to All Subs?',
             text: `This will contact all available ${leagueType} subs via ${channels.join(', ')}.`,
             icon: 'question',
@@ -612,7 +612,7 @@ EventDelegation.register('send-to-all-subs', function(element, e) {
  * Show Availability Modal
  * Opens the modal showing substitute availability for a request
  */
-EventDelegation.register('show-availability', function(element, e) {
+window.EventDelegation.register('show-availability', function(element, e) {
     e.preventDefault();
 
     const requestId = element.dataset.requestId;
@@ -638,12 +638,12 @@ EventDelegation.register('show-availability', function(element, e) {
     }
 
     // Show the modal
-    if (typeof ModalManager !== 'undefined') {
-        ModalManager.show('availabilityModal');
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('availabilityModal');
     } else {
         const modalEl = document.getElementById('availabilityModal');
-        if (modalEl && typeof bootstrap !== 'undefined') {
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modalEl && typeof window.bootstrap !== 'undefined') {
+            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
         }
     }
@@ -656,7 +656,7 @@ EventDelegation.register('show-availability', function(element, e) {
  * Refresh Availability
  * Refreshes the availability data for the current request
  */
-EventDelegation.register('refresh-availability', function(element, e) {
+window.EventDelegation.register('refresh-availability', function(element, e) {
     e.preventDefault();
 
     const requestId = document.getElementById('availabilityRequestId')?.value;
@@ -743,4 +743,4 @@ function loadSubAvailability(requestId) {
 
 // ============================================================================
 
-console.log('[EventDelegation] Substitute pool handlers loaded');
+console.log('[window.EventDelegation] Substitute pool handlers loaded');
