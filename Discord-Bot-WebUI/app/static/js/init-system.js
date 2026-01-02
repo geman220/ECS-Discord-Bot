@@ -59,7 +59,7 @@ export const InitSystem = {
 
     // Configuration
     config: {
-        logging: true,                 // Log initialization progress
+        logging: false,                // Disable verbose logging in production
         throwOnError: false,           // Stop on first error
         initTimeout: 30000,            // Max time for all components (30s)
         componentTimeout: 5000,        // Max time per component (5s)

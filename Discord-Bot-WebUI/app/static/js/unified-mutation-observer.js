@@ -125,7 +125,7 @@ export const UnifiedMutationObserver = {
             subtree: true
         });
 
-        console.log('[UnifiedMutationObserver] Initialized');
+        // UnifiedMutationObserver initialized
     },
 
     /**

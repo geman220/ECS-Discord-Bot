@@ -262,13 +262,13 @@ import '../assets/js/main.js';
 // Initialize window.EventDelegation - handlers are now registered via imports above
 if (typeof window.EventDelegation !== 'undefined') {
     window.EventDelegation.init();
-    console.log(`[Main Entry] window.EventDelegation initialized with ${window.EventDelegation.handlers.size} handlers`);
+    // EventDelegation initialized
 }
 
 // Initialize all window.InitSystem components in priority order
 function initializeApp() {
     if (typeof window.InitSystem !== 'undefined' && !window.InitSystem.initialized) {
-        console.log('[Main Entry] Triggering window.InitSystem.init()');
+        // InitSystem.init() triggered
         window.InitSystem.init();
     }
 }

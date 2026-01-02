@@ -139,8 +139,7 @@ export const EventDelegation = {
         // Keydown events (for keyboard shortcuts)
         document.addEventListener('keydown', this.handleKeydown.bind(this), false);
 
-        console.log('[window.EventDelegation] System initialized');
-        console.log(`[window.EventDelegation] Registered ${this.stats.handlersRegistered} handlers`);
+        // EventDelegation system initialized
     },
 
     /**

@@ -50,7 +50,7 @@ let _initialized = false;
      */
     function initSelect2() {
         if (typeof jQuery === 'undefined' || typeof jQuery.fn.select2 === 'undefined') {
-            console.warn('[Profile Form] Select2 not available');
+            // Silently skip - Select2 may not be loaded on all pages
             return;
         }
 
@@ -125,7 +125,7 @@ let _initialized = false;
             });
         });
 
-        console.log(`[Profile Form] Tracking changes on ${forms.length} forms`);
+        // Debug: forms.length tracked for changes
     }
 
     // ========================================================================
@@ -167,7 +167,7 @@ let _initialized = false;
             }
         });
 
-        console.log('[Profile Form] Unsaved changes warning enabled');
+        // Unsaved changes warning enabled
     }
 
     // ========================================================================
@@ -351,7 +351,7 @@ let _initialized = false;
         if (_initialized) return;
         _initialized = true;
 
-        console.log('[Profile Form] Initializing...');
+        // Profile Form initialization started
 
         // Initialize all features
         initSelect2();

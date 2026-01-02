@@ -35,14 +35,7 @@ export function init() {
     }
 }
 
-// Register with window.InitSystem (primary)
-if (window.InitSystem.register) {
-    window.InitSystem.register('waitlist-register-focus', init, {
-        priority: 20,
-        reinitializable: false,
-        description: 'Waitlist register focus and Discord prompt'
-    });
-}
+// NOTE: Registration handled by app-init-registration.js to avoid duplicates
 
 // Fallback
 // window.InitSystem handles initialization

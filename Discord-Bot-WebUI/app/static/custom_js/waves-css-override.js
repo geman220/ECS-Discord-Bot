@@ -17,7 +17,7 @@ export function init() {
     _initialized = true;
 
     if (!window.Waves || !window.Waves.Effect) {
-        console.warn('[Waves CSS Override] Waves library not fully loaded');
+        // Silently skip - Waves may not be needed on all pages
         return;
     }
 

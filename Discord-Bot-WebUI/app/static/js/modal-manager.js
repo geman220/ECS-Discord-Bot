@@ -52,7 +52,7 @@ export class ModalManager {
      * Debug mode - set to true for debugging, false in production
      * @private
      */
-    static DEBUG = true;
+    static DEBUG = false;
 
     /**
      * Track initialization state
@@ -501,7 +501,7 @@ function registerModalManagerEventHandlers() {
         }
     }, { preventDefault: true });
 
-    console.log('[window.ModalManager] Event delegation handlers registered');
+    // ModalManager event delegation handlers registered
 }
 
 // Backward compatibility - keep window.ModalManager for legacy code

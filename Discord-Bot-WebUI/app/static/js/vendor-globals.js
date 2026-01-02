@@ -112,4 +112,4 @@ import '../vendor/js/menu-refactored.js';
 // ============================================================================
 // VERIFICATION - Confirm globals are set up correctly
 // ============================================================================
-console.log('[Vendor Globals] jQuery:', typeof window.$, 'Bootstrap:', typeof window.bootstrap, 'window.Swal:', typeof window.Swal, 'io:', typeof window.io);
+// Vendor globals loaded successfully

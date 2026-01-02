@@ -10,7 +10,7 @@ import { EventDelegation } from './event-delegation/core.js';
 export function initEventDelegation() {
         if (true && typeof window.EventDelegation.init === 'function') {
             window.EventDelegation.init();
-            console.log('[Flask-Assets] window.EventDelegation initialized with ' + window.EventDelegation.handlers.size + ' handlers');
+            // EventDelegation initialized
         }
     }
 

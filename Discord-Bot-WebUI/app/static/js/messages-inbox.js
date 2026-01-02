@@ -50,10 +50,9 @@ export function init() {
     // DOM Elements
     inbox = document.querySelector('[data-component="messages-inbox"]');
     if (!inbox) {
-        console.warn('[MessagesInbox] No messages-inbox component found. Skipping initialization.');
+        // Silently skip - component not present on this page
         return;
     }
-    console.log('[MessagesInbox] Initializing...');
 
     elements = {
         inbox,

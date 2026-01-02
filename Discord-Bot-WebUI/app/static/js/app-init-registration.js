@@ -30,7 +30,7 @@ export function init() {
         return;
     }
 
-    console.log('[App Init] Registering application components...');
+    // Registering application components
 
     // ============================================================================
     // PRIORITY 85: PAGE LOADER
@@ -167,7 +167,7 @@ export function init() {
         reinitializable: false
     });
 
-    console.log('[App Init] 7 components registered successfully');
+    // Application components registered
 }
 
 /**
