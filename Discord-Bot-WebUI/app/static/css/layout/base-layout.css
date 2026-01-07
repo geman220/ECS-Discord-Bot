@@ -68,6 +68,34 @@
 }
 
 /* ============================================================================
+   SIDEBAR OFFSET FOR FIXED MENU
+   When sidebar is fixed (position: fixed), content needs padding to avoid overlap.
+   The sidebar is 260px (16.25rem) wide, collapsed is 78px (4.875rem).
+   These rules match the vendor/css/rtl/core.css patterns.
+   ============================================================================ */
+
+/* Desktop: Fixed sidebar - offset content by sidebar width */
+@media (min-width: 1200px) {
+  .layout-menu-fixed:not(.layout-menu-collapsed) .layout-page,
+  .layout-menu-fixed-offcanvas:not(.layout-menu-collapsed) .layout-page {
+    padding-left: 16.25rem; /* 260px sidebar width */
+  }
+
+  /* Collapsed sidebar - smaller offset */
+  .layout-menu-fixed.layout-menu-collapsed .layout-page {
+    padding-left: 4.875rem; /* 78px collapsed width */
+  }
+}
+
+/* Mobile: No sidebar offset (sidebar overlays content) */
+@media (max-width: 1199.98px) {
+  .layout-menu-fixed .layout-page,
+  .layout-menu-fixed-offcanvas .layout-page {
+    padding-left: 0;
+  }
+}
+
+/* ============================================================================
    CONTENT WRAPPER
    Main content area with proper spacing
    ============================================================================ */
