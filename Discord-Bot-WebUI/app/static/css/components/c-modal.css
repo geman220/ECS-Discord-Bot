@@ -336,7 +336,7 @@ body.modal-open .c-card .dropdown-toggle:not(.c-modal .c-card .dropdown-toggle) 
 }
 
 .c-modal__close:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--color-translucent-light);
   color: var(--modal-text, var(--color-neutral-900));
 }
 
@@ -665,7 +665,7 @@ body.modal-open .c-card .dropdown-toggle:not(.c-modal .c-card .dropdown-toggle) 
 }
 
 [data-style="dark"] .c-modal__close:hover {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: var(--color-translucent-medium);
   color: var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50)));                /* Slate-50 */
 }
 

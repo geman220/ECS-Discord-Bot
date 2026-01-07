@@ -40,8 +40,8 @@
 
   /* Item colors */
   --dropdown-item-color: var(--color-neutral-800);
-  --dropdown-item-hover-bg: rgba(0, 0, 0, 0.04);
-  --dropdown-item-active-bg: rgba(0, 0, 0, 0.08);
+  --dropdown-item-hover-bg: var(--color-translucent);
+  --dropdown-item-active-bg: var(--color-translucent-medium);
 
   /* Semantic colors */
   --dropdown-item-danger: var(--color-danger-700);

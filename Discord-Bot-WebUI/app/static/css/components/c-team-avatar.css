@@ -23,8 +23,8 @@
   justify-content: center;
   border-radius: 50%;
   overflow: hidden;
-  background: var(--color-bg-tertiary, rgba(255, 255, 255, 0.03));
-  border: 2px solid var(--color-border-primary, rgba(0, 0, 0, 0.08));
+  background: var(--color-translucent-light);
+  border: 2px solid var(--color-border-translucent-medium);
   flex-shrink: 0;
   transition: all var(--duration-normal, 200ms) ease;
 }
@@ -120,7 +120,7 @@
 
 /* With kit/jersey image */
 .c-team-avatar--kit {
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.03));
+  background: var(--color-translucent-light);
   padding: 2px;
 }
 
@@ -133,8 +133,8 @@
    ============================================================================ */
 
 [data-style="dark"] .c-team-avatar {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--color-translucent);
+  border-color: var(--color-border-translucent-strong);
 }
 
 [data-style="dark"] .c-team-avatar:hover {
@@ -147,8 +147,8 @@
    ============================================================================ */
 
 [data-style="light"] .c-team-avatar {
-  background: rgba(0, 0, 0, 0.03);
-  border-color: rgba(0, 0, 0, 0.08);
+  background: var(--color-translucent-light);
+  border-color: var(--color-border-translucent-medium);
 }
 
 [data-style="light"] .c-team-avatar:hover {

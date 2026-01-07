@@ -34,7 +34,7 @@
   --cw-z-index: var(--z-chat-widget, 1035);
   /* Colors - uses design system tokens with fallbacks */
   --cw-bg: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
-  --cw-bg-hover: var(--color-bg-hover, rgba(255, 255, 255, 0.05));
+  --cw-bg-hover: var(--color-translucent-light);
   --cw-text: var(--color-text-primary, var(--color-secondary-200, var(--color-secondary-200, var(--color-secondary-200))));
   --cw-text-secondary: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   --cw-accent: var(--color-primary, #7c3aed);
@@ -55,7 +55,7 @@
 
 [data-style="light"] .c-chat-widget {
   --cw-bg: var(--color-bg-elevated, var(--color-white)fff);
-  --cw-bg-hover: var(--color-bg-hover, rgba(0, 0, 0, 0.04));
+  --cw-bg-hover: var(--color-translucent);
   --cw-text: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   --cw-text-secondary: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   --cw-border: var(--color-border, rgba(0, 0, 0, 0.1));

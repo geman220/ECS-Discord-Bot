@@ -26,7 +26,7 @@
   padding: 0;
   margin: 0 0 var(--space-4, 16px);
   list-style: none;
-  border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
+  border-bottom: 1px solid var(--color-border-translucent-medium);
 }
 
 /* Variant: No underline (for pill-style tabs) */
@@ -68,7 +68,7 @@ a.c-tabs__item {
 button.c-tabs__item:hover:not(.is-active),
 a.c-tabs__item:hover:not(.is-active) {
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-translucent);
 }
 
 button.c-tabs__item.is-active,
@@ -121,7 +121,7 @@ a.c-tabs__item.active {
 /* Hover state */
 .c-tabs__link:hover:not(.c-tabs__link--active) {
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-translucent);
 }
 
 /* Focus state */
@@ -198,7 +198,7 @@ a.c-tabs__item.active {
    ============================================================================ */
 
 [data-style="light"] .c-tabs {
-  border-bottom-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
+  border-bottom-color: var(--color-border-translucent-medium);
 }
 
 [data-style="light"] .c-tabs__link {
@@ -207,7 +207,7 @@ a.c-tabs__item.active {
 
 [data-style="light"] .c-tabs__link:hover:not(.c-tabs__link--active) {
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--color-translucent);
 }
 
 [data-style="light"] .c-tabs__link--active,
@@ -224,7 +224,7 @@ a.c-tabs__item.active {
 [data-style="light"] button.c-tabs__item:hover:not(.is-active),
 [data-style="light"] a.c-tabs__item:hover:not(.is-active) {
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--color-translucent);
 }
 
 [data-style="light"] button.c-tabs__item.is-active,

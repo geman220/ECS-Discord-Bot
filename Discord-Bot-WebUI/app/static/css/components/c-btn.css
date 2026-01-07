@@ -117,17 +117,12 @@
    ============================================================================ */
 
 .c-btn--secondary {
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   background: var(--color-bg-secondary, var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100))));
-  border-color: var(--color-border-light, rgba(0, 0, 0, 0.1));
+  border-color: var(--color-border-translucent-strong);
 }
 
 .c-btn--secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.18);
   background: var(--color-bg-tertiary, var(--color-secondary-200, var(--color-secondary-200, var(--color-secondary-200))));
 }
 
@@ -232,12 +227,12 @@
 
 [data-style="dark"] .c-btn--light {
   color: var(--ecs-dark-text-primary, var(--color-neutral-50));
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--color-translucent-strong);
+  border-color: var(--color-border-translucent-strong);
 }
 
 [data-style="dark"] .c-btn--light:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--color-translucent-heavy);
 }
 
 /* ============================================================================
@@ -308,18 +303,14 @@
 }
 
 .c-btn--outline-secondary {
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
-  background: transparent;
-  border-color: rgba(255, 255, 255, 0.15);
   color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
-  border-color: var(--color-border-light, rgba(0, 0, 0, 0.15));
+  background: transparent;
+  border-color: var(--color-border-translucent-strong);
 }
 
 .c-btn--outline-secondary:hover:not(:disabled) {
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
-  background: rgba(255, 255, 255, 0.08);
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--color-translucent);
 }
 
 .c-btn--outline-danger {
@@ -359,7 +350,7 @@
 .c-btn--outline-light {
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   background: transparent;
-  border-color: var(--color-border-light, rgba(0, 0, 0, 0.15));
+  border-color: var(--color-border-translucent-strong);
 }
 
 .c-btn--outline-light:hover:not(:disabled) {
@@ -368,11 +359,11 @@
 
 [data-style="dark"] .c-btn--outline-light {
   color: var(--ecs-dark-text-primary, var(--color-neutral-50));
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--color-border-translucent-heavy);
 }
 
 [data-style="dark"] .c-btn--outline-light:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-translucent-strong);
 }
 
 .c-btn--outline-dark {
@@ -406,7 +397,7 @@
 
 .c-btn--outline:hover:not(:disabled) {
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
-  background: var(--color-hover-bg, rgba(0, 0, 0, 0.04));
+  background: var(--color-translucent);
   border-color: var(--color-border-secondary, var(--color-secondary-300));
 }
 
@@ -417,7 +408,7 @@
 
 [data-style="dark"] .c-btn--outline:hover:not(:disabled) {
   color: var(--ecs-dark-text-primary, var(--color-neutral-50));
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-translucent-medium);
   border-color: var(--ecs-dark-border, var(--color-neutral-600));
 }
 
@@ -476,12 +467,12 @@
 
 [data-style="dark"] .c-btn--secondary {
   color: var(--ecs-dark-text-primary, var(--color-neutral-50));
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--color-translucent);
+  border-color: var(--color-border-translucent-medium);
 }
 
 [data-style="dark"] .c-btn--secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--color-translucent-medium);
 }
 
 [data-style="dark"] .c-btn--outline-primary {
@@ -495,7 +486,7 @@
 
 [data-style="dark"] .c-btn--outline-secondary:hover:not(:disabled) {
   color: var(--ecs-dark-text-primary, var(--color-neutral-50));
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-translucent-medium);
 }
 
 [data-style="dark"] .c-btn--outline-danger {

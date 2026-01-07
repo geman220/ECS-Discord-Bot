@@ -69,20 +69,20 @@
 
 .c-admin-card {
   background: var(--color-bg-card, var(--color-white));
-  border: 1px solid var(--color-border-primary, rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--color-border-translucent-medium);
   border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+  box-shadow: var(--shadow-sm);
   overflow: visible;
   transition: box-shadow var(--duration-normal, 200ms) ease;
 }
 
 .c-admin-card:hover {
-  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.08));
+  box-shadow: var(--shadow-md);
 }
 
 .c-admin-card__header {
   padding: var(--space-4, 16px);
-  border-bottom: 1px solid var(--color-border-primary, rgba(0, 0, 0, 0.08));
+  border-bottom: 1px solid var(--color-border-translucent-medium);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -120,12 +120,12 @@
   display: flex;
   align-items: center;
   gap: var(--space-3, 12px);
-  border-bottom: 1px solid var(--color-border-primary, rgba(0, 0, 0, 0.08));
+  border-bottom: 1px solid var(--color-border-translucent-medium);
   transition: background-color var(--duration-fast, 150ms) ease;
 }
 
 .c-player-row:hover {
-  background-color: var(--color-bg-secondary, rgba(0, 0, 0, 0.02));
+  background-color: var(--color-translucent-light);
 }
 
 .c-player-row:last-child {
@@ -146,7 +146,7 @@
   height: 100%;
   object-fit: cover;
   border-radius: var(--radius-full, 50%);
-  border: 2px solid var(--color-border-primary, rgba(0, 0, 0, 0.08));
+  border: 2px solid var(--color-border-translucent-medium);
 }
 
 .c-player-row__info {
@@ -295,11 +295,11 @@
 
 [data-style="dark"] .c-admin-card {
   background: var(--color-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
-  border-color: var(--color-border-primary, rgba(255, 255, 255, 0.08));
+  border-color: var(--color-border-translucent-medium);
 }
 
 [data-style="dark"] .c-admin-card__header {
-  border-color: var(--color-border-primary, rgba(255, 255, 255, 0.08));
+  border-color: var(--color-border-translucent-medium);
 }
 
 [data-style="dark"] .c-admin-card__title {
@@ -307,11 +307,11 @@
 }
 
 [data-style="dark"] .c-player-row {
-  border-color: var(--color-neutral-700, rgba(255, 255, 255, 0.08));
+  border-color: var(--color-border-translucent-medium);
 }
 
 [data-style="dark"] .c-player-row:hover {
-  background-color: var(--color-bg-secondary, rgba(255, 255, 255, 0.03));
+  background-color: var(--color-translucent-light);
 }
 
 [data-style="dark"] .c-player-row__name {
@@ -363,10 +363,10 @@
   .c-player-row--mobile-card {
     display: block;
     margin-bottom: var(--space-4, 16px);
-    border: 1px solid var(--color-border-primary, rgba(0, 0, 0, 0.08));
+    border: 1px solid var(--color-border-translucent-medium);
     border-radius: var(--radius-lg, 12px);
     background: var(--color-bg-card, var(--color-white));
-    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+    box-shadow: var(--shadow-sm);
   }
 
   .c-player-row--mobile-card:last-child {
