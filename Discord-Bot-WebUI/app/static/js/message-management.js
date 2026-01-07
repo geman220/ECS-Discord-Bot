@@ -171,5 +171,3 @@ function previewMessage() {
 window.previewMessage = previewMessage;
 // previewTemplate and copyTemplate exported from message-templates.js handler
 // escapeHtml available via utils/safe-html.js
-
-export { escapeHtml };

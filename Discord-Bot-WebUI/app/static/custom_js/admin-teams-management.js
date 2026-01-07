@@ -257,7 +257,7 @@ class AdminTeamsManager {
         if (typeof AdminPanel !== 'undefined' && AdminPanel.confirmAction) {
             AdminPanel.confirmAction('This will sync Discord resources for this team. Continue?', doSync);
         } else {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Sync Discord Resources',
                 text: 'This will sync Discord resources for this team. Continue?',
                 icon: 'question',
@@ -312,7 +312,7 @@ class AdminTeamsManager {
         if (typeof AdminPanel !== 'undefined' && AdminPanel.confirmAction) {
             AdminPanel.confirmAction(confirmMessage, doDelete);
         } else {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Delete Team',
                 text: confirmMessage,
                 icon: 'warning',

@@ -83,7 +83,7 @@ export function showModal(id, title, message, type = 'info', callback = null) {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    const modal = new bootstrap.Modal(document.getElementById(id));
+    const modal = new window.bootstrap.Modal(document.getElementById(id));
     modal.show();
 
     if (callback) {
@@ -106,7 +106,7 @@ export function showLoadingModal(title, message) {
 export function hideLoadingModal() {
     const modal = document.getElementById('loadingModal');
     if (modal) {
-        const bsModal = bootstrap.Modal.getInstance(modal);
+        const bsModal = window.bootstrap.Modal.getInstance(modal);
         if (bsModal) {
             bsModal.hide();
         }

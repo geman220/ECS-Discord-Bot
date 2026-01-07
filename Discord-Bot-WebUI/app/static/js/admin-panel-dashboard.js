@@ -608,6 +608,5 @@ export {
     showDatabaseMonitorModal,
     openMatchReports,
     generateReport,
-    createToggle,
-    getCSRFToken
+    createToggle
 };

@@ -519,6 +519,29 @@
   margin: 0 var(--space-2) 0 0 !important;
 }
 
+/* Toast progress bar - vertical style */
+.swal2-toast .swal2-timer-progress-bar-container {
+  position: absolute !important;
+  right: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 4px !important;
+  height: auto !important;
+  background: rgba(0, 0, 0, 0.1) !important;
+  overflow: hidden !important;
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0 !important;
+}
+
+[data-style="dark"] .swal2-toast .swal2-timer-progress-bar-container {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.swal2-toast .swal2-timer-progress-bar {
+  width: 100% !important;
+  height: 100% !important;
+  background: var(--color-primary, #0EA5E9) !important;
+}
+
 /* ============================================================================
    ACCESSIBILITY
    ============================================================================ */

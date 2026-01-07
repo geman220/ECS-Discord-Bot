@@ -473,8 +473,8 @@ function showImportModal() {
     const modal = document.getElementById('importModal');
     if (modal && typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('importModal');
-    } else if (modal && typeof bootstrap !== 'undefined') {
-        const bsModal = new bootstrap.Modal(modal);
+    } else if (modal && typeof window.bootstrap !== 'undefined') {
+        const bsModal = new window.bootstrap.Modal(modal);
         bsModal.show();
     }
 }
@@ -509,8 +509,8 @@ function importColors() {
             if (data.success) {
                 // Hide modal
                 const modal = document.getElementById('importModal');
-                if (modal && typeof bootstrap !== 'undefined') {
-                    const bsModal = bootstrap.Modal.getInstance(modal);
+                if (modal && typeof window.bootstrap !== 'undefined') {
+                    const bsModal = window.bootstrap.Modal.getInstance(modal);
                     if (bsModal) bsModal.hide();
                 }
 

@@ -211,7 +211,7 @@ class AdminSeasonsManager {
         if (typeof AdminPanel !== 'undefined' && AdminPanel.confirmAction) {
             AdminPanel.confirmAction(confirmMessage, doDelete);
         } else {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Delete Season?',
                 text: confirmMessage,
                 icon: 'warning',
@@ -344,7 +344,7 @@ class AdminSeasonsManager {
         if (typeof AdminPanel !== 'undefined' && AdminPanel.confirmAction) {
             AdminPanel.confirmAction('Set this season as the current season?', doSet);
         } else {
-            Swal.fire({
+            window.Swal.fire({
                 title: 'Set Current Season?',
                 text: 'Set this season as the current season?',
                 icon: 'question',

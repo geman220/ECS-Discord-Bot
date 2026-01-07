@@ -402,7 +402,6 @@ export {
     performScheduleMatch,
     performStopSession,
     performForceSync,
-    getCSRFToken,
     setButtonLoading,
     showSuccessNotification,
     showErrorNotification
