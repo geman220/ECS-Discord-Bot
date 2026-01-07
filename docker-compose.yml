@@ -405,7 +405,7 @@ services:
       - "traefik.http.routers.webui.entrypoints=web"
       # Main webui secure router (HTTPS, rate limited)
       - "traefik.http.routers.webui-secure.entrypoints=websecure"
-      - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`) && !PathPrefix(`/socket.io`)"
+      - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`) && !PathPrefix(`/socket.io`) && !PathPrefix(`/pass-converter`)"
       - "traefik.http.routers.webui-secure.tls=true"
       - "traefik.http.routers.webui-secure.tls.certresolver=myresolver"
       - "traefik.http.routers.webui-secure.priority=10"
