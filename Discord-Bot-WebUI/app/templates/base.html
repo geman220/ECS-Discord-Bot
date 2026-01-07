@@ -190,32 +190,22 @@
     {% endif %}
 
     <!-- 8. VENDOR CDN CSS (Third-party Libraries)
-         External library styles loaded via CDN
-         NOTE: These are CDN resources and CANNOT be bundled by Vite - must load in ALL modes -->
+         Libraries bundled by Vite are in vendor-styles.css inside @layer bootstrap.
+         Only load CDN for libraries NOT in Vite bundle, or in non-Vite modes. -->
 
-    <!-- Select2 - Enhanced select dropdowns -->
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
+    <!-- NON-VITE MODE: Load all vendor CSS from CDN (these are bundled in Vite mode) -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-
-    <!-- SweetAlert2 - Beautiful alert dialogs -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.0/sweetalert2.min.css" rel="stylesheet">
-
-    <!-- Flatpickr - Date picker -->
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/2.0.0/css/dataTables.bootstrap5.min.css">
+    {% endif %}
 
-    <!-- DataTables - Advanced table functionality -->
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
-
-    <!-- EasyMDE - Markdown editor -->
+    <!-- Libraries NOT in Vite bundle - load in ALL modes -->
     <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
-
-    <!-- Fancybox - Image lightbox -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.css">
-
-    <!-- jQuery UI - Legacy UI components -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-
-    <!-- Shepherd.js - Guided tours (loaded in all modes - not in Vite bundle) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.css') }}">
 
     {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}

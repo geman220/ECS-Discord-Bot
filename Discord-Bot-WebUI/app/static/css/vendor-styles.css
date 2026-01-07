@@ -14,6 +14,9 @@
 
 /* Import vendor CSS from npm packages */
 @import 'select2/dist/css/select2.min.css';
+@import 'select2-bootstrap-5-theme/dist/select2-bootstrap-5-theme.min.css';
 @import 'sweetalert2/dist/sweetalert2.min.css';
 @import 'flatpickr/dist/flatpickr.min.css';
 @import 'cropperjs/dist/cropper.min.css';
+@import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
+@import 'datatables.net-responsive-bs5/css/responsive.bootstrap5.min.css';
