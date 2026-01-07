@@ -96,33 +96,35 @@
                         <button type="submit" class="c-btn c-btn--primary c-btn--sm d-none" id="btn-{{ team.name|replace(' ', '_') }}-save">Save Name</button>
                     </form>
 
-                    <table class="c-table c-table--bordered mt-4" data-table data-mobile-table data-table-type="schedule">
-                        <thead class="thead-light" scope="col">
-                            <tr>
-                                <th scope="col">Week</th>
-                                <th scope="col">Date</th>
-                                <th scope="col">Time</th>
-                                <th scope="col">Opponent</th>
-                                <th scope="col">Location</th>
-                                <th scope="col">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for match in team.schedule %}
-                            <tr>
-                                <td>{{ match.week }}</td>
-                                <td><input type="date" name="date" value="{{ match.date }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-date-{{ loop.index0 }}" readonly data-form-control></td>
-                                <td><input type="text" name="time" value="{{ match.time }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-time-{{ loop.index0 }}" readonly data-form-control></td>
-                                <td><input type="text" name="opponent" value="{{ match.opponent }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-opponent-{{ loop.index0 }}" readonly data-form-control></td>
-                                <td><input type="text" name="location" value="{{ match.location }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-location-{{ loop.index0 }}" readonly data-form-control></td>
-                                <td>
-                                    <button form="update-match-{{ league.name }}-{{ team.name|replace(' ', '_') }}-{{ match.week }}" class="c-btn c-btn--primary c-btn--sm d-none" id="btn-{{ team.name|replace(' ', '_') }}-save-match-{{ loop.index0 }}">Save</button>
-                                    <button form="remove-match-{{ league.name }}-{{ team.name|replace(' ', '_') }}-{{ match.week }}" class="c-btn c-btn--danger c-btn--sm">Remove Match</button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    <div class="c-table-wrapper">
+                        <table class="c-c-table c-table--bordered mt-4" data-table data-mobile-table data-table-type="schedule">
+                            <thead class="thead-light" scope="col">
+                                <tr>
+                                    <th scope="col">Week</th>
+                                    <th scope="col">Date</th>
+                                    <th scope="col">Time</th>
+                                    <th scope="col">Opponent</th>
+                                    <th scope="col">Location</th>
+                                    <th scope="col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for match in team.schedule %}
+                                <tr>
+                                    <td data-label="Week">{{ match.week }}</td>
+                                    <td data-label="Date"><input type="date" name="date" value="{{ match.date }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-date-{{ loop.index0 }}" readonly data-form-control></td>
+                                    <td data-label="Time"><input type="text" name="time" value="{{ match.time }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-time-{{ loop.index0 }}" readonly data-form-control></td>
+                                    <td data-label="Opponent"><input type="text" name="opponent" value="{{ match.opponent }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-opponent-{{ loop.index0 }}" readonly data-form-control></td>
+                                    <td data-label="Location"><input type="text" name="location" value="{{ match.location }}" class="form-control" id="input-{{ team.name|replace(' ', '_') }}-location-{{ loop.index0 }}" readonly data-form-control></td>
+                                    <td data-label="Actions">
+                                        <button form="update-match-{{ league.name }}-{{ team.name|replace(' ', '_') }}-{{ match.week }}" class="c-btn c-btn--primary c-btn--sm d-none" id="btn-{{ team.name|replace(' ', '_') }}-save-match-{{ loop.index0 }}">Save</button>
+                                        <button form="remove-match-{{ league.name }}-{{ team.name|replace(' ', '_') }}-{{ match.week }}" class="c-btn c-btn--danger c-btn--sm">Remove Match</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                     <button form="add-match-{{ league.name }}-{{ team.name|replace(' ', '_') }}" class="c-btn c-btn--success c-btn--sm mt-3">Add Pub League Match</button>
                 </div>
             </div>

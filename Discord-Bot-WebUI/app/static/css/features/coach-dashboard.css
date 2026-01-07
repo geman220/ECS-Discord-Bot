@@ -455,7 +455,7 @@
    Mobile optimizations
    ============================================================================ */
 
-@media (max-width: 992px) {
+@media (max-width: 991.98px) {
     .c-team-stats {
         grid-template-columns: 1fr;
     }
@@ -473,7 +473,7 @@
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .c-match-card__score {
         font-size: var(--text-xl);
     }

@@ -19,19 +19,19 @@
     --onboard-primary-dark: #003A70;
     --onboard-accent: #50C878;
     --onboard-accent-bright: #5FE396;
-    --onboard-warning: #F59E0B;
-    --onboard-danger: #DC2626;
+    --onboard-warning: var(--color-warning-600);
+    --onboard-danger: var(--color-danger-700);
 
     /* Pitch Neutrals */
-    --onboard-surface: #FFFFFF;
-    --onboard-surface-alt: #F8FAFC;
+    --onboard-surface: var(--color-white);
+    --onboard-surface-alt: var(--color-secondary-50);
     --onboard-border-color: var(--color-border);
-    --onboard-border-strong: #CBD5E1;
+    --onboard-border-strong: var(--color-secondary-300);
 
     /* Typography - Athletic Confidence */
-    --onboard-text-primary: var(--color-secondary-900, #1E293B);
-    --onboard-text-secondary: #64748B;
-    --onboard-text-muted: #94A3B8;
+    --onboard-text-primary: var(--color-secondary-900, var(--color-secondary-900));
+    --onboard-text-secondary: var(--color-secondary-600);
+    --onboard-text-muted: var(--color-secondary-400);
 
     /* Spacing - Stadium Scale */
     --onboard-space-xs: 0.5rem;
@@ -119,7 +119,7 @@
 .c-discord-prompt {
     position: relative;
     padding: var(--onboard-space-lg);
-    background: linear-gradient(135deg, var(--discord-primary, #5865F2) 0%, var(--discord-primary-dark, #4752C4) 100%);
+    background: linear-gradient(135deg, var(--discord-primary, var(--color-discord)) 0%, var(--discord-primary-dark, var(--color-discord-hover)) 100%);
     border-radius: 12px;
     margin-bottom: var(--onboard-space-lg);
     color: white;
@@ -161,7 +161,7 @@
     gap: var(--onboard-space-xs);
     padding: 0.875rem 2rem;
     background: white;
-    color: var(--discord-primary, #5865F2);
+    color: var(--discord-primary, var(--color-discord));
     font-weight: 600;
     border-radius: 8px;
     text-decoration: none;
@@ -172,7 +172,7 @@
 .c-discord-prompt__btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-    color: var(--discord-primary, #5865F2);
+    color: var(--discord-primary, var(--color-discord));
 }
 
 /* ============================================
@@ -549,7 +549,7 @@
 /* ============================================
    RESPONSIVE DESIGN - Mobile Optimization
    ============================================ */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .c-onboarding__header {
         padding: var(--onboard-space-md);
     }
@@ -604,9 +604,9 @@
     *,
     *::before,
     *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+        transition-duration: 0.01ms;
     }
 }
 

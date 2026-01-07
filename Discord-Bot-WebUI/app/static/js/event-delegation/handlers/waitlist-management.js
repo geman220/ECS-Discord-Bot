@@ -152,27 +152,21 @@ window.EventDelegation.register('process-user', function(element, e) {
         return;
     }
 
-    // Check if window.Swal is available
-    if (typeof window.Swal === 'undefined') {
-        if (confirm(`Process "${userName}" from the waitlist and approve their registration?`)) {
-            submitWaitlistAction(userId, 'process');
-        }
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Process User from Waitlist?',
+            text: `Process "${userName}" from the waitlist and approve their registration?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+            confirmButtonText: 'Yes, process user!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                submitWaitlistAction(userId, 'process');
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Process User from Waitlist?',
-        text: `Process "${userName}" from the waitlist and approve their registration?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-        confirmButtonText: 'Yes, process user!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            submitWaitlistAction(userId, 'process');
-        }
-    });
 }, { preventDefault: true });
 
 // ============================================================================
@@ -194,27 +188,21 @@ window.EventDelegation.register('remove-waitlist-user', function(element, e) {
         return;
     }
 
-    // Check if window.Swal is available
-    if (typeof window.Swal === 'undefined') {
-        if (confirm(`Remove "${userName}" from the waitlist? This action cannot be undone.`)) {
-            submitWaitlistAction(userId, 'remove');
-        }
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Remove from Waitlist?',
+            text: `Remove "${userName}" from the waitlist? This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+            confirmButtonText: 'Yes, remove!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                submitWaitlistAction(userId, 'remove');
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Remove from Waitlist?',
-        text: `Remove "${userName}" from the waitlist? This action cannot be undone.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-        confirmButtonText: 'Yes, remove!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            submitWaitlistAction(userId, 'remove');
-        }
-    });
 }, { preventDefault: true });
 
 // ============================================================================
@@ -231,52 +219,39 @@ window.EventDelegation.register('process-all', function(element, e) {
     const checkboxes = document.querySelectorAll('.js-user-checkbox:checked');
     const selectedCount = checkboxes.length;
 
-    if (typeof window.Swal === 'undefined') {
-        // Fallback without SweetAlert
+    if (typeof window.Swal !== 'undefined') {
         if (selectedCount === 0) {
-            if (confirm('Process all users from the waitlist and approve their registrations?')) {
-                submitBulkWaitlistAction('process_all', []);
-            }
+            // Process all users
+            window.Swal.fire({
+                title: 'Process All Users?',
+                text: 'Process all users from the waitlist and approve their registrations?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+                cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+                confirmButtonText: 'Yes, process all!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitBulkWaitlistAction('process_all', []);
+                }
+            });
         } else {
-            if (confirm(`Process ${selectedCount} selected users from the waitlist?`)) {
-                const selectedIds = Array.from(checkboxes).map(cb => cb.value);
-                submitBulkWaitlistAction('process_selected', selectedIds);
-            }
+            // Process selected users
+            window.Swal.fire({
+                title: `Process ${selectedCount} Selected Users?`,
+                text: `Process ${selectedCount} selected users from the waitlist?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
+                cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+                confirmButtonText: 'Yes, process selected!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+                    submitBulkWaitlistAction('process_selected', selectedIds);
+                }
+            });
         }
-        return;
-    }
-
-    if (selectedCount === 0) {
-        // Process all users
-        window.Swal.fire({
-            title: 'Process All Users?',
-            text: 'Process all users from the waitlist and approve their registrations?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-            confirmButtonText: 'Yes, process all!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                submitBulkWaitlistAction('process_all', []);
-            }
-        });
-    } else {
-        // Process selected users
-        window.Swal.fire({
-            title: `Process ${selectedCount} Selected Users?`,
-            text: `Process ${selectedCount} selected users from the waitlist?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
-            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-            confirmButtonText: 'Yes, process selected!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const selectedIds = Array.from(checkboxes).map(cb => cb.value);
-                submitBulkWaitlistAction('process_selected', selectedIds);
-            }
-        });
     }
 }, { preventDefault: true });
 
@@ -291,15 +266,7 @@ window.EventDelegation.register('process-all', function(element, e) {
 window.EventDelegation.register('process-from-modal', function(element, e) {
     e.preventDefault();
 
-    if (selectedUserId) {
-        // Check if window.Swal is available
-        if (typeof window.Swal === 'undefined') {
-            if (confirm('Process this user from the waitlist and approve their registration?')) {
-                submitWaitlistAction(selectedUserId, 'process');
-            }
-            return;
-        }
-
+    if (selectedUserId && typeof window.Swal !== 'undefined') {
         window.Swal.fire({
             title: 'Process User from Waitlist?',
             text: 'Process this user from the waitlist and approve their registration?',

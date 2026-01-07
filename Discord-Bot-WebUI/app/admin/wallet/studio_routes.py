@@ -951,6 +951,48 @@ def add_subgroup():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@pass_studio_bp.route('/ecs_membership/subgroups/<int:subgroup_id>', methods=['PUT'])
+@login_required
+@role_required(['Global Admin'])
+def update_subgroup(subgroup_id):
+    """Update a subgroup"""
+    try:
+        subgroup = WalletSubgroup.query.get_or_404(subgroup_id)
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+        # Update name if provided
+        if 'name' in data:
+            name = data['name'].strip()
+            if not name:
+                return jsonify({'success': False, 'error': 'Name is required'}), 400
+            subgroup.name = name
+
+        # Update description if provided
+        if 'description' in data:
+            subgroup.description = data['description'].strip() if data['description'] else None
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Subgroup updated',
+            'subgroup': {
+                'id': subgroup.id,
+                'name': subgroup.name,
+                'code': subgroup.code,
+                'description': subgroup.description
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating subgroup: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @pass_studio_bp.route('/ecs_membership/subgroups/<int:subgroup_id>', methods=['DELETE'])
 @login_required
 @role_required(['Global Admin'])

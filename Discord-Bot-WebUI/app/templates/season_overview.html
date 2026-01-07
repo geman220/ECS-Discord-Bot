@@ -68,7 +68,7 @@
                             <h5 class="c-card__title mb-0">Premier Division Standings</h5>
                         </div>
                         <div class="c-table-wrapper" data-table-responsive>
-                            <table class="c-table season-table-hover season-overview-table" data-table data-mobile-table data-table-type="standings">
+                            <table class="c-table season-c-table--hoverable season-overview-c-table" data-table data-mobile-table data-table-type="standings">
                                 <thead class="c-table--light" scope="col">
                                     <tr>
                                         <th class="text-center season-standings-rank" scope="col">#</th>
@@ -87,8 +87,8 @@
                                     {% for standing in premier_standings %}
                                     {% set stats = premier_team_stats[standing.team.id] %}
                                     <tr>
-                                        <td class="text-center fw-bold">{{ loop.index }}</td>
-                                        <td>
+                                        <td class="text-center fw-bold" data-label="#">{{ loop.index }}</td>
+                                        <td data-label="Team">
                                             <div class="d-flex align-items-center">
                                                 {{ macros.team_avatar(standing.team, 'sm', 'bg-success me-2') }}
                                                 <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
@@ -97,14 +97,14 @@
                                                 </a>
                                             </div>
                                         </td>
-                                        <td class="text-center">{{ standing.played }}</td>
-                                        <td class="text-center">{{ standing.wins }}</td>
-                                        <td class="text-center">{{ standing.draws }}</td>
-                                        <td class="text-center">{{ standing.losses }}</td>
-                                        <td class="text-center">{{ standing.goals_for }}</td>
-                                        <td class="text-center">{{ standing.goals_against }}</td>
-                                        <td class="text-center">{{ standing.goal_difference }}</td>
-                                        <td class="text-center fw-bold">{{ standing.points }}</td>
+                                        <td class="text-center" data-label="Played">{{ standing.played }}</td>
+                                        <td class="text-center" data-label="Wins">{{ standing.wins }}</td>
+                                        <td class="text-center" data-label="Draws">{{ standing.draws }}</td>
+                                        <td class="text-center" data-label="Losses">{{ standing.losses }}</td>
+                                        <td class="text-center" data-label="GF">{{ standing.goals_for }}</td>
+                                        <td class="text-center" data-label="GA">{{ standing.goals_against }}</td>
+                                        <td class="text-center" data-label="GD">{{ standing.goal_difference }}</td>
+                                        <td class="text-center fw-bold" data-label="Pts">{{ standing.points }}</td>
                                     </tr>
                                     {% endfor %}
                                     {% if premier_standings|length == 0 %}
@@ -137,7 +137,7 @@
                                 <span class="badge season-badge-warning" data-badge>Premier Division</span>
                             </div>
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
+                                <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
                                     <thead class="c-table--light" scope="col">
                                         <tr>
                                             <th scope="col">#</th>
@@ -157,14 +157,14 @@
                                         {% endif %}
                                         {% set ns.prev_goals = goals %}
                                         <tr>
-                                            <td>{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
-                                            <td>
+                                            <td data-label="#">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                            <td data-label="Player">
                                                 <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
                                                     {{ player.name }}
                                                 </a>
                                             </td>
-                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
-                                            <td class="text-center fw-bold">{{ goals }}</td>
+                                            <td data-label="Team">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold" data-label="Goals">{{ goals }}</td>
                                         </tr>
                                         {% endfor %}
                                         {% if premier_top_scorers|length == 0 %}
@@ -190,7 +190,7 @@
                                 <span class="badge season-badge-secondary" data-badge>Premier Division</span>
                             </div>
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
+                                <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
                                     <thead class="c-table--light" scope="col">
                                         <tr>
                                             <th scope="col">#</th>
@@ -210,14 +210,14 @@
                                         {% endif %}
                                         {% set ns.prev_assists = assists %}
                                         <tr>
-                                            <td>{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
-                                            <td>
+                                            <td data-label="#">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                            <td data-label="Player">
                                                 <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
                                                     {{ player.name }}
                                                 </a>
                                             </td>
-                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
-                                            <td class="text-center fw-bold">{{ assists }}</td>
+                                            <td data-label="Team">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold" data-label="Assists">{{ assists }}</td>
                                         </tr>
                                         {% endfor %}
                                         {% if premier_top_assisters|length == 0 %}
@@ -246,7 +246,7 @@
                                 <span class="badge season-badge-warning" data-badge>Premier Division</span>
                             </div>
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
+                                <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
                                     <thead class="c-table--light" scope="col">
                                         <tr>
                                             <th scope="col">#</th>
@@ -266,14 +266,14 @@
                                         {% endif %}
                                         {% set ns.prev_cards = yellow_cards %}
                                         <tr>
-                                            <td>{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
-                                            <td>
+                                            <td data-label="#">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                            <td data-label="Player">
                                                 <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
                                                     {{ player.name }}
                                                 </a>
                                             </td>
-                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
-                                            <td class="text-center fw-bold">{{ yellow_cards }}</td>
+                                            <td data-label="Team">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold" data-label="Cards">{{ yellow_cards }}</td>
                                         </tr>
                                         {% endfor %}
                                         {% if premier_yellow_cards|length == 0 %}
@@ -299,7 +299,7 @@
                                 <span class="badge season-badge-danger" data-badge>Premier Division</span>
                             </div>
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
+                                <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
                                     <thead class="c-table--light" scope="col">
                                         <tr>
                                             <th scope="col">#</th>
@@ -319,14 +319,14 @@
                                         {% endif %}
                                         {% set ns.prev_cards = red_cards %}
                                         <tr>
-                                            <td>{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
-                                            <td>
+                                            <td data-label="#">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                            <td data-label="Player">
                                                 <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
                                                     {{ player.name }}
                                                 </a>
                                             </td>
-                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
-                                            <td class="text-center fw-bold">{{ red_cards }}</td>
+                                            <td data-label="Team">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold" data-label="Cards">{{ red_cards }}</td>
                                         </tr>
                                         {% endfor %}
                                         {% if premier_red_cards|length == 0 %}
@@ -356,7 +356,7 @@
                             <h5 class="c-card__title mb-0">Classic Division Standings</h5>
                         </div>
                         <div class="c-table-wrapper" data-table-responsive>
-                            <table class="c-table season-table-hover season-overview-table" data-table data-mobile-table data-table-type="standings">
+                            <table class="c-table season-c-table--hoverable season-overview-c-table" data-table data-mobile-table data-table-type="standings">
                                 <thead class="c-table--light" scope="col">
                                     <tr>
                                         <th class="text-center season-standings-rank" scope="col">#</th>
@@ -375,8 +375,8 @@
                                     {% for standing in classic_standings %}
                                     {% set stats = classic_team_stats[standing.team.id] %}
                                     <tr>
-                                        <td class="text-center fw-bold">{{ loop.index }}</td>
-                                        <td>
+                                        <td class="text-center fw-bold" data-label="#">{{ loop.index }}</td>
+                                        <td data-label="Team">
                                             <div class="d-flex align-items-center">
                                                 {{ macros.team_avatar(standing.team, 'sm', 'bg-primary me-2') }}
                                                 <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
@@ -385,14 +385,14 @@
                                                 </a>
                                             </div>
                                         </td>
-                                        <td class="text-center">{{ standing.played }}</td>
-                                        <td class="text-center">{{ standing.wins }}</td>
-                                        <td class="text-center">{{ standing.draws }}</td>
-                                        <td class="text-center">{{ standing.losses }}</td>
-                                        <td class="text-center">{{ standing.goals_for }}</td>
-                                        <td class="text-center">{{ standing.goals_against }}</td>
-                                        <td class="text-center">{{ standing.goal_difference }}</td>
-                                        <td class="text-center fw-bold">{{ standing.points }}</td>
+                                        <td class="text-center" data-label="Played">{{ standing.played }}</td>
+                                        <td class="text-center" data-label="Wins">{{ standing.wins }}</td>
+                                        <td class="text-center" data-label="Draws">{{ standing.draws }}</td>
+                                        <td class="text-center" data-label="Losses">{{ standing.losses }}</td>
+                                        <td class="text-center" data-label="GF">{{ standing.goals_for }}</td>
+                                        <td class="text-center" data-label="GA">{{ standing.goals_against }}</td>
+                                        <td class="text-center" data-label="GD">{{ standing.goal_difference }}</td>
+                                        <td class="text-center fw-bold" data-label="Pts">{{ standing.points }}</td>
                                     </tr>
                                     {% endfor %}
                                     {% if classic_standings|length == 0 %}
@@ -425,7 +425,7 @@
                                 <span class="badge season-badge-warning" data-badge>Classic Division</span>
                             </div>
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
+                                <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
                                     <thead class="c-table--light" scope="col">
                                         <tr>
                                             <th scope="col">#</th>
@@ -445,14 +445,14 @@
                                         {% endif %}
                                         {% set ns.prev_goals = goals %}
                                         <tr>
-                                            <td>{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
-                                            <td>
+                                            <td data-label="#">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                            <td data-label="Player">
                                                 <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
                                                     {{ player.name }}
                                                 </a>
                                             </td>
-                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
-                                            <td class="text-center fw-bold">{{ goals }}</td>
+                                            <td data-label="Team">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold" data-label="Goals">{{ goals }}</td>
                                         </tr>
                                         {% endfor %}
                                         {% if classic_top_scorers|length == 0 %}
@@ -478,7 +478,7 @@
                                 <span class="badge season-badge-secondary" data-badge>Classic Division</span>
                             </div>
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
+                                <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
                                     <thead class="c-table--light" scope="col">
                                         <tr>
                                             <th scope="col">#</th>
@@ -498,14 +498,14 @@
                                         {% endif %}
                                         {% set ns.prev_assists = assists %}
                                         <tr>
-                                            <td>{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
-                                            <td>
+                                            <td data-label="#">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                            <td data-label="Player">
                                                 <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
                                                     {{ player.name }}
                                                 </a>
                                             </td>
-                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
-                                            <td class="text-center fw-bold">{{ assists }}</td>
+                                            <td data-label="Team">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold" data-label="Assists">{{ assists }}</td>
                                         </tr>
                                         {% endfor %}
                                         {% if classic_top_assisters|length == 0 %}
@@ -534,7 +534,7 @@
                                 <span class="badge season-badge-warning" data-badge>Classic Division</span>
                             </div>
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
+                                <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
                                     <thead class="c-table--light" scope="col">
                                         <tr>
                                             <th scope="col">#</th>
@@ -554,14 +554,14 @@
                                         {% endif %}
                                         {% set ns.prev_cards = yellow_cards %}
                                         <tr>
-                                            <td>{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
-                                            <td>
+                                            <td data-label="#">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                            <td data-label="Player">
                                                 <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
                                                     {{ player.name }}
                                                 </a>
                                             </td>
-                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
-                                            <td class="text-center fw-bold">{{ yellow_cards }}</td>
+                                            <td data-label="Team">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold" data-label="Cards">{{ yellow_cards }}</td>
                                         </tr>
                                         {% endfor %}
                                         {% if classic_yellow_cards|length == 0 %}
@@ -587,7 +587,7 @@
                                 <span class="badge season-badge-danger" data-badge>Classic Division</span>
                             </div>
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
+                                <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
                                     <thead class="c-table--light" scope="col">
                                         <tr>
                                             <th scope="col">#</th>
@@ -607,14 +607,14 @@
                                         {% endif %}
                                         {% set ns.prev_cards = red_cards %}
                                         <tr>
-                                            <td>{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
-                                            <td>
+                                            <td data-label="#">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                            <td data-label="Player">
                                                 <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
                                                     {{ player.name }}
                                                 </a>
                                             </td>
-                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
-                                            <td class="text-center fw-bold">{{ red_cards }}</td>
+                                            <td data-label="Team">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold" data-label="Cards">{{ red_cards }}</td>
                                         </tr>
                                         {% endfor %}
                                         {% if classic_red_cards|length == 0 %}
@@ -714,7 +714,7 @@
                             </div>
                         </div>
                         <div class="c-table-wrapper" data-table-responsive>
-                            <table class="c-table c-table--hoverable" id="allGoalScorersTable" data-table data-mobile-table data-table-type="stats">
+                            <table class="c-c-table c-table--hoverable" id="allGoalScorersTable" data-table data-mobile-table data-table-type="stats">
                                 <thead class="c-table--light" scope="col">
                                     <tr>
                                         <th scope="col">#</th>
@@ -735,19 +735,19 @@
                                             {% endif %}
                                             {% set ns.prev_goals = goals %}
                                             <tr>
-                                                <td>{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
-                                                <td>
+                                                <td data-label="#">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                                <td data-label="Player">
                                                     <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
                                                         {{ player.name }}
                                                     </a>
                                                 </td>
-                                                <td>
+                                                <td data-label="Team">
                                                     <a href="{{ url_for('teams.team_details', team_id=team.id) }}">
                                                         {{ team.name }}
                                                     </a>
                                                 </td>
-                                                <td>{{ league_name }}</td>
-                                                <td class="text-center fw-bold">{{ goals }}</td>
+                                                <td data-label="Division">{{ league_name }}</td>
+                                                <td class="text-center fw-bold" data-label="Goals">{{ goals }}</td>
                                             </tr>
                                             {% endfor %}
                                             {% if all_goal_scorers|length == 0 %}
@@ -784,7 +784,7 @@
                             </div>
                         </div>
                         <div class="c-table-wrapper" data-table-responsive>
-                            <table class="c-table c-table--hoverable" id="allAssistProvidersTable" data-table data-mobile-table data-table-type="stats">
+                            <table class="c-c-table c-table--hoverable" id="allAssistProvidersTable" data-table data-mobile-table data-table-type="stats">
                                         <thead class="c-table--light" scope="col">
                                             <tr>
                                                 <th scope="col">#</th>
@@ -805,19 +805,19 @@
                                             {% endif %}
                                             {% set ns.prev_assists = assists %}
                                             <tr>
-                                                <td>{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
-                                                <td>
+                                                <td data-label="#">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                                <td data-label="Player">
                                                     <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
                                                         {{ player.name }}
                                                     </a>
                                                 </td>
-                                                <td>
+                                                <td data-label="Team">
                                                     <a href="{{ url_for('teams.team_details', team_id=team.id) }}">
                                                         {{ team.name }}
                                                     </a>
                                                 </td>
-                                                <td>{{ league_name }}</td>
-                                                <td class="text-center fw-bold">{{ assists }}</td>
+                                                <td data-label="Division">{{ league_name }}</td>
+                                                <td class="text-center fw-bold" data-label="Assists">{{ assists }}</td>
                                             </tr>
                                             {% endfor %}
                                             {% if all_assist_providers|length == 0 %}
@@ -844,7 +844,7 @@
     <!-- Legend -->
     <div class="row mt-4 season-legend-container">
         <div class="col-12 season-legend-col">
-            <div class="c-card season-legend-card">
+            <div class="c-card season-legend-c-card">
                 <div class="c-card__body">
                     <h6 class="mb-3">Legend</h6>
                     <div class="d-flex flex-wrap gap-4">

@@ -8,7 +8,7 @@
 'use strict';
 
 import { InitSystem } from './init-system.js';
-export const ResponsiveTables = {
+const ResponsiveTables = {
     // Track MutationObserver instance for cleanup
     _observer: null,
 

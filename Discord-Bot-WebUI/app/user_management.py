@@ -312,7 +312,7 @@ def manage_users():
                     <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" id="userActions{user["id"]}" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="ti ti-dots-vertical"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userActions{user["id"]}" style="position: absolute;">
+                    <ul class="dropdown-menu dropdown-menu-end position-absolute" aria-labelledby="userActions{user["id"]}">
                         <li>
                             <a class="dropdown-item edit-user-btn" href="#" data-user-id="{user["id"]}">
                                 <i class="ti ti-edit me-2"></i>Edit User
@@ -366,10 +366,10 @@ def manage_users():
                         <small class="text-muted">@{escape(user["username"])}</small>
                     </td>
                     <td>{roles_html}</td>
-                    <td><div class="text-truncate" style="max-width: 200px;">{teams_html}</div></td>
-                    <td><div class="text-truncate" style="max-width: 150px;">{leagues_html}</div></td>
+                    <td><div class="text-truncate max-w-200">{teams_html}</div></td>
+                    <td><div class="text-truncate max-w-150">{leagues_html}</div></td>
                     <td><div>{status_html}</div></td>
-                    <td class="text-end position-relative" style="overflow: visible;">{actions_html}</td>
+                    <td class="text-end position-relative overflow-visible">{actions_html}</td>
                 </tr>'''
         
             return jsonify({

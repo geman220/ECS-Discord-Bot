@@ -134,7 +134,8 @@ class User(UserMixin, db.Model):
     
     # Waitlist tracking
     waitlist_joined_at = db.Column(db.DateTime, nullable=True)
-    
+    waitlist_priority = db.Column(db.String(20), nullable=True, default=None)  # 'high', 'medium', 'normal', or None (auto-calculated)
+
     # Approval relationships
     approved_by_user = db.relationship('User', remote_side=[id], backref='approved_users')
 
@@ -201,9 +202,24 @@ class Role(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     description = db.Column(db.String(255), nullable=True)
+    discord_role_id = db.Column(db.String(20), nullable=True, index=True)  # Discord snowflake ID
+    discord_role_name = db.Column(db.String(100), nullable=True)  # Cached Discord role name
+    sync_enabled = db.Column(db.Boolean, default=True)  # Whether to sync this role with Discord
+    last_synced_at = db.Column(db.DateTime, nullable=True)
 
     users = db.relationship('User', secondary=user_roles, back_populates='roles')
     permissions = db.relationship('Permission', secondary=role_permissions, back_populates='roles')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'discord_role_id': self.discord_role_id,
+            'discord_role_name': self.discord_role_name,
+            'sync_enabled': self.sync_enabled,
+            'last_synced_at': self.last_synced_at.isoformat() if self.last_synced_at else None
+        }
 
     def __repr__(self):
         return f'<Role {self.name}>'

@@ -42,60 +42,66 @@ const StoreAdmin = {
     },
 
     /**
-     * Setup create item form functionality
+     * Setup create item form functionality using event delegation
      */
     setupCreateItemForm() {
-        const createItemForm = document.getElementById('createItemForm');
-        if (!createItemForm) return;
+        const self = this;
 
-        // Add color functionality
-        const addColorBtn = document.getElementById('add-color');
-        if (addColorBtn) {
-            addColorBtn.addEventListener('click', () => {
-                const container = document.getElementById('colors-container');
-                const div = document.createElement('div');
-                div.className = 'input-group mb-2';
-                div.innerHTML = `
-                    <input type="text" class="form-control" name="colors[]" placeholder="e.g. Navy, Black, White" data-form-control aria-label="e.g. Navy, Black, White">
-                    <button type="button" class="c-btn c-btn--outline-danger remove-color" aria-label="Remove color"><i class="ti ti-x"></i></button>
-                `;
-                container.appendChild(div);
-                this.updateRemoveButtons('color');
-            });
-        }
-
-        // Add size functionality
-        const addSizeBtn = document.getElementById('add-size');
-        if (addSizeBtn) {
-            addSizeBtn.addEventListener('click', () => {
-                const container = document.getElementById('sizes-container');
-                const div = document.createElement('div');
-                div.className = 'input-group mb-2';
-                div.innerHTML = `
-                    <input type="text" class="form-control" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL" data-form-control aria-label="e.g. YXS, YS, YM, YL">
-                    <button type="button" class="c-btn c-btn--outline-danger remove-size" aria-label="Remove size"><i class="ti ti-x"></i></button>
-                `;
-                container.appendChild(div);
-                this.updateRemoveButtons('size');
-            });
-        }
-
-        // Remove color/size functionality using event delegation
+        // Delegated click handler for add/remove color/size
         document.addEventListener('click', (e) => {
+            // Add color
+            if (e.target.closest('#add-color')) {
+                const container = document.getElementById('colors-container');
+                if (container) {
+                    const div = document.createElement('div');
+                    div.className = 'input-group mb-2';
+                    div.innerHTML = `
+                        <input type="text" class="form-control" name="colors[]" placeholder="e.g. Navy, Black, White" data-form-control aria-label="e.g. Navy, Black, White">
+                        <button type="button" class="c-btn c-btn--outline-danger remove-color" aria-label="Remove color"><i class="ti ti-x"></i></button>
+                    `;
+                    container.appendChild(div);
+                    self.updateRemoveButtons('color');
+                }
+                return;
+            }
+
+            // Add size
+            if (e.target.closest('#add-size')) {
+                const container = document.getElementById('sizes-container');
+                if (container) {
+                    const div = document.createElement('div');
+                    div.className = 'input-group mb-2';
+                    div.innerHTML = `
+                        <input type="text" class="form-control" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL" data-form-control aria-label="e.g. YXS, YS, YM, YL">
+                        <button type="button" class="c-btn c-btn--outline-danger remove-size" aria-label="Remove size"><i class="ti ti-x"></i></button>
+                    `;
+                    container.appendChild(div);
+                    self.updateRemoveButtons('size');
+                }
+                return;
+            }
+
+            // Remove color
             if (e.target.closest('.remove-color')) {
                 e.target.closest('.input-group').remove();
-                this.updateRemoveButtons('color');
+                self.updateRemoveButtons('color');
+                return;
             }
+
+            // Remove size
             if (e.target.closest('.remove-size')) {
                 e.target.closest('.input-group').remove();
-                this.updateRemoveButtons('size');
+                self.updateRemoveButtons('size');
+                return;
             }
         });
 
-        // Handle create item form submission
-        createItemForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleCreateItem(createItemForm);
+        // Delegated submit handler for create item form
+        document.addEventListener('submit', (e) => {
+            if (e.target.id === 'createItemForm') {
+                e.preventDefault();
+                self.handleCreateItem(e.target);
+            }
         });
 
         // Initial update for remove buttons
@@ -209,8 +215,6 @@ const StoreAdmin = {
                         this.performDeleteItem(itemId);
                     }
                 });
-            } else if (confirm(`Delete "${itemName}"?`)) {
-                this.performDeleteItem(itemId);
             }
         });
     },
@@ -330,48 +334,50 @@ const StoreAdmin = {
     },
 
     /**
-     * Setup bulk order management
+     * Setup bulk order management using event delegation
      */
     setupBulkOrderManagement() {
-        const selectAllCheckbox = document.getElementById('select-all-orders');
-        const orderCheckboxes = document.querySelectorAll('.order-checkbox');
-        const bulkStatusSelect = document.getElementById('bulk-status-select');
-        const bulkUpdateBtn = document.getElementById('bulk-update-btn');
-        const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+        const self = this;
 
-        if (!selectAllCheckbox || !bulkUpdateBtn || !bulkDeleteBtn) return;
+        // Delegated change handler for checkboxes and select
+        document.addEventListener('change', (e) => {
+            // Select all checkbox
+            if (e.target.matches('#select-all-orders')) {
+                const orderCheckboxes = document.querySelectorAll('.order-checkbox');
+                orderCheckboxes.forEach(checkbox => {
+                    checkbox.checked = e.target.checked;
+                });
+                self.updateBulkUpdateButton();
+                return;
+            }
 
-        // Select all functionality
-        selectAllCheckbox.addEventListener('change', () => {
-            orderCheckboxes.forEach(checkbox => {
-                checkbox.checked = selectAllCheckbox.checked;
-            });
-            this.updateBulkUpdateButton();
+            // Individual order checkboxes
+            if (e.target.matches('.order-checkbox')) {
+                self.updateSelectAllState();
+                self.updateBulkUpdateButton();
+                return;
+            }
+
+            // Bulk status select
+            if (e.target.matches('#bulk-status-select')) {
+                self.updateBulkUpdateButton();
+                return;
+            }
         });
 
-        // Individual checkbox changes
-        orderCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', () => {
-                this.updateSelectAllState();
-                this.updateBulkUpdateButton();
-            });
-        });
+        // Delegated click handler for bulk buttons
+        document.addEventListener('click', (e) => {
+            // Bulk update button
+            if (e.target.closest('#bulk-update-btn')) {
+                self.handleBulkUpdate();
+                return;
+            }
 
-        // Bulk status select changes
-        if (bulkStatusSelect) {
-            bulkStatusSelect.addEventListener('change', () => {
-                this.updateBulkUpdateButton();
-            });
-        }
-
-        // Handle bulk update
-        bulkUpdateBtn.addEventListener('click', () => {
-            this.handleBulkUpdate();
-        });
-
-        // Handle bulk delete
-        bulkDeleteBtn.addEventListener('click', () => {
-            this.handleBulkDelete();
+            // Bulk delete button
+            if (e.target.closest('#bulk-delete-btn')) {
+                self.handleBulkDelete();
+                return;
+            }
         });
     },
 
@@ -446,8 +452,6 @@ const StoreAdmin = {
                     this.performBulkUpdate(orderIds, newStatus);
                 }
             });
-        } else if (confirm(`Update ${orderIds.length} orders to "${newStatus}"?`)) {
-            this.performBulkUpdate(orderIds, newStatus);
         }
     },
 
@@ -537,8 +541,6 @@ const StoreAdmin = {
                     this.performBulkDelete(orderIds);
                 }
             });
-        } else if (confirm(`Delete ${orderIds.length} orders?`)) {
-            this.performBulkDelete(orderIds);
         }
     },
 
@@ -603,13 +605,15 @@ const StoreAdmin = {
     },
 
     /**
-     * Setup season reset functionality
+     * Setup season reset functionality using event delegation
      */
     setupSeasonReset() {
-        const confirmResetBtn = document.getElementById('confirmResetBtn');
-        if (!confirmResetBtn) return;
+        const self = this;
 
-        confirmResetBtn.addEventListener('click', () => {
+        // Delegated click handler for confirm reset button
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#confirmResetBtn')) return;
+
             const resetTypeInput = document.querySelector('input[name="resetType"]:checked');
             const resetType = resetTypeInput ? resetTypeInput.value : 'all';
             const modal = typeof window.bootstrap !== 'undefined'
@@ -631,11 +635,9 @@ const StoreAdmin = {
                     confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('warning') : '#ffc107'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        this.performSeasonReset(resetType, modal);
+                        self.performSeasonReset(resetType, modal);
                     }
                 });
-            } else if (confirm(`${actionText}?`)) {
-                this.performSeasonReset(resetType, modal);
             }
         });
     },
@@ -730,8 +732,6 @@ const StoreAdmin = {
                         this.performSingleDelete(orderId);
                     }
                 });
-            } else if (confirm(`Delete ${orderInfo}?`)) {
-                this.performSingleDelete(orderId);
             }
         });
     },

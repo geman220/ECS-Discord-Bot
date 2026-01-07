@@ -28,7 +28,7 @@
                         <div class="c-alert__content">
                             <h5 class="c-alert__title">You're Already on the Waitlist!</h5>
                             <p class="c-alert__message">Great news! You're already on our waitlist for the current season. We'll notify you as soon as spots become available.</p>
-                            <a href="{{ url_for('main.index') }}" class="c-btn-modern c-btn-modern--primary" data-action="back-to-dashboard">
+                            <a href="{{ url_for('main.index') }}" class="c-btn c-btn--primary" data-action="back-to-dashboard">
                                 <i class="ti ti-arrow-left"></i>
                                 <span>Back to Dashboard</span>
                             </a>
@@ -50,7 +50,7 @@
                     <form method="POST" action="{{ url_for('auth.waitlist_register') }}" class="c-waitlist__form" data-form>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                        <div class="c-waitlist__profile-card">
+                        <div class="c-waitlist__profile-c-card">
                             <div class="c-waitlist__profile-body">
                                 <div class="c-waitlist__profile-info">
                                     {% if player and player.profile_picture_url %}
@@ -78,7 +78,7 @@
                                         {% endif %}
                                     </div>
                                     <div class="c-waitlist__profile-actions">
-                                        <button type="button" class="c-btn-modern c-btn-modern--outline c-btn-modern--sm" data-action="show-profile-modal">
+                                        <button type="button" class="c-btn c-btn--outline c-btn--sm" data-action="show-profile-modal">
                                             <i class="ti ti-edit"></i>
                                             <span>Review Profile</span>
                                         </button>
@@ -98,7 +98,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="c-btn-modern c-btn-modern--warning c-btn-modern--block" data-action="join-waitlist">
+                        <button type="submit" class="c-btn c-btn--warning c-btn--block" data-action="join-waitlist">
                             <i class="ti ti-clock"></i>
                             <span>Join the Waitlist</span>
                         </button>
@@ -182,7 +182,7 @@
 
                             <div class="mb-3" data-form-group>
                                 <label class="form-label">Email</label>
-                                <input type="email" class="form-control" id="waitlist-auth-email" name="email" value="{{ user.email if user else '' }}" readonly data-form-control>
+                                <input type="email" class="form-control" id="waitlist-auth-email" name="email" value="{{ user.email if user else '' }}" readonly inputmode="email" data-form-control>
                             </div>
 
                             <div class="mb-3" data-form-group>
@@ -328,16 +328,16 @@
                 </form>
             </div>
             <div class="modal-footer c-modal__footer" data-modal-footer>
-                <button type="button" class="c-btn-modern c-btn-modern--secondary" data-bs-dismiss="modal" data-dismiss>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>
                     <i class="ti ti-x"></i>
                     <span>Skip for Now</span>
                 </button>
                 {% if player %}
-                    <button type="button" class="c-btn-modern c-btn-modern--warning" id="editProfileBtn" data-action="toggle-edit">
+                    <button type="button" class="c-btn c-btn--warning" id="editProfileBtn" data-action="toggle-edit">
                         <i class="ti ti-edit"></i>
                         <span>Edit Profile</span>
                     </button>
-                    <button type="button" class="c-btn-modern c-btn-modern--success" data-action="verify-profile">
+                    <button type="button" class="c-btn c-btn--success" data-action="verify-profile">
                         <i class="ti ti-check"></i>
                         <span>Confirm Profile is Accurate</span>
                     </button>

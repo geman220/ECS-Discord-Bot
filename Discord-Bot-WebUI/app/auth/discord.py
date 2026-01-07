@@ -273,10 +273,58 @@ def discord_callback():
             sync_discord_for_user(user, user_data.get('id'))
             update_last_login(user)
 
+            # Capture waitlist_intent before clearing session flags
+            waitlist_intent = session.get('waitlist_intent')
+
             # Clear session flags
             session.pop('discord_registration_mode', None)
             session.pop('waitlist_registration', None)
             session.pop('waitlist_intent', None)
+
+            # Check if user is on waitlist (either new or returning player)
+            if user.waitlist_joined_at:
+                # Check profile freshness (5-month threshold)
+                profile_expired = False
+                if user.player and user.player.profile_last_updated:
+                    five_months_ago = datetime.utcnow() - timedelta(days=150)
+                    profile_expired = user.player.profile_last_updated < five_months_ago
+
+                if profile_expired or not (user.player and user.player.profile_last_updated):
+                    # Profile incomplete/expired - go to wizard first
+                    logger.info(f"User {user.id} on waitlist with expired/incomplete profile, redirecting to wizard")
+                    return redirect(url_for('players.player_profile_wizard', player_id=user.player.id))
+                else:
+                    # Profile complete - show waitlist status
+                    logger.info(f"User {user.id} on waitlist with complete profile, redirecting to status")
+                    return redirect(url_for('auth.waitlist_status'))
+
+            # Handle waitlist intent - auto-add user to waitlist
+            if waitlist_intent:
+                logger.info(f"User {user.id} has waitlist intent, auto-adding to waitlist")
+                try:
+                    # Find or create pl-waitlist role
+                    waitlist_role = db_session.query(Role).filter_by(name='pl-waitlist').first()
+                    if not waitlist_role:
+                        waitlist_role = Role(name='pl-waitlist', description='Player on waitlist for current season')
+                        db_session.add(waitlist_role)
+                        db_session.flush()
+
+                    # Add user to waitlist if not already
+                    if waitlist_role not in user.roles:
+                        user.roles.append(waitlist_role)
+                        user.waitlist_joined_at = datetime.utcnow()
+                        db_session.flush()
+                        logger.info(f"User {user.id} added to waitlist")
+                        show_success('You have been added to the waitlist! You will be notified when spots become available.')
+                    else:
+                        logger.info(f"User {user.id} already on waitlist")
+
+                    # Redirect to waitlist status page
+                    return redirect(url_for('auth.waitlist_status'))
+                except Exception as e:
+                    logger.error(f"Error auto-adding user {user.id} to waitlist: {str(e)}")
+                    # Fall through to normal redirect if auto-add fails
+                    return redirect(url_for('auth.waitlist_register'))
 
             # Redirect to wherever they were going
             next_page = request.args.get('next')

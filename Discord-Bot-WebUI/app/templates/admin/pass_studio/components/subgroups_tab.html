@@ -259,8 +259,26 @@ function editSubgroup(id, name, code, description) {
         }
     }).then(async (result) => {
         if (result.isConfirmed) {
-            // Note: Edit endpoint would need to be added to studio_routes.py
-            PassStudio.showToast('Edit functionality coming soon', 'info');
+            try {
+                const response = await fetch(`/admin/wallet/studio/ecs_membership/subgroups/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+                    },
+                    body: JSON.stringify(result.value)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    PassStudio.showToast('Subgroup updated', 'success');
+                    location.reload();
+                } else {
+                    PassStudio.showToast(data.error || 'Error updating subgroup', 'error');
+                }
+            } catch (error) {
+                PassStudio.showToast('Error updating subgroup', 'error');
+            }
         }
     });
 }

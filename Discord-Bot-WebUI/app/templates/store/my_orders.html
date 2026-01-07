@@ -37,7 +37,7 @@
                     <h5 class="c-card__title mb-0">Order History</h5>
                 </div>
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="orders">
+                    <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="orders">
                         <thead class="c-table--light" scope="col">
                             <tr>
                                 <th scope="col">Order ID</th>
@@ -51,14 +51,14 @@
                         <tbody>
                             {% for order in orders %}
                             <tr data-order-id="{{ order.id }}">
-                                <td class="c-order__id">#{{ order.id }}</td>
-                                <td>
+                                <td data-label="Order ID" class="c-order__id">#{{ order.id }}</td>
+                                <td data-label="Item">
                                     <div class="c-order__item">
                                         <strong class="c-order__item-name">{{ order.item.name if order.item else 'Unknown Item' }}</strong>
                                         <br><small class="c-order__item-qty">Qty: {{ order.quantity }}</small>
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="Details">
                                     {% if order.selected_color %}
                                     <span class="badge bg-label-info me-1" data-badge>{{ order.selected_color }}</span>
                                     {% endif %}
@@ -66,7 +66,7 @@
                                     <span class="badge bg-label-secondary me-1" data-badge>{{ order.selected_size }}</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     {% if order.status == 'PENDING' %}
                                     <span class="badge bg-label-warning" data-badge>Pending</span>
                                     {% elif order.status == 'PROCESSING' %}
@@ -79,13 +79,13 @@
                                     <span class="badge bg-label-danger" data-badge>Cancelled</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Order Date">
                                     {{ format_pacific_time_short(order.order_date) if order.order_date else '' }}
                                     {% if order.processed_by %}
                                     <br><small class="text-muted">Processed by {{ order.processor.username if order.processor else 'Unknown' }}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Notes">
                                     {% if order.notes %}
                                     <small class="text-muted">{{ order.notes[:50] }}{% if order.notes|length > 50 %}...{% endif %}</small>
                                     {% else %}

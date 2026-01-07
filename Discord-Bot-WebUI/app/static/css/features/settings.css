@@ -584,7 +584,7 @@
 
 .discord-icon-bg {
     background-color: rgba(88, 101, 242, 0.1);
-    color: var(--discord-primary, #5865F2);
+    color: var(--discord-primary, var(--color-discord));
 }
 
 .discord-circle-icon {
@@ -595,7 +595,7 @@
 
 .discord-circle-icon i {
     font-size: 2.5rem;
-    color: var(--discord-primary, #5865F2);
+    color: var(--discord-primary, var(--color-discord));
 }
 
 .discord-circle-icon-disconnected {
@@ -610,7 +610,7 @@
 /* Light Mode - Discord Branding */
 [data-theme-variant="modern"]:not([data-style="dark"]) .discord-icon-bg {
     background-color: rgba(88, 101, 242, 0.08);
-    color: var(--discord-primary, #5865F2);
+    color: var(--discord-primary, var(--color-discord));
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .discord-circle-icon {
@@ -618,7 +618,7 @@
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .discord-circle-icon i {
-    color: var(--discord-primary, #5865F2);
+    color: var(--discord-primary, var(--color-discord));
 }
 
 /* Dark Mode - Discord Branding */
@@ -827,7 +827,7 @@
 
 .c-settings-page .c-tabs-modern__tab.is-active {
     background: var(--color-primary);
-    color: var(--color-text-on-primary, #fff);
+    color: var(--color-text-on-primary, var(--color-white));
 }
 
 .c-settings-page .c-tabs-modern__tab i {
@@ -846,20 +846,20 @@
 
 [data-style="dark"] .c-tabs-modern__tab.is-active {
     background: var(--color-primary);
-    color: var(--color-text-on-primary, #fff);
+    color: var(--color-text-on-primary, var(--color-white));
 }
 
-/* Mobile responsive */
+/* Mobile responsive - Settings page specific overrides */
 @media (max-width: 767.98px) {
-    .c-tabs-modern__tab {
+    .c-settings-page .c-tabs-modern__tab {
         padding: var(--space-2) var(--space-3);
     }
 
-    .c-tabs-modern__tab span {
+    .c-settings-page .c-tabs-modern__tab span {
         display: none;
     }
 
-    .c-tabs-modern__tab i {
+    .c-settings-page .c-tabs-modern__tab i {
         font-size: 1.25rem;
     }
 }

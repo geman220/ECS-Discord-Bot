@@ -18,7 +18,7 @@
 'use strict';
 
 import { InitSystem } from './init-system.js';
-export const MobileForms = {
+const MobileForms = {
     /**
      * Check if device is mobile
      */
@@ -259,17 +259,6 @@ export const MobileForms = {
           }
         });
       }
-    },
-
-    /**
-     * Add quick action buttons for mobile
-     */
-    addQuickActions: function () {
-      // DISABLED: This function was creating duplicate submit buttons with inline styles
-      // Mobile modal buttons are now styled purely via CSS in mobile-modals.css
-      // This provides single source of truth and eliminates duplicate green submit button
-      // If haptic feedback is needed, it should be added to existing submit button click handlers
-      return;
     },
 
     /**
@@ -553,7 +542,6 @@ export const MobileForms = {
 
       if (this.isMobile()) {
         this.setupSwipeToDelete();
-        this.addQuickActions();
         // this.makeCollapsible(); // Optional: enable if needed
         // this.convertToFloatingLabels(); // Optional: enable if needed
       }
@@ -566,7 +554,6 @@ export const MobileForms = {
           setTimeout(() => {
             this.optimizeInputGroups();
             this.setupSwipeToDelete();
-            this.addQuickActions();
           }, 100);
         });
       }

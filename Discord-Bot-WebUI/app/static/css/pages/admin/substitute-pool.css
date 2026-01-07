@@ -316,50 +316,8 @@
   opacity: 0.5;
 }
 
-/* ============================================================================
-   EMPTY STATE
-   Displayed when no substitutes are in the pool
-   ============================================================================ */
-
-.empty-state {
-  text-align: center;
-  padding: var(--space-12) var(--space-6);
-  color: var(--color-text-muted);
-}
-
-.empty-state-icon {
-  font-size: 3rem;
-  color: var(--color-neutral-400);
-  margin-bottom: var(--space-4);
-  line-height: 1;
-  display: block;
-}
-
-.empty-state-title {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-2);
-}
-
-.empty-state-description {
-  font-size: var(--text-base);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-6);
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* Dark mode adjustments */
-[data-style="dark"] .empty-state-icon {
-  color: var(--color-neutral-600);
-}
-
-[data-style="dark"] .empty-state-title,
-[data-style="dark"] .empty-state-description {
-  color: var(--color-text-muted-dark);
-}
+/* NOTE: .empty-state base styles in components/empty-states.css (source of truth) */
+/* Substitute pool uses the --large variant for full-page empty states */
 
 /* ============================================================================
    AVAILABLE PLAYERS LIST
@@ -639,7 +597,7 @@
    Mobile and tablet optimizations
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .league-icon {
     font-size: 2rem;
   }
@@ -657,16 +615,17 @@
     max-height: 200px;
   }
 
-  .empty-state {
+  /* Substitute pool empty state - scoped to prevent conflicts */
+  .substitute-pool-page .empty-state {
     padding: var(--space-8) var(--space-4);
   }
 
-  .empty-state-icon {
+  .substitute-pool-page .empty-state-icon {
     font-size: 2.5rem;
   }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
   .stat-card {
     padding: var(--space-2) var(--space-3);
   }
@@ -767,7 +726,7 @@
   .stat-card {
     break-inside: avoid;
     box-shadow: none;
-    border: 1px solid var(--color-secondary-300, #ddd);
+    border: 1px solid var(--color-secondary-300, var(--color-neutral-300));
   }
 
   .available-players-list,
@@ -776,7 +735,7 @@
     overflow: visible;
   }
 
-  .empty-state {
+  .substitute-pool-page .empty-state {
     padding: var(--space-6);
   }
 

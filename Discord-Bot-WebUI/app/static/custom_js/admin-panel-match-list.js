@@ -10,7 +10,7 @@ import { InitSystem } from '../js/init-system.js';
 
 let _initialized = false;
 
-function init() {
+function initAdminPanelMatchList() {
     if (_initialized) return;
 
     // Page guard - only run on match list page
@@ -372,7 +372,7 @@ function bulkScheduleMatches() {
 // ========================================================================
 
 export {
-    init,
+    initAdminPanelMatchList,
     toggleSelectAll,
     getSelectedMatches,
     viewMatchDetails,
@@ -391,7 +391,7 @@ export {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('admin-panel-match-list', init, {
+    window.InitSystem.register('admin-panel-match-list', initAdminPanelMatchList, {
         priority: 30,
         reinitializable: true,
         description: 'Admin panel match list management'
@@ -401,19 +401,5 @@ if (window.InitSystem && window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility
-window.init = init;
-window.toggleSelectAll = toggleSelectAll;
-window.getSelectedMatches = getSelectedMatches;
-window.viewMatchDetails = viewMatchDetails;
-window.adminPanelDeleteMatch = adminPanelDeleteMatch;
-window.bulkActions = bulkActions;
-window.confirmBulkDelete = confirmBulkDelete;
-window.bulkUpdateStatus = bulkUpdateStatus;
-window.duplicateMatch = duplicateMatch;
-window.adminPanelScheduleMatch = adminPanelScheduleMatch;
-window.postponeMatch = postponeMatch;
-window.cancelMatch = cancelMatch;
-window.exportMatches = exportMatches;
-window.exportSelectedMatches = exportSelectedMatches;
-window.bulkScheduleMatches = bulkScheduleMatches;
+// No window exports needed - InitSystem handles initialization
+// All functions use event delegation internally

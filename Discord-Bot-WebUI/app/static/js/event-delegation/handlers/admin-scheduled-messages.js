@@ -38,8 +38,6 @@ window.EventDelegation.register('delete-scheduled-message', (element, event) => 
                 form.submit();
             }
         });
-    } else if (confirm('Are you sure you want to delete this message?')) {
-        form.submit();
     }
 });
 
@@ -73,8 +71,6 @@ window.EventDelegation.register('cleanup-old-messages', (element, event) => {
                 form.submit();
             }
         });
-    } else if (confirm(`Are you sure you want to delete all sent and failed messages older than ${days} days?`)) {
-        form.submit();
     }
 });
 

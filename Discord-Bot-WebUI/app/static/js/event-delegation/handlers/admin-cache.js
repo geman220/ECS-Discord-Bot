@@ -72,25 +72,19 @@ function warmCache(leagueName) {
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                if (window.Swal) {
+                if (typeof window.Swal !== 'undefined') {
                     window.Swal.fire('Error', 'Error warming cache: ' + data.error, 'error');
-                } else {
-                    alert('Error warming cache: ' + data.error);
                 }
             } else {
-                if (window.Swal) {
+                if (typeof window.Swal !== 'undefined') {
                     window.Swal.fire('Success', `Cache warming initiated for ${leagueName}`, 'success');
-                } else {
-                    alert(`Cache warming initiated for ${leagueName}`);
                 }
                 updateDraftCacheStats();
             }
         })
         .catch(error => {
-            if (window.Swal) {
+            if (typeof window.Swal !== 'undefined') {
                 window.Swal.fire('Error', 'Error warming cache: ' + error, 'error');
-            } else {
-                alert('Error warming cache: ' + error);
             }
         });
 }
@@ -99,7 +93,7 @@ function warmCache(leagueName) {
  * Invalidate all draft cache
  */
 function invalidateAllCache() {
-    if (window.Swal) {
+    if (typeof window.Swal !== 'undefined') {
         window.Swal.fire({
             title: 'Clear All Draft Cache?',
             text: 'This will cause temporary performance impact during the next draft loads.',
@@ -110,15 +104,37 @@ function invalidateAllCache() {
             confirmButtonText: 'Yes, clear cache'
         }).then((result) => {
             if (result.isConfirmed) {
-                // This would require implementing an invalidate-all endpoint
-                window.Swal.fire('Info', 'Full cache invalidation not yet implemented. Use individual league cache warming instead.', 'info');
+                window.Swal.fire({
+                    title: 'Clearing Cache...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        window.Swal.showLoading();
+
+                        fetch('/admin-panel/cache-management/clear', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({ cache_type: 'all' })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                window.Swal.fire('Cache Cleared!', data.message || 'All cache has been invalidated.', 'success');
+                                updateDraftCacheStats();
+                            } else {
+                                window.Swal.fire('Error', data.message || 'Failed to clear cache', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('[invalidateAllCache] Error:', error);
+                            window.Swal.fire('Error', 'Failed to clear cache. Check server connectivity.', 'error');
+                        });
+                    }
+                });
             }
         });
-    } else {
-        if (!confirm('Are you sure you want to clear all draft cache? This will cause temporary performance impact during the next draft loads.')) {
-            return;
-        }
-        alert('Full cache invalidation not yet implemented. Use individual league cache warming instead.');
     }
 }
 

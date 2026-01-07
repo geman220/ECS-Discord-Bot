@@ -7,36 +7,26 @@
 import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
-  function init() {
+  // getCsrfToken is provided globally by csrf-fetch.js (as getCSRFToken)
+  const getCsrfToken = window.getCSRFToken;
+
+  function initSettings() {
     if (_initialized) return;
     _initialized = true;
 
-    const accountInfoForm = document.getElementById('accountInfoForm');
-    const passwordChangeForm = document.getElementById('passwordChangeForm');
-    const notificationForm = document.getElementById('notificationForm');
-    const enable2FABtn = document.getElementById('enable2FABtn');
-    const verify2FAForm = document.getElementById('verify2FAForm');
-    const unlinkDiscordForm = document.getElementById('unlinkDiscordForm');
-    const smsOptInBtn = document.getElementById('smsOptInBtn');
-    const smsOptOutBtn = document.getElementById('smsOptOutBtn');
-    const smsOptInForm = document.getElementById('smsOptInForm');
-    const smsVerificationForm = document.getElementById('smsVerificationForm');
-    const resendCodeBtn = document.getElementById('resendCodeBtn');
+    // Delegated submit handler for all settings forms
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
 
-    // Cache SMS step elements
-    const smsConsentStep = document.getElementById('smsConsentStep');
-    const smsVerificationStep = document.getElementById('smsVerificationStep');
-    const smsConfirmationStep = document.getElementById('smsConfirmationStep');
-
-    if (accountInfoForm) {
-        accountInfoForm.addEventListener('submit', function (e) {
+        // Account info form
+        if (form.id === 'accountInfoForm') {
             e.preventDefault();
-            this.submit();
-        });
-    }
+            form.submit();
+            return;
+        }
 
-    if (passwordChangeForm) {
-        passwordChangeForm.addEventListener('submit', function (e) {
+        // Password change form
+        if (form.id === 'passwordChangeForm') {
             e.preventDefault();
             const newPassword = document.getElementById('new_password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
@@ -48,19 +38,19 @@ let _initialized = false;
                 });
                 return;
             }
-            this.submit();
-        });
-    }
+            form.submit();
+            return;
+        }
 
-    if (notificationForm) {
-        notificationForm.addEventListener('submit', function (e) {
+        // Notification form
+        if (form.id === 'notificationForm') {
             e.preventDefault();
-            this.submit();
-        });
-    }
+            form.submit();
+            return;
+        }
 
-    if (unlinkDiscordForm) {
-        unlinkDiscordForm.addEventListener('submit', function (e) {
+        // Unlink Discord form
+        if (form.id === 'unlinkDiscordForm') {
             e.preventDefault();
             window.Swal.fire({
                 title: 'Are you sure?',
@@ -71,18 +61,20 @@ let _initialized = false;
                 cancelButtonText: 'No, keep it'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    this.submit();
+                    form.submit();
                 }
             });
-        });
-    }
+            return;
+        }
 
-    // Handle SMS opt-in form submission
-    if (smsOptInForm) {
-        smsOptInForm.addEventListener('submit', function (e) {
+        // SMS opt-in form
+        if (form.id === 'smsOptInForm') {
             e.preventDefault();
             const phoneNumber = document.getElementById('phoneNumber').value;
             const consentGiven = document.getElementById('smsConsent').checked;
+            const smsConsentStep = document.getElementById('smsConsentStep');
+            const smsVerificationStep = document.getElementById('smsVerificationStep');
+
             fetch('/account/initiate-sms-opt-in', {
                 method: 'POST',
                 headers: {
@@ -94,7 +86,6 @@ let _initialized = false;
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Hide consent step and show verification step using is-hidden
                         smsConsentStep.classList.add('is-hidden');
                         smsVerificationStep.classList.remove('is-hidden');
                         document.getElementById('sentPhoneNumber').textContent = phoneNumber;
@@ -106,14 +97,17 @@ let _initialized = false;
                         });
                     }
                 });
-        });
-    }
+            return;
+        }
 
-    // Handle SMS verification form submission
-    if (smsVerificationForm) {
-        smsVerificationForm.addEventListener('submit', function (e) {
+        // SMS verification form
+        if (form.id === 'smsVerificationForm') {
             e.preventDefault();
             const verificationCode = document.getElementById('verificationCode').value;
+            const smsVerificationStep = document.getElementById('smsVerificationStep');
+            const smsConfirmationStep = document.getElementById('smsConfirmationStep');
+            const resendCodeBtn = document.getElementById('resendCodeBtn');
+
             fetch('/account/confirm-sms-opt-in', {
                 method: 'POST',
                 headers: {
@@ -125,7 +119,6 @@ let _initialized = false;
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Hide verification step and show confirmation step using is-hidden
                         smsVerificationStep.classList.add('is-hidden');
                         smsConfirmationStep.classList.remove('is-hidden');
                     } else {
@@ -137,16 +130,17 @@ let _initialized = false;
                     }
                 });
 
-            // Show resend code button after a delay using is-hidden
             setTimeout(function () {
-                resendCodeBtn.classList.remove('is-hidden');
+                if (resendCodeBtn) resendCodeBtn.classList.remove('is-hidden');
             }, 10000);
-        });
-    }
+            return;
+        }
+    });
 
-    // Handle resend verification code button click
-    if (resendCodeBtn) {
-        resendCodeBtn.addEventListener('click', function () {
+    // Delegated click handler for buttons
+    document.addEventListener('click', function(e) {
+        // Resend code button
+        if (e.target.closest('#resendCodeBtn')) {
             fetch('/account/resend-sms-confirmation', {
                 method: 'POST',
                 headers: {
@@ -161,12 +155,11 @@ let _initialized = false;
                         text: data.message,
                     });
                 });
-        });
-    }
+            return;
+        }
 
-    // Handle SMS opt-out button click
-    if (smsOptOutBtn) {
-        smsOptOutBtn.addEventListener('click', function () {
+        // SMS opt-out button
+        if (e.target.closest('#smsOptOutBtn')) {
             window.Swal.fire({
                 title: 'Are you sure?',
                 text: 'You want to opt-out of SMS notifications?',
@@ -202,17 +195,14 @@ let _initialized = false;
                         });
                 }
             });
-        });
-    }
-
-    function getCsrfToken() {
-        return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    }
+            return;
+        }
+    });
   }
 
   // Register with window.InitSystem (primary)
   if (true && window.InitSystem.register) {
-    window.InitSystem.register('settings', init, {
+    window.InitSystem.register('settings', initSettings, {
       priority: 50,
       reinitializable: true,
       description: 'Settings page functionality'
@@ -223,4 +213,4 @@ let _initialized = false;
   // window.InitSystem handles initialization
 
 // Backward compatibility
-window.init = init;
+window.initSettings = initSettings;

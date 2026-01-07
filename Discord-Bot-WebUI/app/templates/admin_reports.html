@@ -27,7 +27,8 @@
         </div>
     </div>
 
-    <table class="c-table c-table--striped c-table--bordered c-table--hoverable" data-table data-mobile-table data-table-type="reports">
+    <div class="c-table-wrapper">
+    <table class="c-c-table c-table--striped c-table--bordered c-table--hoverable" data-table data-mobile-table data-table-type="reports">
         <thead class="c-table--dark" scope="col">
             <tr>
                 <th scope="col">ID</th>
@@ -77,10 +78,10 @@
         <tbody>
             {% for feedback in feedbacks %}
             <tr>
-                <td>{{ feedback.id }}</td>
-                <td>{{ feedback.category }}</td>
-                <td>{{ feedback.title }}</td>
-                <td>
+                <td data-label="ID">{{ feedback.id }}</td>
+                <td data-label="Category">{{ feedback.category }}</td>
+                <td data-label="Title">{{ feedback.title }}</td>
+                <td data-label="Priority">
                     {% if feedback.priority == 'Low' %}
                     <span class="badge bg-success" data-badge>{{ feedback.priority }}</span>
                     {% elif feedback.priority == 'Medium' %}
@@ -91,7 +92,7 @@
                     {{ feedback.priority }}
                     {% endif %}
                 </td>
-                <td>
+                <td data-label="Status">
                     {% if feedback.status == 'Open' %}
                     <span class="badge bg-primary" data-badge>{{ feedback.status }}</span>
                     {% elif feedback.status == 'In Progress' %}
@@ -102,22 +103,22 @@
                     {{ feedback.status }}
                     {% endif %}
                 </td>
-                <td>
+                <td data-label="Submitted By">
                     {% if feedback.user %}
                     {{ feedback.user.username }}
                     {% else %}
                     <span class="text-muted">Anonymous</span>
                     {% endif %}
                 </td>
-                <td>{{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                <td>
+                <td data-label="Submitted At">{{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td data-label="Comments">
                     {% if feedback.replies %}
                     {{ feedback.replies|length }}
                     {% else %}
                     <span class="text-muted">No Comments</span>
                     {% endif %}
                 </td>
-                <td>
+                <td data-label="Actions">
                     <a href="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}" class="c-btn c-btn--sm c-btn--primary">
                         <i data-feather="edit" class="me-1"></i> View/Edit
                     </a>
@@ -126,6 +127,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 {% endblock %}
 

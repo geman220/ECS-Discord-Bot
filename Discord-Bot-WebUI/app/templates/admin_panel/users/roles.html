@@ -96,7 +96,7 @@
                 <div class="c-card__body p-0">
                     {% if roles %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="roles">
+                        <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="roles">
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">Role Name</th>
@@ -110,22 +110,22 @@
                             <tbody>
                                 {% for role in roles %}
                                 <tr>
-                                    <td>
+                                    <td data-label="Role Name">
                                         <div class="d-flex align-items-center">
                                             <i class="ti ti-shield me-2 {% if 'Admin' in role.name %}text-danger{% elif 'Coach' in role.name %}text-warning{% elif 'pl-' in role.name %}text-primary{% else %}text-secondary{% endif %}"></i>
                                             <strong>{{ role.name }}</strong>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Description">
                                         <small>{{ role.description or 'No description' }}</small>
                                     </td>
-                                    <td>
+                                    <td data-label="Users">
                                         <span class="badge bg-info" data-badge>{{ role.users|length }} users</span>
                                     </td>
-                                    <td>
+                                    <td data-label="Permissions">
                                         <span class="badge bg-success" data-badge>{{ role.permissions|length }} permissions</span>
                                     </td>
-                                    <td>
+                                    <td data-label="Type">
                                         {% if 'Admin' in role.name %}
                                         <span class="badge bg-danger" data-badge>Admin</span>
                                         {% elif 'Coach' in role.name %}
@@ -136,7 +136,7 @@
                                         <span class="badge bg-secondary" data-badge>Other</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Actions">
                                         <div class="btn-group btn-group-sm">
                                             <button class="c-btn c-btn--outline-info js-view-role"
                                                     data-action="view-role" data-role-id="{{ role.id }}" data-role-name="{{ role.name }}" aria-label="View"><i class="ti ti-eye"></i></button>
@@ -277,24 +277,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-@media (max-width: 768px) {
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.75rem;
-    }
-    
-    .table-responsive {
-        font-size: 0.875rem;
-    }
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

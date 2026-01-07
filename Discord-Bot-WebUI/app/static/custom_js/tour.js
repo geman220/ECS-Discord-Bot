@@ -38,7 +38,7 @@ export function createSkipAction(tourVar) {
     };
 }
 
-export function init() {
+export function initTour() {
     if (_initialized) return;
 
     // Guard: Check if Shepherd is loaded before using it
@@ -146,7 +146,7 @@ export function init() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem.register) {
-    window.InitSystem.register('tour', init, {
+    window.InitSystem.register('tour', initTour, {
         priority: 25,
         reinitializable: false,
         description: 'Shepherd.js onboarding tour'
@@ -157,5 +157,5 @@ if (window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.init = init;
+window.initTour = initTour;
 window.createSkipAction = createSkipAction;

@@ -174,7 +174,7 @@
                 <div class="c-card__body p-0">
                     {% if recent_notifications %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="messages">
+                        <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="messages">
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">Title</th>
@@ -231,27 +231,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.progress {
-    border-radius: 10px;
-}
-
-.progress-bar {
-    border-radius: 10px;
-}
-
-@media (max-width: 768px) {
-    .table-responsive {
-        font-size: 0.875rem;
-    }
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

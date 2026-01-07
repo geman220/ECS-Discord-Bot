@@ -27,36 +27,37 @@ class AdminSeasonsManager {
     }
 
     /**
-     * Setup filter change handlers
+     * Setup filter change handlers using event delegation
      */
     setupFilterHandlers() {
-        const leagueTypeFilter = document.getElementById('leagueTypeFilter');
-        const currentOnlyFilter = document.getElementById('currentOnlyFilter');
+        const self = this;
 
-        if (leagueTypeFilter) {
-            leagueTypeFilter.addEventListener('change', () => this.applyFilters());
-        }
+        // Delegated change handler for filters and rollover checkbox
+        document.addEventListener('change', (e) => {
+            // League type and current only filters
+            if (e.target.id === 'leagueTypeFilter' || e.target.id === 'currentOnlyFilter') {
+                self.applyFilters();
+                return;
+            }
 
-        if (currentOnlyFilter) {
-            currentOnlyFilter.addEventListener('change', () => this.applyFilters());
-        }
-    }
-
-    /**
-     * Setup rollover checkbox handler
-     */
-    setupRolloverCheckbox() {
-        const performRollover = document.getElementById('performRollover');
-        if (performRollover) {
-            performRollover.addEventListener('change', (e) => {
+            // Rollover checkbox
+            if (e.target.id === 'performRollover') {
                 if (e.target.checked) {
-                    this.loadRolloverPreview();
+                    self.loadRolloverPreview();
                 } else {
                     const preview = document.getElementById('rolloverPreview');
                     if (preview) preview.classList.add('d-none');
                 }
-            });
-        }
+            }
+        });
+    }
+
+    /**
+     * Setup rollover checkbox handler
+     * Note: Now handled by setupFilterHandlers delegation
+     */
+    setupRolloverCheckbox() {
+        // Rollover checkbox handled by delegated change handler in setupFilterHandlers
     }
 
     /**
@@ -209,8 +210,20 @@ class AdminSeasonsManager {
 
         if (typeof AdminPanel !== 'undefined' && AdminPanel.confirmAction) {
             AdminPanel.confirmAction(confirmMessage, doDelete);
-        } else if (confirm(confirmMessage)) {
-            doDelete();
+        } else {
+            Swal.fire({
+                title: 'Delete Season?',
+                text: confirmMessage,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    doDelete();
+                }
+            });
         }
     }
 
@@ -330,40 +343,57 @@ class AdminSeasonsManager {
 
         if (typeof AdminPanel !== 'undefined' && AdminPanel.confirmAction) {
             AdminPanel.confirmAction('Set this season as the current season?', doSet);
-        } else if (confirm('Set this season as the current season?')) {
-            doSet();
+        } else {
+            Swal.fire({
+                title: 'Set Current Season?',
+                text: 'Set this season as the current season?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, set it!'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    doSet();
+                }
+            });
         }
     }
 
     /**
-     * Setup detail page event handlers
+     * Setup detail page event handlers using event delegation
      */
     setupDetailPageHandlers() {
-        // Edit season buttons
-        document.querySelectorAll('.js-edit-season').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const seasonId = btn.dataset.seasonId;
-                const seasonName = btn.dataset.seasonName;
-                this.openEditSeasonModal(seasonId, seasonName);
-            });
-        });
+        const self = this;
 
-        // Save season buttons
-        document.querySelectorAll('.js-save-season').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        // Delegated click handler for detail page buttons
+        document.addEventListener('click', (e) => {
+            // Edit season buttons
+            const editBtn = e.target.closest('.js-edit-season');
+            if (editBtn) {
                 e.preventDefault();
-                this.saveSeasonChanges();
-            });
-        });
+                const seasonId = editBtn.dataset.seasonId;
+                const seasonName = editBtn.dataset.seasonName;
+                self.openEditSeasonModal(seasonId, seasonName);
+                return;
+            }
 
-        // Set current buttons
-        document.querySelectorAll('.js-set-current').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            // Save season buttons
+            const saveBtn = e.target.closest('.js-save-season');
+            if (saveBtn) {
                 e.preventDefault();
-                const seasonId = btn.dataset.seasonId;
-                this.quickSetCurrent(seasonId);
-            });
+                self.saveSeasonChanges();
+                return;
+            }
+
+            // Set current buttons
+            const setCurrentBtn = e.target.closest('.js-set-current');
+            if (setCurrentBtn) {
+                e.preventDefault();
+                const seasonId = setCurrentBtn.dataset.seasonId;
+                self.quickSetCurrent(seasonId);
+                return;
+            }
         });
     }
 }
@@ -384,7 +414,7 @@ function getManager() {
 /**
  * Initialize function
  */
-function init() {
+function initAdminSeasonsManagement() {
     if (_initialized) return;
     _initialized = true;
 
@@ -400,7 +430,7 @@ function init() {
 
 // Register with window.InitSystem
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('admin-seasons-management', init, {
+    window.InitSystem.register('admin-seasons-management', initAdminSeasonsManagement, {
         priority: 40,
         reinitializable: false,
         description: 'Admin seasons management'
@@ -411,4 +441,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Export for ES modules
-export { AdminSeasonsManager, getManager, init };
+export { AdminSeasonsManager, getManager, initAdminSeasonsManagement };

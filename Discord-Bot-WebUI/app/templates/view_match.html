@@ -18,8 +18,8 @@
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Match Header Card -->
-    <div class="c-card-modern c-card-modern--match c-card-modern--primary mb-4">
-        <div class="c-card-modern__body p-0 position-relative overflow-hidden">
+    <div class="c-card c-card--match c-card--primary mb-4">
+        <div class="c-card__body p-0 position-relative overflow-hidden">
             <div class="d-flex match-header-wrapper p-4">
                 <div class="match-info text-white z-1 w-100">
                     {% if is_ecs_fc_match %}
@@ -80,11 +80,11 @@
                     {% if safe_current_user.has_permission('view_rsvps') %}
                     <div class="mt-3">
                         {% if is_ecs_fc_match %}
-                        <a href="{{ url_for('admin.rsvp_status', match_id='ecs_' + ecs_match.id|string) }}" class="c-btn c-btn--outline-light c-btn--sm ecs-btn ecs-btn-sm ecs-btn-icon">
+                        <a href="{{ url_for('admin.rsvp_status', match_id='ecs_' + ecs_match.id|string) }}" class="c-btn c-btn--outline-light c-btn--sm ecs-btn ecs-c-btn--sm ecs-btn-icon">
                             <i class="ti ti-users me-1"></i>Manage RSVPs
                         </a>
                         {% else %}
-                        <a href="{{ url_for('admin.rsvp_status', match_id=match.id) }}" class="c-btn c-btn--outline-light c-btn--sm ecs-btn ecs-btn-sm ecs-btn-icon">
+                        <a href="{{ url_for('admin.rsvp_status', match_id=match.id) }}" class="c-btn c-btn--outline-light c-btn--sm ecs-btn ecs-c-btn--sm ecs-btn-icon">
                             <i class="ti ti-users me-1"></i>Manage RSVPs
                         </a>
                         {% endif %}
@@ -256,7 +256,7 @@
         <div class="col-12">
             <div class="row mb-4 d-none d-md-flex">
                 <div class="col-lg-6 mb-4">
-            <div class="c-card desktop-team-card">
+            <div class="c-card desktop-team-c-card">
                 <div class="c-card__header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="c-card__title mb-0">
@@ -368,7 +368,7 @@
 
         <!-- Away Team Card (Desktop) -->
         <div class="col-lg-6 mb-4">
-            <div class="c-card desktop-team-card">
+            <div class="c-card desktop-team-c-card">
                 <div class="c-card__header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="c-card__title mb-0">

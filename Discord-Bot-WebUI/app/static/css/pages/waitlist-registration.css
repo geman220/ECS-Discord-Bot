@@ -23,9 +23,9 @@
     --waitlist-info: #457b9d;
 
     /* Waitlist Text Colors - Using design system for consistency */
-    --waitlist-text-primary: var(--color-text-primary, #18181B);
-    --waitlist-text-secondary: var(--color-text-secondary, #3F3F46);
-    --waitlist-text-muted: var(--color-text-muted, #52525B);
+    --waitlist-text-primary: var(--color-text-primary, var(--color-neutral-900));
+    --waitlist-text-secondary: var(--color-text-secondary, var(--color-neutral-700));
+    --waitlist-text-muted: var(--color-text-muted, var(--color-neutral-600));
 
     /* Gradient backgrounds - sunset soccer vibes */
     --waitlist-gradient-warm: linear-gradient(135deg, #f4a261 0%, #e76f51 100%);
@@ -452,7 +452,7 @@
    ============================================ */
 
 .c-waitlist--authenticated {
-    background: var(--color-secondary-50, #f8f9fa);
+    background: var(--color-secondary-50, var(--color-neutral-50));
     padding: 0;
     min-height: 100vh;
 }
@@ -543,7 +543,7 @@
    ============================================ */
 
 .c-waitlist--discord {
-    background: var(--color-secondary-50, #f8f9fa);
+    background: var(--color-secondary-50, var(--color-neutral-50));
     padding: var(--waitlist-space-lg);
     min-height: 100vh;
 }
@@ -762,7 +762,7 @@
    RESPONSIVE DESIGN
    ============================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .c-waitlist {
         padding: var(--waitlist-space-md);
     }
@@ -815,7 +815,7 @@
     }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
     .c-waitlist__logo {
         height: 48px;
     }
@@ -855,14 +855,14 @@
 
 [data-style="dark"] .c-waitlist__title,
 [data-theme="dark"] .c-waitlist__title {
-    color: var(--color-text-primary, #FFFFFF);
+    color: var(--color-text-primary, var(--color-white));
 }
 
 [data-style="dark"] .c-waitlist__description,
 [data-style="dark"] .c-waitlist__subtitle,
 [data-theme="dark"] .c-waitlist__description,
 [data-theme="dark"] .c-waitlist__subtitle {
-    color: var(--color-text-secondary, #E2E8F0);
+    color: var(--color-text-secondary, var(--color-secondary-200));
 }
 
 [data-style="dark"] .c-waitlist__section,
@@ -894,7 +894,7 @@
     }
 
     * {
-        transition-duration: 0.01ms !important;
+        transition-duration: 0.01ms;
     }
 }
 
@@ -903,4 +903,25 @@
 .c-waitlist button:focus-visible {
     outline: 3px solid var(--waitlist-primary);
     outline-offset: 2px;
+}
+
+/* ============================================
+   SIMPLE CROPPER INTERFACE
+   ============================================ */
+
+#cropCanvas {
+    max-width: 300px;
+    max-height: 300px;
+    border: 2px solid var(--waitlist-primary, var(--color-primary));
+    border-radius: 8px;
+    cursor: move;
+}
+
+.cropper-container {
+    position: relative;
+    display: inline-block;
+}
+
+#cropperInterface {
+    text-align: center;
 }

@@ -25,7 +25,7 @@ import { EventDelegation } from './event-delegation/core.js';
  * Admin Navigation Controller
  * Handles all navigation interactions via event delegation
  */
-export class AdminNavigationController {
+class AdminNavigationController {
   constructor(element) {
     this.nav = element;
     this.activeDropdown = null;

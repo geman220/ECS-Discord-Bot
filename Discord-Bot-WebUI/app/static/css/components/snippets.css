@@ -17,10 +17,10 @@
    Match Card Component (from snippets)
    ============================================ */
 .c-match-card {
-    border: 1px solid var(--ecs-neutral-20, #dee2e6);
+    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
     border-radius: 0.5rem;
     padding: 1rem;
-    background: var(--bs-white, #fff);
+    background: var(--bs-white, var(--color-white));
     transition: box-shadow 0.2s ease;
 }
 
@@ -34,7 +34,7 @@
     gap: 0.5rem;
     margin-bottom: 0.75rem;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--ecs-neutral-10, #f0f0f0);
+    border-bottom: 1px solid var(--ecs-neutral-10, var(--color-neutral-100));
 }
 
 .c-match-card__icon {
@@ -42,27 +42,27 @@
 }
 
 .c-match-card__icon--primary {
-    color: var(--ecs-primary, #007bff);
+    color: var(--ecs-primary, var(--color-primary));
 }
 
 .c-match-card__icon--success {
-    color: var(--ecs-success, #28a745);
+    color: var(--ecs-success, var(--color-success-500));
 }
 
 .c-match-card__icon--warning {
-    color: var(--ecs-warning, var(--color-warning, #ffc107));
+    color: var(--ecs-warning, var(--color-warning, var(--color-warning)));
 }
 
 .c-match-card__icon--danger {
-    color: var(--ecs-danger, var(--color-danger, #dc3545));
+    color: var(--ecs-danger, var(--color-danger, var(--color-danger-600)));
 }
 
 .c-match-card__icon--info {
-    color: var(--ecs-info, #17a2b8);
+    color: var(--ecs-info, var(--color-info-600));
 }
 
 .c-match-card__icon--secondary {
-    color: var(--ecs-secondary, #6c757d);
+    color: var(--ecs-secondary, var(--color-secondary-600));
 }
 
 .c-match-card__title {
@@ -87,20 +87,20 @@
 
 .c-match-card__subtitle {
     font-size: 0.875rem;
-    color: var(--ecs-neutral-70, #495057);
+    color: var(--ecs-neutral-70, var(--color-secondary-700));
 }
 
 .c-match-card__date,
 .c-match-card__time,
 .c-match-card__location {
     font-size: 0.875rem;
-    color: var(--ecs-neutral-60, #6c757d);
+    color: var(--ecs-neutral-60, var(--color-secondary-600));
 }
 
 .c-match-card__score {
     font-weight: 600;
     font-size: 1rem;
-    color: var(--ecs-neutral-90, #212529);
+    color: var(--ecs-neutral-90, var(--color-secondary-900));
 }
 
 .c-match-card__alert {
@@ -114,32 +114,32 @@
 
 /* Match Card Type Modifiers */
 .c-match-card--playoff {
-    border-left: 4px solid var(--ecs-primary, #007bff);
+    border-left: 4px solid var(--ecs-primary, var(--color-primary));
 }
 
 .c-match-card--fun {
-    border-left: 4px solid var(--ecs-warning, var(--color-warning, #ffc107));
+    border-left: 4px solid var(--ecs-warning, var(--color-warning, var(--color-warning)));
 }
 
 .c-match-card--tst {
-    border-left: 4px solid var(--ecs-info, #17a2b8);
+    border-left: 4px solid var(--ecs-info, var(--color-info-600));
 }
 
 .c-match-card--bye {
-    border-left: 4px solid var(--ecs-secondary, #6c757d);
+    border-left: 4px solid var(--ecs-secondary, var(--color-secondary-600));
     opacity: 0.8;
 }
 
 .c-match-card--bonus {
-    border-left: 4px solid var(--ecs-primary, #007bff);
+    border-left: 4px solid var(--ecs-primary, var(--color-primary));
 }
 
 .c-match-card--practice {
-    border-left: 4px solid var(--ecs-success, #28a745);
+    border-left: 4px solid var(--ecs-success, var(--color-success-500));
 }
 
 .c-match-card--regular {
-    border-left: 4px solid var(--ecs-neutral-30, #ced4da);
+    border-left: 4px solid var(--ecs-neutral-30, var(--color-neutral-300));
 }
 
 /* ============================================
@@ -148,8 +148,8 @@
 .c-week-summary {
     padding: 1.5rem;
     border-radius: 0.5rem;
-    background: var(--bs-white, #fff);
-    border: 1px solid var(--ecs-neutral-20, #dee2e6);
+    background: var(--bs-white, var(--color-white));
+    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
 }
 
 .c-week-summary__header {
@@ -183,8 +183,8 @@
 .c-week-summary__match-card {
     padding: 0.75rem;
     border-radius: 0.25rem;
-    background: var(--ecs-neutral-5, #f8f9fa);
-    border: 1px solid var(--ecs-neutral-20, #dee2e6);
+    background: var(--ecs-neutral-5, var(--color-neutral-50));
+    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
 }
 
 .c-week-summary__match-teams {
@@ -194,7 +194,7 @@
 
 .c-week-summary__match-info {
     display: block;
-    color: var(--ecs-neutral-60, #6c757d);
+    color: var(--ecs-neutral-60, var(--color-secondary-600));
 }
 
 .c-week-summary__match-note {
@@ -204,14 +204,14 @@
 
 /* Week Summary Type Modifiers */
 .c-week-summary--playoff {
-    border-left: 4px solid var(--ecs-primary, #007bff);
+    border-left: 4px solid var(--ecs-primary, var(--color-primary));
 }
 
 .c-week-summary--fun,
 .c-week-summary--tst,
 .c-week-summary--bye,
 .c-week-summary--bonus {
-    border-left: 4px solid var(--ecs-info, #17a2b8);
+    border-left: 4px solid var(--ecs-info, var(--color-info-600));
 }
 
 /* ============================================
@@ -226,7 +226,7 @@
 }
 
 .c-playoff-mgmt__header {
-    background: var(--ecs-neutral-5, #f8f9fa);
+    background: var(--ecs-neutral-5, var(--color-neutral-50));
 }
 
 .c-playoff-mgmt__title {

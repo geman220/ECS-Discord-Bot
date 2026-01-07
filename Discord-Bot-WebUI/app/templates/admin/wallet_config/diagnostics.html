@@ -3,45 +3,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    /* Diagnostics - Theme-aware styling */
-    .code-block {
-        background-color: var(--bs-tertiary-bg, #f8f9fa);
-        border-radius: 4px;
-        padding: 15px;
-        margin: 15px 0;
-        font-family: monospace;
-        overflow-x: auto;
-        white-space: pre;
-    }
-    .status-good {
-        color: var(--bs-success, #28a745);
-    }
-    .status-warning {
-        color: var(--bs-warning, #ffc107);
-    }
-    .status-error {
-        color: var(--bs-danger, #dc3545);
-    }
-    .detail-toggle {
-        cursor: pointer;
-        color: var(--bs-primary);
-    }
-    .detail-content {
-        background-color: var(--bs-tertiary-bg, #f8f9fa);
-        border-radius: 4px;
-        padding: 10px;
-        margin: 10px 0;
-    }
-    .directory-item {
-        padding: 10px;
-        border-radius: 4px;
-        margin-bottom: 8px;
-    }
-    .directory-item:nth-child(odd) {
-        background-color: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.03));
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock custom_css %}
 
 {% block content %}
@@ -108,7 +70,7 @@
                         <div class="col-md-6">
                             <h6>System Information</h6>
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
+                                <table class="c-c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
                                     <tbody>
                                         <tr>
                                             <th scope="row">App Path</th>
@@ -143,7 +105,7 @@
                         <div class="col-md-6">
                             <h6>Directory Status</h6>
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
+                                <table class="c-c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
                                     <thead scope="col">
                                         <tr>
                                             <th scope="col">Directory</th>
@@ -154,15 +116,15 @@
                                     <tbody>
                                         {% for name, details in diagnostics.directory_checks.items() %}
                                         <tr>
-                                            <td>{{ name }}</td>
-                                            <td>
+                                            <td data-label="Directory">{{ name }}</td>
+                                            <td data-label="Status">
                                                 {% if details.exists %}
                                                     <i class="ti ti-check text-success"></i> Exists
                                                 {% else %}
                                                     <i class="ti ti-x text-danger"></i> Missing
                                                 {% endif %}
                                             </td>
-                                            <td>
+                                            <td data-label="Permissions">
                                                 {% if details.exists and details.writable %}
                                                     <i class="ti ti-check text-success"></i> Writable
                                                 {% elif details.exists %}
@@ -223,7 +185,7 @@
                                                 <i class="ti ti-chevron-down me-1"></i> View Details
                                             </div>
                                             <div id="ecs-details" class="detail-content d-none">
-                                                <table class="c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
+                                                <table class="c-c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
                                                     <tbody>
                                                         <tr>
                                                             <th scope="row">Code</th>
@@ -280,7 +242,7 @@
                                                 <i class="ti ti-chevron-down me-1"></i> View Details
                                             </div>
                                             <div id="pub-details" class="detail-content d-none">
-                                                <table class="c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
+                                                <table class="c-c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
                                                     <tbody>
                                                         <tr>
                                                             <th scope="row">Code</th>
@@ -347,26 +309,28 @@
                                         <i class="ti ti-chevron-down me-1"></i> View Certificate Details
                                     </div>
                                     <div id="cert-details" class="detail-content d-none">
-                                        <table class="c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
-                                            <thead scope="col">
-                                                <tr>
-                                                    <th scope="col">Type</th>
-                                                    <th scope="col">Name</th>
-                                                    <th scope="col">File</th>
-                                                    <th scope="col">Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for cert_type, cert in diagnostics.database_checks['Certificates'].apple.items() %}
-                                                <tr>
-                                                    <td>{{ cert_type }}</td>
-                                                    <td>{{ cert.name }}</td>
-                                                    <td>{{ cert.file_name }}</td>
-                                                    <td>{{ cert.is_active and 'Active' or 'Inactive' }}</td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
+                                        <div class="c-table-wrapper">
+                                            <table class="c-c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
+                                                <thead scope="col">
+                                                    <tr>
+                                                        <th scope="col">Type</th>
+                                                        <th scope="col">Name</th>
+                                                        <th scope="col">File</th>
+                                                        <th scope="col">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for cert_type, cert in diagnostics.database_checks['Certificates'].apple.items() %}
+                                                    <tr>
+                                                        <td data-label="Type">{{ cert_type }}</td>
+                                                        <td data-label="Name">{{ cert.name }}</td>
+                                                        <td data-label="File">{{ cert.file_name }}</td>
+                                                        <td data-label="Status">{{ cert.is_active and 'Active' or 'Inactive' }}</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                     
                                     <div class="mt-3">
@@ -413,24 +377,26 @@
                                                 <i class="ti ti-chevron-down me-1"></i> View Asset Details
                                             </div>
                                             <div id="ecs-assets-details" class="detail-content d-none">
-                                                <table class="c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
-                                                    <thead scope="col">
-                                                        <tr>
-                                                            <th scope="col">Asset</th>
-                                                            <th scope="col">File</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {% for asset_type, asset in diagnostics.database_checks['Assets'].ecs_assets.items() %}
-                                                        <tr>
-                                                            <td>{{ asset_type }}</td>
-                                                            <td>{{ asset.file_name }}</td>
-                                                        </tr>
-                                                        {% endfor %}
-                                                    </tbody>
-                                                </table>
+                                                <div class="c-table-wrapper">
+                                                    <table class="c-c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
+                                                        <thead scope="col">
+                                                            <tr>
+                                                                <th scope="col">Asset</th>
+                                                                <th scope="col">File</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for asset_type, asset in diagnostics.database_checks['Assets'].ecs_assets.items() %}
+                                                            <tr>
+                                                                <td data-label="Asset">{{ asset_type }}</td>
+                                                                <td data-label="File">{{ asset.file_name }}</td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </div>
-                                            
+
                                             <div class="mt-3">
                                                 <h6>Asset Status</h6>
                                                 <ul>
@@ -466,22 +432,24 @@
                                                 <i class="ti ti-chevron-down me-1"></i> View Asset Details
                                             </div>
                                             <div id="pub-assets-details" class="detail-content d-none">
-                                                <table class="c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
-                                                    <thead scope="col">
-                                                        <tr>
-                                                            <th scope="col">Asset</th>
-                                                            <th scope="col">File</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {% for asset_type, asset in diagnostics.database_checks['Assets'].pub_assets.items() %}
-                                                        <tr>
-                                                            <td>{{ asset_type }}</td>
-                                                            <td>{{ asset.file_name }}</td>
-                                                        </tr>
-                                                        {% endfor %}
-                                                    </tbody>
-                                                </table>
+                                                <div class="c-table-wrapper">
+                                                    <table class="c-c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
+                                                        <thead scope="col">
+                                                            <tr>
+                                                                <th scope="col">Asset</th>
+                                                                <th scope="col">File</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for asset_type, asset in diagnostics.database_checks['Assets'].pub_assets.items() %}
+                                                            <tr>
+                                                                <td data-label="Asset">{{ asset_type }}</td>
+                                                                <td data-label="File">{{ asset.file_name }}</td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </div>
                                             
                                             <div class="mt-3">
@@ -530,28 +498,30 @@
                                                 <i class="ti ti-chevron-down me-1"></i> View Templates ({{ diagnostics.database_checks['Templates'].ecs_templates|length }})
                                             </div>
                                             <div id="ecs-templates-list" class="detail-content d-none">
-                                                <table class="c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
-                                                    <thead scope="col">
-                                                        <tr>
-                                                            <th scope="col">Name</th>
-                                                            <th scope="col">Platform</th>
-                                                            <th scope="col">Default</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {% for template in diagnostics.database_checks['Templates'].ecs_templates %}
-                                                        <tr>
-                                                            <td>{{ template.name }}</td>
-                                                            <td>{{ template.platform }}</td>
-                                                            <td>
-                                                                {% if template.is_default %}
-                                                                    <span class="badge bg-label-success" data-badge>Default</span>
-                                                                {% endif %}
-                                                            </td>
-                                                        </tr>
-                                                        {% endfor %}
-                                                    </tbody>
-                                                </table>
+                                                <div class="c-table-wrapper">
+                                                    <table class="c-c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
+                                                        <thead scope="col">
+                                                            <tr>
+                                                                <th scope="col">Name</th>
+                                                                <th scope="col">Platform</th>
+                                                                <th scope="col">Default</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for template in diagnostics.database_checks['Templates'].ecs_templates %}
+                                                            <tr>
+                                                                <td data-label="Name">{{ template.name }}</td>
+                                                                <td data-label="Platform">{{ template.platform }}</td>
+                                                                <td data-label="Default">
+                                                                    {% if template.is_default %}
+                                                                        <span class="badge bg-label-success" data-badge>Default</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </div>
                                             
                                             <div class="mt-3">
@@ -593,28 +563,30 @@
                                                 <i class="ti ti-chevron-down me-1"></i> View Templates ({{ diagnostics.database_checks['Templates'].pub_templates|length }})
                                             </div>
                                             <div id="pub-templates-list" class="detail-content d-none">
-                                                <table class="c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
-                                                    <thead scope="col">
-                                                        <tr>
-                                                            <th scope="col">Name</th>
-                                                            <th scope="col">Platform</th>
-                                                            <th scope="col">Default</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {% for template in diagnostics.database_checks['Templates'].pub_templates %}
-                                                        <tr>
-                                                            <td>{{ template.name }}</td>
-                                                            <td>{{ template.platform }}</td>
-                                                            <td>
-                                                                {% if template.is_default %}
-                                                                    <span class="badge bg-label-success" data-badge>Default</span>
-                                                                {% endif %}
-                                                            </td>
-                                                        </tr>
-                                                        {% endfor %}
-                                                    </tbody>
-                                                </table>
+                                                <div class="c-table-wrapper">
+                                                    <table class="c-c-table c-table--compact" data-mobile-table data-table-type="logs" data-table>
+                                                        <thead scope="col">
+                                                            <tr>
+                                                                <th scope="col">Name</th>
+                                                                <th scope="col">Platform</th>
+                                                                <th scope="col">Default</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for template in diagnostics.database_checks['Templates'].pub_templates %}
+                                                            <tr>
+                                                                <td data-label="Name">{{ template.name }}</td>
+                                                                <td data-label="Platform">{{ template.platform }}</td>
+                                                                <td data-label="Default">
+                                                                    {% if template.is_default %}
+                                                                        <span class="badge bg-label-success" data-badge>Default</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </div>
                                             
                                             <div class="mt-3">

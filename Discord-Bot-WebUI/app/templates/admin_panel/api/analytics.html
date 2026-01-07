@@ -133,7 +133,7 @@
             <div class="c-card__body">
                 {% if endpoint_performance %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="api-performance">
+                    <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="api-performance">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Endpoint</th>
@@ -145,16 +145,16 @@
                         <tbody>
                             {% for endpoint in endpoint_performance %}
                             <tr>
-                                <td>
+                                <td data-label="Endpoint">
                                     <code class="small">{{ endpoint.endpoint }}</code>
                                 </td>
-                                <td>{{ "{:,}".format(endpoint.requests) }}</td>
-                                <td>
+                                <td data-label="Requests">{{ "{:,}".format(endpoint.requests) }}</td>
+                                <td data-label="Avg Time">
                                     <span class="{% if endpoint.avg_response_time > 0.3 %}text-danger{% elif endpoint.avg_response_time > 0.15 %}text-warning{% else %}text-success{% endif %}">
                                         {{ "%.3f"|format(endpoint.avg_response_time) }}s
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Success Rate">
                                     <div class="d-flex align-items-center">
                                         <div class="progress me-2 u-w-60 u-progress-sm">
                                             <div class="progress-bar bg-{% if endpoint.success_rate > 95 %}success{% elif endpoint.success_rate > 90 %}warning{% else %}danger{% endif %}"
@@ -221,7 +221,7 @@
         <div class="c-card">
             <div class="c-card__header d-flex justify-content-between align-items-center">
                 <h5 class="c-card__title mb-0">
-                    <i class="ti ti-table me-2"></i>Daily Analytics Breakdown
+                    <i class="ti ti-c-table me-2"></i>Daily Analytics Breakdown
                 </h5>
                 <div class="btn-group btn-group-sm">
                     <button type="button" class="c-btn c-btn--outline-primary" data-action="export-analytics" data-format="csv">
@@ -235,7 +235,7 @@
             <div class="c-card__body">
                 {% if analytics.daily_requests %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="api-analytics">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="api-analytics">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Date</th>
@@ -251,20 +251,20 @@
                             {% set error_rate = (day.errors / day.requests * 100) if day.requests > 0 else 0 %}
                             {% set health_score = 100 - error_rate - (day.avg_response_time * 100) %}
                             <tr>
-                                <td>{{ day.date }}</td>
-                                <td>{{ "{:,}".format(day.requests) }}</td>
-                                <td>{{ day.errors }}</td>
-                                <td>
+                                <td data-label="Date">{{ day.date }}</td>
+                                <td data-label="Requests">{{ "{:,}".format(day.requests) }}</td>
+                                <td data-label="Errors">{{ day.errors }}</td>
+                                <td data-label="Error Rate">
                                     <span class="{% if error_rate < 2 %}text-success{% elif error_rate < 5 %}text-warning{% else %}text-danger{% endif %}">
                                         {{ "%.1f"|format(error_rate) }}%
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Avg Response Time">
                                     <span class="{% if day.avg_response_time < 0.2 %}text-success{% elif day.avg_response_time < 0.4 %}text-warning{% else %}text-danger{% endif %}">
                                         {{ "%.3f"|format(day.avg_response_time) }}s
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Health Score">
                                     <div class="d-flex align-items-center">
                                         <div class="progress me-2 u-w-60 u-progress-sm">
                                             <div class="progress-bar bg-{% if health_score > 80 %}success{% elif health_score > 60 %}warning{% else %}danger{% endif %}"
@@ -290,18 +290,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.icon-overlay i {
-    font-size: 2rem;
-    opacity: 0.5;
-}
-
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

@@ -31,7 +31,7 @@
     <div class="row">
         <!-- Manage Roles and Permissions Section -->
         <div class="col-xl-6 mb-4">
-            <div class="c-admin-card" data-component="permissions-card">
+            <div class="c-admin-c-card" data-component="permissions-card">
                 <div class="c-admin-card__header">
                     <h5 class="c-admin-card__title">Manage Roles & Permissions</h5>
                 </div>
@@ -77,7 +77,7 @@
 
         <!-- Quick Links Section -->
         <div class="col-xl-6 mb-4">
-            <div class="c-admin-card" data-component="quick-links-card">
+            <div class="c-admin-c-card" data-component="quick-links-card">
                 <div class="c-admin-card__header">
                     <h5 class="c-admin-card__title">Quick Admin Links</h5>
                 </div>
@@ -134,7 +134,7 @@
     <!-- Docker Containers Status Section -->
     <div class="row">
         <div class="col-12 mb-4">
-            <div class="c-admin-card" data-component="docker-status-card">
+            <div class="c-admin-c-card" data-component="docker-status-card">
                 <div class="c-admin-card__header">
                     <h5 class="c-admin-card__title">Docker Containers Status</h5>
                 </div>
@@ -153,7 +153,7 @@
     <!-- Task Management Section -->
     <div class="row">
         <div class="col-12 mb-4">
-            <div class="c-admin-card" data-component="task-management-card">
+            <div class="c-admin-c-card" data-component="task-management-card">
                 <div class="c-admin-card__header">
                     <h5 class="c-admin-card__title">Global Task Management</h5>
                     <div class="c-admin-card__actions">
@@ -185,7 +185,7 @@
 </div>
 
 <!-- Toast Container -->
-<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" data-container="toasts"></div>
+<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" data-container="toasts" aria-live="polite" aria-atomic="true"></div>
 
 <!-- Docker Logs Modal -->
 <div class="c-modal" id="dockerLogsModal" aria-hidden="true" aria-labelledby="dockerLogsModalLabel" data-modal="docker-logs">

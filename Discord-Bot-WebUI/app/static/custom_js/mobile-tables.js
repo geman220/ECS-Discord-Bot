@@ -6,7 +6,7 @@ import { InitSystem } from '../js/init-system.js';
 
 let _initialized = false;
 
-function init() {
+function initMobileTables() {
     if (_initialized) return;
     _initialized = true;
 
@@ -40,7 +40,7 @@ function addTableLabels() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('mobile-tables', init, {
+    window.InitSystem.register('mobile-tables', initMobileTables, {
         priority: 40,
         reinitializable: true,
         description: 'Mobile table label injection'
@@ -51,5 +51,5 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.init = init;
+window.initMobileTables = initMobileTables;
 window.addTableLabels = addTableLabels;

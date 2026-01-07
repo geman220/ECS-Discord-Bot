@@ -63,7 +63,7 @@
                                 <h6 class="fw-bold text-muted mb-2">
                                     <i class="ti ti-list-numbers me-1"></i>Standings
                                 </h6>
-                                <div class="standings-table">
+                                <div class="standings-c-table">
                                     {# Populated by JavaScript #}
                                 </div>
                             </div>
@@ -90,7 +90,7 @@
                                 <h6 class="fw-bold text-muted mb-2">
                                     <i class="ti ti-list-numbers me-1"></i>Standings
                                 </h6>
-                                <div class="standings-table">
+                                <div class="standings-c-table">
                                     {# Populated by JavaScript #}
                                 </div>
                             </div>
@@ -176,22 +176,6 @@
 <script src="{{ url_for('static', filename='custom_js/playoff_bracket.js') }}"></script>
 {% endif %}
 
-<!--
-MIGRATION NOTE: Playoff bracket system refactored for cleaner event handling
-All event handlers now use data-* attributes and .js-* classes for binding
-
-Event delegation implemented:
-- .js-open-match-report → data-action="open-match-report" with data-match-id
-- Match card clicks handled via delegated event listeners in playoff_bracket.js
-- Bracket initialization uses data attributes from .playoff-bracket-container
-
-The PlayoffBracket class in playoff_bracket.js handles:
-- Auto-initialization via DOMContentLoaded
-- Loading bracket data from API
-- Rendering match cards and group standings
-- Handling match report button clicks
-- Real-time updates via WebSocket (if enabled)
--->
 
 {# Initialize bracket on page load - minimal inline script #}
 <script>
@@ -212,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {# Compact match card for use within the bracket #}
 {% macro render_bracket_match_card(match_id) %}
-<div class="bracket-match-card js-bracket-match-card"
+<div class="bracket-match-card js-bracket-match-c-card"
      data-match-id="{{ match_id }}"
      role="article"
      aria-label="Match card">

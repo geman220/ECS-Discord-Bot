@@ -32,16 +32,16 @@
   margin: 0 0 var(--space-1, 4px);
   font-size: var(--text-2xl, 1.5rem);
   font-weight: 700;
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-calendar-header__icon {
-  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
+  color: var(--color-primary-light, var(--color-primary-400, var(--color-primary-400)));
 }
 
 .c-calendar-header__info {
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
 .c-calendar-header__breadcrumb {
@@ -49,7 +49,7 @@
   align-items: center;
   gap: var(--space-2, 8px);
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
 .c-calendar-header__actions {
@@ -70,7 +70,7 @@
   padding: var(--space-2, 8px) var(--space-4, 16px);
   font-size: var(--text-sm, 0.875rem);
   font-weight: 500;
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-md, 8px);
@@ -83,33 +83,33 @@
 }
 
 .c-calendar-btn--primary {
-  color: var(--color-white, #fff);
-  background: var(--color-primary, var(--color-primary-600, #2563EB));
-  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-white, var(--color-white));
+  background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
+  border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 .c-calendar-btn--primary:hover {
-  background: var(--color-primary-hover, var(--color-primary-600, #2563eb));
+  background: var(--color-primary-hover, var(--color-primary-600, var(--color-primary-600)));
 }
 
 .c-calendar-btn--success {
-  color: var(--color-white, #fff);
-  background: var(--color-success, var(--color-success-500, #10b981));
-  border-color: var(--color-success, var(--color-success-500, #10b981));
+  color: var(--color-white, var(--color-white));
+  background: var(--color-success, var(--color-success-500, var(--color-success-500)));
+  border-color: var(--color-success, var(--color-success-500, var(--color-success-500)));
 }
 
 .c-calendar-btn--success:hover {
-  background: var(--color-success-hover, #059669);
+  background: var(--color-success-hover, var(--color-success-700));
 }
 
 .c-calendar-btn--outline {
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   background: transparent;
   border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.15));
 }
 
 .c-calendar-btn--outline:hover {
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   border-color: rgba(255, 255, 255, 0.25);
 }
 
@@ -125,7 +125,7 @@
    ============================================================================ */
 
 .c-calendar-card {
-  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
   border-radius: var(--radius-xl, 16px);
   overflow: hidden;
@@ -149,11 +149,11 @@
   margin: 0;
   font-size: var(--text-base, 1rem);
   font-weight: 600;
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-calendar-card__icon {
-  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
+  color: var(--color-primary-light, var(--color-primary-400, var(--color-primary-400)));
 }
 
 .c-calendar-card__body {
@@ -169,7 +169,7 @@
    ============================================================================ */
 
 .c-calendar-sidebar-card {
-  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
   border-radius: var(--radius-lg, 12px);
   overflow: hidden;
@@ -186,19 +186,19 @@
 }
 
 .c-calendar-sidebar-card__icon {
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   font-size: 1rem;
 }
 
 .c-calendar-sidebar-card__icon--info {
-  color: var(--color-info-light, #22d3ee);
+  color: var(--color-info-light, var(--color-info-400));
 }
 
 .c-calendar-sidebar-card__title {
   margin: 0;
   font-size: var(--text-sm, 0.875rem);
   font-weight: 600;
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-calendar-sidebar-card__body {
@@ -229,7 +229,7 @@
 .c-calendar-main__title {
   font-size: var(--text-lg, 1.125rem);
   font-weight: 600;
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-calendar-main__controls {
@@ -255,7 +255,7 @@
   padding: var(--space-2, 8px) var(--space-3, 12px);
   font-size: var(--text-sm, 0.875rem);
   font-weight: 500;
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   background: transparent;
   border: none;
   border-radius: var(--radius-sm, 6px);
@@ -264,12 +264,12 @@
 }
 
 .c-calendar-view:hover {
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-calendar-view--active {
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
-  background: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
+  background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* ============================================================================
@@ -287,7 +287,7 @@
   left: var(--space-3, 12px);
   top: 50%;
   transform: translateY(-50%);
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   font-size: 1rem;
   pointer-events: none;
 }
@@ -296,7 +296,7 @@
   width: 100%;
   padding: var(--space-2, 8px) var(--space-3, 12px) var(--space-2, 8px) var(--space-9, 36px);
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
   border-radius: var(--radius-md, 8px);
@@ -305,11 +305,11 @@
 
 .c-calendar-search__input:focus {
   outline: none;
-  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 .c-calendar-search__input::placeholder {
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
 /* ============================================================================
@@ -342,15 +342,15 @@
    ============================================================================ */
 
 [data-style="light"] .c-calendar-header__title {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 [data-style="light"] .c-calendar-header__icon {
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 [data-style="light"] .c-calendar-btn {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.1);
 }
@@ -360,27 +360,27 @@
 }
 
 [data-style="light"] .c-calendar-btn--outline {
-  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   background: transparent;
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.15));
 }
 
 [data-style="light"] .c-calendar-card,
 [data-style="light"] .c-calendar-sidebar-card {
-  background: var(--color-bg-primary, #fff);
+  background: var(--color-bg-primary, var(--color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 
 [data-style="light"] .c-calendar-card__header,
 [data-style="light"] .c-calendar-sidebar-card__header {
-  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   border-bottom-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
 }
 
 [data-style="light"] .c-calendar-card__title,
 [data-style="light"] .c-calendar-sidebar-card__title,
 [data-style="light"] .c-calendar-main__title {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 [data-style="light"] .c-calendar-views {
@@ -388,28 +388,28 @@
 }
 
 [data-style="light"] .c-calendar-view {
-  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
 [data-style="light"] .c-calendar-view:hover {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 [data-style="light"] .c-calendar-view--active {
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
 }
 
 [data-style="light"] .c-calendar-search__input {
-  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.15));
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 /* ============================================================================
    RESPONSIVE
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-calendar-header {
     flex-direction: column;
   }

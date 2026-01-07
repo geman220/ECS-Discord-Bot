@@ -1,0 +1,392 @@
+{% extends "admin_panel/base.html" %}
+
+{% block title %}Discord Role Mapping - Admin Panel{% endblock %}
+
+{% block panel_description %}Map Flask roles to Discord server roles{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.discord_overview') }}">Discord</a></li>
+<li class="breadcrumb-item active">Role Mapping</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="row">
+    <!-- Bot Status Card -->
+    <div class="col-12 mb-4">
+        <div class="c-card">
+            <div class="c-card__body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="c-icon-badge c-icon-badge--{{ 'success' if bot_status == 'online' else 'danger' }} me-3">
+                            <i class="ti ti-robot" aria-hidden="true"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">Discord Bot Status</h5>
+                            <span class="badge bg-{{ 'success' if bot_status == 'online' else 'danger' }}">
+                                {{ bot_status|capitalize }}
+                            </span>
+                            {% if guild_name %}
+                            <span class="text-muted ms-2">Connected to: {{ guild_name }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <button type="button" class="c-btn c-btn--outline-primary" data-action="refresh-roles" aria-label="Refresh Discord roles">
+                            <i class="ti ti-refresh me-1" aria-hidden="true"></i>Refresh Roles
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Role Mapping Table -->
+    <div class="col-12">
+        <div class="c-card">
+            <div class="c-card__header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="ti ti-link me-2" aria-hidden="true"></i>Role Mappings</h5>
+                <div>
+                    <button type="button" class="c-btn c-btn--success" data-action="sync-all-roles" aria-label="Sync all mapped roles">
+                        <i class="ti ti-cloud-upload me-1" aria-hidden="true"></i>Sync All to Discord
+                    </button>
+                </div>
+            </div>
+            <div class="c-card__body p-0">
+                <div class="c-table-wrapper">
+                    <table class="c-table c-table--hover" data-mobile-table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Flask Role</th>
+                                <th scope="col">Discord Role</th>
+                                <th scope="col">Users</th>
+                                <th scope="col">Sync Status</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for role in flask_roles %}
+                            <tr data-role-id="{{ role.id }}">
+                                <td data-label="Flask Role">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-shield me-2 text-primary" aria-hidden="true"></i>
+                                        <div>
+                                            <strong>{{ role.name }}</strong>
+                                            {% if role.description %}
+                                            <small class="d-block text-muted">{{ role.description }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="Discord Role">
+                                    <select class="form-select form-select-sm discord-role-select"
+                                            data-role-id="{{ role.id }}"
+                                            data-current="{{ role.discord_role_id or '' }}"
+                                            aria-label="Select Discord role for {{ role.name }}">
+                                        <option value="">-- Not Mapped --</option>
+                                        {% for dr in discord_roles %}
+                                        <option value="{{ dr.id }}"
+                                                data-name="{{ dr.name }}"
+                                                data-color="{{ dr.color }}"
+                                                data-members="{{ dr.member_count }}"
+                                                {% if role.discord_role_id == dr.id %}selected{% endif %}>
+                                            {{ dr.name }} ({{ dr.member_count }} members)
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td data-label="Users">
+                                    <button type="button" class="c-btn c-btn--sm c-btn--outline-info"
+                                            data-action="preview-users"
+                                            data-role-id="{{ role.id }}"
+                                            aria-label="Preview users with {{ role.name }} role">
+                                        <i class="ti ti-users me-1" aria-hidden="true"></i>
+                                        <span class="user-count">{{ role.users|length }}</span>
+                                    </button>
+                                </td>
+                                <td data-label="Sync Status">
+                                    {% if role.discord_role_id %}
+                                    <span class="badge bg-success">
+                                        <i class="ti ti-check me-1" aria-hidden="true"></i>Mapped
+                                    </span>
+                                    {% if role.last_synced_at %}
+                                    <small class="d-block text-muted">
+                                        Last sync: {{ role.last_synced_at.strftime('%Y-%m-%d %H:%M') if role.last_synced_at else 'Never' }}
+                                    </small>
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="ti ti-minus me-1" aria-hidden="true"></i>Not Mapped
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="Actions">
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="c-btn c-btn--sm c-btn--primary"
+                                                data-action="save-mapping"
+                                                data-role-id="{{ role.id }}"
+                                                aria-label="Save mapping for {{ role.name }}">
+                                            <i class="ti ti-device-floppy" aria-hidden="true"></i>
+                                        </button>
+                                        <button type="button" class="c-btn c-btn--sm c-btn--success"
+                                                data-action="sync-role"
+                                                data-role-id="{{ role.id }}"
+                                                {% if not role.discord_role_id %}disabled{% endif %}
+                                                aria-label="Sync {{ role.name }} to Discord">
+                                            <i class="ti ti-cloud-upload" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5">
+                                    <i class="ti ti-mood-empty fs-1 text-muted d-block mb-3" aria-hidden="true"></i>
+                                    <p class="text-muted">No Flask roles found</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Discord Roles Reference Card -->
+    <div class="col-12 mt-4">
+        <div class="c-card">
+            <div class="c-card__header">
+                <h5 class="mb-0"><i class="ti ti-brand-discord me-2" aria-hidden="true"></i>Available Discord Roles</h5>
+            </div>
+            <div class="c-card__body">
+                {% if discord_roles %}
+                <div class="row">
+                    {% for dr in discord_roles %}
+                    <div class="col-md-4 col-sm-6 mb-2">
+                        <div class="d-flex align-items-center p-2 border rounded">
+                            <span class="badge me-2" style="background-color: {{ dr.color }}; min-width: 16px; min-height: 16px;">&nbsp;</span>
+                            <div class="flex-grow-1">
+                                <strong>{{ dr.name }}</strong>
+                                <small class="d-block text-muted">{{ dr.member_count }} members</small>
+                            </div>
+                            {% if dr.managed %}
+                            <span class="badge bg-warning" title="Managed by integration">Bot</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="ti ti-cloud-off fs-1 text-muted d-block mb-3" aria-hidden="true"></i>
+                    <p class="text-muted mb-0">
+                        {% if bot_status == 'offline' %}
+                        Discord bot is offline. Start the bot to fetch roles.
+                        {% else %}
+                        No Discord roles available.
+                        {% endif %}
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Preview Modal -->
+<div class="modal c-modal fade" id="userPreviewModal" tabindex="-1" aria-labelledby="userPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg c-modal__dialog c-modal__dialog--lg">
+        <div class="modal-content c-modal__content">
+            <div class="modal-header c-modal__header">
+                <h5 class="modal-title c-modal__title" id="userPreviewModalLabel">Users with Role</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body c-modal__body">
+                <div id="userPreviewContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer c-modal__footer">
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    // Save mapping
+    document.querySelectorAll('[data-action="save-mapping"]').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const roleId = this.dataset.roleId;
+            const select = document.querySelector(`select[data-role-id="${roleId}"]`);
+            const selectedOption = select.options[select.selectedIndex];
+
+            const data = {
+                role_id: roleId,
+                discord_role_id: select.value || null,
+                discord_role_name: selectedOption.dataset.name || null,
+                sync_enabled: true
+            };
+
+            try {
+                const response = await fetch('{{ url_for("admin_panel.update_role_mapping") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire('Saved!', result.message, 'success').then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire('Error', result.error || 'Failed to save mapping', 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Network error. Please try again.', 'error');
+            }
+        });
+    });
+
+    // Sync role to Discord
+    document.querySelectorAll('[data-action="sync-role"]').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const roleId = this.dataset.roleId;
+
+            const result = await Swal.fire({
+                title: 'Sync Role to Discord?',
+                text: 'This will assign the mapped Discord role to all users with this Flask role.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Sync',
+                showLoaderOnConfirm: true,
+                preConfirm: async () => {
+                    const response = await fetch('{{ url_for("admin_panel.sync_role_to_discord") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ role_id: roleId })
+                    });
+                    return response.json();
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            });
+
+            if (result.isConfirmed) {
+                if (result.value.success) {
+                    Swal.fire('Synced!', result.value.message, 'success');
+                } else {
+                    Swal.fire('Error', result.value.error || 'Sync failed', 'error');
+                }
+            }
+        });
+    });
+
+    // Preview users
+    document.querySelectorAll('[data-action="preview-users"]').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const roleId = this.dataset.roleId;
+            const modal = new bootstrap.Modal(document.getElementById('userPreviewModal'));
+            const content = document.getElementById('userPreviewContent');
+
+            content.innerHTML = '<div class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+            modal.show();
+
+            try {
+                const response = await fetch(`{{ url_for("admin_panel.preview_role_sync", role_id=0) }}`.replace('/0', `/${roleId}`));
+                const data = await response.json();
+
+                if (data.success) {
+                    let html = `
+                        <div class="mb-3">
+                            <strong>Role:</strong> ${data.role.name}<br>
+                            <strong>Total Users:</strong> ${data.total_users}<br>
+                            <strong>Users with Discord:</strong> ${data.users_with_discord}
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Discord</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    data.users.forEach(user => {
+                        html += `
+                            <tr>
+                                <td>${user.username}</td>
+                                <td>${user.discord_username || '<span class="text-muted">Not linked</span>'}</td>
+                                <td>
+                                    ${user.has_discord
+                                        ? '<span class="badge bg-success">Ready</span>'
+                                        : '<span class="badge bg-warning">No Discord</span>'}
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += '</tbody></table></div>';
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = '<div class="alert alert-danger">Error loading users</div>';
+                }
+            } catch (error) {
+                content.innerHTML = '<div class="alert alert-danger">Network error</div>';
+            }
+        });
+    });
+
+    // Refresh roles
+    document.querySelector('[data-action="refresh-roles"]')?.addEventListener('click', function() {
+        window.location.reload();
+    });
+
+    // Sync all roles
+    document.querySelector('[data-action="sync-all-roles"]')?.addEventListener('click', async function() {
+        const result = await Swal.fire({
+            title: 'Sync All Mapped Roles?',
+            text: 'This will sync all Flask roles that have Discord mappings.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Sync All'
+        });
+
+        if (result.isConfirmed) {
+            // Sync each mapped role
+            const syncButtons = document.querySelectorAll('[data-action="sync-role"]:not([disabled])');
+            let synced = 0;
+
+            for (const btn of syncButtons) {
+                btn.click();
+                synced++;
+                await new Promise(r => setTimeout(r, 1000)); // Rate limit
+            }
+
+            if (synced === 0) {
+                Swal.fire('No Roles', 'No roles are mapped to Discord roles yet.', 'info');
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

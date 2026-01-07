@@ -54,7 +54,7 @@ a.c-tabs__item {
   font-family: var(--font-body, 'Barlow', sans-serif);
   font-size: var(--text-sm, 0.875rem);
   font-weight: 500;
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-decoration: none;
   background: transparent;
   border: none;
@@ -67,7 +67,7 @@ a.c-tabs__item {
 
 button.c-tabs__item:hover:not(.is-active),
 a.c-tabs__item:hover:not(.is-active) {
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   background: rgba(255, 255, 255, 0.04);
 }
 
@@ -75,8 +75,8 @@ button.c-tabs__item.is-active,
 a.c-tabs__item.is-active,
 button.c-tabs__item.active,
 a.c-tabs__item.active {
-  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
-  border-bottom-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary-light, var(--color-primary-400, var(--color-primary-400)));
+  border-bottom-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   font-weight: 600;
 }
 
@@ -85,9 +85,9 @@ a.c-tabs__item.active {
 .c-tabs--pills a.c-tabs__item.is-active,
 .c-tabs--pills button.c-tabs__item.active,
 .c-tabs--pills a.c-tabs__item.active {
-  background: var(--color-primary, var(--color-primary-600, #2563EB));
+  background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   color: white;
-  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   border-radius: 8px;
 }
 
@@ -103,7 +103,7 @@ a.c-tabs__item.active {
   font-family: var(--font-body, 'Barlow', sans-serif);
   font-size: var(--text-sm, 0.875rem);
   font-weight: 500;
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-decoration: none;
   background: transparent;
   border: none;
@@ -120,21 +120,21 @@ a.c-tabs__item.active {
 
 /* Hover state */
 .c-tabs__link:hover:not(.c-tabs__link--active) {
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   background: rgba(255, 255, 255, 0.04);
 }
 
 /* Focus state */
 .c-tabs__link:focus-visible {
-  outline: 2px solid var(--color-primary, var(--color-primary-600, #2563EB));
+  outline: 2px solid var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   outline-offset: -2px;
 }
 
 /* Active state */
 .c-tabs__link--active,
 .c-tabs__link.active {
-  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
-  border-bottom-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary-light, var(--color-primary-400, var(--color-primary-400)));
+  border-bottom-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   font-weight: 600;
 }
 
@@ -202,41 +202,41 @@ a.c-tabs__item.active {
 }
 
 [data-style="light"] .c-tabs__link {
-  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
 [data-style="light"] .c-tabs__link:hover:not(.c-tabs__link--active) {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   background: rgba(0, 0, 0, 0.04);
 }
 
 [data-style="light"] .c-tabs__link--active,
 [data-style="light"] .c-tabs__link.active {
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* Light mode for button/link items */
 [data-style="light"] button.c-tabs__item,
 [data-style="light"] a.c-tabs__item {
-  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
 [data-style="light"] button.c-tabs__item:hover:not(.is-active),
 [data-style="light"] a.c-tabs__item:hover:not(.is-active) {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   background: rgba(0, 0, 0, 0.04);
 }
 
 [data-style="light"] button.c-tabs__item.is-active,
 [data-style="light"] a.c-tabs__item.is-active {
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* ============================================================================
    RESPONSIVE
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-tabs {
     overflow-x: auto;
     flex-wrap: nowrap;

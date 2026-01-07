@@ -5,11 +5,11 @@
  */
 
 /* Card hover effect */
-.c-card-modern--hoverable {
+.c-card--hoverable {
     transition: all 0.2s ease;
 }
 
-.c-card-modern--hoverable:hover {
+.c-card--hoverable:hover {
     box-shadow: 0 0.25rem 1rem rgba(var(--ecs-shadow-rgb, 161, 172, 184), 0.45);
 }
 

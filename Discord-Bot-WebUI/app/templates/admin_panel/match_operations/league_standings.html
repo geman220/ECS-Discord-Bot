@@ -60,8 +60,8 @@
             </h5>
         </div>
         <div class="c-card__body">
-            <div class="c-table-responsive" data-table-container>
-                <table class="c-table" data-table data-mobile-table data-table-type="standings">
+            <div class="c-c-table-wrapper" data-table-container>
+                <table class="c-c-table" data-table data-mobile-table data-table-type="standings">
                     <thead class="c-table__head">
                         <tr class="c-table__row">
                             <th class="c-table__header c-table__header--center" scope="col">#</th>
@@ -79,10 +79,10 @@
                     <tbody class="c-table__body">
                         {% for standing in standings_data.standings %}
                         <tr class="c-table__row" data-team-id="{{ standing.team.id if standing.team else '' }}">
-                            <td class="c-table__cell c-table__cell--center">
+                            <td class="c-table__cell c-table__cell--center" data-label="#">
                                 <strong>{{ standing.position }}</strong>
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Team">
                                 <div class="c-team-name" data-component="team-name">
                                     <div class="c-team-avatar">
                                         <span class="c-team-avatar__initial">{{ standing.team.name[0] if standing.team.name else 'T' }}</span>
@@ -90,13 +90,13 @@
                                     <strong>{{ standing.team.name or 'Unknown Team' }}</strong>
                                 </div>
                             </td>
-                            <td class="c-table__cell c-table__cell--center">{{ standing.matches_played }}</td>
-                            <td class="c-table__cell c-table__cell--center">{{ standing.wins }}</td>
-                            <td class="c-table__cell c-table__cell--center">{{ standing.draws }}</td>
-                            <td class="c-table__cell c-table__cell--center">{{ standing.losses }}</td>
-                            <td class="c-table__cell c-table__cell--center">{{ standing.goals_for }}</td>
-                            <td class="c-table__cell c-table__cell--center">{{ standing.goals_against }}</td>
-                            <td class="c-table__cell c-table__cell--center">
+                            <td class="c-table__cell c-table__cell--center" data-label="MP">{{ standing.matches_played }}</td>
+                            <td class="c-table__cell c-table__cell--center" data-label="W">{{ standing.wins }}</td>
+                            <td class="c-table__cell c-table__cell--center" data-label="D">{{ standing.draws }}</td>
+                            <td class="c-table__cell c-table__cell--center" data-label="L">{{ standing.losses }}</td>
+                            <td class="c-table__cell c-table__cell--center" data-label="GF">{{ standing.goals_for }}</td>
+                            <td class="c-table__cell c-table__cell--center" data-label="GA">{{ standing.goals_against }}</td>
+                            <td class="c-table__cell c-table__cell--center" data-label="GD">
                                 {% if standing.goal_difference > 0 %}
                                     <span class="c-text-success">+{{ standing.goal_difference }}</span>
                                 {% elif standing.goal_difference < 0 %}
@@ -105,7 +105,7 @@
                                     <span class="c-text-muted">0</span>
                                 {% endif %}
                             </td>
-                            <td class="c-table__cell c-table__cell--center">
+                            <td class="c-table__cell c-table__cell--center" data-label="Pts">
                                 <strong class="c-text-primary">{{ standing.points }}</strong>
                             </td>
                         </tr>

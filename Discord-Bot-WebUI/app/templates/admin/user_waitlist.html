@@ -13,9 +13,9 @@
 <div class="container-xxl flex-grow-1 container-p-y dark-mode-applied waitlist-page">
     <div class="row">
         <div class="col-12">
-            <div class="c-card waitlist-card shadow-sm">
-                <div class="c-card__header waitlist-card-header">
-                    <h5 class="waitlist-card-title">
+            <div class="c-card waitlist-c-card shadow-sm">
+                <div class="c-card__header waitlist-c-card__header">
+                    <h5 class="waitlist-c-card__title">
                         <i class="ti ti-clock"></i>
                         User Waitlist Management
                     </h5>
@@ -29,28 +29,28 @@
                     <!-- Statistics Cards -->
                     <div class="row mb-4">
                         <div class="col-md-4">
-                            <div class="waitlist-stats-card waitlist-stats-card-waitlist">
-                                <h3 class="waitlist-stats-card-title" id="waitlist-count">{{ stats.waitlist_count }}</h3>
+                            <div class="waitlist-stats-c-card waitlist-stats-card-waitlist">
+                                <h3 class="waitlist-stats-c-card__title" id="waitlist-count">{{ stats.waitlist_count }}</h3>
                                 <p class="waitlist-stats-card-label">Users on Waitlist</p>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="waitlist-stats-card waitlist-stats-card-registered">
-                                <h3 class="waitlist-stats-card-title" id="total-registered">{{ stats.total_registered }}</h3>
+                            <div class="waitlist-stats-c-card waitlist-stats-card-registered">
+                                <h3 class="waitlist-stats-c-card__title" id="total-registered">{{ stats.total_registered }}</h3>
                                 <p class="waitlist-stats-card-label">Total Registered</p>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="waitlist-stats-card waitlist-stats-card-approved">
-                                <h3 class="waitlist-stats-card-title" id="total-approved">{{ stats.total_approved }}</h3>
+                            <div class="waitlist-stats-c-card waitlist-stats-card-approved">
+                                <h3 class="waitlist-stats-c-card__title" id="total-approved">{{ stats.total_approved }}</h3>
                                 <p class="waitlist-stats-card-label">Total Approved</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Waitlist Users Table -->
-                    <div class="c-table-wrapper waitlist-table-responsive" data-table-responsive>
-                        <table class="c-table c-table--hoverable waitlist-table" data-mobile-table data-table-type="users" data-table>
+                    <div class="c-table-wrapper waitlist-c-table-wrapper" data-table-responsive>
+                        <table class="c-table c-table--hoverable waitlist-c-table" data-mobile-table data-table-type="users" data-table>
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">User</th>
@@ -65,7 +65,7 @@
                             <tbody id="waitlist-users-table">
                                 {% for user in waitlist_users %}
                                 <tr>
-                                    <td>
+                                    <td data-label="User">
                                         <div class="waitlist-player-profile">
                                             {% if user.player and user.player.profile_picture_url %}
                                                 <img src="{{ user.player.profile_picture_url }}" alt="{{ user.username }}" class="waitlist-player-avatar">
@@ -82,7 +82,7 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Email">
                                         <span class="waitlist-text-muted">{{ user.email }}</span>
                                         {% if user.player and user.player.discord_id %}
                                             <br><small class="waitlist-discord-badge">
@@ -90,14 +90,14 @@
                                             </small>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Preferred League">
                                         {% if user.preferred_league %}
                                             <span class="badge waitlist-badge waitlist-badge-primary" data-badge>{{ user.preferred_league }}</span>
                                         {% else %}
                                             <span class="waitlist-text-muted">Not specified</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Interested in Subbing">
                                         {% if user.player and user.player.interested_in_sub %}
                                             <span class="badge waitlist-badge waitlist-badge-success" data-badge>
                                                 <i class="ti ti-check"></i> Yes
@@ -108,7 +108,7 @@
                                             </span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         <span class="badge waitlist-badge waitlist-status-{{ user.approval_status }}" data-badge>
                                             {{ user.approval_status.title() }}
                                         </span>
@@ -117,24 +117,24 @@
                                             <i class="ti ti-clock"></i> Waitlist
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Joined Waitlist">
                                         <small class="waitlist-text-muted">
                                             {{ user.waitlist_joined_at.strftime('%Y-%m-%d') if user.waitlist_joined_at else 'Unknown' }}
                                         </small>
                                     </td>
-                                    <td>
+                                    <td data-label="Actions">
                                         <div class="waitlist-btn-group" role="group">
-                                            <button class="c-btn c-btn--sm c-btn--outline-primary waitlist-btn-sm"
+                                            <button class="c-btn c-btn--sm c-btn--outline-primary waitlist-c-btn--sm"
                                                     data-action="view-player"
                                                     data-user-id="{{ user.id }}">
                                                 <i class="ti ti-eye"></i> View
                                             </button>
-                                            <button class="c-btn c-btn--sm waitlist-btn-contact waitlist-btn-sm"
+                                            <button class="c-btn c-btn--sm waitlist-btn-contact waitlist-c-btn--sm"
                                                     data-action="contact-modal"
                                                     data-user-id="{{ user.id }}">
                                                 <i class="ti ti-mail"></i> Contact
                                             </button>
-                                            <button class="c-btn c-btn--sm waitlist-btn-remove waitlist-btn-sm"
+                                            <button class="c-btn c-btn--sm waitlist-btn-remove waitlist-c-btn--sm"
                                                     data-action="removal-modal"
                                                     data-user-id="{{ user.id }}">
                                                 <i class="ti ti-trash"></i> Remove

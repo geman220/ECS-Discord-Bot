@@ -54,26 +54,26 @@
 
     <!-- Filter and Actions -->
     <div class="l-container u-mb-4">
-        <div class="c-card-modern">
-            <div class="c-card-modern__header">
-                <div class="c-card-modern__title">
+        <div class="c-card">
+            <div class="c-card__header">
+                <div class="c-card__title">
                     <i class="ti ti-filter"></i>
                     <span>Filter Users</span>
                 </div>
-                <div class="c-card-modern__actions c-action-bar">
-                    <button class="c-btn-modern c-btn-modern--secondary c-btn-modern--sm" data-action="back">
+                <div class="c-card__actions c-action-bar">
+                    <button class="c-btn c-btn--secondary c-btn--sm" data-action="back">
                         <i class="ti ti-arrow-left"></i>
                         <span>Back</span>
                     </button>
                     {% if pending_users %}
-                    <button class="c-btn-modern c-btn-modern--success c-btn-modern--sm" data-action="approve-all">
+                    <button class="c-btn c-btn--success c-btn--sm" data-action="approve-all">
                         <i class="ti ti-check-circle"></i>
                         <span>Approve All Pending</span>
                     </button>
                     {% endif %}
                 </div>
             </div>
-            <div class="c-card-modern__body">
+            <div class="c-card__body">
                 <form method="GET" class="c-form-modern">
                     <div class="c-form-modern__row">
                         <div class="c-form-modern__group">
@@ -99,8 +99,8 @@
                                    placeholder="Search by name or email..." value="{{ request.args.get('search', '') }}">
                         </div>
                         <div class="c-form-modern__group c-form-modern__group--actions c-action-bar">
-                            <button type="submit" class="c-btn-modern c-btn-modern--primary">Filter</button>
-                            <a href="{{ url_for('admin_panel.user_approvals') }}" class="c-btn-modern c-btn-modern--secondary">Clear</a>
+                            <button type="submit" class="c-btn c-btn--primary">Filter</button>
+                            <a href="{{ url_for('admin_panel.user_approvals') }}" class="c-btn c-btn--secondary">Clear</a>
                         </div>
                     </div>
                 </form>
@@ -111,14 +111,14 @@
     <!-- Pending Users -->
     {% if pending_users %}
     <div class="l-container u-mb-4">
-        <div class="c-card-modern">
-            <div class="c-card-modern__header">
-                <div class="c-card-modern__title">
+        <div class="c-card">
+            <div class="c-card__header">
+                <div class="c-card__title">
                     <i class="ti ti-user-check"></i>
                     <span>Pending Approvals ({{ pending_users|length }})</span>
                 </div>
             </div>
-            <div class="c-card-modern__body c-card-modern__body--no-padding">
+            <div class="c-card__body c-card__body--no-padding">
                 <div class="c-table-modern__wrapper">
                     <table class="c-table-modern" data-mobile-table data-table-type="users">
                         <thead class="c-table-modern__header">
@@ -177,18 +177,18 @@
                                 </td>
                                 <td class="c-table-modern__cell" data-label="Actions">
                                     <div class="c-btn-group">
-                                        <button class="c-btn-modern c-btn-modern--info c-btn-modern--sm c-btn-modern--icon"
+                                        <button class="c-btn c-btn--info c-btn--sm c-btn--icon"
                                                 data-action="view-user"
                                                 data-user-id="{{ user.id }}"
                                                 data-user-name="{{ user.name or user.username }}" aria-label="View"><i class="ti ti-eye"></i></button>
-                                        <button class="c-btn-modern c-btn-modern--success c-btn-modern--sm c-btn-modern--icon"
+                                        <button class="c-btn c-btn--success c-btn--sm c-btn--icon"
                                                 data-action="approve-user"
                                                 data-user-id="{{ user.id }}"
                                                 data-user-name="{{ user.name or user.username }}" aria-label="Confirm"><i class="ti ti-check"></i></button>
-                                        <button class="c-btn-modern c-btn-modern--danger c-btn-modern--sm c-btn-modern--icon"
+                                        <button class="c-btn c-btn--danger c-btn--sm c-btn--icon"
                                                 data-action="reject-user"
                                                 data-user-id="{{ user.id }}"
-                                                data-user-name="{{ user.name or user.username }}" aria-label="Button"><i class="ti ti-x"></i></button>
+                                                data-user-name="{{ user.name or user.username }}" aria-label="Reject user"><i class="ti ti-x"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -204,14 +204,14 @@
     <!-- All Users (filtered) -->
     {% if filtered_users %}
     <div class="l-container">
-        <div class="c-card-modern">
-            <div class="c-card-modern__header">
-                <div class="c-card-modern__title">
+        <div class="c-card">
+            <div class="c-card__header">
+                <div class="c-card__title">
                     <i class="ti ti-users"></i>
                     <span>{{ status_title or 'All Users' }} ({{ filtered_users|length }})</span>
                 </div>
             </div>
-            <div class="c-card-modern__body c-card-modern__body--no-padding">
+            <div class="c-card__body c-card__body--no-padding">
                 <div class="c-table-modern__wrapper">
                     <table class="c-table-modern" data-mobile-table data-table-type="users">
                         <thead class="c-table-modern__header">
@@ -278,19 +278,19 @@
                                 </td>
                                 <td class="c-table-modern__cell" data-label="Actions">
                                     <div class="c-btn-group">
-                                        <button class="c-btn-modern c-btn-modern--info c-btn-modern--sm c-btn-modern--icon"
+                                        <button class="c-btn c-btn--info c-btn--sm c-btn--icon"
                                                 data-action="view-user"
                                                 data-user-id="{{ user.id }}"
                                                 data-user-name="{{ user.name or user.username }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                         {% if not user.is_approved %}
-                                        <button class="c-btn-modern c-btn-modern--success c-btn-modern--sm c-btn-modern--icon"
+                                        <button class="c-btn c-btn--success c-btn--sm c-btn--icon"
                                                 data-action="approve-user"
                                                 data-user-id="{{ user.id }}"
                                                 data-user-name="{{ user.name or user.username }}" aria-label="Confirm"><i class="ti ti-check"></i></button>
-                                        <button class="c-btn-modern c-btn-modern--danger c-btn-modern--sm c-btn-modern--icon"
+                                        <button class="c-btn c-btn--danger c-btn--sm c-btn--icon"
                                                 data-action="reject-user"
                                                 data-user-id="{{ user.id }}"
-                                                data-user-name="{{ user.name or user.username }}" aria-label="Button"><i class="ti ti-x"></i></button>
+                                                data-user-name="{{ user.name or user.username }}" aria-label="Reject user"><i class="ti ti-x"></i></button>
                                         {% endif %}
                                     </div>
                                 </td>
@@ -306,8 +306,8 @@
 
     {% if not pending_users and not filtered_users %}
     <div class="l-container">
-        <div class="c-card-modern">
-            <div class="c-card-modern__body c-empty-state">
+        <div class="c-card">
+            <div class="c-card__body c-empty-state">
                 <i class="ti ti-user-search c-empty-state__icon"></i>
                 <h5 class="c-empty-state__title">No users found</h5>
                 <p class="c-empty-state__text">No users match your current filter criteria.</p>
@@ -317,9 +317,9 @@
     {% endif %}
 
     <!-- User Details Modal -->
-    <div class="c-modal" id="userDetailsModal" tabindex="-1" aria-labelledby="user_details_title">
-        <div class="c-modal__dialog c-modal__dialog--lg">
-            <div class="c-modal__content">
+    <div class="modal c-modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="user_details_title">
+        <div class="modal-dialog modal-lg c-modal__dialog c-modal__dialog--lg">
+            <div class="modal-content c-modal__content">
                 <div class="c-modal__header">
                     <h5 class="c-modal__title" id="user_details_title">User Details</h5>
                     <button type="button" class="c-modal__close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -328,7 +328,7 @@
                     <!-- User details will be loaded here -->
                 </div>
                 <div class="c-modal__footer">
-                    <button type="button" class="c-btn-modern c-btn-modern--secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>

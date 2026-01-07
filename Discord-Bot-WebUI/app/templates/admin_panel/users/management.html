@@ -188,7 +188,7 @@
             </div>
             <div class="c-card__body">
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="activity">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="activity">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Date</th>
@@ -201,19 +201,19 @@
                         <tbody>
                             {% for action in recent_actions %}
                             <tr>
-                                <td>
+                                <td data-label="Date">
                                     <small>{{ action.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Admin">
                                     <strong>{{ action.admin.username if action.admin else 'System' }}</strong>
                                 </td>
-                                <td>
+                                <td data-label="Action">
                                     <span class="badge bg-primary" data-badge>{{ action.action.replace('_', ' ').title() }}</span>
                                 </td>
-                                <td>
+                                <td data-label="Resource">
                                     <small class="text-muted">{{ action.resource_type.replace('_', ' ').title() }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Details">
                                     <small>{{ action.new_value[:50] }}{% if action.new_value and action.new_value|length > 50 %}...{% endif %}</small>
                                 </td>
                             </tr>
@@ -250,21 +250,5 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-@media (max-width: 768px) {
-    .card-title {
-        font-size: 1.1rem;
-    }
-    
-    .card-text {
-        font-size: 0.9rem;
-    }
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}

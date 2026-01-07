@@ -130,8 +130,8 @@ export const MobileTableEnhancer = {
         detail: { table, headers }
       }));
 
-      // Log for debugging
-      if (window.InitSystemDebug) {
+      // Log for debugging (defensive check for race condition)
+      if (window.InitSystemDebug && typeof window.InitSystemDebug.log === 'function') {
         window.InitSystemDebug.log('mobile-table-enhancer',
           `Enhanced table with ${headers.length} columns`);
       }

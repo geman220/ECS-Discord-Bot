@@ -120,7 +120,7 @@
 /* ========================================
    Responsive Design
    ======================================== */
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
     .c-cache-manager {
         padding: 1rem;
     }

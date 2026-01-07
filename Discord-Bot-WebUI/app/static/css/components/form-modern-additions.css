@@ -17,7 +17,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4, 16px);
-  background: var(--color-bg-card, var(--color-secondary-900, #1e293b));
+  background: var(--color-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
   border-radius: var(--radius-lg, 12px);
   padding: var(--space-4, 16px);
 }
@@ -27,7 +27,7 @@
   gap: var(--space-4, 16px);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-form-modern__row {
     flex-direction: column;
   }
@@ -58,7 +58,7 @@
 .c-form-modern__icon {
   position: absolute;
   left: var(--space-3, 12px);
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   font-size: 1rem;
   pointer-events: none;
 }
@@ -74,7 +74,7 @@
 .c-form-modern__help {
   margin-top: var(--space-1, 4px);
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
 /* ============================================================================
@@ -105,17 +105,17 @@
 .c-form-field__error {
   margin-top: var(--space-1, 4px);
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-danger-light, #f87171);
+  color: var(--color-danger-light, var(--color-danger-400));
 }
 
 .c-form-field__empty {
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   font-style: italic;
 }
 
 .c-form-label--required::after {
   content: ' *';
-  color: var(--color-danger, var(--color-danger-500, #ef4444));
+  color: var(--color-danger, var(--color-danger-500, var(--color-danger-500)));
 }
 
 /* ============================================================================
@@ -131,7 +131,7 @@
   margin-bottom: var(--space-2, 8px);
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -151,16 +151,16 @@
 }
 
 .c-filter-option__input {
-  accent-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  accent-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 .c-filter-option__label {
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-filter-option__icon {
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
 /* ============================================================================
@@ -203,7 +203,7 @@
    ============================================================================ */
 
 [data-style="light"] .c-form-modern {
-  background: var(--color-bg-primary, #fff);
+  background: var(--color-bg-primary, var(--color-white));
 }
 
 [data-style="light"] .c-form-modern__group--actions {
@@ -217,7 +217,7 @@
 }
 
 [data-style="light"] .c-filter-option__label {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 /* c-toggle-row now uses BS variables that auto-adapt to theme */

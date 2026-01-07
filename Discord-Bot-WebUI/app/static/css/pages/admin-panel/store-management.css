@@ -26,17 +26,17 @@
 
 :root {
   --store-primary: #6366f1;
-  --store-success: #22c55e;
-  --store-warning: var(--color-warning-500, #f59e0b);
-  --store-info: #3b82f6;
-  --store-danger: var(--color-danger-500, #ef4444);
+  --store-success: var(--color-success-500);
+  --store-warning: var(--color-warning-500, var(--color-accent-600));
+  --store-info: var(--color-primary-500);
+  --store-danger: var(--color-danger-500, var(--color-danger-600));
 
   --store-bg-base: #f9fafb;
-  --store-bg-card: var(--color-white, #ffffff);
+  --store-bg-card: var(--color-white, var(--color-white));
   --store-border: var(--color-secondary-200, #e5e7eb);
   --store-border-hover: var(--color-secondary-300, #d1d5db);
 
-  --store-text-primary: var(--color-secondary-900, #111827);
+  --store-text-primary: var(--color-secondary-900, var(--color-neutral-950)827);
   --store-text-secondary: #6b7280;
   --store-text-muted: var(--color-secondary-400, #9ca3af);
 
@@ -49,7 +49,7 @@
 }
 
 [data-style="dark"] {
-  --store-bg-base: var(--color-secondary-900, #111827);
+  --store-bg-base: var(--color-secondary-900, var(--color-neutral-950)827);
   --store-bg-card: var(--color-secondary-800, #1f2937);
   --store-border: var(--color-secondary-700, #374151);
   --store-border-hover: #4b5563;
@@ -75,7 +75,7 @@
   margin-bottom: 32px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-store-stats {
     grid-template-columns: 1fr;
   }
@@ -186,7 +186,7 @@
   margin-bottom: 32px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-management-grid {
     grid-template-columns: 1fr;
   }
@@ -479,7 +479,7 @@
 }
 
 /* Mobile responsive table */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-orders-table__head th {
     padding: 12px 10px;
     font-size: 11px;
@@ -548,7 +548,7 @@
   .c-mgmt-panel,
   .c-orders-section {
     box-shadow: none;
-    border: 1px solid var(--color-secondary-300, #ddd);
+    border: 1px solid var(--color-secondary-300, var(--color-neutral-300));
   }
 
   .c-mgmt-action,

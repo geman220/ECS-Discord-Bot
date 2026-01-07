@@ -33,7 +33,7 @@
             <!-- Connection Health Status -->
             <div class="row">
                 <div class="col-md-4">
-                    <div class="redis-stat-card">
+                    <div class="redis-stat-c-card">
                         <h5>Connection Health</h5>
                         <div id="health-status">
                             {% if connection_health.overall %}
@@ -52,14 +52,14 @@
                 </div>
 
                 <div class="col-md-4">
-                    <div class="redis-stat-card">
+                    <div class="redis-stat-c-card">
                         <div class="redis-stat-value" id="redis-max-connections">{{ stats.pool_stats.max_connections|default(0) }}</div>
                         <div class="redis-stat-label">Max Connections</div>
                     </div>
                 </div>
 
                 <div class="col-md-4">
-                    <div class="redis-stat-card">
+                    <div class="redis-stat-c-card">
                         <div class="redis-stat-value" id="utilization">{{ stats.pool_stats.utilization_percent|default(0) }}%</div>
                         <div class="redis-stat-label">Pool Utilization</div>
                     </div>
@@ -74,27 +74,27 @@
                             <h5>Connection Pool Statistics</h5>
                         </div>
                         <div class="c-card__body">
-                            <table class="c-table c-table--compact" data-mobile-table data-table-type="stats" data-table>
+                            <table class="c-c-table c-table--compact" data-mobile-table data-table-type="stats" data-table>
                                 <tbody>
                                     <tr>
-                                        <td>Pool Initialized</td>
-                                        <td><span id="pool-initialized">{{ "Yes" if stats.connection_pool_initialized else "No" }}</span></td>
+                                        <td data-label="Metric">Pool Initialized</td>
+                                        <td data-label="Value"><span id="pool-initialized">{{ "Yes" if stats.connection_pool_initialized else "No" }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>Created Connections</td>
-                                        <td><span id="created-connections">{{ stats.pool_stats.created_connections|default(0) }}</span></td>
+                                        <td data-label="Metric">Created Connections</td>
+                                        <td data-label="Value"><span id="created-connections">{{ stats.pool_stats.created_connections|default(0) }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>Available Connections</td>
-                                        <td><span id="available-connections">{{ stats.pool_stats.available_connections|default(0) }}</span></td>
+                                        <td data-label="Metric">Available Connections</td>
+                                        <td data-label="Value"><span id="available-connections">{{ stats.pool_stats.available_connections|default(0) }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>In-Use Connections</td>
-                                        <td><span id="in-use-connections">{{ stats.pool_stats.in_use_connections|default(0) }}</span></td>
+                                        <td data-label="Metric">In-Use Connections</td>
+                                        <td data-label="Value"><span id="in-use-connections">{{ stats.pool_stats.in_use_connections|default(0) }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>Last Health Check</td>
-                                        <td><span id="last-health-check">{{ stats.last_health_check|default("Never") }}</span></td>
+                                        <td data-label="Metric">Last Health Check</td>
+                                        <td data-label="Value"><span id="last-health-check">{{ stats.last_health_check|default("Never") }}</span></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -108,23 +108,23 @@
                             <h5>Redis Server Metrics</h5>
                         </div>
                         <div class="c-card__body">
-                            <table class="c-table c-table--compact" data-mobile-table data-table-type="stats" data-table>
+                            <table class="c-c-table c-table--compact" data-mobile-table data-table-type="stats" data-table>
                                 <tbody>
                                     <tr>
-                                        <td>Connected Clients</td>
-                                        <td><span id="connected-clients">{{ server_info.connected_clients|default("N/A") }}</span></td>
+                                        <td data-label="Metric">Connected Clients</td>
+                                        <td data-label="Value"><span id="connected-clients">{{ server_info.connected_clients|default("N/A") }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>Memory Usage</td>
-                                        <td><span id="memory-usage">{{ server_info.used_memory_human|default("N/A") }}</span></td>
+                                        <td data-label="Metric">Memory Usage</td>
+                                        <td data-label="Value"><span id="memory-usage">{{ server_info.used_memory_human|default("N/A") }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>Commands Processed</td>
-                                        <td><span id="commands-processed">{{ server_info.total_commands_processed|default("N/A") }}</span></td>
+                                        <td data-label="Metric">Commands Processed</td>
+                                        <td data-label="Value"><span id="commands-processed">{{ server_info.total_commands_processed|default("N/A") }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>Ops/sec</td>
-                                        <td><span id="ops-per-sec">{{ server_info.instantaneous_ops_per_sec|default("N/A") }}</span></td>
+                                        <td data-label="Metric">Ops/sec</td>
+                                        <td data-label="Value"><span id="ops-per-sec">{{ server_info.instantaneous_ops_per_sec|default("N/A") }}</span></td>
                                     </tr>
                                 </tbody>
                             </table>

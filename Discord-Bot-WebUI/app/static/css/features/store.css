@@ -4,7 +4,7 @@
 .store-item-image {
     height: 200px;
     object-fit: contain;
-    background-color: var(--ecs-neutral-5, #f8f9fa);
+    background-color: var(--ecs-neutral-5, var(--color-neutral-50));
 }
 
 [data-style="dark"] .store-item-image {

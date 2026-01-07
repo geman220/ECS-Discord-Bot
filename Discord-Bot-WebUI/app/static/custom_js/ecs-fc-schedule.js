@@ -431,10 +431,27 @@ export function ecsFcEditMatch(matchId) {
  * Delete a match
  */
 export function ecsFcDeleteMatch(matchId) {
-    if (!confirm('Are you sure you want to delete this match? This action cannot be undone.')) {
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Delete Match',
+            text: 'Are you sure you want to delete this match? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performDeleteMatch(matchId);
+            }
+        });
     }
+}
 
+/**
+ * Perform the actual match deletion
+ */
+function performDeleteMatch(matchId) {
     fetch(`/api/ecs-fc/matches/${matchId}`, {
         method: 'DELETE'
     })
@@ -677,7 +694,7 @@ export function ecsFcShowAlert(type, message) {
     }, 5000);
 }
 
-// Export functions for global access
+// Export public API for programmatic access
 window.EcsFcSchedule = {
     loadTeamMatches,
     showCreateMatchModal,
@@ -685,32 +702,6 @@ window.EcsFcSchedule = {
     deleteMatch: ecsFcDeleteMatch,
     sendRsvpReminder
 };
-
-// Backward compatibility
-window.initializeEcsFcSchedule = initializeEcsFcSchedule;
-window.ecsFcInitializeEventHandlers = ecsFcInitializeEventHandlers;
-window.initializeCalendar = initializeCalendar;
-window.loadCalendarEvents = loadCalendarEvents;
-window.loadTeamMatches = loadTeamMatches;
-window.renderMatchesList = renderMatchesList;
-window.createMatchCard = createMatchCard;
-window.getStatusBadge = getStatusBadge;
-window.loadRsvpSummary = loadRsvpSummary;
-window.renderRsvpSummary = renderRsvpSummary;
-window.showCreateMatchModal = showCreateMatchModal;
-window.handleMatchFormSubmit = handleMatchFormSubmit;
-window.ecsFcEditMatch = ecsFcEditMatch;
-window.ecsFcDeleteMatch = ecsFcDeleteMatch;
-window.handleRsvpResponse = handleRsvpResponse;
-window.sendRsvpReminder = sendRsvpReminder;
-window.showImportMatchesModal = showImportMatchesModal;
-window.handleImportFormSubmit = handleImportFormSubmit;
-window.parseMatchesCsv = parseMatchesCsv;
-window.handleRsvpUpdate = handleRsvpUpdate;
-window.handleMatchUpdate = handleMatchUpdate;
-window.ecsFcFormatDate = ecsFcFormatDate;
-window.formatTime = formatTime;
-window.ecsFcShowAlert = ecsFcShowAlert;
 
 // Register with window.InitSystem
 if (window.InitSystem.register) {

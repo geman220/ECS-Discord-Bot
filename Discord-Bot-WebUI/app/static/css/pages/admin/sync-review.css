@@ -25,7 +25,7 @@
  *  10. Search Results
  *  11. Spinner Utilities
  *  12. Match Details Sections
- *  13. JavaScript Utility Classes (!important justified)
+ *  13. JavaScript Utility Classes ( justified)
  *  14. Accessibility Enhancements
  *  15. Responsive Styles
  *  16. Print Styles
@@ -42,19 +42,19 @@
     transition: all var(--transition-normal, 0.3s ease);
 }
 
-/* Resolved state - uses increased specificity instead of !important */
+/* Resolved state - uses increased specificity instead of */
 .sync-review-page .issue-card.issue-resolved,
 .issue-card.issue-resolved {
-    border-left-color: var(--color-success-600, #10B981);
+    border-left-color: var(--color-success-600, var(--color-success-500));
     background-color: var(--color-success-subtle, var(--color-success-100));
 }
 
 .issue-card.issue-pending {
-    border-left-color: var(--color-warning-600, #F59E0B);
+    border-left-color: var(--color-warning-600, var(--color-accent-600));
 }
 
 .issue-card.issue-error {
-    border-left-color: var(--color-danger-600, #EF4444);
+    border-left-color: var(--color-danger-600, var(--color-danger-600));
 }
 
 /* Dark mode issue cards */
@@ -64,11 +64,11 @@
 }
 
 [data-style="dark"] .issue-card.issue-pending {
-    border-left-color: var(--color-warning-600, #FBBF24);
+    border-left-color: var(--color-warning-600, var(--color-accent-400));
 }
 
 [data-style="dark"] .issue-card.issue-error {
-    border-left-color: var(--color-danger-600, #F87171);
+    border-left-color: var(--color-danger-600, var(--color-danger-400));
 }
 
 /* ============================================
@@ -188,10 +188,10 @@
 }
 
 /* ============================================
-   8. EMPTY STATES
+   8. EMPTY STATES - Scoped to sync-review page
    ============================================ */
 
-.empty-state-icon {
+.sync-review-page .empty-state-icon {
     font-size: 4rem;
 }
 
@@ -200,11 +200,11 @@
    ============================================ */
 
 .inactive-player-card {
-    border-left-color: var(--color-warning-600, #F59E0B);
+    border-left-color: var(--color-warning-600, var(--color-accent-600));
 }
 
 [data-style="dark"] .inactive-player-card {
-    border-left-color: var(--color-warning-600, #FBBF24);
+    border-left-color: var(--color-warning-600, var(--color-accent-400));
 }
 
 /* ============================================
@@ -257,7 +257,7 @@
    13. JAVASCRIPT UTILITY CLASSES
    ============================================
 
-   These classes use !important to ensure JavaScript
+   These classes use to ensure JavaScript
    can reliably toggle visibility states, overriding
    any other display properties that may be set by
    component-specific styles.
@@ -273,7 +273,7 @@
  * - Alternative considered: Inline styles would be less maintainable
  */
 .sr-hidden {
-    display: none !important;
+    display: none;
 }
 
 /**
@@ -286,7 +286,7 @@
  * - Alternative considered: Multiple specific selectors would be fragile
  */
 .sr-visible {
-    display: block !important;
+    display: block;
 }
 
 /**
@@ -294,7 +294,7 @@
  * Inherits visibility from .sr-visible when JavaScript applies it
  */
 .current-assignment.sr-visible {
-    display: block !important;
+    display: block;
 }
 
 /* ============================================
@@ -359,7 +359,7 @@
         margin-left: var(--space-1, 0.25rem);
     }
 
-    .empty-state-icon {
+    .sync-review-page .empty-state-icon {
         font-size: 3rem;
     }
 

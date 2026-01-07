@@ -22,6 +22,7 @@ from app.models.admin_config import AdminAuditLog
 from app.models.core import User, Role, Permission
 from app.decorators import role_required
 from app.tasks.tasks_discord import assign_roles_to_player_task
+from app.services.discord_role_sync_service import sync_role_assignment, sync_role_removal
 
 logger = logging.getLogger(__name__)
 
@@ -126,16 +127,41 @@ def assign_user_roles():
 
         user = User.query.options(joinedload(User.player)).get_or_404(user_id)
 
+        # Track roles for sync
+        old_roles = set(user.roles)
+        new_roles = set()
+
         # Clear existing roles and assign new ones
         user.roles.clear()
         for role_id in role_ids:
             role = Role.query.get(role_id)
             if role:
                 user.roles.append(role)
+                new_roles.add(role)
 
         db.session.commit()
 
-        # Trigger Discord role sync if player has Discord ID
+        # Sync Flask->Discord role mappings
+        roles_added = new_roles - old_roles
+        roles_removed = old_roles - new_roles
+
+        for role in roles_added:
+            if role.discord_role_id and role.sync_enabled:
+                try:
+                    sync_role_assignment(user, role)
+                    logger.info(f"Synced Discord role {role.name} for user {user.username}")
+                except Exception as e:
+                    logger.error(f"Failed to sync Discord role {role.name}: {e}")
+
+        for role in roles_removed:
+            if role.discord_role_id and role.sync_enabled:
+                try:
+                    sync_role_removal(user, role)
+                    logger.info(f"Removed Discord role {role.name} from user {user.username}")
+                except Exception as e:
+                    logger.error(f"Failed to remove Discord role {role.name}: {e}")
+
+        # Trigger Discord role sync if player has Discord ID (for team-based roles)
         if user.player and user.player.discord_id:
             assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
             logger.info(f"Triggered Discord role sync for user {user.id} after role assignment")
@@ -213,7 +239,7 @@ def get_user_roles():
         <div class="user-info mb-3">
             <div class="d-flex align-items-center">
                 <div class="avatar-sm me-3">
-                    {'<img src="' + (user.profile_picture or '') + '" class="rounded-circle" style="width: 40px; height: 40px;">' if user.profile_picture else '<div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width: 40px; height: 40px;"><strong>' + (user.username[0].upper() if user.username else 'U') + '</strong></div>'}
+                    {'<img src="' + (user.profile_picture or '') + '" class="rounded-circle avatar-40">' if user.profile_picture else '<div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white avatar-40"><strong>' + (user.username[0].upper() if user.username else 'U') + '</strong></div>'}
                 </div>
                 <div>
                     <h6 class="mb-1">{user.username or 'N/A'}</h6>
@@ -225,7 +251,7 @@ def get_user_roles():
         <div class="row">
             <div class="col-md-6">
                 <h6>Current Roles</h6>
-                <div id="currentRoles" class="border rounded p-3 mb-3" style="min-height: 200px;">
+                <div id="currentRoles" class="border rounded p-3 mb-3 min-h-200">
         """
 
         if user.roles:
@@ -233,7 +259,7 @@ def get_user_roles():
                 html += f"""
                     <div class="d-flex justify-content-between align-items-center mb-2 role-item" data-role-id="{role.id}">
                         <span class="badge bg-info">{role.name}</span>
-                        <button class="btn btn-sm btn-outline-danger" onclick="removeRole({user.id}, {role.id}, '{role.name}')">
+                        <button class="btn btn-sm btn-outline-danger" data-action="remove-role" data-user-id="{user.id}" data-role-id="{role.id}" data-role-name="{role.name}">
                             <i class="ti ti-x"></i>
                         </button>
                     </div>
@@ -246,7 +272,7 @@ def get_user_roles():
             </div>
             <div class="col-md-6">
                 <h6>Available Roles</h6>
-                <div class="border rounded p-3" style="min-height: 200px;">
+                <div class="border rounded p-3 min-h-200">
         """
 
         user_role_ids = [r.id for r in user.roles]
@@ -257,7 +283,7 @@ def get_user_roles():
                 html += f"""
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>{role.name}</span>
-                        <button class="btn btn-sm btn-outline-success" onclick="addRole({user.id}, {role.id}, '{role.name}')">
+                        <button class="btn btn-sm btn-outline-success" data-action="add-role" data-user-id="{user.id}" data-role-id="{role.id}" data-role-name="{role.name}">
                             <i class="ti ti-plus"></i>
                         </button>
                     </div>
@@ -312,7 +338,19 @@ def assign_user_role():
 
         db.session.commit()
 
-        # Trigger Discord role sync if player has Discord ID
+        # Sync the specific Flask->Discord role mapping if exists
+        if role.discord_role_id and role.sync_enabled:
+            try:
+                if action == 'add':
+                    sync_role_assignment(user, role)
+                    logger.info(f"Synced Flask->Discord role mapping for {role.name} to user {user.username}")
+                else:
+                    sync_role_removal(user, role)
+                    logger.info(f"Removed Discord role mapping for {role.name} from user {user.username}")
+            except Exception as e:
+                logger.error(f"Failed to sync Discord role mapping: {e}")
+
+        # Trigger Discord role sync if player has Discord ID (for team-based roles)
         if user.player and user.player.discord_id:
             assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
             logger.info(f"Triggered Discord role sync for user {user.id} after role {action}")
@@ -332,3 +370,50 @@ def assign_user_role():
     except Exception as e:
         logger.error(f"Error assigning user role: {e}")
         return jsonify({'success': False, 'message': 'Error updating user role'})
+
+
+@admin_panel_bp.route('/users/roles/export', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def export_roles():
+    """Export all roles and their permissions as JSON."""
+    try:
+        roles = Role.query.options(joinedload(Role.permissions)).order_by(Role.name).all()
+
+        export_data = {
+            'roles': [],
+            'exported_at': db.func.now().compile().string if hasattr(db.func.now().compile(), 'string') else str(db.func.now()),
+            'total_roles': len(roles)
+        }
+
+        for role in roles:
+            role_data = {
+                'id': role.id,
+                'name': role.name,
+                'description': role.description if hasattr(role, 'description') else None,
+                'permissions': [p.name for p in role.permissions] if role.permissions else [],
+                'user_count': len(role.users) if hasattr(role, 'users') else 0
+            }
+            export_data['roles'].append(role_data)
+
+        # Log the export action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='export_roles',
+            resource_type='role_management',
+            resource_id='all',
+            new_value=f'Exported {len(roles)} roles',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        from datetime import datetime
+        return jsonify({
+            'success': True,
+            'message': f'Exported {len(roles)} roles successfully',
+            'export_data': export_data,
+            'filename': f'roles-export-{datetime.now().strftime("%Y%m%d-%H%M%S")}.json'
+        })
+    except Exception as e:
+        logger.error(f"Error exporting roles: {e}")
+        return jsonify({'success': False, 'message': 'Failed to export roles'})

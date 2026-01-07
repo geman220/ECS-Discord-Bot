@@ -91,7 +91,7 @@
                 <div class="c-card__body p-0">
                     {% if active_tasks %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
+                        <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="stats">
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">Task ID</th>
@@ -106,24 +106,24 @@
                             <tbody>
                                 {% for task in active_tasks %}
                                 <tr>
-                                    <td>
+                                    <td data-label="Task ID">
                                         <code class="small">{{ task.id[:8] }}...</code>
                                     </td>
-                                    <td>
+                                    <td data-label="Name">
                                         <strong>{{ task.name }}</strong>
                                         {% if task.description %}
                                         <br><small class="text-muted">{{ task.description }}</small>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         <span class="badge bg-{% if task.status == 'running' %}success{% elif task.status == 'queued' %}warning{% elif task.status == 'failed' %}danger{% else %}secondary{% endif %}" data-badge>
                                             {{ task.status|title }}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Started">
                                         <small>{{ task.started_at.strftime('%H:%M:%S') if task.started_at else 'Not started' }}</small>
                                     </td>
-                                    <td>
+                                    <td data-label="Duration">
                                         {% if task.started_at %}
                                         {% set duration = (now - task.started_at).total_seconds() %}
                                         <small>{{ (duration // 60)|int }}m {{ (duration % 60)|int }}s</small>
@@ -131,7 +131,7 @@
                                         <small>-</small>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Progress">
                                         {% if task.progress is not none %}
                                         <div class="progress u-progress-md">
                                             <div class="progress-bar" role="progressbar"
@@ -145,7 +145,7 @@
                                         <small class="text-muted">Unknown</small>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Actions">
                                         <div class="btn-group btn-group-sm">
                                             <button class="c-btn c-btn--outline-info"
                                                     data-action="view-task-details"
@@ -157,7 +157,7 @@
                                                     data-action="cancel-task"
                                                     data-task-id="{{ task.id }}"
                                                     data-task-name="{{ task.name }}"
-                                                    data-cancel-url="{{ url_for('admin_panel.cancel_task') }}" aria-label="Button"><i class="ti ti-x"></i></button>
+                                                    data-cancel-url="{{ url_for('admin_panel.cancel_task') }}" aria-label="Cancel task"><i class="ti ti-x"></i></button>
                                             {% endif %}
                                             <button class="c-btn c-btn--outline-secondary"
                                                     data-action="view-task-logs"
@@ -361,38 +361,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.icon-overlay i {
-    font-size: 2rem;
-    opacity: 0.5;
-}
-
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.progress {
-    background-color: #e9ecef;
-}
-
-@media (max-width: 768px) {
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.75rem;
-    }
-
-    .table-responsive {
-        font-size: 0.875rem;
-    }
-
-    .border-end {
-        border-right: none !important;
-        border-bottom: 1px solid var(--bs-border-color) !important;
-    }
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

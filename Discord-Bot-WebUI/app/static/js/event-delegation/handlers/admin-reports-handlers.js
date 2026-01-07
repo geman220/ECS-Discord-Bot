@@ -30,7 +30,24 @@ window.EventDelegation.register('close-feedback', function(element, e) {
         return;
     }
 
-    if (!confirm('Close this feedback?')) return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Close Feedback?',
+            text: 'Are you sure you want to close this feedback?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Close',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performCloseFeedback(element, feedbackId);
+            }
+        });
+    }
+    return;
+});
+
+function performCloseFeedback(element, feedbackId) {
 
     const originalText = element.innerHTML;
     element.innerHTML = '<i class="ti ti-loader spin"></i>';
@@ -65,7 +82,7 @@ window.EventDelegation.register('close-feedback', function(element, e) {
         element.innerHTML = originalText;
         element.disabled = false;
     });
-});
+}
 
 /**
  * Delete Feedback
@@ -81,7 +98,25 @@ window.EventDelegation.register('delete-feedback', function(element, e) {
         return;
     }
 
-    if (!confirm('Delete this feedback? This cannot be undone.')) return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Delete Feedback?',
+            text: 'This cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performDeleteFeedback(element, feedbackId);
+            }
+        });
+    }
+    return;
+});
+
+function performDeleteFeedback(element, feedbackId) {
 
     const originalText = element.innerHTML;
     element.innerHTML = '<i class="ti ti-loader spin"></i>';
@@ -116,7 +151,7 @@ window.EventDelegation.register('delete-feedback', function(element, e) {
         element.innerHTML = originalText;
         element.disabled = false;
     });
-});
+}
 
 /**
  * Filter by Priority
@@ -231,8 +266,6 @@ window.EventDelegation.register('bulk-rsvp-update', function(element, e) {
     if (selectedPlayers.length === 0) {
         if (typeof window.Swal !== 'undefined') {
             window.Swal.fire('Warning', 'Please select at least one player', 'warning');
-        } else {
-            alert('Please select at least one player');
         }
         return;
     }

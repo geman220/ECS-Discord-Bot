@@ -32,7 +32,7 @@ import { EventDelegation } from './event-delegation/core.js';
  * ROOT CAUSE FIX: Added initialization guard
  * ============================================================================
  */
-export const ModalController = {
+const ModalController = {
     activeModals: new Set(),
     _initialized: false,
 
@@ -149,7 +149,7 @@ export const ModalController = {
  * ROOT CAUSE FIX: Added initialization guard
  * ============================================================================
  */
-export const ToastController = {
+const ToastController = {
     container: null,
     toasts: new Map(),
     idCounter: 0,
@@ -258,7 +258,7 @@ export const ToastController = {
  * TOOLTIP CONTROLLER
  * ============================================================================
  */
-export const TooltipController = {
+const TooltipController = {
     activeTooltip: null,
     tooltips: new Map(),
     _initialized: false,
@@ -355,7 +355,7 @@ export const TooltipController = {
  * DROPDOWN CONTROLLER
  * ============================================================================
  */
-export const DropdownController = {
+const DropdownController = {
     activeDropdown: null,
     _initialized: false,
 
@@ -429,7 +429,7 @@ export const DropdownController = {
  * ROOT CAUSE FIX: Added initialization guard
  * ============================================================================
  */
-export const TableController = {
+const TableController = {
     _initialized: false,
 
     init() {
@@ -509,7 +509,7 @@ export const TableController = {
  * ROOT CAUSE FIX: Added initialization guard
  * ============================================================================
  */
-export const FormController = {
+const FormController = {
     _initialized: false,
 
     init() {
@@ -597,7 +597,7 @@ export const FormController = {
  * INITIALIZATION
  * ============================================================================
  */
-export function init() {
+function initComponentsModern() {
     // NOTE: ModalController is DISABLED to prevent conflicts with window.ModalManager
     // window.ModalManager (modal-manager.js) handles all Bootstrap modals (.modal class)
     // ModalController was designed for .c-modal-modern class which is not used in templates
@@ -624,7 +624,7 @@ export function init() {
 
   // Register with window.InitSystem if available
   if (true && window.InitSystem.register) {
-    window.InitSystem.register('components-modern', init, {
+    window.InitSystem.register('components-modern', initComponentsModern, {
       priority: 70,
       description: 'Modern UI components (toast, tooltip, dropdown, table, form)',
       reinitializable: true
@@ -656,23 +656,6 @@ export function init() {
     }
   }, { preventDefault: true });
 
-// Backward compatibility
-window.ModalController = ModalController;
-
-// Backward compatibility
-window.ToastController = ToastController;
-
-// Backward compatibility
-window.TooltipController = TooltipController;
-
-// Backward compatibility
-window.DropdownController = DropdownController;
-
-// Backward compatibility
-window.TableController = TableController;
-
-// Backward compatibility
-window.FormController = FormController;
-
-// Backward compatibility
-window.init = init;
+// No backward compatibility exports needed
+// Components are exposed via window.ModernComponents object
+// InitSystem handles initialization

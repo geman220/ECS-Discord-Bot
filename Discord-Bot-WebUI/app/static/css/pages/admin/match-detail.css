@@ -9,7 +9,7 @@
  * Architecture:
  * - BEM naming convention (.c-component__element--modifier)
  * - Design tokens only (no hardcoded values)
- * - Zero !important declarations
+ * - Zero declarations
  * - Full dark mode support
  * - Mobile-first responsive design
  * - WCAG AA accessibility compliant
@@ -305,7 +305,7 @@
    ============================================================================ */
 
 /* Tablet (768px - 991px) */
-@media (max-width: 992px) {
+@media (max-width: 991.98px) {
     .c-match-header {
         flex-direction: column;
         align-items: flex-start;
@@ -336,7 +336,7 @@
 }
 
 /* Mobile (< 768px) */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .c-match-header__title {
         font-size: var(--text-xl);
     }
@@ -388,7 +388,7 @@
 }
 
 /* Small Mobile (< 576px) */
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
     .c-teams-display {
         padding: var(--space-3);
     }
@@ -472,12 +472,12 @@
 
     .c-detail-section {
         box-shadow: none;
-        border: 1px solid var(--color-black, #000);
+        border: 1px solid var(--color-black, var(--color-neutral-950));
         page-break-inside: avoid;
     }
 
     .c-teams-display {
         background: var(--color-secondary-100, #f5f5f5);
-        border: 1px solid var(--color-black, #000);
+        border: 1px solid var(--color-black, var(--color-neutral-950));
     }
 }

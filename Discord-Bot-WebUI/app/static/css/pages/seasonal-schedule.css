@@ -7,11 +7,11 @@
  * All styles use design tokens (CSS variables) for consistency.
  *
  * REMEDIATION CHANGES:
- * - Removed ALL 13 unjustified !important declarations (kept 3 justified print styles)
+ * - Removed ALL 13 unjustified declarations (kept 3 justified print styles)
  * - Fixed specificity issues properly with .seasonal-schedule-page wrapper
  * - All colors use design tokens from tokens/colors.css
  * - Full dark mode support via [data-style="dark"] selectors
- * - Uses proper cascade without !important
+ * - Uses proper cascade without
  * - Following patterns from authentication.css, seasons.css, user-waitlist.css
  *
  * Sections:
@@ -28,7 +28,7 @@
  *   11. Accessibility
  *   12. Dark Mode
  *
- * Target: 0 unjustified !important declarations, 100% design token usage
+ * Target: 0 unjustified declarations, 100% design token usage
  * ============================================================================
  */
 
@@ -79,7 +79,7 @@
     gap: var(--space-2);
 }
 
-/* Fixed specificity - removed !important */
+/* Fixed specificity - removed */
 .seasonal-schedule-page .week-edit-form.week-edit-form-hidden,
 .week-edit-form.week-edit-form-hidden {
     display: none;
@@ -157,7 +157,7 @@
     min-width: 100px;
 }
 
-/* Fixed specificity - removed !important */
+/* Fixed specificity - removed */
 .seasonal-schedule-page .time-edit.time-edit-visible,
 .seasonal-schedule-page .field-edit.field-edit-visible,
 .seasonal-schedule-page .team-edit.team-edit-visible,
@@ -180,7 +180,7 @@
     transition: opacity 0.2s ease;
 }
 
-/* Fixed specificity - removed !important */
+/* Fixed specificity - removed */
 .seasonal-schedule-page .edit-controls.edit-controls-visible,
 .edit-controls.edit-controls-visible {
     display: table-cell;
@@ -197,7 +197,7 @@
     padding: var(--space-1) var(--space-2);
 }
 
-/* Edit Mode Toggle Button - Fixed with higher specificity instead of !important */
+/* Edit Mode Toggle Button - Fixed with higher specificity instead of */
 .seasonal-schedule-page .btn.edit-mode-active,
 .seasonal-schedule-page button.edit-mode-active,
 button.btn.edit-mode-active.edit-mode-active {
@@ -227,33 +227,27 @@ button.btn.edit-mode-active.edit-mode-active {
     margin: 0;
 }
 
-/* ==========================================================================
-   7. BADGE STYLING
-   ========================================================================== */
-
-.badge {
-    font-weight: 500;
-}
+/* NOTE: .badge base styles in components/badges.css (source of truth) */
 
 /* ==========================================================================
-   8. PRINT STYLES
+   7. PRINT STYLES
    ========================================================================== */
 
 @media print {
-    /* Justified !important usage for print styles to override all other rules */
+    /* Justified usage for print styles to override all other rules */
     .btn,
     .form-select,
     .card-header button,
     .edit-controls {
-        display: none !important;
+        display: none;
     }
 
     .week-content {
-        display: block !important;
+        display: block;
     }
 
     .week-content-collapsed {
-        display: block !important;
+        display: block;
     }
 }
 
@@ -261,7 +255,7 @@ button.btn.edit-mode-active.edit-mode-active {
    9. RESPONSIVE: MOBILE (MAX-WIDTH: 768PX)
    ========================================================================== */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .week-edit-form {
         flex-direction: column;
         align-items: flex-start;

@@ -78,7 +78,7 @@
                                 </div>
                                 <div class="c-card__body">
                                     <div class="c-table-wrapper" data-table-responsive>
-                                        <table class="c-table c-table--compact" data-mobile-table data-table-type="stats" data-table>
+                                        <table class="c-c-table c-table--compact" data-mobile-table data-table-type="stats" data-table>
                                             <thead scope="col">
                                                 <tr>
                                                     <th scope="col">Cache Type</th>
@@ -89,11 +89,11 @@
                                             <tbody>
                                                 {% for cache_type, count in stats.key_counts.items() %}
                                                 <tr>
-                                                    <td>
+                                                    <td data-label="Cache Type">
                                                         <span class="badge bg-secondary" data-badge>{{ cache_type }}</span>
                                                     </td>
-                                                    <td>{{ count }}</td>
-                                                    <td>
+                                                    <td data-label="Key Count">{{ count }}</td>
+                                                    <td data-label="Description">
                                                         {% if cache_type == 'team_stats' %}
                                                             <small class="text-muted">Team statistics cache</small>
                                                         {% elif cache_type == 'standings' %}

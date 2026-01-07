@@ -1,0 +1,195 @@
+{
+  "mediaQueryOverlaps": [],
+  "propertyConflicts": [
+    {
+      "selector": ".kit-image",
+      "property": "max-height",
+      "breakpointRange": "~800px",
+      "values": [
+        {
+          "value": "100px",
+          "file": "pages/teams.css",
+          "mediaQuery": "(max-width: 767.98px)",
+          "breakpoint": 767.98
+        },
+        {
+          "value": "80px",
+          "file": "pages/team-details.css",
+          "mediaQuery": "(max-width: 767.98px)",
+          "breakpoint": 767.98
+        }
+      ],
+      "issue": "Same property with different values at similar breakpoints"
+    },
+    {
+      "selector": ".layout-menu,\n  .c-sidebar",
+      "property": "height",
+      "breakpointRange": "~1000px",
+      "values": [
+        {
+          "value": "100vh",
+          "file": "mobile/navigation.css",
+          "mediaQuery": "(max-width: 991.98px)",
+          "breakpoint": 991.98
+        },
+        {
+          "value": "100dvh",
+          "file": "mobile/navigation.css",
+          "mediaQuery": "(max-width: 991.98px)",
+          "breakpoint": 991.98
+        }
+      ],
+      "issue": "Same property with different values at similar breakpoints"
+    },
+    {
+      "selector": ".live-reporting-team-score",
+      "property": "font-size",
+      "breakpointRange": "~800px",
+      "values": [
+        {
+          "value": "var(--text-4xl)",
+          "file": "features/live-reporting.css",
+          "mediaQuery": "(max-width: 767.98px)",
+          "breakpoint": 767.98
+        },
+        {
+          "value": "var(--text-2xl)",
+          "file": "features/live-reporting.css",
+          "mediaQuery": "(max-width: 767.98px)",
+          "breakpoint": 767.98
+        }
+      ],
+      "issue": "Same property with different values at similar breakpoints"
+    },
+    {
+      "selector": ".live-reporting-timer",
+      "property": "font-size",
+      "breakpointRange": "~800px",
+      "values": [
+        {
+          "value": "var(--text-3xl)",
+          "file": "features/live-reporting.css",
+          "mediaQuery": "(max-width: 767.98px)",
+          "breakpoint": 767.98
+        },
+        {
+          "value": "var(--text-xl)",
+          "file": "features/live-reporting.css",
+          "mediaQuery": "(max-width: 767.98px)",
+          "breakpoint": 767.98
+        }
+      ],
+      "issue": "Same property with different values at similar breakpoints"
+    },
+    {
+      "selector": ".c-tabs-modern__tab",
+      "property": "padding",
+      "breakpointRange": "~800px",
+      "values": [
+        {
+          "value": "var(--space-2, 8px) var(--space-3, 12px)",
+          "file": "components/tabs-modern.css",
+          "mediaQuery": "(max-width: 767.98px)",
+          "breakpoint": 767.98
+        },
+        {
+          "value": "var(--space-3, 12px)",
+          "file": "components/tabs-modern.css",
+          "mediaQuery": "(max-width: 767.98px)",
+          "breakpoint": 767.98
+        }
+      ],
+      "issue": "Same property with different values at similar breakpoints"
+    },
+    {
+      "selector": ".c-tabs-modern__tab i",
+      "property": "font-size",
+      "breakpointRange": "~800px",
+      "values": [
+        {
+          "value": "1rem",
+          "file": "components/tabs-modern.css",
+          "mediaQuery": "(max-width: 767.98px)",
+          "breakpoint": 767.98
+        },
+        {
+          "value": "1.25rem",
+          "file": "components/tabs-modern.css",
+          "mediaQuery": "(max-width: 767.98px)",
+          "breakpoint": 767.98
+        }
+      ],
+      "issue": "Same property with different values at similar breakpoints"
+    }
+  ],
+  "zIndexIssues": [
+    {
+      "value": null,
+      "count": 14,
+      "selectors": [
+        ".form-control,\n  .form-select",
+        "body.modal-open .table-responsive tr:has(.dropdown.show),\n  body.modal-open .table-responsive tr:has(.dropdown-menu.show)",
+        ".layout-menu,\n  .c-sidebar",
+        ".layout-overlay,\n  .c-sidebar__overlay",
+        ".form-actions-sticky"
+      ],
+      "issue": "Multiple elements share same z-index (potential stacking conflict)"
+    }
+  ],
+  "importantWars": [
+    {
+      "selector": ".portrait-only",
+      "property": "display",
+      "values": [
+        {
+          "value": "block !important",
+          "file": "utilities/mobile-utils.css",
+          "mediaQuery": "(orientation: portrait)"
+        },
+        {
+          "value": "none !important",
+          "file": "utilities/mobile-utils.css",
+          "mediaQuery": "(orientation: landscape)"
+        }
+      ],
+      "issue": "!important used with conflicting values"
+    },
+    {
+      "selector": ".landscape-only",
+      "property": "display",
+      "values": [
+        {
+          "value": "none !important",
+          "file": "utilities/mobile-utils.css",
+          "mediaQuery": "(orientation: portrait)"
+        },
+        {
+          "value": "block !important",
+          "file": "utilities/mobile-utils.css",
+          "mediaQuery": "(orientation: landscape)"
+        }
+      ],
+      "issue": "!important used with conflicting values"
+    },
+    {
+      "selector": ".mobile-hide",
+      "property": "display",
+      "values": [
+        {
+          "value": "none !important",
+          "file": "mobile/utilities.css",
+          "mediaQuery": "(max-width: 767.98px)"
+        },
+        {
+          "value": "revert !important",
+          "file": "mobile/utilities.css",
+          "mediaQuery": "(min-width: 768px)"
+        }
+      ],
+      "issue": "!important used with conflicting values"
+    }
+  ],
+  "specificityIssues": [],
+  "missingMobileOverrides": [],
+  "summary": {}
+}

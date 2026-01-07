@@ -30,8 +30,8 @@
  * Used in dashboard cards, match operations, admin panels
  */
 .card-icon-stat {
-    font-size: 2rem !important;
-    opacity: 0.5 !important;
+    font-size: 2rem;
+    opacity: 0.5;
 }
 
 /* ============================================
@@ -43,11 +43,11 @@
  * When there's no content to show
  */
 .icon-empty-state {
-    font-size: 3rem !important;
+    font-size: 3rem;
 }
 
 .icon-empty-large {
-    font-size: 4rem !important;
+    font-size: 4rem;
 }
 
 /* ============================================
@@ -59,11 +59,11 @@
  * Used in profile success pages, confirmations
  */
 .success-icon-lg {
-    font-size: 2rem !important;
+    font-size: 2rem;
 }
 
 .success-icon-xl {
-    font-size: 3rem !important;
+    font-size: 3rem;
 }
 
 /* ============================================
@@ -75,27 +75,27 @@
  * Replaces inline style="background: linear-gradient(...)"
  */
 .card-gradient-welcome {
-    background: linear-gradient(135deg, var(--gradient-start, #667eea) 0%, var(--gradient-end, #764ba2) 100%) !important;
+    background: linear-gradient(135deg, var(--gradient-start, #667eea) 0%, var(--gradient-end, #764ba2) 100%);
 }
 
 .card-gradient-primary {
-    background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-800) 100%) !important;
+    background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-800) 100%);
 }
 
 .card-gradient-success {
-    background: linear-gradient(135deg, var(--color-success-600) 0%, var(--color-success-800) 100%) !important;
+    background: linear-gradient(135deg, var(--color-success-600) 0%, var(--color-success-800) 100%);
 }
 
 .card-gradient-info {
-    background: linear-gradient(135deg, var(--color-info-600) 0%, var(--color-info-800) 100%) !important;
+    background: linear-gradient(135deg, var(--color-info-600) 0%, var(--color-info-800) 100%);
 }
 
 .card-gradient-warning {
-    background: linear-gradient(135deg, var(--color-warning-600) 0%, var(--color-warning-800) 100%) !important;
+    background: linear-gradient(135deg, var(--color-warning-600) 0%, var(--color-warning-800) 100%);
 }
 
 .card-gradient-danger {
-    background: linear-gradient(135deg, var(--color-danger-600) 0%, var(--color-danger-800) 100%) !important;
+    background: linear-gradient(135deg, var(--color-danger-600) 0%, var(--color-danger-800) 100%);
 }
 
 /* ============================================
@@ -107,19 +107,19 @@
  * Used for badges, verification elements
  */
 .verification-badge-rounded {
-    border-radius: 15px !important;
+    border-radius: 15px;
 }
 
 .rounded-lg {
-    border-radius: 0.5rem !important;
+    border-radius: 0.5rem;
 }
 
 .rounded-xl {
-    border-radius: 0.75rem !important;
+    border-radius: 0.75rem;
 }
 
 .rounded-2xl {
-    border-radius: 1rem !important;
+    border-radius: 1rem;
 }
 
 /* ============================================
@@ -131,21 +131,21 @@
  * Replaces inline style="cursor: pointer"
  */
 .divider-toggle {
-    cursor: pointer !important;
+    cursor: pointer;
 }
 
 .cursor-pointer {
-    cursor: pointer !important;
+    cursor: pointer;
 }
 
 .cursor-not-allowed {
-    cursor: not-allowed !important;
+    cursor: not-allowed;
 }
 
 .cursor-grab {
-    cursor: grab !important;
+    cursor: grab;
 }
 
 .cursor-grabbing {
-    cursor: grabbing !important;
+    cursor: grabbing;
 }

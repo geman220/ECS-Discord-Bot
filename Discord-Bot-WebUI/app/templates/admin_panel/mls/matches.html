@@ -47,7 +47,7 @@
             <div class="c-card__body p-0">
                 {% if matches %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="matches">
+                    <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="matches">
                         <thead scope="col">
                             <tr>
                                 <th class="u-w-250" scope="col">Match</th>
@@ -61,7 +61,7 @@
                         <tbody>
                             {% for match in matches %}
                             <tr id="match-row-{{ match.id }}">
-                                <td>
+                                <td data-label="Match">
                                     {% if match.is_home_game %}
                                     <strong>Seattle Sounders FC</strong> vs {{ match.opponent }}
                                     {% else %}
@@ -71,26 +71,26 @@
                                     <br><small class="text-muted">{{ match.venue }}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Date/Time">
                                     {{ match.date_time.strftime('%b %d, %Y') }}<br>
                                     <small class="text-muted">{{ match.date_time.strftime('%I:%M %p') }} UTC</small>
                                 </td>
-                                <td>
+                                <td data-label="Competition">
                                     <span class="badge bg-secondary" data-badge>{{ match.competition or 'MLS' }}</span>
                                 </td>
-                                <td>
+                                <td data-label="Thread">
                                     {% if match.thread_created %}
                                     <span class="badge bg-success" data-badge><i class="ti ti-check"></i> Created</span>
                                     {% else %}
                                     <span class="badge bg-secondary" data-badge>Not Created</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     <span class="badge bg-{{ match.status_color }}" id="status-{{ match.id }}" data-badge>
                                         <i class="ti {{ match.status_icon }} me-1"></i>{{ match.status_display }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm mb-1">
                                         <button class="c-btn c-btn--outline-primary js-schedule-match" data-action="mls-schedule-match" data-match-id="{{ match.id }}" title="Schedule Tasks">
                                             <i class="ti ti-calendar-event"></i>
@@ -153,7 +153,7 @@
             <div class="collapse" id="historicalMatches">
                 <div class="c-card__body p-0">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="matches">
+                        <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="matches">
                             <thead scope="col">
                                 <tr>
                                     <th scope="col">Match</th>
@@ -165,16 +165,16 @@
                             <tbody>
                                 {% for match in historical_matches %}
                                 <tr>
-                                    <td>
+                                    <td data-label="Match">
                                         {% if match.is_home_game %}
                                         Seattle Sounders FC vs {{ match.opponent }}
                                         {% else %}
                                         {{ match.opponent }} vs Seattle Sounders FC
                                         {% endif %}
                                     </td>
-                                    <td>{{ match.date_time.strftime('%b %d, %Y') }}</td>
-                                    <td><span class="badge bg-secondary" data-badge>{{ match.competition or 'MLS' }}</span></td>
-                                    <td>
+                                    <td data-label="Date">{{ match.date_time.strftime('%b %d, %Y') }}</td>
+                                    <td data-label="Competition"><span class="badge bg-secondary" data-badge>{{ match.competition or 'MLS' }}</span></td>
+                                    <td data-label="Status">
                                         <span class="badge bg-{{ match.status_color }}" data-badge>{{ match.status_display }}</span>
                                     </td>
                                 </tr>

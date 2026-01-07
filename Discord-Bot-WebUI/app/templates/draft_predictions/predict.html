@@ -4,37 +4,7 @@
 {% block title %}{{ league_type }} Draft Predictions{% endblock %}
 
 {% block page_css %}
-<style>
-.player-avatar-clickable {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    cursor: pointer;
-}
-
-.player-avatar-clickable:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.prediction-row.has-prediction {
-    background-color: rgba(var(--bs-success-rgb), 0.05);
-}
-
-.save-indicator {
-    transition: opacity 0.3s ease;
-}
-
-.save-indicator.saving {
-    color: var(--bs-warning);
-}
-
-.save-indicator.saved {
-    color: var(--bs-success);
-}
-
-.save-indicator.error {
-    color: var(--bs-danger);
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block main_content %}
@@ -160,7 +130,7 @@
                 <div class="c-card__body">
                     {% if players %}
                         <div class="c-table-wrapper" data-table-responsive>
-                            <table class="c-table c-table--hoverable" id="playersTable" data-table data-mobile-table data-table-type="players">
+                            <table class="c-c-table c-table--hoverable" id="playersTable" data-table data-mobile-table data-table-type="players">
                                 <thead>
                                     <tr>
                                         <th class="dp-col-rank">#</th>

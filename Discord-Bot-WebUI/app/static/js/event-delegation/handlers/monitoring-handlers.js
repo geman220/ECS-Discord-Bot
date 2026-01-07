@@ -75,8 +75,17 @@ window.EventDelegation.register('emergency-mode', (element, event) => {
     event.preventDefault();
     window.Swal.fire({
         title: 'Emergency Mode',
-        text: 'Emergency system controls coming soon!',
-        icon: 'info'
+        html: `
+            <p>Emergency controls allow you to quickly disable system features.</p>
+            <p class="text-muted">For immediate system issues, contact the system administrator or restart the Docker containers.</p>
+        `,
+        icon: 'warning',
+        confirmButtonText: 'View System Status',
+        showCancelButton: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = '/admin/system_monitoring';
+        }
     });
 });
 
@@ -666,7 +675,7 @@ window.EventDelegation.register('view-log-details', (element, event) => {
                 </div>
                 <div class="mb-3">
                     <strong>Stack Trace:</strong><br>
-                    <pre class="bg-dark text-light p-2 rounded" style="max-height: 200px; overflow-y: auto;">
+                    <pre class="bg-dark text-light p-2 rounded scroll-container-sm">
 Traceback (most recent call last):
   File "app.py", line 123, in handle_request
     result = process_data(data)

@@ -14,7 +14,7 @@
 /**
  * Helpers object providing layout utilities and state checks
  */
-export const Helpers = {
+const Helpers = {
     // Root Element
     ROOT_EL: document.documentElement,
 

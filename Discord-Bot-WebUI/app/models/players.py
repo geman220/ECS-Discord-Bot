@@ -107,13 +107,13 @@ class Team(db.Model):
             if match.home_team_score is not None and match.away_team_score is not None:
                 if ((match.home_team_id == self.id and match.home_team_score > match.away_team_score) or
                     (match.away_team_id == self.id and match.away_team_score > match.home_team_score)):
-                    form.append('<span style="color:green;">W</span>')
+                    form.append('<span class="text-success">W</span>')
                 elif match.home_team_score == match.away_team_score:
-                    form.append('<span style="color:yellow;">D</span>')
+                    form.append('<span class="text-warning">D</span>')
                 else:
-                    form.append('<span style="color:red;">L</span>')
+                    form.append('<span class="text-danger">L</span>')
             else:
-                form.append('<span style="color:gray;">N/A</span>')
+                form.append('<span class="text-muted">N/A</span>')
         return ''.join(form)
 
     @property

@@ -189,7 +189,7 @@
                 <div class="c-card__body p-0">
                     {% if scheduled_messages %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="scheduled-messages">
+                        <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="scheduled-messages">
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">Message</th>
@@ -204,7 +204,7 @@
                             <tbody>
                                 {% for message in scheduled_messages %}
                                 <tr class="message-row" data-status="{{ message.status or 'pending' }}">
-                                    <td>
+                                    <td data-label="Message">
                                         <div>
                                             <strong>{{ message.message_type|title }} Message</strong>
                                             <br><small class="text-muted">Match ID: {{ message.match_id or 'N/A' }}</small>
@@ -213,13 +213,13 @@
                                             {% endif %}
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Type">
                                         <span class="badge bg-secondary" data-badge>{{ message.message_type|title }}</span>
                                     </td>
-                                    <td>
+                                    <td data-label="Channel">
                                         <i class="ti ti-hash me-1"></i>{{ message.target_channel }}
                                     </td>
-                                    <td>
+                                    <td data-label="Scheduled For">
                                         <small>{{ message.schedule_date.strftime('%Y-%m-%d %H:%M') if message.schedule_date else 'Not set' }}</small>
                                         {% if message.schedule_date %}
                                         {% set time_diff = (message.schedule_date - now).total_seconds() %}
@@ -236,16 +236,16 @@
                                         {% endif %}
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         {% set status = message.status or 'pending' %}
                                         <span class="badge bg-{% if status == 'sent' %}success{% elif status == 'failed' %}danger{% elif status == 'cancelled' %}secondary{% else %}warning{% endif %}" data-badge>
                                             {{ status|title }}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Created By">
                                         <small>{{ message.created_by.name if message.created_by else 'System' }}</small>
                                     </td>
-                                    <td>
+                                    <td data-label="Actions">
                                         <div class="btn-group btn-group-sm">
                                             <button class="c-btn c-btn--outline-info js-view-message"
                                                     data-action="view-scheduled-message"

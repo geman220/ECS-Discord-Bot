@@ -42,11 +42,11 @@
   align-items: center;
   gap: var(--space-3, 12px);
   padding: var(--space-4, 16px);
-  background: var(--color-bg-primary, #fff);
+  background: var(--color-bg-primary, var(--color-white));
   border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
   border-radius: var(--radius-lg, 12px);
   text-decoration: none;
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   transition:
     transform var(--duration-fast, 150ms) ease,
     box-shadow var(--duration-fast, 150ms) ease,
@@ -56,7 +56,7 @@
 .c-quick-links__item:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 .c-quick-links__icon {
@@ -67,29 +67,29 @@
   height: 44px;
   background: var(--color-primary-soft, rgba(59, 130, 246, 0.1));
   border-radius: var(--radius-md, 8px);
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   font-size: 1.25rem;
   flex-shrink: 0;
 }
 
 .c-quick-links__icon--success {
   background: var(--color-success-soft, rgba(16, 185, 129, 0.1));
-  color: var(--color-success, var(--color-success-500, #10b981));
+  color: var(--color-success, var(--color-success-500, var(--color-success-500)));
 }
 
 .c-quick-links__icon--warning {
   background: var(--color-warning-soft, rgba(245, 158, 11, 0.1));
-  color: var(--color-warning, var(--color-warning-500, #f59e0b));
+  color: var(--color-warning, var(--color-warning-500, var(--color-warning-500)));
 }
 
 .c-quick-links__icon--danger {
   background: var(--color-danger-soft, rgba(239, 68, 68, 0.1));
-  color: var(--color-danger, var(--color-danger-500, #ef4444));
+  color: var(--color-danger, var(--color-danger-500, var(--color-danger-500)));
 }
 
 .c-quick-links__icon--info {
   background: var(--color-info-soft, rgba(6, 182, 212, 0.1));
-  color: var(--color-info, #06b6d4);
+  color: var(--color-info, var(--color-info-500));
 }
 
 .c-quick-links__content {
@@ -106,7 +106,7 @@
 
 .c-quick-links__description {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   margin: var(--space-1, 4px) 0 0;
   line-height: 1.4;
 }
@@ -116,7 +116,7 @@
    ============================================================================ */
 
 .c-container-card {
-  background: var(--color-bg-primary, #fff);
+  background: var(--color-bg-primary, var(--color-white));
   border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
   border-radius: var(--radius-xl, 16px);
   box-shadow:
@@ -138,12 +138,12 @@
   margin: 0;
   font-size: var(--text-lg, 1.125rem);
   font-weight: var(--font-semibold, 600);
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 .c-container-card__title i {
   margin-right: var(--space-2, 8px);
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   opacity: 0.85;
 }
 
@@ -160,7 +160,7 @@
 .c-container-card__footer {
   padding: var(--space-4, 16px) var(--space-5, 20px);
   border-top: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.06));
-  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 /* ============================================================================
@@ -228,7 +228,7 @@
   width: 24px;
   height: 24px;
   border: 3px solid var(--color-border-light, rgba(0, 0, 0, 0.1));
-  border-top-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  border-top-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -277,7 +277,7 @@
 
 .c-code-block {
   position: relative;
-  background: var(--color-bg-tertiary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  background: var(--color-bg-tertiary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border-radius: var(--radius-lg, 12px);
   overflow: hidden;
 }
@@ -294,7 +294,7 @@
 .c-code-block__language {
   font-size: var(--text-xs, 0.75rem);
   font-weight: var(--font-medium, 500);
-  color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -302,7 +302,7 @@
 .c-code-block__copy {
   padding: var(--space-1, 4px) var(--space-2, 8px);
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   background: rgba(255, 255, 255, 0.1);
   border: none;
   border-radius: var(--radius-sm, 4px);
@@ -312,7 +312,7 @@
 
 .c-code-block__copy:hover {
   background: rgba(255, 255, 255, 0.2);
-  color: var(--color-text-on-primary, #fff);
+  color: var(--color-text-on-primary, var(--color-white));
 }
 
 .c-code-block__content {
@@ -325,7 +325,7 @@
   font-family: var(--font-mono, 'JetBrains Mono', 'Fira Code', monospace);
   font-size: var(--text-sm, 0.875rem);
   line-height: 1.6;
-  color: var(--color-neutral-200, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
+  color: var(--color-neutral-200, var(--color-secondary-200, var(--color-secondary-200, var(--color-secondary-200))));
   white-space: pre;
 }
 
@@ -352,7 +352,7 @@
   height: 36px;
   background: var(--color-primary-soft, rgba(59, 130, 246, 0.1));
   border-radius: var(--radius-md, 8px);
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   font-size: 1.125rem;
 }
 
@@ -360,7 +360,7 @@
   margin: 0;
   font-size: var(--text-lg, 1.125rem);
   font-weight: var(--font-semibold, 600);
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 .c-section-title__badge {
@@ -368,8 +368,8 @@
   padding: var(--space-1, 4px) var(--space-2, 8px);
   font-size: var(--text-xs, 0.75rem);
   font-weight: var(--font-medium, 500);
-  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
-  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   border-radius: var(--radius-full, 9999px);
 }
 
@@ -412,7 +412,7 @@
 .c-divider__text {
   font-size: var(--text-xs, 0.75rem);
   font-weight: var(--font-medium, 500);
-  color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -438,9 +438,9 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   border-radius: var(--radius-md, 8px);
-  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   font-size: 1rem;
   flex-shrink: 0;
 }
@@ -454,19 +454,19 @@
   display: block;
   font-size: var(--text-xs, 0.75rem);
   font-weight: var(--font-medium, 500);
-  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   margin-bottom: var(--space-1, 4px);
 }
 
 .c-info-item__value {
   font-size: var(--text-sm, 0.875rem);
   font-weight: var(--font-medium, 500);
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   word-break: break-word;
 }
 
 .c-info-item__value--muted {
-  color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
 /* Horizontal layout */
@@ -507,9 +507,9 @@
   width: 80px;
   height: 80px;
   margin-bottom: var(--space-4, 16px);
-  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   border-radius: var(--radius-full, 9999px);
-  color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   font-size: 2rem;
 }
 
@@ -517,13 +517,13 @@
   margin: 0 0 var(--space-2, 8px);
   font-size: var(--text-lg, 1.125rem);
   font-weight: var(--font-semibold, 600);
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 .c-empty-state-modern__description {
   margin: 0 0 var(--space-4, 16px);
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   max-width: 320px;
 }
 
@@ -543,7 +543,7 @@
    11. RESPONSIVE
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-quick-links {
     grid-template-columns: 1fr;
   }
@@ -585,9 +585,9 @@
    ============================================================================ */
 
 [data-style="dark"] .c-quick-links__item {
-  background: var(--color-bg-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  background: var(--color-bg-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border-color: var(--color-border-primary, rgba(255, 255, 255, 0.08));
-  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
+  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100))));
 }
 
 [data-style="dark"] .c-quick-links__item:hover {
@@ -595,11 +595,11 @@
 }
 
 [data-style="dark"] .c-quick-links__description {
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
 [data-style="dark"] .c-container-card {
-  background: var(--color-bg-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  background: var(--color-bg-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border-color: var(--color-border-primary, rgba(255, 255, 255, 0.08));
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.2),
@@ -611,17 +611,17 @@
 }
 
 [data-style="dark"] .c-container-card__title {
-  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
+  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100))));
 }
 
 [data-style="dark"] .c-container-card__footer {
-  background: var(--color-bg-secondary, var(--color-secondary-950, var(--color-secondary-950, #0f172a)));
+  background: var(--color-bg-secondary, var(--color-secondary-950, var(--color-secondary-950, var(--color-secondary-950))));
   border-top-color: var(--color-border-primary, rgba(255, 255, 255, 0.08));
 }
 
 [data-style="dark"] .c-loading-spinner::after {
   border-color: var(--color-border-primary, rgba(255, 255, 255, 0.1));
-  border-top-color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
+  border-top-color: var(--color-primary-light, var(--color-primary-400, var(--color-primary-400)));
 }
 
 [data-style="dark"] .c-loading-spinner--overlay {
@@ -629,12 +629,12 @@
 }
 
 [data-style="dark"] .c-section-title__text {
-  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
+  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100))));
 }
 
 [data-style="dark"] .c-section-title__badge {
-  background: var(--color-bg-secondary, var(--color-secondary-950, var(--color-secondary-950, #0f172a)));
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  background: var(--color-bg-secondary, var(--color-secondary-950, var(--color-secondary-950, var(--color-secondary-950))));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
 [data-style="dark"] .c-divider {
@@ -651,20 +651,20 @@
 }
 
 [data-style="dark"] .c-info-item__icon {
-  background: var(--color-bg-secondary, var(--color-secondary-950, var(--color-secondary-950, #0f172a)));
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  background: var(--color-bg-secondary, var(--color-secondary-950, var(--color-secondary-950, var(--color-secondary-950))));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
 [data-style="dark"] .c-info-item__value {
-  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
+  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100))));
 }
 
 [data-style="dark"] .c-empty-state-modern__icon {
-  background: var(--color-bg-secondary, var(--color-secondary-950, var(--color-secondary-950, #0f172a)));
+  background: var(--color-bg-secondary, var(--color-secondary-950, var(--color-secondary-950, var(--color-secondary-950))));
 }
 
 [data-style="dark"] .c-empty-state-modern__title {
-  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
+  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100))));
 }
 
 /* NOTE: .c-admin-nav styles are in admin-navigation.css (single source of truth) */

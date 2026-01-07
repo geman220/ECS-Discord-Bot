@@ -33,26 +33,26 @@
   --msg-radius-sm: 8px;
 
   /* Colors - Light Mode */
-  --msg-bg-primary: var(--color-white, #ffffff);
-  --msg-bg-secondary: var(--color-secondary-50, var(--color-secondary-50, #f8fafc));
-  --msg-bg-tertiary: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9));
-  --msg-border: var(--color-secondary-200, var(--color-secondary-200, #e2e8f0));
-  --msg-text-primary: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
-  --msg-text-secondary: var(--color-secondary-600, var(--color-secondary-600, #64748b));
-  --msg-text-muted: var(--color-secondary-400, var(--color-secondary-400, #94a3b8));
+  --msg-bg-primary: var(--color-white, var(--color-white));
+  --msg-bg-secondary: var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50)));
+  --msg-bg-tertiary: var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100)));
+  --msg-border: var(--color-secondary-200, var(--color-secondary-200, var(--color-secondary-200)));
+  --msg-text-primary: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
+  --msg-text-secondary: var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600)));
+  --msg-text-muted: var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400)));
 
   /* Accent Colors */
   --msg-accent: #6366f1;
   --msg-accent-light: #818cf8;
   --msg-accent-glow: rgba(99, 102, 241, 0.3);
-  --msg-success: var(--color-success-500, #10b981);
+  --msg-success: var(--color-success-500, var(--color-success-500));
   --msg-success-glow: rgba(16, 185, 129, 0.3);
 
   /* Message Bubbles */
-  --msg-bubble-sent: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --msg-bubble-sent: linear-gradient(135deg, #6366f1 0%, var(--color-primary-500) 100%);
   --msg-bubble-sent-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-  --msg-bubble-received: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9));
-  --msg-bubble-received-text: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
+  --msg-bubble-received: var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100)));
+  --msg-bubble-received-text: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
 
   /* Shadows */
   --msg-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -67,15 +67,15 @@
 
 /* Dark Mode Override */
 [data-style="dark"] {
-  --msg-bg-primary: var(--color-secondary-950, var(--color-secondary-950, #0f172a));
-  --msg-bg-secondary: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
-  --msg-bg-tertiary: var(--color-secondary-800, var(--color-secondary-800, #334155));
+  --msg-bg-primary: var(--color-secondary-950, var(--color-secondary-950, var(--color-secondary-950)));
+  --msg-bg-secondary: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
+  --msg-bg-tertiary: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
   --msg-border: rgba(255, 255, 255, 0.08);
-  --msg-text-primary: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9));
-  --msg-text-secondary: var(--color-secondary-400, var(--color-secondary-400, #94a3b8));
-  --msg-text-muted: var(--color-secondary-600, var(--color-secondary-600, #64748b));
-  --msg-bubble-received: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
-  --msg-bubble-received-text: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9));
+  --msg-text-primary: var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100)));
+  --msg-text-secondary: var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400)));
+  --msg-text-muted: var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600)));
+  --msg-bubble-received: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
+  --msg-bubble-received-text: var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100)));
   --msg-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
@@ -395,7 +395,7 @@
   padding: 0 7px;
   font-size: 0.6875rem;
   font-weight: 700;
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
   background: var(--msg-bubble-sent);
   border-radius: 11px;
   display: flex;
@@ -490,7 +490,7 @@
 
 .c-messages-welcome__icon {
   font-size: 2.5rem;
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
 }
 
 .c-messages-welcome__title {
@@ -558,7 +558,7 @@
 
 .c-messages-chat__back:hover {
   background-color: var(--msg-accent);
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
 }
 
 .c-messages-chat__user {
@@ -693,7 +693,7 @@
 
 .c-messages-message--sent .c-messages-message__bubble {
   background: var(--msg-bubble-sent);
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
   border-radius: 18px 18px 4px 18px;
   box-shadow: var(--msg-bubble-sent-shadow);
 }
@@ -707,9 +707,9 @@
 
 /* Dark mode - ensure consistent received bubble styling */
 [data-style="dark"] .c-messages-message--received .c-messages-message__bubble {
-  background-color: var(--color-secondary-800, #334155);
-  color: var(--color-secondary-100, #f1f5f9);
-  border: 1px solid var(--color-secondary-700, #475569);
+  background-color: var(--color-secondary-800, var(--color-secondary-800));
+  color: var(--color-secondary-100, var(--color-secondary-100));
+  border: 1px solid var(--color-secondary-700, var(--color-secondary-700));
 }
 
 .c-messages-message__time {
@@ -819,11 +819,11 @@
 }
 
 .c-messages-chat__char-count.is-warning {
-  color: var(--color-warning-500, #f59e0b);
+  color: var(--color-warning-500, var(--color-accent-600));
 }
 
 .c-messages-chat__char-count.is-limit {
-  color: var(--color-danger-500, #ef4444);
+  color: var(--color-danger-500, var(--color-danger-600));
 }
 
 .c-messages-chat__send {
@@ -835,7 +835,7 @@
   border-radius: 12px;
   background: var(--msg-bubble-sent);
   border: none;
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
   box-shadow: var(--msg-bubble-sent-shadow);
   transition: all var(--msg-transition);
 }
@@ -1026,8 +1026,11 @@
     height: calc(100vh - 180px);
     max-height: none;
     border-radius: 12px;
+    position: relative;
+    overflow: hidden; /* Prevent both panels showing */
   }
 
+  /* Default state: show sidebar, hide main */
   .c-messages-sidebar {
     width: 100%;
     position: absolute;
@@ -1035,12 +1038,13 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 1;
-    transition: transform var(--msg-transition-slow);
-  }
-
-  .c-messages-inbox.is-chatting .c-messages-sidebar {
-    transform: translateX(-100%);
+    z-index: 2;
+    transform: translateX(0);
+    visibility: visible;
+    opacity: 1;
+    transition: transform var(--msg-transition-slow),
+                visibility var(--msg-transition-slow),
+                opacity var(--msg-transition-slow);
   }
 
   .c-messages-main {
@@ -1049,16 +1053,26 @@
     left: 0;
     right: 0;
     bottom: 0;
+    z-index: 1;
     transform: translateX(100%);
-    transition: transform var(--msg-transition-slow);
+    visibility: hidden;
+    opacity: 0;
+    transition: transform var(--msg-transition-slow),
+                visibility var(--msg-transition-slow),
+                opacity var(--msg-transition-slow);
+  }
+
+  /* Chatting state: hide sidebar, show main */
+  .c-messages-inbox.is-chatting .c-messages-sidebar {
+    transform: translateX(-100%);
+    visibility: hidden;
+    opacity: 0;
   }
 
   .c-messages-inbox.is-chatting .c-messages-main {
     transform: translateX(0);
-  }
-
-  .c-messages-inbox {
-    position: relative;
+    visibility: visible;
+    opacity: 1;
   }
 
   .c-messages-chat__back {
@@ -1131,20 +1145,20 @@
 
 /* Admin badge - purple/gold for authority */
 .c-role-badge--admin {
-  background: linear-gradient(135deg, var(--color-primary, #6366f1), var(--color-accent, #8b5cf6));
-  color: var(--color-warning, #fbbf24);
+  background: linear-gradient(135deg, var(--color-primary, #6366f1), var(--color-accent, var(--color-primary-500)));
+  color: var(--color-warning, var(--color-accent-400));
 }
 
 /* Coach badge - green for leadership */
 .c-role-badge--coach {
-  background: linear-gradient(135deg, var(--color-success-500, #10b981), #059669);
-  color: var(--color-white, #ffffff);
+  background: linear-gradient(135deg, var(--color-success-500, var(--color-success-500)), var(--color-success-700));
+  color: var(--color-white, var(--color-white));
 }
 
 /* Referee badge - yellow/black for authority */
 .c-role-badge--ref {
-  background: linear-gradient(135deg, var(--color-warning-500, #f59e0b), #d97706);
-  color: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
+  background: linear-gradient(135deg, var(--color-warning-500, var(--color-accent-600)), var(--color-accent-700));
+  color: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
 }
 
 /* =============================================================================
@@ -1152,5 +1166,5 @@
  * ========================================================================== */
 
 .u-hidden {
-  display: none !important;
+  display: none;
 }

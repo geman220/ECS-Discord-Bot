@@ -111,7 +111,7 @@
                      data-drop-target="available">
                     {% for player in available_players %}
                     <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
-                        <div id="player-{{ player.id }}" class="c-card player-card draft-player-card border-0 shadow-sm h-100 js-draggable-player"
+                        <div id="player-{{ player.id }}" class="c-card player-card draft-player-c-card border-0 shadow-sm h-100 js-draggable-player"
                              data-player-id="{{ player.id }}"
                              data-player-name="{{ player.name|lower }}"
                              data-position="{{ (player.favorite_position or '')|lower }}"
@@ -121,7 +121,7 @@
                              draggable="true">
 
                             <!-- Player Image Header -->
-                            <div class="position-relative overflow-hidden draft-player-card-header">
+                            <div class="position-relative overflow-hidden draft-player-c-card__header">
                                 <!-- Full Header Player Image -->
                                 <img src="{{ player.profile_picture_medium or player.profile_picture_webp or player.profile_picture_url or '/static/img/default_player.png' }}"
                                      alt="{{ player.name }}"
@@ -268,7 +268,7 @@
                         <div class="row g-3" id="ecs-fc-multi-team-players">
                             {% for player in ecs_fc_multi_team_players %}
                             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
-                                <div id="player-multi-{{ player.id }}" class="c-card player-card draft-player-card draft-player-card--multi-team border-0 shadow-sm h-100 js-draggable-player"
+                                <div id="player-multi-{{ player.id }}" class="c-card player-card draft-player-c-card draft-player-card--multi-team border-0 shadow-sm h-100 js-draggable-player"
                                      data-player-id="{{ player.id }}"
                                      data-player-name="{{ player.name|lower }}"
                                      data-position="{{ (player.favorite_position or '')|lower }}"
@@ -276,7 +276,7 @@
                                      draggable="true">
 
                                     <!-- Player Image Header -->
-                                    <div class="position-relative overflow-hidden draft-player-card-header">
+                                    <div class="position-relative overflow-hidden draft-player-c-card__header">
                                         <img src="{{ player.profile_picture_medium or player.profile_picture_webp or player.profile_picture_url or '/static/img/default_player.png' }}"
                                              alt="{{ player.name }}"
                                              class="player-face-crop draft-player-image js-player-image"
@@ -403,7 +403,7 @@
                                         <div id="teamPlayers{{ team.id }}" class="row g-2">
                                             {% for player in drafted_players_by_team[team.id] %}
                                             <div class="col-md-6 col-lg-4">
-                                                <div class="c-card border-0 shadow-sm draft-team-player-card js-draggable-player"
+                                                <div class="c-card border-0 shadow-sm draft-team-player-c-card js-draggable-player"
                                                      draggable="true"
                                                      data-player-id="{{ player.id }}">
                                                     <div class="c-card__body p-2">
@@ -569,30 +569,7 @@
 <!-- Draft Enhanced Page-Specific JavaScript -->
 <script src="{{ url_for('static', filename='custom_js/draft-enhanced.js') }}"></script>
 
-<!--
 {% endif %}
-MIGRATION NOTE: Inline JavaScript has been extracted to /app/static/custom_js/draft-enhanced.js
-All event handlers now use data-* attributes and .js-* classes for binding
-Functions migrated:
-- formatPosition()
-- setupLiveSearch()
-- filterPlayers()
-- sortPlayers()
-- updateAvailablePlayerCount()
-- updateTeamCount()
-- updateAllTeamCounts()
-- confirmDraftPlayer()
-- openPlayerModal()
-- displayPlayerProfile()
-
-Event delegation replaces inline handlers:
-- → .js-draft-player with data-player-id
-- → .js-view-player-profile with data-player-id
-- → .js-remove-player with data attributes
-- ondragstart/ondragend → .js-draggable-player event listeners
-- ondrop/ondragover/ondragleave → .js-draft-drop-zone event listeners
-- onerror/onload on images → .js-player-image error/load event listeners
--->
 
 <script data-league-name="{{ league_name }}">
 // Initialize draft with league name

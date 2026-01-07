@@ -69,6 +69,10 @@ class GooglePassConfig:
             'app/wallet_pass/certs/google-service-account.json'
         )
         self.converter_url = os.getenv('PASS_CONVERTER_URL', 'http://pass-converter:3000')
+        self.converter_auth_secret = os.getenv(
+            'PASS_CONVERTER_AUTH_SECRET',
+            'ecs-pass-converter-internal-secret'
+        )
 
     def validate(self):
         """Validate that all required configuration exists"""
@@ -179,6 +183,9 @@ class GooglePassGenerator(BasePassGenerator):
                         'application/vnd.apple.pkpass'
                     )
                 },
+                headers={
+                    'X-Converter-Auth': self.config.converter_auth_secret
+                },
                 allow_redirects=False,
                 timeout=30
             )
@@ -204,6 +211,12 @@ class GooglePassGenerator(BasePassGenerator):
 
             else:
                 error_msg = response.text[:200] if response.text else "No error message"
+                if response.status_code == 401:
+                    raise ValueError(
+                        f"Google Wallet authentication failed (401). "
+                        f"Check GOOGLE_WALLET_ISSUER_ID and service account credentials. "
+                        f"Response: {error_msg}"
+                    )
                 raise ValueError(
                     f"pass-converter returned {response.status_code}: {error_msg}"
                 )

@@ -107,19 +107,8 @@ def process_discord_links(html_content):
     # Pattern for <#channel-name> format
     pattern2 = r'&lt;#([\w-]+)&gt;'
     
-    # Discord-style channel mention CSS
-    channel_style = '''
-    <span style="
-        background-color: rgba(88, 101, 242, 0.3);
-        color: #5865f2;
-        padding: 0 2px;
-        border-radius: 3px;
-        font-weight: 500;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-        cursor: default;
-        text-decoration: none;
-    ">#{}</span>
-    '''
+    # Discord-style channel mention (uses .discord-channel-mention CSS class)
+    channel_style = '<span class="discord-channel-mention">#{}</span>'
     
     # Replace [[#channel-name]] format
     html_content = re.sub(pattern1, lambda m: channel_style.format(m.group(1)), html_content)

@@ -28,58 +28,91 @@ export class ScheduleManager {
             const modalEl = document.getElementById('editMatchModal');
             if (modalEl) {
                 this.editMatchModal = window.ModalManager.getInstance('editMatchModal');
-
-                // The form inside the modal
-                const editForm = document.getElementById('editMatchForm');
-                if (editForm) {
-                    editForm.addEventListener('submit', (evt) => this.handleMatchFormSubmit(evt));
-                }
             }
 
-            // Listen for the "Add Single Week" modal's dynamic parts
+            // Set up all event handlers using delegation
+            this.setupFormDelegation();
             this.setupSingleWeekModal();
-
-            // Set up each type of button
             this.setupEditButtons();
             this.setupDeleteButtons();
             this.setupAddMatchButtons();
+            this.setupEventDelegation();
         });
     }
 
+    /**
+     * Setup delegated form submission handlers
+     */
+    setupFormDelegation() {
+        const self = this;
+
+        // Delegated submit handler for forms
+        document.addEventListener('submit', function(e) {
+            // Edit match form
+            if (e.target.id === 'editMatchForm') {
+                self.handleMatchFormSubmit(e);
+                return;
+            }
+
+            // Single week form
+            if (e.target.id === 'addSingleWeekForm') {
+                self.handleSingleWeekSubmit(e);
+                return;
+            }
+        });
+    }
+
+    /**
+     * Setup event delegation for dynamically created elements
+     */
+    setupEventDelegation() {
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action="remove-match-row"]');
+            if (btn) {
+                btn.closest('.row')?.remove();
+            }
+        });
+    }
+
+    _singleWeekDelegationRegistered = false;
+
     // ----------------------------------------------------------------
-    // 1) SINGLE WEEK MODAL / TIME SLOTS
+    // 1) SINGLE WEEK MODAL / TIME SLOTS - Using Event Delegation
     // ----------------------------------------------------------------
     setupSingleWeekModal() {
-        // We assume there's a button that triggers #addSingleWeekModal
-        const addWeekModal = document.getElementById('addSingleWeekModal');
-        if (!addWeekModal) return;
+        // Only register once
+        if (this._singleWeekDelegationRegistered) return;
+        this._singleWeekDelegationRegistered = true;
 
-        // When the modal shows, we set the league_id and clear old timeslots
-        addWeekModal.addEventListener('show.bs.modal', (event) => {
-            const button = event.relatedTarget;
+        const self = this;
+
+        // Delegated show.bs.modal handler for single week modal
+        document.addEventListener('show.bs.modal', function(e) {
+            if (e.target.id !== 'addSingleWeekModal') return;
+
+            const button = e.relatedTarget;
             if (!button) return;
+
             const leagueId = button.getAttribute('data-league-id');
-            document.getElementById('singleWeekLeagueId').value = leagueId;
-            document.getElementById('singleWeekTimeSlots').innerHTML = '';
+            const leagueIdInput = document.getElementById('singleWeekLeagueId');
+            const timeSlotsContainer = document.getElementById('singleWeekTimeSlots');
+
+            if (leagueIdInput) leagueIdInput.value = leagueId;
+            if (timeSlotsContainer) timeSlotsContainer.innerHTML = '';
 
             // Add at least one slot
-            this.addSingleWeekTimeSlot();
+            self.addSingleWeekTimeSlot();
         });
 
-        // "Add Time Slot" button
-        const addTimeSlotBtn = document.getElementById('addTimeSlotBtn');
-        if (addTimeSlotBtn) {
-            addTimeSlotBtn.addEventListener('click', (e) => {
+        // Delegated click handler for add time slot button
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('#addTimeSlotBtn')) {
                 e.preventDefault();
-                this.addSingleWeekTimeSlot();
-            });
-        }
+                self.addSingleWeekTimeSlot();
+            }
+        });
 
-        // Handle the singleWeek form submission
-        const singleWeekForm = document.getElementById('addSingleWeekForm');
-        if (singleWeekForm) {
-            singleWeekForm.addEventListener('submit', (evt) => this.handleSingleWeekSubmit(evt));
-        }
+        // Note: Form submission is handled by setupFormDelegation
     }
 
     addSingleWeekTimeSlot() {
@@ -119,7 +152,7 @@ export class ScheduleManager {
               <select name="team_b[]" class="form-select" required>
                 ${optionsHtml}
               </select>
-              <button type="button" class="btn btn-danger" onclick="this.closest('.row').remove()" aria-label="Delete"><i class="ti ti-trash"></i></button>
+              <button type="button" class="btn btn-danger" data-action="remove-match-row" aria-label="Delete"><i class="ti ti-trash"></i></button>
             </div>
           </div>
         `;
@@ -141,11 +174,15 @@ export class ScheduleManager {
                 window.bootstrap.Modal.getInstance(document.getElementById('addSingleWeekModal')).hide();
                 location.reload();
             } else {
-                alert(result.message || 'Error adding single week');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', result.message || 'Error adding single week', 'error');
+                }
             }
         } catch (err) {
             // console.error('Error in handleSingleWeekSubmit:', err);
-            alert('Error adding single week');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', 'Error adding single week', 'error');
+            }
         }
     }
 
@@ -291,21 +328,37 @@ export class ScheduleManager {
             const data = await resp.json();
             if (data.success) {
                 this.editMatchModal.hide();
-                alert(data.message || (this.isAddOperation
-                    ? 'Match created successfully' : 'Match updated successfully'));
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Success', data.message || (this.isAddOperation
+                        ? 'Match created successfully' : 'Match updated successfully'), 'success');
+                }
                 location.reload();
             } else {
-                alert(data.message || 'Failed to save match');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', data.message || 'Failed to save match', 'error');
+                }
             }
         } catch (err) {
             // console.error('Error in handleMatchFormSubmit:', err);
-            alert('Error saving match');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', 'Error saving match', 'error');
+            }
         }
     }
 
     async deleteMatch(matchId) {
-        if (!confirm('Are you sure you want to delete this match?')) {
-            return;
+        if (typeof window.Swal !== 'undefined') {
+            const result = await window.Swal.fire({
+                title: 'Delete Match',
+                text: 'Are you sure you want to delete this match?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Yes, delete it'
+            });
+            if (!result.isConfirmed) {
+                return;
+            }
         }
 
         try {
@@ -317,14 +370,20 @@ export class ScheduleManager {
             });
             const data = await resp.json();
             if (data.success) {
-                alert(data.message || 'Match deleted');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Deleted', data.message || 'Match deleted', 'success');
+                }
                 location.reload();
             } else {
-                alert(data.message || 'Failed to delete match');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', data.message || 'Failed to delete match', 'error');
+                }
             }
         } catch (err) {
             // console.error('Error deleting match:', err);
-            alert('Error deleting match');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', 'Error deleting match', 'error');
+            }
         }
     }
 
@@ -360,7 +419,7 @@ export class ScheduleManager {
     window.ScheduleManager = ScheduleManager;
 
     // Initialize function
-    function init() {
+    function initScheduleManagement() {
         if (_initialized) return;
         _initialized = true;
 
@@ -369,7 +428,7 @@ export class ScheduleManager {
 
     // Register with window.InitSystem (primary)
     if (true && window.InitSystem.register) {
-        window.InitSystem.register('schedule-management', init, {
+        window.InitSystem.register('schedule-management', initScheduleManagement, {
             priority: 40,
             reinitializable: false,
             description: 'Schedule management'
@@ -381,4 +440,4 @@ export class ScheduleManager {
     // window.InitSystem handles initialization
 
 // Backward compatibility
-window.init = init;
+window.initScheduleManagement = initScheduleManagement;

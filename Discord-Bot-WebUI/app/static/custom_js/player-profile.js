@@ -28,6 +28,7 @@
 'use strict';
 
 import { InitSystem } from '../js/init-system.js';
+import { showToast } from '../js/services/toast-service.js';
 // ========================================================================
     // CONFIGURATION
     // ========================================================================
@@ -42,41 +43,9 @@ import { InitSystem } from '../js/init-system.js';
     // UTILITY FUNCTIONS
     // ========================================================================
 
-    /**
-     * Show toast notification
-     * @param {string} message - Message to display
-     * @param {string} type - Type: success, error, warning, info
-     */
-    function showToast(message, type = 'info') {
-        // Check if SweetAlert2 is available
-        if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: type,
-                title: message,
-                showConfirmButton: false,
-                timer: CONFIG.TOAST_DURATION
-            });
-        } else {
-            // Fallback to alert
-            alert(message);
-        }
-    }
-
-    /**
-     * Get CSRF token from meta tag or form
-     * @returns {string|null} CSRF token
-     */
-    function getCSRFToken() {
-        const meta = document.querySelector('meta[name="csrf-token"]');
-        if (meta) return meta.getAttribute('content');
-
-        const input = document.querySelector('input[name="csrf_token"]');
-        if (input) return input.value;
-
-        return null;
-    }
+    // showToast imported from services/toast-service.js
+    // getCSRFToken is provided globally by csrf-fetch.js
+    const getCSRFToken = window.getCSRFToken;
 
     // ========================================================================
     // PROFILE VERIFICATION
@@ -120,10 +89,8 @@ import { InitSystem } from '../js/init-system.js';
                 }
             });
         } else {
-            const confirm = window.confirm('Please review your profile information and confirm it is accurate.\n\nVerify now?');
-            if (confirm) {
-                window.location.href = verifyUrl;
-            }
+            // SweetAlert2 not available - log and skip verification prompt
+            console.warn('[Player Profile] SweetAlert2 not available, cannot show verification dialog');
         }
     }
 
@@ -179,13 +146,14 @@ import { InitSystem } from '../js/init-system.js';
     /**
      * Initialize match filter functionality
      * Filters match history by season
+     * Uses event delegation for better performance
      */
     function initMatchFilter() {
-        const filterSelect = document.querySelector('[data-filter="matches"]');
-        if (!filterSelect) return;
+        // Delegated change handler for match filter
+        document.addEventListener('change', function(e) {
+            if (!e.target.matches('[data-filter="matches"]')) return;
 
-        filterSelect.addEventListener('change', function() {
-            const selectedSeason = this.value;
+            const selectedSeason = e.target.value;
             const matchItems = document.querySelectorAll('[data-match-season]');
 
             matchItems.forEach(item => {
@@ -321,16 +289,15 @@ import { InitSystem } from '../js/init-system.js';
     // ========================================================================
 
     /**
-     * Initialize contact modal form validation
+     * Initialize contact modal form validation using event delegation
      */
     function initContactModal() {
-        const contactModal = document.getElementById('contactModal');
-        if (!contactModal) return;
+        // Delegated submit handler for contact modal form
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            // Check if this is the contact modal form
+            if (!form.closest('#contactModal')) return;
 
-        const form = contactModal.querySelector('form');
-        if (!form) return;
-
-        form.addEventListener('submit', function(e) {
             e.preventDefault();
 
             const messageField = form.querySelector('[name="message"]');
@@ -360,8 +327,11 @@ import { InitSystem } from '../js/init-system.js';
                     form.reset();
 
                     // Close modal
-                    const modalInstance = window.bootstrap.Modal.getInstance(contactModal);
-                    if (modalInstance) modalInstance.hide();
+                    const contactModal = document.getElementById('contactModal');
+                    if (contactModal) {
+                        const modalInstance = window.bootstrap.Modal.getInstance(contactModal);
+                        if (modalInstance) modalInstance.hide();
+                    }
                 } else {
                     window.showToast(data.message || 'Failed to send message', 'error');
                 }
@@ -472,9 +442,8 @@ import { InitSystem } from '../js/init-system.js';
                 }
             });
         } else {
-            if (confirm('Remove your profile picture?')) {
-                performImageRemove(removeUrl);
-            }
+            // SweetAlert2 not available - log and skip confirmation
+            console.warn('[Player Profile] SweetAlert2 not available, cannot show image remove confirmation');
         }
     }
 
@@ -511,16 +480,16 @@ import { InitSystem } from '../js/init-system.js';
     // ========================================================================
 
     /**
-     * Initialize tab BEM class sync
+     * Initialize tab BEM class sync using event delegation
      * Removes c-tabs__link--active from all tabs when Bootstrap adds .active
      * This prevents two tabs appearing active simultaneously
      */
     function initTabSync() {
-        const tabContainer = document.querySelector('[data-component="profile-tabs"]');
-        if (!tabContainer) return;
+        // Delegated shown.bs.tab handler for profile tabs
+        document.addEventListener('shown.bs.tab', function(e) {
+            const tabContainer = e.target.closest('[data-component="profile-tabs"]');
+            if (!tabContainer) return;
 
-        // Listen for Bootstrap 5 tab show event
-        tabContainer.addEventListener('shown.bs.tab', function(e) {
             // Remove BEM active modifier from all tabs
             const allTabs = tabContainer.querySelectorAll('.c-tabs__link--active');
             allTabs.forEach(tab => {
@@ -599,11 +568,8 @@ import { InitSystem } from '../js/init-system.js';
                         }
                     });
                 } else {
-                    // Fallback to prompt
-                    const newMinute = prompt(`Edit minute for ${eventLabel} (${data.match_date}):`, currentMinute);
-                    if (newMinute !== null) {
-                        saveStatMinute(statId, newMinute);
-                    }
+                    // SweetAlert2 not available - log and skip edit prompt
+                    console.warn('[Player Profile] SweetAlert2 not available, cannot show edit stat modal');
                 }
             })
             .catch(error => {
@@ -670,9 +636,8 @@ import { InitSystem } from '../js/init-system.js';
                 }
             });
         } else {
-            if (confirm(`Remove "${eventText}"? This will also update the player's overall stats.`)) {
-                performRemoveStat(statId, row);
-            }
+            // SweetAlert2 not available - log and skip confirmation
+            console.warn('[Player Profile] SweetAlert2 not available, cannot show stat remove confirmation');
         }
     }
 
@@ -720,7 +685,7 @@ import { InitSystem } from '../js/init-system.js';
     /**
      * Initialize all profile functionality
      */
-    function init() {
+    function initPlayerProfile() {
         console.log('[Player Profile] Initializing...');
 
         // Initialize all features
@@ -744,8 +709,8 @@ import { InitSystem } from '../js/init-system.js';
 
     // Add _initialized guard
     let _initialized = false;
-    const originalInit = init;
-    init = function() {
+    const originalInit = initPlayerProfile;
+    initPlayerProfile = function() {
         if (_initialized) return;
         _initialized = true;
         originalInit();
@@ -753,7 +718,7 @@ import { InitSystem } from '../js/init-system.js';
 
     // Register with window.InitSystem (primary)
     if (true && window.InitSystem.register) {
-        window.InitSystem.register('player-profile', init, {
+        window.InitSystem.register('player-profile', initPlayerProfile, {
             priority: 45,
             reinitializable: false,
             description: 'Player profile page functionality'
@@ -766,80 +731,9 @@ import { InitSystem } from '../js/init-system.js';
     // Expose public API
     window.PlayerProfile = {
         version: '1.0.0',
-        showToast,
         showVerificationDialog,
         showDiscordLinkDialog,
-        init
+        init: initPlayerProfile
     };
 
-// Backward compatibility
-window.CONFIG = CONFIG;
-
-// Backward compatibility
-window.showToast = showToast;
-
-// Backward compatibility
-window.getCSRFToken = getCSRFToken;
-
-// Backward compatibility
-window.initProfileVerification = initProfileVerification;
-
-// Backward compatibility
-window.showVerificationDialog = showVerificationDialog;
-
-// Backward compatibility
-window.initDiscordPrompt = initDiscordPrompt;
-
-// Backward compatibility
-window.showDiscordLinkDialog = showDiscordLinkDialog;
-
-// Backward compatibility
-window.initMatchFilter = initMatchFilter;
-
-// Backward compatibility
-window.initEditModeToggles = initEditModeToggles;
-
-// Backward compatibility
-window.enterEditMode = enterEditMode;
-
-// Backward compatibility
-window.exitEditMode = exitEditMode;
-
-// Backward compatibility
-window.initContactModal = initContactModal;
-
-// Backward compatibility
-window.initFlashMessages = initFlashMessages;
-
-// Backward compatibility
-window.initTooltips = initTooltips;
-
-// Backward compatibility
-window.initProfileImageActions = initProfileImageActions;
-
-// Backward compatibility
-window.handleImageRemove = handleImageRemove;
-
-// Backward compatibility
-window.performImageRemove = performImageRemove;
-
-// Backward compatibility
-window.initTabSync = initTabSync;
-
-// Backward compatibility
-window.initMatchStatActions = initMatchStatActions;
-
-// Backward compatibility
-window.openEditStatModal = openEditStatModal;
-
-// Backward compatibility
-window.saveStatMinute = saveStatMinute;
-
-// Backward compatibility
-window.confirmRemoveStat = confirmRemoveStat;
-
-// Backward compatibility
-window.performRemoveStat = performRemoveStat;
-
-// Backward compatibility
-window.init = init;
+// No additional window exports needed - window.PlayerProfile provides public API

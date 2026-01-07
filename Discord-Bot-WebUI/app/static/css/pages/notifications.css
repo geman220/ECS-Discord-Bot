@@ -9,7 +9,7 @@
  * ARCHITECTURAL COMPLIANCE:
  * - 100% BEM naming: .c-component__element--modifier
  * - Zero hardcoded values (design tokens only)
- * - Zero !important declarations
+ * - Zero declarations
  * - State-driven styling with .is-* classes
  * - Mobile-first responsive design
  * - Full dark mode support via [data-style="dark"]
@@ -72,6 +72,7 @@
 }
 
 /* Mobile adjustments */
+
 @media (max-width: 767.98px) {
   .c-notifications-header {
     flex-direction: column;
@@ -105,22 +106,49 @@
 }
 
 /* Staggered entrance animation */
+
 .c-notifications-list .c-notification-card {
   animation: slideInFromRight 0.4s ease-out backwards;
+  position: relative;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition-all);
+  display: flex;
+  align-items: stretch;
 }
 
-.c-notifications-list .c-notification-card:nth-child(1) { animation-delay: 0.05s; }
-.c-notifications-list .c-notification-card:nth-child(2) { animation-delay: 0.1s; }
-.c-notifications-list .c-notification-card:nth-child(3) { animation-delay: 0.15s; }
-.c-notifications-list .c-notification-card:nth-child(4) { animation-delay: 0.2s; }
-.c-notifications-list .c-notification-card:nth-child(5) { animation-delay: 0.25s; }
-.c-notifications-list .c-notification-card:nth-child(n+6) { animation-delay: 0.3s; }
+.c-notifications-list .c-notification-card:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.c-notifications-list .c-notification-card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.c-notifications-list .c-notification-card:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.c-notifications-list .c-notification-card:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+.c-notifications-list .c-notification-card:nth-child(5) {
+  animation-delay: 0.25s;
+}
+
+.c-notifications-list .c-notification-card:nth-child(n+6) {
+  animation-delay: 0.3s;
+}
 
 @keyframes slideInFromRight {
   from {
     opacity: 0;
     transform: translateX(30px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -133,17 +161,6 @@
    Scoped to .c-notifications-list for page-specific design
    ============================================================================ */
 
-.c-notifications-list .c-notification-card {
-  position: relative;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  transition: var(--transition-all);
-  display: flex;
-  align-items: stretch;
-}
-
 .c-notifications-list .c-notification-card:hover {
   transform: translateX(-4px);
   box-shadow: var(--shadow-lg);
@@ -151,6 +168,7 @@
 }
 
 /* Unread indicator stripe */
+
 .c-notifications-list .c-notification-card__indicator {
   width: 4px;
   background: transparent;
@@ -168,6 +186,7 @@
 }
 
 /* Card content */
+
 .c-notifications-list .c-notification-card__content {
   flex: 1;
   padding: var(--space-4) var(--space-5);
@@ -192,6 +211,7 @@
 }
 
 /* Unread styling - bolder title */
+
 .c-notifications-list .c-notification-card--unread .c-notification-card__title {
   font-weight: var(--font-bold);
   color: var(--color-primary);
@@ -215,6 +235,7 @@
 }
 
 /* Card actions */
+
 .c-notifications-list .c-notification-card__actions {
   flex-shrink: 0;
   display: flex;
@@ -255,6 +276,7 @@
 }
 
 /* Fading state when marking as read */
+
 .c-notifications-list .c-notification-card.is-fading {
   opacity: 0.5;
   transform: translateX(-10px);
@@ -262,6 +284,7 @@
 }
 
 /* Mobile adjustments */
+
 @media (max-width: 767.98px) {
   .c-notifications-list .c-notification-card__content {
     flex-direction: column;
@@ -296,11 +319,13 @@
    ============================================================================ */
 
 /* Notifications page specific animation */
+
 @keyframes c-notifications-fadeInScale {
   from {
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -311,7 +336,6 @@
   animation: c-notifications-fadeInScale 0.5s ease-out;
   margin-top: var(--space-8);
 }
-
 
 /* ============================================================================
    DARK MODE SUPPORT
@@ -377,6 +401,7 @@
 }
 
 /* Focus visible states for keyboard navigation */
+
 .c-notifications-list .c-notification-card:focus-within {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;

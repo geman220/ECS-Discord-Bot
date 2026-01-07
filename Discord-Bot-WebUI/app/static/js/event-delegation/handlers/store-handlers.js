@@ -100,24 +100,20 @@ window.EventDelegation.register('delete-store-item', function(element, e) {
         return;
     }
 
-    if (typeof window.Swal === 'undefined') {
-        if (!confirm(`Delete "${itemName}"?`)) return;
-        performDeleteStoreItem(itemId, element);
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Delete Item',
+            text: `Are you sure you want to delete "${itemName}"? This cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performDeleteStoreItem(itemId, element);
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Delete Item',
-        text: `Are you sure you want to delete "${itemName}"? This cannot be undone.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Delete',
-        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performDeleteStoreItem(itemId, element);
-        }
-    });
 });
 
 function performDeleteStoreItem(itemId, element) {
@@ -303,24 +299,20 @@ window.EventDelegation.register('fulfill-order', function(element, e) {
         return;
     }
 
-    if (typeof window.Swal === 'undefined') {
-        if (!confirm('Mark this order as fulfilled?')) return;
-        performFulfillOrder(orderId, element);
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Fulfill Order',
+            text: 'Mark this order as fulfilled?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Fulfill',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#28a745'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performFulfillOrder(orderId, element);
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Fulfill Order',
-        text: 'Mark this order as fulfilled?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Fulfill',
-        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#28a745'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performFulfillOrder(orderId, element);
-        }
-    });
 });
 
 function performFulfillOrder(orderId, element) {
@@ -379,24 +371,20 @@ window.EventDelegation.register('cancel-order', function(element, e) {
         return;
     }
 
-    if (typeof window.Swal === 'undefined') {
-        if (!confirm('Cancel this order?')) return;
-        performCancelOrder(orderId, element);
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Cancel Order',
+            text: 'Are you sure you want to cancel this order?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Cancel Order',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performCancelOrder(orderId, element);
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Cancel Order',
-        text: 'Are you sure you want to cancel this order?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Cancel Order',
-        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performCancelOrder(orderId, element);
-        }
-    });
 });
 
 function performCancelOrder(orderId, element) {

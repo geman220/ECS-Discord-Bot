@@ -1114,10 +1114,24 @@ def edit_scheduled_message():
             flash('Scheduled message not found.', 'error')
             return redirect(url_for('admin_panel.scheduled_messages'))
         
-        # For now, redirect to the details page since we don't have an edit form
-        # In a full implementation, this would render an edit form
-        flash(f'Edit functionality for message {message_id} coming soon!', 'info')
-        return redirect(url_for('admin_panel.scheduled_messages'))
+        # Return JSON if requested via AJAX, otherwise redirect with data in flash
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': True,
+                'message': {
+                    'id': message.id,
+                    'message_type': message.message_type,
+                    'content': message.content,
+                    'target_channel': message.target_channel,
+                    'schedule_date': message.scheduled_time.isoformat() if message.scheduled_time else None,
+                    'status': message.status,
+                    'created_at': message.created_at.isoformat() if message.created_at else None
+                }
+            })
+
+        # For non-AJAX requests, redirect to scheduled messages with edit action
+        flash(f'Edit message #{message_id} using the form below.', 'info')
+        return redirect(url_for('admin_panel.scheduled_messages', edit=message_id))
         
     except Exception as e:
         logger.error(f"Error loading scheduled message for edit: {e}")

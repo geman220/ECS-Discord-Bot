@@ -40,6 +40,8 @@
 
 /**
  * Centralized initialization system for managing component startup
+ * Note: Using window.InitSystem directly for compatibility with both
+ * ES modules (Vite production) and non-module scripts (Flask-Assets dev)
  */
 export const InitSystem = {
     // Initialization state

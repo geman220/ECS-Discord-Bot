@@ -142,7 +142,7 @@
         <div class="col-xl-4 col-lg-5 col-md-5 col-12 mb-4">
             <!-- Contact Info Card -->
             {% if can_view_contact_info or is_own_profile %}
-            <div class="c-info-card" data-component="info-card">
+            <div class="c-info-c-card" data-component="info-card">
                 <div class="c-info-card__header">
                     <h5 class="c-info-card__title">Contact Information</h5>
                 </div>
@@ -182,7 +182,7 @@
 
             <!-- Profile Verification Card -->
             {% if is_own_profile or 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
-            <div class="c-info-card c-info-card--verification" data-component="verification-card">
+            <div class="c-info-c-card c-info-card--verification" data-component="verification-card">
                 <div class="c-info-card__header">
                     <h5 class="c-info-card__title">Profile Status</h5>
                 </div>
@@ -266,7 +266,7 @@
 
             <!-- Stats Card -->
             {% if has_permission('view_player_goals_assists') or has_permission('view_player_cards') %}
-            <div class="c-stats-card" data-component="stats-card">
+            <div class="c-stats-c-card" data-component="stats-card">
                 <div class="c-stats-card__header">
                     <h5 class="c-stats-card__title">Player Statistics</h5>
                 </div>
@@ -330,7 +330,7 @@
 
             <!-- Team History Card - Only visible if viewer has access -->
             {% if can_view_team_history or is_own_profile or is_admin %}
-            <div class="c-info-card" data-component="team-history">
+            <div class="c-info-c-card" data-component="team-history">
                 <div class="c-info-card__header">
                     <h5 class="c-info-card__title">Team History</h5>
                 </div>
@@ -382,7 +382,7 @@
 
             <!-- Restricted Profile Message - shown when profile is private and viewer can't see details -->
             {% if profile_is_restricted and not is_own_profile and not is_admin %}
-            <div class="c-info-card c-info-card--muted" data-component="restricted-profile">
+            <div class="c-info-c-card c-info-card--muted" data-component="restricted-profile">
                 <div class="c-info-card__body">
                     <div class="c-empty-state" data-component="empty-state">
                         <div class="c-empty-state__icon c-empty-state__icon--muted">
@@ -397,7 +397,7 @@
 
             <!-- Admin Actions Card -->
             {% if can_edit_stats %}
-            <div class="c-info-card c-info-card--admin" data-component="admin-actions">
+            <div class="c-info-c-card c-info-card--admin" data-component="admin-actions">
                 <div class="c-info-card__header">
                     <button class="c-collapse-toggle"
                             type="button"
@@ -1049,7 +1049,7 @@
                                 </div>
                                 <div class="c-profile-section__body">
                                     <!-- Match Stats Summary Table -->
-                                    <div class="c-match-stats-table" id="matchStatsContainer" data-match-stats>
+                                    <div class="c-match-stats-c-table" id="matchStatsContainer" data-match-stats>
                                         {% if player.events %}
                                         <div class="c-match-stats-table__header">
                                             <div class="c-match-stats-table__col c-match-stats-table__col--date">Date</div>

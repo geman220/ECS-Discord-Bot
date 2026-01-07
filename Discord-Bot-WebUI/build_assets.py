@@ -84,8 +84,26 @@ def build_bundles(app, clean=False):
     # Get the assets environment
     assets = app.extensions.get('assets')
     if not assets:
-        print("ERROR: Assets environment not found!")
-        return False
+        print("=" * 70)
+        print("FLASK-ASSETS DEPRECATED - USING VITE")
+        print("=" * 70)
+        print()
+        print("Flask-Assets is no longer used. Assets are now built by Vite.")
+        print("Run 'npm run build' to build production assets.")
+        print()
+        print("Checking for Vite assets...")
+        vite_dist = Path(app.static_folder) / 'vite-dist'
+        if vite_dist.exists():
+            css_files = list(vite_dist.glob('**/*.css'))
+            js_files = list(vite_dist.glob('**/*.js'))
+            print(f"  ✓ Found {len(css_files)} CSS files in vite-dist/")
+            print(f"  ✓ Found {len(js_files)} JS files in vite-dist/")
+            print()
+            print("✅ Vite assets are ready!")
+            return True
+        else:
+            print("  ⚠ vite-dist/ not found. Run 'npm run build' first.")
+            return True  # Don't fail - Vite handles this separately
 
     # Force production settings
     assets.debug = False

@@ -20,7 +20,7 @@ let _initialized = false;
 /**
    * Haptics controller with various vibration patterns
    */
-export const Haptics = {
+const Haptics = {
     /**
      * Check if Vibration API is supported
      * @returns {boolean}

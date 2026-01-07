@@ -7,11 +7,11 @@
  * All inline styles have been extracted and converted to use design tokens.
  *
  * REMEDIATION CHANGES:
- * - Removed ALL 1 unjustified !important declaration
+ * - Removed ALL 1 unjustified declaration
  * - Fixed specificity issues properly with .players-page wrapper
  * - All colors already using design tokens (no hardcoded colors found)
  * - Maintained full dark mode support
- * - Uses proper CSS cascade without !important
+ * - Uses proper CSS cascade without
  *
  * Design System Compliance:
  * - Uses CSS variables from tokens/colors.css
@@ -23,7 +23,7 @@
  * - Extracted 1 inline style from JavaScript-generated content (line 231)
  * - Created semantic classes for all dynamic progress bar states
  *
- * Target: 0 unjustified !important declarations (5 justified print/a11y)
+ * Target: 0 unjustified declarations (5 justified print/a11y)
  * ============================================================================
  */
 
@@ -215,7 +215,7 @@
 }
 
 /* Mobile table card styling */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
     .players-page .mobile-card-table thead {
         display: none;
     }
@@ -235,7 +235,7 @@
     }
 
     /**
-     * REMEDIATION: Removed !important from text-align
+     * REMEDIATION: Removed from text-align
      * Using higher specificity (.players-page .mobile-card-table tbody td)
      * to override any Bootstrap or global table styles
      */
@@ -695,7 +695,7 @@
    Mobile-specific styling
    ============================================================================ */
 
-@media (max-width: 575px) {
+@media (max-width: 575.98px) {
     .players-page .mobile-action-container {
         flex-direction: column;
         align-items: stretch;
@@ -721,7 +721,7 @@
     }
 }
 
-@media (min-width: 768px) and (max-width: 991px) {
+@media (min-width: 768px) and (max-width: 991.98px) {
     .players-page .mobile-button-container {
         flex-wrap: nowrap;
     }
@@ -749,7 +749,7 @@
     .players-page .mobile-action-container,
     .players-page .table-actions,
     .players-page .pagination {
-        display: none !important;
+        display: none;
     }
 
     .players-page .mobile-card-table {
@@ -757,7 +757,7 @@
     }
 
     .players-page .mobile-card-table thead {
-        background-color: transparent !important;
+        background-color: transparent;
     }
 
     .players-page .mobile-card-table tbody tr {
@@ -797,7 +797,7 @@
  * prefers-reduced-motion MUST have all animations disabled for health and safety.
  * This is a WCAG 2.1 Level AA requirement (Success Criterion 2.3.3).
  *
- * The !important declarations are necessary because:
+ * The declarations are necessary because:
  * 1. Animation/transition properties may be defined inline or with higher specificity
  * 2. This is a user preference that must override ALL other styling for accessibility
  * 3. Failure to disable animations can cause dizziness, nausea, or seizures
@@ -808,9 +808,9 @@
  */
 @media (prefers-reduced-motion: reduce) {
     .players-page * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+        transition-duration: 0.01ms;
     }
 
     .players-page .progress-bar-animated {

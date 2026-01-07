@@ -52,6 +52,10 @@ function setViewportHeight() {
  * Enables swipe gestures for tab navigation on mobile devices
  * ============================================================================
  */
+let _swipeNavRegistered = false;
+let _swipeTouchStartX = 0;
+let _swipeTouchEndX = 0;
+
 function initializeSwipeNavigation() {
     // Only apply on mobile
     if (window.innerWidth >= CONFIG.MOBILE_BREAKPOINT) {
@@ -63,75 +67,95 @@ function initializeSwipeNavigation() {
     tabContainers.forEach(container => {
         // Add mobile-specific classes
         container.classList.add('small-tabs', 'overflow-auto', 'flex-nowrap');
-
-        let touchStartX = 0;
-        let touchEndX = 0;
-
-        // Find associated tab content
-        const tabContentId = container.getAttribute('aria-controls');
-        const tabPanes = tabContentId ?
-            document.getElementById(tabContentId) :
-            document.querySelector('[data-role="tab-content"]');
-
-        if (!tabPanes) return;
-
-        // Touch event handlers
-        tabPanes.addEventListener('touchstart', (e) => {
-            touchStartX = e.changedTouches[0].screenX;
-        }, { passive: true });
-
-        tabPanes.addEventListener('touchend', (e) => {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe(container);
-        }, { passive: true });
-
-        function handleSwipe(tabContainer) {
-            const tabs = Array.from(tabContainer.querySelectorAll('[data-action="switch-tab"]'));
-            const activeIndex = tabs.findIndex(tab => tab.classList.contains('is-active'));
-
-            // Check swipe direction and threshold
-            const swipeDistance = touchEndX - touchStartX;
-
-            if (swipeDistance < -CONFIG.SWIPE_THRESHOLD && activeIndex < tabs.length - 1) {
-                // Swipe left - next tab
-                tabs[activeIndex + 1].click();
-            } else if (swipeDistance > CONFIG.SWIPE_THRESHOLD && activeIndex > 0) {
-                // Swipe right - previous tab
-                tabs[activeIndex - 1].click();
-            }
-        }
     });
+
+    // Set up delegated touch handlers once
+    if (_swipeNavRegistered) return;
+    _swipeNavRegistered = true;
+
+    // Delegated touchstart handler
+    document.addEventListener('touchstart', function(e) {
+        const tabContent = e.target.closest('[data-role="tab-content"]');
+        if (tabContent) {
+            _swipeTouchStartX = e.changedTouches[0].screenX;
+        }
+    }, { passive: true });
+
+    // Delegated touchend handler
+    document.addEventListener('touchend', function(e) {
+        const tabContent = e.target.closest('[data-role="tab-content"]');
+        if (!tabContent) return;
+
+        _swipeTouchEndX = e.changedTouches[0].screenX;
+
+        // Find the associated tab container
+        const tabContainer = document.querySelector('[data-role="tab-navigation"]');
+        if (!tabContainer) return;
+
+        const tabs = Array.from(tabContainer.querySelectorAll('[data-action="switch-tab"]'));
+        const activeIndex = tabs.findIndex(tab => tab.classList.contains('is-active'));
+
+        // Check swipe direction and threshold
+        const swipeDistance = _swipeTouchEndX - _swipeTouchStartX;
+
+        if (swipeDistance < -CONFIG.SWIPE_THRESHOLD && activeIndex < tabs.length - 1) {
+            // Swipe left - next tab
+            tabs[activeIndex + 1].click();
+        } else if (swipeDistance > CONFIG.SWIPE_THRESHOLD && activeIndex > 0) {
+            // Swipe right - previous tab
+            tabs[activeIndex - 1].click();
+        }
+    }, { passive: true });
 }
 
 /**
  * ============================================================================
  * TAB AUTO-SCROLL
  * Scrolls active tab into view when it's not fully visible
+ * Uses event delegation for better performance
  * ============================================================================
  */
+let _tabAutoScrollRegistered = false;
+
 function initializeTabAutoScroll() {
-    const tabs = document.querySelectorAll('[data-action="switch-tab"]');
+    // Set up delegated handlers once
+    if (_tabAutoScrollRegistered) return;
+    _tabAutoScrollRegistered = true;
 
-    tabs.forEach(tab => {
-        // Use Bootstrap's shown.bs.tab event if available, otherwise use click
-        const eventName = typeof window.bootstrap !== 'undefined' ? 'shown.bs.tab' : 'click';
+    // Helper function to scroll tab into view
+    function scrollTabIntoView(tab) {
+        const container = tab.closest('[data-role="tab-navigation"]');
+        if (!container) return;
 
-        tab.addEventListener(eventName, function() {
-            const container = this.closest('[data-role="tab-navigation"]');
-            if (!container) return;
+        const tabRect = tab.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
 
-            const tabRect = this.getBoundingClientRect();
-            const containerRect = container.getBoundingClientRect();
+        // Check if tab is not fully visible
+        if (tabRect.right > containerRect.right || tabRect.left < containerRect.left) {
+            tab.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        }
+    }
 
-            // Check if tab is not fully visible
-            if (tabRect.right > containerRect.right || tabRect.left < containerRect.left) {
-                this.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'nearest',
-                    inline: 'center'
-                });
+    // Use Bootstrap's shown.bs.tab event if available
+    if (typeof window.bootstrap !== 'undefined') {
+        document.addEventListener('shown.bs.tab', function(e) {
+            if (e.target.matches('[data-action="switch-tab"]')) {
+                scrollTabIntoView(e.target);
             }
         });
+    }
+
+    // Also handle click events as fallback
+    document.addEventListener('click', function(e) {
+        const tab = e.target.closest('[data-action="switch-tab"]');
+        if (tab) {
+            // Small delay to allow tab state to update
+            setTimeout(() => scrollTabIntoView(tab), 50);
+        }
     });
 }
 
@@ -368,7 +392,7 @@ let _initialized = false;
  * Main initialization function called on page load
  * ============================================================================
  */
-function init() {
+function initHome() {
     // Guard against duplicate initialization
     if (_initialized) return;
     _initialized = true;
@@ -401,7 +425,7 @@ function init() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('home-page', init, {
+    window.InitSystem.register('home-page', initHome, {
         priority: 35,
         reinitializable: false,
         description: 'Home/dashboard page functionality'
@@ -411,23 +435,9 @@ if (window.InitSystem && window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-// Expose API for external use (if needed)
+// Export public API for programmatic control
 window.HomePage = {
     setViewportHeight,
     initializeSwipeNavigation,
     initializeTabAutoScroll
 };
-
-// Backward compatibility
-window.CONFIG = CONFIG;
-window.setViewportHeight = setViewportHeight;
-window.initializeSwipeNavigation = initializeSwipeNavigation;
-window.initializeTabAutoScroll = initializeTabAutoScroll;
-window.initializeModalIosFix = initializeModalIosFix;
-window.enableFastClick = enableFastClick;
-window.registerServiceWorker = registerServiceWorker;
-window.initializeDiscordMembershipCheck = initializeDiscordMembershipCheck;
-window.showDiscordMembershipPrompt = showDiscordMembershipPrompt;
-window.triggerMembershipCheck = triggerMembershipCheck;
-window.showDiscordLinkPrompt = showDiscordLinkPrompt;
-window.init = init;

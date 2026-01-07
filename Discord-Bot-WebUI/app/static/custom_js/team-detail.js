@@ -42,7 +42,7 @@ let _fileInputHandlersSetup = false;
 /**
  * Initialize on DOM ready
  */
-export function init() {
+export function initTeamDetail() {
     // Guard against duplicate initialization
     if (_initialized) return;
     _initialized = true;
@@ -56,7 +56,7 @@ export function init() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem.register) {
-    window.InitSystem.register('team-detail', init, {
+    window.InitSystem.register('team-detail', initTeamDetail, {
         priority: 40,
         reinitializable: false,
         description: 'Team detail page functionality'
@@ -148,36 +148,36 @@ export function handleTriggerBackgroundInput(target) {
 }
 
 /**
- * Setup file input change handlers
+ * Setup file input change handlers using event delegation
  */
 export function setupFileInputHandlers() {
     if (_fileInputHandlersSetup) return;
     _fileInputHandlersSetup = true;
 
-    // Background image upload with cropping
-    const backgroundInput = document.querySelector('[data-action="load-image-cropping"]');
-    if (backgroundInput) {
-        backgroundInput.addEventListener('change', function(e) {
+    // Delegated change handler for file inputs
+    document.addEventListener('change', function(e) {
+        // Background image upload with cropping
+        if (e.target.matches('[data-action="load-image-cropping"]')) {
             if (e.target.files && e.target.files[0]) {
                 loadImageForCropping(e.target);
             }
-        });
-    }
+        }
+    });
 }
 
 /**
- * Initialize auto-submit for file uploads
+ * Initialize auto-submit for file uploads using event delegation
+ * Note: Auto-submit change handler is combined with setupFileInputHandlers
  */
 export function initializeAutoSubmit() {
-    const autoSubmitInputs = document.querySelectorAll('[data-action="auto-submit"]');
-
-    autoSubmitInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            const form = this.closest('form');
+    // Delegated change handler for auto-submit inputs
+    document.addEventListener('change', function(e) {
+        if (e.target.matches('[data-action="auto-submit"]')) {
+            const form = e.target.closest('form');
             if (form) {
                 form.submit();
             }
-        });
+        }
     });
 }
 
@@ -217,69 +217,85 @@ export function loadImageForCropping(input) {
     }
 }
 
+// Track first interaction for drag hint
+let _firstInteraction = true;
+let _positioningInitialized = false;
+
 /**
- * Initialize image positioning controls
+ * Hide drag hint after first interaction
+ */
+function hideDragHint() {
+    if (_firstInteraction) {
+        const dragHint = document.getElementById('dragHint');
+        if (dragHint) {
+            dragHint.style.display = 'none';
+        }
+        _firstInteraction = false;
+    }
+}
+
+/**
+ * Initialize image positioning controls using event delegation
  */
 export function initializeImagePositioning() {
     const previewWrapper = document.getElementById('previewImageWrapper');
     const zoomSlider = document.getElementById('zoomSlider');
     const xPosSlider = document.getElementById('xPosSlider');
     const yPosSlider = document.getElementById('yPosSlider');
-    const dragHint = document.getElementById('dragHint');
 
     if (!previewWrapper || !zoomSlider || !xPosSlider || !yPosSlider) return;
 
     // Set initial background
     updatePreview();
 
-    // Hide drag hint after first interaction
-    let firstInteraction = true;
-    function hideDragHint() {
-        if (firstInteraction && dragHint) {
-            dragHint.style.display = 'none';
-            firstInteraction = false;
+    // Only setup delegated handlers once
+    if (_positioningInitialized) return;
+    _positioningInitialized = true;
+
+    // Delegated input handler for sliders
+    document.addEventListener('input', function(e) {
+        if (e.target.id === 'zoomSlider') {
+            imagePositionData.zoom = parseFloat(e.target.value);
+            updatePreview();
+            hideDragHint();
+        } else if (e.target.id === 'xPosSlider') {
+            imagePositionData.xPos = parseFloat(e.target.value);
+            updatePreview();
+            hideDragHint();
+        } else if (e.target.id === 'yPosSlider') {
+            imagePositionData.yPos = parseFloat(e.target.value);
+            updatePreview();
+            hideDragHint();
         }
-    }
-
-    // Zoom slider
-    zoomSlider.addEventListener('input', function() {
-        imagePositionData.zoom = parseFloat(this.value);
-        updatePreview();
-        hideDragHint();
     });
 
-    // Position sliders
-    xPosSlider.addEventListener('input', function() {
-        imagePositionData.xPos = parseFloat(this.value);
-        updatePreview();
-        hideDragHint();
+    // Delegated mousedown on preview wrapper
+    document.addEventListener('mousedown', function(e) {
+        if (e.target.closest('#previewImageWrapper')) {
+            startDrag(e);
+        }
     });
 
-    yPosSlider.addEventListener('input', function() {
-        imagePositionData.yPos = parseFloat(this.value);
-        updatePreview();
-        hideDragHint();
-    });
-
-    // Drag to reposition
-    previewWrapper.addEventListener('mousedown', startDrag);
+    // Document-level mouse/touch move and end (already document-level, just register once)
     document.addEventListener('mousemove', drag);
     document.addEventListener('mouseup', endDrag);
 
-    // Touch support
-    previewWrapper.addEventListener('touchstart', function(e) {
-        const touch = e.touches[0];
-        startDrag({ clientX: touch.clientX, clientY: touch.clientY });
-    });
+    // Touch support - delegated touchstart
+    document.addEventListener('touchstart', function(e) {
+        if (e.target.closest('#previewImageWrapper')) {
+            const touch = e.touches[0];
+            startDrag({ clientX: touch.clientX, clientY: touch.clientY });
+        }
+    }, { passive: true });
 
     document.addEventListener('touchmove', function(e) {
         if (isDragging) {
             const touch = e.touches[0];
             drag({ clientX: touch.clientX, clientY: touch.clientY });
         }
-    });
+    }, { passive: true });
 
-    document.addEventListener('touchend', endDrag);
+    document.addEventListener('touchend', endDrag, { passive: true });
 }
 
 /**
@@ -446,7 +462,9 @@ export function uploadCroppedImage() {
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error uploading image. Please try again.');
+                    if (typeof window.Swal !== 'undefined') {
+                        window.Swal.fire('Upload Error', 'Error uploading image. Please try again.', 'error');
+                    }
                     uploadBtn.innerHTML = originalHTML;
                     uploadBtn.disabled = false;
                 });
@@ -469,9 +487,8 @@ export function handleAssignDiscordRoles(target) {
     const teamId = target.dataset.teamId;
 
     if (typeof window.Swal === 'undefined') {
-        if (confirm('Are you sure you want to assign Discord roles to all players on this team?')) {
-            assignDiscordRolesToTeam(teamId);
-        }
+        // Fallback removed - SweetAlert2 is required
+        console.warn('SweetAlert2 not loaded - cannot show confirmation dialog');
         return;
     }
 
@@ -532,8 +549,6 @@ export function assignDiscordRolesToTeam(teamId) {
                     timer: 5000,
                     showConfirmButton: true
                 });
-            } else {
-                alert(`Discord roles assigned successfully! ${data.processed_count || 0} players processed.`);
             }
         } else {
             throw new Error(data.message || 'Failed to assign Discord roles');
@@ -547,8 +562,6 @@ export function assignDiscordRolesToTeam(teamId) {
                 title: 'Error',
                 text: error.message || 'Failed to assign Discord roles. Please try again.'
             });
-        } else {
-            alert('Error: ' + (error.message || 'Failed to assign Discord roles. Please try again.'));
         }
     });
 }
@@ -560,9 +573,8 @@ export function handleRefreshDiscordStatus(target) {
     const teamId = target.dataset.teamId;
 
     if (typeof window.Swal === 'undefined') {
-        if (confirm('Are you sure you want to refresh Discord status for all players on this team?')) {
-            refreshDiscordStatusForTeam(teamId);
-        }
+        // Fallback removed - SweetAlert2 is required
+        console.warn('SweetAlert2 not loaded - cannot show confirmation dialog');
         return;
     }
 
@@ -624,9 +636,6 @@ export function refreshDiscordStatusForTeam(teamId) {
                 }).then(() => {
                     window.location.reload();
                 });
-            } else {
-                alert(`Discord status refreshed successfully! ${data.processed_count || 0} players processed.`);
-                window.location.reload();
             }
         } else {
             throw new Error(data.message || 'Failed to refresh Discord status');
@@ -640,8 +649,6 @@ export function refreshDiscordStatusForTeam(teamId) {
                 title: 'Error',
                 text: error.message || 'Failed to refresh Discord status. Please try again.'
             });
-        } else {
-            alert('Error: ' + (error.message || 'Failed to refresh Discord status. Please try again.'));
         }
     });
 }
@@ -860,42 +867,16 @@ export function initializeScheduleAccordion() {
         weekToOpen.open = true;
     }
 
-    // Listen for toggle events to update button states
-    weeks.forEach(week => {
-        week.addEventListener('toggle', updateScheduleControlsState);
-    });
+    // Delegated toggle handler for schedule weeks
+    document.addEventListener('toggle', function(e) {
+        if (e.target.matches('.c-schedule__week')) {
+            updateScheduleControlsState();
+        }
+    }, true); // Use capture phase for toggle events
 
     // Update button states
     updateScheduleControlsState();
 }
 
-// Export to window for backward compatibility
-window.init = init;
-window.initializeEventDelegation = initializeEventDelegation;
-window.handleTriggerFileInput = handleTriggerFileInput;
-window.handleTriggerBackgroundInput = handleTriggerBackgroundInput;
-window.setupFileInputHandlers = setupFileInputHandlers;
-window.initializeAutoSubmit = initializeAutoSubmit;
-window.loadImageForCropping = loadImageForCropping;
-window.initializeImagePositioning = initializeImagePositioning;
-window.startDrag = startDrag;
-window.drag = drag;
-window.endDrag = endDrag;
-window.updatePreview = updatePreview;
-window.handleAdjustZoom = handleAdjustZoom;
-window.resetImagePosition = resetImagePosition;
-window.uploadCroppedImage = uploadCroppedImage;
-window.getTeamIdFromUrl = getTeamIdFromUrl;
-window.handleAssignDiscordRoles = handleAssignDiscordRoles;
-window.assignDiscordRolesToTeam = assignDiscordRolesToTeam;
-window.handleRefreshDiscordStatus = handleRefreshDiscordStatus;
-window.refreshDiscordStatusForTeam = refreshDiscordStatusForTeam;
-window.handleRefreshPlayerDiscord = handleRefreshPlayerDiscord;
-window.refreshSinglePlayerDiscordStatus = refreshSinglePlayerDiscordStatus;
-window.initializeTooltips = initializeTooltips;
-window.initializeBackgroundImages = initializeBackgroundImages;
-window.getThemeColor = getThemeColor;
-window.handleExpandAllSchedule = handleExpandAllSchedule;
-window.handleCollapseAllSchedule = handleCollapseAllSchedule;
-window.updateScheduleControlsState = updateScheduleControlsState;
-window.initializeScheduleAccordion = initializeScheduleAccordion;
+// No window exports needed - InitSystem handles initialization
+// All functions use event delegation internally

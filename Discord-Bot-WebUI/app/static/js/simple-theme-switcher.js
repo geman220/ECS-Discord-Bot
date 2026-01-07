@@ -14,7 +14,7 @@
 import { InitSystem } from './init-system.js';
 import { EventDelegation } from './event-delegation/core.js';
 
-export class SimpleThemeSwitcher {
+class SimpleThemeSwitcher {
   constructor() {
     this.themes = ['light', 'dark', 'system'];
     this.variants = ['modern'];

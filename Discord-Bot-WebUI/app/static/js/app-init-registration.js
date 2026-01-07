@@ -23,7 +23,7 @@ import { EventDelegation } from './event-delegation/core.js';
 /**
  * Initialize all app components
  */
-export function init() {
+function initAppRegistration() {
     // Ensure window.InitSystem is loaded
     if (typeof window.InitSystem === 'undefined') {
         console.error('[App Init] window.InitSystem not loaded! Please include init-system.js before this file.');
@@ -173,7 +173,7 @@ export function init() {
 /**
  * Register event delegation handlers
  */
-export function registerEventHandlers() {
+function registerEventHandlers() {
     if (typeof window.EventDelegation === 'undefined') {
         return;
     }
@@ -198,18 +198,18 @@ export function registerEventHandlers() {
 
 // Auto-initialize
 if (true) {
-    init();
+    initAppRegistration();
     registerEventHandlers();
 } else {
     // Wait for window.InitSystem to be available
     document.addEventListener('DOMContentLoaded', function() {
         if (true) {
-            init();
+            initAppRegistration();
             registerEventHandlers();
         }
     });
 }
 
 // Backward compatibility
-window.init = init;
+window.initAppRegistration = initAppRegistration;
 window.registerEventHandlers = registerEventHandlers;

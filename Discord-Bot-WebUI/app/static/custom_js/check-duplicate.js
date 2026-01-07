@@ -9,7 +9,7 @@ import { InitSystem } from '../js/init-system.js';
 
 let _initialized = false;
 
-function init() {
+function initCheckDuplicate() {
     if (_initialized) return;
     _initialized = true;
 
@@ -126,11 +126,11 @@ function init() {
 // EXPORTS
 // ========================================================================
 
-export { init };
+export { initCheckDuplicate };
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('check-duplicate', init, {
+    window.InitSystem.register('check-duplicate', initCheckDuplicate, {
         priority: 45,
         reinitializable: false,
         description: 'Duplicate account detection and claim'
@@ -141,4 +141,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.checkDuplicateInit = init;
+window.checkDuplicateInit = initCheckDuplicate;

@@ -3,112 +3,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    /* Scanner - Theme-aware styling */
-    .scanner-container {
-        max-width: 100%;
-    }
-
-    #scanner-video {
-        width: 100%;
-        max-height: 350px;
-        border-radius: 8px;
-        background: var(--bs-dark);
-    }
-
-    .scanner-overlay {
-        position: relative;
-    }
-
-    .scanner-frame {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 200px;
-        height: 200px;
-        border: 3px solid rgba(255,255,255,0.8);
-        border-radius: 8px;
-        pointer-events: none;
-    }
-
-    .scanner-frame::before,
-    .scanner-frame::after {
-        content: '';
-        position: absolute;
-        width: 25px;
-        height: 25px;
-        border-color: var(--bs-success);
-        border-style: solid;
-    }
-
-    .scanner-frame::before {
-        top: -3px;
-        left: -3px;
-        border-width: 4px 0 0 4px;
-        border-radius: 8px 0 0 0;
-    }
-
-    .scanner-frame::after {
-        bottom: -3px;
-        right: -3px;
-        border-width: 0 4px 4px 0;
-        border-radius: 0 0 8px 0;
-    }
-
-    .result-card.valid {
-        border-color: var(--bs-success) !important;
-        background: var(--bs-success-bg-subtle);
-    }
-
-    .result-card.invalid {
-        border-color: var(--bs-danger) !important;
-        background: var(--bs-danger-bg-subtle);
-    }
-
-    .scan-history-item {
-        padding: 12px;
-        border-left: 4px solid;
-        margin-bottom: 8px;
-        border-radius: 0 8px 8px 0;
-        background: var(--bs-tertiary-bg);
-    }
-
-    .scan-history-item.valid {
-        border-left-color: var(--bs-success);
-    }
-
-    .scan-history-item.invalid {
-        border-left-color: var(--bs-danger);
-    }
-
-    .beep-success {
-        animation: pulse-green 0.5s ease;
-    }
-
-    .beep-error {
-        animation: pulse-red 0.5s ease;
-    }
-
-    @keyframes pulse-green {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(var(--bs-success-rgb), 0); }
-        50% { box-shadow: 0 0 0 15px rgba(var(--bs-success-rgb), 0.3); }
-    }
-
-    @keyframes pulse-red {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(var(--bs-danger-rgb), 0); }
-        50% { box-shadow: 0 0 0 15px rgba(var(--bs-danger-rgb), 0.3); }
-    }
-
-    .stat-box {
-        padding: 16px;
-        border-radius: 8px;
-        text-align: center;
-    }
-    .stat-box.valid { background: var(--bs-success-bg-subtle); }
-    .stat-box.invalid { background: var(--bs-danger-bg-subtle); }
-    .stat-box.total { background: var(--bs-tertiary-bg); }
-</style>
+{# Styles moved to external CSS #}
 {% endblock custom_css %}
 
 {% block content %}
@@ -201,7 +96,7 @@
         <!-- Result & History Column -->
         <div class="col-lg-6">
             <!-- Latest Scan Result -->
-            <div class="c-card mb-4 result-card" id="result-card">
+            <div class="c-card mb-4 result-c-card" id="result-card">
                 <div class="c-card__header">
                     <h5 class="mb-0">
                         <i class="ti ti-user-check me-2"></i>Scan Result

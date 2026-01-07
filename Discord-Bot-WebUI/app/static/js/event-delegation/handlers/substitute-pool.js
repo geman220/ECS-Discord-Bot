@@ -1,4 +1,5 @@
 import { EventDelegation } from '../core.js';
+import { escapeHtml } from '../../utils/sanitize.js';
 
 /**
  * Substitute Pool Action Handlers
@@ -449,11 +450,11 @@ window.EventDelegation.register('show-contact-subs', function(element, e) {
                 if (contactMessage) contactMessage.value = data.template;
                 if (contactMatchDetails) {
                     contactMatchDetails.innerHTML = `
-                        <strong><i class="ti ti-vs me-1"></i>${data.match_details.home_team} vs ${data.match_details.away_team}</strong><br>
+                        <strong><i class="ti ti-vs me-1"></i>${escapeHtml(data.match_details.home_team)} vs ${escapeHtml(data.match_details.away_team)}</strong><br>
                         <small class="text-muted">
-                            <i class="ti ti-calendar me-1"></i>${data.match_details.date || 'TBD'} |
-                            <i class="ti ti-clock me-1"></i>${data.match_details.time || 'TBD'} |
-                            <i class="ti ti-map-pin me-1"></i>${data.match_details.location || 'TBD'}
+                            <i class="ti ti-calendar me-1"></i>${escapeHtml(data.match_details.date || 'TBD')} |
+                            <i class="ti ti-clock me-1"></i>${escapeHtml(data.match_details.time || 'TBD')} |
+                            <i class="ti ti-map-pin me-1"></i>${escapeHtml(data.match_details.location || 'TBD')}
                         </small>
                     `;
                 }
@@ -489,9 +490,9 @@ window.EventDelegation.register('show-contact-subs', function(element, e) {
                         html += `
                             <div class="list-group-item d-flex justify-content-between align-items-center py-2">
                                 <div>
-                                    <strong>${sub.name}</strong>
-                                    ${sub.pronouns ? '<small class="text-muted ms-1">(' + sub.pronouns + ')</small>' : ''}
-                                    ${sub.preferred_positions ? '<br><small class="text-muted">' + sub.preferred_positions + '</small>' : ''}
+                                    <strong>${escapeHtml(sub.name)}</strong>
+                                    ${sub.pronouns ? '<small class="text-muted ms-1">(' + escapeHtml(sub.pronouns) + ')</small>' : ''}
+                                    ${sub.preferred_positions ? '<br><small class="text-muted">' + escapeHtml(sub.preferred_positions) + '</small>' : ''}
                                 </div>
                                 <div class="d-flex gap-1">
                                     ${channels.join(' ')}
@@ -531,8 +532,6 @@ window.EventDelegation.register('send-to-all-subs', function(element, e) {
     if (channels.length === 0) {
         if (typeof window.Swal !== 'undefined') {
             window.Swal.fire('Error', 'Please select at least one notification channel.', 'error');
-        } else {
-            alert('Please select at least one notification channel.');
         }
         return;
     }
@@ -564,8 +563,6 @@ window.EventDelegation.register('send-to-all-subs', function(element, e) {
             if (data.success) {
                 if (typeof window.Swal !== 'undefined') {
                     window.Swal.fire('Sent!', `Successfully contacted ${data.notifications_sent} subs.`, 'success');
-                } else {
-                    alert(`Successfully contacted ${data.notifications_sent} subs.`);
                 }
                 // Close modal
                 const modalEl = document.getElementById('contactSubsModal');
@@ -576,16 +573,12 @@ window.EventDelegation.register('send-to-all-subs', function(element, e) {
             } else {
                 if (typeof window.Swal !== 'undefined') {
                     window.Swal.fire('Error', data.errors?.join(', ') || 'Failed to send notifications.', 'error');
-                } else {
-                    alert(data.errors?.join(', ') || 'Failed to send notifications.');
                 }
             }
         })
         .catch(err => {
             if (typeof window.Swal !== 'undefined') {
                 window.Swal.fire('Error', 'Network error. Please try again.', 'error');
-            } else {
-                alert('Network error. Please try again.');
             }
         });
     };
@@ -603,8 +596,6 @@ window.EventDelegation.register('send-to-all-subs', function(element, e) {
                 confirmAndSend();
             }
         });
-    } else if (confirm(`Send to all available ${leagueType} subs via ${channels.join(', ')}?`)) {
-        confirmAndSend();
     }
 }, { preventDefault: true });
 

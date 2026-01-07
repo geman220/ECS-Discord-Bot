@@ -109,10 +109,16 @@ const HelpTopicEditor = {
                 const cursor = doc.getCursor();
                 doc.replaceRange('![](' + data.url + ')', cursor);
             } else {
-                alert(data.error || 'Image upload failed');
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Upload Failed', data.error || 'Image upload failed', 'error');
+                }
             }
         })
-        .catch(() => alert('Image upload error'));
+        .catch(() => {
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Upload Error', 'Image upload error', 'error');
+            }
+        });
     },
 
     /**

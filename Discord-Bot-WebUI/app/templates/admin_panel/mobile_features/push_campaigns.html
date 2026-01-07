@@ -234,7 +234,7 @@
             <div class="c-card__body">
                 {% if campaign_data.recent_campaigns %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="campaigns">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="campaigns">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Campaign</th>
@@ -250,31 +250,31 @@
                         <tbody>
                             {% for campaign in campaign_data.recent_campaigns %}
                             <tr>
-                                <td>
+                                <td data-label="Campaign">
                                     <strong>{{ campaign.name }}</strong>
                                     <br><small class="text-muted">{{ campaign.description or 'No description' }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Type">
                                     <span class="badge bg-primary" data-badge>{{ campaign.type or 'Custom' }}</span>
                                 </td>
-                                <td>{{ campaign.sent_date }}</td>
-                                <td>
+                                <td data-label="Sent Date">{{ campaign.sent_date }}</td>
+                                <td data-label="Recipients">
                                     <span class="badge bg-info" data-badge>{{ campaign.recipients }}</span>
                                 </td>
-                                <td>
+                                <td data-label="Delivery Rate">
                                     <span class="badge bg-{{ 'success' if campaign.delivery_rate and campaign.delivery_rate.rstrip('%')|int > 90 else 'warning' }}" data-badge>
                                         {{ campaign.delivery_rate }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Open Rate">
                                     <span class="badge bg-{{ 'success' if campaign.open_rate and campaign.open_rate.rstrip('%')|int > 50 else 'secondary' }}" data-badge>
                                         {{ campaign.open_rate }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     <span class="badge bg-success" data-badge>Completed</span>
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         <button class="c-btn c-btn--outline-info" data-action="view-campaign-details" data-campaign-id="{{ campaign.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                         <button class="c-btn c-btn--outline-primary" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" aria-label="Copy"><i class="ti ti-copy"></i></button>

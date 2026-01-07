@@ -36,7 +36,13 @@
 /* Active ripple animation */
 .waves-ripple.waves-ripple-active {
     opacity: 0.3;
-    transform: scale(40);
+    transform: scale(5);  /* Reduced from 10 - 5x (100px max) is enough for most buttons */
+}
+
+/* Constrain ripple to element bounds - max 100px from center */
+.waves-effect .waves-ripple {
+    max-width: 200px;
+    max-height: 200px;
 }
 
 /* Light ripple variant */
@@ -55,11 +61,11 @@
 .waves-effect:hover,
 .waves-effect:active,
 .waves-effect:focus {
-    transform: none !important;
+    transform: none;
     transition: background-color var(--duration-fast) var(--ease-smooth),
                 color var(--duration-fast) var(--ease-smooth),
                 border-color var(--duration-fast) var(--ease-smooth),
-                box-shadow var(--duration-fast) var(--ease-smooth) !important;
+                box-shadow var(--duration-fast) var(--ease-smooth);
 }
 
 /* Dark mode adjustments */
@@ -89,5 +95,5 @@
 
 /* Remove any transform-style that conflicts */
 .waves-effect * {
-    transform-style: flat !important;
+    transform-style: flat;
 }

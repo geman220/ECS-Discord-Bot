@@ -4,28 +4,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<!-- Mobile optimizations loaded from base.html mobile.css -->
-<style>
-    .table-responsive {
-        margin-bottom: 1rem;
-    }
-
-    .accordion-button:not(.collapsed) {
-        background-color: var(--bs-primary-bg-subtle);
-    }
-
-    .edit-match-btn, .delete-match-btn, .add-match-btn {
-        margin-right: 0.5rem;
-    }
-
-    .card-header[data-bs-toggle="collapse"] {
-        cursor: pointer;
-    }
-
-    .card-header[data-bs-toggle="collapse"]:hover {
-        background-color: var(--bs-gray-100);
-    }
-</style>
+<!-- Styles in css/features/schedule-manager.css -->
 {% endblock %}
 
 {% block main_content %}
@@ -111,7 +90,7 @@
                                          data-bs-parent="#accordionWeek{{ league.id }}">
                                         <div class="c-card__body">
                                             <div class="c-table-wrapper" data-table-responsive>
-                                                <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="schedule">
+                                                <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="schedule">
                                                     <thead scope="col">
                                                         <tr>
                                                             <th scope="col">Teams</th>
@@ -126,7 +105,7 @@
                                                             <td data-label="Teams">{{ match.team_a }} vs {{ match.team_b }}</td>
                                                             <td data-label="Time">{{ match.time }}</td>
                                                             <td data-label="Location">{{ match.location }}</td>
-                                                            <td>
+                                                            <td data-label="Actions">
                                                                 <button class="c-btn c-btn--sm c-btn--primary schedule-edit-match-btn"
                                                                         data-match-id="{{ match.id }}"
                                                                         data-date="{{ data.date }}"
@@ -404,9 +383,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- 2) Include your main schedule-management.js AFTER that global -->
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script src="{{ url_for('static', filename='custom_js/schedule-management.js') }}"></script>
-
-{% endif %}
+<!-- schedule-management.js is bundled via Vite - no separate include needed -->
 {% endblock %}

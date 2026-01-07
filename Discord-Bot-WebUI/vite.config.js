@@ -2,10 +2,18 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import inject from '@rollup/plugin-inject';
 
+// BUILD_MODE controls dev vs prod behavior
+// Set BUILD_MODE=dev in .env for debugging (source maps, no minification)
+// Set BUILD_MODE=prod in .env for production (no source maps, minified)
+const isDev = process.env.BUILD_MODE === 'dev';
+
 export default defineConfig({
-  // esbuild options for minification (drops debugger statements, keeps console.log)
+  // esbuild options
   esbuild: {
-    drop: ['debugger'],
+    // In prod, drop console and debugger statements; in dev, keep them for debugging
+    drop: isDev ? [] : ['console', 'debugger'],
+    // Keep function names in dev for better stack traces
+    keepNames: isDev,
   },
 
   // Root directory for source files
@@ -47,7 +55,7 @@ export default defineConfig({
       input: {
         // Main application bundle
         main: resolve(__dirname, 'app/static/js/main-entry.js'),
-        // CSS entry
+        // CSS entry - Using CSS Cascade Layers architecture
         styles: resolve(__dirname, 'app/static/css/main-entry.css'),
       },
       output: {
@@ -63,11 +71,12 @@ export default defineConfig({
       },
     },
 
-    // Minification (esbuild is faster and uses less memory than terser)
-    minify: 'esbuild',
+    // Minification: disabled in dev for readable code, enabled in prod
+    minify: isDev ? false : 'esbuild',
 
-    // Disable source maps in production to save memory
-    sourcemap: false,
+    // Source maps: enabled in dev for debugging original files in DevTools
+    // In dev, browser shows original file:line even though code is bundled
+    sourcemap: isDev,
   },
 
   // Development server config

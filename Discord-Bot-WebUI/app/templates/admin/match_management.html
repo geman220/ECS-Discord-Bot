@@ -201,7 +201,7 @@
             <div class="col-xl-6 col-lg-12 mb-4 match-card-wrapper" data-match-id="{{ match.id }}"
                  data-match-type="current" data-competition="{{ match.competition }}" data-status="{{ match.live_reporting_status }}"
                  data-component="match-card">
-                <div class="c-card match-card h-100">
+                <div class="c-card match-c-card h-100">
                     <div class="c-card__body">
                         <!-- Match Header -->
                         <div class="d-flex justify-content-between align-items-start mb-3">
@@ -377,7 +377,7 @@
                 <div class="col-xl-6 col-lg-12 mb-4 match-card-wrapper historical-match" data-match-id="{{ match.id }}"
                      data-match-type="historical" data-competition="{{ match.competition }}" data-status="{{ match.live_reporting_status }}"
                      data-component="match-card">
-                    <div class="c-card match-card h-100 opacity-75">
+                    <div class="c-card match-c-card h-100 opacity-75">
                         <div class="c-card__body">
                             <!-- Match Header -->
                             <div class="d-flex justify-content-between align-items-start mb-3">
@@ -477,7 +477,7 @@
         <div class="c-card">
             <div class="c-card__body">
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" id="matchesTable" data-table data-mobile-table data-table-type="matches">
+                    <table class="c-c-table c-table--hoverable" id="matchesTable" data-table data-mobile-table data-table-type="matches">
                         <thead class="c-table--light" scope="col">
                             <tr>
                                 <th scope="col">Match</th>
@@ -492,7 +492,7 @@
                         <tbody>
                             {% for match in matches %}
                             <tr id="match-row-{{ match.id }}" data-match-id="{{ match.id }}" data-match-type="current">
-                                <td>
+                                <td data-label="Match">
                                     <div class="d-flex align-items-center">
                                         <div class="avatar me-2">
                                             <div class="avatar-initial bg-label-{{ 'success' if match.is_home_game else 'warning' }} rounded-circle">
@@ -511,29 +511,29 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="Date & Time">
                                     <div>{{ match.date_time.strftime('%m/%d/%Y') }}</div>
                                     <small class="text-muted">{{ match.date_time.strftime('%I:%M %p PT') }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Competition">
                                     <span class="badge bg-light text-dark" data-badge>{{ match.competition }}</span>
                                 </td>
-                                <td>
+                                <td data-label="Thread">
                                     {% if match.thread_created %}
                                     <span class="badge bg-success" data-badge>Created</span>
                                     {% else %}
                                     <span class="badge bg-warning" data-badge>Pending</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Reporting">
                                     <span class="badge bg-{{ match.status_color }}" data-badge>{{ match.status_display }}</span>
                                 </td>
-                                <td>
+                                <td data-label="Tasks">
                                     <div id="table-task-details-{{ match.id }}">
                                         <small class="text-muted">Loading...</small>
                                     </div>
                                 </td>
-                                <td class="text-center">
+                                <td class="text-center" data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         {% if not match.thread_created %}
                                         <button class="c-btn c-btn--outline-primary js-schedule-match" data-value="{{ match.id }}" title="Schedule">

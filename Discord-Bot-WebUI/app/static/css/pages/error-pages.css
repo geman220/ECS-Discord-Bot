@@ -25,7 +25,7 @@
   align-items: center;
   justify-content: center;
   padding: 32px 16px;
-  background: linear-gradient(135deg, var(--color-secondary-950, var(--color-secondary-950, #0f172a)) 0%, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))) 50%, var(--color-secondary-950, var(--color-secondary-950, #0f172a)) 100%);
+  background: linear-gradient(135deg, var(--color-secondary-950, var(--color-secondary-950, var(--color-secondary-950))) 0%, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))) 50%, var(--color-secondary-950, var(--color-secondary-950, var(--color-secondary-950))) 100%);
   overflow: hidden;
   z-index: 9999;
 }
@@ -71,7 +71,7 @@
   width: 100%;
   padding: 48px 40px;
   text-align: center;
-  background: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
+  background: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
   box-shadow:
@@ -131,7 +131,7 @@
 }
 
 .c-error-code--404 {
-  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, var(--color-success-500, #10b981) 100%);
+  background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-info-600) 50%, var(--color-success-500, var(--color-success-500)) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -142,7 +142,7 @@
 }
 
 .c-error-code--500 {
-  background: linear-gradient(135deg, var(--color-danger-500, #ef4444) 0%, #f97316 50%, #fbbf24 100%);
+  background: linear-gradient(135deg, var(--color-danger-500, var(--color-danger-600)) 0%, var(--color-warning-500) 50%, var(--color-accent-400) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -169,7 +169,7 @@
    ============================================================================ */
 
 .c-error-title {
-  color: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9));
+  color: var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100)));
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 8px;
@@ -178,7 +178,7 @@
 }
 
 .c-error-message {
-  color: var(--color-secondary-400, var(--color-secondary-400, #94a3b8));
+  color: var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400)));
   font-size: 16px;
   line-height: 1.6;
   margin: 0 0 24px;
@@ -196,7 +196,7 @@
   border-radius: 12px;
   margin: 0 0 28px;
   font-style: italic;
-  color: var(--color-secondary-300, #cbd5e1);
+  color: var(--color-secondary-300, var(--color-secondary-300));
   font-size: 14px;
   line-height: 1.6;
   border-left: 4px solid;
@@ -205,11 +205,11 @@
 }
 
 .c-error-joke--404 {
-  border-left-color: var(--color-primary, #3b82f6);
+  border-left-color: var(--color-primary, var(--color-primary-500));
 }
 
 .c-error-joke--500 {
-  border-left-color: var(--color-danger-500, #ef4444);
+  border-left-color: var(--color-danger-500, var(--color-danger-600));
 }
 
 /* Quotation mark decoration */
@@ -223,7 +223,7 @@
   line-height: 1;
   opacity: 0.1;
   font-family: Georgia, serif;
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
 }
 
 /* ============================================================================
@@ -238,7 +238,7 @@
   padding: 14px 32px;
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-white, #ffffff);
+  color: var(--color-white, var(--color-white));
   border-radius: 12px;
   text-decoration: none;
   transition: all 0.2s ease;
@@ -248,27 +248,27 @@
 }
 
 .c-error-button--404 {
-  background: linear-gradient(135deg, var(--color-primary-600, #2563eb) 0%, #0891b2 100%);
+  background: linear-gradient(135deg, var(--color-primary-600, var(--color-primary-600)) 0%, var(--color-info-700) 100%);
   box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
 }
 
 .c-error-button--404:hover {
-  background: linear-gradient(135deg, var(--color-primary-700, #1d4ed8) 0%, var(--color-info-700, #0e7490) 100%);
+  background: linear-gradient(135deg, var(--color-primary-700, var(--color-primary-700)) 0%, var(--color-info-700, #0e7490) 100%);
   transform: translateY(-3px);
   box-shadow: 0 12px 32px rgba(37, 99, 235, 0.45);
-  color: var(--color-white, #ffffff);
+  color: var(--color-white, var(--color-white));
 }
 
 .c-error-button--500 {
-  background: linear-gradient(135deg, var(--color-danger, #dc2626) 0%, var(--color-warning-600, #ea580c) 100%);
+  background: linear-gradient(135deg, var(--color-danger, var(--color-danger-700)) 0%, var(--color-warning-600, #ea580c) 100%);
   box-shadow: 0 8px 24px rgba(220, 38, 38, 0.35);
 }
 
 .c-error-button--500:hover {
-  background: linear-gradient(135deg, var(--color-danger-700, #b91c1c) 0%, var(--color-warning-700, #c2410c) 100%);
+  background: linear-gradient(135deg, var(--color-danger-700, var(--color-danger-800)) 0%, var(--color-warning-700, #c2410c) 100%);
   transform: translateY(-3px);
   box-shadow: 0 12px 32px rgba(220, 38, 38, 0.45);
-  color: var(--color-white, #ffffff);
+  color: var(--color-white, var(--color-white));
 }
 
 .c-error-button:active {
@@ -304,7 +304,7 @@
    MOBILE ADJUSTMENTS
    ============================================================================ */
 
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
   .c-error-page {
     padding: 24px 16px;
   }
@@ -357,7 +357,7 @@
   .c-error-message,
   .c-error-joke,
   .c-error-button {
-    animation: none !important;
+    animation: none;
   }
 
   .c-error-button:hover {
@@ -374,7 +374,7 @@
    ============================================================================ */
 
 .c-error-button:focus-visible {
-  outline: 3px solid var(--color-primary-400, #60a5fa);
+  outline: 3px solid var(--color-primary-400, var(--color-primary-400));
   outline-offset: 3px;
 }
 
@@ -384,26 +384,26 @@
 
 @media print {
   .c-error-page {
-    background: var(--color-white, #fff);
+    background: var(--color-white, var(--color-white));
   }
 
   .c-error-container {
     box-shadow: none;
-    border: 1px solid var(--color-secondary-300, #ccc);
+    border: 1px solid var(--color-secondary-300, var(--color-neutral-400));
   }
 
   .c-error-code--404,
   .c-error-code--500 {
-    -webkit-text-fill-color: var(--color-secondary-700, #333);
-    color: var(--color-secondary-700, #333);
+    -webkit-text-fill-color: var(--color-secondary-700, var(--color-neutral-800));
+    color: var(--color-secondary-700, var(--color-neutral-800));
   }
 
   .c-error-title {
-    color: var(--color-black, #000);
+    color: var(--color-black, var(--color-neutral-950));
   }
 
   .c-error-message,
   .c-error-joke {
-    color: var(--color-secondary-700, #333);
+    color: var(--color-secondary-700, var(--color-neutral-800));
   }
 }

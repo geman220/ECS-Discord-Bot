@@ -20,22 +20,13 @@ setTimeout(function () {
     window.Helpers.initCustomOptionCheck();
 }, 1000);
 
-// Initialize Waves effect
-if (typeof window.Waves !== 'undefined') {
-    window.Waves.init();
-    window.Waves.attach(
-        ".btn[class*='btn-']:not(.position-relative):not([class*='btn-outline-']):not([class*='btn-label-'])",
-        ['waves-light']
-    );
-    window.Waves.attach("[class*='btn-outline-']:not(.position-relative)");
-    window.Waves.attach("[class*='btn-label-']:not(.position-relative)");
-    window.Waves.attach('.pagination .page-item .page-link');
-    window.Waves.attach('.dropdown-menu .dropdown-item');
-    window.Waves.attach('.light-style .list-group .list-group-item-action');
-    window.Waves.attach('.dark-style .list-group .list-group-item-action', ['waves-light']);
-    window.Waves.attach('.nav-tabs:not(.nav-tabs-widget) .nav-item .nav-link');
-    window.Waves.attach('.nav-pills .nav-item .nav-link', ['waves-light']);
-}
+// Initialize Waves effect - DISABLED
+// Using custom ripple implementation in design-system.js instead
+// which has capped ripple sizes for better UX
+// if (typeof window.Waves !== 'undefined') {
+//     window.Waves.init();
+//     // ... waves attachments disabled - caused oversized ripples
+// }
 
 // Initialize menu
 let layoutMenuEl = document.querySelectorAll('#layout-menu');

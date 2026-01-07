@@ -58,90 +58,90 @@
  * Generic loading state
  */
 .is-loading {
-    position: relative !important;
-    pointer-events: none !important;
-    opacity: 0.6 !important;
+    position: relative;
+    pointer-events: none;
+    opacity: 0.6;
 }
 
 /**
  * Loading with spinner overlay
  */
 .is-loading::after {
-    content: "" !important;
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    width: 24px !important;
-    height: 24px !important;
-    margin: -12px 0 0 -12px !important;
-    border: 3px solid rgba(0, 0, 0, 0.1) !important;
-    border-top-color: var(--color-primary, #007bff) !important;
-    border-radius: 50% !important;
-    animation: spin 0.8s linear infinite !important;
-    z-index: 10 !important;
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    margin: -12px 0 0 -12px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top-color: var(--color-primary, var(--color-primary));
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    z-index: 10;
 }
 
 [data-style="dark"] .is-loading::after {
-    border-color: rgba(255, 255, 255, 0.1) !important;
-    border-top-color: var(--color-primary, #0d6efd) !important;
+    border-color: rgba(255, 255, 255, 0.1);
+    border-top-color: var(--color-primary, var(--color-primary));
 }
 
 /**
  * Loading spinner (standalone)
  */
 .loading-spinner {
-    display: inline-block !important;
-    width: 20px !important;
-    height: 20px !important;
-    border: 2px solid rgba(0, 0, 0, 0.1) !important;
-    border-top-color: var(--color-primary, #007bff) !important;
-    border-radius: 50% !important;
-    animation: spin 0.8s linear infinite !important;
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-top-color: var(--color-primary, var(--color-primary));
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
 }
 
 [data-style="dark"] .loading-spinner {
-    border-color: rgba(255, 255, 255, 0.1) !important;
-    border-top-color: var(--color-primary, #0d6efd) !important;
+    border-color: rgba(255, 255, 255, 0.1);
+    border-top-color: var(--color-primary, var(--color-primary));
 }
 
 .loading-spinner-sm {
-    width: 16px !important;
-    height: 16px !important;
-    border-width: 2px !important;
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
 }
 
 .loading-spinner-lg {
-    width: 32px !important;
-    height: 32px !important;
-    border-width: 3px !important;
+    width: 32px;
+    height: 32px;
+    border-width: 3px;
 }
 
 /**
  * Loading overlay
  */
 .loading-overlay {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    background: rgba(255, 255, 255, 0.8) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    z-index: 1000 !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
 }
 
 [data-style="dark"] .loading-overlay {
-    background: rgba(0, 0, 0, 0.8) !important;
+    background: rgba(0, 0, 0, 0.8);
 }
 
 /**
  * Loading text
  */
 .loading-text::after {
-    content: "..." !important;
-    animation: loadingDots 1.5s steps(4, end) infinite !important;
+    content: "...";
+    animation: loadingDots 1.5s steps(4, end) infinite;
 }
 
 @keyframes loadingDots {
@@ -158,8 +158,8 @@
  * Active state indicator
  */
 .is-active {
-    font-weight: 600 !important;
-    color: var(--color-primary, #0d6efd) !important;
+    font-weight: 600;
+    color: var(--color-primary, var(--color-primary));
 }
 
 /**
@@ -167,27 +167,27 @@
  */
 .is-active-bg,
 .active-bg {
-    background-color: rgba(13, 110, 253, 0.1) !important;
+    background-color: rgba(13, 110, 253, 0.1);
 }
 
 [data-style="dark"] .is-active-bg,
 [data-style="dark"] .active-bg {
-    background-color: rgba(13, 110, 253, 0.2) !important;
+    background-color: rgba(13, 110, 253, 0.2);
 }
 
 /**
  * Active border
  */
 .is-active-border {
-    border-color: var(--color-primary, #0d6efd) !important;
-    border-width: 2px !important;
+    border-color: var(--color-primary, var(--color-primary));
+    border-width: 2px;
 }
 
 /**
  * Active scale (button press effect)
  */
 .is-active-scale {
-    transform: scale(0.95) !important;
+    transform: scale(0.95);
 }
 
 /* ============================================
@@ -199,26 +199,26 @@
  */
 .is-disabled,
 .disabled {
-    opacity: 0.5 !important;
-    pointer-events: none !important;
-    cursor: not-allowed !important;
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
 }
 
 /**
  * Disabled with different opacity
  */
 .is-disabled-light {
-    opacity: 0.7 !important;
-    pointer-events: none !important;
-    cursor: not-allowed !important;
+    opacity: 0.7;
+    pointer-events: none;
+    cursor: not-allowed;
 }
 
 /**
  * Disabled without opacity change
  */
 .is-disabled-no-opacity {
-    pointer-events: none !important;
-    cursor: not-allowed !important;
+    pointer-events: none;
+    cursor: not-allowed;
 }
 
 /* ============================================
@@ -229,21 +229,21 @@
  * Hidden state (display: none)
  */
 .is-hidden {
-    display: none !important;
+    display: none;
 }
 
 /**
  * Hidden state (visibility)
  */
 .is-invisible {
-    visibility: hidden !important;
+    visibility: hidden;
 }
 
 /**
  * Hidden state (opacity)
  */
 .is-transparent {
-    opacity: 0 !important;
+    opacity: 0;
 }
 
 /* ============================================
@@ -254,7 +254,7 @@
  * Removing state (fade out + scale down)
  */
 .removing {
-    animation: removeElement 0.3s ease-out forwards !important;
+    animation: removeElement 0.3s ease-out forwards;
 }
 
 @keyframes removeElement {
@@ -272,7 +272,7 @@
  * Appearing state (fade in + slide up)
  */
 .appearing {
-    animation: appearElement 0.3s ease-out forwards !important;
+    animation: appearElement 0.3s ease-out forwards;
 }
 
 @keyframes appearElement {
@@ -290,14 +290,14 @@
  * Fading state
  */
 .is-fading {
-    transition: opacity 0.3s ease-in-out !important;
+    transition: opacity 0.3s ease-in-out;
 }
 
 /**
  * Shake animation (error state)
  */
 .shake {
-    animation: shake 0.5s ease-in-out !important;
+    animation: shake 0.5s ease-in-out;
 }
 
 @keyframes shake {
@@ -310,7 +310,7 @@
  * Pulse animation (attention)
  */
 .pulse-attention {
-    animation: pulseAttention 2s ease-in-out infinite !important;
+    animation: pulseAttention 2s ease-in-out infinite;
 }
 
 @keyframes pulseAttention {
@@ -332,87 +332,87 @@
  * Hover lift effect
  */
 .hover-lift {
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out !important;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
 .hover-lift:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 [data-style="dark"] .hover-lift:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 /**
  * Hover grow effect
  */
 .hover-grow {
-    transition: transform 0.2s ease-in-out !important;
+    transition: transform 0.2s ease-in-out;
 }
 
 .hover-grow:hover {
-    transform: scale(1.05) !important;
+    transform: scale(1.05);
 }
 
 /**
  * Hover brighten effect
  */
 .hover-brighten {
-    transition: filter 0.2s ease-in-out !important;
+    transition: filter 0.2s ease-in-out;
 }
 
 .hover-brighten:hover {
-    filter: brightness(1.1) !important;
+    filter: brightness(1.1);
 }
 
 /**
  * Hover darken effect
  */
 .hover-darken {
-    transition: filter 0.2s ease-in-out !important;
+    transition: filter 0.2s ease-in-out;
 }
 
 .hover-darken:hover {
-    filter: brightness(0.9) !important;
+    filter: brightness(0.9);
 }
 
 /**
  * Hover shadow effect
  */
 .hover-shadow {
-    transition: box-shadow 0.2s ease-in-out !important;
+    transition: box-shadow 0.2s ease-in-out;
 }
 
 .hover-shadow:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 [data-style="dark"] .hover-shadow:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /**
  * Hover underline effect
  */
 .hover-underline {
-    text-decoration: none !important;
-    position: relative !important;
+    text-decoration: none;
+    position: relative;
 }
 
 .hover-underline::after {
-    content: "" !important;
-    position: absolute !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    width: 0 !important;
-    height: 2px !important;
-    background-color: currentColor !important;
-    transition: width 0.3s ease-in-out !important;
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: currentColor;
+    transition: width 0.3s ease-in-out;
 }
 
 .hover-underline:hover::after {
-    width: 100% !important;
+    width: 100%;
 }
 
 /* ============================================
@@ -423,24 +423,24 @@
  * Custom focus ring
  */
 .focus-ring:focus {
-    outline: none !important;
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25) !important;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
 }
 
 /**
  * Focus visible (keyboard only)
  */
 .focus-visible-ring:focus-visible {
-    outline: none !important;
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25) !important;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
 }
 
 /**
  * Remove focus ring
  */
 .focus-none:focus {
-    outline: none !important;
-    box-shadow: none !important;
+    outline: none;
+    box-shadow: none;
 }
 
 /* ============================================
@@ -452,12 +452,12 @@
  */
 .is-error,
 .has-error {
-    border-color: var(--color-danger, #dc3545) !important;
-    color: var(--color-danger, #dc3545) !important;
+    border-color: var(--color-danger, var(--color-danger-600));
+    color: var(--color-danger, var(--color-danger-600));
 }
 
 .is-error-bg {
-    background-color: rgba(220, 53, 69, 0.1) !important;
+    background-color: rgba(220, 53, 69, 0.1);
 }
 
 /**
@@ -465,12 +465,12 @@
  */
 .is-success,
 .has-success {
-    border-color: var(--color-success, #198754) !important;
-    color: var(--color-success, #198754) !important;
+    border-color: var(--color-success, var(--color-success-600));
+    color: var(--color-success, var(--color-success-600));
 }
 
 .is-success-bg {
-    background-color: rgba(25, 135, 84, 0.1) !important;
+    background-color: rgba(25, 135, 84, 0.1);
 }
 
 /**
@@ -478,12 +478,12 @@
  */
 .is-warning,
 .has-warning {
-    border-color: var(--color-warning, #ffc107) !important;
-    color: var(--color-warning-900, #856404) !important;
+    border-color: var(--color-warning, var(--color-warning));
+    color: var(--color-warning-900, #856404);
 }
 
 .is-warning-bg {
-    background-color: rgba(255, 193, 7, 0.1) !important;
+    background-color: rgba(255, 193, 7, 0.1);
 }
 
 /**
@@ -491,12 +491,12 @@
  */
 .is-info,
 .has-info {
-    border-color: var(--color-info, #0dcaf0) !important;
-    color: var(--color-info-800, #055160) !important;
+    border-color: var(--color-info, #0dcaf0);
+    color: var(--color-info-800, #055160);
 }
 
 .is-info-bg {
-    background-color: rgba(13, 202, 240, 0.1) !important;
+    background-color: rgba(13, 202, 240, 0.1);
 }
 
 /* ============================================
@@ -507,20 +507,20 @@
  * Selected state
  */
 .is-selected {
-    background-color: rgba(13, 110, 253, 0.15) !important;
-    border-color: var(--color-primary, #0d6efd) !important;
+    background-color: rgba(13, 110, 253, 0.15);
+    border-color: var(--color-primary, var(--color-primary));
 }
 
 /**
  * Selected with checkmark
  */
 .is-selected-check::after {
-    content: "✓" !important;
-    position: absolute !important;
-    top: 5px !important;
-    right: 5px !important;
-    color: var(--color-primary, #0d6efd) !important;
-    font-weight: bold !important;
+    content: "✓";
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    color: var(--color-primary, var(--color-primary));
+    font-weight: bold;
 }
 
 /* ============================================
@@ -531,16 +531,16 @@
  * Dragging state
  */
 .is-dragging {
-    opacity: 0.5 !important;
-    cursor: move !important;
+    opacity: 0.5;
+    cursor: move;
 }
 
 /**
  * Drag over state
  */
 .is-drag-over {
-    background-color: rgba(13, 110, 253, 0.1) !important;
-    border: 2px dashed var(--color-primary, #0d6efd) !important;
+    background-color: rgba(13, 110, 253, 0.1);
+    border: 2px dashed var(--color-primary, var(--color-primary));
 }
 
 /* ============================================
@@ -551,18 +551,18 @@
  * Collapsed state
  */
 .is-collapsed {
-    max-height: 0 !important;
-    overflow: hidden !important;
-    transition: max-height 0.3s ease-out !important;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
 }
 
 /**
  * Expanded state
  */
 .is-expanded {
-    max-height: 1000px !important;
-    overflow: visible !important;
-    transition: max-height 0.3s ease-in !important;
+    max-height: 1000px;
+    overflow: visible;
+    transition: max-height 0.3s ease-in;
 }
 
 /* ============================================
@@ -580,7 +580,7 @@
     .hover-darken,
     .hover-shadow,
     .is-fading {
-        animation: none !important;
-        transition: none !important;
+        animation: none;
+        transition: none;
     }
 }

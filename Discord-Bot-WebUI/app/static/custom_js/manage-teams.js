@@ -128,10 +128,6 @@ export const ManageTeams = {
                     this.deleteTeam(teamId);
                 }
             });
-        } else {
-            if (confirm(`Do you really want to delete ${teamName}?\n\nThis action cannot be undone.`)) {
-                this.deleteTeam(teamId);
-            }
         }
     },
 

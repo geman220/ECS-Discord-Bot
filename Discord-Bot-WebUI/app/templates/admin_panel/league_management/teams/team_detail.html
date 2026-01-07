@@ -183,7 +183,7 @@
             <div class="c-card__body">
                 {% if team.players %}
                 <div class="c-table-wrapper">
-                    <table class="c-table c-table--hoverable" data-mobile-table data-table-type="roster">
+                    <table class="c-c-table c-table--hoverable" data-mobile-table data-table-type="roster">
                         <thead>
                             <tr>
                                 <th>Player</th>
@@ -254,19 +254,19 @@
 {% block modals %}
 {{ super() }}
 <!-- Edit Team Modal -->
-<div class="modal c-modal fade" id="editTeamModal" tabindex="-1" aria-labelledby="editTeamModalLabel">
-    <div class="modal-dialog c-modal__dialog">
-        <div class="modal-content c-modal__content">
-            <div class="modal-header c-modal__header">
+<div class="modal c-modal fade" data-modal id="editTeamModal" tabindex="-1" aria-labelledby="editTeamModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
                 <h5 class="modal-title c-modal__title" id="editTeamModalLabel"><i class="ti ti-edit me-2"></i>Rename Team</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body c-modal__body">
+            <div class="modal-body c-modal__body" data-modal-body>
                 <form id="editTeamForm">
                     <input type="hidden" id="editTeamId">
                     <div class="mb-3">
                         <label class="form-label">Team Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="editTeamName" required>
+                        <input type="text" class="form-control" id="editTeamName" required data-form-control>
                     </div>
                     <div class="alert alert-info">
                         <i class="ti ti-info-circle me-2"></i>
@@ -274,8 +274,8 @@
                     </div>
                 </form>
             </div>
-            <div class="modal-footer c-modal__footer">
-                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal">Cancel</button>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
                 <button type="button" class="c-btn c-btn--primary js-save-team-edit">
                     <i class="ti ti-check me-1"></i>Save Changes
                 </button>

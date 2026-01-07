@@ -24,7 +24,7 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribut
 /**
  * Initialize API management module
  */
-function init() {
+function initAdminApiManagement() {
     initializeProgressBars();
     initializeEventDelegation();
 }
@@ -266,14 +266,60 @@ function exportAPIData() {
         input: 'select',
         inputOptions: {
             'csv': 'CSV',
-            'json': 'JSON',
-            'xlsx': 'Excel'
+            'json': 'JSON'
         },
         showCancelButton: true,
         confirmButtonText: 'Export'
     }).then((result) => {
         if (result.isConfirmed) {
-            window.Swal.fire('Export Started', `API data export in ${result.value.toUpperCase()} format has been queued.`, 'info');
+            const format = result.value;
+
+            // Collect API endpoint data from the page
+            const table = document.querySelector('.c-table, table');
+            if (!table) {
+                window.Swal.fire('Error', 'No API data found to export', 'error');
+                return;
+            }
+
+            const headers = Array.from(table.querySelectorAll('thead th'))
+                .map(th => th.textContent.trim())
+                .filter(h => h && h !== 'Actions');
+
+            const rows = Array.from(table.querySelectorAll('tbody tr')).map(row => {
+                const cells = Array.from(row.querySelectorAll('td'));
+                return cells.slice(0, headers.length).map(cell => cell.textContent.trim());
+            });
+
+            if (format === 'csv') {
+                const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+                ].join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `api_endpoints_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+                URL.revokeObjectURL(url);
+                window.Swal.fire('Exported!', 'API data exported to CSV successfully.', 'success');
+            } else if (format === 'json') {
+                const jsonData = rows.map(row => {
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        obj[header] = row[index] || '';
+                    });
+                    return obj;
+                });
+                const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `api_endpoints_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+                window.Swal.fire('Exported!', 'API data exported to JSON successfully.', 'success');
+            }
         }
     });
 }
@@ -284,13 +330,11 @@ function exportAPIData() {
 function showError(message) {
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire('Error', message, 'error');
-    } else {
-        alert(message);
     }
 }
 
 // Register with window.InitSystem
-window.InitSystem.register('admin-api-management', init, {
+window.InitSystem.register('admin-api-management', initAdminApiManagement, {
     priority: 30,
     reinitializable: true,
     description: 'Admin API management page functionality'
@@ -301,7 +345,7 @@ window.InitSystem.register('admin-api-management', init, {
 
 // Export for ES modules
 export {
-    init,
+    initAdminApiManagement,
     viewEndpointDetails,
     testEndpoint,
     testSpecificEndpoint,
@@ -309,4 +353,4 @@ export {
 };
 
 // Backward compatibility
-window.adminApiManagementInit = init;
+window.adminApiManagementInit = initAdminApiManagement;

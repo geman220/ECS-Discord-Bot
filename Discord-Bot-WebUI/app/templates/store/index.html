@@ -70,7 +70,7 @@
                 </div>
                 <div class="c-card__body">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="orders">
+                        <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="orders">
                             <thead scope="col">
                                 <tr>
                                     <th scope="col">Item</th>
@@ -84,9 +84,9 @@
                             <tbody>
                                 {% for order in recent_orders %}
                                 <tr>
-                                    <td>{{ order.item.name if order.item else 'Unknown Item' }}</td>
-                                    <td>{{ order.quantity }}</td>
-                                    <td>
+                                    <td data-label="Item">{{ order.item.name if order.item else 'Unknown Item' }}</td>
+                                    <td data-label="Quantity">{{ order.quantity }}</td>
+                                    <td data-label="Details">
                                         {% if order.selected_color %}
                                         <span class="badge bg-label-info" data-badge>{{ order.selected_color }}</span>
                                         {% endif %}
@@ -94,7 +94,7 @@
                                         <span class="badge bg-label-secondary" data-badge>{{ order.selected_size }}</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         {% if order.status == 'PENDING' %}
                                         <span class="badge bg-label-warning" data-badge>Pending</span>
                                         {% elif order.status == 'PROCESSING' %}
@@ -107,8 +107,8 @@
                                         <span class="badge bg-label-danger" data-badge>Cancelled</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ order.season.name if order.season else 'Unknown' }}</td>
-                                    <td>{{ format_pacific_time_short(order.order_date) if order.order_date else '' }}</td>
+                                    <td data-label="Season">{{ order.season.name if order.season else 'Unknown' }}</td>
+                                    <td data-label="Order Date">{{ format_pacific_time_short(order.order_date) if order.order_date else '' }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -125,7 +125,7 @@
         {% if items %}
         {% for item in items %}
         <div class="col-xl-4 col-lg-6 col-md-6 col-12 mb-4">
-            <div class="c-card h-100 c-store-card" data-component="store-card" data-item-id="{{ item.id }}">
+            <div class="c-card h-100 c-store-c-card" data-component="store-card" data-item-id="{{ item.id }}">
                 {% if item.image_url %}
                 <img src="{{ item.image_url }}" class="c-store-card__image" alt="{{ item.name }}">
                 {% else %}

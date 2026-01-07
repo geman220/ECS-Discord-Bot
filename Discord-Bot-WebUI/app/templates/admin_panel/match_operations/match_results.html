@@ -55,8 +55,8 @@
             </div>
             <div class="c-card__body">
                 {% if pending_results %}
-                <div class="c-table-responsive">
-                    <table class="c-table" data-mobile-table data-table-type="matches">
+                <div class="c-c-table-wrapper">
+                    <table class="c-c-table" data-mobile-table data-table-type="matches">
                         <thead class="c-table__head">
                             <tr>
                                 <th class="c-table__header" scope="col">Date</th>
@@ -68,10 +68,10 @@
                         <tbody class="c-table__body">
                             {% for match in pending_results %}
                             <tr class="c-table__row">
-                                <td class="c-table__cell">{{ match.date.strftime('%Y-%m-%d') if match.date else 'TBD' }}</td>
-                                <td class="c-table__cell">{{ match.home_team.name if match.home_team else 'TBD' }}</td>
-                                <td class="c-table__cell">{{ match.away_team.name if match.away_team else 'TBD' }}</td>
-                                <td class="c-table__cell">
+                                <td class="c-table__cell" data-label="Date">{{ match.date.strftime('%Y-%m-%d') if match.date else 'TBD' }}</td>
+                                <td class="c-table__cell" data-label="Home Team">{{ match.home_team.name if match.home_team else 'TBD' }}</td>
+                                <td class="c-table__cell" data-label="Away Team">{{ match.away_team.name if match.away_team else 'TBD' }}</td>
+                                <td class="c-table__cell" data-label="Actions">
                                     <button class="c-btn c-btn--sm c-btn--primary" data-action="enter-result" data-match-id="{{ match.id }}">
                                         Enter Result
                                     </button>
@@ -102,8 +102,8 @@
             </div>
             <div class="c-card__body">
                 {% if completed_matches %}
-                <div class="c-table-responsive">
-                    <table class="c-table" data-mobile-table data-table-type="matches">
+                <div class="c-c-table-wrapper">
+                    <table class="c-c-table" data-mobile-table data-table-type="matches">
                         <thead class="c-table__head">
                             <tr>
                                 <th class="c-table__header" scope="col">Date</th>
@@ -114,9 +114,9 @@
                         <tbody class="c-table__body">
                             {% for match in completed_matches[:10] %}
                             <tr class="c-table__row">
-                                <td class="c-table__cell">{{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}</td>
-                                <td class="c-table__cell">{{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}</td>
-                                <td class="c-table__cell">
+                                <td class="c-table__cell" data-label="Date">{{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}</td>
+                                <td class="c-table__cell" data-label="Teams">{{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}</td>
+                                <td class="c-table__cell" data-label="Score">
                                     <span class="c-badge c-badge--success">{{ match.home_team_score }}-{{ match.away_team_score }}</span>
                                 </td>
                             </tr>

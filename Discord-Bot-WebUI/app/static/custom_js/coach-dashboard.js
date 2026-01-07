@@ -20,14 +20,8 @@
 
 import { InitSystem } from '../js/init-system.js';
 
-/**
- * Get CSRF token from meta tag
- * @returns {string} CSRF token value
- */
-function getCsrfToken() {
-    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
-    return csrfMeta ? csrfMeta.content : '';
-}
+// getCsrfToken is provided globally by csrf-fetch.js (as getCSRFToken)
+const getCsrfToken = window.getCSRFToken;
 
 /**
  * Request a substitute for a match
@@ -169,8 +163,8 @@ async function handleMatchReportSubmit(form) {
                 title: 'Error',
                 text: error.message || 'Failed to report match'
             });
-        } else {
-            alert('Error: ' + error.message);
+        } else if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', error.message || 'Failed to report match', 'error');
         }
     }
 }
@@ -180,7 +174,7 @@ async function handleMatchReportSubmit(form) {
  * ROOT CAUSE FIX: All listeners use document-level delegation
  */
 let _initialized = false;
-function init() {
+function initCoachDashboard() {
     // Only initialize once
     if (_initialized) return;
     _initialized = true;
@@ -213,7 +207,7 @@ function init() {
 // EXPORTS
 // ========================================================================
 
-export { init, getCsrfToken, requestSub, handleMatchReportSubmit };
+export { initCoachDashboard, getCsrfToken, requestSub, handleMatchReportSubmit };
 
 // Expose API for external use
 window.CoachDashboard = {
@@ -223,7 +217,7 @@ window.CoachDashboard = {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('coach-dashboard', init, {
+    window.InitSystem.register('coach-dashboard', initCoachDashboard, {
         priority: 40,
         reinitializable: false,
         description: 'Coach dashboard functionality'
@@ -233,6 +227,5 @@ if (window.InitSystem && window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility
-window.getCsrfToken = getCsrfToken;
-window.coachDashboardInit = init;
+// CoachDashboard API exported above for external use
+// No additional backward compatibility exports needed

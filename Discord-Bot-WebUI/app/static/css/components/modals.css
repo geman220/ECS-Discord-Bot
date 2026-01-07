@@ -42,10 +42,10 @@
  *   </div>
  *
  * Replaces:
- *   - draft_enhanced.html (lines 533-595): Inline modal styles with !important overrides
+ *   - draft_enhanced.html (lines 533-595): Inline modal styles with overrides
  *   - player_profile.html: Inconsistent modal styling
  *   - Inline style="background-color: var(--ecs-neutral-100)..."
- *   - Inline style="color: var(...) !important"
+ *   - Inline style="color: var(...) "
  *   - Inline style="border-bottom: 1px solid ..."
  *   - Inline style="filter: invert(1)" on close buttons
  *
@@ -65,25 +65,24 @@
   z-index: var(--z-modal);
   width: 100%;
   height: 100%;
-
   /* Display */
   display: none;
   overflow-x: hidden;
   overflow-y: auto;
-
   /* Interaction */
   outline: 0;
-
   /* Prevent body scroll when modal is open (set by JS) */
   overscroll-behavior: contain;
 }
 
 /* When modal is shown */
+
 .modal.show {
   display: block;
 }
 
 /* When modal is in the process of appearing */
+
 .modal.fade {
   opacity: 0;
   transition: opacity var(--duration-modal) var(--ease-smooth);
@@ -106,10 +105,8 @@
   z-index: var(--z-modal-backdrop);
   width: 100vw;
   height: 100vh;
-
   /* Visual */
   background-color: var(--color-bg-overlay);
-
   /* Animation */
   opacity: 0;
   transition: opacity var(--duration-modal) var(--ease-smooth);
@@ -120,6 +117,7 @@
 }
 
 /* Fade animation for backdrop */
+
 .modal-backdrop.fade {
   opacity: 0;
 }
@@ -129,6 +127,7 @@
 }
 
 /* Dark mode backdrop adjustment - already handled by --color-bg-overlay token */
+
 /* The token automatically adjusts from rgba(0, 0, 0, 0.5) to rgba(0, 0, 0, 0.7) in dark mode */
 
 /* ============================================================================
@@ -141,20 +140,19 @@
   position: relative;
   width: auto;
   margin: var(--space-3);
-
   /* Center modal vertically by default */
   display: flex;
   align-items: center;
   min-height: calc(100% - (var(--space-3) * 2));
-
   /* Prevent click propagation */
   pointer-events: none;
-
   /* Animation - slide down and scale up */
   transition: transform var(--duration-modal) var(--ease-smooth);
+  max-width: 600px;
 }
 
 /* When modal is fading in */
+
 .modal.fade .modal-dialog {
   transform: translateY(-50px) scale(0.95);
 }
@@ -164,6 +162,7 @@
 }
 
 /* Vertically centered modal */
+
 .modal-dialog-centered {
   display: flex;
   align-items: center;
@@ -171,17 +170,25 @@
 }
 
 /* Scrollable modal (when content is tall) */
+
 .modal-dialog-scrollable {
   height: calc(100% - (var(--space-3) * 2));
+  display: flex;
+  max-height: calc(100% - (var(--space-3) * 2));
 }
 
 .modal-dialog-scrollable .modal-content {
   max-height: 100%;
   overflow: hidden;
+  max-height: calc(100vh - (var(--space-3) * 2));
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-dialog-scrollable .modal-body {
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto;
 }
 
 /* ============================================================================
@@ -195,28 +202,25 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-
   /* Re-enable pointer events */
   pointer-events: auto;
-
   /* Visual - Light Mode Defaults with explicit fallbacks */
-  background-color: var(--color-white, #ffffff);
-  background: var(--color-bg-card, #ffffff);
+  background-color: var(--color-white, var(--color-white)fff);
+  background: var(--color-bg-card, var(--color-white)fff);
   background-clip: padding-box;
-  border: 1px solid var(--border-color-primary, #e4e4e7);
+  border: 1px solid var(--border-color-primary, var(--color-neutral-200));
   border-radius: var(--radius-lg, 0.5rem);
   box-shadow: var(--shadow-xl, 0 4px 6px rgba(0, 0, 0, 0.1), 0 20px 25px rgba(0, 0, 0, 0.1));
-
   /* Color */
-  color: var(--color-text-primary, #18181b);
-
+  color: var(--color-text-primary, var(--color-neutral-900));
   /* Layout */
   outline: 0;
 }
 
 /* Remove inline style overrides - provide proper base styling */
-.modal-content.ecs-modal,
-.modal-content.dark-mode-applied {
+
+.modal-content.dark-mode-applied,
+.modal-content.ecs-modal {
   background-color: var(--color-bg-card);
   color: var(--color-text-primary);
 }
@@ -232,22 +236,21 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
-
   /* Spacing */
   padding: var(--space-modal-padding, 1.25rem);
-
   /* Visual */
-  border-bottom: 1px solid var(--border-color-primary, #e4e4e7);
+  border-bottom: 1px solid var(--border-color-primary, var(--color-neutral-200));
   border-top-left-radius: calc(var(--radius-lg, 0.5rem) - 1px);
   border-top-right-radius: calc(var(--radius-lg, 0.5rem) - 1px);
-
   /* Color - explicit solid background */
-  background-color: var(--color-white, #ffffff);
-  background: var(--color-bg-card, #ffffff);
-  color: var(--color-text-primary, #18181b);
+  background-color: var(--color-white, var(--color-white)fff);
+  background: var(--color-bg-card, var(--color-white)fff);
+  color: var(--color-text-primary, var(--color-neutral-900));
+  position: relative;
 }
 
 /* Remove inline overrides */
+
 .modal-header.ecs-modal-header {
   background-color: var(--color-bg-card);
   color: var(--color-text-primary);
@@ -255,6 +258,7 @@
 }
 
 /* Modal title */
+
 .modal-title {
   /* Typography */
   margin: 0;
@@ -265,13 +269,15 @@
 }
 
 /* Remove inline title overrides */
+
 .modal-title.ecs-modal-title {
   color: var(--color-text-primary);
 }
 
 /* Icon in title */
-.modal-title i,
-.modal-title .ti {
+
+.modal-title .ti,
+.modal-title i {
   color: var(--color-text-secondary);
   margin-right: var(--space-2);
 }
@@ -285,39 +291,39 @@
   /* Position */
   position: relative;
   flex: 1 1 auto;
-
   /* Spacing */
   padding: var(--space-modal-padding, 1.25rem);
-
   /* Color - explicit solid background */
-  background-color: var(--color-white, #ffffff);
-  background: var(--color-bg-card, #ffffff);
-  color: var(--color-text-primary, #18181b);
+  background-color: var(--color-white, var(--color-white)fff);
+  background: var(--color-bg-card, var(--color-white)fff);
+  color: var(--color-text-primary, var(--color-neutral-900));
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-400) var(--color-neutral-100);
 }
 
 /* Remove inline overrides */
+
 .modal-body.ecs-modal-body {
   background-color: var(--color-bg-card);
   color: var(--color-text-primary);
 }
 
 /* When modal body needs no padding (e.g., for full-width content) */
+
 .modal-body.p-0 {
   padding: 0;
 }
 
 /* Scrollable body in scrollable modal */
-.modal-dialog-scrollable .modal-body {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
 
 /* Text within modal body */
+
 .modal-body p:last-child {
   margin-bottom: 0;
 }
 
 /* Loading states in modal body */
+
 .modal-body .spinner-border {
   color: var(--color-primary);
 }
@@ -339,36 +345,35 @@
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-2, 0.5rem);
-
   /* Spacing */
   padding: var(--space-modal-padding, 1.25rem);
-
   /* Visual */
-  border-top: 1px solid var(--border-color-primary, #e4e4e7);
+  border-top: 1px solid var(--border-color-primary, var(--color-neutral-200));
   border-bottom-left-radius: calc(var(--radius-lg, 0.5rem) - 1px);
   border-bottom-right-radius: calc(var(--radius-lg, 0.5rem) - 1px);
-
   /* Color - explicit solid background */
-  background-color: var(--color-secondary-50, #fafafa);
-  background: var(--color-bg-secondary, #fafafa);
-
+  background-color: var(--color-secondary-50, var(--color-neutral-50));
+  background: var(--color-bg-secondary, var(--color-neutral-50));
   /* Stacking - ensure footer is above scrollable modal body content */
   position: relative;
   z-index: 10;
 }
 
 /* Remove inline overrides */
+
 .modal-footer.ecs-modal-footer {
   background-color: var(--color-bg-card);
   border-top: var(--border-width) solid var(--border-color-primary);
 }
 
 /* Buttons in footer */
+
 .modal-footer > * {
   margin: 0;
 }
 
 /* Auto-spacing for older Bootstrap patterns */
+
 .modal-footer > :not(:first-child) {
   margin-left: 0;
 }
@@ -379,26 +384,27 @@
    ============================================================================ */
 
 /* Small modal */
+
 .modal-sm {
   max-width: 400px;
 }
 
 /* Default/Medium modal */
-.modal-dialog {
-  max-width: 600px;
-}
 
 /* Large modal */
+
 .modal-lg {
   max-width: 900px;
 }
 
 /* Extra large modal */
+
 .modal-xl {
   max-width: 1200px;
 }
 
 /* Full screen modal */
+
 .modal-fullscreen {
   width: 100vw;
   max-width: none;
@@ -413,7 +419,8 @@
 }
 
 /* Responsive fullscreen modals */
-@media (max-width: 576px) {
+
+@media (max-width: 575.98px) {
   .modal-fullscreen-sm-down {
     width: 100vw;
     max-width: none;
@@ -428,7 +435,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .modal-fullscreen-md-down {
     width: 100vw;
     max-width: none;
@@ -449,62 +456,67 @@
    ============================================================================ */
 
 /* Primary variant */
+
 .modal-primary .modal-header {
   background-color: var(--color-primary-600);
   border-color: var(--color-primary-700);
   color: white;
 }
 
-.modal-primary .modal-title,
-.modal-primary .modal-header i {
+.modal-primary .modal-header i,
+.modal-primary .modal-title {
   color: white;
 }
 
 /* Success variant */
+
 .modal-success .modal-header {
   background-color: var(--color-success-600);
   border-color: var(--color-success-700);
   color: white;
 }
 
-.modal-success .modal-title,
-.modal-success .modal-header i {
+.modal-success .modal-header i,
+.modal-success .modal-title {
   color: white;
 }
 
 /* Danger variant */
+
 .modal-danger .modal-header {
   background-color: var(--color-danger-600);
   border-color: var(--color-danger-700);
   color: white;
 }
 
-.modal-danger .modal-title,
-.modal-danger .modal-header i {
+.modal-danger .modal-header i,
+.modal-danger .modal-title {
   color: white;
 }
 
 /* Warning variant */
+
 .modal-warning .modal-header {
   background-color: var(--color-warning-600);
   border-color: var(--color-warning-700);
   color: var(--color-neutral-900);
 }
 
-.modal-warning .modal-title,
-.modal-warning .modal-header i {
+.modal-warning .modal-header i,
+.modal-warning .modal-title {
   color: var(--color-neutral-900);
 }
 
 /* Info variant */
+
 .modal-info .modal-header {
   background-color: var(--color-info-600);
   border-color: var(--color-info-700);
   color: white;
 }
 
-.modal-info .modal-title,
-.modal-info .modal-header i {
+.modal-info .modal-header i,
+.modal-info .modal-title {
   color: white;
 }
 
@@ -514,6 +526,7 @@
    ============================================================================ */
 
 /* Scale animation variant */
+
 .modal.fade.modal-scale .modal-dialog {
   transform: scale(0.9);
 }
@@ -523,6 +536,7 @@
 }
 
 /* Slide up animation variant */
+
 .modal.fade.modal-slide-up .modal-dialog {
   transform: translateY(100px);
 }
@@ -532,6 +546,7 @@
 }
 
 /* Slide from right animation variant */
+
 .modal.fade.modal-slide-right .modal-dialog {
   transform: translateX(100px);
 }
@@ -546,29 +561,14 @@
    ============================================================================ */
 
 /* When modal content is taller than viewport */
-.modal-dialog-scrollable {
-  display: flex;
-  max-height: calc(100% - (var(--space-3) * 2));
-}
 
-.modal-dialog-scrollable .modal-content {
-  max-height: calc(100vh - (var(--space-3) * 2));
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-dialog-scrollable .modal-header,
-.modal-dialog-scrollable .modal-footer {
+.modal-dialog-scrollable .modal-footer,
+.modal-dialog-scrollable .modal-header {
   flex-shrink: 0;
 }
 
-.modal-dialog-scrollable .modal-body {
-  overflow-y: auto;
-  flex: 1 1 auto;
-}
-
 /* Custom scrollbar styling for modal body */
+
 .modal-body::-webkit-scrollbar {
   width: 8px;
 }
@@ -588,10 +588,6 @@
 }
 
 /* Firefox scrollbar */
-.modal-body {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-neutral-400) var(--color-neutral-100);
-}
 
 /* ============================================================================
    12. STACKED MODALS
@@ -599,6 +595,7 @@
    ============================================================================ */
 
 /* Increase z-index for stacked modals */
+
 .modal.show ~ .modal.show {
   z-index: calc(var(--z-modal) + 10);
 }
@@ -608,6 +605,7 @@
 }
 
 /* Adjust backdrop opacity for stacked modals */
+
 .modal-backdrop + .modal-backdrop {
   opacity: 0.6;
 }
@@ -623,7 +621,6 @@
   width: 1em;
   height: 1em;
   padding: var(--space-1);
-
   /* Visual - Using mask for theme-aware icon color */
   background-color: currentColor;
   color: var(--color-text-primary);
@@ -632,7 +629,6 @@
   border: 0;
   border-radius: var(--radius-sm);
   opacity: 0.5;
-
   /* Interaction */
   cursor: pointer;
   transition: opacity var(--duration-fast) var(--ease-smooth);
@@ -649,26 +645,30 @@
 }
 
 /* Remove inline filter overrides - No longer needed with mask approach */
+
 .btn-close.ecs-modal-close {
   /* Intentionally empty - kept for backwards compatibility */
 }
 
 /* White close button variant (for colored headers) */
+
 .btn-close-white {
   color: white;
 }
 
 /* Close button in colored header variants */
-.modal-primary .btn-close,
-.modal-success .btn-close,
+
 .modal-danger .btn-close,
-.modal-info .btn-close {
+.modal-info .btn-close,
+.modal-primary .btn-close,
+.modal-success .btn-close {
   color: white;
 }
 
 /* Disabled state */
-.btn-close:disabled,
-.btn-close.disabled {
+
+.btn-close.disabled,
+.btn-close:disabled {
   pointer-events: none;
   user-select: none;
   opacity: 0.25;
@@ -679,8 +679,9 @@
    Responsive behavior for small screens
    ============================================================================ */
 
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
   /* Reduce spacing on mobile */
+
   .modal-dialog {
     margin: var(--space-2);
   }
@@ -690,6 +691,7 @@
   }
 
   /* Reduce padding */
+
   .modal-header,
   .modal-body,
   .modal-footer {
@@ -697,11 +699,13 @@
   }
 
   /* Smaller title on mobile */
+
   .modal-title {
     font-size: var(--text-base);
   }
 
   /* Stack footer buttons vertically on mobile */
+
   .modal-footer {
     flex-direction: column;
     align-items: stretch;
@@ -712,21 +716,16 @@
   }
 
   /* Full width for small modals on mobile */
+
   .modal-sm {
     max-width: 100%;
   }
 }
 
-/* Minimum touch target size for mobile */
-@media (max-width: 768px) {
-  .btn-close {
-    width: 1.5em;
-    height: 1.5em;
-    padding: var(--space-2);
-  }
-}
+/* NOTE: .btn-close mobile touch targets in mobile/buttons.css (source of truth) */
 
 /* Tablet adjustments */
+
 @media (min-width: 576px) {
   .modal-dialog {
     margin: var(--space-6) auto;
@@ -746,6 +745,7 @@
 }
 
 /* Desktop adjustments */
+
 @media (min-width: 992px) {
   .modal-dialog {
     margin: var(--space-8) auto;
@@ -768,92 +768,126 @@
 /* ============================================================================
    15. DARK MODE SUPPORT
    Proper dark mode styling for all modal components
-   IMPORTANT: Uses !important with hardcoded colors to ensure solid backgrounds
+
+   JUSTIFIED !important - Dark Mode Overrides
+
+   Why these declarations are necessary:
+   1. Bootstrap's modal styles use high specificity selectors
+   2. The bootstrap-minimal.css loads before component CSS
+   3. Without, Bootstrap's default light backgrounds bleed through
+   4. This is a documented Bootstrap theming pattern
+
+   These declarations should NOT be removed without:
+   - Migrating away from Bootstrap entirely
+   - Using CSS cascade layers (@layer)
+   - Restructuring the entire CSS load order
    ============================================================================ */
 
-/* Dark mode modal styles - slate palette with !important */
+/* Dark mode modal styles - slate palette with */
+
 [data-style="dark"] .modal-content {
-  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
-  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
-  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important; /* Slate-700 */
-  color: var(--color-secondary-50, #fafafa) !important;
-  box-shadow:
-    0 4px 6px rgba(0, 0, 0, 0.3),
-    0 20px 25px rgba(0, 0, 0, 0.4) !important;
+  background-color: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  border-color: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
+  /* Slate-700 */
+  color: var(--color-secondary-50, var(--color-neutral-50));
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3),
+    0 20px 25px rgba(0, 0, 0, 0.4);
 }
 
 /* Extra specificity for stubborn cases (slate palette) */
-html[data-style="dark"] .modal-content,
+
 [data-style="dark"] .modal .modal-content,
-[data-style="dark"] .modal-dialog .modal-content {
-  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
-  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
+[data-style="dark"] .modal-dialog .modal-content,
+html[data-style="dark"] .modal-content {
+  background-color: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
 }
 
 [data-style="dark"] .modal-header {
-  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
-  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
-  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important; /* Slate-700 */
-  color: var(--color-secondary-50, #fafafa) !important;
+  background-color: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  border-color: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
+  /* Slate-700 */
+  color: var(--color-secondary-50, var(--color-neutral-50));
 }
 
 [data-style="dark"] .modal-title {
-  color: var(--color-secondary-50, #fafafa) !important;
+  color: var(--color-secondary-50, var(--color-neutral-50));
 }
 
 [data-style="dark"] .modal-body {
-  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
-  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
-  color: var(--color-secondary-200, #E2E8F0) !important; /* Slate-200 */
+  background-color: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  color: var(--color-secondary-200, var(--color-secondary-200));
+  /* Slate-200 */
+  scrollbar-color: var(--color-secondary-600) var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
 }
 
 [data-style="dark"] .modal-footer {
   /* Slightly darker than body for visual hierarchy */
-  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
-  background: var(--color-secondary-900, #1E293B) !important;
-  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important; /* Slate-700 */
+  background-color: var(--color-secondary-900, var(--color-secondary-900));
+  /* Slate-900 */
+  background: var(--color-secondary-900, var(--color-secondary-900));
+  border-color: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
+  /* Slate-700 */
   /* Ensure footer stays above scrollable content */
-  position: relative !important;
-  z-index: 10 !important;
+  position: relative;
+  z-index: 10;
 }
 
 /* Extra specificity for modal footer background - prevents content bleed-through */
+
+[data-style="dark"] .modal-content > .modal-footer,
 html[data-style="dark"] .modal .modal-footer,
-html[data-style="dark"] .modal-dialog .modal-footer,
-[data-style="dark"] .modal-content > .modal-footer {
-  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
-  background: var(--color-secondary-900, #1E293B) !important;
-  position: relative !important;
-  z-index: 10 !important;
+html[data-style="dark"] .modal-dialog .modal-footer {
+  background-color: var(--color-secondary-900, var(--color-secondary-900));
+  /* Slate-900 */
+  background: var(--color-secondary-900, var(--color-secondary-900));
+  position: relative;
+  z-index: 10;
 }
 
 /* Override Bootstrap utility classes in dark mode (slate palette) */
+
 [data-style="dark"] .modal-footer.bg-light {
-  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
-  background: var(--color-secondary-900, #1E293B) !important;
+  background-color: var(--color-secondary-900, var(--color-secondary-900));
+  /* Slate-900 */
+  background: var(--color-secondary-900, var(--color-secondary-900));
 }
 
 [data-style="dark"] .modal-header.bg-light {
-  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
-  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
+  background-color: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
 }
 
 /* Card headers inside modals in dark mode (slate palette) */
+
 [data-style="dark"] .modal .card-header.bg-light {
-  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
-  background: var(--color-secondary-900, #1E293B) !important;
-  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important; /* Slate-700 */
+  background-color: var(--color-secondary-900, var(--color-secondary-900));
+  /* Slate-900 */
+  background: var(--color-secondary-900, var(--color-secondary-900));
+  border-color: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
+  /* Slate-700 */
 }
 
 [data-style="dark"] .modal .card {
-  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
-  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
-  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important; /* Slate-700 */
+  background-color: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  border-color: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
+  /* Slate-700 */
 }
 
 [data-style="dark"] .modal .card-body {
-  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important; /* Slate-800 */
-  background: var(--color-secondary-800, var(--color-secondary-800, #334155)) !important;
+  background-color: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
 }
 
 /* ============================================================================
@@ -862,97 +896,116 @@ html[data-style="dark"] .modal-dialog .modal-footer,
    ============================================================================ */
 
 /* Global fix for form-select dropdown arrows in modals */
-.modal .form-select,
-.c-modal .form-select {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
-  background-repeat: no-repeat !important;
-  background-position: right 0.75rem center !important;
-  background-size: 16px 12px !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
-  padding-right: 2.25rem !important;
+
+.c-modal .form-select,
+.modal .form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 2.25rem;
 }
 
 /* Form elements inside modals in dark mode (slate palette) */
+
 [data-style="dark"] .modal .form-control,
 [data-style="dark"] .modal .form-select {
-  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
-  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important; /* Slate-700 */
-  color: var(--color-secondary-50, #fafafa) !important;
+  background-color: var(--color-secondary-900, var(--color-secondary-900));
+  /* Slate-900 */
+  border-color: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
+  /* Slate-700 */
+  color: var(--color-secondary-50, var(--color-neutral-50));
 }
 
 /* Dark mode dropdown arrow - white chevron */
-[data-style="dark"] .modal .form-select,
-[data-style="dark"] .c-modal .form-select {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
-  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
+
+[data-style="dark"] .c-modal .form-select,
+[data-style="dark"] .modal .form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-color: var(--color-secondary-900, var(--color-secondary-900));
+  /* Slate-900 */
 }
 
 [data-style="dark"] .modal .form-control:focus,
 [data-style="dark"] .modal .form-select:focus {
-  background-color: var(--color-secondary-900, #1E293B) !important; /* Slate-900 */
-  background: var(--color-secondary-900, #1E293B) !important;
-  border-color: var(--color-primary-400, #60A5FA) !important;
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2) !important;
+  background-color: var(--color-secondary-900, var(--color-secondary-900));
+  /* Slate-900 */
+  background: var(--color-secondary-900, var(--color-secondary-900));
+  border-color: var(--color-primary-400, var(--color-primary-400));
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
 }
 
 [data-style="dark"] .modal .form-control::placeholder {
-  color: var(--color-secondary-400, #94A3B8) !important; /* Slate-400 */
+  color: var(--color-secondary-400, var(--color-secondary-400));
+  /* Slate-400 */
 }
 
 [data-style="dark"] .modal .input-group-text {
-  background-color: var(--color-secondary-900, #1E293B); /* Slate-900 */
-  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)); /* Slate-700 */
-  color: var(--color-secondary-300, #CBD5E1); /* Slate-300 */
+  background-color: var(--color-secondary-900, var(--color-secondary-900));
+  /* Slate-900 */
+  border-color: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
+  /* Slate-700 */
+  color: var(--color-secondary-300, var(--color-secondary-300));
+  /* Slate-300 */
 }
 
 [data-style="dark"] .modal .form-label {
-  color: var(--color-secondary-200, #E2E8F0); /* Slate-200 */
+  color: var(--color-secondary-200, var(--color-secondary-200));
+  /* Slate-200 */
 }
 
 [data-style="dark"] .modal .form-check-label {
-  color: var(--color-secondary-200, #E2E8F0); /* Slate-200 */
+  color: var(--color-secondary-200, var(--color-secondary-200));
+  /* Slate-200 */
 }
 
 /* Dark mode text adjustments (slate palette) */
+
 [data-style="dark"] .modal-body .text-muted {
-  color: var(--color-secondary-400, #94A3B8); /* Slate-400 */
+  color: var(--color-secondary-400, var(--color-secondary-400));
+  /* Slate-400 */
 }
 
-[data-style="dark"] .modal-title i,
-[data-style="dark"] .modal-title .ti {
-  color: var(--color-primary-400, #60A5FA); /* Primary light for icons */
+[data-style="dark"] .modal-title .ti,
+[data-style="dark"] .modal-title i {
+  color: var(--color-primary-400, var(--color-primary-400));
+  /* Primary light for icons */
 }
 
 /* Dark mode close button */
+
 [data-style="dark"] .btn-close {
-  color: var(--color-secondary-200, #E2E8F0); /* Slate-200 */
+  color: var(--color-secondary-200, var(--color-secondary-200));
+  /* Slate-200 */
   filter: invert(1) brightness(0.8);
 }
 
 /* Dark mode scrollbar (slate palette) */
+
 [data-style="dark"] .modal-body::-webkit-scrollbar-track {
-  background-color: var(--color-secondary-700, var(--color-secondary-700, #475569)); /* Slate-700 */
+  background-color: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
+  /* Slate-700 */
 }
 
 [data-style="dark"] .modal-body::-webkit-scrollbar-thumb {
-  background-color: var(--color-secondary-500, #64748B); /* Slate-500 */
+  background-color: var(--color-secondary-500, var(--color-secondary-600));
+  /* Slate-500 */
 }
 
 [data-style="dark"] .modal-body::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-secondary-400, #94A3B8); /* Slate-400 */
-}
-
-[data-style="dark"] .modal-body {
-  scrollbar-color: #64748B var(--color-secondary-700, var(--color-secondary-700, #475569)); /* Slate-500 / Slate-700 */
+  background-color: var(--color-secondary-400, var(--color-secondary-400));
+  /* Slate-400 */
 }
 
 /* Colored headers remain the same in dark mode */
-[data-style="dark"] .modal-primary .modal-header,
-[data-style="dark"] .modal-success .modal-header,
+
 [data-style="dark"] .modal-danger .modal-header,
-[data-style="dark"] .modal-info .modal-header {
+[data-style="dark"] .modal-info .modal-header,
+[data-style="dark"] .modal-primary .modal-header,
+[data-style="dark"] .modal-success .modal-header {
   /* Keep variant colors in dark mode */
   color: white;
 }
@@ -967,19 +1020,22 @@ html[data-style="dark"] .modal-dialog .modal-footer,
    ============================================================================ */
 
 /* Focus trap - ensure modal receives focus */
+
 .modal[tabindex="-1"]:focus {
   outline: 0;
 }
 
 /* Visible focus indicator for keyboard navigation */
+
 .modal-content:focus-visible {
   outline: 2px solid var(--color-primary-500);
   outline-offset: 2px;
 }
 
 /* Screen reader text for close button */
-.btn-close .visually-hidden,
-.btn-close .sr-only {
+
+.btn-close .sr-only,
+.btn-close .visually-hidden {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -992,9 +1048,6 @@ html[data-style="dark"] .modal-dialog .modal-footer,
 }
 
 /* Ensure proper focus order */
-.modal-header {
-  position: relative;
-}
 
 .modal-header .btn-close {
   position: relative;
@@ -1002,6 +1055,7 @@ html[data-style="dark"] .modal-dialog .modal-footer,
 }
 
 /* Focus styles for interactive elements within modal */
+
 .modal-body a:focus-visible,
 .modal-body button:focus-visible,
 .modal-body input:focus-visible,
@@ -1017,17 +1071,20 @@ html[data-style="dark"] .modal-dialog .modal-footer,
    ============================================================================ */
 
 /* Remove modal body padding */
+
 .modal-body-flush {
   padding: 0;
 }
 
 /* Add dividers between modal sections */
+
 .modal-body-divided {
   border-top: var(--border-width) solid var(--border-color-primary);
   border-bottom: var(--border-width) solid var(--border-color-primary);
 }
 
 /* Center content in modal body */
+
 .modal-body-centered {
   display: flex;
   align-items: center;
@@ -1036,6 +1093,7 @@ html[data-style="dark"] .modal-dialog .modal-footer,
 }
 
 /* Loading state for modal */
+
 .modal-loading {
   pointer-events: none;
 }
@@ -1045,6 +1103,7 @@ html[data-style="dark"] .modal-dialog .modal-footer,
 }
 
 /* Success/Error states in modal */
+
 .modal-body .alert:first-child {
   margin-top: 0;
 }
@@ -1059,20 +1118,22 @@ html[data-style="dark"] .modal-dialog .modal-footer,
    ============================================================================ */
 
 /* Support legacy .ecs-modal classes */
-.ecs-modal .modal-content,
-.dark-mode-applied .modal-content {
+
+.dark-mode-applied .modal-content,
+.ecs-modal .modal-content {
   /* Already styled by base classes */
 }
 
 /* Remove all inline style overrides */
-.modal-content[style*="background-color"],
-.modal-header[style*="background-color"],
+
+.btn-close[style*="filter"],
 .modal-body[style*="background-color"],
+.modal-content[style*="background-color"],
 .modal-footer[style*="background-color"],
-.modal-title[style*="color"],
-.btn-close[style*="filter"] {
+.modal-header[style*="background-color"],
+.modal-title[style*="color"] {
   /* Inline styles will be overridden by CSS specificity */
-  /* Use !important only when absolutely necessary for migration */
+  /* Use only when absolutely necessary for migration */
 }
 
 /* ============================================================================
@@ -1083,12 +1144,13 @@ html[data-style="dark"] .modal-dialog .modal-footer,
 @media print {
   /**
    * Force hide modals and backdrops when printing
-   * !important is acceptable here as print styles are a special context
+   * is acceptable here as print styles are a special context
    * that should always override regular styles
    */
+
   .modal,
   .modal-backdrop {
-    display: none !important;
+    display: none;
   }
 }
 
@@ -1117,8 +1179,8 @@ html[data-style="dark"] .modal-dialog .modal-footer,
 
    OLD (draft_enhanced.html):
    <div class="modal-content" style="background-color: var(--ecs-neutral-100);">
-   <div class="modal-header" style="background-color: var(--ecs-neutral-90) !important;">
-   <button class="btn-close" style="filter: invert(1) !important;">
+   <div class="modal-header" style="background-color: var(--ecs-neutral-90) ;">
+   <button class="btn-close" style="filter: invert(1);">
 
    NEW:
    <div class="modal-content">

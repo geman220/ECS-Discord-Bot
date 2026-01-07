@@ -34,11 +34,11 @@
     {% endwith %}
 
     <!-- Roles Management Card -->
-    <div class="c-card-modern">
-        <div class="c-card-modern__header">
-            <h5 class="c-card-modern__title">Role Permissions</h5>
+    <div class="c-card">
+        <div class="c-card__header">
+            <h5 class="c-card__title">Role Permissions</h5>
         </div>
-        <div class="c-card-modern__body">
+        <div class="c-card__body">
             <form method="POST"
                   action="{{ url_for('admin.manage_roles') }}"
                   data-form="manage-roles">

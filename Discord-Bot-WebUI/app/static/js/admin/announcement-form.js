@@ -166,24 +166,36 @@ const AnnouncementForm = {
      */
     initDeleteHandler: function(context) {
         // Use event delegation for delete buttons
-        context.addEventListener('click', function(e) {
+        context.addEventListener('click', async function(e) {
             const btn = e.target.closest('[data-action="delete-announcement"]');
             if (!btn) return;
 
             const announcementId = btn.dataset.id;
-            if (confirm('Are you sure you want to delete this announcement? This action cannot be undone.')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = btn.getAttribute('data-url') || `/admin-panel/communication/announcements/${announcementId}/delete`;
 
-                const csrfToken = document.createElement('input');
-                csrfToken.type = 'hidden';
-                csrfToken.name = 'csrf_token';
-                csrfToken.value = document.querySelector('input[name="csrf_token"]').value;
-                form.appendChild(csrfToken);
+            if (typeof window.Swal !== 'undefined') {
+                const result = await window.Swal.fire({
+                    title: 'Delete Announcement',
+                    text: 'Are you sure you want to delete this announcement? This action cannot be undone.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, delete it',
+                    cancelButtonText: 'Cancel'
+                });
 
-                document.body.appendChild(form);
-                form.submit();
+                if (result.isConfirmed) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = btn.getAttribute('data-url') || `/admin-panel/communication/announcements/${announcementId}/delete`;
+
+                    const csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = 'csrf_token';
+                    csrfToken.value = document.querySelector('input[name="csrf_token"]').value;
+                    form.appendChild(csrfToken);
+
+                    document.body.appendChild(form);
+                    form.submit();
+                }
             }
         });
     }

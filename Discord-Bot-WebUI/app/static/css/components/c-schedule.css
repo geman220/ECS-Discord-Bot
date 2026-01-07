@@ -61,9 +61,9 @@
 
 /* Closed state styling - blue accent border */
 .c-schedule__week:not([open]) .c-schedule__header {
-  border-left: 3px solid var(--color-primary, var(--color-primary-600, #2563eb));
+  border-left: 3px solid var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   padding-left: calc(var(--space-4, 16px) - 3px);
-  background: var(--color-bg-card, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  background: var(--color-bg-card, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 .c-schedule__week:not([open]) .c-schedule__header:hover {
@@ -72,7 +72,7 @@
 
 /* Icon */
 .c-schedule__icon {
-  color: var(--color-primary, var(--color-primary-600, #2563eb));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   font-size: 1.125rem;
   flex-shrink: 0;
 }
@@ -82,7 +82,7 @@
   flex: 1;
   font-weight: 600;
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 /* Badges container */
@@ -107,27 +107,27 @@
 
 .c-schedule__badge--win {
   background: rgba(16, 185, 129, 0.15);
-  color: var(--color-success-500, #10b981);
+  color: var(--color-success-500, var(--color-success-500));
 }
 
 .c-schedule__badge--loss {
   background: rgba(239, 68, 68, 0.15);
-  color: var(--color-danger-500, #ef4444);
+  color: var(--color-danger-500, var(--color-danger-500));
 }
 
 .c-schedule__badge--draw {
   background: rgba(245, 158, 11, 0.15);
-  color: var(--color-warning-500, #f59e0b);
+  color: var(--color-warning-500, var(--color-warning-500));
 }
 
 .c-schedule__badge--pending {
   background: rgba(148, 163, 184, 0.15);
-  color: var(--color-secondary-400, var(--color-secondary-400, #94a3b8));
+  color: var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400)));
 }
 
 /* Chevron - rotates based on open state */
 .c-schedule__chevron {
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   font-size: 1rem;
   transition: transform 200ms ease;
   flex-shrink: 0;
@@ -170,7 +170,7 @@
   align-items: center;
   gap: var(--space-1, 4px);
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   white-space: nowrap;
   min-width: 85px;
 }
@@ -192,20 +192,20 @@
 }
 
 .c-schedule__link:hover .c-schedule__teams {
-  color: var(--color-primary, var(--color-primary-600, #2563eb));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 .c-schedule__teams {
   font-size: var(--text-sm, 0.875rem);
   font-weight: 500;
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   margin-bottom: var(--space-1, 4px);
   transition: color 150ms ease;
 }
 
 .c-schedule__location {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   display: flex;
   align-items: center;
   gap: var(--space-1, 4px);
@@ -266,7 +266,7 @@
 }
 
 [data-style="light"] .c-schedule__week:not([open]) .c-schedule__header {
-  background: var(--color-bg-primary, #fff);
+  background: var(--color-bg-primary, var(--color-white));
 }
 
 [data-style="light"] .c-schedule__week:not([open]) .c-schedule__header:hover {
@@ -274,11 +274,11 @@
 }
 
 [data-style="light"] .c-schedule__date {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 [data-style="light"] .c-schedule__teams {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 [data-style="light"] .c-schedule__match {
@@ -293,7 +293,7 @@
    MOBILE
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-schedule__header {
     flex-wrap: wrap;
     gap: var(--space-1, 4px);
@@ -343,12 +343,12 @@
    ============================================================================ */
 
 .c-schedule__header:focus-visible {
-  outline: 2px solid var(--color-primary, var(--color-primary-600, #2563eb));
+  outline: 2px solid var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   outline-offset: -2px;
 }
 
 .c-schedule__link:focus-visible {
-  outline: 2px solid var(--color-primary, var(--color-primary-600, #2563eb));
+  outline: 2px solid var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   outline-offset: 2px;
 }
 

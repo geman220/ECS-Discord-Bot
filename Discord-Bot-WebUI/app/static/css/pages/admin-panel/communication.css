@@ -9,7 +9,7 @@
  * ARCHITECTURAL COMPLIANCE:
  * - 100% BEM naming: .c-component__element--modifier
  * - Zero hardcoded values (design tokens only)
- * - Zero !important declarations
+ * - Zero declarations
  * - State-driven styling with .is-* classes
  * - Mobile-first responsive design
  * - Full dark mode support via [data-style="dark"]
@@ -51,6 +51,7 @@
 }
 
 /* Tablet: 2 columns */
+
 @media (max-width: 991.98px) {
   .c-comm-stats__grid {
     grid-template-columns: repeat(2, 1fr);
@@ -59,6 +60,7 @@
 }
 
 /* Mobile: 1 column */
+
 @media (max-width: 575.98px) {
   .c-comm-stats__grid {
     grid-template-columns: 1fr;
@@ -82,6 +84,7 @@
 }
 
 /* Tablet: 1 column */
+
 @media (max-width: 991.98px) {
   .c-comm-sections__grid {
     grid-template-columns: 1fr;
@@ -138,8 +141,8 @@
   /* Component uses design tokens which adapt automatically */
 }
 
-[data-style="dark"] .c-comm-stats,
-[data-style="dark"] .c-comm-sections {
+[data-style="dark"] .c-comm-sections,
+[data-style="dark"] .c-comm-stats {
   /* Grid layouts remain the same in dark mode */
 }
 
@@ -188,7 +191,7 @@
   max-width: 400px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-search-container {
     max-width: 100%;
   }
@@ -210,3 +213,530 @@
 /* ============================================================================
    END OF COMMUNICATION HUB PAGE COMPONENTS
    ============================================================================ */
+
+/* ============================================================================
+   EXTRACTED INLINE STYLES
+   ============================================================================ */
+
+/* From: admin_panel/communication/announcements.html */
+
+.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+}
+
+/* From: admin_panel/communication/campaigns.html */
+
+.badge-sm {
+  font-size: 0.65rem;
+}
+
+@media (max-width: 768px) {
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+}
+
+/* From: admin_panel/communication/category_detail.html */
+
+.content-preview {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: var(--bs-secondary-color);
+}
+
+.pre-wrap {
+  white-space: pre-wrap;
+  font-family: inherit;
+}
+
+/* Fix form-select dropdown styling */
+
+.c-modal .form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  padding-right: 2.25rem;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+[data-bs-theme="light"] .c-modal .form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23333333' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+/* Variable buttons */
+
+.var-btn {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  background-color: var(--bs-dark);
+  color: var(--bs-light);
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.var-btn:hover {
+  background-color: var(--bs-primary);
+  transform: scale(1.02);
+}
+
+.var-btn:active {
+  transform: scale(0.98);
+}
+
+.var-btn.inserted {
+  background-color: var(--bs-success) !important;
+}
+
+/* Dark mode variable card */
+
+[data-bs-theme="dark"] .c-card.bg-light {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-bs-theme="dark"] .variable-groups label {
+  color: var(--bs-secondary-color);
+}
+
+/* Modal XL support */
+
+.c-modal__dialog--xl {
+  max-width: 1140px;
+}
+
+@media (max-width: 768px) {
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .content-preview {
+    max-width: 120px;
+  }
+
+  .c-modal__dialog--xl {
+    max-width: 100%;
+    margin: 0.5rem;
+  }
+}
+
+/* From: admin_panel/communication/league_settings.html */
+
+.icon-alert-lg {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.icon-empty-state {
+  font-size: 4rem;
+  opacity: 0.3;
+}
+
+.alert-gradient-info {
+  background: linear-gradient(135deg, rgba(13, 110, 253, 0.1) 0%, rgba(13, 110, 253, 0.05) 100%);
+  border-left: 4px solid var(--bs-info);
+}
+
+.c-card__footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-bs-theme="dark"] .c-card__footer {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+#messagePreview {
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
+/* From: admin_panel/communication/messages.html */
+
+.row-hidden {
+  display: none !important;
+}
+
+/* Category row hover styling */
+
+.category-row td a:hover strong {
+  color: var(--bs-primary) !important;
+}
+
+@media (max-width: 768px) {
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* From: admin_panel/communication/messaging_settings.html */
+
+.c-messaging-settings {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.c-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.c-page-header__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.c-page-header__subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--bs-secondary-color);
+  font-size: 0.875rem;
+}
+
+/* Stats Grid - Page-specific to avoid global conflicts */
+
+.c-messaging-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.c-messaging-stat-card {
+  padding: 1rem;
+  background: rgba(var(--bs-primary-rgb), 0.05);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  text-align: center;
+}
+
+.c-messaging-stat-card__value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--bs-primary);
+  line-height: 1;
+}
+
+.c-messaging-stat-card__label {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+  margin-top: 0.25rem;
+}
+
+.c-settings-sections {
+  display: grid;
+  gap: 1.5rem;
+}
+
+/* Toggle rows */
+
+.c-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+
+.c-toggle-row:last-child {
+  border-bottom: none;
+}
+
+.c-toggle-row__info {
+  flex: 1;
+}
+
+.c-toggle-row__label {
+  font-weight: 500;
+  margin: 0;
+}
+
+.c-toggle-row__description {
+  font-size: 0.8125rem;
+  color: var(--bs-secondary-color);
+  margin: 0;
+}
+
+/* ==========================================
+     Permission Cards - Card-based UI
+     ========================================== */
+
+.c-permission-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.c-permission-card {
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.c-permission-card:hover {
+  border-color: var(--bs-primary);
+  box-shadow: 0 2px 8px rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.c-permission-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: rgba(var(--bs-primary-rgb), 0.05);
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.c-permission-card__role {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.c-permission-card__icon {
+  color: var(--bs-primary);
+  font-size: 1rem;
+}
+
+.c-permission-card__name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--bs-body-color);
+}
+
+.c-permission-card__body {
+  padding: 0.75rem 1rem;
+  min-height: 80px;
+}
+
+.c-permission-card__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.5rem;
+}
+
+.c-permission-card__recipients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.c-permission-card__empty {
+  font-size: 0.8125rem;
+  color: var(--bs-secondary-color);
+  font-style: italic;
+}
+
+/* Permission Pills */
+
+.c-permission-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--bs-primary);
+  background: rgba(var(--bs-primary-rgb), 0.1);
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+/* Permission Actions Footer */
+
+.c-permission-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--bs-border-color);
+}
+
+.c-permission-actions__presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.c-permission-actions__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--bs-secondary-color);
+}
+
+/* Modal Checklist */
+
+.c-permission-checklist {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: rgba(var(--bs-secondary-rgb), 0.03);
+  border-radius: 0.375rem;
+}
+
+.c-permission-check-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.c-permission-check-item:hover {
+  border-color: var(--bs-primary);
+  background: rgba(var(--bs-primary-rgb), 0.03);
+}
+
+.c-permission-check-item input[type="checkbox"] {
+  width: 1.125rem;
+  height: 1.125rem;
+  cursor: pointer;
+}
+
+.c-permission-check-item label {
+  flex: 1;
+  cursor: pointer;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.c-permission-modal-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Dark Mode Overrides */
+
+[data-style="dark"] .c-permission-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-style="dark"] .c-permission-card:hover {
+  border-color: var(--bs-primary);
+  box-shadow: 0 2px 8px rgba(96, 165, 250, 0.15);
+}
+
+[data-style="dark"] .c-permission-card__header {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-style="dark"] .c-permission-pill {
+  background: rgba(96, 165, 250, 0.2);
+  color: var(--color-primary-300);
+}
+
+[data-style="dark"] .c-permission-checklist {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+[data-style="dark"] .c-permission-check-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  .c-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .c-permission-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .c-permission-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .c-permission-actions__presets {
+    justify-content: center;
+  }
+}
+
+/* From: admin_panel/communication/notification_groups.html */
+
+.list-group-item-action:hover {
+  background-color: var(--bs-light);
+}
+
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+}
+
+/* From: admin_panel/communication/push_notifications_dashboard.html */
+
+.progress {
+  border-radius: 10px;
+}
+
+.progress-bar {
+  border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+}

@@ -28,7 +28,7 @@
     <div class="c-card__body p-0">
         {% if sponsors %}
         <div class="c-table-wrapper" data-table-responsive>
-            <table class="c-table c-table--hoverable mb-0" data-mobile-table data-table-type="sponsors" data-table>
+            <table class="c-c-table c-table--hoverable mb-0" data-mobile-table data-table-type="sponsors" data-table>
                 <thead scope="col">
                     <tr>
                         <th scope="col">Name</th>
@@ -43,37 +43,37 @@
                 <tbody>
                     {% for sponsor in sponsors %}
                     <tr class="{{ 'opacity-50' if not sponsor.is_active }}">
-                        <td>
+                        <td data-label="Name">
                             <strong>{{ sponsor.name }}</strong>
                             {% if sponsor.website_url %}
                             <br>
                             <small><a href="{{ sponsor.website_url }}" target="_blank" class="text-muted">{{ sponsor.website_url|truncate(30) }}</a></small>
                             {% endif %}
                         </td>
-                        <td>{{ sponsor.display_name }}</td>
-                        <td>
+                        <td data-label="Display Name">{{ sponsor.display_name }}</td>
+                        <td data-label="Type">
                             <span class="badge bg-label-{{ 'warning' if sponsor.sponsor_type == 'presenting' else 'info' if sponsor.sponsor_type == 'venue' else 'secondary' }}" data-badge>
                                 {{ sponsor.sponsor_type|title }}
                             </span>
                         </td>
-                        <td>
+                        <td data-label="Location">
                             <span class="badge bg-label-{{ 'primary' if sponsor.display_location == 'back' else 'info' }}" data-badge>
                                 {{ sponsor.display_location|title }}
                             </span>
                         </td>
-                        <td>
+                        <td data-label="Applies To">
                             <span class="badge bg-label-{{ 'primary' if sponsor.applies_to == 'all' else 'success' if sponsor.applies_to == 'ecs_membership' else 'info' }}" data-badge>
                                 {{ 'All' if sponsor.applies_to == 'all' else 'ECS' if sponsor.applies_to == 'ecs_membership' else 'Pub League' }}
                             </span>
                         </td>
-                        <td>
+                        <td data-label="Status">
                             {% if sponsor.is_active %}
                             <span class="badge bg-success" data-badge>Active</span>
                             {% else %}
                             <span class="badge bg-secondary" data-badge>Inactive</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Actions">
                             <div class="btn-group btn-group-sm">
                                 <button type="button" class="c-btn c-btn--outline-primary js-edit-sponsor" data-action="edit-sponsor" data-sponsor-id="{{ sponsor.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
                                 <button type="button" class="c-btn btn-outline-{{ 'warning' if sponsor.is_active else 'success' }} js-toggle-sponsor" data-action="toggle-sponsor" data-sponsor-id="{{ sponsor.id }}" data-active="{{ 'false' if sponsor.is_active else 'true' }}" aria-label="View"><i class="ti ti-{{ 'eye-off' if sponsor.is_active else 'eye' }}"></i></button>

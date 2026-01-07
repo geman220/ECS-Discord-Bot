@@ -2,7 +2,7 @@
    C-DROPDOWN COMPONENT
    ============================================================================
    BEM dropdown menu component with proper dark mode support.
-   No !important needed - uses proper specificity and CSS custom properties.
+   No needed - uses proper specificity and CSS custom properties.
 
    USAGE:
    <div class="c-dropdown" data-dropdown>
@@ -32,30 +32,30 @@
 .c-dropdown,
 [data-dropdown] {
   /* Light mode defaults */
-  --dropdown-bg: var(--color-white, #ffffff);
+  --dropdown-bg: var(--color-white, var(--color-white)fff);
   --dropdown-border-color: var(--color-border);
   --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
                      0 10px 15px -3px rgba(0, 0, 0, 0.1);
   --dropdown-radius: 0.5rem;
 
   /* Item colors */
-  --dropdown-item-color: #27272a;
+  --dropdown-item-color: var(--color-neutral-800);
   --dropdown-item-hover-bg: rgba(0, 0, 0, 0.04);
   --dropdown-item-active-bg: rgba(0, 0, 0, 0.08);
 
   /* Semantic colors */
-  --dropdown-item-danger: #dc2626;
+  --dropdown-item-danger: var(--color-danger-700);
   --dropdown-item-danger-hover-bg: rgba(220, 38, 38, 0.08);
-  --dropdown-item-warning: #d97706;
+  --dropdown-item-warning: var(--color-warning-700);
   --dropdown-item-warning-hover-bg: rgba(217, 119, 6, 0.08);
   --dropdown-item-success: #16a34a;
   --dropdown-item-success-hover-bg: rgba(22, 163, 74, 0.08);
 
   /* Divider */
-  --dropdown-divider: #e4e4e7;
+  --dropdown-divider: var(--color-neutral-200);
 
   /* Icon colors */
-  --dropdown-icon-color: #71717a;
+  --dropdown-icon-color: var(--color-neutral-500);
 
   position: relative;
 }
@@ -68,24 +68,24 @@ html[data-style="dark"] [data-dropdown],
 .c-dropdown[data-theme="dark"],
 [data-dropdown][data-theme="dark"] {
   /* Hardcoded fallbacks to ensure solid backgrounds */
-  --dropdown-bg: #334155;           /* Slate-800 - hardcoded for reliability */
-  --dropdown-border: #475569;       /* Slate-700 */
+  --dropdown-bg: var(--color-secondary-800);           /* Slate-800 - hardcoded for reliability */
+  --dropdown-border: var(--color-secondary-700);       /* Slate-700 */
   --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
                      0 10px 15px -3px rgba(0, 0, 0, 0.4);
 
-  --dropdown-item-color: #f8fafc;   /* Slate-50 */
+  --dropdown-item-color: var(--color-secondary-50);   /* Slate-50 */
   --dropdown-item-hover-bg: rgba(255, 255, 255, 0.06);
   --dropdown-item-active-bg: rgba(255, 255, 255, 0.1);
 
-  --dropdown-item-danger: #f87171;
+  --dropdown-item-danger: var(--color-danger-400);
   --dropdown-item-danger-hover-bg: rgba(248, 113, 113, 0.12);
-  --dropdown-item-warning: #fbbf24;
+  --dropdown-item-warning: var(--color-warning-400);
   --dropdown-item-warning-hover-bg: rgba(251, 191, 36, 0.12);
-  --dropdown-item-success: #4ade80;
+  --dropdown-item-success: var(--color-success-400);
   --dropdown-item-success-hover-bg: rgba(74, 222, 128, 0.12);
 
-  --dropdown-divider: #475569;      /* Slate-700 */
-  --dropdown-icon-color: #94a3b8;   /* Slate-400 */
+  --dropdown-divider: var(--color-secondary-700);      /* Slate-700 */
+  --dropdown-icon-color: var(--color-secondary-400);   /* Slate-400 */
 }
 
 /* ----------------------------------------------------------------------------

@@ -169,8 +169,8 @@ export const TabsController = {
                 history.replaceState(null, null, `#${tabId}`);
             }
 
-            // Log for debugging
-            if (window.InitSystemDebug) {
+            // Log for debugging (defensive check for race condition)
+            if (window.InitSystemDebug && typeof window.InitSystemDebug.log === 'function') {
                 window.InitSystemDebug.log('tabs-controller', `Activated tab: ${tabId}`);
             }
         },
@@ -204,7 +204,7 @@ export const TabsController = {
         showTab(tabId) {
             const trigger = document.querySelector(`[data-tab-trigger="${tabId}"]`);
             if (!trigger) {
-                console.warn(`window.TabsController: Tab trigger not found for "${tabId}"`);
+                // Silently return - tab may not exist on current page
                 return;
             }
 

@@ -23,60 +23,60 @@
  * Used for cropper interfaces with theme-aware colors
  */
 .canvas-border-primary {
-    border: 2px solid var(--color-primary, #0d6efd) !important;
-    border-radius: 8px !important;
+    border: 2px solid var(--color-primary, var(--color-primary));
+    border-radius: 8px;
 }
 
 [data-style="dark"] .canvas-border-primary {
-    border-color: var(--color-primary, #0d6efd) !important;
+    border-color: var(--color-primary, var(--color-primary));
 }
 
 /**
  * Canvas with secondary border
  */
 .canvas-border-secondary {
-    border: 2px solid var(--color-secondary, #6c757d) !important;
-    border-radius: 8px !important;
+    border: 2px solid var(--color-secondary, var(--color-secondary-600));
+    border-radius: 8px;
 }
 
 [data-style="dark"] .canvas-border-secondary {
-    border-color: var(--color-secondary, #6c757d) !important;
+    border-color: var(--color-secondary, var(--color-secondary-600));
 }
 
 /**
  * Canvas with light border
  */
 .canvas-border-light {
-    border: 2px solid var(--color-secondary-300, #ced4da) !important;
-    border-radius: 8px !important;
+    border: 2px solid var(--color-secondary-300, var(--color-neutral-300));
+    border-radius: 8px;
 }
 
 [data-style="dark"] .canvas-border-light {
-    border-color: var(--color-secondary-700, #495057) !important;
+    border-color: var(--color-secondary-700, var(--color-secondary-700));
 }
 
 /**
  * Canvas with success border (valid crop area)
  */
 .canvas-border-success {
-    border: 2px solid var(--color-success, #198754) !important;
-    border-radius: 8px !important;
+    border: 2px solid var(--color-success, var(--color-success-600));
+    border-radius: 8px;
 }
 
 /**
  * Canvas with danger border (invalid crop area)
  */
 .canvas-border-danger {
-    border: 2px solid var(--color-danger, #dc3545) !important;
-    border-radius: 8px !important;
+    border: 2px solid var(--color-danger, var(--color-danger-600));
+    border-radius: 8px;
 }
 
 /**
  * Canvas with warning border
  */
 .canvas-border-warning {
-    border: 2px solid var(--color-warning, #ffc107) !important;
-    border-radius: 8px !important;
+    border: 2px solid var(--color-warning, var(--color-warning));
+    border-radius: 8px;
 }
 
 /* ============================================
@@ -84,23 +84,23 @@
    ============================================ */
 
 .canvas-rounded {
-    border-radius: 8px !important;
+    border-radius: 8px;
 }
 
 .canvas-rounded-sm {
-    border-radius: 4px !important;
+    border-radius: 4px;
 }
 
 .canvas-rounded-lg {
-    border-radius: 12px !important;
+    border-radius: 12px;
 }
 
 .canvas-rounded-circle {
-    border-radius: 50% !important;
+    border-radius: 50%;
 }
 
 .canvas-rounded-none {
-    border-radius: 0 !important;
+    border-radius: 0;
 }
 
 /* ============================================
@@ -108,29 +108,29 @@
    ============================================ */
 
 .canvas-size-sm {
-    width: 200px !important;
-    height: 200px !important;
+    width: 200px;
+    height: 200px;
 }
 
 .canvas-size-md {
-    width: 300px !important;
-    height: 300px !important;
+    width: 300px;
+    height: 300px;
 }
 
 .canvas-size-lg {
-    width: 400px !important;
-    height: 400px !important;
+    width: 400px;
+    height: 400px;
 }
 
 .canvas-size-xl {
-    width: 500px !important;
-    height: 500px !important;
+    width: 500px;
+    height: 500px;
 }
 
 /* Responsive canvas sizing */
 .canvas-responsive {
-    max-width: 100% !important;
-    height: auto !important;
+    max-width: 100%;
+    height: auto;
 }
 
 /* ============================================
@@ -142,54 +142,54 @@
  * Indicates the canvas content can be moved/panned
  */
 .canvas-movable {
-    cursor: move !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    user-select: none !important;
-    touch-action: none !important;
+    cursor: move;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    touch-action: none;
 }
 
 /**
  * Canvas with grab cursor (for drag to pan)
  */
 .canvas-grabbable {
-    cursor: grab !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    user-select: none !important;
-    touch-action: none !important;
+    cursor: grab;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    touch-action: none;
 }
 
 .canvas-grabbable:active {
-    cursor: grabbing !important;
+    cursor: grabbing;
 }
 
 /**
  * Canvas with crosshair cursor (for selection)
  */
 .canvas-crosshair {
-    cursor: crosshair !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    user-select: none !important;
+    cursor: crosshair;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
 }
 
 /**
  * Canvas with zoom cursor
  */
 .canvas-zoom-in {
-    cursor: zoom-in !important;
+    cursor: zoom-in;
 }
 
 .canvas-zoom-out {
-    cursor: zoom-out !important;
+    cursor: zoom-out;
 }
 
 /**
  * Canvas with default cursor (non-interactive)
  */
 .canvas-default {
-    cursor: default !important;
+    cursor: default;
 }
 
 /* ============================================
@@ -200,35 +200,35 @@
  * Canvas centered in container
  */
 .canvas-centered {
-    display: block !important;
-    margin: 0 auto !important;
+    display: block;
+    margin: 0 auto;
 }
 
 /**
  * Canvas with shadow (elevated appearance)
  */
 .canvas-shadow {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
 .canvas-shadow-sm {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
 .canvas-shadow-lg {
-    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175);
 }
 
 [data-style="dark"] .canvas-shadow {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
 }
 
 [data-style="dark"] .canvas-shadow-sm {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3) !important;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
 }
 
 [data-style="dark"] .canvas-shadow-lg {
-    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.6) !important;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.6);
 }
 
 /* ============================================
@@ -240,42 +240,42 @@
  */
 .canvas-bg-transparent {
     background-image:
-        linear-gradient(45deg, var(--color-secondary-100, #f8f9fa) 25%, transparent 25%),
-        linear-gradient(-45deg, var(--color-secondary-100, #f8f9fa) 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, var(--color-secondary-100, #f8f9fa) 75%),
-        linear-gradient(-45deg, transparent 75%, var(--color-secondary-100, #f8f9fa) 75%) !important;
-    background-size: 20px 20px !important;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px !important;
+        linear-gradient(45deg, var(--color-secondary-100, var(--color-neutral-50)) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--color-secondary-100, var(--color-neutral-50)) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--color-secondary-100, var(--color-neutral-50)) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--color-secondary-100, var(--color-neutral-50)) 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
 }
 
 [data-style="dark"] .canvas-bg-transparent {
     background-image:
-        linear-gradient(45deg, var(--color-secondary-800, #343a40) 25%, transparent 25%),
-        linear-gradient(-45deg, var(--color-secondary-800, #343a40) 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, var(--color-secondary-800, #343a40) 75%),
-        linear-gradient(-45deg, transparent 75%, var(--color-secondary-800, #343a40) 75%) !important;
+        linear-gradient(45deg, var(--color-secondary-800, var(--color-secondary-800)) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--color-secondary-800, var(--color-secondary-800)) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--color-secondary-800, var(--color-secondary-800)) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--color-secondary-800, var(--color-secondary-800)) 75%);
 }
 
 /**
  * Canvas with light background
  */
 .canvas-bg-light {
-    background-color: var(--color-secondary-100, #f8f9fa) !important;
+    background-color: var(--color-secondary-100, var(--color-neutral-50));
 }
 
 [data-style="dark"] .canvas-bg-light {
-    background-color: var(--color-secondary-900, #212529) !important;
+    background-color: var(--color-secondary-900, var(--color-secondary-900));
 }
 
 /**
  * Canvas with white background
  */
 .canvas-bg-white {
-    background-color: var(--color-white, #ffffff) !important;
+    background-color: var(--color-white, var(--color-white));
 }
 
 [data-style="dark"] .canvas-bg-white {
-    background-color: var(--color-secondary-950, #1a1d20) !important;
+    background-color: var(--color-secondary-950, #1a1d20);
 }
 
 /* ============================================
@@ -287,43 +287,43 @@
  * Combines border, cursor, and interaction properties
  */
 .cropper-canvas {
-    border: 2px solid var(--color-primary, #0d6efd) !important;
-    border-radius: 8px !important;
-    cursor: move !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    user-select: none !important;
-    touch-action: none !important;
-    display: block !important;
+    border: 2px solid var(--color-primary, var(--color-primary));
+    border-radius: 8px;
+    cursor: move;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    touch-action: none;
+    display: block;
 }
 
 [data-style="dark"] .cropper-canvas {
-    border-color: var(--color-primary, #0d6efd) !important;
+    border-color: var(--color-primary, var(--color-primary));
 }
 
 /**
  * Cropper canvas in active state (dragging)
  */
 .cropper-canvas-active {
-    cursor: grabbing !important;
-    border-color: var(--color-primary-600, #0a58ca) !important;
+    cursor: grabbing;
+    border-color: var(--color-primary-600, var(--color-primary-700));
 }
 
 /**
  * Cropper canvas disabled state
  */
 .cropper-canvas-disabled {
-    cursor: not-allowed !important;
-    opacity: 0.6 !important;
-    pointer-events: none !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+    pointer-events: none;
 }
 
 /**
  * Cropper canvas loading state
  */
 .cropper-canvas-loading {
-    cursor: wait !important;
-    opacity: 0.8 !important;
+    cursor: wait;
+    opacity: 0.8;
 }
 
 /* ============================================
@@ -334,40 +334,40 @@
  * Container for canvas with proper spacing
  */
 .canvas-container {
-    position: relative !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    padding: 1rem !important;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
 }
 
 /**
  * Canvas wrapper with aspect ratio
  */
 .canvas-wrapper-square {
-    position: relative !important;
-    width: 100% !important;
-    padding-bottom: 100% !important;
+    position: relative;
+    width: 100%;
+    padding-bottom: 100%;
 }
 
 .canvas-wrapper-16-9 {
-    position: relative !important;
-    width: 100% !important;
-    padding-bottom: 56.25% !important;
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%;
 }
 
 .canvas-wrapper-4-3 {
-    position: relative !important;
-    width: 100% !important;
-    padding-bottom: 75% !important;
+    position: relative;
+    width: 100%;
+    padding-bottom: 75%;
 }
 
 .canvas-wrapper > canvas {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }
 
 /* ============================================
@@ -377,16 +377,16 @@
 /**
  * Mobile-optimized canvas
  */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .canvas-mobile-full {
-        width: 100% !important;
-        max-width: 100% !important;
-        height: auto !important;
+        width: 100%;
+        max-width: 100%;
+        height: auto;
     }
 
     .cropper-canvas {
-        max-width: 100% !important;
-        height: auto !important;
+        max-width: 100%;
+        height: auto;
     }
 }
 
@@ -394,7 +394,7 @@
  * Prevent canvas zoom on double-tap
  */
 .canvas-no-zoom {
-    touch-action: manipulation !important;
+    touch-action: manipulation;
 }
 
 /* ============================================
@@ -405,21 +405,21 @@
  * Canvas with accessible label
  */
 .canvas-labeled {
-    border: 2px solid var(--color-primary, #0d6efd) !important;
-    border-radius: 8px !important;
+    border: 2px solid var(--color-primary, var(--color-primary));
+    border-radius: 8px;
 }
 
 .canvas-labeled:focus {
-    outline: 2px solid var(--color-primary, #0d6efd) !important;
-    outline-offset: 2px !important;
+    outline: 2px solid var(--color-primary, var(--color-primary));
+    outline-offset: 2px;
 }
 
 /**
  * Canvas with focus indicator
  */
 .canvas-focusable:focus {
-    outline: 3px solid var(--color-primary, #0d6efd) !important;
-    outline-offset: 2px !important;
+    outline: 3px solid var(--color-primary, var(--color-primary));
+    outline-offset: 2px;
 }
 
 /* ============================================
@@ -430,21 +430,21 @@
  * Hardware accelerated canvas
  */
 .canvas-accelerated {
-    transform: translateZ(0) !important;
-    backface-visibility: hidden !important;
-    perspective: 1000px !important;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
 }
 
 /**
  * Optimize canvas rendering
  */
 .canvas-optimized {
-    image-rendering: -webkit-optimize-contrast !important;
-    image-rendering: crisp-edges !important;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
 }
 
 .canvas-smooth {
-    image-rendering: auto !important;
+    image-rendering: auto;
 }
 
 /* ============================================

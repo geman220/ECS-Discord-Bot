@@ -32,7 +32,10 @@ def init_app(app):
     """Initialize Vite integration with Flask app."""
 
     # Default configuration
-    app.config.setdefault('VITE_DEV_MODE', app.debug)
+    # VITE_DEV_MODE is opt-in only - enables HMR via Vite dev server
+    # Default: Use built Vite assets (with source maps in dev for debugging)
+    vite_dev_mode = os.getenv('VITE_DEV_MODE', '').lower() in ('true', '1', 'yes')
+    app.config.setdefault('VITE_DEV_MODE', vite_dev_mode)
     app.config.setdefault('VITE_DEV_SERVER_URL', 'http://localhost:5173')
     app.config.setdefault('VITE_MANIFEST_PATH', 'vite-dist/.vite/manifest.json')
 
@@ -40,25 +43,33 @@ def init_app(app):
     vite_manifest_path = os.path.join(app.static_folder, 'vite-dist/.vite/manifest.json')
     vite_assets_exist = os.path.exists(vite_manifest_path)
 
-    # Use Vite production mode if:
-    # 1. Not in dev mode
-    # 2. Vite assets exist
-    # 3. USE_VITE_ASSETS env var is set (optional explicit override)
+    # Use Vite bundled assets if:
+    # 1. Vite assets exist (manifest found)
+    # 2. Not explicitly using Vite dev server
+    # This enables using built assets even in debug mode (with source maps for debugging)
     use_vite = os.getenv('USE_VITE_ASSETS', '').lower() in ('true', '1', 'yes')
-    vite_production_mode = (not app.debug and vite_assets_exist) or use_vite
+    vite_production_mode = (vite_assets_exist and not vite_dev_mode) or use_vite
 
     app.config['VITE_PRODUCTION_MODE'] = vite_production_mode
 
-    app.logger.info(f"[VITE] Vite integration initialized:")
-    app.logger.info(f"  VITE_DEV_MODE={app.config.get('VITE_DEV_MODE')}")
+    # Determine which mode we're actually in
+    if vite_production_mode:
+        mode = "VITE BUNDLED ASSETS (from vite-dist/)"
+    elif vite_dev_mode:
+        mode = "VITE DEV SERVER (HMR from localhost:5173)"
+    else:
+        mode = "FALLBACK (no Vite assets found - run 'npm run build')"
+
+    app.logger.info(f"[VITE] Asset loading: {mode}")
     app.logger.info(f"  Vite manifest exists: {vite_assets_exist}")
-    app.logger.info(f"  >>> VITE_PRODUCTION_MODE = {vite_production_mode}")
+    app.logger.info(f"  Use source maps? Set BUILD_MODE=dev before 'npm run build'")
 
     # Register template context processor
     @app.context_processor
     def vite_context():
         return {
             'vite_asset': vite_asset,
+            'vite_asset_url': vite_asset_url,
             'vite_dev_mode': lambda: current_app.config.get('VITE_DEV_MODE', False),
             'vite_production_mode': lambda: current_app.config.get('VITE_PRODUCTION_MODE', False),
         }
@@ -114,6 +125,44 @@ def vite_asset(entry_point: str) -> Markup:
         return _vite_dev_asset(entry_point)
     else:
         return _vite_prod_asset(entry_point)
+
+
+def vite_asset_url(entry_point: str) -> str:
+    """
+    Get the URL for a Vite asset (without HTML tags).
+
+    Useful for preload hints, modulepreload, etc.
+
+    Args:
+        entry_point: The entry point path (e.g., 'js/main-entry.js')
+
+    Returns:
+        URL string for the asset
+    """
+    dev_mode = current_app.config.get('VITE_DEV_MODE', False)
+
+    if dev_mode:
+        dev_url = current_app.config.get('VITE_DEV_SERVER_URL', 'http://localhost:5173')
+        return f"{dev_url}/static/{entry_point}"
+
+    # Production mode - look up in manifest
+    manifest = get_manifest()
+    if not manifest:
+        return url_for('static', filename=entry_point)
+
+    entry_key = entry_point
+    if entry_key not in manifest:
+        entry_key = f'static/{entry_point}'
+
+    if entry_key not in manifest:
+        return url_for('static', filename=entry_point)
+
+    entry = manifest[entry_key]
+    file_path = entry.get('file', '')
+    if file_path:
+        return url_for('static', filename=f'vite-dist/{file_path}')
+
+    return url_for('static', filename=entry_point)
 
 
 def _vite_dev_asset(entry_point: str) -> Markup:

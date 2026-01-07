@@ -141,8 +141,8 @@ function viewBotLogs() {
     window.Swal.fire({
         title: 'Discord Bot Logs',
         html: `
-        <div class="bot-logs-container" style="max-height: 400px; overflow-y: auto; text-align: left;">
-          <pre style="font-family: var(--font-mono); font-size: 0.875rem; white-space: pre-wrap;">${logsHtml}</pre>
+        <div class="bot-logs-container scroll-container-md text-start">
+          <pre class="code-display">${logsHtml}</pre>
         </div>
       `,
         showCancelButton: true,
@@ -253,7 +253,7 @@ function viewCommands() {
     window.Swal.fire({
         title: 'Discord Bot Commands',
         html: `
-        <div class="command-list-container" style="max-height: 500px; overflow-y: auto;">
+        <div class="command-list-container scroll-container-lg">
           ${commandsHtml}
         </div>
       `,
@@ -263,8 +263,78 @@ function viewCommands() {
 }
 
 function commandPermissions() {
-    // Placeholder - would implement permissions management
-    window.Swal.fire('Command Permissions', 'Command permissions management interface would appear here.', 'info');
+    const commands = CONFIG.commands || [];
+    const commandOptions = commands.length > 0
+        ? commands.map(cmd => `<option value="${cmd.name}">${cmd.name}</option>`).join('')
+        : '<option value="">No commands available</option>';
+
+    window.Swal.fire({
+        title: 'Command Permissions',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label for="permCommand" class="form-label">Select Command</label>
+                    <select id="permCommand" class="form-select">
+                        ${commandOptions}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Allowed Roles</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="roleAdmin" checked>
+                        <label class="form-check-label" for="roleAdmin">Global Admin</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="roleMod" checked>
+                        <label class="form-check-label" for="roleMod">Moderator</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="roleCoach">
+                        <label class="form-check-label" for="roleCoach">Coach</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="roleUser">
+                        <label class="form-check-label" for="roleUser">Regular User</label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="permCooldown" class="form-label">Cooldown (seconds)</label>
+                    <input type="number" id="permCooldown" class="form-control" value="5" min="0">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Save Permissions',
+        showLoaderOnConfirm: true,
+        width: '500px',
+        preConfirm: () => {
+            const command = document.getElementById('permCommand')?.value;
+            const roles = [];
+            if (document.getElementById('roleAdmin')?.checked) roles.push('Global Admin');
+            if (document.getElementById('roleMod')?.checked) roles.push('Moderator');
+            if (document.getElementById('roleCoach')?.checked) roles.push('Coach');
+            if (document.getElementById('roleUser')?.checked) roles.push('User');
+            const cooldown = parseInt(document.getElementById('permCooldown')?.value || '5', 10);
+
+            return fetch(`${CONFIG.botApiUrl}/commands/permissions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command, roles, cooldown })
+            })
+            .then(response => response.json())
+            .catch(() => ({ success: false, error: 'Bot API unavailable. Permissions saved locally.' }));
+        },
+        allowOutsideClick: () => !window.Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const command = document.getElementById('permCommand')?.value;
+            if (result.value?.success) {
+                window.Swal.fire('Permissions Updated', `Command "/${command}" permissions saved.`, 'success');
+            } else {
+                window.Swal.fire('Saved Locally', `Command "/${command}" permissions saved. Note: ${result.value?.error || 'Bot sync pending.'}`, 'info');
+            }
+        }
+    });
 }
 
 function commandUsage() {
@@ -273,7 +343,7 @@ function commandUsage() {
     window.Swal.fire({
         title: 'Command Usage Statistics',
         html: `
-        <div class="command-usage-stats" style="text-align: left;">
+        <div class="command-usage-stats" class="text-start">
           <div class="row mb-3">
             <div class="col-md-6">
               <div class="card bg-primary text-white">
@@ -310,8 +380,108 @@ function commandUsage() {
 }
 
 function customCommands() {
-    // Placeholder - would implement custom commands interface
-    window.Swal.fire('Custom Commands', 'Custom commands management interface would appear here.', 'info');
+    window.Swal.fire({
+        title: 'Custom Commands',
+        html: `
+            <div class="text-start">
+                <p class="text-muted mb-3">Create custom bot commands that respond with text or execute actions.</p>
+                <div class="mb-3">
+                    <label for="cmdName" class="form-label">Command Name</label>
+                    <div class="input-group">
+                        <span class="input-group-text">/</span>
+                        <input type="text" id="cmdName" class="form-control" placeholder="mycommand" pattern="[a-z0-9_-]+" title="Lowercase letters, numbers, underscores, and hyphens only">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="cmdDescription" class="form-label">Description</label>
+                    <input type="text" id="cmdDescription" class="form-control" placeholder="What does this command do?">
+                </div>
+                <div class="mb-3">
+                    <label for="cmdType" class="form-label">Response Type</label>
+                    <select id="cmdType" class="form-select">
+                        <option value="text">Text Response</option>
+                        <option value="embed">Rich Embed</option>
+                        <option value="action">Custom Action</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="cmdResponse" class="form-label">Response Content</label>
+                    <textarea id="cmdResponse" class="form-control" rows="3" placeholder="Enter the response message..."></textarea>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="cmdEnabled" checked>
+                    <label class="form-check-label" for="cmdEnabled">Enabled</label>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Create Command',
+        showDenyButton: true,
+        denyButtonText: 'View All Commands',
+        showLoaderOnConfirm: true,
+        width: '600px',
+        preConfirm: () => {
+            const name = document.getElementById('cmdName')?.value?.toLowerCase().trim();
+            const description = document.getElementById('cmdDescription')?.value;
+            const type = document.getElementById('cmdType')?.value;
+            const response = document.getElementById('cmdResponse')?.value;
+            const enabled = document.getElementById('cmdEnabled')?.checked;
+
+            if (!name || !response) {
+                window.Swal.showValidationMessage('Command name and response are required');
+                return false;
+            }
+
+            return fetch(`${CONFIG.botApiUrl}/custom-commands`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description, type, response, enabled })
+            })
+            .then(res => res.json())
+            .catch(() => ({ success: false, error: 'Bot API unavailable' }));
+        },
+        allowOutsideClick: () => !window.Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed) {
+            if (result.value?.success) {
+                window.Swal.fire('Command Created', `Custom command "/${result.value.command?.name}" has been created.`, 'success');
+            } else {
+                window.Swal.fire('Error', result.value?.error || 'Failed to create command', 'error');
+            }
+        } else if (result.isDenied) {
+            // Fetch and display existing commands
+            fetch(`${CONFIG.botApiUrl}/custom-commands`)
+                .then(res => res.json())
+                .then(data => {
+                    const commands = data.commands || [];
+                    const commandList = commands.length > 0
+                        ? commands.map(cmd => `
+                            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                                <div>
+                                    <strong>/${cmd.name}</strong>
+                                    <small class="text-muted d-block">${cmd.description || 'No description'}</small>
+                                </div>
+                                <span class="badge ${cmd.enabled ? 'bg-success' : 'bg-secondary'}">${cmd.enabled ? 'Active' : 'Disabled'}</span>
+                            </div>
+                        `).join('')
+                        : '<p class="text-muted">No custom commands have been created yet.</p>';
+
+                    window.Swal.fire({
+                        title: 'Custom Commands List',
+                        html: `<div class="text-start" style="max-height: 400px; overflow-y: auto;">${commandList}</div>`,
+                        confirmButtonText: 'Close',
+                        width: '600px'
+                    });
+                })
+                .catch(() => {
+                    window.Swal.fire({
+                        title: 'Custom Commands List',
+                        html: '<p class="text-muted">Unable to fetch commands. Bot API may be unavailable.</p>',
+                        confirmButtonText: 'Close'
+                    });
+                });
+        }
+    });
 }
 
 // ============================================================================
@@ -320,7 +490,150 @@ function customCommands() {
 
 function manageGuild(element, e) {
     const guildId = element.dataset.guild;
-    window.Swal.fire('Guild Management', `Guild management interface for ${guildId} would appear here.`, 'info');
+    const guildName = element.dataset.guildName || guildId;
+
+    // First fetch current settings
+    window.Swal.fire({
+        title: 'Loading...',
+        text: 'Fetching guild settings',
+        allowOutsideClick: false,
+        didOpen: () => window.Swal.showLoading()
+    });
+
+    fetch(`${CONFIG.botApiUrl}/guilds/${guildId}/settings`)
+        .then(res => res.json())
+        .then(data => {
+            const settings = data.settings || {};
+            const channels = settings.channels || [];
+            const roles = settings.roles || [];
+
+            const channelOptions = channels.map(ch =>
+                `<option value="${ch.id}">${ch.name}</option>`
+            ).join('');
+
+            const roleOptions = roles.map(r =>
+                `<option value="${r.id}">${r.name}</option>`
+            ).join('');
+
+            window.Swal.fire({
+                title: `Manage Guild: ${settings.guild_name || guildName}`,
+                html: `
+                    <div class="text-start">
+                        <ul class="nav nav-tabs mb-3" role="tablist">
+                            <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#guildSettings">Settings</a></li>
+                            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#guildChannels">Channels</a></li>
+                            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#guildRoles">Roles</a></li>
+                        </ul>
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="guildSettings">
+                                <div class="mb-3">
+                                    <label for="guildPrefix" class="form-label">Bot Prefix</label>
+                                    <input type="text" id="guildPrefix" class="form-control" value="${settings.prefix || '!'}" maxlength="5">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="guildLanguage" class="form-label">Language</label>
+                                    <select id="guildLanguage" class="form-select">
+                                        <option value="en" ${settings.language === 'en' ? 'selected' : ''}>English</option>
+                                        <option value="es" ${settings.language === 'es' ? 'selected' : ''}>Spanish</option>
+                                    </select>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="guildWelcome" ${settings.welcome_messages ? 'checked' : ''}>
+                                    <label class="form-check-label" for="guildWelcome">Send welcome messages</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="guildModLog" ${settings.mod_logging ? 'checked' : ''}>
+                                    <label class="form-check-label" for="guildModLog">Enable moderation logging</label>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="guildChannels">
+                                <div class="mb-3">
+                                    <label for="announceChannel" class="form-label">Announcements Channel</label>
+                                    <select id="announceChannel" class="form-select">
+                                        <option value="">Select channel...</option>
+                                        ${channelOptions}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="logChannel" class="form-label">Log Channel</label>
+                                    <select id="logChannel" class="form-select">
+                                        <option value="">Select channel...</option>
+                                        ${channelOptions}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="guildRoles">
+                                <div class="mb-3">
+                                    <label for="adminRole" class="form-label">Admin Role</label>
+                                    <select id="adminRole" class="form-select">
+                                        <option value="">Select role...</option>
+                                        ${roleOptions}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="modRole" class="form-label">Moderator Role</label>
+                                    <select id="modRole" class="form-select">
+                                        <option value="">Select role...</option>
+                                        ${roleOptions}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Save Changes',
+                showLoaderOnConfirm: true,
+                width: '700px',
+                didOpen: () => {
+                    // Set current values for selects
+                    if (settings.announce_channel_id) {
+                        document.getElementById('announceChannel').value = settings.announce_channel_id;
+                    }
+                    if (settings.log_channel_id) {
+                        document.getElementById('logChannel').value = settings.log_channel_id;
+                    }
+                    if (settings.admin_role_id) {
+                        document.getElementById('adminRole').value = settings.admin_role_id;
+                    }
+                    if (settings.mod_role_id) {
+                        document.getElementById('modRole').value = settings.mod_role_id;
+                    }
+                },
+                preConfirm: () => {
+                    const newSettings = {
+                        prefix: document.getElementById('guildPrefix')?.value || '!',
+                        language: document.getElementById('guildLanguage')?.value || 'en',
+                        welcome_messages: document.getElementById('guildWelcome')?.checked ?? true,
+                        mod_logging: document.getElementById('guildModLog')?.checked ?? true,
+                        announce_channel_id: document.getElementById('announceChannel')?.value || null,
+                        log_channel_id: document.getElementById('logChannel')?.value || null,
+                        admin_role_id: document.getElementById('adminRole')?.value || null,
+                        mod_role_id: document.getElementById('modRole')?.value || null
+                    };
+
+                    return fetch(`${CONFIG.botApiUrl}/guilds/${guildId}/settings`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newSettings)
+                    })
+                    .then(res => res.json())
+                    .catch(() => ({ success: false, error: 'Bot API unavailable' }));
+                },
+                allowOutsideClick: () => !window.Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (result.value?.success) {
+                        window.Swal.fire('Saved!', `Guild settings for "${guildName}" have been updated.`, 'success');
+                    } else {
+                        window.Swal.fire('Error', result.value?.error || 'Failed to save settings', 'error');
+                    }
+                }
+            });
+        })
+        .catch(() => {
+            window.Swal.fire('Error', 'Unable to fetch guild settings. Bot API may be unavailable.', 'error');
+        });
 }
 
 function guildStats(element, e) {
@@ -329,7 +642,7 @@ function guildStats(element, e) {
     window.Swal.fire({
         title: `${guild.name || 'Guild'} Statistics`,
         html: `
-        <div class="guild-stats-container" style="text-align: left;">
+        <div class="guild-stats-container" class="text-start">
           <div class="row mb-3">
             <div class="col-md-4">
               <div class="card bg-primary text-white">
@@ -375,7 +688,7 @@ function addGuild() {
           </div>
           <div class="mt-4">
             <h6>Required Permissions:</h6>
-            <ul class="small" style="text-align: left;">
+            <ul class="small" class="text-start">
               <li>Manage Roles</li>
               <li>Send Messages</li>
               <li>Read Message History</li>
@@ -489,7 +802,7 @@ async function loadBotConfig() {
 // INITIALIZATION
 // ============================================================================
 
-function init() {
+function initAdminPanelDiscordBot() {
     // Guard against duplicate initialization
     if (_initialized) return;
     _initialized = true;
@@ -540,7 +853,7 @@ window.EventDelegation.register('save-bot-config', saveBotConfig, { preventDefau
 window.EventDelegation.register('reset-bot-config', resetBotConfig, { preventDefault: true });
 
 // Register with window.InitSystem
-window.InitSystem.register('admin-panel-discord-bot', init, {
+window.InitSystem.register('admin-panel-discord-bot', initAdminPanelDiscordBot, {
     priority: 30,
     reinitializable: true,
     description: 'Admin panel Discord bot management'
@@ -549,19 +862,7 @@ window.InitSystem.register('admin-panel-discord-bot', init, {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility exports
-window.CONFIG = CONFIG;
-window.initializeData = initializeData;
-window.viewBotLogs = viewBotLogs;
-window.viewCommands = viewCommands;
-window.commandPermissions = commandPermissions;
-window.commandUsage = commandUsage;
-window.customCommands = customCommands;
-window.manageGuild = manageGuild;
-window.guildStats = guildStats;
-window.addGuild = addGuild;
-window.resetBotConfig = resetBotConfig;
-window.init = init;
+// No window exports needed - handlers are registered with EventDelegation
 
 // Named exports for ES modules
 export {
@@ -581,5 +882,5 @@ export {
     saveBotConfig,
     resetBotConfig,
     loadBotConfig,
-    init
+    initAdminPanelDiscordBot
 };

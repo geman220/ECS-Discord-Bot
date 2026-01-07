@@ -47,13 +47,13 @@ def user_analytics():
 def export_user_analytics():
     """Export user analytics data."""
     try:
-        data = request.get_json()
-        export_type = data.get('type', 'users')  # users, roles, activity
-        format_type = data.get('format', 'csv')  # csv, json, xlsx
-        date_range = data.get('date_range', '30_days')
+        data = request.get_json() or {}
+        export_type = data.get('type', 'users')  # users, roles, activity, all
+        format_type = data.get('format', 'json')  # json (csv/xlsx would need additional libs)
+        date_range = data.get('date_range', 'all')  # 7_days, 30_days, 90_days, all
 
         # Generate export data
-        export_data = generate_user_export_data(export_type, format_type, date_range)
+        export_result = generate_user_export_data(export_type, format_type, date_range)
 
         # Log the export action
         AdminAuditLog.log_action(
@@ -61,16 +61,17 @@ def export_user_analytics():
             action='export_user_analytics',
             resource_type='user_analytics',
             resource_id=export_type,
-            new_value=f'Exported {export_type} data in {format_type} format',
+            new_value=f'Exported {export_result.get("count", 0)} {export_type} records',
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
 
         return jsonify({
             'success': True,
-            'message': f'User analytics export completed',
-            'download_url': export_data.get('url'),
-            'filename': export_data.get('filename')
+            'message': f'Exported {export_result.get("count", 0)} records successfully',
+            'export_data': export_result,
+            'filename': export_result.get('filename'),
+            'count': export_result.get('count', 0)
         })
 
     except Exception as e:

@@ -28,7 +28,7 @@
   gap: var(--space-3, 12px);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -64,13 +64,13 @@
 .c-stat__value {
   font-size: var(--text-xl, 1.25rem);
   font-weight: 700;
-  color: var(--color-text-primary, var(--color-secondary-50, #f8fafc));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50)));
   line-height: 1;
 }
 
 .c-stat__label {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, var(--color-secondary-600, #64748b));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600)));
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -84,14 +84,14 @@
   flex-direction: column;
   gap: var(--space-1, 4px);
   padding: var(--space-4, 16px);
-  background: var(--color-bg-secondary, var(--color-secondary-50, #f8fafc));
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50)));
   border-radius: var(--radius-md, 8px);
   border: 1px solid var(--color-border-primary, rgba(0, 0, 0, 0.06));
   transition: all var(--duration-normal, 200ms) ease;
 }
 
 .c-stat-box:hover {
-  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   box-shadow: 0 4px 16px rgba(105, 108, 255, 0.15);
   transform: translateY(-4px);
 }
@@ -109,7 +109,7 @@
 .c-stat-box__label {
   font-size: var(--text-xs, 0.75rem);
   font-weight: var(--font-medium, 500);
-  color: var(--color-text-tertiary, var(--color-secondary-400, #94a3b8));
+  color: var(--color-text-tertiary, var(--color-secondary-400, var(--color-secondary-400)));
   text-transform: uppercase;
   letter-spacing: 0.05em;
   display: block;
@@ -120,25 +120,25 @@
   font-family: var(--font-display, 'Archivo Black', sans-serif);
   font-size: var(--text-xl, 1.25rem);
   font-weight: var(--font-bold, 700);
-  color: var(--color-text-primary, var(--color-secondary-900, #1e293b));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900)));
   line-height: 1.2;
 }
 
 /* Value color variants */
 .c-stat-box__value--success {
-  color: var(--color-success, #22c55e);
+  color: var(--color-success, var(--color-success-500));
 }
 
 .c-stat-box__value--warning {
-  color: var(--color-warning-500, #f59e0b);
+  color: var(--color-warning-500, var(--color-warning-500));
 }
 
 .c-stat-box__value--danger {
-  color: var(--color-danger-500, #ef4444);
+  color: var(--color-danger-500, var(--color-danger-500));
 }
 
 .c-stat-box__value--primary {
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* ============================================================================
@@ -181,7 +181,7 @@
 }
 
 [data-style="dark"] .c-stat__value {
-  color: var(--color-text-primary, var(--color-secondary-100, #f1f5f9));
+  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100)));
 }
 
 [data-style="dark"] .c-stat-box {
@@ -190,7 +190,7 @@
 }
 
 [data-style="dark"] .c-stat-box__value {
-  color: var(--color-text-primary, var(--color-secondary-100, #f1f5f9));
+  color: var(--color-text-primary, var(--color-secondary-100, var(--color-secondary-100)));
 }
 
 /* ============================================================================
@@ -202,7 +202,7 @@
 }
 
 [data-style="light"] .c-stat__value {
-  color: var(--color-text-primary, var(--color-secondary-900, #1e293b));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900)));
 }
 
 [data-style="light"] .c-stat-box {
@@ -210,14 +210,14 @@
 }
 
 [data-style="light"] .c-stat-box__value {
-  color: var(--color-text-primary, var(--color-secondary-900, #1e293b));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900)));
 }
 
 /* ============================================================================
    RESPONSIVE
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-stat-box {
     padding: var(--space-3, 12px);
   }

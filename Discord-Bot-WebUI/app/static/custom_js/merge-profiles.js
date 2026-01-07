@@ -6,7 +6,7 @@ import { InitSystem } from '../js/init-system.js';
 
 let _initialized = false;
 
-function init() {
+function initMergeProfiles() {
     if (_initialized) return;
     _initialized = true;
 
@@ -72,7 +72,7 @@ window.updateMergePreview = updateMergePreview;
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('merge-profiles', init, {
+    window.InitSystem.register('merge-profiles', initMergeProfiles, {
         priority: 45,
         reinitializable: false,
         description: 'Profile merge management'

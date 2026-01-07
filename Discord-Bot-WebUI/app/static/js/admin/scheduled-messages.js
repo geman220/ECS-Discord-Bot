@@ -465,7 +465,7 @@ function handleRetryScheduledMessage(e) {
 /**
  * Initialize all scheduled message functionality
  */
-function init() {
+function initScheduledMessages() {
     // Page guard: only run on scheduled messages page
     if (!document.getElementById('messagePreviewModal') && !document.getElementById('messageDetailsModal')) {
         return;
@@ -503,7 +503,7 @@ let _initialized = false;
 function initWithGuard() {
     if (_initialized) return;
     _initialized = true;
-    init();
+    initScheduledMessages();
 }
 
 window.InitSystem.register('scheduled-messages', initWithGuard, {
@@ -526,28 +526,13 @@ const ScheduledMessages = {
     editScheduledMessage,
     cancelScheduledMessage,
     retryScheduledMessage,
-    init
+    init: initScheduledMessages
 };
 
 // Expose public API
 window.ScheduledMessages = ScheduledMessages;
 
-// Backward compatibility
-window.CONFIG = CONFIG;
-window.previewMessage = previewMessage;
-window.viewScheduledMessage = viewScheduledMessage;
-window.editScheduledMessage = editScheduledMessage;
-window.cancelScheduledMessage = cancelScheduledMessage;
-window.retryScheduledMessage = retryScheduledMessage;
-window.initRecurringToggle = initRecurringToggle;
-window.initQueueFiltering = initQueueFiltering;
-window.initMinDateTime = initMinDateTime;
-window.handleGoBack = handleGoBack;
-window.handlePreviewMessage = handlePreviewMessage;
-window.handleViewScheduledMessage = handleViewScheduledMessage;
-window.handleEditScheduledMessage = handleEditScheduledMessage;
-window.handleCancelScheduledMessage = handleCancelScheduledMessage;
-window.handleRetryScheduledMessage = handleRetryScheduledMessage;
+// No additional window exports needed - window.ScheduledMessages provides public API
 
 export {
     ScheduledMessages,
@@ -566,5 +551,5 @@ export {
     handleEditScheduledMessage,
     handleCancelScheduledMessage,
     handleRetryScheduledMessage,
-    init
+    initScheduledMessages
 };

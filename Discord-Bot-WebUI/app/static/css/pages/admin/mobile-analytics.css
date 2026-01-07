@@ -25,7 +25,7 @@
  *
  * Dark Mode: Fully supported with [data-style="dark"] selectors
  *
- * !important Usage: 3 declarations (all justified for print media)
+ * Usage: 3 declarations (all justified for print media)
  *
  * ============================================================================
  */
@@ -113,7 +113,7 @@
 
 .mobile-analytics-metric small {
     font-size: var(--text-sm, 0.875rem);
-    color: var(--color-text-muted, var(--color-neutral-500, #71717A));
+    color: var(--color-text-muted, var(--color-neutral-500, var(--color-neutral-500)));
 }
 
 /**
@@ -202,7 +202,7 @@
 
 .mobile-analytics-behavior-stat small {
     font-size: var(--text-sm, 0.875rem);
-    color: var(--color-text-muted, var(--color-neutral-500, #71717A));
+    color: var(--color-text-muted, var(--color-neutral-500, var(--color-neutral-500)));
 }
 
 /* ============================================================================
@@ -218,14 +218,14 @@
 
 .mobile-analytics-screens-table th {
     font-weight: var(--font-semibold, 600);
-    color: var(--color-text-primary, var(--color-neutral-900, #18181B));
+    color: var(--color-text-primary, var(--color-neutral-900, var(--color-neutral-900)));
     text-transform: uppercase;
     font-size: var(--text-xs, 0.75rem);
     letter-spacing: 0.5px;
 }
 
 .mobile-analytics-screens-table td {
-    color: var(--color-text-secondary, var(--color-neutral-600, #52525B));
+    color: var(--color-text-secondary, var(--color-neutral-600, var(--color-neutral-600)));
 }
 
 /* ============================================================================
@@ -244,7 +244,7 @@
 
 .mobile-analytics-flow-item span:first-child {
     font-size: var(--text-sm, 0.875rem);
-    color: var(--color-text-secondary, var(--color-neutral-600, #52525B));
+    color: var(--color-text-secondary, var(--color-neutral-600, var(--color-neutral-600)));
 }
 
 .mobile-analytics-flow-badge {
@@ -278,23 +278,23 @@
  * Dark mode overrides for mobile analytics components
  */
 [data-style="dark"] .mobile-analytics-metric small {
-    color: var(--color-text-muted, var(--color-neutral-400, #A1A1AA));
+    color: var(--color-text-muted, var(--color-neutral-400, var(--color-neutral-400)));
 }
 
 [data-style="dark"] .mobile-analytics-behavior-stat small {
-    color: var(--color-text-muted, var(--color-neutral-400, #A1A1AA));
+    color: var(--color-text-muted, var(--color-neutral-400, var(--color-neutral-400)));
 }
 
 [data-style="dark"] .mobile-analytics-screens-table th {
-    color: var(--color-text-primary, var(--color-neutral-900, #FAFAFA));
+    color: var(--color-text-primary, var(--color-neutral-900, var(--color-neutral-50)));
 }
 
 [data-style="dark"] .mobile-analytics-screens-table td {
-    color: var(--color-text-secondary, var(--color-neutral-500, #A1A1AA));
+    color: var(--color-text-secondary, var(--color-neutral-500, var(--color-neutral-400)));
 }
 
 [data-style="dark"] .mobile-analytics-flow-item span:first-child {
-    color: var(--color-text-secondary, var(--color-neutral-500, #A1A1AA));
+    color: var(--color-text-secondary, var(--color-neutral-500, var(--color-neutral-400)));
 }
 
 /* Dark mode chart background adjustments */
@@ -309,7 +309,7 @@
 /**
  * Mobile optimizations
  */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     /* Reduce icon size on mobile */
     .mobile-analytics-stat-card .card-icon i {
         font-size: 1.5rem;
@@ -364,7 +364,7 @@
 /**
  * Tablet optimizations
  */
-@media (min-width: 769px) and (max-width: 991px) {
+@media (min-width: 769px) and (max-width: 991.98px) {
     /* Slightly reduce chart heights on tablets */
     .mobile-analytics-chart-engagement {
         height: 250px;
@@ -391,12 +391,12 @@
 
     /* Enhanced hover states for desktop */
     .mobile-analytics-flow-item:hover {
-        background-color: var(--color-hover-bg, var(--color-neutral-100, #F4F4F5));
+        background-color: var(--color-hover-bg, var(--color-neutral-100, var(--color-neutral-100)));
         transition: background-color 0.2s ease;
     }
 
     [data-style="dark"] .mobile-analytics-flow-item:hover {
-        background-color: var(--color-hover-bg, var(--color-neutral-100, #27272A));
+        background-color: var(--color-hover-bg, var(--color-neutral-100, var(--color-neutral-800)));
     }
 }
 
@@ -409,7 +409,7 @@
  */
 .mobile-analytics-chart-controls .btn:focus,
 .mobile-analytics-actions .btn:focus {
-    outline: 2px solid var(--color-focus-ring, var(--color-primary-500, var(--color-primary-600, #2563EB)));
+    outline: 2px solid var(--color-focus-ring, var(--color-primary-500, var(--color-primary-600, var(--color-primary-600))));
     outline-offset: 2px;
 }
 
@@ -437,7 +437,7 @@
 }
 
 [data-style="dark"] .mobile-analytics-flow-badge {
-    border-color: var(--color-border-secondary, var(--color-neutral-300, #52525B));
+    border-color: var(--color-border-secondary, var(--color-neutral-300, var(--color-neutral-600)));
 }
 
 /**
@@ -477,13 +477,13 @@
      * Hide interactive controls when printing
      *
      * JUSTIFIED !important:
-     * Print media queries require !important to override all other styles
+     * Print media queries require to override all other styles
      * and ensure interactive elements are hidden in printed documents.
      * This is a standard practice for print stylesheets.
      */
     .mobile-analytics-chart-controls,
     .mobile-analytics-actions {
-        display: none !important;
+        display: none;
     }
 
     /* Optimize chart sizes for print */
@@ -509,7 +509,7 @@
     .mobile-analytics-screens-table th,
     .mobile-analytics-screens-table td,
     .mobile-analytics-flow-item span {
-        color: var(--color-neutral-950, #000000) !important;
+        color: var(--color-neutral-950, var(--color-neutral-950)000);
     }
 
     /**
@@ -522,13 +522,13 @@
      */
     .mobile-analytics-behavior-stat,
     .mobile-analytics-metric {
-        background-color: transparent !important;
+        background-color: transparent;
     }
 
     /* Ensure progress bars are visible in print */
     .mobile-analytics-feature-progress,
     .mobile-analytics-performance-progress .progress {
-        border: 1px solid var(--color-neutral-950, #000000);
+        border: 1px solid var(--color-neutral-950, var(--color-neutral-950)000);
     }
 }
 

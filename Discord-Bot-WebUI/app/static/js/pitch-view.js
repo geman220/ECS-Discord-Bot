@@ -7,7 +7,7 @@ import { EventDelegation } from './event-delegation/core.js';
  * REFACTORED: Eliminated all inline style manipulations in favor of CSS classes
  */
 
-export class PitchViewSystem {
+class PitchViewSystem {
     constructor(leagueName, teams, draftedPlayersByTeam) {
         this.leagueName = leagueName;
         this.teams = teams;
@@ -918,10 +918,7 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = PitchViewSystem;
 }
 
-// Export to window for template compatibility
-window.initializePitchView = initializePitchView;
-window.handlePositionDrop = handlePositionDrop;
-window.switchTeamView = switchTeamView;
+// No window exports needed - InitSystem and EventDelegation handle everything
 
 // ============================================================================
 // EVENT DELEGATION REGISTRATIONS

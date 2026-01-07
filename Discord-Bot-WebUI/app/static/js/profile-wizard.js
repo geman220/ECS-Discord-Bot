@@ -4,7 +4,7 @@
  */
 'use strict';
 
-export class ProfileWizard {
+class ProfileWizard {
   constructor(config = {}) {
     this.config = {
       totalSteps: config.totalSteps || 5,
@@ -59,70 +59,84 @@ export class ProfileWizard {
   }
 
   /**
-   * Bind event handlers
+   * Bind event handlers using event delegation
    */
   bindEvents() {
-    // Navigation buttons
-    if (this.elements.nextBtn) {
-      this.elements.nextBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.next();
-      });
-    }
+    const self = this;
 
-    if (this.elements.prevBtn) {
-      this.elements.prevBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.prev();
-      });
-    }
+    // Delegated click handler for wizard navigation
+    document.addEventListener('click', (e) => {
+      if (!self.elements.form) return;
+      if (!self.elements.form.contains(e.target) && !e.target.closest('#wizardForm')) return;
 
-    // Clicking on completed step indicators
-    this.elements.stepIndicators.forEach(indicator => {
-      indicator.addEventListener('click', () => {
-        const stepNum = parseInt(indicator.dataset.stepIndicator);
-        if (stepNum < this.currentStep) {
-          this.goToStep(stepNum);
+      // Next button
+      if (e.target.closest('#nextBtn')) {
+        e.preventDefault();
+        self.next();
+        return;
+      }
+
+      // Previous button
+      if (e.target.closest('#prevBtn')) {
+        e.preventDefault();
+        self.prev();
+        return;
+      }
+
+      // Step indicators (completed steps only)
+      const stepIndicator = e.target.closest('[data-step-indicator]');
+      if (stepIndicator) {
+        const stepNum = parseInt(stepIndicator.dataset.stepIndicator);
+        if (stepNum < self.currentStep) {
+          self.goToStep(stepNum);
         }
-      });
-    });
+        return;
+      }
 
-    // Edit buttons in review section
-    this.elements.editButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      // Edit buttons in review section
+      const editBtn = e.target.closest('[data-goto-step]');
+      if (editBtn) {
         e.preventDefault();
-        const stepNum = parseInt(btn.dataset.gotoStep);
-        this.goToStep(stepNum);
-      });
-    });
-
-    // Form field changes - auto-save and review update
-    const formFields = this.elements.form.querySelectorAll('input, select, textarea');
-    formFields.forEach(field => {
-      field.addEventListener('change', () => {
-        this.scheduleAutoSave();
-        if (this.currentStep === this.config.totalSteps) {
-          this.populateReview();
-        }
-      });
-
-      field.addEventListener('input', () => {
-        // Remove invalid state when user starts typing
-        field.classList.remove('is-invalid', 'is-shaking');
-      });
-    });
-
-    // Form submission
-    this.elements.form.addEventListener('submit', (e) => {
-      if (!this.validateFinalStep()) {
-        e.preventDefault();
+        const stepNum = parseInt(editBtn.dataset.gotoStep);
+        self.goToStep(stepNum);
+        return;
       }
     });
 
-    // Confirm checkbox validation
-    if (this.elements.confirmCheckbox) {
-      this.elements.confirmCheckbox.addEventListener('change', () => {
-        this.updateConfirmButton();
+    // Delegated change handler for form fields
+    document.addEventListener('change', (e) => {
+      if (!self.elements.form || !self.elements.form.contains(e.target)) return;
+
+      const field = e.target;
+      if (field.matches('input, select, textarea')) {
+        self.scheduleAutoSave();
+        if (self.currentStep === self.config.totalSteps) {
+          self.populateReview();
+        }
+      }
+
+      // Confirm checkbox
+      if (field.matches('#confirmCheck')) {
+        self.updateConfirmButton();
+      }
+    });
+
+    // Delegated input handler for removing invalid state
+    document.addEventListener('input', (e) => {
+      if (!self.elements.form || !self.elements.form.contains(e.target)) return;
+
+      const field = e.target;
+      if (field.matches('input, select, textarea')) {
+        field.classList.remove('is-invalid', 'is-shaking');
+      }
+    });
+
+    // Form submission (keep on form element - standard pattern)
+    if (this.elements.form) {
+      this.elements.form.addEventListener('submit', (e) => {
+        if (!self.validateFinalStep()) {
+          e.preventDefault();
+        }
       });
     }
   }

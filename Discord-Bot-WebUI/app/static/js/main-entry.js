@@ -44,6 +44,17 @@ import './csrf-fetch.js';
 import './helpers-minimal.js';
 import './modal-manager.js';
 import './config.js';
+import './utils/error-handler.js'; // Centralized error handling with global handlers
+import './utils/safe-html.js'; // XSS protection utilities (escapeHtml, safeHtml)
+import './utils/shared-utils.js'; // Shared utilities (formatDate, formatTime, etc.)
+
+// Shared services - consolidated utilities
+import './services/toast-service.js'; // Unified toast/notification system (consolidates 6+ implementations)
+import './services/loading-service.js'; // Unified loading indicator system (consolidates 5+ implementations)
+import './services/api-client.js'; // Higher-level API client with error handling, retries, interceptors
+
+// Backward compatibility layer - exposes services as window.* and window.ECS.* for legacy code
+import './compat/window-exports.js';
 
 // ============================================================================
 // 2. LAYOUT & NAVIGATION
@@ -82,9 +93,7 @@ import './swal-contextual.js';
 import './chat-widget.js';
 import './messenger-widget.js';
 
-// Player features
-// import './player-profile.js';  // TODO: Create this file
-// import './profile-form.js';    // TODO: Create this file
+// Player features (player-profile.js and profile-form.js are in custom_js, loaded per-page)
 import './profile-wizard.js';
 import './profile-verification.js';
 
@@ -93,8 +102,7 @@ import './draft-system.js';
 import './draft-history.js';
 import './pitch-view.js';
 
-// Home page
-// import './home.js';  // TODO: Create this file
+// Home page (home.js is in custom_js, loaded per-page)
 
 // ============================================================================
 // 5. ADMIN MODULES
@@ -104,8 +112,10 @@ import './admin-panel-base.js';
 import './admin-panel-dashboard.js';
 import './admin-panel-discord-bot.js';
 import './admin-panel-performance.js';
-// import './admin-discord-management.js';  // TODO: Create this file
+import './admin-cache-management.js';
+// admin-discord-management.js is in custom_js, loaded per-page
 import './admin-utilities-init.js';
+import './admin-api-management.js';
 
 // Admin submodules
 import './admin/admin-dashboard.js';
@@ -155,6 +165,7 @@ import '../custom_js/mobile-tables.js';
 // ============================================================================
 
 import '../custom_js/admin_actions.js';
+import '../custom_js/appearance.js';
 import '../custom_js/admin-discord-management.js';
 import '../custom_js/admin-manage-subs.js';
 import '../custom_js/admin-match-detail.js';
@@ -180,13 +191,12 @@ import '../custom_js/design-system-override.js';
 import '../custom_js/draft-enhanced.js';
 import '../custom_js/draft-predictions.js';
 import '../custom_js/ecs-fc-schedule.js';
-import '../custom_js/ecsfc-schedule.js';
+import '../custom_js/ecs-fc-bulk-admin.js';
 import '../custom_js/handle_2fa.js';
 import '../custom_js/home.js';
 import '../custom_js/live_reporting.js';
 import '../custom_js/match-management.js';
 import '../custom_js/match_stats.js';
-import '../custom_js/matches-management.js';
 import '../custom_js/merge-profiles.js';
 import '../custom_js/onboarding.js';
 import '../custom_js/player-profile.js';

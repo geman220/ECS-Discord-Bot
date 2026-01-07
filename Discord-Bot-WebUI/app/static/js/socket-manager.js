@@ -280,7 +280,7 @@ function fireDisconnectCallbacks(reason) {
 // PUBLIC API
 // ============================================================================
 
-export const SocketManager = {
+const SocketManager = {
   /**
    * Get the socket instance (creates if needed)
    * @returns {Socket|null}
@@ -469,7 +469,7 @@ export const SocketManager = {
 // ============================================================================
 
 // Auto-initialize socket when DOM is ready
-function init() {
+function initSocketManager() {
   // Only initialize if Socket.IO is available
   if (typeof window.io !== 'undefined') {
     getSocket();
@@ -481,7 +481,7 @@ function init() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-  window.InitSystem.register('socket-manager', init, {
+  window.InitSystem.register('socket-manager', initSocketManager, {
     priority: 85,
     reinitializable: false,
     description: 'WebSocket connection manager'

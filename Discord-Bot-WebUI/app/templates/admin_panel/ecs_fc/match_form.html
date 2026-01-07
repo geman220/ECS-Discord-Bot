@@ -60,7 +60,7 @@
                         </div>
 
                         <!-- Library dropdown -->
-                        <div id="librarySelect" {% if match and not match.external_opponent_id %}style="display:none;"{% endif %}>
+                        <div id="librarySelect" class="{% if match and not match.external_opponent_id %}is-hidden{% endif %}">
                             <div class="input-group">
                                 <select name="external_opponent_id" id="external_opponent_id" class="c-form-control">
                                     <option value="">Select Opponent...</option>
@@ -76,7 +76,7 @@
                         </div>
 
                         <!-- Custom input -->
-                        <div id="customInput" {% if not match or match.external_opponent_id %}style="display:none;"{% endif %}>
+                        <div id="customInput" class="{% if not match or match.external_opponent_id %}is-hidden{% endif %}">
                             <input type="text" name="opponent_name" id="opponent_name" class="c-form-control"
                                    placeholder="e.g., Seattle United O50"
                                    value="{% if match and not match.external_opponent_id %}{{ match.opponent_name }}{% endif %}">

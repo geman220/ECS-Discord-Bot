@@ -27,7 +27,7 @@ let croppedImageHiddenInput = null;
 /**
  * Initialize the waitlist carousel module
  */
-function init() {
+function initWaitlistCarousel() {
     // Core elements
     modalElement = document.getElementById('waitlistRegistrationModal');
     carouselElement = document.getElementById('waitlistCarousel');
@@ -138,12 +138,12 @@ function updateNavButtons() {
     // Change next button to submit on final step
     if (step === totalSteps && nextOrSaveButton) {
         nextOrSaveButton.innerHTML = '<i class="ti ti-check me-2"></i>Complete Registration';
-        nextOrSaveButton.classList.remove('c-btn-modern--primary');
-        nextOrSaveButton.classList.add('c-btn-modern--success');
+        nextOrSaveButton.classList.remove('c-btn--primary');
+        nextOrSaveButton.classList.add('c-btn--success');
     } else if (nextOrSaveButton) {
         nextOrSaveButton.innerHTML = '<span>Next</span><i class="ti ti-chevron-right ms-2"></i>';
-        nextOrSaveButton.classList.remove('c-btn-modern--success');
-        nextOrSaveButton.classList.add('c-btn-modern--primary');
+        nextOrSaveButton.classList.remove('c-btn--success');
+        nextOrSaveButton.classList.add('c-btn--primary');
     }
 }
 
@@ -361,8 +361,6 @@ function cropAndSaveProfileImage() {
                     title: 'Error',
                     text: 'Error cropping image. Please try again.'
                 });
-            } else {
-                alert('Error cropping image. Please try again.');
             }
         }
     }
@@ -408,17 +406,17 @@ if (typeof window.EventDelegation !== 'undefined') {
 }
 
 // Register with window.InitSystem
-window.InitSystem.register('waitlist-carousel', init, {
+window.InitSystem.register('waitlist-carousel', initWaitlistCarousel, {
     priority: 30,
     description: 'Waitlist registration carousel module'
 });
 
 // Fallback for non-module usage
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', initWaitlistCarousel);
 
 // Export for use in templates
 window.WaitlistCarousel = {
-    init,
+    init: initWaitlistCarousel,
     getCurrentStep,
     handleNextStep,
     handlePrevStep,

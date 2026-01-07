@@ -234,8 +234,8 @@ export const ProgressiveDisclosure = {
         detail: { disclosure }
       }));
 
-      // Log for debugging
-      if (window.InitSystemDebug) {
+      // Log for debugging (defensive check for race condition)
+      if (window.InitSystemDebug && typeof window.InitSystemDebug.log === 'function') {
         window.InitSystemDebug.log('progressive-disclosure', `Expanded: ${disclosure.id}`);
       }
     },

@@ -20,7 +20,7 @@ let _initialized = false;
 /**
    * Mobile Gestures Controller
    */
-export const MobileGestures = {
+const MobileGestures = {
     /**
      * Check if device supports touch
      * @returns {boolean}

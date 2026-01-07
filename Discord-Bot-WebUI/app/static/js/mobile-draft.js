@@ -19,7 +19,7 @@
 'use strict';
 
 import { EventDelegation } from './event-delegation/core.js';
-export const MobileDraft = {
+const MobileDraft = {
     selectedPlayer: null,
     selectedTeam: null,
 

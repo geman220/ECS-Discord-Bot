@@ -69,7 +69,7 @@
                 </div>
                 <div class="c-card__body">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable playoff-standings-table" id="standingsTable" data-table data-mobile-table data-table-type="matches">
+                        <table class="c-table c-table--hoverable playoff-standings-c-table" id="standingsTable" data-table data-mobile-table data-table-type="matches">
                             <thead scope="col">
                                 <tr>
                                     <th scope="col">Rank</th>
@@ -83,12 +83,12 @@
                             <tbody>
                                 {% for team in standings %}
                                 <tr class="{% if loop.index <= 8 %}playoff-qualified{% endif %}">
-                                    <td><strong>{{ loop.index }}</strong></td>
-                                    <td><strong>{{ team.team_name }}</strong></td>
-                                    <td>{{ team.points|default(0) }}</td>
-                                    <td>{{ team.wins|default(0) }}-{{ team.losses|default(0) }}-{{ team.draws|default(0) }}</td>
-                                    <td>{{ team.goal_difference|default(0) }}</td>
-                                    <td>
+                                    <td data-label="Rank"><strong>{{ loop.index }}</strong></td>
+                                    <td data-label="Team"><strong>{{ team.team_name }}</strong></td>
+                                    <td data-label="Points">{{ team.points|default(0) }}</td>
+                                    <td data-label="W-L-D">{{ team.wins|default(0) }}-{{ team.losses|default(0) }}-{{ team.draws|default(0) }}</td>
+                                    <td data-label="GD">{{ team.goal_difference|default(0) }}</td>
+                                    <td data-label="Status">
                                         {% if loop.index <= 8 %}
                                         <span class="badge bg-success" data-badge>PLAYOFFS</span>
                                         {% else %}
@@ -133,7 +133,7 @@
                 <p class="text-muted small mt-1 mb-0">Swap which group is labeled A vs B (updates all matches)</p>
             </div>
             <div class="col-md-6 mb-3">
-                <div class="c-card shadow-sm border-primary playoff-group-card">
+                <div class="c-card shadow-sm border-primary playoff-group-c-card">
                     <div class="c-card__header bg-label-primary border-bottom py-3">
                         <h5 class="c-card__title mb-0">
                             <i class="ti ti-users me-2"></i> Group A
@@ -146,7 +146,7 @@
                 </div>
             </div>
             <div class="col-md-6 mb-3">
-                <div class="c-card shadow-sm border-info playoff-group-card">
+                <div class="c-card shadow-sm border-info playoff-group-c-card">
                     <div class="c-card__header bg-label-info border-bottom py-3">
                         <h5 class="c-card__title mb-0">
                             <i class="ti ti-users me-2"></i> Group B
@@ -171,7 +171,7 @@
                     </div>
                     <div class="c-card__body">
                         <div class="c-table-wrapper" data-table-responsive>
-                            <table class="c-table c-table--hoverable playoff-matches-table c-playoff-matches-table" id="matchesTable" data-table data-mobile-table data-table-type="matches">
+                            <table class="c-table c-table--hoverable playoff-matches-table c-playoff-matches-c-table" id="matchesTable" data-table data-mobile-table data-table-type="matches">
                                 <thead scope="col">
                                     <tr>
                                         <th scope="col">Week</th>
@@ -215,27 +215,6 @@
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="{{ url_for('static', filename='js/playoff-generator.js') }}?v={{ range(1, 1000000) | random }}"></script>
 
-<!--
-MIGRATION NOTE: Inline JavaScript has been extracted to /app/static/js/playoff-generator.js
-All event handlers now use data-* attributes and .js-* classes for binding
-Functions migrated:
-- getCSRFToken()
-- loadExistingSchedule()
-- previewSchedule()
-- displayPreview()
-- confirmSchedule()
-- cancelPreview()
-- swapGroups()
-- resendPlayoffRSVPs()
-
-Event delegation replaces inline handlers:
-- Button clicks now handled via .js-* classes with data-action attributes
-- .js-preview-schedule → data-action="preview-schedule"
-- .js-confirm-schedule → data-action="confirm-schedule"
-- .js-cancel-preview → data-action="cancel-preview"
-- .js-swap-groups → data-action="swap-groups"
-- Match field edits → delegated change handlers on #matchesTableBody
--->
 
 <script data-league-id="{{ league.id }}">
 // Initialize playoff generator with league ID from data attribute

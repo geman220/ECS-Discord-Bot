@@ -20,11 +20,11 @@
     --auth-accent-bright: #5FE396;
 
     /* Secure Neutrals */
-    --auth-surface: #FFFFFF;
-    --auth-surface-alt: #F8FAFC;
+    --auth-surface: var(--color-white);
+    --auth-surface-alt: var(--color-secondary-50);
     --auth-border-color: var(--color-border);
-    --auth-text: var(--color-secondary-900, #1E293B);
-    --auth-text-muted: #64748B;
+    --auth-text: var(--color-secondary-900, var(--color-secondary-900));
+    --auth-text-muted: var(--color-secondary-600);
 
     /* Effects - Confident Motion */
     --auth-shadow-base: 0 10px 40px rgba(0, 0, 0, 0.08);
@@ -250,7 +250,7 @@
 
 /* Invalid state animation */
 .c-auth-2fa .c-form-modern__input.is-invalid {
-    border-color: var(--color-danger, #DC2626);
+    border-color: var(--color-danger, var(--color-danger-700));
     animation: shake-input 0.4s var(--auth-ease-bounce);
 }
 
@@ -268,7 +268,7 @@
 }
 
 .c-auth-2fa .c-form-modern__feedback--invalid {
-    color: var(--color-danger, #DC2626);
+    color: var(--color-danger, var(--color-danger-700));
 }
 
 .c-auth-2fa .c-form-modern__input.is-invalid ~ .c-form-modern__feedback--invalid {
@@ -276,10 +276,10 @@
 }
 
 /* ============================================
-   MODERN BUTTON - 2FA Page Overrides
-   Base component in components/buttons-modern.css
+   BUTTON - 2FA Page Overrides
+   Base component in components/c-btn.css
    ============================================ */
-.c-auth-2fa .c-btn-modern {
+.c-auth-2fa .c-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -295,7 +295,7 @@
     overflow: hidden;
 }
 
-.c-auth-2fa .c-btn-modern::before {
+.c-auth-2fa .c-btn::before {
     content: '';
     position: absolute;
     top: 50%;
@@ -308,31 +308,31 @@
     transition: width 0.6s, height 0.6s;
 }
 
-.c-auth-2fa .c-btn-modern:active::before {
+.c-auth-2fa .c-btn:active::before {
     width: 300px;
     height: 300px;
 }
 
-.c-auth-2fa .c-btn-modern--primary {
+.c-auth-2fa .c-btn--primary {
     background: linear-gradient(135deg, var(--auth-primary) 0%, var(--auth-primary-dark) 100%);
     color: white;
     box-shadow: 0 4px 12px rgba(0, 83, 159, 0.25);
 }
 
-.c-auth-2fa .c-btn-modern--primary:hover {
+.c-auth-2fa .c-btn--primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(0, 83, 159, 0.35);
 }
 
-.c-auth-2fa .c-btn-modern--primary:active {
+.c-auth-2fa .c-btn--primary:active {
     transform: translateY(0);
 }
 
-.c-auth-2fa .c-btn-modern--block {
+.c-auth-2fa .c-btn--block {
     width: 100%;
 }
 
-.c-auth-2fa .c-btn-modern i {
+.c-auth-2fa .c-btn i {
     font-size: 1.25rem;
 }
 
@@ -373,9 +373,9 @@
     *,
     *::before,
     *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+        transition-duration: 0.01ms;
     }
 }
 

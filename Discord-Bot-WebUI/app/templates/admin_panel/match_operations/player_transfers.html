@@ -108,7 +108,7 @@
                         </div>
                         <div class="btn-group btn-group-sm">
                             <button class="c-btn c-btn--outline-success js-approve-transfer" data-action="approve-transfer" data-request-id="{{ request.id }}" aria-label="Confirm"><i class="ti ti-check"></i></button>
-                            <button class="c-btn c-btn--outline-danger js-reject-transfer" data-action="reject-transfer" data-request-id="{{ request.id }}" aria-label="Button"><i class="ti ti-x"></i></button>
+                            <button class="c-btn c-btn--outline-danger js-reject-transfer" data-action="reject-transfer" data-request-id="{{ request.id }}" aria-label="Reject transfer"><i class="ti ti-x"></i></button>
                         </div>
                     </div>
                     {% endfor %}
@@ -141,7 +141,7 @@
             <div class="c-card__body">
                 {% if transfers_data.recent_transfers %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="transfers">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="transfers">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Date</th>
@@ -155,20 +155,20 @@
                         <tbody>
                             {% for transfer in transfers_data.recent_transfers %}
                             <tr>
-                                <td>{{ transfer.created_at.strftime('%Y-%m-%d') if transfer.created_at else 'N/A' }}</td>
-                                <td>
+                                <td data-label="Date">{{ transfer.created_at.strftime('%Y-%m-%d') if transfer.created_at else 'N/A' }}</td>
+                                <td data-label="Player">
                                     <strong>{{ transfer.player.name or 'Unknown Player' }}</strong>
                                 </td>
-                                <td>
+                                <td data-label="From Team">
                                     <span class="text-muted">{{ transfer.from_team.name if transfer.from_team else 'Free Agent' }}</span>
                                 </td>
-                                <td>
+                                <td data-label="To Team">
                                     <span class="badge bg-info" data-badge>{{ transfer.to_team.name if transfer.to_team else 'Unknown' }}</span>
                                 </td>
-                                <td>
+                                <td data-label="Reason">
                                     <small class="text-muted">{{ transfer.reason or '-' }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     {% if transfer.status == 'completed' %}
                                         <span class="badge bg-success" data-badge>Completed</span>
                                     {% elif transfer.status == 'pending' %}

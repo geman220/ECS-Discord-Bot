@@ -90,15 +90,15 @@
                 <h5 class="mb-0"><i class="ti ti-info-circle me-2"></i>System Diagnostics</h5>
             </div>
             <div class="c-card__body">
-                <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="stats">
+                <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="stats">
                     <tbody>
                         <tr>
-                            <td>Environment</td>
-                            <td><span class="badge bg-primary" data-badge>{{ diagnostics.environment }}</span></td>
+                            <td data-label="Setting">Environment</td>
+                            <td data-label="Value"><span class="badge bg-primary" data-badge>{{ diagnostics.environment }}</span></td>
                         </tr>
                         <tr>
-                            <td>Debug Mode</td>
-                            <td>
+                            <td data-label="Setting">Debug Mode</td>
+                            <td data-label="Value">
                                 {% if diagnostics.debug_mode %}
                                 <span class="badge bg-warning" data-badge>Enabled</span>
                                 {% else %}
@@ -107,8 +107,8 @@
                             </td>
                         </tr>
                         <tr>
-                            <td>Last Check</td>
-                            <td>{{ diagnostics.timestamp }}</td>
+                            <td data-label="Setting">Last Check</td>
+                            <td data-label="Value">{{ diagnostics.timestamp }}</td>
                         </tr>
                     </tbody>
                 </table>

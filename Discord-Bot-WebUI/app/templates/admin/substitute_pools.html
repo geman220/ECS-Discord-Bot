@@ -30,12 +30,12 @@
     <!-- Global Stats Overview -->
     <div class="stats-overview">
         {% for league_type, data in pools_data.items() %}
-        <div class="stat-card">
+        <div class="stat-c-card">
             <div class="stat-number">{{ data.total_active }}</div>
             <div class="stat-label">{{ league_type }} Active</div>
         </div>
         {% endfor %}
-        <div class="stat-card">
+        <div class="stat-c-card">
             <div class="stat-number">{{ pools_data.values() | map(attribute='available_players') | map('length') | sum }}</div>
             <div class="stat-label">Pending Approval</div>
         </div>
@@ -185,7 +185,7 @@
                                 <div class="row g-2">
                                     {% for player in data.available_players %}
                                     <div class="col-md-6 col-lg-4">
-                                        <div class="c-card player-card border-0 shadow-sm h-100"
+                                        <div class="c-card player-c-card border-0 shadow-sm h-100"
                                              data-player-id="{{ player.id }}"
                                              data-league="{{ league_type }}"
                                              data-status="pending"
@@ -363,7 +363,7 @@
                                 <div class="row g-2">
                                     {% for pool in data.active_pools %}
                                     <div class="col-md-6 col-lg-4">
-                                        <div class="c-card player-card border-0 shadow-sm h-100"
+                                        <div class="c-card player-c-card border-0 shadow-sm h-100"
                                              data-player-id="{{ pool.player_id }}"
                                              data-league="{{ league_type }}"
                                              data-status="active"
@@ -404,7 +404,7 @@
                                                     <button class="c-btn c-btn--outline-warning"
                                                             data-action="remove-pool-player"
                                                             data-player-id="{{ pool.player_id }}"
-                                                            data-league="{{ league_type }}" aria-label="Button"><i class="ti ti-x"></i></button>
+                                                            data-league="{{ league_type }}" aria-label="Remove from pool"><i class="ti ti-x"></i></button>
                                                     <button class="c-btn c-btn--outline-secondary"
                                                             data-action="edit-pool-preferences"
                                                             data-player-id="{{ pool.player_id }}"
@@ -634,7 +634,7 @@
                                 <button class="c-btn c-btn--sm c-btn--outline-primary ms-2" id="refreshRequestsBtn" aria-label="Refresh"><i class="ti ti-refresh"></i></button>
                             </h6>
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--compact" data-mobile-table data-table-type="users" data-table>
+                                <table class="c-c-table c-table--compact" data-mobile-table data-table-type="users" data-table>
                                     <thead scope="col">
                                         <tr>
                                             <th scope="col">Created</th>
@@ -661,7 +661,7 @@
                                 <i class="ti ti-clock me-2"></i>Recent Activity
                             </h6>
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--compact" data-mobile-table data-table-type="users" data-table>
+                                <table class="c-c-table c-table--compact" data-mobile-table data-table-type="users" data-table>
                                     <thead scope="col">
                                         <tr>
                                             <th scope="col">Time</th>

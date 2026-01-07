@@ -4,62 +4,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    .field-comparison {
-        border: 2px solid var(--ecs-neutral-10, #e7eaf3);
-        border-radius: 8px;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        transition: all 0.2s ease;
-    }
-
-    .field-comparison:hover {
-        border-color: var(--ecs-primary, #696cff);
-        box-shadow: 0 0.125rem 0.5rem rgba(105, 108, 255, 0.15);
-    }
-
-    .value-option {
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border-radius: 6px;
-        padding: 0.75rem;
-        border: 2px solid transparent;
-    }
-
-    .value-option:hover {
-        background-color: var(--ecs-neutral-5, #f8f9fa);
-    }
-
-    .value-option.selected {
-        border-color: var(--ecs-primary, #696cff);
-        background-color: rgba(105, 108, 255, 0.08);
-    }
-    
-    .value-existing {
-        background-color: rgba(40, 199, 111, 0.08);
-    }
-    
-    .value-new {
-        background-color: rgba(105, 108, 255, 0.08);
-    }
-    
-    .value-combined {
-        background-color: rgba(255, 159, 67, 0.08);
-    }
-    
-    .preview-section {
-        background: var(--ecs-neutral-5, #f8f9fa);
-        border-radius: 8px;
-        padding: 1rem;
-        margin-top: 1rem;
-    }
-    
-    .merge-summary {
-        position: sticky;
-        top: 90px;
-        z-index: 100;
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block main_content %}

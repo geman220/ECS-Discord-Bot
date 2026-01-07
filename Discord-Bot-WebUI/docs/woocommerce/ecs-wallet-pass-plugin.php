@@ -175,7 +175,7 @@ class ECS_Wallet_Pass {
                         <li><strong>Name:</strong> ECS Wallet Pass</li>
                         <li><strong>Status:</strong> Active</li>
                         <li><strong>Topic:</strong> Order updated <em>(Note: WooCommerce doesn't have "Order completed" - the Portal filters by status)</em></li>
-                        <li><strong>Delivery URL:</strong> <code><?php echo esc_html(get_option('ecs_wallet_portal_url', 'https://portal.ecsfc.com')); ?>/api/v1/wallet/webhook/order-completed</code></li>
+                        <li><strong>Delivery URL:</strong> <code><?php echo esc_html(rtrim(get_option('ecs_wallet_portal_url', 'https://portal.ecsfc.com'), '/')); ?>/api/v1/wallet/webhook/order-completed</code></li>
                         <li><strong>Secret:</strong> <em>(same as Webhook Secret above)</em></li>
                         <li><strong>API Version:</strong> WP REST API Integration v3</li>
                     </ul>
@@ -186,7 +186,7 @@ class ECS_Wallet_Pass {
 
             <h3>Test Connection</h3>
             <p>
-                <a href="<?php echo esc_url(get_option('ecs_wallet_portal_url', 'https://portal.ecsfc.com') . '/api/v1/wallet/webhook/test'); ?>"
+                <a href="<?php echo esc_url(rtrim(get_option('ecs_wallet_portal_url', 'https://portal.ecsfc.com'), '/') . '/api/v1/wallet/webhook/test'); ?>"
                    target="_blank" class="button">
                     Test Portal Connection
                 </a>
@@ -230,6 +230,13 @@ class ECS_Wallet_Pass {
             </table>
         </div>
         <?php
+    }
+
+    /**
+     * Get normalized portal URL (no trailing slash)
+     */
+    private function get_portal_url() {
+        return rtrim($this->portal_url, '/');
     }
 
     /**
@@ -379,9 +386,9 @@ class ECS_Wallet_Pass {
      * Render wallet download buttons
      */
     public function render_wallet_buttons($download_token, $order_id, $membership_products) {
-        $apple_url = $this->portal_url . '/membership/wallet/pass/download?order=' . $order_id . '&token=' . $download_token . '&platform=apple';
-        $google_url = $this->portal_url . '/membership/wallet/pass/download?order=' . $order_id . '&token=' . $download_token . '&platform=google';
-        $info_url = $this->portal_url . '/membership/wallet/pass/info?token=' . $download_token;
+        $apple_url = $this->get_portal_url() . '/membership/wallet/pass/download?order=' . $order_id . '&token=' . $download_token . '&platform=apple';
+        $google_url = $this->get_portal_url() . '/membership/wallet/pass/download?order=' . $order_id . '&token=' . $download_token . '&platform=google';
+        $info_url = $this->get_portal_url() . '/membership/wallet/pass/info?token=' . $download_token;
 
         $pass_type = $membership_products[0]['pass_type'] ?? 'ecs_membership';
         $is_ecs = ($pass_type === 'ecs_membership');
@@ -526,8 +533,8 @@ class ECS_Wallet_Pass {
 
         $subject = 'Your ECS Digital Membership Card is Ready!';
 
-        $apple_url = $this->portal_url . '/membership/wallet/pass/download?order=' . $order->get_id() . '&token=' . $download_token . '&platform=apple';
-        $google_url = $this->portal_url . '/membership/wallet/pass/download?order=' . $order->get_id() . '&token=' . $download_token . '&platform=google';
+        $apple_url = $this->get_portal_url() . '/membership/wallet/pass/download?order=' . $order->get_id() . '&token=' . $download_token . '&platform=apple';
+        $google_url = $this->get_portal_url() . '/membership/wallet/pass/download?order=' . $order->get_id() . '&token=' . $download_token . '&platform=google';
 
         $message = $this->get_wallet_email_template($order, $apple_url, $google_url);
 
@@ -628,8 +635,8 @@ class ECS_Wallet_Pass {
         $download_token = $order->get_meta('_wallet_pass_token');
         if (!$download_token) return;
 
-        $info_url = $this->portal_url . '/membership/wallet/pass/info?token=' . $download_token;
-        $apple_url = $this->portal_url . '/membership/wallet/pass/download?order=' . $order->get_id() . '&token=' . $download_token . '&platform=apple';
+        $info_url = $this->get_portal_url() . '/membership/wallet/pass/info?token=' . $download_token;
+        $apple_url = $this->get_portal_url() . '/membership/wallet/pass/download?order=' . $order->get_id() . '&token=' . $download_token . '&platform=apple';
 
         if ($plain_text) {
             echo "\n\n";
@@ -672,7 +679,7 @@ class ECS_Wallet_Pass {
         $download_token = $order->get_meta('_wallet_pass_token');
         if (!$download_token) return $actions;
 
-        $info_url = $this->portal_url . '/membership/wallet/pass/info?token=' . $download_token;
+        $info_url = $this->get_portal_url() . '/membership/wallet/pass/info?token=' . $download_token;
 
         $actions['wallet_pass'] = array(
             'url' => $info_url,
@@ -707,7 +714,7 @@ class ECS_Wallet_Pass {
                     <span style="color: #46b450;">✓ Pass Created</span>
                 </p>
                 <p>
-                    <a href="<?php echo esc_url($this->portal_url . '/membership/wallet/pass/info?token=' . $download_token); ?>"
+                    <a href="<?php echo esc_url($this->get_portal_url() . '/membership/wallet/pass/info?token=' . $download_token); ?>"
                        target="_blank" class="button">
                         View Pass Details
                     </a>

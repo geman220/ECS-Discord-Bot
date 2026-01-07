@@ -292,7 +292,7 @@ def match_verification_dashboard():
         error_html = f"""
         <h1>Error in Match Verification Dashboard</h1>
         <p>An error occurred while loading the verification dashboard:</p>
-        <pre style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; color: #721c24;">
+        <pre class="bg-light p-3 rounded text-danger">
         {str(e)}
         </pre>
         <p>Please check the application logs for more details.</p>

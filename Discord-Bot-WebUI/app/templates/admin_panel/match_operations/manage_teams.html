@@ -165,8 +165,8 @@
         </div>
         <div class="c-card__body">
             {% if teams %}
-            <div class="c-table-responsive">
-                <table class="c-table" data-mobile-table data-table-type="teams">
+            <div class="c-c-table-wrapper">
+                <table class="c-c-table" data-mobile-table data-table-type="teams">
                     <thead class="c-table__head">
                         <tr>
                             <th class="c-table__header">Team Name</th>
@@ -180,7 +180,7 @@
                     <tbody class="c-table__body">
                         {% for team in teams %}
                         <tr class="c-table__row">
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Team Name">
                                 <div class="c-team-name" data-component="team-name">
                                     <div class="c-team-avatar">
                                         <span class="c-team-avatar__initial">{{ team.name[0] if team.name else 'T' }}</span>
@@ -188,7 +188,7 @@
                                     <strong>{{ team.name }}</strong>
                                 </div>
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Type">
                                 {% if team.league and team.league.season %}
                                     {% if team.league.season.league_type == 'ECS FC' %}
                                         <span class="c-badge c-badge--success">
@@ -203,28 +203,28 @@
                                     <span class="c-badge c-badge--secondary">Unknown</span>
                                 {% endif %}
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="League / Division">
                                 {% if team.league %}
                                     <span class="c-badge c-badge--info">{{ team.league.name }}</span>
                                 {% else %}
                                     <span class="c-text-muted">No League</span>
                                 {% endif %}
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Players">
                                 {% if team.players %}
                                     <span class="c-badge c-badge--success">{{ team.players|length }}</span>
                                 {% else %}
                                     <span class="c-badge c-badge--secondary">0</span>
                                 {% endif %}
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Status">
                                 {% if team.is_active %}
                                     <span class="c-badge c-badge--success">Active</span>
                                 {% else %}
                                     <span class="c-badge c-badge--secondary">Inactive</span>
                                 {% endif %}
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Actions">
                                 <div class="c-btn-group">
                                     <button class="c-btn c-btn--icon c-btn--outline-info" data-action="view-team" data-team-id="{{ team.id }}" aria-label="View team">
                                         <i class="ti ti-eye"></i>

@@ -210,47 +210,5 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.timeline {
-    position: relative;
-    padding-left: 30px;
-}
-
-.timeline::before {
-    content: '';
-    position: absolute;
-    left: 10px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: var(--bs-border-color);
-}
-
-.timeline-item {
-    position: relative;
-    margin-bottom: 20px;
-}
-
-.timeline-marker {
-    position: absolute;
-    left: -24px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    border: 2px solid var(--bs-body-bg);
-    top: 5px;
-}
-
-.timeline-content {
-    background: var(--bs-light);
-    padding: 12px;
-    border-radius: 8px;
-}
-
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}

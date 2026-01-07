@@ -191,7 +191,7 @@
                 </div>
                 <div class="c-card__body">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable" id="notification-activity-table" data-table data-mobile-table data-table-type="messages">
+                        <table class="c-c-table c-table--hoverable" id="notification-activity-table" data-table data-mobile-table data-table-type="messages">
                             <thead scope="col">
                                 <tr>
                                     <th scope="col">Time</th>
@@ -204,7 +204,7 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td colspan="6" class="text-center py-4">
+                                    <td colspan="6" class="text-center py-4" data-label="Status">
                                         <div class="spinner-border spinner-border-sm me-2" role="status" data-spinner>
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
@@ -302,45 +302,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    .spin {
-        animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-    
-    .card {
-        transition: all 0.2s ease;
-    }
-    
-    .card:hover {
-        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
-    }
-    
-    .badge {
-        font-size: 0.75rem;
-    }
-    
-    .avatar {
-        width: 38px;
-        height: 38px;
-    }
-    
-    .avatar-initial {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .table-responsive {
-        border-radius: 0.375rem;
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

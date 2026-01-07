@@ -99,10 +99,10 @@
     <div class="row">
         <!-- Team Members Section -->
         <div class="col-lg-6 col-12 mb-4">
-            <div class="c-card-modern">
-                <div class="c-card-modern__header">
-                    <h5 class="c-card-modern__title">Team Members</h5>
-                    <div class="c-card-modern__actions">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title">Team Members</h5>
+                    <div class="c-card__actions">
                         {% if has_role('Global Admin') or has_role('Pub League Admin') %}
                         <button class="c-btn c-btn--warning c-btn--sm"
                                 data-action="assign-discord-roles"
@@ -126,10 +126,10 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="c-card-modern__body c-card-modern__body--no-padding">
+                <div class="c-card__body c-card__body--no-padding">
                     <div class="c-roster-grid" data-component="roster-grid">
                         {% for player in players %}
-                        <div class="c-roster-card" data-player-id="{{ player.id }}">
+                        <div class="c-roster-c-card" data-player-id="{{ player.id }}">
                             <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
                                class="c-roster-card__link">
                                 <div class="c-roster-card__avatar">
@@ -206,10 +206,10 @@
 
         <!-- Team Schedule Section -->
         <div class="col-lg-6 col-12 mb-4">
-            <div class="c-card-modern">
-                <div class="c-card-modern__header">
-                    <h5 class="c-card-modern__title">Team Schedule</h5>
-                    <div class="c-card-modern__actions">
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title">Team Schedule</h5>
+                    <div class="c-card__actions">
                         {% if schedule %}
                         <div class="c-schedule-controls">
                             <button type="button"
@@ -236,7 +236,7 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="c-card-modern__body c-card-modern__body--no-padding">
+                <div class="c-card__body c-card__body--no-padding">
                     {% if schedule %}
                     <div class="c-schedule" data-component="team-schedule">
                         {% for date, matches_on_date in schedule.items() %}
@@ -349,11 +349,11 @@
 
         <!-- Team Information Card -->
         <div class="col-12 mb-4">
-            <div class="c-card-modern">
-                <div class="c-card-modern__header">
-                    <h5 class="c-card-modern__title">Team Information</h5>
+            <div class="c-card">
+                <div class="c-card__header">
+                    <h5 class="c-card__title">Team Information</h5>
                 </div>
-                <div class="c-card-modern__body">
+                <div class="c-card__body">
                     <div class="c-team-stats" data-component="team-stats">
                         <div class="c-team-stats__item">
                             <div class="c-team-stats__icon c-team-stats__icon--primary">

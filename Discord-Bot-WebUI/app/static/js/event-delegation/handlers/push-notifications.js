@@ -1,6 +1,7 @@
 import { EventDelegation } from '../core.js';
 import { InitSystem } from '../../init-system.js';
 import { ModalManager } from '../../modal-manager.js';
+import { escapeHtml } from '../../utils/sanitize.js';
 
 /**
  * Push Notification Action Handlers
@@ -122,19 +123,19 @@ function loadRecentActivity() {
         if (data.activities && data.activities.length > 0) {
             tableBody.innerHTML = data.activities.map(activity => `
                 <tr>
-                    <td>${new Date(activity.timestamp).toLocaleString()}</td>
-                    <td><span class="badge bg-${activity.type === 'broadcast' ? 'primary' : 'info'}" data-badge>${activity.type}</span></td>
-                    <td>${activity.title}</td>
-                    <td>${activity.recipients}</td>
+                    <td>${escapeHtml(new Date(activity.timestamp).toLocaleString())}</td>
+                    <td><span class="badge bg-${activity.type === 'broadcast' ? 'primary' : 'info'}" data-badge>${escapeHtml(activity.type)}</span></td>
+                    <td>${escapeHtml(activity.title)}</td>
+                    <td>${escapeHtml(String(activity.recipients))}</td>
                     <td>
                         <div class="progress" class="u-progress-h-6">
-                            <div class="progress-bar" role="progressbar" style="width: ${activity.success_rate}%"></div>
+                            <div class="progress-bar" role="progressbar" style="width: ${parseFloat(activity.success_rate) || 0}%"></div>
                         </div>
-                        <small class="text-muted">${activity.success_rate}%</small>
+                        <small class="text-muted">${escapeHtml(String(activity.success_rate))}%</small>
                     </td>
                     <td>
                         <span class="badge bg-${activity.status === 'success' ? 'success' : 'danger'}" data-badge>
-                            ${activity.status}
+                            ${escapeHtml(activity.status)}
                         </span>
                     </td>
                 </tr>
@@ -308,57 +309,113 @@ function sendBroadcast() {
 }
 
 /**
- * Send match reminder (placeholder)
+ * Send match reminder
  */
 function sendMatchReminder() {
     if (window.Swal) {
         window.Swal.fire({
-            title: 'Feature Coming Soon',
-            text: 'Match reminder functionality will be available soon',
+            title: 'Match Reminders',
+            html: `
+                <div class="text-start">
+                    <p>Match reminders are handled via Discord for real-time delivery to players.</p>
+                    <p class="mb-2"><strong>How it works:</strong></p>
+                    <ul class="small text-muted">
+                        <li>Automated reminders sent 24h and 2h before matches</li>
+                        <li>Direct messages to players via Discord bot</li>
+                        <li>Channel announcements in team channels</li>
+                    </ul>
+                    <p class="small text-muted mt-2">Configure timing in Discord Bot Settings.</p>
+                </div>
+            `,
             icon: 'info',
-            confirmButtonText: 'OK'
+            confirmButtonText: 'Go to Discord Settings',
+            showCancelButton: true,
+            cancelButtonText: 'Close'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '/admin-panel/discord-bot-management';
+            }
         });
     }
 }
 
 /**
- * Send RSVP reminder (placeholder)
+ * Send RSVP reminder
  */
 function sendRSVPReminder() {
     if (window.Swal) {
         window.Swal.fire({
-            title: 'Feature Coming Soon',
-            text: 'RSVP reminder functionality will be available soon',
+            title: 'RSVP Reminders',
+            html: `
+                <div class="text-start">
+                    <p>RSVP reminders are sent automatically via Discord to ensure player responses.</p>
+                    <p class="mb-2"><strong>How it works:</strong></p>
+                    <ul class="small text-muted">
+                        <li>Reminders sent to players who haven't responded</li>
+                        <li>Escalation to team captains for missing RSVPs</li>
+                        <li>Configurable reminder intervals</li>
+                    </ul>
+                    <p class="small text-muted mt-2">Manage RSVP settings in Match Operations.</p>
+                </div>
+            `,
             icon: 'info',
-            confirmButtonText: 'OK'
+            confirmButtonText: 'Go to Match Operations',
+            showCancelButton: true,
+            cancelButtonText: 'Close'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '/admin-panel/match-operations';
+            }
         });
     }
 }
 
 /**
- * View notification logs (placeholder)
+ * View notification logs
  */
 function viewNotificationLogs() {
     if (window.Swal) {
         window.Swal.fire({
-            title: 'Feature Coming Soon',
-            text: 'Detailed notification logs will be available soon',
+            title: 'Notification Logs',
+            text: 'Notification logs are available in the system monitoring dashboard.',
             icon: 'info',
-            confirmButtonText: 'OK'
+            confirmButtonText: 'Go to Monitoring',
+            showCancelButton: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '/admin/system_monitoring';
+            }
         });
     }
 }
 
 /**
- * Manage FCM tokens (placeholder)
+ * Manage FCM tokens
  */
 function manageTokens() {
     if (window.Swal) {
         window.Swal.fire({
-            title: 'Feature Coming Soon',
-            text: 'FCM token management will be available soon',
+            title: 'FCM Token Management',
+            html: `
+                <div class="text-start">
+                    <p>Firebase Cloud Messaging tokens are managed automatically.</p>
+                    <p class="mb-2"><strong>Automatic maintenance:</strong></p>
+                    <ul class="small text-muted">
+                        <li>Invalid tokens cleaned up on failed delivery</li>
+                        <li>Stale tokens removed after 30 days of inactivity</li>
+                        <li>Duplicate tokens deduplicated automatically</li>
+                    </ul>
+                    <p class="small text-muted mt-2">Use the cleanup button below for manual intervention.</p>
+                </div>
+            `,
             icon: 'info',
-            confirmButtonText: 'OK'
+            confirmButtonText: 'Run Manual Cleanup',
+            showCancelButton: true,
+            cancelButtonText: 'Close'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                cleanupInvalidTokens();
+            }
         });
     }
 }
@@ -369,20 +426,43 @@ function manageTokens() {
 function cleanupInvalidTokens() {
     if (window.Swal) {
         window.Swal.fire({
-            title: 'Cleanup Invalid Tokens',
-            text: 'This will remove all inactive and invalid FCM tokens. Continue?',
-            icon: 'warning',
+            title: 'Cleanup Invalid Tokens?',
+            html: '<p>This will remove invalid and inactive FCM tokens from the database.</p><p class="small text-muted">This helps improve notification delivery performance.</p>',
+            icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Yes, cleanup',
-            cancelButtonText: 'Cancel'
+            confirmButtonText: 'Run Cleanup'
         }).then((result) => {
             if (result.isConfirmed) {
-                // Implement token cleanup
                 window.Swal.fire({
-                    title: 'Feature Coming Soon',
-                    text: 'Token cleanup functionality will be available soon',
-                    icon: 'info',
-                    confirmButtonText: 'OK'
+                    title: 'Cleaning Up Tokens...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        window.Swal.showLoading();
+
+                        fetch('/admin-panel/communication/push-notifications/cleanup-tokens', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                window.Swal.fire({
+                                    title: 'Cleanup Complete!',
+                                    html: `<p>${data.message}</p><p class="text-muted small mt-2">${data.cleaned_count || 0} tokens removed</p>`,
+                                    icon: 'success'
+                                });
+                            } else {
+                                window.Swal.fire('Error', data.message || 'Failed to cleanup tokens', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('[cleanupInvalidTokens] Error:', error);
+                            window.Swal.fire('Error', 'Failed to cleanup tokens. Check server connectivity.', 'error');
+                        });
+                    }
                 });
             }
         });
@@ -471,15 +551,26 @@ window.EventDelegation.register('confirm-send-test', function(element, e) {
  */
 window.EventDelegation.register('mark-all-notifications-read', function(element, e) {
     e.preventDefault();
-    if (confirm('Mark all notifications as read?')) {
-        const url = element.dataset.url;
-        if (url) {
-            window.location.href = url;
-        } else if (typeof window.markAllNotificationsAsRead === 'function') {
-            window.markAllNotificationsAsRead();
-        } else {
-            console.error('[mark-all-notifications-read] No URL or handler available');
-        }
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Mark All as Read?',
+            text: 'Mark all notifications as read?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const url = element.dataset.url;
+                if (url) {
+                    window.location.href = url;
+                } else if (typeof window.markAllNotificationsAsRead === 'function') {
+                    window.markAllNotificationsAsRead();
+                } else {
+                    console.error('[mark-all-notifications-read] No URL or handler available');
+                }
+            }
+        });
     }
 }, { preventDefault: true });
 

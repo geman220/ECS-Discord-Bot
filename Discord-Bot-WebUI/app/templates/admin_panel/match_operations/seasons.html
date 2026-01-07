@@ -103,8 +103,8 @@
         </div>
         <div class="c-card__body">
             {% if seasons %}
-            <div class="c-table-responsive" data-table-container>
-                <table class="c-table" data-table data-mobile-table data-table-type="seasons">
+            <div class="c-c-table-wrapper" data-table-container>
+                <table class="c-c-table" data-table data-mobile-table data-table-type="seasons">
                     <thead class="c-table__head">
                         <tr class="c-table__row">
                             <th class="c-table__header" scope="col">Season Name</th>
@@ -119,27 +119,27 @@
                     <tbody class="c-table__body">
                         {% for season in seasons %}
                         <tr class="c-table__row" data-season-id="{{ season.id }}">
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Season Name">
                                 <strong>{{ season.name }}</strong>
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Start Date">
                                 {% if season.start_date %}
                                     {{ season.start_date.strftime('%Y-%m-%d') }}
                                 {% else %}
                                     <span class="c-text-muted">TBD</span>
                                 {% endif %}
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="End Date">
                                 {% if season.end_date %}
                                     {{ season.end_date.strftime('%Y-%m-%d') }}
                                 {% else %}
                                     <span class="c-text-muted">TBD</span>
                                 {% endif %}
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Matches">
                                 <span class="c-badge c-badge--info" data-badge data-badge-type="count">{{ season.match_count or 0 }}</span>
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Status">
                                 {% if season.status == 'active' %}
                                     <span class="c-badge c-badge--success" data-badge data-status="active">Active</span>
                                 {% elif season.status == 'upcoming' %}
@@ -150,7 +150,7 @@
                                     <span class="c-badge c-badge--secondary" data-badge data-status="unknown">{{ season.status or 'Unknown' }}</span>
                                 {% endif %}
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Current">
                                 {% if season.is_current %}
                                     <span class="c-badge c-badge--success" data-badge data-current="true">
                                         <i class="ti ti-crown"></i>Current
@@ -161,7 +161,7 @@
                                     </button>
                                 {% endif %}
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Actions">
                                 <div class="c-btn-group" data-btn-group>
                                     <button class="c-btn c-btn--icon c-btn--outline-info" data-action="view-season" data-season-id="{{ season.id }}" aria-label="View season">
                                         <i class="ti ti-eye"></i>

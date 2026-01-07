@@ -126,8 +126,6 @@ function closeLoading() {
 function showNotification(title, message, type = 'info') {
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire(title, message, type);
-    } else {
-        alert(`${title}: ${message}`);
     }
 }
 
@@ -367,25 +365,20 @@ window.EventDelegation.register('approve-user', function(element, e) {
         return;
     }
 
-    if (typeof window.Swal === 'undefined') {
-        if (confirm('Approve this user? This will allow them to access the system.')) {
-            performUserAction(userId, 'approve');
-        }
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Approve User?',
+            text: 'This will approve the user and allow them to access the system.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Approve',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performUserAction(userId, 'approve');
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Approve User?',
-        text: 'This will approve the user and allow them to access the system.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Approve',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performUserAction(userId, 'approve');
-        }
-    });
 }, { preventDefault: true });
 
 // ============================================================================
@@ -401,25 +394,20 @@ window.EventDelegation.register('deactivate-user', function(element, e) {
         return;
     }
 
-    if (typeof window.Swal === 'undefined') {
-        if (confirm('Deactivate this user? This will prevent them from accessing the system.')) {
-            performUserAction(userId, 'deactivate');
-        }
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Deactivate User?',
+            text: 'This will prevent the user from accessing the system.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Deactivate',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performUserAction(userId, 'deactivate');
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Deactivate User?',
-        text: 'This will prevent the user from accessing the system.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Deactivate',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performUserAction(userId, 'deactivate');
-        }
-    });
 }, { preventDefault: true });
 
 // ============================================================================
@@ -435,25 +423,20 @@ window.EventDelegation.register('activate-user', function(element, e) {
         return;
     }
 
-    if (typeof window.Swal === 'undefined') {
-        if (confirm('Activate this user? This will allow them to access the system.')) {
-            performUserAction(userId, 'activate');
-        }
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Activate User?',
+            text: 'This will allow the user to access the system.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Activate',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performUserAction(userId, 'activate');
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Activate User?',
-        text: 'This will allow the user to access the system.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Activate',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performUserAction(userId, 'activate');
-        }
-    });
 }, { preventDefault: true });
 
 // ============================================================================
@@ -469,26 +452,21 @@ window.EventDelegation.register('delete-user', function(element, e) {
         return;
     }
 
-    if (typeof window.Swal === 'undefined') {
-        if (confirm('DELETE this user? This action cannot be undone!')) {
-            performUserAction(userId, 'delete');
-        }
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Delete User?',
+            text: 'This will permanently delete the user. This action cannot be undone!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performUserAction(userId, 'delete');
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Delete User?',
-        text: 'This will permanently delete the user. This action cannot be undone!',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Delete',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performUserAction(userId, 'delete');
-        }
-    });
 }, { preventDefault: true });
 
 /**
@@ -552,25 +530,20 @@ window.EventDelegation.register('bulk-action', function(element, e) {
 
     const actionText = action.charAt(0).toUpperCase() + action.slice(1);
 
-    if (typeof window.Swal === 'undefined') {
-        if (confirm(`${actionText} ${selectedUsers.length} selected users?`)) {
-            performBulkAction(action, selectedUsers);
-        }
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: `${actionText} Selected Users?`,
+            text: `This will ${action} ${selectedUsers.length} selected users.`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: `Yes, ${actionText}`,
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performBulkAction(action, selectedUsers);
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: `${actionText} Selected Users?`,
-        text: `This will ${action} ${selectedUsers.length} selected users.`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: `Yes, ${actionText}`,
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performBulkAction(action, selectedUsers);
-        }
-    });
 }, { preventDefault: true });
 
 /**
@@ -586,25 +559,20 @@ window.EventDelegation.register('bulk-approve-users', function(element, e) {
         return;
     }
 
-    if (typeof window.Swal === 'undefined') {
-        if (confirm(`Approve ${selectedUsers.length} selected users?`)) {
-            performBulkAction('approve', selectedUsers);
-        }
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Approve Selected Users?',
+            text: `This will approve ${selectedUsers.length} selected users.`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Approve',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performBulkAction('approve', selectedUsers);
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Approve Selected Users?',
-        text: `This will approve ${selectedUsers.length} selected users.`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Approve',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performBulkAction('approve', selectedUsers);
-        }
-    });
 }, { preventDefault: true });
 
 /**
@@ -649,7 +617,7 @@ function performBulkAction(action, selectedUsers) {
 
 window.EventDelegation.register('create-user', function(element, e) {
     e.preventDefault();
-    showNotification('Feature Coming Soon', 'User creation functionality will be added soon.', 'info');
+    showNotification('Create User', 'Users are created automatically when they register. Use the approval system to manage new users.', 'info');
 }, { preventDefault: true });
 
 // ============================================================================
@@ -658,8 +626,90 @@ window.EventDelegation.register('create-user', function(element, e) {
 
 window.EventDelegation.register('export-users', function(element, e) {
     e.preventDefault();
-    const exportType = element.dataset.exportType || 'all';
-    showNotification('Feature Coming Soon', `User export (${exportType}) functionality will be added soon.`, 'info');
+    const exportType = element.dataset.exportType || 'users';
+
+    if (typeof window.Swal === 'undefined') {
+        console.error('[export-users] SweetAlert2 not available');
+        return;
+    }
+
+    window.Swal.fire({
+        title: 'Export User Data',
+        html: `
+            <div class="mb-3">
+                <label class="form-label">Export Type</label>
+                <select class="form-select" id="userExportType" data-form-select>
+                    <option value="users" ${exportType === 'users' ? 'selected' : ''}>All Users</option>
+                    <option value="roles" ${exportType === 'roles' ? 'selected' : ''}>User Roles</option>
+                    <option value="activity" ${exportType === 'activity' ? 'selected' : ''}>Activity Data</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Date Range</label>
+                <select class="form-select" id="userExportDateRange" data-form-select>
+                    <option value="all">All Time</option>
+                    <option value="7_days">Last 7 Days</option>
+                    <option value="30_days">Last 30 Days</option>
+                    <option value="90_days">Last 90 Days</option>
+                </select>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Export',
+        preConfirm: () => {
+            return {
+                type: document.getElementById('userExportType').value,
+                date_range: document.getElementById('userExportDateRange').value,
+                format: 'json'
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.Swal.fire({
+                title: 'Exporting Users...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    window.Swal.showLoading();
+
+                    fetch('/admin-panel/users/analytics/export', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify(result.value)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Create download link
+                            const blob = new Blob([JSON.stringify(data.export_data, null, 2)], { type: 'application/json' });
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = data.filename || 'user-export.json';
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+
+                            window.Swal.fire({
+                                title: 'Export Complete!',
+                                html: `<p>${data.message}</p><p class="text-muted small mt-2">File: ${data.filename}</p>`,
+                                icon: 'success'
+                            });
+                        } else {
+                            window.Swal.fire('Error', data.message || 'Failed to export users', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[export-users] Error:', error);
+                        window.Swal.fire('Error', 'Failed to export users. Check server connectivity.', 'error');
+                    });
+                }
+            });
+        }
+    });
 }, { preventDefault: true });
 
 // ============================================================================
@@ -668,7 +718,7 @@ window.EventDelegation.register('export-users', function(element, e) {
 
 window.EventDelegation.register('sync-users', function(element, e) {
     e.preventDefault();
-    showNotification('Feature Coming Soon', 'WooCommerce sync functionality will be added soon.', 'info');
+    showNotification('Sync Users', 'WooCommerce sync is not currently enabled. User data syncs automatically through Discord.', 'info');
 }, { preventDefault: true });
 
 // ============================================================================
@@ -754,7 +804,7 @@ function handleEditUserSubmit(e) {
 /**
  * Initialize the comprehensive user management module
  */
-function init() {
+function initUserManagementComprehensive() {
     if (_initialized) return;
 
     // Page guard - only initialize on user management page
@@ -781,7 +831,7 @@ function init() {
 
 // Register with window.InitSystem
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('user-management-comprehensive', init, {
+    window.InitSystem.register('user-management-comprehensive', initUserManagementComprehensive, {
         priority: 50,
         reinitializable: false,
         description: 'Comprehensive user management handlers'

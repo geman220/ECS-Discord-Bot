@@ -4,54 +4,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    .stat-card {
-        background: var(--ecs-neutral-5, #f8f9fa);
-        border: 1px solid var(--ecs-neutral-20, #dee2e6);
-        border-radius: 0.375rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-    }
-    .stat-value {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: var(--ecs-neutral-60, #495057);
-    }
-    .stat-label {
-        color: var(--ecs-secondary, #6c757d);
-        font-size: 0.875rem;
-    }
-    .cache-indicator {
-        display: inline-block;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        margin-right: 8px;
-    }
-    .cache-warm { background-color: var(--ecs-success, #28a745); }
-    .cache-cold { background-color: var(--ecs-danger, #dc3545); }
-    .cache-partial { background-color: var(--ecs-warning, #ffc107); }
-    .auto-refresh {
-        background: var(--ecs-neutral-10, #e9ecef);
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 20px;
-    }
-    .league-card {
-        border: 1px solid var(--ecs-neutral-20, #dee2e6);
-        border-radius: 0.375rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        background: var(--bs-white, white);
-    }
-    .ttl-info {
-        background: var(--ecs-info-subtle, #d1ecf1);
-        border: 1px solid var(--ecs-info-light, #bee5eb);
-        border-radius: 0.25rem;
-        padding: 0.75rem;
-        margin-bottom: 1rem;
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block main_content %}
@@ -88,14 +41,14 @@
             <!-- Overall Cache Statistics -->
             <div class="row">
                 <div class="col-md-3">
-                    <div class="stat-card">
+                    <div class="stat-c-card">
                         <div class="stat-value" id="total-cache-keys">{{ cache_stats.draft_cache_keys.values() | sum if cache_stats.draft_cache_keys else 0 }}</div>
                         <div class="stat-label">Total Draft Cache Keys</div>
                     </div>
                 </div>
                 
                 <div class="col-md-3">
-                    <div class="stat-card">
+                    <div class="stat-c-card">
                         <div class="stat-value" id="redis-pool-utilization">
                             {{ cache_stats.connection_pool.pool_stats.utilization_percent | default(0) }}%
                         </div>
@@ -104,14 +57,14 @@
                 </div>
                 
                 <div class="col-md-3">
-                    <div class="stat-card">
+                    <div class="stat-c-card">
                         <div class="stat-value" id="active-leagues">{{ leagues | length }}</div>
                         <div class="stat-label">Active Leagues</div>
                     </div>
                 </div>
 
                 <div class="col-md-3">
-                    <div class="stat-card">
+                    <div class="stat-c-card">
                         <div class="stat-value" id="cache-hit-ratio">-</div>
                         <div class="stat-label">Est. Cache Hit Ratio</div>
                     </div>
@@ -126,23 +79,23 @@
                             <h5>Cache Type Breakdown</h5>
                         </div>
                         <div class="c-card__body">
-                            <table class="c-table c-table--compact" data-mobile-table data-table-type="stats" data-table>
+                            <table class="c-c-table c-table--compact" data-mobile-table data-table-type="stats" data-table>
                                 <tbody>
                                     <tr>
-                                        <td>Player Cache Keys</td>
-                                        <td><span id="player-cache-count">{{ cache_stats.draft_cache_keys.players | default(0) }}</span></td>
+                                        <td data-label="Type">Player Cache Keys</td>
+                                        <td data-label="Count"><span id="player-cache-count">{{ cache_stats.draft_cache_keys.players | default(0) }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>Analytics Cache Keys</td>
-                                        <td><span id="analytics-cache-count">{{ cache_stats.draft_cache_keys.analytics | default(0) }}</span></td>
+                                        <td data-label="Type">Analytics Cache Keys</td>
+                                        <td data-label="Count"><span id="analytics-cache-count">{{ cache_stats.draft_cache_keys.analytics | default(0) }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>Team Cache Keys</td>
-                                        <td><span id="team-cache-count">{{ cache_stats.draft_cache_keys.teams | default(0) }}</span></td>
+                                        <td data-label="Type">Team Cache Keys</td>
+                                        <td data-label="Count"><span id="team-cache-count">{{ cache_stats.draft_cache_keys.teams | default(0) }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>Availability Cache Keys</td>
-                                        <td><span id="availability-cache-count">{{ cache_stats.draft_cache_keys.availability | default(0) }}</span></td>
+                                        <td data-label="Type">Availability Cache Keys</td>
+                                        <td data-label="Count"><span id="availability-cache-count">{{ cache_stats.draft_cache_keys.availability | default(0) }}</span></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -156,23 +109,23 @@
                             <h5>Connection Pool Health</h5>
                         </div>
                         <div class="c-card__body">
-                            <table class="c-table c-table--compact" data-mobile-table data-table-type="stats" data-table>
+                            <table class="c-c-table c-table--compact" data-mobile-table data-table-type="stats" data-table>
                                 <tbody>
                                     <tr>
-                                        <td>Max Connections</td>
-                                        <td><span id="max-connections">{{ cache_stats.connection_pool.pool_stats.max_connections | default("N/A") }}</span></td>
+                                        <td data-label="Metric">Max Connections</td>
+                                        <td data-label="Value"><span id="max-connections">{{ cache_stats.connection_pool.pool_stats.max_connections | default("N/A") }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>In Use</td>
-                                        <td><span id="connections-in-use">{{ cache_stats.connection_pool.pool_stats.in_use_connections | default("N/A") }}</span></td>
+                                        <td data-label="Metric">In Use</td>
+                                        <td data-label="Value"><span id="connections-in-use">{{ cache_stats.connection_pool.pool_stats.in_use_connections | default("N/A") }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>Available</td>
-                                        <td><span id="connections-available">{{ cache_stats.connection_pool.pool_stats.available_connections | default("N/A") }}</span></td>
+                                        <td data-label="Metric">Available</td>
+                                        <td data-label="Value"><span id="connections-available">{{ cache_stats.connection_pool.pool_stats.available_connections | default("N/A") }}</span></td>
                                     </tr>
                                     <tr>
-                                        <td>Created</td>
-                                        <td><span id="connections-created">{{ cache_stats.connection_pool.pool_stats.created_connections | default("N/A") }}</span></td>
+                                        <td data-label="Metric">Created</td>
+                                        <td data-label="Value"><span id="connections-created">{{ cache_stats.connection_pool.pool_stats.created_connections | default("N/A") }}</span></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -192,7 +145,7 @@
                             <div class="row" id="league-cache-status">
                                 {% for league_name in leagues %}
                                 <div class="col-md-6 mb-3">
-                                    <div class="league-card">
+                                    <div class="league-c-card">
                                         <h6>{{ league_name }}</h6>
                                         {% set league_status = league_cache_status.get(league_name, {}) %}
                                         <div class="cache-status-grid">

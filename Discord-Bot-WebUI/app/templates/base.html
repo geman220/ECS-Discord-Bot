@@ -1,10 +1,38 @@
 <!DOCTYPE html>
-<html lang="en" class="light-style layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-style="{{ session.get('theme', 'light') }}" data-theme-variant="{{ session.get('theme_variant', 'modern') }}" data-content="wide">
+<html lang="en" class="{{ session.get('theme', 'light') }}-style layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-style="{{ session.get('theme', 'light') }}" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-theme-variant="{{ session.get('theme_variant', 'modern') }}" data-content="wide">
 
 <head>
     <meta charset="utf-8" />
     
-    <!-- CRITICAL: Theme detection MUST happen before any CSS loads to prevent FOUC -->
+    <!-- CRITICAL: Theme detection and anti-flash CSS MUST happen before any other CSS loads -->
+    <style id="theme-flash-prevention">
+        /* Prevent flash of wrong theme - comprehensive coverage before main CSS loads */
+        /* Dark mode base colors */
+        html[data-style="dark"],
+        html[data-style="dark"] body,
+        html[data-style="dark"] .layout-wrapper,
+        html[data-style="dark"] .layout-page,
+        html[data-style="dark"] .content-wrapper,
+        html[data-style="dark"] .layout-content-wrapper,
+        html[data-style="dark"] .container-xxl,
+        html[data-style="dark"] .container-fluid {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+        }
+        /* Light mode base colors */
+        html[data-style="light"],
+        html[data-style="light"] body,
+        html[data-style="light"] .layout-wrapper,
+        html[data-style="light"] .layout-page,
+        html[data-style="light"] .content-wrapper,
+        html[data-style="light"] .layout-content-wrapper {
+            background-color: #f8fafc !important;
+            color: #1e293b !important;
+        }
+        /* Hide content briefly during initial load to prevent flash */
+        html:not([data-style]) body { visibility: hidden; }
+        html[data-style] body { visibility: visible; }
+    </style>
     <script>
         (function() {
             // Get theme from localStorage or use server-provided theme as fallback
@@ -50,6 +78,17 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/img/favicon/favicon.png') }}" />
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='assets/img/favicon/apple-touch-icon.png') }}" />
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+
+    <!-- Preload Critical Assets -->
+    <!-- Preload fonts to prevent FOUT (Flash of Unstyled Text) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Preload critical vendor resources -->
+    <link rel="preload" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" as="style" />
+    {% if vite_production_mode is defined and vite_production_mode() %}
+    <!-- Preload main JS bundle for faster interactivity -->
+    <link rel="modulepreload" href="{{ vite_asset_url('js/main-entry.js') }}" />
+    {% endif %}
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -98,47 +137,9 @@
     <!-- VITE PRODUCTION MODE: Modern bundled assets -->
     {{ vite_asset('css/main-entry.css') }}
 
-    <!-- Critical navbar layout fix (prevents Bootstrap flex-wrap override) -->
-    <style id="navbar-layout-fix">
-    .c-navbar-modern__container {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-    }
-    .c-navbar-modern__actions {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-    }
-    .c-navbar-modern__actions > li {
-        display: flex !important;
-        flex-shrink: 0 !important;
-    }
-    </style>
-
     {% elif vite_dev_mode is defined and vite_dev_mode() %}
     <!-- VITE DEV MODE: CSS served by Vite dev server (npm run dev) -->
     {{ vite_asset('css/main-entry.css') }}
-
-    <!-- Critical navbar layout fix (prevents Bootstrap flex-wrap override) -->
-    <style id="navbar-layout-fix">
-    .c-navbar-modern__container {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-    }
-    .c-navbar-modern__actions {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-    }
-    .c-navbar-modern__actions > li {
-        display: flex !important;
-        flex-shrink: 0 !important;
-    }
-    </style>
 
     {% else %}
     <!-- FLASK-ASSETS DEVELOPMENT MODE: Modular Bundles (legacy fallback) -->
@@ -565,7 +566,7 @@
     <script src="{{ url_for('static', filename='js/event-delegation/handlers/security-actions.js') }}"></script>
     <script src="{{ url_for('static', filename='js/event-delegation/handlers/substitute-pool.js') }}"></script>
     <script src="{{ url_for('static', filename='js/event-delegation/handlers/user-approval.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/user-management.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/event-delegation/handlers/user-management-comprehensive.js') }}"></script>
     <script src="{{ url_for('static', filename='js/event-delegation/handlers/push-notifications.js') }}"></script>
     <script src="{{ url_for('static', filename='js/event-delegation/handlers/message-templates.js') }}"></script>
 

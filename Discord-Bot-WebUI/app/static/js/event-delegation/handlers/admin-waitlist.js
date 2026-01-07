@@ -10,6 +10,7 @@
 
 import { EventDelegation } from '../core.js';
 import { InitSystem } from '../../init-system.js';
+import { escapeHtml } from '../../utils/sanitize.js';
 
 let _initialized = false;
 
@@ -41,8 +42,6 @@ function showNotification(title, message, type = 'info') {
             text: message,
             icon: type
         });
-    } else {
-        alert(`${title}: ${message}`);
     }
 }
 
@@ -120,51 +119,54 @@ window.EventDelegation.register('view-player', (element, event) => {
 
 /**
  * Build HTML for player details modal
+ * Uses escapeHtml to prevent XSS from user data
  */
 function buildPlayerDetailsHTML(user) {
     const preferredLeagueDisplay =
         user.preferred_league === 'pub_league_classic' ? 'Pub League Classic' :
         user.preferred_league === 'pub_league_premier' ? 'Pub League Premier' :
         user.preferred_league === 'ecs_fc' ? 'ECS FC' :
-        user.preferred_league || 'Not specified';
+        escapeHtml(user.preferred_league) || 'Not specified';
+
+    const safeStatus = escapeHtml(user.approval_status);
 
     return `
         <div class="row">
             <div class="col-md-6">
                 <h6>Basic Information</h6>
-                <p><strong>Username:</strong> ${user.username}</p>
-                <p><strong>Email:</strong> ${user.email}</p>
-                <p><strong>Joined:</strong> ${user.created_at || 'Unknown'}</p>
-                <p><strong>Status:</strong> <span class="badge status-${user.approval_status}" data-badge>${user.approval_status}</span></p>
+                <p><strong>Username:</strong> ${escapeHtml(user.username)}</p>
+                <p><strong>Email:</strong> ${escapeHtml(user.email)}</p>
+                <p><strong>Joined:</strong> ${escapeHtml(user.created_at) || 'Unknown'}</p>
+                <p><strong>Status:</strong> <span class="badge status-${safeStatus}" data-badge>${safeStatus}</span></p>
                 <p><strong>Preferred League:</strong> ${preferredLeagueDisplay}</p>
-                <p><strong>Roles:</strong> ${user.roles.map(role => `<span class="badge bg-label-secondary me-1" data-badge>${role}</span>`).join('')}</p>
+                <p><strong>Roles:</strong> ${user.roles.map(role => `<span class="badge bg-label-secondary me-1" data-badge>${escapeHtml(role)}</span>`).join('')}</p>
             </div>
             <div class="col-md-6">
                 <h6>Player Details</h6>
-                ${user.player.name ? `<p><strong>Name:</strong> ${user.player.name}</p>` : ''}
-                ${user.player.phone ? `<p><strong>Phone:</strong> ${user.player.phone}</p>` : ''}
-                ${user.player.pronouns ? `<p><strong>Pronouns:</strong> ${user.player.pronouns}</p>` : ''}
+                ${user.player.name ? `<p><strong>Name:</strong> ${escapeHtml(user.player.name)}</p>` : ''}
+                ${user.player.phone ? `<p><strong>Phone:</strong> ${escapeHtml(user.player.phone)}</p>` : ''}
+                ${user.player.pronouns ? `<p><strong>Pronouns:</strong> ${escapeHtml(user.player.pronouns)}</p>` : ''}
                 ${user.player.discord_id ? `<p><strong>Discord:</strong> <span class="text-primary">Linked</span></p>` : '<p><strong>Discord:</strong> <span class="text-muted">Not linked</span></p>'}
-                ${user.player.jersey_size ? `<p><strong>Jersey Size:</strong> ${user.player.jersey_size}</p>` : ''}
-                ${user.player.jersey_number ? `<p><strong>Jersey Number:</strong> ${user.player.jersey_number}</p>` : ''}
+                ${user.player.jersey_size ? `<p><strong>Jersey Size:</strong> ${escapeHtml(user.player.jersey_size)}</p>` : ''}
+                ${user.player.jersey_number ? `<p><strong>Jersey Number:</strong> ${escapeHtml(user.player.jersey_number)}</p>` : ''}
             </div>
         </div>
 
         <div class="row mt-3">
             <div class="col-md-6">
                 <h6>Playing Information</h6>
-                ${user.player.favorite_position ? `<p><strong>Favorite Position:</strong> ${user.player.favorite_position}</p>` : ''}
-                ${user.player.other_positions ? `<p><strong>Other Positions:</strong> ${user.player.other_positions}</p>` : ''}
-                ${user.player.positions_not_to_play ? `<p><strong>Positions NOT to Play:</strong> ${user.player.positions_not_to_play}</p>` : ''}
-                ${user.player.frequency_play_goal ? `<p><strong>Frequency Play Goal:</strong> ${user.player.frequency_play_goal}</p>` : ''}
-                ${user.player.expected_weeks_available ? `<p><strong>Expected Weeks Available:</strong> ${user.player.expected_weeks_available}</p>` : ''}
-                ${user.player.willing_to_referee ? `<p><strong>Willing to Referee:</strong> ${user.player.willing_to_referee}</p>` : ''}
+                ${user.player.favorite_position ? `<p><strong>Favorite Position:</strong> ${escapeHtml(user.player.favorite_position)}</p>` : ''}
+                ${user.player.other_positions ? `<p><strong>Other Positions:</strong> ${escapeHtml(user.player.other_positions)}</p>` : ''}
+                ${user.player.positions_not_to_play ? `<p><strong>Positions NOT to Play:</strong> ${escapeHtml(user.player.positions_not_to_play)}</p>` : ''}
+                ${user.player.frequency_play_goal ? `<p><strong>Frequency Play Goal:</strong> ${escapeHtml(user.player.frequency_play_goal)}</p>` : ''}
+                ${user.player.expected_weeks_available ? `<p><strong>Expected Weeks Available:</strong> ${escapeHtml(user.player.expected_weeks_available)}</p>` : ''}
+                ${user.player.willing_to_referee ? `<p><strong>Willing to Referee:</strong> ${escapeHtml(user.player.willing_to_referee)}</p>` : ''}
             </div>
             <div class="col-md-6">
                 <h6>Substitute Information</h6>
                 <p><strong>Interested in Subbing:</strong> ${user.player.interested_in_sub ? '<span class="badge bg-label-success" data-badge>Yes</span>' : '<span class="badge bg-label-secondary" data-badge>No</span>'}</p>
                 <p><strong>Available for Subbing:</strong> ${user.player.is_sub ? '<span class="badge bg-label-success" data-badge>Yes</span>' : '<span class="badge bg-label-secondary" data-badge>No</span>'}</p>
-                ${user.player.unavailable_dates ? `<p><strong>Unavailable Dates:</strong> ${user.player.unavailable_dates}</p>` : ''}
+                ${user.player.unavailable_dates ? `<p><strong>Unavailable Dates:</strong> ${escapeHtml(user.player.unavailable_dates)}</p>` : ''}
             </div>
         </div>
 
@@ -172,7 +174,7 @@ function buildPlayerDetailsHTML(user) {
             <div class="row mt-3">
                 <div class="col-12">
                     <h6>Additional Information</h6>
-                    <p>${user.player.additional_info}</p>
+                    <p>${escapeHtml(user.player.additional_info)}</p>
                 </div>
             </div>
         ` : ''}
@@ -181,7 +183,7 @@ function buildPlayerDetailsHTML(user) {
             <div class="row mt-3">
                 <div class="col-12">
                     <h6>Player Notes</h6>
-                    <p>${user.player.player_notes}</p>
+                    <p>${escapeHtml(user.player.player_notes)}</p>
                 </div>
             </div>
         ` : ''}
@@ -305,9 +307,6 @@ window.EventDelegation.register('submit-removal', (element, event) => {
                 }).then(() => {
                     location.reload();
                 });
-            } else {
-                alert(data.message);
-                location.reload();
             }
         } else {
             showNotification('Error', data.message, 'error');

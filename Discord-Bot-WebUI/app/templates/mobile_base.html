@@ -6,9 +6,20 @@
     <title>{% block title %}ECS FC Profile Update{% endblock %}</title>
 
     <!-- Design Tokens (CSS Variables) -->
+    {% if vite_production_mode is defined and vite_production_mode() %}
+    <!-- VITE PRODUCTION MODE: Bundled assets include all core tokens/variables -->
+    {{ vite_asset('css/main-entry.css') }}
+
+    {% elif vite_dev_mode is defined and vite_dev_mode() %}
+    <!-- VITE DEV MODE: CSS served by Vite dev server -->
+    {{ vite_asset('css/main-entry.css') }}
+
+    {% else %}
+    <!-- FLASK-ASSETS DEVELOPMENT MODE: Modular Bundles (legacy fallback) -->
     {% assets "core_tokens" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
+    {% endif %}
 
     <!-- Bootstrap CSS (Local) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/core.css') }}" />

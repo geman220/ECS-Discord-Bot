@@ -21,7 +21,7 @@ let _initialized = false;
     /**
      * Initialize the success page functionality
      */
-    function init() {
+    function initProfileSuccess() {
         if (_initialized) return;
         _initialized = true;
 
@@ -113,7 +113,7 @@ let _initialized = false;
 
     // Register with window.InitSystem (primary)
     if (true && window.InitSystem.register) {
-        window.InitSystem.register('profile-success', init, {
+        window.InitSystem.register('profile-success', initProfileSuccess, {
             priority: 50,
             reinitializable: false,
             description: 'Profile success page'
@@ -123,17 +123,5 @@ let _initialized = false;
     // Fallback
     // window.InitSystem handles initialization
 
-// Backward compatibility
-window.init = init;
-
-// Backward compatibility
-window.initDoneButton = initDoneButton;
-
-// Backward compatibility
-window.getPlayerId = getPlayerId;
-
-// Backward compatibility
-window.initCelebration = initCelebration;
-
-// Backward compatibility
-window.playSuccessSound = playSuccessSound;
+// No window exports needed - InitSystem handles initialization
+// All functions are used internally

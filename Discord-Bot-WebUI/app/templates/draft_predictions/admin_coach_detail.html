@@ -126,7 +126,7 @@
                 <div class="c-card__body">
                     {% if predictions %}
                         <div class="c-table-wrapper" data-table-responsive>
-                            <table class="c-table c-table--hoverable" id="predictionsTable" data-table data-mobile-table data-table-type="predictions">
+                            <table class="c-c-table c-table--hoverable" id="predictionsTable" data-table data-mobile-table data-table-type="predictions">
                                 <thead>
                                     <tr>
                                         <th class="dp-col-rank-lg">#</th>
@@ -141,8 +141,8 @@
                                 <tbody>
                                     {% for prediction, player in predictions %}
                                     <tr data-player-name="{{ player.name|lower }}">
-                                        <td>{{ loop.index }}</td>
-                                        <td>
+                                        <td data-label="#">{{ loop.index }}</td>
+                                        <td data-label="Player">
                                             <div class="d-flex align-items-center">
                                                 <div class="avatar avatar-xs me-2">
                                                     {% if player.profile_picture_url or (player.image_cache and player.image_cache.thumbnail_url) %}
@@ -162,33 +162,33 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td>
+                                        <td data-label="Position">
                                             {% if player.favorite_position %}
                                                 <span class="badge bg-label-secondary" data-badge>{{ player.favorite_position }}</span>
                                             {% else %}
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td data-label="Predicted Round">
                                             <span class="badge bg-{{ 'success' if prediction.predicted_round <= 5 else 'primary' if prediction.predicted_round <= 10 else 'warning' }}" data-badge>
                                                 Round {{ prediction.predicted_round }}
                                             </span>
                                         </td>
-                                        <td>
+                                        <td data-label="Confidence">
                                             {% if prediction.confidence_level %}
                                                 <span class="badge bg-label-info" data-badge>{{ prediction.confidence_level }}/5</span>
                                             {% else %}
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td data-label="Notes">
                                             {% if prediction.notes %}
                                                 <span class="text-muted">{{ prediction.notes }}</span>
                                             {% else %}
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td data-label="Actions">
                                             <a href="{{ url_for('draft_predictions.admin_player_detail', player_id=player.id, season_id=season.id, league_type=league_type) }}"
                                                class="c-btn c-btn--sm c-btn--outline-primary" aria-label="View"><i class="ti ti-eye"></i></a>
                                         </td>

@@ -99,33 +99,31 @@ let _initialized = false;
     }
 
     /**
-     * Initialize form change tracking
+     * Initialize form change tracking using event delegation
      */
     function initFormChangeTracking() {
-        const forms = document.querySelectorAll('[data-track-changes]');
-
-        forms.forEach(form => {
-            // Track input changes
-            form.addEventListener('input', function(e) {
-                if (e.target.matches('input, textarea, select')) {
-                    markFormChanged();
-                }
-            });
-
-            // Track select changes
-            form.addEventListener('change', function(e) {
-                if (e.target.matches('input, textarea, select')) {
-                    markFormChanged();
-                }
-            });
-
-            // Mark as saved on successful submit
-            form.addEventListener('submit', function() {
-                formSubmitting = true;
-            });
+        // Delegated input handler for tracked forms
+        document.addEventListener('input', function(e) {
+            const form = e.target.closest('[data-track-changes]');
+            if (form && e.target.matches('input, textarea, select')) {
+                markFormChanged();
+            }
         });
 
-        // Debug: forms.length tracked for changes
+        // Delegated change handler for tracked forms
+        document.addEventListener('change', function(e) {
+            const form = e.target.closest('[data-track-changes]');
+            if (form && e.target.matches('input, textarea, select')) {
+                markFormChanged();
+            }
+        });
+
+        // Delegated submit handler for tracked forms
+        document.addEventListener('submit', function(e) {
+            if (e.target.matches('[data-track-changes]')) {
+                formSubmitting = true;
+            }
+        });
     }
 
     // ========================================================================
@@ -159,9 +157,21 @@ let _initialized = false;
             const href = link.getAttribute('href');
             if (href && href !== '#' && !href.startsWith('javascript:')) {
                 if (formChanged) {
-                    const confirmed = confirm(CONFIG.UNSAVED_WARNING_MESSAGE);
-                    if (!confirmed) {
-                        e.preventDefault();
+                    e.preventDefault();
+                    if (typeof window.Swal !== 'undefined') {
+                        window.Swal.fire({
+                            title: 'Unsaved Changes',
+                            text: CONFIG.UNSAVED_WARNING_MESSAGE,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Leave Page',
+                            cancelButtonText: 'Stay'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                formChanged = false;
+                                window.location.href = href;
+                            }
+                        });
                     }
                 }
             }
@@ -174,33 +184,38 @@ let _initialized = false;
     // AUTO-SUBMIT FORMS
     // ========================================================================
 
+    // Track auto-submit timeouts
+    const autoSubmitTimeouts = new Map();
+
     /**
-     * Initialize auto-submit forms
+     * Initialize auto-submit forms using event delegation
      * Forms with data-auto-submit will submit on change
      */
     function initAutoSubmitForms() {
-        const autoSubmitForms = document.querySelectorAll('[data-auto-submit]');
+        // Delegated change handler for auto-submit forms
+        document.addEventListener('change', function(e) {
+            const form = e.target.closest('[data-auto-submit]');
+            if (!form) return;
 
-        autoSubmitForms.forEach(form => {
             const delay = parseInt(form.dataset.autoSubmitDelay) || 0;
-            let timeoutId = null;
+            const formId = form.id || 'form-' + Math.random().toString(36).substr(2, 9);
 
-            // Listen for changes
-            form.addEventListener('change', function(e) {
-                // Clear existing timeout
-                if (timeoutId) {
-                    clearTimeout(timeoutId);
-                }
+            // Clear existing timeout for this form
+            if (autoSubmitTimeouts.has(formId)) {
+                clearTimeout(autoSubmitTimeouts.get(formId));
+            }
 
-                // Submit after delay
-                timeoutId = setTimeout(() => {
-                    formSubmitting = true;
-                    form.submit();
-                }, delay);
-            });
+            // Submit after delay
+            const timeoutId = setTimeout(() => {
+                formSubmitting = true;
+                form.submit();
+                autoSubmitTimeouts.delete(formId);
+            }, delay);
+
+            autoSubmitTimeouts.set(formId, timeoutId);
         });
 
-        console.log(`[Profile Form] Initialized ${autoSubmitForms.length} auto-submit forms`);
+        console.log('[Profile Form] Auto-submit forms initialized via delegation');
     }
 
     // ========================================================================
@@ -208,23 +223,23 @@ let _initialized = false;
     // ========================================================================
 
     /**
-     * Initialize custom form validation
+     * Initialize custom form validation using event delegation
      */
     function initFormValidation() {
-        const forms = document.querySelectorAll('[data-validate]');
+        // Delegated submit handler for validated forms
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (!form.matches('[data-validate]')) return;
 
-        forms.forEach(form => {
-            form.addEventListener('submit', function(e) {
-                if (!form.checkValidity()) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
 
-                form.classList.add('was-validated');
-            });
+            form.classList.add('was-validated');
         });
 
-        console.log(`[Profile Form] Initialized validation on ${forms.length} forms`);
+        console.log('[Profile Form] Form validation initialized via delegation');
     }
 
     // ========================================================================
@@ -232,34 +247,31 @@ let _initialized = false;
     // ========================================================================
 
     /**
-     * Initialize phone number formatting
+     * Initialize phone number formatting using event delegation
      * Formats phone numbers as user types
      */
     function initPhoneFormatting() {
-        const phoneInputs = document.querySelectorAll('[data-format="phone"]');
+        // Delegated input handler for phone formatting
+        document.addEventListener('input', function(e) {
+            if (!e.target.matches('[data-format="phone"]')) return;
 
-        phoneInputs.forEach(input => {
-            input.addEventListener('input', function(e) {
-                let value = e.target.value.replace(/\D/g, '');
+            let value = e.target.value.replace(/\D/g, '');
 
-                // Format as (XXX) XXX-XXXX
-                if (value.length > 0) {
-                    if (value.length <= 3) {
-                        value = `(${value}`;
-                    } else if (value.length <= 6) {
-                        value = `(${value.slice(0, 3)}) ${value.slice(3)}`;
-                    } else {
-                        value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)}`;
-                    }
+            // Format as (XXX) XXX-XXXX
+            if (value.length > 0) {
+                if (value.length <= 3) {
+                    value = `(${value}`;
+                } else if (value.length <= 6) {
+                    value = `(${value.slice(0, 3)}) ${value.slice(3)}`;
+                } else {
+                    value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)}`;
                 }
+            }
 
-                e.target.value = value;
-            });
+            e.target.value = value;
         });
 
-        if (phoneInputs.length > 0) {
-            console.log(`[Profile Form] Initialized phone formatting on ${phoneInputs.length} inputs`);
-        }
+        console.log('[Profile Form] Phone formatting initialized via delegation');
     }
 
     // ========================================================================
@@ -267,41 +279,41 @@ let _initialized = false;
     // ========================================================================
 
     /**
-     * Initialize character counters for textareas
+     * Initialize character counters for textareas using event delegation
      */
     function initCharacterCounters() {
-        const textareas = document.querySelectorAll('[data-max-length]');
+        // Delegated input handler for character counters
+        document.addEventListener('input', function(e) {
+            if (!e.target.matches('[data-max-length]')) return;
 
-        textareas.forEach(textarea => {
-            const maxLength = parseInt(textarea.dataset.maxLength);
-            const counterId = textarea.dataset.counter;
+            const maxLength = parseInt(e.target.dataset.maxLength);
+            const counterId = e.target.dataset.counter;
             const counter = counterId ? document.getElementById(counterId) : null;
 
             if (!counter) return;
 
-            // Update counter on input
-            textarea.addEventListener('input', function() {
-                const remaining = maxLength - this.value.length;
-                counter.textContent = `${remaining} characters remaining`;
+            const remaining = maxLength - e.target.value.length;
+            counter.textContent = `${remaining} characters remaining`;
 
-                // Add warning class if close to limit
-                if (remaining < 20) {
-                    counter.classList.add('text-warning');
-                } else {
-                    counter.classList.remove('text-warning');
-                }
+            // Add warning class if close to limit
+            if (remaining < 20) {
+                counter.classList.add('text-warning');
+            } else {
+                counter.classList.remove('text-warning');
+            }
 
-                if (remaining < 0) {
-                    counter.classList.add('text-danger');
-                    counter.classList.remove('text-warning');
-                }
-            });
+            if (remaining < 0) {
+                counter.classList.add('text-danger');
+                counter.classList.remove('text-warning');
+            }
+        });
 
-            // Trigger initial update
+        // Trigger initial update for existing textareas
+        document.querySelectorAll('[data-max-length]').forEach(textarea => {
             textarea.dispatchEvent(new Event('input'));
         });
 
-        console.log(`[Profile Form] Initialized ${textareas.length} character counters`);
+        console.log('[Profile Form] Character counters initialized via delegation');
     }
 
     // ========================================================================
@@ -321,20 +333,30 @@ let _initialized = false;
 
             if (form) {
                 // Confirm reset
-                const confirmed = confirm('Reset form to original values?');
-                if (confirmed) {
-                    form.reset();
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire({
+                        title: 'Reset Form',
+                        text: 'Reset form to original values?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, reset',
+                        cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.reset();
 
-                    // Reset Select2 dropdowns
-                    if (typeof jQuery !== 'undefined') {
-                        jQuery(form).find('.select2-hidden-accessible').val(null).trigger('change');
-                    }
+                            // Reset Select2 dropdowns
+                            if (typeof jQuery !== 'undefined') {
+                                jQuery(form).find('.select2-hidden-accessible').val(null).trigger('change');
+                            }
 
-                    // Mark as saved
-                    markFormSaved();
+                            // Mark as saved
+                            markFormSaved();
 
-                    // Remove validation classes
-                    form.classList.remove('was-validated');
+                            // Remove validation classes
+                            form.classList.remove('was-validated');
+                        }
+                    });
                 }
             }
         });
@@ -347,7 +369,7 @@ let _initialized = false;
     /**
      * Initialize all form handling
      */
-    function init() {
+    function initProfileFormHandler() {
         if (_initialized) return;
         _initialized = true;
 
@@ -371,12 +393,12 @@ let _initialized = false;
         version: '1.0.0',
         markFormChanged,
         markFormSaved,
-        init
+        init: initProfileFormHandler
     };
 
     // Register with window.InitSystem (primary)
     if (true && window.InitSystem.register) {
-        window.InitSystem.register('profile-form-handler', init, {
+        window.InitSystem.register('profile-form-handler', initProfileFormHandler, {
             priority: 50,
             reinitializable: false,
             description: 'Profile form validation and interactions'
@@ -386,38 +408,4 @@ let _initialized = false;
     // Fallback
     // window.InitSystem handles initialization
 
-// Backward compatibility
-window.CONFIG = CONFIG;
-
-// Backward compatibility
-window.initSelect2 = initSelect2;
-
-// Backward compatibility
-window.markFormChanged = markFormChanged;
-
-// Backward compatibility
-window.markFormSaved = markFormSaved;
-
-// Backward compatibility
-window.initFormChangeTracking = initFormChangeTracking;
-
-// Backward compatibility
-window.initUnsavedWarning = initUnsavedWarning;
-
-// Backward compatibility
-window.initAutoSubmitForms = initAutoSubmitForms;
-
-// Backward compatibility
-window.initFormValidation = initFormValidation;
-
-// Backward compatibility
-window.initPhoneFormatting = initPhoneFormatting;
-
-// Backward compatibility
-window.initCharacterCounters = initCharacterCounters;
-
-// Backward compatibility
-window.initFormResetHandling = initFormResetHandling;
-
-// Backward compatibility
-window.init = init;
+// No additional window exports needed - window.ProfileForm provides public API

@@ -29,10 +29,10 @@
 :root {
     /* Purple color scale for bonus weeks */
     --color-purple-50: #F5F3FF;
-    --color-purple-400: var(--color-primary-400, #60A5FA);
-    --color-purple-500: #8B5CF6;
-    --color-purple-600: var(--color-primary-600, #2563EB);
-    --color-purple-700: #1D4ED8;
+    --color-purple-400: var(--color-primary-400, var(--color-primary-400));
+    --color-purple-500: var(--color-primary-500);
+    --color-purple-600: var(--color-primary-600, var(--color-primary-600));
+    --color-purple-700: var(--color-primary-700);
     --color-purple-rgb: 139, 92, 246;
 
     /* Legacy compatibility */
@@ -470,7 +470,7 @@
    Mobile and tablet optimizations
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .wizard-progress .step {
         font-size: var(--text-xs);
     }
@@ -481,9 +481,7 @@
         font-size: var(--text-sm);
     }
 
-    .step-label {
-        font-size: 0.7rem;
-    }
+    /* NOTE: .step-label mobile font-size in mobile/forms.css (source of truth) */
 
     .wizard-content {
         padding: var(--space-3);
@@ -677,9 +675,9 @@
      * as specified by user preference media query
      */
     * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
+        transition-duration: 0.01ms;
     }
 
     .wizard-step.active {
@@ -721,6 +719,199 @@
    Optimize for printing season schedules
    ============================================================================ */
 
+/* ============================================================================
+   PREVIEW SCHEDULE PAGE STYLES
+   Extracted from preview_schedule.html inline styles
+   ============================================================================ */
+
+.selected-for-swap {
+    background-color: var(--ecs-primary-subtle, #e7f3ff);
+    border: 2px solid var(--ecs-primary, var(--color-primary));
+}
+
+.week-section {
+    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
+    border-radius: var(--radius-md, 0.5rem);
+    padding: var(--space-4, 1rem);
+    background-color: var(--ecs-neutral-5, var(--color-neutral-50));
+}
+
+.week-header {
+    color: var(--ecs-neutral-60, var(--color-secondary-700));
+    margin-bottom: var(--space-4, 1rem);
+    padding-bottom: var(--space-2, 0.5rem);
+    border-bottom: 2px solid var(--ecs-neutral-20, var(--color-neutral-300));
+}
+
+.team-name {
+    font-weight: var(--font-medium, 500);
+}
+
+.btn-xs {
+    padding: 0.25rem 0.5rem;
+    font-size: var(--text-xs, 0.75rem);
+}
+
+.selected-match {
+    padding: var(--space-2, 0.5rem);
+    background-color: var(--ecs-primary-subtle, #e7f3ff);
+    border-radius: var(--radius-sm, 0.25rem);
+}
+
+/* Dark mode support for preview schedule */
+[data-style="dark"] .week-section {
+    border-color: var(--ecs-dark-border, #374151);
+    background-color: var(--ecs-dark-bg-card, var(--color-secondary-900));
+}
+
+[data-style="dark"] .week-header {
+    color: var(--ecs-dark-text-muted, var(--color-secondary-400));
+    border-color: var(--ecs-dark-border, #374151);
+}
+
+[data-style="dark"] .selected-for-swap {
+    background-color: var(--ecs-dark-primary-subtle, rgba(96, 165, 250, 0.15));
+    border-color: var(--ecs-primary-light, var(--color-primary-400));
+}
+
+[data-style="dark"] .selected-match {
+    background-color: var(--ecs-dark-primary-subtle, rgba(96, 165, 250, 0.15));
+}
+
+/* ============================================================================
+   ECS FC SCHEDULE SECTION STYLES
+   Extracted from ecs_fc_schedule_section.html inline styles
+   ============================================================================ */
+
+#ecs-fc-create-match-btn {
+    box-shadow: var(--shadow-sm, 0 2px 4px rgba(0,0,0,0.1));
+    transition: transform var(--duration-fast, 0.15s) ease, box-shadow var(--duration-fast, 0.15s) ease;
+}
+
+#ecs-fc-create-match-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md, 0 4px 8px rgba(0,0,0,0.15));
+}
+
+#ecsFcCreateMatchModal .modal-header {
+    background: linear-gradient(135deg, var(--ecs-primary, #667eea) 0%, var(--ecs-secondary, #764ba2) 100%);
+    color: var(--color-neutral-0, white);
+}
+
+#ecsFcCreateMatchModal .btn-close {
+    filter: invert(1);
+}
+
+/* Dark mode support for ECS FC modal */
+[data-style="dark"] #ecsFcCreateMatchModal .modal-header {
+    background: linear-gradient(135deg, var(--ecs-primary-light, var(--color-primary-400)) 0%, var(--ecs-secondary, var(--color-primary-500)) 100%);
+}
+
+/* ============================================================================
+   AUTO SCHEDULE CONFIG PAGE STYLES
+   Extracted from auto_schedule_config.html inline styles
+   ============================================================================ */
+
+.week-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3, 10px);
+    min-height: 60px;
+    border: 2px dashed var(--ecs-neutral-20, var(--color-neutral-300));
+    border-radius: var(--radius-sm, 5px);
+    padding: var(--space-4, 15px);
+    background: var(--ecs-neutral-5, var(--color-neutral-50));
+}
+
+.week-card {
+    background: var(--ecs-neutral-0, var(--color-white));
+    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
+    border-radius: var(--radius-md, 8px);
+    padding: var(--space-3, 10px);
+    min-width: 120px;
+    cursor: move;
+    transition: all var(--duration-fast, 0.2s) ease;
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
+}
+
+.week-card:hover {
+    box-shadow: var(--shadow-md, 0 2px 6px rgba(0,0,0,0.15));
+    transform: translateY(-1px);
+}
+
+.week-card.regular { border-left: 4px solid var(--ecs-success, var(--color-success-600)); }
+.week-card.practice { border-left: 4px solid var(--ecs-info, #0dcaf0); }
+.week-card.fun { border-left: 4px solid var(--ecs-warning, var(--color-warning)); }
+.week-card.tst { border-left: 4px solid var(--ecs-warning-dark, #fd7e14); }
+.week-card.bye { border-left: 4px solid var(--ecs-secondary, var(--color-secondary-600)); }
+.week-card.playoff { border-left: 4px solid var(--ecs-danger, var(--color-danger-600)); }
+
+.week-card .week-header {
+    font-weight: var(--font-bold, bold);
+    font-size: var(--text-sm, 0.9em);
+    color: var(--ecs-neutral-60, var(--color-secondary-600));
+}
+
+.week-type {
+    font-size: var(--text-xs, 0.8em);
+    text-transform: uppercase;
+    margin-top: var(--space-2, 5px);
+}
+
+.field-config-item .input-group {
+    margin-bottom: var(--space-2, 5px);
+}
+
+.week-card.dragging {
+    opacity: 0.5;
+}
+
+.js-remove-week-card {
+    font-size: var(--text-xs, 0.7em);
+}
+
+/* Dark mode support for week timeline */
+[data-style="dark"] .week-timeline {
+    border-color: var(--ecs-dark-border, #374151);
+    background: var(--ecs-dark-bg-card, var(--color-secondary-900));
+}
+
+[data-style="dark"] .week-card {
+    background: var(--ecs-dark-bg-elevated, var(--color-neutral-800));
+    border-color: var(--ecs-dark-border, #374151);
+}
+
+/* ============================================================================
+   MANAGE PUBLEAGUE SCHEDULE PAGE STYLES
+   Extracted from manage_publeague_schedule.html inline styles
+   ============================================================================ */
+
+.manage-schedule-table .table-responsive {
+    margin-bottom: var(--space-4, 1rem);
+}
+
+.manage-schedule-accordion .accordion-button:not(.collapsed) {
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.edit-match-btn,
+.delete-match-btn,
+.add-match-btn {
+    margin-right: var(--space-2, 0.5rem);
+}
+
+.card-header[data-bs-toggle="collapse"] {
+    cursor: pointer;
+}
+
+.card-header[data-bs-toggle="collapse"]:hover {
+    background-color: var(--bs-gray-100);
+}
+
+[data-style="dark"] .card-header[data-bs-toggle="collapse"]:hover {
+    background-color: var(--ecs-dark-bg-elevated, var(--color-neutral-800));
+}
+
 @media print {
     /**
      * PRINT MEDIA: Force display/visibility overrides
@@ -731,22 +922,22 @@
     .wizard-progress,
     .modal-footer,
     button {
-        display: none !important;
+        display: none;
     }
 
     .wizard-step {
-        display: block !important;
+        display: block;
         page-break-inside: avoid;
     }
 
     .week-item {
-        border: 1px solid var(--color-neutral-900) !important;
-        background: var(--color-neutral-0) !important;
-        box-shadow: none !important;
+        border: 1px solid var(--color-neutral-900);
+        background: var(--color-neutral-0);
+        box-shadow: none;
     }
 
     .calendar-container {
-        max-height: none !important;
-        overflow: visible !important;
+        max-height: none;
+        overflow: visible;
     }
 }

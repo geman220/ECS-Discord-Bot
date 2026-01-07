@@ -94,7 +94,7 @@
                                 {% endif %}
                                 
                                 <div class="c-table-wrapper" data-table-responsive>
-                                    <table class="c-table c-table--compact c-table--striped" data-table data-mobile-table data-table-type="schedule">
+                                    <table class="c-c-table c-table--compact c-table--striped" data-table data-mobile-table data-table-type="schedule">
                                         <thead scope="col">
                                             <tr>
                                                 <th scope="col">Time</th>
@@ -110,13 +110,13 @@
                                         </thead>
                                         <tbody>
                                             {% for match in matches %}
-                                                <tr data-template-id="{{ match.id }}" 
+                                                <tr data-template-id="{{ match.id }}"
                                                     class="{{ 'special-week-row' if match.week_type != 'REGULAR' else '' }}">
-                                                    <td>{{ match.time }}</td>
-                                                    <td>
+                                                    <td data-label="Time">{{ match.time }}</td>
+                                                    <td data-label="Field">
                                                         <span class="badge badge-light" data-badge>{{ match.field }}</span>
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Home Team">
                                                         {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
                                                             <span class="badge badge-info" data-badge>
                                                                 {% if match.week_type == 'FUN' %}
@@ -137,7 +137,7 @@
                                                             </span>
                                                         {% endif %}
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Away Team">
                                                         {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
                                                             <span class="text-muted">
                                                                 {% if match.week_type == 'FUN' %}
@@ -158,12 +158,12 @@
                                                             </span>
                                                         {% endif %}
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Match Order">
                                                         <span class="badge badge-{{ 'primary' if match.match_order == 1 else 'secondary' }}" data-badge>
                                                             {{ match.match_order }}{{ 'st' if match.match_order == 1 else 'nd' }}
                                                         </span>
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Week Type">
                                                         {% if match.week_type == 'REGULAR' %}
                                                             <span class="badge badge-success" data-badge>Regular</span>
                                                         {% elif match.week_type == 'FUN' %}
@@ -175,7 +175,7 @@
                                                         {% endif %}
                                                     </td>
                                                     {% if week_type == 'REGULAR' %}
-                                                    <td>
+                                                    <td data-label="Actions">
                                                         <button class="c-btn btn-xs c-btn--outline-primary js-select-swap"
                                                                 data-action="select-for-swap" data-match-id="{{ match.id }}" data-match-desc="{{ match.home_team }} vs {{ match.away_team }}">
                                                             <i class="fas fa-exchange-alt"></i> Swap
@@ -400,39 +400,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<style>
-.selected-for-swap {
-    background-color: var(--ecs-primary-subtle, #e7f3ff) !important;
-    border: 2px solid var(--ecs-primary, #007bff);
-}
-
-.week-section {
-    border: 1px solid var(--ecs-neutral-20, #dee2e6);
-    border-radius: 0.5rem;
-    padding: 1rem;
-    background-color: var(--ecs-neutral-5, #f8f9fa);
-}
-
-.week-header {
-    color: var(--ecs-neutral-60, #495057);
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--ecs-neutral-20, #dee2e6);
-}
-
-.team-name {
-    font-weight: 500;
-}
-
-.btn-xs {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-}
-
-.selected-match {
-    padding: 0.5rem;
-    background-color: var(--ecs-primary-subtle, #e7f3ff);
-    border-radius: 0.25rem;
-}
-</style>
+<!-- Styles moved to /app/static/css/features/schedule-manager.css -->
 {% endblock %}

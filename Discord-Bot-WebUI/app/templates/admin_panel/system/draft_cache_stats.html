@@ -71,7 +71,7 @@
             <div class="c-card__body">
                 {% if leagues %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="stats">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="stats">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">League</th>
@@ -83,11 +83,11 @@
                         <tbody>
                             {% for league in leagues %}
                             <tr>
-                                <td>
+                                <td data-label="League">
                                     <i class="ti ti-trophy me-2 text-muted"></i>
                                     <strong>{{ league }}</strong>
                                 </td>
-                                <td>
+                                <td data-label="Cache Status">
                                     {% if league_cache_status.get(league, {}).get('warmed', false) %}
                                     <span class="badge bg-success" data-badge>
                                         <i class="ti ti-check me-1"></i>Warmed
@@ -98,10 +98,10 @@
                                     </span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Last Warmed">
                                     {{ league_cache_status.get(league, {}).get('last_warmed', 'Never') }}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <button class="c-btn c-btn--outline-primary c-btn--sm js-warm-cache"
                                             data-action="warm-cache"
                                             data-league="{{ league }}"
@@ -131,23 +131,23 @@
                 <h5 class="mb-0"><i class="ti ti-clock me-2"></i>TTL Settings</h5>
             </div>
             <div class="c-card__body">
-                <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="stats">
+                <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="stats">
                     <tbody>
                         <tr>
-                            <td>Player Data TTL</td>
-                            <td id="player-ttl">Loading...</td>
+                            <td data-label="Setting">Player Data TTL</td>
+                            <td data-label="Value" id="player-ttl">Loading...</td>
                         </tr>
                         <tr>
-                            <td>Analytics TTL</td>
-                            <td id="analytics-ttl">Loading...</td>
+                            <td data-label="Setting">Analytics TTL</td>
+                            <td data-label="Value" id="analytics-ttl">Loading...</td>
                         </tr>
                         <tr>
-                            <td>Team Data TTL</td>
-                            <td id="team-ttl">Loading...</td>
+                            <td data-label="Setting">Team Data TTL</td>
+                            <td data-label="Value" id="team-ttl">Loading...</td>
                         </tr>
                         <tr>
-                            <td>Availability TTL</td>
-                            <td id="availability-ttl">Loading...</td>
+                            <td data-label="Setting">Availability TTL</td>
+                            <td data-label="Value" id="availability-ttl">Loading...</td>
                         </tr>
                     </tbody>
                 </table>

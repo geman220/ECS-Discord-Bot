@@ -53,12 +53,12 @@
                             </select>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <label class="form-label">&nbsp;</label>
+                            <span class="u-form-label-spacer" aria-hidden="true"></span>
                             <div class="d-flex gap-2">
                                 <button type="submit" class="c-btn c-btn--primary flex-grow-1">
                                     <i class="ti ti-search me-1"></i>Filter
                                 </button>
-                                <a href="{{ url_for('admin_panel.mobile_error_list') }}" class="c-btn c-btn--outline-secondary" aria-label="Button"><i class="ti ti-x"></i></a>
+                                <a href="{{ url_for('admin_panel.mobile_error_list') }}" class="c-btn c-btn--outline-secondary" aria-label="Clear filters"><i class="ti ti-x"></i></a>
                             </div>
                         </div>
                     </div>
@@ -81,7 +81,7 @@
             <div class="c-card__body">
                 {% if errors.items %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="errors">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="errors">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Timestamp</th>
@@ -94,21 +94,21 @@
                         <tbody>
                             {% for error in errors.items %}
                             <tr>
-                                <td>
+                                <td data-label="Timestamp">
                                     <small>{{ error.created_at.strftime('%Y-%m-%d %H:%M:%S') if error.created_at else 'N/A' }}</small>
                                 </td>
-                                <td>{{ error.error_type }}</td>
-                                <td>
+                                <td data-label="Error Type">{{ error.error_type }}</td>
+                                <td data-label="Severity">
                                     <span class="badge bg-{% if error.severity == 'critical' %}danger{% elif error.severity == 'error' %}warning{% elif error.severity == 'warning' %}info{% else %}secondary{% endif %}" data-badge>
                                         {{ error.severity }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Message">
                                     <span title="{{ error.message }}">
                                         {{ error.message[:50] }}{% if error.message|length > 50 %}...{% endif %}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <button class="c-btn c-btn--sm c-btn--outline-primary"
                                             data-action="view-error"
                                             data-error-id="{{ error.id }}"

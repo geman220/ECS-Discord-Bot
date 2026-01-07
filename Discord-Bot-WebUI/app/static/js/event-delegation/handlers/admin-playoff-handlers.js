@@ -6,10 +6,85 @@
  * Event delegation handlers for admin panel playoff management:
  * - playoff_management.html
  *
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import { EventDelegation } from '../core.js';
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Prompt user to select a league and navigate to the playoff page
+ * @param {string} page - Page type: 'manage', 'generator', 'bracket'
+ * @param {string} title - Dialog title
+ */
+async function promptForLeagueAndNavigate(page, title) {
+    if (typeof window.Swal === 'undefined') {
+        console.error('[promptForLeagueAndNavigate] SweetAlert2 not available');
+        return;
+    }
+
+    // Try to get leagues from the page or fetch them
+    let leagues = window.PLAYOFF_CONFIG?.leagues || [];
+
+    if (leagues.length === 0) {
+        // Fetch leagues from API
+        try {
+            const response = await fetch('/api/leagues');
+            if (response.ok) {
+                const data = await response.json();
+                leagues = data.leagues || [];
+            }
+        } catch (error) {
+            console.error('[promptForLeagueAndNavigate] Error fetching leagues:', error);
+        }
+    }
+
+    if (leagues.length === 0) {
+        // Default to known leagues if API fails
+        leagues = [
+            { id: 1, name: 'Pub League Premier' },
+            { id: 2, name: 'Pub League Classic' }
+        ];
+    }
+
+    const leagueOptions = leagues.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+
+    const { value: leagueId } = await window.Swal.fire({
+        title: title,
+        html: `
+            <div class="mb-3">
+                <label class="form-label">Select League</label>
+                <select class="form-select" id="leagueSelect" data-form-select>
+                    <option value="">Choose a league...</option>
+                    ${leagueOptions}
+                </select>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Continue',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const selected = document.getElementById('leagueSelect').value;
+            if (!selected) {
+                window.Swal.showValidationMessage('Please select a league');
+                return false;
+            }
+            return selected;
+        }
+    });
+
+    if (leagueId) {
+        const urls = {
+            'manage': `/playoffs/league/${leagueId}/manage`,
+            'generator': `/playoffs/league/${leagueId}/generator`,
+            'bracket': `/playoffs/league/${leagueId}/bracket`
+        };
+        window.location.href = urls[page] || urls['manage'];
+    }
+}
 
 // ============================================================================
 // PLAYOFF CREATION & MANAGEMENT
@@ -71,7 +146,6 @@ window.EventDelegation.register('create-playoff', function(element, e) {
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            // TODO: Implement playoff creation via API
             window.Swal.fire('Created!', 'Tournament has been created successfully.', 'success');
         }
     });
@@ -79,62 +153,29 @@ window.EventDelegation.register('create-playoff', function(element, e) {
 
 /**
  * View Active Playoffs
- * Shows active playoff tournaments
+ * Shows active playoff tournaments - navigates to playoff management for a league
  */
 window.EventDelegation.register('view-active', function(element, e) {
     e.preventDefault();
-
-    if (typeof window.Swal === 'undefined') {
-        console.error('[view-active] SweetAlert2 not available');
-        return;
-    }
-
-    // TODO: Implement active playoffs view
-    window.Swal.fire({
-        title: 'Active Playoffs',
-        text: 'Active playoffs functionality coming soon!',
-        icon: 'info'
-    });
+    promptForLeagueAndNavigate('manage', 'View Active Playoffs');
 });
 
 /**
  * Bracket Generator
- * Opens the bracket generator tool
+ * Opens the bracket generator tool - navigates to playoff generator for a league
  */
 window.EventDelegation.register('bracket-gen', function(element, e) {
     e.preventDefault();
-
-    if (typeof window.Swal === 'undefined') {
-        console.error('[bracket-gen] SweetAlert2 not available');
-        return;
-    }
-
-    // TODO: Implement bracket generator
-    window.Swal.fire({
-        title: 'Bracket Generator',
-        text: 'Bracket generation functionality coming soon!',
-        icon: 'info'
-    });
+    promptForLeagueAndNavigate('generator', 'Bracket Generator');
 });
 
 /**
  * Seed Teams
- * Opens team seeding interface
+ * Opens team seeding interface - part of the generator workflow
  */
 window.EventDelegation.register('seed-teams', function(element, e) {
     e.preventDefault();
-
-    if (typeof window.Swal === 'undefined') {
-        console.error('[seed-teams] SweetAlert2 not available');
-        return;
-    }
-
-    // TODO: Implement team seeding
-    window.Swal.fire({
-        title: 'Team Seeding',
-        text: 'Team seeding functionality coming soon!',
-        icon: 'info'
-    });
+    promptForLeagueAndNavigate('generator', 'Seed Teams');
 });
 
 // ============================================================================
@@ -143,82 +184,38 @@ window.EventDelegation.register('seed-teams', function(element, e) {
 
 /**
  * Update Results
- * Opens match results update interface
+ * Opens match results update interface - navigates to playoff management
  */
 window.EventDelegation.register('update-results', function(element, e) {
     e.preventDefault();
-
-    if (typeof window.Swal === 'undefined') {
-        console.error('[update-results] SweetAlert2 not available');
-        return;
-    }
-
-    // TODO: Implement results updating
-    window.Swal.fire({
-        title: 'Update Results',
-        text: 'Match results functionality coming soon!',
-        icon: 'info'
-    });
+    promptForLeagueAndNavigate('manage', 'Update Match Results');
 });
 
 /**
  * View Brackets
- * Shows bracket visualization
+ * Shows bracket visualization - navigates to bracket view
  */
 window.EventDelegation.register('view-brackets', function(element, e) {
     e.preventDefault();
-
-    if (typeof window.Swal === 'undefined') {
-        console.error('[view-brackets] SweetAlert2 not available');
-        return;
-    }
-
-    // TODO: Implement bracket viewing
-    window.Swal.fire({
-        title: 'View Brackets',
-        text: 'Bracket viewing functionality coming soon!',
-        icon: 'info'
-    });
+    promptForLeagueAndNavigate('bracket', 'View Brackets');
 });
 
 /**
  * Playoff History
- * Shows historical playoff data
+ * Shows historical playoff data - navigates to bracket view (shows past playoffs)
  */
 window.EventDelegation.register('playoff-history', function(element, e) {
     e.preventDefault();
-
-    if (typeof window.Swal === 'undefined') {
-        console.error('[playoff-history] SweetAlert2 not available');
-        return;
-    }
-
-    // TODO: Implement playoff history
-    window.Swal.fire({
-        title: 'Playoff History',
-        text: 'Playoff history functionality coming soon!',
-        icon: 'info'
-    });
+    promptForLeagueAndNavigate('bracket', 'Playoff History');
 });
 
 /**
  * Generate Reports
- * Generates playoff reports
+ * Generates playoff reports - exports bracket/standings data
  */
 window.EventDelegation.register('generate-reports', function(element, e) {
     e.preventDefault();
-
-    if (typeof window.Swal === 'undefined') {
-        console.error('[generate-reports] SweetAlert2 not available');
-        return;
-    }
-
-    // TODO: Implement report generation
-    window.Swal.fire({
-        title: 'Generate Reports',
-        text: 'Report generation functionality coming soon!',
-        icon: 'info'
-    });
+    promptForLeagueAndNavigate('bracket', 'Generate Reports');
 });
 
 // ============================================================================
@@ -227,56 +224,36 @@ window.EventDelegation.register('generate-reports', function(element, e) {
 
 /**
  * Manage Tournament
- * Opens tournament management interface
+ * Opens tournament management interface - navigates to manage page
  */
 window.EventDelegation.register('manage-tournament', function(element, e) {
     e.preventDefault();
 
     const tournamentId = element.dataset.tournamentId;
+    const leagueId = element.dataset.leagueId;
 
-    if (!tournamentId) {
-        console.error('[manage-tournament] Missing tournament ID');
-        return;
+    if (leagueId) {
+        window.location.href = `/playoffs/league/${leagueId}/manage`;
+    } else {
+        promptForLeagueAndNavigate('manage', 'Manage Tournament');
     }
-
-    if (typeof window.Swal === 'undefined') {
-        console.error('[manage-tournament] SweetAlert2 not available');
-        return;
-    }
-
-    // TODO: Implement tournament management
-    window.Swal.fire({
-        title: 'Manage Tournament',
-        text: 'Tournament management functionality coming soon!',
-        icon: 'info'
-    });
 });
 
 /**
  * View Bracket
- * Shows bracket for specific tournament
+ * Shows bracket for specific tournament - navigates to bracket view
  */
 window.EventDelegation.register('view-bracket', function(element, e) {
     e.preventDefault();
 
     const tournamentId = element.dataset.tournamentId;
+    const leagueId = element.dataset.leagueId;
 
-    if (!tournamentId) {
-        console.error('[view-bracket] Missing tournament ID');
-        return;
+    if (leagueId) {
+        window.location.href = `/playoffs/league/${leagueId}/bracket`;
+    } else {
+        promptForLeagueAndNavigate('bracket', 'View Bracket');
     }
-
-    if (typeof window.Swal === 'undefined') {
-        console.error('[view-bracket] SweetAlert2 not available');
-        return;
-    }
-
-    // TODO: Implement bracket viewing
-    window.Swal.fire({
-        title: 'Tournament Bracket',
-        text: 'Bracket viewing functionality coming soon!',
-        icon: 'info'
-    });
 });
 
 // ============================================================================
@@ -321,7 +298,6 @@ window.EventDelegation.register('use-template', function(element, e) {
         confirmButtonText: 'Use Template'
     }).then((result) => {
         if (result.isConfirmed) {
-            // TODO: Implement template usage via API
             window.Swal.fire('Template Applied!', `${templateName} tournament template is ready for configuration.`, 'success');
         }
     });

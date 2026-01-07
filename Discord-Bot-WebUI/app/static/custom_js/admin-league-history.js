@@ -252,7 +252,7 @@ function getManager() {
 /**
  * Initialize function
  */
-function init() {
+function initAdminLeagueHistory() {
     if (_initialized) return;
     _initialized = true;
 
@@ -267,7 +267,7 @@ function init() {
 
 // Register with window.InitSystem
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('admin-league-history', init, {
+    window.InitSystem.register('admin-league-history', initAdminLeagueHistory, {
         priority: 40,
         reinitializable: false,
         description: 'Admin league history lookup'
@@ -278,4 +278,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Export for ES modules
-export { AdminLeagueHistoryManager, getManager, init };
+export { AdminLeagueHistoryManager, getManager, initAdminLeagueHistory };

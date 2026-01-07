@@ -1595,7 +1595,7 @@ def get_user_roles():
         <div class="user-info mb-3">
             <div class="d-flex align-items-center">
                 <div class="avatar-sm me-3">
-                    {'<img src="' + (user.profile_picture or '') + '" class="rounded-circle" style="width: 40px; height: 40px;">' if user.profile_picture else '<div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" style="width: 40px; height: 40px;"><strong>' + (user.username[0].upper() if user.username else 'U') + '</strong></div>'}
+                    {'<img src="' + (user.profile_picture or '') + '" class="rounded-circle avatar-40">' if user.profile_picture else '<div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white avatar-40"><strong>' + (user.username[0].upper() if user.username else 'U') + '</strong></div>'}
                 </div>
                 <div>
                     <h6 class="mb-1">{user.username or 'N/A'}</h6>
@@ -1603,50 +1603,50 @@ def get_user_roles():
                 </div>
             </div>
         </div>
-        
+
         <div class="row">
             <div class="col-md-6">
                 <h6>Current Roles</h6>
-                <div id="currentRoles" class="border rounded p-3 mb-3" style="min-height: 200px;">
+                <div id="currentRoles" class="border rounded p-3 mb-3 min-h-200">
         """
-        
+
         if user.roles:
             for role in user.roles:
                 html += f"""
                     <div class="d-flex justify-content-between align-items-center mb-2 role-item" data-role-id="{role.id}">
                         <span class="badge bg-info">{role.name}</span>
-                        <button class="btn btn-sm btn-outline-danger" onclick="removeRole({user.id}, {role.id}, '{role.name}')">
+                        <button class="btn btn-sm btn-outline-danger" data-action="remove-role" data-user-id="{user.id}" data-role-id="{role.id}" data-role-name="{role.name}">
                             <i class="ti ti-x"></i>
                         </button>
                     </div>
                 """
         else:
             html += '<p class="text-muted">No roles assigned</p>'
-        
+
         html += """
                 </div>
             </div>
             <div class="col-md-6">
                 <h6>Available Roles</h6>
-                <div class="border rounded p-3" style="min-height: 200px;">
+                <div class="border rounded p-3 min-h-200">
         """
-        
+
         user_role_ids = [r.id for r in user.roles]
         available_roles = [r for r in all_roles if r.id not in user_role_ids]
-        
+
         if available_roles:
             for role in available_roles:
                 html += f"""
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>{role.name}</span>
-                        <button class="btn btn-sm btn-outline-success" onclick="addRole({user.id}, {role.id}, '{role.name}')">
+                        <button class="btn btn-sm btn-outline-success" data-action="add-role" data-user-id="{user.id}" data-role-id="{role.id}" data-role-name="{role.name}">
                             <i class="ti ti-plus"></i>
                         </button>
                     </div>
                 """
         else:
             html += '<p class="text-muted">All roles assigned</p>'
-        
+
         html += """
                 </div>
             </div>

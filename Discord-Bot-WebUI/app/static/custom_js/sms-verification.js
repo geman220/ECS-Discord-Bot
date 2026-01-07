@@ -212,42 +212,74 @@ export function verifyCode() {
 
 // Admin-only function accessible via console
 window.adminSetVerificationCode = function() {
-    if (confirm("ADMIN ONLY: Are you sure you want to generate a manual verification code?")) {
-        var phoneInput = document.querySelector('input[name="phone"]');
-        var verificationCodeInput = document.getElementById('verificationCodeInput');
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            icon: 'warning',
+            title: 'Admin Only',
+            text: 'Are you sure you want to generate a manual verification code?',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Generate',
+            cancelButtonText: 'Cancel'
+        }).then(function(result) {
+            if (result.isConfirmed) {
+                var phoneInput = document.querySelector('input[name="phone"]');
+                var verificationCodeInput = document.getElementById('verificationCodeInput');
 
-        if (!phoneInput || !phoneInput.value.trim()) {
-            // console.error("Phone number is required");
-            return;
-        }
+                if (!phoneInput || !phoneInput.value.trim()) {
+                    // console.error("Phone number is required");
+                    return;
+                }
 
-        // Make API call to generate and set a code
-        fetch('/set_verification_code', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
-            },
-            body: JSON.stringify({})  // Empty body - server will generate a code
-        })
-        .then(function(response) {
-            return response.json();
-        })
-        .then(function(data) {
-            if (data.success) {
-                // Show the verification code input
-                verificationCodeInput.classList.remove('d-none');
-                verificationCodeInput.classList.add('d-block');
-                // console.log("Admin generated verification code:", data.code);
-                alert("Verification code: " + data.code);
-            } else {
-                // console.error("Error:", data.message);
-                alert("Error: " + (data.message || "Failed to set verification code"));
+                // Make API call to generate and set a code
+                fetch('/set_verification_code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                    },
+                    body: JSON.stringify({})  // Empty body - server will generate a code
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.success) {
+                        // Show the verification code input
+                        verificationCodeInput.classList.remove('d-none');
+                        verificationCodeInput.classList.add('d-block');
+                        // console.log("Admin generated verification code:", data.code);
+                        if (typeof window.Swal !== 'undefined') {
+                            window.Swal.fire({
+                                icon: 'success',
+                                title: 'Verification Code',
+                                text: 'Verification code: ' + data.code,
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    } else {
+                        // console.error("Error:", data.message);
+                        if (typeof window.Swal !== 'undefined') {
+                            window.Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message || 'Failed to set verification code',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    }
+                })
+                .catch(function(error) {
+                    // console.error('Error setting verification code:', error);
+                    if (typeof window.Swal !== 'undefined') {
+                        window.Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error: ' + error,
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
             }
-        })
-        .catch(function(error) {
-            // console.error('Error setting verification code:', error);
-            alert("Error: " + error);
         });
     }
 };

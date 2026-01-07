@@ -164,11 +164,36 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script>
 document.getElementById('export-btn').addEventListener('click', function() {
-    AdminPanel.showMobileToast('Export functionality coming soon', 'info');
+    // Show export options
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'Export Draft Data',
+            html: `
+                <div class="text-start">
+                    <p>Choose what to export:</p>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('admin_panel.draft_history') }}?export=csv" class="btn btn-outline-primary">
+                            <i class="ti ti-file-spreadsheet me-2"></i>All Drafts (CSV)
+                        </a>
+                        {% if current_season %}
+                        <a href="{{ url_for('admin_panel.draft_history', season=current_season.id) }}?export=csv" class="btn btn-outline-success">
+                            <i class="ti ti-calendar me-2"></i>Current Season Only (CSV)
+                        </a>
+                        {% endif %}
+                    </div>
+                    <p class="text-muted small mt-3">Export includes player names, teams, positions, and draft order.</p>
+                </div>
+            `,
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'Close'
+        });
+    } else {
+        // Fallback - direct export all
+        window.location.href = "{{ url_for('admin_panel.draft_history') }}?export=csv";
+    }
 });
 </script>
-{% endif %}
 {% endblock %}

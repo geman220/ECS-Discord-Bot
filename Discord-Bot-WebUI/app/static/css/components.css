@@ -132,39 +132,11 @@ a:hover {
   background-color: var(--ecs-bg-content);
 }
 
-/* Fixed navbar layout - adds space for fixed navbar */
-.layout-navbar-fixed .layout-page::before,
-.layout-navbar-fixed .c-base-layout__page::before {
-  content: "";
-  display: block;
-  width: 100%;
-  height: 64px; /* Match navbar min-height */
-}
+/* Fixed navbar layout - REMOVED ::before spacer
+   The grid layout in bootstrap-theming.css handles navbar positioning.
+   ::before was causing deadspace above the navbar. */
 
-/* Optional: blur gradient overlay behind fixed navbar */
-.layout-navbar-fixed .layout-page::after,
-.layout-navbar-fixed .c-base-layout__page::after {
-  content: "";
-  width: 100%;
-  height: 4.5rem;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: calc(var(--z-sticky, 1020) - 1);
-  pointer-events: none;
-  backdrop-filter: saturate(200%) blur(10px);
-  background: linear-gradient(180deg, rgba(248, 247, 250, 0.7) 44%, rgba(248, 247, 250, 0.43) 73%, rgba(248, 247, 250, 0));
-  -webkit-mask: linear-gradient(var(--ecs-bg-body, #fff), var(--ecs-bg-body, #fff) 18%, transparent 100%);
-  mask: linear-gradient(var(--ecs-bg-body, #fff), var(--ecs-bg-body, #fff) 18%, transparent 100%);
-}
-
-/* Dark mode - adjust blur overlay colors (slate palette) */
-[data-style="dark"] .layout-navbar-fixed .layout-page::after,
-[data-style="dark"] .layout-navbar-fixed .c-base-layout__page::after {
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.7) 44%, rgba(15, 23, 42, 0.43) 73%, rgba(15, 23, 42, 0));
-  -webkit-mask: linear-gradient(var(--ecs-bg-body, #0F172A), var(--ecs-bg-body, #0F172A) 18%, transparent 100%);
-  mask: linear-gradient(var(--ecs-bg-body, #0F172A), var(--ecs-bg-body, #0F172A) 18%, transparent 100%);
-}
+/* Blur overlay removed - was causing purple tint due to saturate(200%) */
 
 
 /* 2.2 Navbar Component
@@ -252,14 +224,14 @@ html[data-style="dark"] .c-menu-toggle__icon {
 }
 
 /* Modern navbar override - no border for seamless design */
-/* Note: !important needed here to override vendor CSS (layout/navbar.css, theme files) */
+/* Note: needed here to override vendor CSS (layout/navbar.css, theme files) */
 .layout-navbar.c-navbar-modern,
 nav.layout-navbar.c-navbar-modern,
 .layout-page .layout-navbar.c-navbar-modern {
-  border: none !important;
-  border-bottom: none !important;
-  box-shadow: none !important;
-  outline: none !important;
+  border: none;
+  border-bottom: none;
+  box-shadow: none;
+  outline: none;
 }
 
 .layout-navbar:not(.c-navbar-modern) {
@@ -417,6 +389,12 @@ nav.layout-navbar.c-navbar-modern,
   color: var(--ecs-text-primary);
 }
 
+/* Remove focus outline for mouse clicks - keep for keyboard navigation */
+.menu-item .menu-link:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
 .menu-item.active .menu-link {
   background-color: var(--ecs-primary);
   color: var(--ecs-neutral-0);
@@ -549,15 +527,15 @@ html:not(.layout-menu-collapsed) .bg-menu-theme .menu-inner .menu-item:not(.acti
 
 /* Legacy footer selectors */
 .bg-footer-theme {
-  background-color: var(--color-bg-card, #ffffff);
-  border-top: 1px solid var(--color-border-primary, #e2e8f0);
-  color: var(--color-text-secondary, #64748b);
+  background-color: var(--color-bg-card, var(--color-white));
+  border-top: 1px solid var(--color-border-primary, var(--color-secondary-200));
+  color: var(--color-text-secondary, var(--color-secondary-600));
 }
 
 [data-style="dark"] .bg-footer-theme {
-  background-color: var(--color-bg-card, var(--color-secondary-900, #1e293b));
-  border-top-color: var(--color-border-primary, #475569);
-  color: var(--color-text-secondary, #94a3b8);
+  background-color: var(--color-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
+  border-top-color: var(--color-border-primary, var(--color-secondary-700));
+  color: var(--color-text-secondary, var(--color-secondary-400));
 }
 
 .layout-footer-fixed .layout-horizontal .bg-footer-theme {
@@ -1653,11 +1631,16 @@ button.btn-close-white {
 
 .c-badge--warning {
   background-color: var(--ecs-warning);
-  color: var(--color-text-on-warning, #000000);
+  color: var(--color-text-on-warning, var(--color-neutral-950)000);
 }
 
 .c-badge--info {
   background-color: var(--ecs-info);
+  color: var(--ecs-neutral-0);
+}
+
+.c-badge--secondary {
+  background-color: var(--color-neutral-500, #6b7280);
   color: var(--ecs-neutral-0);
 }
 
@@ -1694,28 +1677,33 @@ button.btn-close-white {
 
 /* Dark mode badge fixes - ensure proper contrast */
 [data-style="dark"] .c-badge--primary {
-  background-color: var(--color-primary-600, var(--color-primary-600, #2563EB));
-  color: var(--color-white, #FFFFFF);
+  background-color: var(--color-primary-600, var(--color-primary-600, var(--color-primary-600)));
+  color: var(--color-white, var(--color-white));
 }
 
 [data-style="dark"] .c-badge--success {
-  background-color: var(--color-success-600, #10B981);
-  color: var(--color-white, #FFFFFF);
+  background-color: var(--color-success-600, var(--color-success-500));
+  color: var(--color-white, var(--color-white));
 }
 
 [data-style="dark"] .c-badge--danger {
-  background-color: var(--color-danger-600, #EF4444);
-  color: var(--color-white, #FFFFFF);
+  background-color: var(--color-danger-600, var(--color-danger-600));
+  color: var(--color-white, var(--color-white));
 }
 
 [data-style="dark"] .c-badge--warning {
-  background-color: var(--color-warning-500, #F59E0B);
-  color: var(--color-secondary-900, #18181B);
+  background-color: var(--color-warning-500, var(--color-accent-600));
+  color: var(--color-secondary-900, var(--color-neutral-900));
 }
 
 [data-style="dark"] .c-badge--info {
-  background-color: var(--color-info-600, #0891B2);
-  color: var(--color-white, #FFFFFF);
+  background-color: var(--color-info-600, var(--color-info-700));
+  color: var(--color-white, var(--color-white));
+}
+
+[data-style="dark"] .c-badge--secondary {
+  background-color: var(--color-neutral-600, #4b5563);
+  color: var(--color-white, #ffffff);
 }
 
 /* Dark mode label variants - higher contrast text */
@@ -1727,10 +1715,10 @@ button.btn-close-white {
   background-color: rgba(255, 255, 255, 0.12);
 }
 
-[data-style="dark"] .c-badge--label-primary { color: var(--color-primary-400, #60A5FA); }
-[data-style="dark"] .c-badge--label-success { color: var(--color-success-400, #34D399); }
-[data-style="dark"] .c-badge--label-danger { color: var(--color-danger-400, #F87171); }
-[data-style="dark"] .c-badge--label-warning { color: var(--color-warning-400, #FBBF24); }
+[data-style="dark"] .c-badge--label-primary { color: var(--color-primary-400, var(--color-primary-400)); }
+[data-style="dark"] .c-badge--label-success { color: var(--color-success-400, var(--color-success-400)); }
+[data-style="dark"] .c-badge--label-danger { color: var(--color-danger-400, var(--color-danger-400)); }
+[data-style="dark"] .c-badge--label-warning { color: var(--color-warning-400, var(--color-accent-400)); }
 [data-style="dark"] .c-badge--label-info { color: var(--color-info-400, #22D3EE); }
 
 /* Avatars */
@@ -1809,7 +1797,7 @@ button.btn-close-white {
 /* Avatar initial color variants */
 .c-avatar__initial--primary {
   background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16));
-  color: var(--ecs-primary, #696cff);
+  color: var(--ecs-primary, var(--color-primary));
 }
 
 .c-avatar__initial--success {
@@ -1867,7 +1855,7 @@ button.btn-close-white {
 
 .badge.bg-warning {
   background-color: var(--ecs-warning);
-  color: var(--color-text-on-warning, #000000);
+  color: var(--color-text-on-warning, var(--color-neutral-950)000);
   border-color: var(--ecs-warning);
 }
 
@@ -2673,7 +2661,7 @@ html[data-style="dark"] body {
 [class*="bg-danger"] i,
 [class*="bg-warning"] i,
 [class*="bg-info"] i {
-  color: inherit !important;
+  color: inherit;
 }
 
 /* Ensure avatar initials have proper icon colors */
@@ -2682,13 +2670,13 @@ html[data-style="dark"] body {
 .avatar-initial.bg-label-danger i,
 .avatar-initial.bg-label-info i,
 .avatar-initial.bg-label-warning i {
-  color: currentColor !important;
+  color: currentColor;
 }
 
 /* Stat card icons on colored backgrounds should be white/light */
 .rounded-circle[class*="bg-"] i.card-icon-stat,
 .avatar[class*="bg-"] i {
-  color: rgba(255, 255, 255, 0.9) !important;
+  color: rgba(255, 255, 255, 0.9);
   opacity: 0.9;
 }
 

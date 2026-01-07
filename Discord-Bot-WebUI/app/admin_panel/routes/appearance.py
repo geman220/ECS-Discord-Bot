@@ -47,25 +47,25 @@ DEFAULT_COLORS = {
         "border_input": "#D4D4D8"
     },
     "dark": {
-        "primary": "#A78BFA",
-        "primary_light": "#C4B5FD",
-        "primary_dark": "#8B5CF6",
+        "primary": "#60A5FA",
+        "primary_light": "#93C5FD",
+        "primary_dark": "#3B82F6",
         "secondary": "#94A3B8",
         "accent": "#FBBF24",
         "success": "#34D399",
         "warning": "#FBBF24",
         "danger": "#F87171",
         "info": "#60A5FA",
-        "text_heading": "#FAFAFA",
-        "text_body": "#A1A1AA",
-        "text_muted": "#71717A",
-        "text_link": "#A78BFA",
-        "bg_body": "#09090B",
-        "bg_card": "#18181B",
-        "bg_input": "#27272A",
-        "bg_sidebar": "#09090B",
-        "border": "#3F3F46",
-        "border_input": "#3F3F46"
+        "text_heading": "#F8FAFC",
+        "text_body": "#CBD5E1",
+        "text_muted": "#94A3B8",
+        "text_link": "#60A5FA",
+        "bg_body": "#0F172A",
+        "bg_card": "#1E293B",
+        "bg_input": "#334155",
+        "bg_sidebar": "#0F172A",
+        "border": "#475569",
+        "border_input": "#475569"
     }
 }
 

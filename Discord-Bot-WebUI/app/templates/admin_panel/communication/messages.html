@@ -71,7 +71,7 @@
                 <div class="c-card__body p-0">
                     {% if categories %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="categories">
+                        <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="categories">
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">Category</th>
@@ -84,29 +84,29 @@
                             <tbody>
                                 {% for category in categories %}
                                 <tr class="category-row" data-category-name="{{ category.name }}" data-category-desc="{{ category.description or '' }}">
-                                    <td>
+                                    <td data-label="Category">
                                         <a href="{{ url_for('admin_panel.message_category', category_id=category.id) }}"
                                            class="d-flex align-items-center text-decoration-none">
                                             <i class="ti ti-folder-filled me-2 text-primary"></i>
                                             <strong class="text-body">{{ category.name }}</strong>
                                         </a>
                                     </td>
-                                    <td>
+                                    <td data-label="Description">
                                         <span class="text-muted small">{{ category.description or 'No description' }}</span>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center" data-label="Templates">
                                         {% set template_count = category.templates|length %}
                                         {% set active_count = category.templates|selectattr('is_active', 'equalto', true)|list|length %}
                                         <span class="badge {% if template_count == 0 %}bg-secondary{% elif active_count == template_count %}bg-success{% else %}bg-info{% endif %}" data-badge>
                                             {{ template_count }}{% if template_count > 0 %} <small class="opacity-75">({{ active_count }} active)</small>{% endif %}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Last Updated">
                                         <small class="text-muted">
                                             {{ category.updated_at.strftime('%Y-%m-%d %H:%M') if category.updated_at else 'Never' }}
                                         </small>
                                     </td>
-                                    <td class="text-end">
+                                    <td class="text-end" data-label="Actions">
                                         <div class="btn-group btn-group-sm">
                                             <a href="{{ url_for('admin_panel.message_category', category_id=category.id) }}"
                                                class="c-btn c-btn--outline-primary" title="View Templates">
@@ -168,7 +168,7 @@
                 </div>
                 <div class="c-card__body p-0">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--compact mb-0" data-table data-mobile-table data-table-type="announcements">
+                        <table class="c-c-table c-table--compact mb-0" data-table data-mobile-table data-table-type="announcements">
                             <thead scope="col">
                                 <tr>
                                     <th scope="col">Title</th>
@@ -180,17 +180,17 @@
                             <tbody>
                                 {% for announcement in recent_announcements %}
                                 <tr>
-                                    <td>
+                                    <td data-label="Title">
                                         <strong>{{ announcement.title }}</strong>
                                         <br><small class="text-muted">{{ announcement.content[:50] }}...</small>
                                     </td>
-                                    <td>
+                                    <td data-label="Type">
                                         <span class="badge bg-secondary" data-badge>{{ announcement.announcement_type or 'General' }}</span>
                                     </td>
-                                    <td>
+                                    <td data-label="Created">
                                         <small>{{ announcement.created_at.strftime('%m/%d %H:%M') }}</small>
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         <span class="badge bg-success" data-badge>Active</span>
                                     </td>
                                 </tr>
@@ -266,28 +266,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.icon-empty-state {
-    font-size: 4rem;
-    opacity: 0.3;
-}
-
-.row-hidden {
-    display: none !important;
-}
-
-/* Category row hover styling */
-.category-row td a:hover strong {
-    color: var(--bs-primary) !important;
-}
-
-@media (max-width: 768px) {
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.75rem;
-    }
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

@@ -154,7 +154,7 @@
                                 Please enter a valid 6-digit code
                             </div>
                         </div>
-                        <button type="submit" class="c-btn-modern c-btn-modern--primary">
+                        <button type="submit" class="c-btn c-btn--primary">
                             <i class="ti ti-shield-check"></i>
                             <span>Verify and Enable 2FA</span>
                         </button>
@@ -194,6 +194,7 @@
                                    class="c-form-modern__input"
                                    id="phoneNumber"
                                    required
+                                   inputmode="tel"
                                    value="{{ safe_current_user.player.phone if safe_current_user.player else '' }}"
                                    placeholder="Enter your phone number"
                                    autocomplete="tel">
@@ -216,7 +217,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="c-btn-modern c-btn-modern--primary">
+                        <button type="submit" class="c-btn c-btn--primary">
                             <i class="ti ti-send"></i>
                             <span>Send Verification Code</span>
                         </button>
@@ -256,13 +257,13 @@
                         </div>
 
                         <div class="c-form-modern__actions">
-                            <button type="submit" class="c-btn-modern c-btn-modern--primary">
+                            <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-check"></i>
                                 <span>Verify Code</span>
                             </button>
                             <button type="button"
                                     id="resendCodeBtn"
-                                    class="c-btn-modern c-btn-modern--secondary is-hidden js-resend-code"
+                                    class="c-btn c-btn--secondary is-hidden js-resend-code"
                                     data-action="resend-code">
                                 <i class="ti ti-refresh"></i>
                                 <span>Resend Code</span>
@@ -285,7 +286,7 @@
                         </div>
                     </div>
                     <button type="button"
-                            class="c-btn-modern c-btn-modern--primary"
+                            class="c-btn c-btn--primary"
                             data-action="reload-page">
                         <i class="ti ti-refresh"></i>
                         <span>Refresh Page</span>

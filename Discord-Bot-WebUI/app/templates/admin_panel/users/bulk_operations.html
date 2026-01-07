@@ -154,7 +154,7 @@
             <div class="c-card__body">
                 {% if recent_bulk_ops %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="users">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="users">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Operation</th>
@@ -167,15 +167,15 @@
                         <tbody>
                             {% for op in recent_bulk_ops %}
                             <tr>
-                                <td>
+                                <td data-label="Operation">
                                     <span class="badge bg-primary" data-badge>{{ op.action|title }}</span>
                                 </td>
-                                <td>{{ op.user.username if op.user else 'System' }}</td>
-                                <td>{{ op.new_value or op.details or 'No details' }}</td>
-                                <td>
+                                <td data-label="Admin">{{ op.user.username if op.user else 'System' }}</td>
+                                <td data-label="Details">{{ op.new_value or op.details or 'No details' }}</td>
+                                <td data-label="Date">
                                     <small>{{ op.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     <span class="badge bg-success" data-badge>Completed</span>
                                 </td>
                             </tr>

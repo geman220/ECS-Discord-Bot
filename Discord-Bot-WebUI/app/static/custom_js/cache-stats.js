@@ -10,7 +10,7 @@ import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 let autoRefresh;
 
-function init() {
+function initCacheStats() {
     if (_initialized) return;
 
     // Page guard - only run on cache stats page
@@ -86,11 +86,11 @@ function testCache() {
 // EXPORTS
 // ========================================================================
 
-export { init, refreshStats, testCache };
+export { initCacheStats, refreshStats, testCache };
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('cache-stats', init, {
+    window.InitSystem.register('cache-stats', initCacheStats, {
         priority: 30,
         reinitializable: true,
         description: 'Cache statistics management'
@@ -100,7 +100,5 @@ if (window.InitSystem && window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility
-window.cacheStatsInit = init;
+// Window export - used by user-approval.js event handler
 window.refreshStats = refreshStats;
-window.testCache = testCache;

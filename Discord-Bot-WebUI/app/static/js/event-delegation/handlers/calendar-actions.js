@@ -46,9 +46,24 @@ window.EventDelegation.register('copy-subscription-url', async function(element,
 window.EventDelegation.register('regenerate-subscription-token', async function(element, e) {
     e.preventDefault();
 
-    if (!confirm('Are you sure you want to regenerate your subscription URL?\n\nYour existing calendar subscriptions will stop working and you will need to re-subscribe with the new URL.')) {
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Regenerate Subscription URL?',
+            text: 'Your existing calendar subscriptions will stop working and you will need to re-subscribe with the new URL.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Regenerate',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('warning') : '#ffc107'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performRegenerateSubscriptionToken(element);
+            }
+        });
     }
+});
+
+async function performRegenerateSubscriptionToken(element) {
 
     setCalendarLoading(true);
 
@@ -80,7 +95,7 @@ window.EventDelegation.register('regenerate-subscription-token', async function(
     } finally {
         setCalendarLoading(false);
     }
-});
+}
 
 /**
  * Subscribe via Webcal Action

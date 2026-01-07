@@ -632,7 +632,7 @@
    ============================================================================ */
 
 /* Tablet adjustments */
-@media (max-width: 992px) {
+@media (max-width: 991.98px) {
   .stats-card {
     padding: var(--space-4);
   }
@@ -648,7 +648,7 @@
 }
 
 /* Mobile adjustments */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .stats-card {
     padding: var(--space-3);
   }

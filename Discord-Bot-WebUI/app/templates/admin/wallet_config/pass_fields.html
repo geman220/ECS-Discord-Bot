@@ -3,29 +3,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    .field-card {
-        transition: all 0.2s;
-        cursor: grab;
-    }
-    .field-card:hover {
-        box-shadow: var(--bs-box-shadow);
-    }
-    .field-inactive {
-        opacity: 0.5;
-    }
-    .field-location-badge {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-    }
-    .template-variable {
-        font-family: monospace;
-        background: var(--bs-light);
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-size: 0.85rem;
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block content %}
@@ -70,7 +48,7 @@
             <div class="col-lg-6 mb-4">
                 <div class="c-card">
                     <div class="c-card__header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="ti ti-credit-card me-2"></i>Front of Pass</h5>
+                        <h5 class="mb-0"><i class="ti ti-credit-c-card me-2"></i>Front of Pass</h5>
                     </div>
                     <div class="c-card__body">
                         {% if front_fields %}

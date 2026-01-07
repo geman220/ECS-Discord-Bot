@@ -14,7 +14,7 @@ let turboListenersRegistered = false;
 /**
  * Initialize all UI enhancements when DOM is ready
  */
-export function init() {
+function initUiEnhancements() {
     initFeatherIcons();
     initMatchHistoryCollapse();
     // NOTE: Dropdown handling removed - navbar-modern.js handles all navbar dropdowns
@@ -25,7 +25,7 @@ export function init() {
  * Re-runs window.feather.replace() to ensure all icons are rendered
  * REFACTORED: Uses UnifiedMutationObserver instead of separate observer
  */
-export function initFeatherIcons() {
+function initFeatherIcons() {
     if (typeof window.feather === 'undefined') return;
 
     // Initial replace
@@ -66,7 +66,7 @@ export function initFeatherIcons() {
  * ROOT CAUSE FIX: Uses event delegation for click/keydown events
  */
 let matchHistoryListenersRegistered = false;
-export function initMatchHistoryCollapse() {
+function initMatchHistoryCollapse() {
     // Set up event delegation ONCE
     if (!matchHistoryListenersRegistered) {
         matchHistoryListenersRegistered = true;
@@ -125,7 +125,7 @@ export function initMatchHistoryCollapse() {
 
 // Register with window.InitSystem (primary)
 if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
-    window.InitSystem.register('ui-enhancements', init, {
+    window.InitSystem.register('ui-enhancements', initUiEnhancements, {
         priority: 50,
         reinitializable: true,
         description: 'UI enhancements and fixes'
@@ -139,11 +139,8 @@ if (typeof window.InitSystem !== 'undefined' && window.InitSystem.register) {
 // FIXED: Added guard to prevent duplicate global event listener registration
 if (!turboListenersRegistered) {
     turboListenersRegistered = true;
-    document.addEventListener('turbo:load', init);
-    document.addEventListener('turbolinks:load', init);
+    document.addEventListener('turbo:load', initUiEnhancements);
+    document.addEventListener('turbolinks:load', initUiEnhancements);
 }
 
-// Backward compatibility
-window.init = init;
-window.initFeatherIcons = initFeatherIcons;
-window.initMatchHistoryCollapse = initMatchHistoryCollapse;
+// No window exports needed - InitSystem handles initialization

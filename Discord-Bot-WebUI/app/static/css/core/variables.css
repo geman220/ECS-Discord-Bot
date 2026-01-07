@@ -261,12 +261,13 @@ html[data-style="light"] {
   --ecs-bg-dark: var(--color-bg-primary);
   --ecs-text-dark: var(--color-text-secondary);
 
-  --ecs-dark-bg-body: var(--color-neutral-0);
-  --ecs-dark-bg-card: var(--color-neutral-50);
-  --ecs-dark-bg-elevated: var(--color-neutral-100);
-  --ecs-dark-border: var(--color-neutral-200);
-  --ecs-dark-text-primary: var(--color-neutral-900);
-  --ecs-dark-text-muted: var(--color-neutral-500);
+  /* Dark mode backgrounds - using explicit fallbacks to slate colors */
+  --ecs-dark-bg-body: var(--color-neutral-0, var(--color-secondary-950));
+  --ecs-dark-bg-card: var(--color-neutral-50, var(--color-secondary-900));
+  --ecs-dark-bg-elevated: var(--color-neutral-100, var(--color-secondary-800));
+  --ecs-dark-border: var(--color-neutral-200, var(--color-secondary-700));
+  --ecs-dark-text-primary: var(--color-neutral-900, var(--color-white));
+  --ecs-dark-text-muted: var(--color-neutral-500, var(--color-secondary-300));
 
   /* Bootstrap dark mode */
   --bs-body-bg: var(--color-bg-primary);

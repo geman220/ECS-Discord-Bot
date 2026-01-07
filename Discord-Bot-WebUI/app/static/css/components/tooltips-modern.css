@@ -15,7 +15,7 @@
  * - Design tokens only
  * - State classes: is-visible, is-hidden
  * - Event delegation: data-tooltip="content", data-tooltip-position="top"
- * - Zero !important
+ * - Zero
  *
  * Features:
  * - Positions: top, bottom, left, right
@@ -343,7 +343,7 @@
    MOBILE ADJUSTMENTS
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-tooltip-modern {
     max-width: calc(100vw - var(--space-8));
   }

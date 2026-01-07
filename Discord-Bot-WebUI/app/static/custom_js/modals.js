@@ -6,7 +6,7 @@ import { InitSystem } from '../js/init-system.js';
 
 let _initialized = false;
 
-function init() {
+function initModals() {
     if (_initialized) return;
     _initialized = true;
 
@@ -22,12 +22,17 @@ function triggerManualReviewModal() {
 
     const needsReview = reviewData.dataset.needsReview;
     if (needsReview === 'true') {
-        const modal = document.getElementById('manualReviewModal');
-        if (modal && typeof window.bootstrap !== 'undefined') {
-            const bsModal = new window.bootstrap.Modal(modal);
-            bsModal.show();
-        } else if (typeof window.$ !== 'undefined') {
-            // Fallback to jQuery if Bootstrap JS not available
+        // Use ModalManager (preferred), then Bootstrap Modal API, then jQuery fallback
+        if (window.ModalManager) {
+            window.ModalManager.show('manualReviewModal');
+        } else if (window.bootstrap?.Modal) {
+            const modal = document.getElementById('manualReviewModal');
+            if (modal) {
+                const bsModal = new window.bootstrap.Modal(modal);
+                bsModal.show();
+            }
+        } else if (typeof window.$ !== 'undefined' && typeof window.$.fn?.modal === 'function') {
+            // Safe jQuery fallback with .modal() check
             window.$('#manualReviewModal').modal('show');
         }
     }
@@ -35,7 +40,7 @@ function triggerManualReviewModal() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('modals', init, {
+    window.InitSystem.register('modals', initModals, {
         priority: 25,
         reinitializable: true,
         description: 'Manual review modal trigger'
@@ -46,5 +51,5 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.init = init;
+window.initModals = initModals;
 window.triggerManualReviewModal = triggerManualReviewModal;

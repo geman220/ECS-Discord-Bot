@@ -53,7 +53,7 @@
  * Green border for active/enabled features
  */
 .security-feature-card.feature-enabled {
-    border-left-color: var(--color-success, #28a745);
+    border-left-color: var(--color-success, var(--color-success-500));
 }
 
 /**
@@ -61,7 +61,7 @@
  * Yellow border for features that are optional or need attention
  */
 .security-feature-card.feature-warning {
-    border-left-color: var(--color-warning, var(--color-warning, var(--color-warning, #ffc107)));
+    border-left-color: var(--color-warning, var(--color-warning, var(--color-warning, var(--color-warning))));
 }
 
 /**
@@ -69,20 +69,20 @@
  * Red border for critical features that are disabled
  */
 .security-feature-card.feature-disabled {
-    border-left-color: var(--color-danger, var(--color-danger, var(--color-danger, #dc3545)));
+    border-left-color: var(--color-danger, var(--color-danger, var(--color-danger, var(--color-danger-600))));
 }
 
 /* Dark Mode: Adjust border colors for better contrast */
 [data-style="dark"] .security-feature-card.feature-enabled {
-    border-left-color: var(--color-success-400, #4ade80);
+    border-left-color: var(--color-success-400, var(--color-success-400));
 }
 
 [data-style="dark"] .security-feature-card.feature-warning {
-    border-left-color: var(--color-warning-400, #fbbf24);
+    border-left-color: var(--color-warning-400, var(--color-accent-400));
 }
 
 [data-style="dark"] .security-feature-card.feature-disabled {
-    border-left-color: var(--color-danger-400, #f87171);
+    border-left-color: var(--color-danger-400, var(--color-danger-400));
 }
 
 /* ============================================================================
@@ -157,7 +157,7 @@
 }
 
 .banned-ips-table-container::-webkit-scrollbar-track {
-    background: var(--color-bg-secondary, #f8f9fa);
+    background: var(--color-bg-secondary, var(--color-neutral-50));
     border-radius: var(--radius-sm, 0.25rem);
 }
 
@@ -196,7 +196,7 @@
     font-size: 3rem;
     line-height: 1;
     display: inline-block;
-    color: var(--color-text-muted, var(--color-secondary, var(--color-secondary, #6c757d)));
+    color: var(--color-text-muted, var(--color-secondary, var(--color-secondary, var(--color-secondary-600))));
 }
 
 /**
@@ -211,7 +211,7 @@
 .security-empty-state p {
     margin-top: var(--space-2, 0.5rem);
     margin-bottom: 0;
-    color: var(--color-text-muted, var(--color-secondary, var(--color-secondary, #6c757d)));
+    color: var(--color-text-muted, var(--color-secondary, var(--color-secondary, var(--color-secondary-600))));
 }
 
 /* Dark Mode: Empty state colors */
@@ -238,12 +238,12 @@
 .auto-ban-metric strong {
     font-size: var(--text-lg, 1.125rem);
     font-weight: var(--font-semibold, 600);
-    color: var(--color-text-primary, #212529);
+    color: var(--color-text-primary, var(--color-secondary-900));
 }
 
 .auto-ban-metric small {
     font-size: var(--text-xs, 0.75rem);
-    color: var(--color-text-muted, var(--color-secondary, var(--color-secondary, #6c757d)));
+    color: var(--color-text-muted, var(--color-secondary, var(--color-secondary, var(--color-secondary-600))));
 }
 
 /* Dark Mode: Auto-ban metrics */
@@ -267,7 +267,7 @@
 .security-ip-address {
     font-family: var(--font-mono, 'Courier New', monospace);
     font-size: var(--text-sm, 0.875rem);
-    background-color: var(--color-bg-tertiary, #f8f9fa);
+    background-color: var(--color-bg-tertiary, var(--color-neutral-50));
     padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
     border-radius: var(--radius-sm, 0.25rem);
     display: inline-block;
@@ -288,16 +288,16 @@
 }
 
 .security-attack-count.has-attacks {
-    color: var(--color-danger, var(--color-danger, var(--color-danger, #dc3545)));
+    color: var(--color-danger, var(--color-danger, var(--color-danger, var(--color-danger-600))));
 }
 
 .security-attack-count.no-attacks {
-    color: var(--color-text-muted, var(--color-secondary, var(--color-secondary, #6c757d)));
+    color: var(--color-text-muted, var(--color-secondary, var(--color-secondary, var(--color-secondary-600))));
 }
 
 /* Dark Mode: Attack counts */
 [data-style="dark"] .security-attack-count.has-attacks {
-    color: var(--color-danger-400, #f87171);
+    color: var(--color-danger-400, var(--color-danger-400));
 }
 
 [data-style="dark"] .security-attack-count.no-attacks {
@@ -313,7 +313,7 @@
  * Mobile/Tablet: Security Feature Cards
  * Reduce icon sizes and spacing on smaller screens
  */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .security-feature-icon {
         font-size: 1.5rem;
     }
@@ -336,7 +336,7 @@
  * Small Mobile: Further size reductions
  * Optimize for very small screens
  */
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
     .security-feature-icon {
         font-size: 1.25rem;
     }

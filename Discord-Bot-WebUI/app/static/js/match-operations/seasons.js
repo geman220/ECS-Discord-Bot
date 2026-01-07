@@ -333,7 +333,7 @@ export function submitSetCurrentSeason(seasonId) {
 /**
  * Initialize seasons module - register event handlers
  */
-export function init() {
+export function initSeasons() {
     // Page guard - only run on seasons page
     const isSeasonsPage = document.querySelector('[data-action="create-season"]') ||
         document.querySelector('[data-action="view-season"]') ||
@@ -362,7 +362,7 @@ export function init() {
 
 // Register with window.InitSystem
 if (true && window.InitSystem.register) {
-    window.InitSystem.register('seasons', init, {
+    window.InitSystem.register('seasons', initSeasons, {
         priority: 50,
         reinitializable: true,
         description: 'Seasons management'

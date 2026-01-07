@@ -253,7 +253,7 @@
             <div class="c-card__body">
                 {% if league_comparison %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="leagues">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="leagues">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">League</th>
@@ -267,12 +267,12 @@
                         <tbody>
                             {% for league in league_comparison %}
                             <tr>
-                                <td><strong>{{ league.league_name }}</strong></td>
-                                <td>{{ league.total_teams }}</td>
-                                <td>{{ league.total_players }}</td>
-                                <td>{{ league.total_matches }}</td>
-                                <td>{{ league.avg_goals_per_match }}</td>
-                                <td>
+                                <td data-label="League"><strong>{{ league.league_name }}</strong></td>
+                                <td data-label="Teams">{{ league.total_teams }}</td>
+                                <td data-label="Players">{{ league.total_players }}</td>
+                                <td data-label="Matches">{{ league.total_matches }}</td>
+                                <td data-label="Avg Goals/Match">{{ league.avg_goals_per_match }}</td>
+                                <td data-label="Competitiveness">
                                     <div class="d-flex align-items-center">
                                         <div class="progress me-2 competitiveness-progress">
                                             <div class="progress-bar bg-primary progress-thin-bar" data-width="{{ league.competitiveness_score }}"></div>
@@ -332,49 +332,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.timeline {
-    position: relative;
-    padding-left: 30px;
-}
-
-.timeline::before {
-    content: '';
-    position: absolute;
-    left: 10px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: var(--bs-border-color);
-}
-
-.timeline-item {
-    position: relative;
-    margin-bottom: 20px;
-}
-
-.timeline-marker {
-    position: absolute;
-    left: -24px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    border: 2px solid var(--bs-body-bg);
-    top: 5px;
-}
-
-.timeline-content {
-    background: var(--bs-light);
-    padding: 12px;
-    border-radius: 8px;
-}
-
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

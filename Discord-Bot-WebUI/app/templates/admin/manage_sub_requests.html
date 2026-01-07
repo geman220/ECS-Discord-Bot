@@ -153,14 +153,14 @@
 
                                 <!-- Priority: Matches with sub requests first on mobile -->
                                 {% for match in matches_with_requests + matches_without_requests %}
-                                <div class="match-card {{ 'priority-match' if match in matches_with_requests else '' }}">
-                                    <div class="match-card-header">
+                                <div class="match-c-card {{ 'priority-match' if match in matches_with_requests else '' }}">
+                                    <div class="match-c-card__header">
                                         <h6 class="match-teams">{{ match.home_team.name }} vs {{ match.away_team.name }}</h6>
                                         <div class="match-meta">
                                             {{ match.date.strftime('%m/%d/%Y') }} • Week {{ match.schedule.week if match.schedule else 'TBD' }}
                                         </div>
                                     </div>
-                                    <div class="match-card-body">
+                                    <div class="match-c-card__body">
                                         <!-- Team Requests -->
                                         <div class="team-requests-row">
                                             <!-- Home Team -->
@@ -285,9 +285,9 @@
                         </div>
 
                         <!-- Desktop Table (Hidden on Mobile) -->
-                        <div class="desktop-table">
+                        <div class="desktop-c-table">
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--hoverable" data-mobile-table data-table-type="requests" data-table>
+                                <table class="c-c-table c-table--hoverable" data-mobile-table data-table-type="requests" data-table>
                                     <thead class="c-table--light" scope="col">
                                         <tr>
                                             <th scope="col">Date</th>
@@ -302,15 +302,15 @@
                                     <tbody>
                                         {% for match in upcoming_matches %}
                                         <tr>
-                                            <td class="fw-semibold">{{ match.date.strftime('%m/%d/%Y') }}</td>
-                                            <td>{{ match.schedule.week if match.schedule else 'Unknown' }}</td>
-                                            <td class="{% if match.home_team_id in requested_teams_by_match[match.id] %}has-request{% endif %}">
+                                            <td data-label="Date" class="fw-semibold">{{ match.date.strftime('%m/%d/%Y') }}</td>
+                                            <td data-label="Week">{{ match.schedule.week if match.schedule else 'Unknown' }}</td>
+                                            <td data-label="Home Team" class="{% if match.home_team_id in requested_teams_by_match[match.id] %}has-request{% endif %}">
                                                 {{ match.home_team.name }}
                                             </td>
-                                            <td class="{% if match.away_team_id in requested_teams_by_match[match.id] %}has-request{% endif %}">
+                                            <td data-label="Away Team" class="{% if match.away_team_id in requested_teams_by_match[match.id] %}has-request{% endif %}">
                                                 {{ match.away_team.name }}
                                             </td>
-                                            <td>
+                                            <td data-label="Home Status">
                                                 {% if match.home_team_id in requested_teams_by_match[match.id] %}
                                                     {% set req = requested_teams_by_match[match.id][match.home_team_id] %}
                                                     {% if req.status == 'PENDING' %}
@@ -340,7 +340,7 @@
                                                     <span class="badge bg-label-secondary" data-badge>No Request</span>
                                                 {% endif %}
                                             </td>
-                                            <td>
+                                            <td data-label="Away Status">
                                                 {% if match.away_team_id in requested_teams_by_match[match.id] %}
                                                     {% set req = requested_teams_by_match[match.id][match.away_team_id] %}
                                                     {% if req.status == 'PENDING' %}
@@ -370,7 +370,7 @@
                                                     <span class="badge bg-label-secondary" data-badge>No Request</span>
                                                 {% endif %}
                                             </td>
-                                            <td class="text-end position-relative" class="u-overflow-visible">
+                                            <td data-label="Actions" class="text-end position-relative" class="u-overflow-visible">
                                                 <div class="dropdown">
                                                     <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                                     <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
@@ -444,7 +444,7 @@
                             <div class="mobile-cards">
                                 <div class="pending-requests-grid">
                                     {% for request in pending_requests %}
-                                    <div class="pending-request-card">
+                                    <div class="pending-request-c-card">
                                         <div class="pending-request-header">
                                             <div class="pending-match-info">
                                                 <h6 class="pending-match-title">{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</h6>
@@ -480,9 +480,9 @@
                             </div>
 
                             <!-- Desktop Table -->
-                            <div class="desktop-table">
+                            <div class="desktop-c-table">
                                 <div class="c-table-wrapper" data-table-responsive>
-                                    <table class="c-table c-table--hoverable" data-mobile-table data-table-type="requests" data-table>
+                                    <table class="c-c-table c-table--hoverable" data-mobile-table data-table-type="requests" data-table>
                                         <thead class="c-table--light" scope="col">
                                             <tr>
                                                 <th scope="col">Date</th>
@@ -496,11 +496,11 @@
                                         <tbody>
                                             {% for request in pending_requests %}
                                             <tr>
-                                                <td class="fw-semibold">{{ request.match.date.strftime('%m/%d/%Y') }}</td>
-                                                <td>{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</td>
-                                                <td><span class="badge bg-primary" data-badge>{{ request.team.name }}</span></td>
-                                                <td><span class="request-count">{{ request.substitutes_needed }}</span></td>
-                                                <td>
+                                                <td data-label="Date" class="fw-semibold">{{ request.match.date.strftime('%m/%d/%Y') }}</td>
+                                                <td data-label="Match">{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</td>
+                                                <td data-label="Team"><span class="badge bg-primary" data-badge>{{ request.team.name }}</span></td>
+                                                <td data-label="Substitutes Needed"><span class="request-count">{{ request.substitutes_needed }}</span></td>
+                                                <td data-label="Notes">
                                                     {% if request.notes %}
                                                         <span class="d-inline-block text-truncate" class="u-max-w-200" data-bs-toggle="tooltip" title="{{ request.notes }}">
                                                             {{ request.notes }}
@@ -509,7 +509,7 @@
                                                         <span class="text-muted">No notes</span>
                                                     {% endif %}
                                                 </td>
-                                                <td class="text-end">
+                                                <td data-label="Actions" class="text-end">
                                                     <div class="d-flex gap-2 justify-content-end">
                                                         <a href="{{ url_for('teams.team_details', team_id=request.team_id) }}" class="c-btn c-btn--sm c-btn--outline-primary" aria-label="User"><i class="ti ti-users"></i></a>
                                                         <button type="button" class="c-btn c-btn--sm c-btn--success" data-bs-toggle="modal" data-bs-target="#fulfillModal{{ request.id }}">

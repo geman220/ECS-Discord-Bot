@@ -23,8 +23,8 @@ window.EventDelegation.register('edit-match-report', function(element, e) {
     }
 
     // Call the global function that handles the edit button click
-    if (typeof handleEditButtonClick === 'function') {
-        handleEditButtonClick(matchId);
+    if (typeof window.handleEditButtonClick === 'function') {
+        window.handleEditButtonClick(matchId);
     } else {
         console.error('[edit-match-report] handleEditButtonClick function not found');
     }

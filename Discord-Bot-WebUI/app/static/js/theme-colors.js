@@ -21,7 +21,7 @@ let cacheValid = false;
 /**
  * Color variable mappings
  */
-export const colorMap = {
+const colorMap = {
     // Brand colors
     primary: '--ecs-primary',
     'primary-light': '--ecs-primary-light',
@@ -73,7 +73,7 @@ export const colorMap = {
 /**
  * Fallback values
  */
-export const fallbacks = {
+const fallbacks = {
     primary: '#7C3AED',
     'primary-light': '#8B5CF6',
     'primary-dark': '#6D28D9',
@@ -107,7 +107,7 @@ export const fallbacks = {
  * @param {string} fallback - Fallback value if variable not found
  * @returns {string} The color value
  */
-export function getCSSVar(varName, fallback) {
+function getCSSVar(varName, fallback) {
     const name = varName.startsWith('--') ? varName : `--${varName}`;
     const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     return value || fallback || '';
@@ -118,7 +118,7 @@ export function getCSSVar(varName, fallback) {
  * @param {string} name - Color name (e.g., 'primary', 'success', 'danger')
  * @returns {string} The color value
  */
-export function getColor(name) {
+function getColor(name) {
     if (cacheValid && colorCache[name]) {
         return colorCache[name];
     }
@@ -138,7 +138,7 @@ export function getColor(name) {
  * Get all theme colors as an object
  * @returns {object} Object with all color values
  */
-export function getAllColors() {
+function getAllColors() {
     const colors = {};
     Object.keys(colorMap).forEach(name => {
         colors[name] = getColor(name);
@@ -151,7 +151,7 @@ export function getAllColors() {
  * Get colors formatted for chart libraries (ApexCharts, window.Chart.js, etc.)
  * @returns {object} Color palette for charts
  */
-export function getChartColors() {
+function getChartColors() {
     return {
         primary: getColor('primary'),
         success: getColor('success'),
@@ -176,7 +176,7 @@ export function getChartColors() {
  * Get colors for SweetAlert2
  * @returns {object} SweetAlert2 color config
  */
-export function getSwalColors() {
+function getSwalColors() {
     return {
         confirmButtonColor: getColor('primary'),
         cancelButtonColor: getColor('secondary'),
@@ -187,7 +187,7 @@ export function getSwalColors() {
 /**
  * Invalidate the color cache (call after theme change)
  */
-export function invalidateCache() {
+function invalidateCache() {
     colorCache = {};
     cacheValid = false;
 }
@@ -205,7 +205,7 @@ const observer = new MutationObserver((mutations) => {
 /**
  * Initialize theme color observer
  */
-function init() {
+function initThemeColors() {
     if (_initialized) return;
     _initialized = true;
     observer.observe(document.documentElement, { attributes: true });
@@ -214,14 +214,14 @@ function init() {
 /**
  * ECSTheme API object for convenience
  */
-export const ECSTheme = {
+const ECSTheme = {
     getColor,
     getAllColors,
     getChartColors,
     getSwalColors,
     getCSSVar,
     invalidateCache,
-    init,
+    init: initThemeColors,
 };
 
 // Backward compatibility
@@ -235,7 +235,7 @@ window.invalidateCache = invalidateCache;
 
 // Register with window.InitSystem
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('theme-colors', init, {
+    window.InitSystem.register('theme-colors', initThemeColors, {
         priority: 5,
         reinitializable: false,
         description: 'Theme color CSS variable observer'

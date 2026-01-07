@@ -3,16 +3,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    /* Check-ins - Theme-aware styling */
-    .checkin-row {
-        transition: background-color 0.2s;
-    }
-    .filter-card {
-        background-color: var(--bs-tertiary-bg);
-        border: 1px solid var(--bs-border-color);
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock custom_css %}
 
 {% block content %}
@@ -43,7 +34,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="c-card filter-card mb-4">
+    <div class="c-card filter-c-card mb-4">
         <div class="c-card__body py-3">
             <form method="get" class="row g-3 align-items-end" id="wallet-checkins-filterForm">
                 <div class="col-md-3">
@@ -91,7 +82,7 @@
         <div class="c-card__body">
             {% if checkins.items %}
             <div class="c-table-wrapper" data-table-responsive>
-                <table class="c-table c-table--hoverable" data-mobile-table data-table-type="checkins" data-table>
+                <table class="c-c-table c-table--hoverable" data-mobile-table data-table-type="checkins" data-table>
                     <thead class="c-table--light" scope="col">
                         <tr>
                             <th scope="col">Member</th>
@@ -105,7 +96,7 @@
                     <tbody>
                         {% for checkin in checkins.items %}
                         <tr class="checkin-row">
-                            <td>
+                            <td data-label="Member">
                                 <div class="d-flex align-items-center">
                                     <div class="avatar avatar-sm me-2">
                                         <span class="avatar-initial rounded-circle bg-label-primary">
@@ -120,7 +111,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="Pass Type">
                                 {% if checkin.wallet_pass and checkin.wallet_pass.pass_type %}
                                 <span class="badge bg-label-{{ 'primary' if checkin.wallet_pass.pass_type.code == 'ecs_membership' else 'warning' }}" data-badge>
                                     {{ checkin.wallet_pass.pass_type.name }}
@@ -129,27 +120,27 @@
                                 <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Event">
                                 {% if checkin.event_name %}
                                 <span>{{ checkin.event_name }}</span>
                                 {% else %}
                                 <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Location">
                                 {% if checkin.location %}
                                 <small>{{ checkin.location }}</small>
                                 {% else %}
                                 <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Check-in Type">
                                 <span class="badge bg-label-info" data-badge>
                                     <i class="ti ti-{{ 'qrcode' if checkin.check_in_type and checkin.check_in_type.value == 'qr_scan' else 'nfc' if checkin.check_in_type and checkin.check_in_type.value == 'nfc_tap' else 'hand-finger' }} me-1"></i>
                                     {{ checkin.check_in_type.value.replace('_', ' ').title() if checkin.check_in_type else 'Unknown' }}
                                 </span>
                             </td>
-                            <td>
+                            <td data-label="Time">
                                 <small class="text-muted">
                                     {{ checkin.checked_in_at.strftime('%b %d, %Y') }}<br>
                                     {{ checkin.checked_in_at.strftime('%H:%M') }}

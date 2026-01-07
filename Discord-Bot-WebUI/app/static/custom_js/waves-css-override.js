@@ -12,7 +12,7 @@ import { InitSystem } from '../js/init-system.js';
 
 let _initialized = false;
 
-export function init() {
+export function initWavesCssOverride() {
     if (_initialized) return;
     _initialized = true;
 
@@ -81,7 +81,7 @@ export function init() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem.register) {
-    window.InitSystem.register('waves-css-override', init, {
+    window.InitSystem.register('waves-css-override', initWavesCssOverride, {
         priority: 30,
         reinitializable: false,
         description: 'Waves CSS override for ripple effects'
@@ -92,4 +92,4 @@ if (window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.init = init;
+window.initWavesCssOverride = initWavesCssOverride;

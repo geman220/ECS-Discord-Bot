@@ -46,7 +46,7 @@
                     <h5 class="c-card__title mb-0">Store Items</h5>
                 </div>
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="orders">
+                    <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="orders">
                         <thead class="c-table--light" scope="col">
                             <tr>
                                 <th scope="col">Item</th>
@@ -61,7 +61,7 @@
                         <tbody>
                             {% for item in items %}
                             <tr data-item-id="{{ item.id }}">
-                                <td>
+                                <td data-label="Item">
                                     <div class="c-store-item" data-component="store-item">
                                         {% if item.image_url %}
                                         <img src="{{ item.image_url }}" alt="{{ item.name }}" class="c-store-item__image">
@@ -78,21 +78,21 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="Category">
                                     {% if item.category %}
                                     <span class="badge bg-label-primary" data-badge>{{ item.category }}</span>
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Price">
                                     {% if item.price %}
                                     <span class="fw-medium">${{ "%.2f"|format(item.price) }}</span>
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Options">
                                     {% if item.available_colors %}
                                     {% set colors = item.available_colors | replace("'", '"') | fromjson %}
                                     <small class="text-muted">Colors: {{ colors|length }}</small><br>
@@ -105,18 +105,18 @@
                                     <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     {% if item.is_active %}
                                     <span class="badge bg-label-success" data-badge>Active</span>
                                     {% else %}
                                     <span class="badge bg-label-danger" data-badge>Inactive</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Created">
                                     {{ format_pacific_time_short(item.created_at) if item.created_at else '' }}<br>
                                     <small class="text-muted">by {{ item.creator.username if item.creator else 'Unknown' }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="dropdown">
                                         <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" data-bs-toggle="dropdown" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                         <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
@@ -169,7 +169,7 @@
                     </div>
                 </div>
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="orders">
+                    <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="orders">
                         <thead class="c-table--light" scope="col">
                             <tr>
                                 <th scope="col">
@@ -190,21 +190,21 @@
                         <tbody>
                             {% for order in orders %}
                             <tr data-order-id="{{ order.id }}">
-                                <td>
+                                <td data-label="Select">
                                     <div class="form-check">
                                         <input class="form-check-input order-checkbox" type="checkbox" value="{{ order.id }}" id="order-{{ order.id }}" data-action="select-order">
                                         <label class="form-check-label" for="order-{{ order.id }}"></label>
                                     </div>
                                 </td>
-                                <td class="c-order__id">#{{ order.id }}</td>
-                                <td class="c-order__customer">{{ order.orderer.username if order.orderer else 'Unknown' }}</td>
-                                <td>
+                                <td data-label="Order ID" class="c-order__id">#{{ order.id }}</td>
+                                <td data-label="Customer" class="c-order__customer">{{ order.orderer.username if order.orderer else 'Unknown' }}</td>
+                                <td data-label="Item">
                                     <div class="c-order__item">
                                         <strong class="c-order__item-name">{{ order.item.name if order.item else 'Unknown Item' }}</strong>
                                         <br><small class="c-order__item-qty">Qty: {{ order.quantity }}</small>
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="Details">
                                     {% if order.selected_color %}
                                     <span class="badge bg-label-info me-1" data-badge>{{ order.selected_color }}</span>
                                     {% endif %}
@@ -215,7 +215,7 @@
                                     <br><small class="text-muted">{{ order.notes[:30] }}{% if order.notes|length > 30 %}...{% endif %}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     <select class="form-select form-select-sm c-order-status" data-action="update-order-status" data-order-id="{{ order.id }}" data-current-status="{{ order.status }}" data-form-select>
                                         <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Pending</option>
                                         <option value="PROCESSING" {% if order.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
@@ -224,13 +224,13 @@
                                         <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
                                     </select>
                                 </td>
-                                <td class="c-order__date">
+                                <td data-label="Order Date" class="c-order__date">
                                     {{ format_pacific_time_short(order.order_date) if order.order_date else '' }}
                                     {% if order.processed_by %}
                                     <br><small class="c-order__processor">Processed by {{ order.processor.username if order.processor else 'Unknown' }}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="c-order__actions">
                                         <button type="button" class="c-btn c-btn--sm c-btn--outline-info view-order-btn" data-action="view-order" data-order-id="{{ order.id }}" title="View Order">
                                             <i class="ti ti-eye"></i>

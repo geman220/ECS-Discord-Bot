@@ -148,6 +148,12 @@ def _register_session_with_monitor(path):
             user_id = safe_current_user.id
     except Exception as e:
         logger.warning(f"Could not get user ID for session monitoring: {e}")
+        # Rollback session to clear any failed transaction state
+        if hasattr(g, 'db_session') and g.db_session:
+            try:
+                g.db_session.rollback()
+            except Exception:
+                pass
 
     get_session_monitor().register_session_start(session_id, path, user_id)
     g.session_id = session_id
@@ -166,6 +172,12 @@ def _set_session_timeouts(path):
             set_session_timeout(g.db_session, statement_timeout_seconds=8, idle_timeout_seconds=5)
     except Exception as e:
         logger.warning(f"Could not set session timeouts: {e}")
+        # Rollback session to clear any failed transaction state
+        if hasattr(g, 'db_session') and g.db_session:
+            try:
+                g.db_session.rollback()
+            except Exception:
+                pass
 
 
 def _cache_user_roles():
@@ -184,6 +196,12 @@ def _cache_user_roles():
             logger.error(f"Error pre-loading user roles: {e}", exc_info=True)
             g._cached_user_roles = []
             g._cached_user_permissions = []
+            # Rollback session to clear failed transaction state
+            if hasattr(g, 'db_session') and g.db_session:
+                try:
+                    g.db_session.rollback()
+                except Exception:
+                    pass
 
 
 def _init_teardown_handlers(app):

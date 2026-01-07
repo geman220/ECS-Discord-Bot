@@ -41,7 +41,7 @@
 <!-- Security Features Status -->
 <div class="row mb-4">
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="c-card h-100 security-feature-card {% if stats.security_features.rate_limiting %}feature-enabled{% else %}feature-warning{% endif %}">
+        <div class="c-card h-100 security-feature-c-card {% if stats.security_features.rate_limiting %}feature-enabled{% else %}feature-warning{% endif %}">
             <div class="c-card__body">
                 <div class="d-flex align-items-center">
                     <div class="me-3">
@@ -59,7 +59,7 @@
     </div>
 
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="c-card h-100 security-feature-card {% if stats.security_features.csrf_protection %}feature-enabled{% else %}feature-warning{% endif %}">
+        <div class="c-card h-100 security-feature-c-card {% if stats.security_features.csrf_protection %}feature-enabled{% else %}feature-warning{% endif %}">
             <div class="c-card__body">
                 <div class="d-flex align-items-center">
                     <div class="me-3">
@@ -77,7 +77,7 @@
     </div>
 
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="c-card h-100 security-feature-card {% if stats.security_features.attack_detection %}feature-enabled{% else %}feature-disabled{% endif %}">
+        <div class="c-card h-100 security-feature-c-card {% if stats.security_features.attack_detection %}feature-enabled{% else %}feature-disabled{% endif %}">
             <div class="c-card__body">
                 <div class="d-flex align-items-center">
                     <div class="me-3">
@@ -95,7 +95,7 @@
     </div>
 
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="c-card h-100 security-feature-card {% if stats.security_features.auto_ban %}feature-enabled{% else %}feature-warning{% endif %}">
+        <div class="c-card h-100 security-feature-c-card {% if stats.security_features.auto_ban %}feature-enabled{% else %}feature-warning{% endif %}">
             <div class="c-card__body">
                 <div class="d-flex align-items-center">
                     <div class="me-3">
@@ -116,7 +116,7 @@
 <!-- Statistics Row -->
 <div class="row mb-4">
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="c-card text-center security-stat-card">
+        <div class="c-card text-center security-stat-c-card">
             <div class="c-card__body">
                 <i class="ti ti-eye text-primary security-stat-icon"></i>
                 <h3 class="mb-1" id="monitoredIps">{{ stats.total_monitored_ips }}</h3>
@@ -125,7 +125,7 @@
         </div>
     </div>
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="c-card text-center security-stat-card">
+        <div class="c-card text-center security-stat-c-card">
             <div class="c-card__body">
                 <i class="ti ti-ban text-danger security-stat-icon"></i>
                 <h3 class="mb-1 text-danger" id="blacklistedIps">{{ stats.total_blacklisted_ips }}</h3>
@@ -134,7 +134,7 @@
         </div>
     </div>
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="c-card text-center security-stat-card">
+        <div class="c-card text-center security-stat-c-card">
             <div class="c-card__body">
                 <i class="ti ti-alert-triangle text-warning security-stat-icon"></i>
                 <h3 class="mb-1 text-warning" id="attackAttempts">{{ stats.total_attack_attempts }}</h3>
@@ -143,7 +143,7 @@
         </div>
     </div>
     <div class="col-lg-3 col-md-6 mb-3">
-        <div class="c-card text-center security-stat-card">
+        <div class="c-card text-center security-stat-c-card">
             <div class="c-card__body">
                 <i class="ti ti-users text-info security-stat-icon"></i>
                 <h3 class="mb-1" id="uniqueAttackers">{{ stats.unique_attackers }}</h3>
@@ -226,7 +226,7 @@
             <div class="c-card__body">
                 {% if blacklisted_ips %}
                 <div class="c-table-wrapper banned-ips-table-container" data-table-responsive>
-                    <table class="c-table c-table--compact c-table--hoverable" data-table data-mobile-table data-table-type="logs">
+                    <table class="c-c-table c-table--compact c-table--hoverable" data-table data-mobile-table data-table-type="logs">
                         <thead class="c-table--light sticky-top" scope="col">
                             <tr>
                                 <th scope="col">IP Address</th>
@@ -239,19 +239,19 @@
                         <tbody>
                             {% for ban in blacklisted_ips %}
                             <tr>
-                                <td><code>{{ ban.ip }}</code></td>
-                                <td>
+                                <td data-label="IP Address"><code>{{ ban.ip }}</code></td>
+                                <td data-label="Reason">
                                     <small>{{ ban.reason[:30] }}{% if ban.reason|length > 30 %}...{% endif %}</small>
                                 </td>
-                                <td><small>{{ ban.banned_by }}</small></td>
-                                <td>
+                                <td data-label="Banned By"><small>{{ ban.banned_by }}</small></td>
+                                <td data-label="Expires">
                                     {% if ban.is_permanent %}
                                     <span class="badge bg-dark" data-badge>Permanent</span>
                                     {% else %}
                                     <small>{{ ban.expires_at.strftime('%m/%d %H:%M') if ban.expires_at else 'N/A' }}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     {% if 'Global Admin' in user_roles %}
                                     <button class="c-btn btn-xs c-btn--outline-success" data-action="unban-ip" data-ip="{{ ban.ip }}" title="Unban">
                                         <i class="ti ti-check"></i>
@@ -286,7 +286,7 @@
             </div>
             <div class="c-card__body">
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="stats">
+                    <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="stats">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">IP Address</th>
@@ -299,17 +299,17 @@
                         <tbody>
                             {% for ip in stats.monitored_ips %}
                             <tr>
-                                <td><code>{{ ip.ip }}</code></td>
-                                <td>{{ ip.request_count }}</td>
-                                <td>
+                                <td data-label="IP Address"><code>{{ ip.ip }}</code></td>
+                                <td data-label="Request Count">{{ ip.request_count }}</td>
+                                <td data-label="Attack Count">
                                     {% if ip.attack_count > 0 %}
                                     <span class="text-danger">{{ ip.attack_count }}</span>
                                     {% else %}
                                     <span class="text-muted">0</span>
                                     {% endif %}
                                 </td>
-                                <td><small>{{ ip.last_seen }}</small></td>
-                                <td>
+                                <td data-label="Last Seen"><small>{{ ip.last_seen }}</small></td>
+                                <td data-label="Status">
                                     {% if ip.attack_count >= stats.auto_ban_config.attack_threshold %}
                                     <span class="badge bg-danger" data-badge>At Risk</span>
                                     {% elif ip.attack_count > 0 %}

@@ -9,6 +9,8 @@
  */
 
 import { EventDelegation } from '../core.js';
+import { escapeHtml } from '../../utils/sanitize.js';
+import { showToast as toastServiceShowToast } from '../../services/toast-service.js';
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -34,25 +36,12 @@ function showNotification(title, message, type = 'info') {
             timer: type === 'success' ? 2000 : undefined,
             showConfirmButton: type !== 'success'
         });
-    } else {
-        alert(`${title}: ${message}`);
     }
 }
 
-/**
- * Show toast notification
- */
-function showToast(title, type = 'success') {
-    if (typeof window.Swal !== 'undefined') {
-        window.Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: type,
-            title: title,
-            showConfirmButton: false,
-            timer: 2000
-        });
-    }
+// showToast imported from services/toast-service.js
+function showToast(message, type = 'success') {
+    toastServiceShowToast(message, type);
 }
 
 // ============================================================================
@@ -283,8 +272,23 @@ window.EventDelegation.register('bulk-reactivate-passes', (element, event) => {
     const ids = getSelectedIds();
     if (ids.length === 0) return;
 
-    if (!confirm(`Are you sure you want to reactivate ${ids.length} passes?`)) return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Reactivate Passes?',
+            text: `Are you sure you want to reactivate ${ids.length} passes?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, reactivate',
+            confirmButtonColor: '#28a745'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performBulkReactivate(ids);
+            }
+        });
+    }
+});
 
+function performBulkReactivate(ids) {
     fetch('/admin/wallet/api/passes/bulk-reactivate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -296,7 +300,7 @@ window.EventDelegation.register('bulk-reactivate-passes', (element, event) => {
         location.reload();
     })
     .catch(err => showNotification('Error', 'Error reactivating passes. Please try again.', 'error'));
-});
+}
 
 // ============================================================================
 // BULK GENERATE OPERATIONS
@@ -350,7 +354,7 @@ window.EventDelegation.register('bulk-generate-passes', (element, event) => {
         if (resultsDiv) resultsDiv.classList.remove('d-none');
 
         if (data.error) {
-            if (resultsContent) resultsContent.innerHTML = `<div class="alert alert-danger" data-alert>${data.error}</div>`;
+            if (resultsContent) resultsContent.innerHTML = `<div class="alert alert-danger" data-alert>${escapeHtml(data.error)}</div>`;
             return;
         }
 
@@ -364,7 +368,7 @@ window.EventDelegation.register('bulk-generate-passes', (element, event) => {
         if (data.failed?.length > 0) {
             html += '<details class="mt-2"><summary class="text-danger">View failures</summary><ul class="small mt-2">';
             data.failed.forEach(f => {
-                html += `<li>${f.player_name || f.player_id}: ${f.error}</li>`;
+                html += `<li>${escapeHtml(f.player_name || String(f.player_id))}: ${escapeHtml(f.error)}</li>`;
             });
             html += '</ul></details>';
         }
@@ -426,7 +430,7 @@ window.EventDelegation.register('check-player-eligibility', (element, event) => 
             if (data.issues && data.issues.length > 0) {
                 html += '<h6 class="mt-3 mb-2">Issues to Resolve:</h6><ul class="list-unstyled mb-0">';
                 data.issues.forEach(issue => {
-                    html += `<li class="text-danger mb-2"><i class="ti ti-x me-2"></i>${issue}</li>`;
+                    html += `<li class="text-danger mb-2"><i class="ti ti-x me-2"></i>${escapeHtml(issue)}</li>`;
                 });
                 html += '</ul>';
             }
@@ -446,11 +450,11 @@ window.EventDelegation.register('check-player-eligibility', (element, event) => 
                         </div>
                         <div class="col-6">
                             <small class="text-muted d-block">Primary Team</small>
-                            <span>${data.info.primary_team || '<em class="text-muted">None</em>'}</span>
+                            <span>${data.info.primary_team ? escapeHtml(data.info.primary_team) : '<em class="text-muted">None</em>'}</span>
                         </div>
                         <div class="col-6">
                             <small class="text-muted d-block">League</small>
-                            <span>${data.info.league || '<em class="text-muted">None</em>'}</span>
+                            <span>${data.info.league ? escapeHtml(data.info.league) : '<em class="text-muted">None</em>'}</span>
                         </div>
                     </div>
                 `;
@@ -471,10 +475,23 @@ window.EventDelegation.register('check-player-eligibility', (element, event) => 
 window.EventDelegation.register('bulk-generate-wallet-passes', (element, event) => {
     event.preventDefault();
 
-    if (!confirm('Generate passes for all eligible players?\n\nThis will create passes that can be downloaded by each player. Continue?')) {
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Generate Passes?',
+            text: 'Generate passes for all eligible players? This will create passes that can be downloaded by each player.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, generate',
+            confirmButtonColor: '#3085d6'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performBulkGenerateWalletPasses(element);
+            }
+        });
     }
+});
 
+function performBulkGenerateWalletPasses(element) {
     // Get eligible player IDs from the data attribute or collect from table
     let eligiblePlayerIds = [];
 
@@ -506,7 +523,9 @@ window.EventDelegation.register('bulk-generate-wallet-passes', (element, event) 
     }
 
     if (eligiblePlayerIds.length === 0) {
-        alert('No eligible players found.');
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('No Players', 'No eligible players found.', 'warning');
+        }
         return;
     }
 
@@ -531,31 +550,41 @@ window.EventDelegation.register('bulk-generate-wallet-passes', (element, event) 
         element.disabled = false;
         element.innerHTML = originalText;
 
-        let message = `Bulk Generation Complete\n\n`;
-        message += `Success: ${data.success?.length || 0} passes\n`;
-        message += `Failed: ${data.failed?.length || 0} passes`;
+        let htmlMessage = `<p><strong>Success:</strong> ${data.success?.length || 0} passes</p>`;
+        htmlMessage += `<p><strong>Failed:</strong> ${data.failed?.length || 0} passes</p>`;
 
         if (data.failed && data.failed.length > 0) {
-            message += '\n\nFailed:\n';
+            htmlMessage += '<hr><p><strong>Failed:</strong></p><ul class="text-start">';
             data.failed.slice(0, 5).forEach(failure => {
-                message += `- ${failure.player_name || 'Player ' + failure.player_id}: ${failure.error}\n`;
+                htmlMessage += `<li>${failure.player_name || 'Player ' + failure.player_id}: ${failure.error}</li>`;
             });
             if (data.failed.length > 5) {
-                message += `...and ${data.failed.length - 5} more`;
+                htmlMessage += `<li>...and ${data.failed.length - 5} more</li>`;
             }
+            htmlMessage += '</ul>';
         }
 
-        alert(message);
-        if (data.success && data.success.length > 0) {
-            location.reload();
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
+                title: 'Bulk Generation Complete',
+                html: htmlMessage,
+                icon: data.failed?.length > 0 ? 'warning' : 'success',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                if (data.success && data.success.length > 0) {
+                    location.reload();
+                }
+            });
         }
     })
     .catch(error => {
         element.disabled = false;
         element.innerHTML = originalText;
-        alert('Error during bulk generation. Please try again.');
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', 'Error during bulk generation. Please try again.', 'error');
+        }
     });
-});
+}
 
 /**
  * Reload page action

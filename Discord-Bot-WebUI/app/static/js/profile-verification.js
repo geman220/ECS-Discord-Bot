@@ -7,7 +7,7 @@
 
 import { InitSystem } from './init-system.js';
 
-export const ProfileVerification = {
+const ProfileVerification = {
   /**
    * Initialize profile verification system
    */
@@ -422,8 +422,6 @@ export const ProfileVerification = {
         confirmButtonText: 'OK',
         confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('warning') : '#ffc107'
       });
-    } else {
-      alert(`Please review the following sections:\n\n${uncheckedSections.join('\n')}`);
     }
   },
 

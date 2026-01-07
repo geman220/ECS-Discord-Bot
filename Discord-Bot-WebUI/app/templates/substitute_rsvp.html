@@ -78,41 +78,41 @@
                             <table class="c-substitute-rsvp__table" data-table data-mobile-table data-table-type="details">
                                 <tbody>
                                     <tr class="c-substitute-rsvp__detail-row">
-                                        <td class="c-substitute-rsvp__detail-label">
+                                        <td class="c-substitute-rsvp__detail-label" data-label="Field">
                                             <i class="ti ti-vs me-1"></i> Match
                                         </td>
-                                        <td class="c-substitute-rsvp__detail-value"><strong>{{ details.match.home_team }} vs {{ details.match.away_team }}</strong></td>
+                                        <td class="c-substitute-rsvp__detail-value" data-label="Value"><strong>{{ details.match.home_team }} vs {{ details.match.away_team }}</strong></td>
                                     </tr>
                                     <tr class="c-substitute-rsvp__detail-row">
-                                        <td class="c-substitute-rsvp__detail-label">
+                                        <td class="c-substitute-rsvp__detail-label" data-label="Field">
                                             <i class="ti ti-users me-1"></i> Team
                                         </td>
-                                        <td class="c-substitute-rsvp__detail-value">{{ details.team_name }}</td>
+                                        <td class="c-substitute-rsvp__detail-value" data-label="Value">{{ details.team_name }}</td>
                                     </tr>
                                     <tr class="c-substitute-rsvp__detail-row">
-                                        <td class="c-substitute-rsvp__detail-label">
+                                        <td class="c-substitute-rsvp__detail-label" data-label="Field">
                                             <i class="ti ti-calendar me-1"></i> Date
                                         </td>
-                                        <td class="c-substitute-rsvp__detail-value">{{ details.match.date }}</td>
+                                        <td class="c-substitute-rsvp__detail-value" data-label="Value">{{ details.match.date }}</td>
                                     </tr>
                                     <tr class="c-substitute-rsvp__detail-row">
-                                        <td class="c-substitute-rsvp__detail-label">
+                                        <td class="c-substitute-rsvp__detail-label" data-label="Field">
                                             <i class="ti ti-clock me-1"></i> Time
                                         </td>
-                                        <td class="c-substitute-rsvp__detail-value">{{ details.match.time }}</td>
+                                        <td class="c-substitute-rsvp__detail-value" data-label="Value">{{ details.match.time }}</td>
                                     </tr>
                                     <tr class="c-substitute-rsvp__detail-row">
-                                        <td class="c-substitute-rsvp__detail-label">
+                                        <td class="c-substitute-rsvp__detail-label" data-label="Field">
                                             <i class="ti ti-map-pin me-1"></i> Location
                                         </td>
-                                        <td class="c-substitute-rsvp__detail-value">{{ details.match.location }}</td>
+                                        <td class="c-substitute-rsvp__detail-value" data-label="Value">{{ details.match.location }}</td>
                                     </tr>
                                     {% if details.positions_needed %}
                                     <tr class="c-substitute-rsvp__detail-row">
-                                        <td class="c-substitute-rsvp__detail-label">
+                                        <td class="c-substitute-rsvp__detail-label" data-label="Field">
                                             <i class="ti ti-shirt me-1"></i> Position
                                         </td>
-                                        <td class="c-substitute-rsvp__detail-value">{{ details.positions_needed }}</td>
+                                        <td class="c-substitute-rsvp__detail-value" data-label="Value">{{ details.positions_needed }}</td>
                                     </tr>
                                     {% endif %}
                                 </tbody>

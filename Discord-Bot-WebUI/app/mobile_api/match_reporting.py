@@ -40,6 +40,56 @@ def is_coach_for_match(session, player_id: int, match: Match) -> bool:
     return len(coach_check) > 0
 
 
+def can_report_match(session, user: User, player: Player, match: Match) -> bool:
+    """
+    Check if a user has permission to report/edit a match.
+
+    Permissions mirror the web UI (teams.py):
+    - Global Admin, Pub League Admin, admin role - can edit any match
+    - Pub League Ref - can edit any match
+    - Assigned referee for the match - can edit
+    - Coach for either team - can edit
+    - Player on either team - can edit
+
+    Args:
+        session: Database session
+        user: User object
+        player: Player object (may be None if user has no player profile)
+        match: Match object
+
+    Returns:
+        bool: True if user can report/edit the match
+    """
+    # Check admin roles
+    is_admin = user.has_role('admin')
+    is_global_admin = user.has_role('Global Admin')
+    is_pub_league_admin = user.has_role('Pub League Admin')
+    is_pub_league_ref = user.has_role('Pub League Ref')
+
+    # Admins and refs can edit any match
+    if is_admin or is_global_admin or is_pub_league_admin or is_pub_league_ref:
+        return True
+
+    # If no player profile, can't check team membership
+    if not player:
+        return False
+
+    # Check if user is the assigned referee for this match
+    if player.is_ref and match.ref_id == player.id:
+        return True
+
+    # Check if user is a coach for either team
+    if is_coach_for_match(session, player.id, match):
+        return True
+
+    # Check if user is on either team's roster
+    user_team_ids = {team.id for team in player.teams}
+    if match.home_team_id in user_team_ids or match.away_team_id in user_team_ids:
+        return True
+
+    return False
+
+
 def get_coach_team_id(session, player_id: int, match: Match) -> int:
     """Get the team ID for which the player is a coach in this match."""
     coach_check = session.execute(
@@ -75,9 +125,8 @@ def get_match_reporting_info(match_id: int):
         if not user:
             return jsonify({"msg": "User not found"}), 404
 
+        # Player profile is optional - admins/refs may not have one
         player = session.query(Player).filter_by(user_id=current_user_id).first()
-        if not player:
-            return jsonify({"msg": "Player profile not found"}), 404
 
         # Get match with teams
         match = session.query(Match).options(
@@ -89,9 +138,9 @@ def get_match_reporting_info(match_id: int):
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Check if user can report for this match
-        can_report = is_coach_for_match(session, player.id, match)
-        coach_team_id = get_coach_team_id(session, player.id, match) if can_report else None
+        # Check if user can report for this match (admins, refs, coaches, team members)
+        can_report = can_report_match(session, user, player, match)
+        coach_team_id = get_coach_team_id(session, player.id, match) if player and is_coach_for_match(session, player.id, match) else None
 
         # Get home team roster
         home_players = []
@@ -232,18 +281,20 @@ def add_match_event(match_id: int):
             return jsonify({"msg": "player_id is required for this event type"}), 400
 
     with managed_session() as session:
-        # Get current user's player profile
+        # Get user and optional player profile
+        user = session.query(User).get(current_user_id)
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+
         player = session.query(Player).filter_by(user_id=current_user_id).first()
-        if not player:
-            return jsonify({"msg": "Player profile not found"}), 404
 
         # Get match
         match = session.query(Match).get(match_id)
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Check authorization
-        if not is_coach_for_match(session, player.id, match):
+        # Check authorization (admins, refs, coaches, team members)
+        if not can_report_match(session, user, player, match):
             return jsonify({"msg": "You are not authorized to report events for this match"}), 403
 
         # Validate player/team belongs to match
@@ -320,10 +371,12 @@ def update_match_event(match_id: int, event_id: int):
         return jsonify({"msg": "Missing request data"}), 400
 
     with managed_session() as session:
-        # Get current user's player profile
+        # Get user and optional player profile
+        user = session.query(User).get(current_user_id)
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+
         player = session.query(Player).filter_by(user_id=current_user_id).first()
-        if not player:
-            return jsonify({"msg": "Player profile not found"}), 404
 
         # Get event
         event = session.query(PlayerEvent).filter_by(
@@ -339,8 +392,8 @@ def update_match_event(match_id: int, event_id: int):
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Check authorization
-        if not is_coach_for_match(session, player.id, match):
+        # Check authorization (admins, refs, coaches, team members)
+        if not can_report_match(session, user, player, match):
             return jsonify({"msg": "You are not authorized to update events for this match"}), 403
 
         # Update fields
@@ -397,10 +450,12 @@ def delete_match_event(match_id: int, event_id: int):
     current_user_id = int(get_jwt_identity())
 
     with managed_session() as session:
-        # Get current user's player profile
+        # Get user and optional player profile
+        user = session.query(User).get(current_user_id)
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+
         player = session.query(Player).filter_by(user_id=current_user_id).first()
-        if not player:
-            return jsonify({"msg": "Player profile not found"}), 404
 
         # Get event
         event = session.query(PlayerEvent).filter_by(
@@ -416,8 +471,8 @@ def delete_match_event(match_id: int, event_id: int):
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Check authorization
-        if not is_coach_for_match(session, player.id, match):
+        # Check authorization (admins, refs, coaches, team members)
+        if not can_report_match(session, user, player, match):
             return jsonify({"msg": "You are not authorized to delete events for this match"}), 403
 
         event_type = event.event_type.value
@@ -473,10 +528,12 @@ def report_match(match_id: int):
         return jsonify({"msg": "Scores cannot be negative"}), 400
 
     with managed_session() as session:
-        # Get current user's player profile
+        # Get user and optional player profile
+        user = session.query(User).get(current_user_id)
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+
         player = session.query(Player).filter_by(user_id=current_user_id).first()
-        if not player:
-            return jsonify({"msg": "Player profile not found"}), 404
 
         # Get match with teams
         match = session.query(Match).options(
@@ -487,8 +544,8 @@ def report_match(match_id: int):
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Check authorization
-        if not is_coach_for_match(session, player.id, match):
+        # Check authorization (admins, refs, coaches, team members)
+        if not can_report_match(session, user, player, match):
             return jsonify({"msg": "You are not authorized to report this match"}), 403
 
         # Update scores
@@ -594,10 +651,12 @@ def update_match_score(match_id: int):
         return jsonify({"msg": "Scores cannot be negative"}), 400
 
     with managed_session() as session:
-        # Get current user's player profile
+        # Get user and optional player profile
+        user = session.query(User).get(current_user_id)
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+
         player = session.query(Player).filter_by(user_id=current_user_id).first()
-        if not player:
-            return jsonify({"msg": "Player profile not found"}), 404
 
         # Get match
         match = session.query(Match).options(
@@ -608,8 +667,8 @@ def update_match_score(match_id: int):
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Check authorization
-        if not is_coach_for_match(session, player.id, match):
+        # Check authorization (admins, refs, coaches, team members)
+        if not can_report_match(session, user, player, match):
             return jsonify({"msg": "You are not authorized to update scores for this match"}), 403
 
         # Update scores

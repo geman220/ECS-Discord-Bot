@@ -7,7 +7,7 @@ import { ModalManager } from '../js/modal-manager.js';
 
 let _initialized = false;
 
-function init() {
+function initHandle2fa() {
     if (_initialized) return;
     _initialized = true;
 
@@ -54,10 +54,17 @@ function init() {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        alert('2FA enabled successfully');
-                        location.reload();
+                        if (typeof window.Swal !== 'undefined') {
+                            window.Swal.fire('Success', '2FA enabled successfully', 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            location.reload();
+                        }
                     } else {
-                        alert(data.message);
+                        if (typeof window.Swal !== 'undefined') {
+                            window.Swal.fire('Error', data.message, 'error');
+                        }
                     }
                 });
         });
@@ -66,8 +73,22 @@ function init() {
     if (disable2FAForm) {
         disable2FAForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            if (confirm('Are you sure you want to disable 2FA? This will make your account less secure.')) {
-                this.submit();
+            const form = this;
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
+                    title: 'Disable 2FA?',
+                    text: 'Are you sure you want to disable 2FA? This will make your account less secure.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, disable it',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            } else {
+                form.submit();
             }
         });
     }
@@ -75,7 +96,7 @@ function init() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('handle-2fa', init, {
+    window.InitSystem.register('handle-2fa', initHandle2fa, {
         priority: 45,
         reinitializable: false,
         description: '2FA enable/disable handler'
@@ -84,3 +105,6 @@ if (window.InitSystem && window.InitSystem.register) {
 
 // Fallback
 // window.InitSystem handles initialization
+
+// Export for ES modules
+export { initHandle2fa };

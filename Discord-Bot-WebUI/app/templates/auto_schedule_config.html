@@ -225,65 +225,7 @@
     </div>
 </div>
 
-<style>
-.week-timeline {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    min-height: 60px;
-    border: 2px dashed var(--ecs-neutral-20, #dee2e6);
-    border-radius: 5px;
-    padding: 15px;
-    background: var(--ecs-neutral-5, #f8f9fa);
-}
-
-.week-card {
-    background: var(--ecs-neutral-0, #ffffff);
-    border: 1px solid var(--ecs-neutral-20, #dee2e6);
-    border-radius: 8px;
-    padding: 10px;
-    min-width: 120px;
-    cursor: move;
-    transition: all 0.2s;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.week-card:hover {
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    transform: translateY(-1px);
-}
-
-.week-card.regular { border-left: 4px solid var(--ecs-success, #198754); }
-.week-card.practice { border-left: 4px solid var(--ecs-info, #0dcaf0); }
-.week-card.fun { border-left: 4px solid var(--ecs-warning, #ffc107); }
-.week-card.tst { border-left: 4px solid var(--ecs-warning-dark, #fd7e14); }
-.week-card.bye { border-left: 4px solid var(--ecs-secondary, #6c757d); }
-.week-card.playoff { border-left: 4px solid var(--ecs-danger, #dc3545); }
-
-.week-header {
-    font-weight: bold;
-    font-size: 0.9em;
-    color: var(--ecs-neutral-60, #6c757d);
-}
-
-.week-type {
-    font-size: 0.8em;
-    text-transform: uppercase;
-    margin-top: 5px;
-}
-
-.field-config-item .input-group {
-    margin-bottom: 5px;
-}
-
-.week-card.dragging {
-    opacity: 0.5;
-}
-
-.js-remove-week-card {
-    font-size: 0.7em;
-}
-</style>
+<!-- Styles moved to css/features/schedule-manager.css -->
 
 <!-- Auto Schedule Config Module (extracted from inline JS) -->
 <script src="{{ url_for('static', filename='custom_js/auto-schedule-config.js') }}"></script>

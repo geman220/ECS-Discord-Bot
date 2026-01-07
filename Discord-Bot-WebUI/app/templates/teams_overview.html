@@ -57,34 +57,34 @@
                 {% if classic_teams %}
                     {% for team in classic_teams %}
                     <div class="col-xl-4 col-md-6">
-                        <div class="c-card-modern c-card-modern--clickable c-card-modern--team c-card-modern--full-height" data-team-id="{{ team.id }}">
-                            <div class="c-card-modern__body">
-                                <div class="c-card-modern__header-group">
+                        <div class="c-card c-card--clickable c-card--team c-card--full-height" data-team-id="{{ team.id }}">
+                            <div class="c-card__body">
+                                <div class="c-card__header-group">
                                     {{ macros.team_avatar(team, 'md', 'bg-primary me-3') }}
-                                    <div class="c-card-modern__header-info">
-                                        <h5 class="c-card-modern__title">{{ team.name }}</h5>
-                                        <p class="c-card-modern__subtitle">
+                                    <div class="c-card__header-info">
+                                        <h5 class="c-card__title">{{ team.name }}</h5>
+                                        <p class="c-card__subtitle">
                                             <i class="ti ti-calendar-event c-icon-modern c-icon-modern--small"></i>{{ team.league.season.name }}
                                         </p>
                                     </div>
                                 </div>
 
-                                <div class="c-card-modern__meta">
-                                    <div class="c-card-modern__meta-group">
-                                        <div class="c-card-modern__meta-item">
+                                <div class="c-card__meta">
+                                    <div class="c-card__meta-group">
+                                        <div class="c-card__meta-item">
                                             <i class="ti ti-users c-icon-modern"></i>{{ team.players | length }} Players
                                         </div>
-                                        <div class="c-card-modern__meta-item">
+                                        <div class="c-card__meta-item">
                                             <i class="ti ti-trophy c-icon-modern"></i>{{ team.league.name }}
                                         </div>
                                     </div>
                                 </div>
 
                                 <a href="{{ url_for('teams.team_details', team_id=team.id) }}"
-                                   class="c-btn-modern c-btn-modern--primary c-btn-modern--block"
+                                   class="c-btn c-btn--primary c-btn--block"
                                    data-action="view-team"
                                    data-team-id="{{ team.id }}">
-                                    <i class="ti ti-eye c-btn-modern__icon"></i>View Team
+                                    <i class="ti ti-eye c-btn__icon"></i>View Team
                                 </a>
                             </div>
                         </div>
@@ -92,8 +92,8 @@
                     {% endfor %}
                 {% else %}
                     <div class="col-12">
-                        <div class="c-card-modern">
-                            <div class="c-card-modern__body c-card-modern__body--center c-card-modern__body--padded">
+                        <div class="c-card">
+                            <div class="c-card__body c-card__body--center c-card__body--padded">
                                 <div class="c-empty-state-modern">
                                     <div class="c-empty-state-modern__icon">
                                         <i class="ti ti-ball-football"></i>
@@ -114,34 +114,34 @@
                 {% if premier_teams %}
                     {% for team in premier_teams %}
                     <div class="col-xl-4 col-md-6">
-                        <div class="c-card-modern c-card-modern--clickable c-card-modern--team c-card-modern--full-height" data-team-id="{{ team.id }}">
-                            <div class="c-card-modern__body">
-                                <div class="c-card-modern__header-group">
+                        <div class="c-card c-card--clickable c-card--team c-card--full-height" data-team-id="{{ team.id }}">
+                            <div class="c-card__body">
+                                <div class="c-card__header-group">
                                     {{ macros.team_avatar(team, 'md', 'bg-success me-3') }}
-                                    <div class="c-card-modern__header-info">
-                                        <h5 class="c-card-modern__title">{{ team.name }}</h5>
-                                        <p class="c-card-modern__subtitle">
+                                    <div class="c-card__header-info">
+                                        <h5 class="c-card__title">{{ team.name }}</h5>
+                                        <p class="c-card__subtitle">
                                             <i class="ti ti-calendar-event c-icon-modern c-icon-modern--small"></i>{{ team.league.season.name }}
                                         </p>
                                     </div>
                                 </div>
 
-                                <div class="c-card-modern__meta">
-                                    <div class="c-card-modern__meta-group">
-                                        <div class="c-card-modern__meta-item">
+                                <div class="c-card__meta">
+                                    <div class="c-card__meta-group">
+                                        <div class="c-card__meta-item">
                                             <i class="ti ti-users c-icon-modern"></i>{{ team.players | length }} Players
                                         </div>
-                                        <div class="c-card-modern__meta-item">
+                                        <div class="c-card__meta-item">
                                             <i class="ti ti-trophy c-icon-modern"></i>{{ team.league.name }}
                                         </div>
                                     </div>
                                 </div>
 
                                 <a href="{{ url_for('teams.team_details', team_id=team.id) }}"
-                                   class="c-btn-modern c-btn-modern--success c-btn-modern--block"
+                                   class="c-btn c-btn--success c-btn--block"
                                    data-action="view-team"
                                    data-team-id="{{ team.id }}">
-                                    <i class="ti ti-eye c-btn-modern__icon"></i>View Team
+                                    <i class="ti ti-eye c-btn__icon"></i>View Team
                                 </a>
                             </div>
                         </div>
@@ -149,8 +149,8 @@
                     {% endfor %}
                 {% else %}
                     <div class="col-12">
-                        <div class="c-card-modern">
-                            <div class="c-card-modern__body c-card-modern__body--center c-card-modern__body--padded">
+                        <div class="c-card">
+                            <div class="c-card__body c-card__body--center c-card__body--padded">
                                 <div class="c-empty-state-modern">
                                     <div class="c-empty-state-modern__icon">
                                         <i class="ti ti-trophy"></i>
@@ -171,34 +171,34 @@
                 {% if ecs_fc_teams %}
                     {% for team in ecs_fc_teams %}
                     <div class="col-xl-4 col-md-6">
-                        <div class="c-card-modern c-card-modern--clickable c-card-modern--team c-card-modern--full-height" data-team-id="{{ team.id }}">
-                            <div class="c-card-modern__body">
-                                <div class="c-card-modern__header-group">
+                        <div class="c-card c-card--clickable c-card--team c-card--full-height" data-team-id="{{ team.id }}">
+                            <div class="c-card__body">
+                                <div class="c-card__header-group">
                                     {{ macros.team_avatar(team, 'md', 'bg-warning me-3') }}
-                                    <div class="c-card-modern__header-info">
-                                        <h5 class="c-card-modern__title">{{ team.name }}</h5>
-                                        <p class="c-card-modern__subtitle">
+                                    <div class="c-card__header-info">
+                                        <h5 class="c-card__title">{{ team.name }}</h5>
+                                        <p class="c-card__subtitle">
                                             <i class="ti ti-calendar-event c-icon-modern c-icon-modern--small"></i>{{ team.league.season.name }}
                                         </p>
                                     </div>
                                 </div>
 
-                                <div class="c-card-modern__meta">
-                                    <div class="c-card-modern__meta-group">
-                                        <div class="c-card-modern__meta-item">
+                                <div class="c-card__meta">
+                                    <div class="c-card__meta-group">
+                                        <div class="c-card__meta-item">
                                             <i class="ti ti-users c-icon-modern"></i>{{ team.players | length }} Players
                                         </div>
-                                        <div class="c-card-modern__meta-item">
+                                        <div class="c-card__meta-item">
                                             <i class="ti ti-shield c-icon-modern"></i>{{ team.league.name }}
                                         </div>
                                     </div>
                                 </div>
 
                                 <a href="{{ url_for('teams.team_details', team_id=team.id) }}"
-                                   class="c-btn-modern c-btn-modern--warning c-btn-modern--block"
+                                   class="c-btn c-btn--warning c-btn--block"
                                    data-action="view-team"
                                    data-team-id="{{ team.id }}">
-                                    <i class="ti ti-eye c-btn-modern__icon"></i>View Team
+                                    <i class="ti ti-eye c-btn__icon"></i>View Team
                                 </a>
                             </div>
                         </div>
@@ -206,8 +206,8 @@
                     {% endfor %}
                 {% else %}
                     <div class="col-12">
-                        <div class="c-card-modern">
-                            <div class="c-card-modern__body c-card-modern__body--center c-card-modern__body--padded">
+                        <div class="c-card">
+                            <div class="c-card__body c-card__body--center c-card__body--padded">
                                 <div class="c-empty-state-modern">
                                     <div class="c-empty-state-modern__icon">
                                         <i class="ti ti-shield"></i>

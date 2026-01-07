@@ -18,7 +18,7 @@
     window.seasonId = {{ season.id }};
 </script>
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script src="{{ url_for('static', filename='custom_js/ecsfc-schedule.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/ecs-fc-bulk-admin.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/schedule-management.js') }}"></script>
 {% endif %}
 {% endblock %}

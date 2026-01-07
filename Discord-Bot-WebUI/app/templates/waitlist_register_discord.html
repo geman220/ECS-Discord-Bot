@@ -67,14 +67,14 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label" for="waitlist-discord-email">Email</label>
-                                    <input type="email" class="form-control" id="waitlist-discord-email" name="email" value="{{ discord_email }}" readonly data-form-control>
+                                    <input type="email" class="form-control" id="waitlist-discord-email" name="email" value="{{ discord_email }}" readonly inputmode="email" data-form-control>
                                 </div>
                             </div>
                             
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label" for="waitlist-discord-phone">Phone Number</label>
-                                    <input type="tel" class="form-control" id="waitlist-discord-phone" name="phone" placeholder="Your phone number" data-form-control>
+                                    <input type="tel" class="form-control" id="waitlist-discord-phone" name="phone" placeholder="Your phone number" inputmode="tel" data-form-control>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label" for="waitlist-discord-pronouns">Preferred Pronouns</label>
@@ -450,9 +450,9 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="c-btn-modern c-btn-modern--primary c-btn-modern--block" id="complete-waitlist-btn" data-action="submit-waitlist" disabled>
+                        <button type="submit" class="c-btn c-btn--primary c-btn--block" id="complete-waitlist-btn" data-action="submit-waitlist" disabled>
                             <i class="ti ti-user-plus"></i>
-                            <span>Complete Waitlist Registration</span>
+                            <span>Join Waitlist</span>
                         </button>
                     </form>
 

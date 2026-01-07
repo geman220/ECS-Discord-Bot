@@ -4,38 +4,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.form-floating textarea {
-    min-height: 100px;
-}
-.personality-slider {
-    margin: 10px 0;
-}
-.temperature-indicator {
-    font-size: 0.875rem;
-    margin-left: 10px;
-}
-.prompt-preview {
-    background: #f8f9fa;
-    border: 1px dashed #dee2e6;
-    border-radius: 8px;
-    padding: 15px;
-    font-family: monospace;
-    white-space: pre-wrap;
-}
-.textarea-description {
-    height: 80px;
-}
-.textarea-system {
-    height: 120px;
-}
-.textarea-template {
-    height: 100px;
-}
-.textarea-rivalry {
-    height: 80px;
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block main_content %}

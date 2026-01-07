@@ -21,7 +21,7 @@
 /**
  * Action configurations with smart defaults
  */
-export const ACTION_CONFIGS = {
+const ACTION_CONFIGS = {
     delete: {
         icon: 'warning',
         confirmButtonText: 'Delete',
@@ -167,7 +167,7 @@ export const ACTION_CONFIGS = {
  * @param {string} text - Text to analyze
  * @returns {string|null} Detected action or null
  */
-export function detectAction(text) {
+function detectAction(text) {
     if (!text) return null;
     const lowerText = text.toLowerCase();
 
@@ -186,7 +186,7 @@ export function detectAction(text) {
  * @param {string} action - Detected action type
  * @returns {Object} Merged configuration
  */
-export function buildConfig(options, action) {
+function buildConfig(options, action) {
     const actionConfig = action ? ACTION_CONFIGS[action] : {};
     const defaults = {
         icon: 'question',
@@ -211,7 +211,7 @@ export function buildConfig(options, action) {
 /**
  * SwalContextual API
  */
-export const SwalContextual = {
+const SwalContextual = {
     /**
      * Smart confirmation dialog that auto-detects action type
      * @param {Object} options - SweetAlert2 options
@@ -301,8 +301,4 @@ Object.keys(ACTION_CONFIGS).forEach(action => {
 
 console.debug('[SwalContextual] Helper initialized');
 
-// Backward compatibility
-window.SwalContextual = SwalContextual;
-window.ACTION_CONFIGS = ACTION_CONFIGS;
-window.detectAction = detectAction;
-window.buildConfig = buildConfig;
+// No window exports needed - all functions are used internally via ES modules

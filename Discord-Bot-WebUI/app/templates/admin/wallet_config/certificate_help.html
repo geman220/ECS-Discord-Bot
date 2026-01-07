@@ -3,58 +3,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    /* Certificate Help - Theme-aware styling */
-    .step-container {
-        border-left: 3px solid var(--bs-primary, #696cff);
-        padding-left: 20px;
-        margin-bottom: 30px;
-        position: relative;
-    }
-    .step-container::before {
-        content: '';
-        position: absolute;
-        left: -10px;
-        top: 0;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background-color: var(--bs-primary, #696cff);
-    }
-    .screenshot-container {
-        border: 1px solid var(--bs-border-color, #ddd);
-        border-radius: 8px;
-        padding: 10px;
-        margin: 15px 0;
-    }
-    .screenshot-container img {
-        max-width: 100%;
-        height: auto;
-    }
-    .code-block {
-        background-color: var(--ecs-dark-bg-card, #2d2d2d);
-        color: var(--ecs-dark-text-primary, #f8f8f2);
-        border-radius: 5px;
-        padding: 15px;
-        margin: 15px 0;
-        font-family: monospace;
-        overflow-x: auto;
-    }
-    .note-box {
-        background-color: var(--bs-warning-bg-subtle, #fff3cd);
-        border-left: 4px solid var(--bs-warning, #ffc107);
-        padding: 15px;
-        margin: 15px 0;
-        border-radius: 5px;
-    }
-    .tip-box {
-        background-color: var(--bs-info-bg-subtle, #d1ecf1);
-        border-left: 4px solid var(--bs-info, #17a2b8);
-        padding: 15px;
-        margin: 15px 0;
-        border-radius: 5px;
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock custom_css %}
 
 {% block content %}

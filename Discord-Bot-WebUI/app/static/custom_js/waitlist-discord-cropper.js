@@ -24,84 +24,111 @@ let isDragging = false;
 let startX = 0;
 let startY = 0;
 
+let _initialized = false;
+
 /**
- * Initialize the waitlist discord cropper
+ * Initialize the waitlist discord cropper using event delegation
  */
-function init() {
+function initWaitlistDiscordCropper() {
+    if (_initialized) return;
+
     canvas = document.getElementById('imageCanvas');
     if (!canvas) return; // Not on this page
+
+    _initialized = true;
 
     ctx = canvas.getContext('2d');
     previewCanvas = document.getElementById('previewCanvas');
     previewCtx = previewCanvas ? previewCanvas.getContext('2d') : null;
 
-    // Handle image input change
-    const imageInput = document.querySelector('.js-image-input');
-    if (imageInput) {
-        imageInput.addEventListener('change', function() {
-            loadImage(this);
-        });
-    }
+    // Delegated change handler
+    document.addEventListener('change', function(e) {
+        // Image input change
+        if (e.target.matches('.js-image-input')) {
+            loadImage(e.target);
+            return;
+        }
 
-    // Handle crop size range input
-    const cropSizeInput = document.querySelector('.js-crop-size');
-    if (cropSizeInput) {
-        cropSizeInput.addEventListener('input', updateCropSize);
-    }
+        // Terms agreement checkbox
+        if (e.target.id === 'terms-agreement-waitlist') {
+            const waitlistBtn = document.getElementById('complete-waitlist-btn');
+            if (waitlistBtn) {
+                waitlistBtn.disabled = !e.target.checked;
 
-    // Canvas mouse events
-    canvas.addEventListener('mousedown', startDrag);
-    canvas.addEventListener('mousemove', drag);
-    canvas.addEventListener('mouseup', endDrag);
-    canvas.addEventListener('mouseleave', endDrag);
-
-    // Touch support for mobile
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', endDrag);
-
-    // Handle terms agreement checkbox
-    const termsCheckbox = document.getElementById('terms-agreement-waitlist');
-    const waitlistBtn = document.getElementById('complete-waitlist-btn');
-
-    if (termsCheckbox && waitlistBtn) {
-        // Enable/disable waitlist registration button based on checkbox
-        termsCheckbox.addEventListener('change', function() {
-            waitlistBtn.disabled = !this.checked;
-
-            const label = document.querySelector('label[for="terms-agreement-waitlist"]');
-            if (this.checked) {
-                if (label) label.style.color = '#5a5c69';
-                waitlistBtn.classList.remove('btn-secondary');
-                waitlistBtn.classList.add('btn-primary');
-            } else {
-                if (label) label.style.color = '#858796';
-                waitlistBtn.classList.remove('btn-primary');
-                waitlistBtn.classList.add('btn-secondary');
-            }
-        });
-    }
-
-    // Form validation
-    const form = document.querySelector('form.needs-validation, form[data-form]');
-    if (form) {
-        form.addEventListener('submit', function(event) {
-            if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-
-                const firstInvalid = form.querySelector(':invalid');
-                if (firstInvalid) {
-                    firstInvalid.focus();
-                    firstInvalid.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                    });
+                const label = document.querySelector('label[for="terms-agreement-waitlist"]');
+                if (e.target.checked) {
+                    if (label) label.style.color = '#5a5c69';
+                    waitlistBtn.classList.remove('btn-secondary');
+                    waitlistBtn.classList.add('btn-primary');
+                } else {
+                    if (label) label.style.color = '#858796';
+                    waitlistBtn.classList.remove('btn-primary');
+                    waitlistBtn.classList.add('btn-secondary');
                 }
             }
-            form.classList.add('was-validated');
-        }, false);
-    }
+        }
+    });
+
+    // Delegated input handler for crop size
+    document.addEventListener('input', function(e) {
+        if (e.target.matches('.js-crop-size')) {
+            updateCropSize();
+        }
+    });
+
+    // Delegated mousedown for canvas
+    document.addEventListener('mousedown', function(e) {
+        if (e.target.id === 'imageCanvas') {
+            startDrag(e);
+        }
+    });
+
+    // Delegated mousemove for canvas drag
+    document.addEventListener('mousemove', function(e) {
+        if (isDragging) {
+            drag(e);
+        }
+    });
+
+    // Delegated mouseup/mouseleave to end drag
+    document.addEventListener('mouseup', endDrag);
+
+    // Touch support - delegated touchstart
+    document.addEventListener('touchstart', function(e) {
+        if (e.target.id === 'imageCanvas') {
+            handleTouchStart(e);
+        }
+    }, { passive: false });
+
+    // Touch move for dragging
+    document.addEventListener('touchmove', function(e) {
+        if (isDragging) {
+            handleTouchMove(e);
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchend', endDrag);
+
+    // Form validation - delegated submit
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (!form.matches('form.needs-validation, form[data-form]')) return;
+
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const firstInvalid = form.querySelector(':invalid');
+            if (firstInvalid) {
+                firstInvalid.focus();
+                firstInvalid.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+        }
+        form.classList.add('was-validated');
+    }, false);
 
     console.log('[WaitlistDiscordCropper] Initialized');
 }
@@ -383,17 +410,17 @@ if (typeof window.EventDelegation !== 'undefined') {
 }
 
 // Register with window.InitSystem
-window.InitSystem.register('waitlist-discord-cropper', init, {
+window.InitSystem.register('waitlist-discord-cropper', initWaitlistDiscordCropper, {
     priority: 30,
     description: 'Waitlist Discord cropper module'
 });
 
 // Fallback for non-module usage
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', initWaitlistDiscordCropper);
 
 // Export for use in templates
 window.WaitlistDiscordCropper = {
-    init,
+    init: initWaitlistDiscordCropper,
     loadImage,
     applyCrop,
     updateCropSize

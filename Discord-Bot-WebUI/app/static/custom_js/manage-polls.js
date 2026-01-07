@@ -6,7 +6,7 @@ import { InitSystem } from '../js/init-system.js';
 
 let _initialized = false;
 
-function init() {
+function initManagePolls() {
     if (_initialized) return;
 
     // Page guard - only run if polls table exists
@@ -39,7 +39,7 @@ function init() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('manage-polls', init, {
+    window.InitSystem.register('manage-polls', initManagePolls, {
         priority: 35,
         reinitializable: true,
         description: 'Manage polls DataTable'
@@ -48,3 +48,6 @@ if (window.InitSystem && window.InitSystem.register) {
 
 // Fallback for non-module usage
 // window.InitSystem handles initialization
+
+// Export for ES modules
+export { initManagePolls };

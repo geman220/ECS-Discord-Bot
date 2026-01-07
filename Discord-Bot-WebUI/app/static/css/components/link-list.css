@@ -47,7 +47,7 @@
   gap: var(--space-3, 12px);
   padding: var(--space-3, 12px) var(--space-4, 16px);
   margin: 0 calc(var(--space-4, 16px) * -1);
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   text-decoration: none;
   background: transparent;
   border: none;
@@ -70,7 +70,7 @@
 
 /* Focus state for accessibility */
 .c-link-list__item:focus-visible {
-  outline: 2px solid var(--color-primary, var(--color-primary-600, #2563EB));
+  outline: 2px solid var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   outline-offset: -2px;
 }
 
@@ -94,21 +94,21 @@
   height: 32px;
   background: rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-md, 8px);
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   font-size: 1rem;
   flex-shrink: 0;
   transition: all var(--duration-fast, 150ms) ease;
 }
 
 .c-link-list__item:hover .c-link-list__icon {
-  background: var(--color-primary, var(--color-primary-600, #2563EB));
-  color: var(--color-white, #fff);
+  background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
+  color: var(--color-white, var(--color-white));
 }
 
 .c-link-list__text {
   font-size: var(--text-sm, 0.875rem);
   font-weight: 500;
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -126,14 +126,14 @@
 }
 
 .c-link-list__arrow {
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   font-size: 1rem;
   transition: transform var(--duration-fast, 150ms) ease;
 }
 
 .c-link-list__item:hover .c-link-list__arrow {
   transform: translateX(4px);
-  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
+  color: var(--color-primary-light, var(--color-primary-400, var(--color-primary-400)));
 }
 
 /*
@@ -145,7 +145,7 @@
    ============================================================================ */
 
 [data-style="light"] .c-link-list__item {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 [data-style="light"] .c-link-list__item:hover {
@@ -158,22 +158,22 @@
 
 [data-style="light"] .c-link-list__icon {
   background: rgba(0, 0, 0, 0.04);
-  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
 [data-style="light"] .c-link-list__text {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 [data-style="light"] .c-link-list__item:hover .c-link-list__arrow {
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* ============================================================================
    RESPONSIVE
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-link-list__item {
     padding: var(--space-3, 12px);
   }

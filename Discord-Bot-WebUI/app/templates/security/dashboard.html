@@ -10,18 +10,18 @@
     <!-- Page Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="c-card-modern">
-                <div class="c-card-modern__body">
-                    <div class="c-card-modern__header">
+            <div class="c-card">
+                <div class="c-card__body">
+                    <div class="c-card__header">
                         <div>
-                            <h4 class="c-card-modern__title c-card-modern__title--primary">
-                                <i class="ti ti-shield-check c-card-modern__icon"></i>Security Dashboard
+                            <h4 class="c-card__title c-card__title--primary">
+                                <i class="ti ti-shield-check c-card__icon"></i>Security Dashboard
                             </h4>
-                            <p class="c-card-modern__subtitle">Monitor security status, threats, and system health</p>
+                            <p class="c-card__subtitle">Monitor security status, threats, and system health</p>
                         </div>
-                        <div class="c-card-modern__actions">
-                            <button class="c-btn-modern c-btn-modern--outline c-btn-modern--primary c-btn-modern--sm" data-action="refresh-stats">
-                                <i class="ti ti-refresh c-btn-modern__icon"></i>
+                        <div class="c-card__actions">
+                            <button class="c-btn c-btn--outline c-btn--primary c-btn--sm" data-action="refresh-stats">
+                                <i class="ti ti-refresh c-btn__icon"></i>
                                 Refresh
                             </button>
                             <span class="badge badge-success">
@@ -38,17 +38,17 @@
     <!-- Security Status Overview -->
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6 col-12 mb-3">
-            <div class="c-card-modern c-card-modern--{% if stats.security_features.rate_limiting %}success{% else %}warning{% endif %}">
-                <div class="c-card-modern__body">
-                    <div class="c-card-modern__content">
-                        <div class="c-card-modern__icon-wrapper c-card-modern__icon-wrapper--primary">
+            <div class="c-card c-card--{% if stats.security_features.rate_limiting %}success{% else %}warning{% endif %}">
+                <div class="c-card__body">
+                    <div class="c-card__content">
+                        <div class="c-card__icon-wrapper c-card__icon-wrapper--primary">
                             <i class="ti ti-shield-lock"></i>
                         </div>
                         <div>
-                            <h6 class="c-card-modern__label" data-bs-toggle="tooltip" data-bs-placement="top"
+                            <h6 class="c-card__label" data-bs-toggle="tooltip" data-bs-placement="top"
                                title="Rate limiting prevents abuse by limiting the number of requests from a single IP address within a time window">
                                 Rate Limiting
-                                <i class="ti ti-info-circle c-card-modern__help-icon"></i>
+                                <i class="ti ti-info-circle c-card__help-icon"></i>
                             </h6>
                             <span class="badge {% if stats.security_features.rate_limiting %}badge-success{% else %}badge-warning{% endif %}">
                                 {% if stats.security_features.rate_limiting %}Enabled{% else %}Disabled{% endif %}
@@ -60,7 +60,7 @@
         </div>
         
         <div class="col-lg-3 col-md-6 col-12 mb-3">
-            <div class="c-card security-status-card {% if stats.security_features.csrf_protection %}{% else %}warning{% endif %}">
+            <div class="c-card security-status-c-card {% if stats.security_features.csrf_protection %}{% else %}warning{% endif %}">
                 <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-3">
@@ -84,7 +84,7 @@
         </div>
         
         <div class="col-lg-3 col-md-6 col-12 mb-3">
-            <div class="c-card security-status-card {% if stats.security_features.attack_detection %}{% else %}danger{% endif %}">
+            <div class="c-card security-status-c-card {% if stats.security_features.attack_detection %}{% else %}danger{% endif %}">
                 <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-3">
@@ -108,7 +108,7 @@
         </div>
         
         <div class="col-lg-3 col-md-6 col-12 mb-3">
-            <div class="c-card security-status-card {% if stats.security_features.auto_ban %}{% else %}warning{% endif %}">
+            <div class="c-card security-status-c-card {% if stats.security_features.auto_ban %}{% else %}warning{% endif %}">
                 <div class="c-card__body">
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-md me-3">

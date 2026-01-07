@@ -110,7 +110,7 @@
   gap: var(--space-3);
 }
 
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
   .c-match-edit-form__input-group {
     grid-template-columns: 1fr;
   }

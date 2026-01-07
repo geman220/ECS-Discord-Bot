@@ -106,7 +106,7 @@
    Responsive Adjustments
    ========================================================================== */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .dp-search-group,
   .dp-filter-select,
   .dp-season-select {
@@ -119,3 +119,40 @@
     min-width: 150px;
   }
 }
+
+
+/* ============================================================================
+   EXTRACTED INLINE STYLES
+   ============================================================================ */
+
+/* From: draft_predictions/predict.html */
+.player-avatar-clickable {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.player-avatar-clickable:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.prediction-row.has-prediction {
+    background-color: rgba(var(--bs-success-rgb), 0.05);
+}
+
+.save-indicator {
+    transition: opacity 0.3s ease;
+}
+
+.save-indicator.saving {
+    color: var(--bs-warning);
+}
+
+.save-indicator.saved {
+    color: var(--bs-success);
+}
+
+.save-indicator.error {
+    color: var(--bs-danger);
+}
+

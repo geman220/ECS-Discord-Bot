@@ -21,7 +21,7 @@ const CSRF_METHODS = ['POST', 'PUT', 'DELETE', 'PATCH'];
  * Get CSRF token from meta tag
  * @returns {string|null} CSRF token or null if not found
  */
-export function getCSRFToken() {
+function getCSRFToken() {
     const meta = document.querySelector('meta[name="csrf-token"]');
     return meta ? meta.getAttribute('content') : null;
 }
@@ -32,7 +32,7 @@ export function getCSRFToken() {
  * @param {RequestInit} options - Fetch options
  * @returns {Promise<Response>} Fetch response promise
  */
-export function fetchWithCSRF(url, options = {}) {
+function fetchWithCSRF(url, options = {}) {
     // Determine the method (default is GET)
     const method = (options.method || 'GET').toUpperCase();
 

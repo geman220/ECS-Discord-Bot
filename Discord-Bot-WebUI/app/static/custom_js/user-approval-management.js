@@ -16,7 +16,7 @@ let denialModal = null;
 let playerDetailsModal = null;
 
 // Initialize function
-export function init() {
+export function initUserApprovalManagement() {
     if (_initialized) return;
     _initialized = true;
 
@@ -351,25 +351,8 @@ export function refreshStats() {
     }
 }
 
-/**
- * Get CSRF token from meta tag or cookie
- * @returns {string} CSRF token
- */
-export function getCSRFToken() {
-    // Try to get from meta tag first (vanilla JS pattern)
-    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
-
-    // If not found in meta tag, try cookie as fallback
-    if (!csrfToken) {
-        const cookieValue = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('csrf_token='))
-            ?.split('=')[1];
-        return cookieValue || '';
-    }
-
-    return csrfToken;
-}
+// getCSRFToken is provided globally by csrf-fetch.js
+export const getCSRFToken = window.getCSRFToken;
 
 /**
  * Show success alert
@@ -607,7 +590,7 @@ export function showPlayerDetails(userId) {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem.register) {
-    window.InitSystem.register('user-approval-management', init, {
+    window.InitSystem.register('user-approval-management', initUserApprovalManagement, {
         priority: 30,
         reinitializable: true,
         description: 'User approval management page'
@@ -617,21 +600,10 @@ if (window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-// Export functions for global use
+// Window exports - only functions used by event delegation handlers (user-approval.js)
 window.showApprovalModal = showApprovalModal;
 window.showDenialModal = showDenialModal;
 window.submitApproval = submitApproval;
 window.submitDenial = submitDenial;
 window.refreshStats = refreshStats;
 window.showPlayerDetails = showPlayerDetails;
-window.init = init;
-window.initializeModals = initializeModals;
-window.initializeFormSubmitListeners = initializeFormSubmitListeners;
-window.removeUserFromTable = removeUserFromTable;
-window.showEmptyTableMessage = showEmptyTableMessage;
-window.userApprovalUpdateStats = userApprovalUpdateStats;
-window.getCSRFToken = getCSRFToken;
-window.showSuccessAlert = showSuccessAlert;
-window.showErrorAlert = showErrorAlert;
-window.showWarningAlert = showWarningAlert;
-window.showInfoAlert = showInfoAlert;

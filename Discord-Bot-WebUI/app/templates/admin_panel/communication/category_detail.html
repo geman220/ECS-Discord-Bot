@@ -64,7 +64,7 @@
                 <div class="c-card__body p-0">
                     {% if templates %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="templates">
+                        <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="templates">
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">Template Name</th>
@@ -78,7 +78,7 @@
                             <tbody>
                                 {% for template in templates %}
                                 <tr>
-                                    <td>
+                                    <td data-label="Template Name">
                                         <div class="d-flex align-items-center">
                                             <i class="ti ti-file-text me-2 text-primary"></i>
                                             <div>
@@ -89,7 +89,7 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Channel">
                                         {% if template.channel_type == 'discord_dm' %}
                                         <span class="badge bg-primary" data-badge title="Discord Direct Message">
                                             <i class="ti ti-brand-discord me-1"></i>DM
@@ -116,22 +116,22 @@
                                         </span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Content Preview">
                                         <div class="content-preview">
                                             {{ template.message_content[:80] }}{% if template.message_content|length > 80 %}...{% endif %}
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         <span class="badge bg-{% if template.is_active %}success{% else %}secondary{% endif %}" data-badge>
                                             {% if template.is_active %}Active{% else %}Inactive{% endif %}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Last Updated">
                                         <small class="text-muted">
                                             {{ template.updated_at.strftime('%Y-%m-%d %H:%M') if template.updated_at else 'Never' }}
                                         </small>
                                     </td>
-                                    <td class="text-end">
+                                    <td data-label="Actions" class="text-end">
                                         <div class="btn-group btn-group-sm">
                                             <button class="c-btn c-btn--outline-info js-view-template"
                                                     data-action="view-template"
@@ -319,19 +319,19 @@
 <!-- View Template Modal -->
 <div class="modal c-modal fade" data-modal id="viewTemplateModal" tabindex="-1" aria-labelledby="view_template_title">
     <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
-            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
                 <h5 class="modal-title c-modal__title" id="view_template_title">Template Preview</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+            <div class="modal-body c-modal__body" data-modal-body>
                 <div class="c-card">
                     <div class="c-card__body">
                         <pre id="view_template_content" class="mb-0 pre-wrap"></pre>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
                 <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
             </div>
         </div>
@@ -455,93 +455,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.content-preview {
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 0.85rem;
-    color: var(--bs-secondary-color);
-}
-
-.pre-wrap {
-    white-space: pre-wrap;
-    font-family: inherit;
-}
-
-/* Fix form-select dropdown styling */
-.c-modal .form-select {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 16px 12px;
-    padding-right: 2.25rem;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-}
-
-[data-bs-theme="light"] .c-modal .form-select {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23333333' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-}
-
-/* Variable buttons */
-.var-btn {
-    display: inline-block;
-    padding: 0.2rem 0.5rem;
-    font-size: 0.75rem;
-    background-color: var(--bs-dark);
-    color: var(--bs-light);
-    border-radius: 0.25rem;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    user-select: none;
-}
-
-.var-btn:hover {
-    background-color: var(--bs-primary);
-    transform: scale(1.02);
-}
-
-.var-btn:active {
-    transform: scale(0.98);
-}
-
-.var-btn.inserted {
-    background-color: var(--bs-success) !important;
-}
-
-/* Dark mode variable card */
-[data-bs-theme="dark"] .c-card.bg-light {
-    background-color: rgba(255, 255, 255, 0.05) !important;
-}
-
-[data-bs-theme="dark"] .variable-groups label {
-    color: var(--bs-secondary-color);
-}
-
-/* Modal XL support */
-.c-modal__dialog--xl {
-    max-width: 1140px;
-}
-
-@media (max-width: 768px) {
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.75rem;
-    }
-
-    .content-preview {
-        max-width: 120px;
-    }
-
-    .c-modal__dialog--xl {
-        max-width: 100%;
-        margin: 0.5rem;
-    }
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

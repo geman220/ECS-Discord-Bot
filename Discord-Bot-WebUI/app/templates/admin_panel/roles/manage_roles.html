@@ -124,7 +124,7 @@
                 </div>
                 <div class="c-card__body p-0">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="roles">
+                        <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="roles">
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">Role Name</th>
@@ -140,7 +140,7 @@
                                 {% set role = role_data[0] %}
                                 {% set user_count = role_data[1] %}
                                 <tr>
-                                    <td>
+                                    <td data-label="Role Name">
                                         <div class="d-flex align-items-center">
                                             <div class="avatar avatar-sm me-2">
                                                 <span class="avatar-initial rounded-circle bg-label-{{ 'danger' if 'admin' in role.name.lower() else 'primary' if 'coach' in role.name.lower() else 'secondary' }}">
@@ -153,19 +153,19 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Description">
                                         {% if role.description %}
                                         <span>{{ role.description }}</span>
                                         {% else %}
                                         <span class="text-muted">No description</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Users">
                                         <a href="#" class="text-decoration-none js-view-role-users" data-action="view-role-users" data-role-id="{{ role.id }}">
                                             <span class="badge bg-label-info" data-badge>{{ user_count }} users</span>
                                         </a>
                                     </td>
-                                    <td>
+                                    <td data-label="Type">
                                         {% if 'admin' in role.name.lower() %}
                                         <span class="badge bg-label-danger" data-badge>Admin</span>
                                         {% elif 'coach' in role.name.lower() %}
@@ -176,14 +176,14 @@
                                         <span class="badge bg-label-secondary" data-badge>Other</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Created">
                                         {% if role.created_at %}
                                         <small>{{ role.created_at.strftime('%Y-%m-%d') }}</small>
                                         {% else %}
                                         <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Actions">
                                         <div class="dropdown">
                                             <button type="button" class="c-btn c-btn--sm c-btn--outline-secondary dropdown-toggle" data-bs-toggle="dropdown" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                             <ul class="dropdown-menu" data-dropdown-menu>
@@ -236,7 +236,7 @@
                 </div>
                 <div class="c-card__body">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="roles">
+                        <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="roles">
                             <thead scope="col">
                                 <tr>
                                     <th scope="col">User</th>
@@ -247,11 +247,11 @@
                             <tbody>
                                 {% for assignment in recent_assignments %}
                                 <tr>
-                                    <td>{{ assignment[0] }}</td>
-                                    <td>
+                                    <td data-label="User">{{ assignment[0] }}</td>
+                                    <td data-label="Role">
                                         <span class="badge bg-label-secondary" data-badge>{{ assignment[1] }}</span>
                                     </td>
-                                    <td>
+                                    <td data-label="Date">
                                         <small class="text-muted">{{ assignment[2].strftime('%Y-%m-%d') }}</small>
                                     </td>
                                 </tr>

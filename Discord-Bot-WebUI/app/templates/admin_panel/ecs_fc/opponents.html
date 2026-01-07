@@ -43,8 +43,8 @@
             </div>
             <div class="c-card__body p-0">
                 {% if opponents %}
-                <div class="table-responsive">
-                    <table class="c-table c-table--hover" data-mobile-table data-table-type="opponents">
+                <div class="c-table-wrapper">
+                    <table class="c-c-table c-table--hover" data-mobile-table data-table-type="opponents">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -60,22 +60,22 @@
                         <tbody>
                             {% for opp in opponents %}
                             <tr>
-                                <td><strong>{{ opp.name }}</strong></td>
-                                <td>{{ opp.short_name or '-' }}</td>
-                                <td>{{ opp.home_venue or '-' }}</td>
-                                <td>{{ opp.city or '-' }}</td>
-                                <td>{{ opp.league_affiliation or '-' }}</td>
-                                <td>
+                                <td data-label="Name"><strong>{{ opp.name }}</strong></td>
+                                <td data-label="Short Name">{{ opp.short_name or '-' }}</td>
+                                <td data-label="Home Venue">{{ opp.home_venue or '-' }}</td>
+                                <td data-label="City">{{ opp.city or '-' }}</td>
+                                <td data-label="League">{{ opp.league_affiliation or '-' }}</td>
+                                <td data-label="Matches">
                                     <span class="badge bg-info">{{ opp.matches|length }}</span>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     {% if opp.is_active %}
                                     <span class="badge bg-success">Active</span>
                                     {% else %}
                                     <span class="badge bg-secondary">Inactive</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         <button type="button"
                                                 class="c-btn c-btn--sm c-btn--outline-primary"
@@ -127,16 +127,16 @@
 {% block modals %}
 {{ super() }}
 <!-- Add Opponent Modal -->
-<div class="modal fade" id="addOpponentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
+<div class="modal fade c-modal" id="addOpponentModal" tabindex="-1">
+    <div class="modal-dialog c-modal__dialog">
+        <div class="modal-content c-modal__content">
             <form id="addOpponentForm">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="ti ti-plus me-2"></i>Add Opponent</h5>
+                <div class="modal-header c-modal__header">
+                    <h5 class="modal-title c-modal__title"><i class="ti ti-plus me-2"></i>Add Opponent</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body c-modal__body">
                     <div class="mb-3">
                         <label for="add_name" class="c-form-label">Name <span class="text-danger">*</span></label>
                         <input type="text" name="name" id="add_name" class="c-form-control" required
@@ -174,7 +174,7 @@
                         <textarea name="notes" id="add_notes" class="c-form-control" rows="2"></textarea>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer c-modal__footer">
                     <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="c-btn c-btn--primary">
                         <i class="ti ti-plus me-1"></i>Add Opponent
@@ -186,17 +186,17 @@
 </div>
 
 <!-- Edit Opponent Modal -->
-<div class="modal fade" id="editOpponentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
+<div class="modal fade c-modal" id="editOpponentModal" tabindex="-1">
+    <div class="modal-dialog c-modal__dialog">
+        <div class="modal-content c-modal__content">
             <form id="editOpponentForm">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="opponent_id" id="edit_opponent_id">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="ti ti-edit me-2"></i>Edit Opponent</h5>
+                <div class="modal-header c-modal__header">
+                    <h5 class="modal-title c-modal__title"><i class="ti ti-edit me-2"></i>Edit Opponent</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body c-modal__body">
                     <div class="mb-3">
                         <label for="edit_name" class="c-form-label">Name <span class="text-danger">*</span></label>
                         <input type="text" name="name" id="edit_name" class="c-form-control" required>
@@ -232,7 +232,7 @@
                         <label class="form-check-label" for="edit_is_active">Active</label>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer c-modal__footer">
                     <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="c-btn c-btn--primary">
                         <i class="ti ti-check me-1"></i>Save Changes

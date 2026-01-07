@@ -56,18 +56,25 @@ window.EventDelegation.register('generate-api-key', function(element, e) {
                             <p class="text-danger mb-2"><strong>Important:</strong> Copy this key now. You won't be able to see it again.</p>
                             <div class="input-group">
                                 <input type="text" class="form-control" value="${data.api_key}" id="generated-key" readonly>
-                                <button class="c-btn c-btn--outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('generated-key').value); this.innerHTML='Copied!';">
+                                <button class="c-btn c-btn--outline-secondary" type="button" data-copy-key>
                                     Copy
                                 </button>
                             </div>
                         </div>
                     `,
                     icon: 'success',
-                    confirmButtonText: 'I have copied the key'
+                    confirmButtonText: 'I have copied the key',
+                    didOpen: () => {
+                        const copyBtn = document.querySelector('[data-copy-key]');
+                        if (copyBtn) {
+                            copyBtn.addEventListener('click', () => {
+                                const keyInput = document.getElementById('generated-key');
+                                navigator.clipboard.writeText(keyInput.value);
+                                copyBtn.textContent = 'Copied!';
+                            });
+                        }
+                    }
                 }).then(() => location.reload());
-            } else {
-                alert('API Key: ' + data.api_key);
-                location.reload();
             }
         } else {
             throw new Error(data.error || 'Failed to generate API key');
@@ -99,24 +106,20 @@ window.EventDelegation.register('revoke-api-key', function(element, e) {
         return;
     }
 
-    if (typeof window.Swal === 'undefined') {
-        if (!confirm(`Revoke "${keyName}"? This action cannot be undone.`)) return;
-        performRevokeApiKey(keyId, element);
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Revoke API Key',
+            text: `Are you sure you want to revoke "${keyName}"? This action cannot be undone and any applications using this key will stop working.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Revoke',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performRevokeApiKey(keyId, element);
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Revoke API Key',
-        text: `Are you sure you want to revoke "${keyName}"? This action cannot be undone and any applications using this key will stop working.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Revoke',
-        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performRevokeApiKey(keyId, element);
-        }
-    });
 });
 
 function performRevokeApiKey(keyId, element) {
@@ -316,24 +319,20 @@ window.EventDelegation.register('save-api-config', function(element, e) {
 window.EventDelegation.register('reset-api-config', function(element, e) {
     e.preventDefault();
 
-    if (typeof window.Swal === 'undefined') {
-        if (!confirm('Reset configuration to defaults?')) return;
-        performResetApiConfig(element);
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Reset Configuration',
+            text: 'Are you sure you want to reset to default configuration?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Reset',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('warning') : '#ffc107'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performResetApiConfig(element);
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Reset Configuration',
-        text: 'Are you sure you want to reset to default configuration?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Reset',
-        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('warning') : '#ffc107'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performResetApiConfig(element);
-        }
-    });
 });
 
 function performResetApiConfig(element) {
@@ -394,24 +393,20 @@ window.EventDelegation.register('clear-api-logs', function(element, e) {
 
     const daysToKeep = element.dataset.daysToKeep || 30;
 
-    if (typeof window.Swal === 'undefined') {
-        if (!confirm(`Clear API logs older than ${daysToKeep} days?`)) return;
-        performClearApiLogs(daysToKeep, element);
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Clear API Logs',
+            text: `This will delete API logs older than ${daysToKeep} days. Continue?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Clear Logs',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performClearApiLogs(daysToKeep, element);
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Clear API Logs',
-        text: `This will delete API logs older than ${daysToKeep} days. Continue?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Clear Logs',
-        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performClearApiLogs(daysToKeep, element);
-        }
-    });
 });
 
 function performClearApiLogs(daysToKeep, element) {

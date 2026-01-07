@@ -8,11 +8,11 @@
  * - /teams/<id> (Team details page)
  *
  * REMEDIATION CHANGES:
- * - Removed ALL 11 !important declarations (except justified print styles)
+ * - Removed ALL 11 declarations (except justified print styles)
  * - Fixed specificity issues properly with .teams-page wrapper
  * - All colors converted to design tokens
  * - Full dark mode support with [data-style="dark"] selectors
- * - Uses proper cascade without !important
+ * - Uses proper cascade without
  *
  * Features:
  * - Team list display with clean borders
@@ -33,7 +33,7 @@
  * - Uses shadow tokens from tokens/shadows.css
  * - Applies animation tokens from tokens/animations.css
  *
- * Target: 0 unjustified !important declarations, all design tokens
+ * Target: 0 unjustified declarations, all design tokens
  * ============================================================================
  */
 
@@ -141,7 +141,7 @@
 /**
  * Prevent Header Scaling on Upload Button Hover
  * Disable transform when hovering over upload buttons to prevent sliding
- * REMEDIATION: Removed !important, increased specificity instead
+ * REMEDIATION: Removed, increased specificity instead
  */
 .team-header-with-background.no-scale:hover,
 .teams-page .team-header-with-background.no-scale:hover {
@@ -172,7 +172,7 @@
 /**
  * Upload Button Styles
  * Prevent parent transform from affecting buttons
- * REMEDIATION: Removed !important from transition and transform
+ * REMEDIATION: Removed from transition and transform
  * High specificity ensures these override Bootstrap and parent transforms
  */
 .teams-page .team-header-wrapper .position-absolute .btn,
@@ -360,7 +360,7 @@
 /**
  * ECS FC Match Styling
  * Special styling for ECS FC matches
- * REMEDIATION: Removed !important, used higher specificity
+ * REMEDIATION: Removed, used higher specificity
  */
 .teams-page .ecs-fc-match,
 .match-list .ecs-fc-match,
@@ -387,38 +387,7 @@
     background: linear-gradient(90deg, var(--color-primary-900) 0%, transparent 100%);
 }
 
-/* ============================================================================
-   EMPTY STATE COMPONENTS
-   Display when no data is available
-   ============================================================================ */
-
-/**
- * Empty State Container
- * Centered layout for empty state messages
- */
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: var(--color-text-secondary);
-}
-
-/**
- * Empty State Icon
- * Large icon for visual feedback
- */
-.empty-state-icon {
-    font-size: var(--font-size-4xl);
-    color: var(--color-text-secondary);
-}
-
-/**
- * Empty State Message
- * Description text
- */
-.empty-state-message {
-    font-size: var(--font-size-sm);
-}
+/* NOTE: .empty-state base styles in components/empty-states.css (source of truth) */
 
 /* ============================================================================
    IMAGE CROPPING MODAL COMPONENTS
@@ -515,7 +484,7 @@
 /**
  * Cropper Library Overrides
  * Custom styles for cropper.js library
- * REMEDIATION: Removed !important, used higher specificity instead
+ * REMEDIATION: Removed, used higher specificity instead
  * These need to override third-party library styles
  */
 .teams-page .cropper-crop-box,
@@ -534,7 +503,7 @@
 /**
  * Cropper Container Z-Index
  * Reset z-index for proper stacking in modals
- * REMEDIATION: Removed !important, increased specificity
+ * REMEDIATION: Removed, increased specificity
  */
 .teams-page .cropper-container,
 .modal-body .cropper-container {
@@ -681,7 +650,7 @@
 
     /**
      * Mobile Team Kit Margin
-     * REMEDIATION: Removed !important, increased specificity
+     * REMEDIATION: Removed, increased specificity
      */
     .teams-page .team-kit,
     .team-header-wrapper .team-kit {
@@ -689,6 +658,7 @@
         margin-left: 0;
     }
 
+    /* Teams list page kit sizing - intentionally different from team-details.css */
     .kit-image {
         max-height: 100px;
     }
@@ -728,10 +698,14 @@
     border-radius: var(--radius-sm);
 }
 
-.dropdown-menu a:focus {
+.dropdown-menu a:focus-visible {
     background-color: var(--color-hover-bg);
     outline: 2px solid var(--color-focus-ring);
     outline-offset: -2px;
+}
+
+.dropdown-menu a:focus:not(:focus-visible) {
+    outline: none;
 }
 
 .player-item:focus-within {
@@ -801,7 +775,7 @@
 /* ============================================================================
    PRINT STYLES
    Clean print output for team lists and details
-   REMEDIATION: !important is justified here for print styles
+   REMEDIATION: is justified here for print styles
    ============================================================================ */
 
 @media print {
@@ -817,7 +791,7 @@
     .upload-buttons-container,
     .btn-group,
     .btn {
-        display: none !important;
+        display: none;
     }
 
     .team-header-wrapper {

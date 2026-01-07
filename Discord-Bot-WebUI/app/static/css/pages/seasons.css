@@ -7,11 +7,11 @@
  * All styles use design tokens (CSS variables) for consistency.
  *
  * REMEDIATION CHANGES:
- * - Removed ALL 21 !important declarations
+ * - Removed ALL 21 declarations
  * - Fixed specificity issues properly with .seasons-page wrapper
  * - All colors use design tokens
  * - Maintained dark mode support
- * - Uses proper cascade without !important
+ * - Uses proper cascade without
  *
  * Sections:
  *   1. Table Styling
@@ -30,7 +30,7 @@
  *   14. Accessibility Enhancements
  *   15. Search Filter Utilities
  *
- * Target: 100% inline style elimination, 0 !important declarations
+ * Target: 100% inline style elimination, 0 declarations
  * ============================================================================
  */
 
@@ -292,7 +292,7 @@
     max-width: 100%;
 }
 
-/* Removed !important - use higher specificity instead */
+/* Removed - use higher specificity instead */
 .seasons-page .season-legend-card,
 .season-legend-card.card {
     max-width: 100%;
@@ -366,7 +366,7 @@
 
 .season-stat-icon i {
     font-size: var(--text-lg, 1.125rem);
-    color: var(--color-neutral-0, #ffffff);
+    color: var(--color-neutral-0, var(--color-white));
 }
 
 .season-stat-icon.stat-danger {
@@ -457,7 +457,7 @@
     }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
     /* Extra small devices */
     .season-selector {
         min-width: 120px;
@@ -595,4 +595,37 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* ============================================================================
+   16. SEASON MANAGEMENT PAGE (season_management.html)
+   Week sections and match slot components
+   ============================================================================ */
+
+.week-section {
+    border: 1px solid var(--color-border-primary, var(--bs-border-color));
+    border-radius: var(--radius-md, 0.5rem);
+    padding: var(--space-4, 1rem);
+    background-color: var(--color-bg-primary, var(--bs-body-bg));
+}
+
+.match-slot {
+    border: 1px solid var(--color-border-primary, var(--bs-border-color));
+    border-radius: var(--radius-sm, 0.375rem);
+    padding: var(--space-4, 1rem);
+    margin-bottom: var(--space-4, 1rem);
+    background-color: var(--color-bg-primary, var(--bs-body-bg));
+}
+
+.match-slot-header {
+    background-color: var(--color-bg-secondary, var(--bs-gray-100));
+    padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
+    margin: calc(var(--space-4, 1rem) * -1) calc(var(--space-4, 1rem) * -1) var(--space-4, 1rem) calc(var(--space-4, 1rem) * -1);
+    border-radius: var(--radius-sm, 0.375rem) var(--radius-sm, 0.375rem) 0 0;
+    border-bottom: 1px solid var(--color-border-primary, var(--bs-border-color));
+}
+
+/* Dark mode support for season management */
+[data-style="dark"] .match-slot-header {
+    background-color: var(--color-bg-tertiary, rgba(255, 255, 255, 0.05));
 }

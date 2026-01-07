@@ -90,7 +90,7 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">&nbsp;</label>
+                        <span class="u-form-label-spacer" aria-hidden="true"></span>
                         <div class="d-flex gap-2">
                             <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search me-1"></i>Filter
@@ -184,7 +184,7 @@
             <div class="c-card__body">
                 {% if upcoming_matches %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--striped" data-table data-mobile-table data-table-type="matches">
+                    <table class="c-c-table c-table--striped" data-table data-mobile-table data-table-type="matches">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Date</th>
@@ -196,16 +196,16 @@
                         <tbody>
                             {% for match in upcoming_matches %}
                             <tr>
-                                <td>
+                                <td data-label="Date">
                                     {{ match.date.strftime('%m/%d') if match.date else 'TBD' }}<br>
                                     <small class="text-muted">{{ match.time.strftime('%I:%M %p') if match.time else '' }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Match">
                                     <strong>{{ match.home_team.name }}</strong><br>
                                     <small class="text-muted">vs</small><br>
                                     <strong>{{ match.away_team.name }}</strong>
                                 </td>
-                                <td>
+                                <td data-label="Sub Requests">
                                     {% set match_requests = requested_teams_by_match.get(match.id, {}) %}
                                     {% if match_requests %}
                                     {% for team_id, request in match_requests.items() %}
@@ -217,7 +217,7 @@
                                     <span class="text-muted">No requests</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <button class="c-btn c-btn--sm c-btn--outline-primary" data-action="show-sub-assignment" data-match-id="{{ match.id }}">
                                         <i class="ti ti-plus me-1"></i>Quick Assign
                                     </button>

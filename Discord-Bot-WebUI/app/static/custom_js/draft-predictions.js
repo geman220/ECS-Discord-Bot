@@ -353,7 +353,7 @@ window.DraftPredictions = {
 window.DraftPredictionsManager = DraftPredictionsManager;
 
 // Initialize function
-function init() {
+function initDraftPredictions() {
     if (_initialized) return;
     _initialized = true;
 
@@ -366,11 +366,11 @@ function init() {
 // EXPORTS
 // ========================================================================
 
-export { init };
+export { initDraftPredictions };
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('draft-predictions', init, {
+    window.InitSystem.register('draft-predictions', initDraftPredictions, {
         priority: 40,
         reinitializable: false,
         description: 'Draft predictions auto-save'
@@ -380,5 +380,5 @@ if (window.InitSystem && window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility
-window.draftPredictionsInit = init;
+// DraftPredictions, DraftPredictionsManager exported above for console access
+// No additional backward compatibility exports needed

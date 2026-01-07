@@ -29,15 +29,15 @@
     "warning": "#fbbf24",
     "danger": "#f87171",
     "info": "#60a5fa",
-    "text_heading": "#fafafa",
-    "text_body": "#a1a1aa",
-    "text_muted": "#71717a",
+    "text_heading": "#F8FAFC",
+    "text_body": "#CBD5E1",
+    "text_muted": "#94A3B8",
     "text_link": "#a78bfa",
-    "bg_body": "#09090b",
-    "bg_card": "#18181b",
-    "bg_input": "#27272a",
-    "bg_sidebar": "#09090b",
-    "border": "#3f3f46",
-    "border_input": "#3f3f46"
+    "bg_body": "#0F172A",
+    "bg_card": "#1E293B",
+    "bg_input": "#334155",
+    "bg_sidebar": "#0F172A",
+    "border": "#475569",
+    "border_input": "#475569"
   }
 }

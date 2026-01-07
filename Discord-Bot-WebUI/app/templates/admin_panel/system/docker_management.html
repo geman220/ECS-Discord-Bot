@@ -61,7 +61,7 @@
             <div class="c-card__body">
                 {% if containers %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="stats">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="stats">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Name</th>
@@ -74,12 +74,12 @@
                         <tbody id="container-list">
                             {% for container in containers %}
                             <tr data-container-id="{{ container.id }}">
-                                <td>
+                                <td data-label="Name">
                                     <i class="ti ti-box me-2 text-muted"></i>
                                     <strong>{{ container.name }}</strong>
                                 </td>
-                                <td><code class="small">{{ container.image }}</code></td>
-                                <td>
+                                <td data-label="Image"><code class="small">{{ container.image }}</code></td>
+                                <td data-label="Status">
                                     {% if container.status.startswith('running') %}
                                     <span class="badge bg-success" data-badge>
                                         <i class="ti ti-circle-check me-1"></i>Running
@@ -94,14 +94,14 @@
                                     </span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Ports">
                                     {% if container.ports %}
                                     <span class="small">{{ container.ports }}</span>
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         {% if container.status.startswith('running') %}
                                         <button class="c-btn c-btn--outline-warning js-manage-container" data-action="manage-container" data-container-id="{{ container.id }}" data-container-action="stop" title="Stop">

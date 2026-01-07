@@ -158,11 +158,86 @@ def get_user_analytics():
 
 def generate_user_export_data(export_type, format_type, date_range):
     """Generate export data for users."""
-    # Placeholder - implement actual export logic as needed
-    return {
-        'url': None,
-        'filename': f'user_export_{export_type}_{datetime.utcnow().strftime("%Y%m%d")}.{format_type}'
-    }
+    from sqlalchemy.orm import joinedload
+
+    try:
+        # Calculate date filter
+        now = datetime.utcnow()
+        if date_range == '7_days':
+            start_date = now - timedelta(days=7)
+        elif date_range == '30_days':
+            start_date = now - timedelta(days=30)
+        elif date_range == '90_days':
+            start_date = now - timedelta(days=90)
+        else:
+            start_date = None
+
+        export_records = []
+
+        if export_type == 'users' or export_type == 'all':
+            query = User.query.options(
+                joinedload(User.player),
+                joinedload(User.roles)
+            )
+            if start_date:
+                query = query.filter(User.created_at >= start_date)
+            users = query.all()
+
+            for user in users:
+                export_records.append({
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'is_active': user.is_active,
+                    'is_approved': user.is_approved,
+                    'created_at': user.created_at.isoformat() if user.created_at else None,
+                    'last_login': user.last_login.isoformat() if hasattr(user, 'last_login') and user.last_login else None,
+                    'roles': [r.name for r in user.roles] if user.roles else [],
+                    'player_name': user.player.name if user.player else None,
+                    'discord_id': user.player.discord_id if user.player else None
+                })
+
+        elif export_type == 'roles':
+            users = User.query.options(joinedload(User.roles)).all()
+            for user in users:
+                for role in user.roles:
+                    export_records.append({
+                        'user_id': user.id,
+                        'username': user.username,
+                        'role_id': role.id,
+                        'role_name': role.name
+                    })
+
+        elif export_type == 'activity':
+            if start_date:
+                users = User.query.filter(User.last_login >= start_date).all() if hasattr(User, 'last_login') else []
+            else:
+                users = User.query.filter(User.is_active == True).all()
+            for user in users:
+                export_records.append({
+                    'id': user.id,
+                    'username': user.username,
+                    'last_login': user.last_login.isoformat() if hasattr(user, 'last_login') and user.last_login else None,
+                    'is_active': user.is_active
+                })
+
+        return {
+            'data': export_records,
+            'count': len(export_records),
+            'export_type': export_type,
+            'date_range': date_range,
+            'exported_at': now.isoformat(),
+            'filename': f'user_export_{export_type}_{now.strftime("%Y%m%d-%H%M%S")}.json'
+        }
+
+    except Exception as e:
+        logger.error(f"Error generating user export: {e}")
+        return {
+            'data': [],
+            'count': 0,
+            'error': str(e),
+            'filename': f'user_export_{export_type}_{datetime.utcnow().strftime("%Y%m%d")}.json'
+        }
 
 
 def find_duplicate_registrations():

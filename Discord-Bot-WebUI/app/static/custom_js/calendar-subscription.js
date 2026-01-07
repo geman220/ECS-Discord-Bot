@@ -8,6 +8,7 @@
 'use strict';
 
 import { InitSystem } from '../js/init-system.js';
+import { showToast } from '../js/services/toast-service.js';
 
 // State
 let subscription = null;
@@ -17,7 +18,7 @@ let _initialized = false;
 /**
  * Initialize the calendar subscription module
  */
-function init() {
+function initCalendarSubscription() {
     if (_initialized) return;
     _initialized = true;
 
@@ -166,49 +167,7 @@ function showError(message) {
     }
 }
 
-/**
- * Show toast notification
- * @param {string} type - 'success', 'error', 'warning', 'info'
- * @param {string} message
- */
-function showToast(type, message) {
-    // Use existing toast system if available
-    if (typeof window.showToast === 'function') {
-        window.showToast(type, message);
-        return;
-    }
-
-    // Fallback to Toastify
-    if (typeof window.Toastify !== 'undefined') {
-        // Use ECSTheme colors with gradient variations for toast backgrounds
-        const successColor = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#198754';
-        const successLight = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success-light') : '#198754';
-        const dangerColor = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545';
-        const dangerLight = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger-light') : '#dc3545';
-        const warningColor = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('warning') : '#ffc107';
-        const warningLight = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('warning-light') : '#ffc107';
-        const infoColor = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('info') : '#0dcaf0';
-        const infoLight = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('info-light') : '#0dcaf0';
-        const bgColors = {
-            success: `linear-gradient(to right, ${successColor}, ${successLight})`,
-            error: `linear-gradient(to right, ${dangerColor}, ${dangerLight})`,
-            warning: `linear-gradient(to right, ${warningColor}, ${warningLight})`,
-            info: `linear-gradient(to right, ${infoColor}, ${infoLight})`
-        };
-
-        window.Toastify({
-            text: message,
-            duration: 3000,
-            gravity: 'top',
-            position: 'right',
-            style: { background: bgColors[type] || bgColors.info }
-        }).showToast();
-        return;
-    }
-
-    // Final fallback
-    console.log(`[${type}] ${message}`);
-}
+// showToast imported from services/toast-service.js
 
 /**
  * Get the calendar subscription HTML for embedding in settings page
@@ -338,10 +297,10 @@ function getCardHTML(options = {}) {
 }
 
 // Auto-initialize function
-function initCalendarSubscription() {
+function initCalendarSubscriptionAuto() {
     // Check if we're on the settings page with the subscription card
     if (document.getElementById('calendarSubscriptionCard')) {
-        init();
+        initCalendarSubscription();
     }
 }
 
@@ -350,26 +309,25 @@ function initCalendarSubscription() {
 // ========================================================================
 
 export {
-    init,
     initCalendarSubscription,
+    initCalendarSubscriptionAuto,
     loadSubscription,
     renderSubscription,
     setLoading,
     showError,
-    showToast,
     getCardHTML
 };
 
 // Public API on window
 window.CalendarSubscription = {
-    init,
+    init: initCalendarSubscription,
     loadSubscription,
     getCardHTML
 };
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('calendar-subscription', initCalendarSubscription, {
+    window.InitSystem.register('calendar-subscription', initCalendarSubscriptionAuto, {
         priority: 35,
         reinitializable: false,
         description: 'Calendar subscription management'
@@ -380,4 +338,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.initCalendarSubscription = initCalendarSubscription;
+window.initCalendarSubscription = initCalendarSubscriptionAuto;

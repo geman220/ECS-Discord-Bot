@@ -309,6 +309,7 @@ export const EventDelegation = {
      * Reset statistics
      */
     resetStats() {
+        this.stats.handlersRegistered = 0;
         this.stats.eventsProcessed = 0;
         this.stats.errorsEncountered = 0;
     }

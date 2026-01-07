@@ -63,6 +63,9 @@
   /* Offcanvas content */
   --z-offcanvas: 1050;
 
+  /* Autocomplete dropdowns - above modal since they often appear in modals */
+  --z-autocomplete: 1060;
+
   /* Popovers */
   --z-popover: 1070;
 
@@ -115,4 +118,100 @@
  * ============================================ */
 [data-style="dark"] {
   /* Z-index scale remains the same in dark mode */
+}
+
+/* ============================================
+ * Applied Z-Index Rules
+ * Apply CSS variables to actual elements
+ * ============================================ */
+
+/* Navbar */
+.navbar,
+.c-navbar {
+  z-index: var(--z-navbar);
+}
+
+/* Sidebar */
+.sidebar,
+.c-sidebar,
+#sidebar {
+  z-index: var(--z-sidebar);
+}
+
+/* Chat Widget */
+.c-chat-widget,
+.c-messenger-widget {
+  z-index: var(--z-chat-widget);
+}
+
+/* Modal backdrop */
+.modal-backdrop,
+.c-modal-backdrop {
+  z-index: var(--z-modal-backdrop);
+}
+
+/* Modals */
+.modal,
+.c-modal {
+  z-index: var(--z-modal);
+}
+
+/* Dropdowns inside modals */
+.modal .dropdown-menu,
+.c-modal .c-dropdown__menu,
+.modal .c-dropdown__menu {
+  z-index: var(--z-modal-dropdown);
+}
+
+/* Autocomplete dropdowns (Tom Select, Select2, etc.) */
+.ts-dropdown,
+.select2-dropdown,
+.autocomplete-dropdown {
+  z-index: var(--z-autocomplete);
+}
+
+/* Tooltips */
+.tooltip,
+[data-bs-toggle="tooltip"] + .tooltip {
+  z-index: var(--z-tooltip);
+}
+
+/* Popovers */
+.popover {
+  z-index: var(--z-popover);
+}
+
+/* Toast notifications */
+.toast-container,
+.c-toast-container {
+  z-index: var(--z-toast);
+}
+
+/* SweetAlert modals - must be above regular modals */
+.swal2-container {
+  z-index: var(--z-sweetalert) !important;
+}
+
+/* Page loader */
+.page-loader,
+.c-loader-overlay {
+  z-index: var(--z-loader);
+}
+
+/* Sticky elements */
+.sticky-top,
+[data-sticky] {
+  z-index: var(--z-sticky);
+}
+
+/* Fixed elements */
+.fixed-top,
+.fixed-bottom {
+  z-index: var(--z-fixed);
+}
+
+/* Mobile bottom navigation - below modal but above content */
+.c-mobile-nav,
+.mobile-bottom-nav {
+  z-index: var(--z-fixed);
 }

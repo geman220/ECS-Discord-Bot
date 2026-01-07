@@ -24,26 +24,52 @@
    ============================================================================ */
 
 .layout-navbar {
-  position: relative;
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 260px; /* Start after sidebar */
   display: flex;
   align-items: center;
-  width: 100%;
   background-color: var(--color-bg-primary);
   border-bottom: var(--border-width) solid var(--border-color-primary);
   padding: var(--space-3) var(--space-4);
   z-index: var(--z-navbar, 1025);
 }
 
-[data-style="dark"] .layout-navbar {
-  background-color: var(--color-bg-primary, #0F172A);        /* Slate-950 */
-  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569))); /* Slate-700 */
+/* Collapsed sidebar - navbar extends further left */
+.layout-menu-collapsed .layout-navbar {
+  left: 78px; /* Collapsed sidebar width */
 }
 
-/* Modern navbar exception - no border or shadow */
+/* No sidebar - full width navbar */
+.layout-without-menu .layout-navbar {
+  left: 0;
+}
+
+/* Mobile - full width navbar (sidebar overlays) */
+@media (max-width: 1199.98px) {
+  .layout-navbar {
+    left: 0;
+  }
+}
+
+[data-style="dark"] .layout-navbar {
+  background-color: var(--color-bg-primary, var(--color-secondary-950));        /* Slate-950 */
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)))); /* Slate-700 */
+}
+
+/* Modern navbar - let component styles handle the background */
 .layout-navbar.c-navbar-modern {
-  border: none !important;
-  border-bottom: none !important;
-  box-shadow: none !important;
+  background: transparent;
+  background-color: transparent;
+  border: none;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+[data-style="dark"] .layout-navbar.c-navbar-modern {
+  background: transparent;
+  background-color: transparent;
 }
 
 /* ============================================================================
@@ -88,7 +114,7 @@
 }
 
 /* Responsive search input widths */
-@media (max-width: 991px) {
+@media (max-width: 991.98px) {
   .c-navbar__search-input {
     max-width: 600px;
   }
@@ -115,13 +141,13 @@
   border-radius: 0 0 var(--radius-md) var(--radius-md);
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
-  z-index: var(--z-popover);
+  z-index: var(--z-autocomplete, 1060);
 }
 
 [data-style="dark"] .ui-autocomplete {
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));       /* Slate-800 */
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));                 /* Slate-50 */
-  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));        /* Slate-700 */
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));       /* Slate-800 */
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));                 /* Slate-50 */
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));        /* Slate-700 */
 }
 
 .ui-menu-item-wrapper {
@@ -132,7 +158,7 @@
 }
 
 [data-style="dark"] .ui-menu-item-wrapper {
-  color: var(--color-text-primary, #fafafa);
+  color: var(--color-text-primary, var(--color-neutral-50));
 }
 
 .ui-menu-item-wrapper:hover,
@@ -142,7 +168,7 @@
 
 [data-style="dark"] .ui-menu-item-wrapper:hover,
 [data-style="dark"] .ui-state-active {
-  background: var(--color-bg-tertiary, var(--color-secondary-700, var(--color-secondary-700, #475569)));             /* Slate-700 */
+  background: var(--color-bg-tertiary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));             /* Slate-700 */
 }
 
 .ui-menu-item-wrapper img {
@@ -244,7 +270,7 @@
 }
 
 [data-style="dark"] .c-navbar__current-role-status {
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));       /* Slate-800 */
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));       /* Slate-800 */
 }
 
 /* ============================================================================
@@ -295,7 +321,7 @@
   flex-shrink: 0; /* Prevent toggle from shrinking */
 }
 
-@media (max-width: 1199px) {
+@media (max-width: 1199.98px) {
   .layout-menu-toggle {
     display: flex;
   }
@@ -319,7 +345,7 @@
 }
 
 [data-style="dark"] .layout-menu-toggle .nav-link:hover {
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
 }
 
 .layout-menu-toggle .c-navbar__menu-toggle-icon {
@@ -328,7 +354,7 @@
 }
 
 [data-style="dark"] .layout-menu-toggle .c-navbar__menu-toggle-icon {
-  color: var(--color-text-primary, #fafafa);
+  color: var(--color-text-primary, var(--color-neutral-50));
 }
 
 /* ============================================================================
@@ -379,12 +405,12 @@
 }
 
 [data-style="dark"] .navbar-nav .nav-link {
-  color: var(--color-text-secondary, #a1a1aa);
+  color: var(--color-text-secondary, var(--color-neutral-400));
 }
 
 [data-style="dark"] .navbar-nav .nav-link:hover {
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
-  color: var(--color-text-primary, #F8FAFC);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  color: var(--color-text-primary, var(--color-secondary-50));
 }
 
 /* User avatar - special case (should not have fixed width) */
@@ -457,8 +483,8 @@
 }
 
 [data-style="dark"] .dropdown-menu-header {
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));       /* Slate-800 */
-  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569))); /* Slate-700 */
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));       /* Slate-800 */
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)))); /* Slate-700 */
 }
 
 .dropdown-notifications-list {
@@ -473,7 +499,7 @@
 }
 
 [data-style="dark"] .dropdown-notifications-item {
-  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569))); /* Slate-700 */
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)))); /* Slate-700 */
 }
 
 .dropdown-notifications-item:hover {
@@ -481,7 +507,7 @@
 }
 
 [data-style="dark"] .dropdown-notifications-item:hover {
-  background-color: var(--color-bg-tertiary, var(--color-secondary-700, var(--color-secondary-700, #475569)));       /* Slate-700 */
+  background-color: var(--color-bg-tertiary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));       /* Slate-700 */
 }
 
 .dropdown-notifications-item.bg-light {
@@ -516,8 +542,8 @@
 }
 
 [data-style="dark"] .toast {
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));       /* Slate-800 */
-  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));        /* Slate-700 */
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));       /* Slate-800 */
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));        /* Slate-700 */
 }
 
 .toast-body {
@@ -529,7 +555,7 @@
 }
 
 [data-style="dark"] .toast-body {
-  color: var(--color-text-primary, #fafafa);
+  color: var(--color-text-primary, var(--color-neutral-50));
 }
 
 /* ============================================================================
@@ -537,7 +563,7 @@
    ============================================================================ */
 
 /* Mobile adjustments */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .layout-navbar {
     padding: var(--space-2) var(--space-3);
     gap: var(--space-2);
@@ -573,7 +599,7 @@
 }
 
 /* Tablet adjustments */
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 768px) and (max-width: 1199.98px) {
   .layout-navbar {
     padding: var(--space-3);
   }
@@ -594,12 +620,21 @@
    15. ACCESSIBILITY FEATURES
    ============================================================================ */
 
-/* Focus states for keyboard navigation */
-.nav-link:focus,
-.dropdown-item:focus,
-.btn:focus {
+/* Focus states for keyboard navigation ONLY (not mouse clicks) */
+.nav-link:focus-visible,
+.dropdown-item:focus-visible,
+.btn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* Remove focus outline for mouse clicks */
+.nav-link:focus:not(:focus-visible),
+.dropdown-item:focus:not(:focus-visible),
+.btn:focus:not(:focus-visible),
+.dropdown-menu:focus:not(:focus-visible),
+.dropdown-toggle:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* Skip to main content link (screen readers) */
@@ -629,9 +664,9 @@
     border-width: 2px;
   }
 
-  .nav-link:focus,
-  .dropdown-item:focus,
-  .btn:focus {
+  .nav-link:focus-visible,
+  .dropdown-item:focus-visible,
+  .btn:focus-visible {
     outline-width: 3px;
   }
 }
@@ -641,7 +676,7 @@
  * Accessibility requirement to override ALL animations and transitions when user
  * has enabled "reduce motion" in their OS settings (prefers-reduced-motion: reduce).
  * This is a WCAG guideline for motion sensitivity and vestibular disorders.
- * Must use !important to override:
+ * Must use to override:
  * - Inline styles from JavaScript animations
  * - Third-party library animations
  * - All component-level transitions
@@ -651,9 +686,9 @@
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
   }
 }
 

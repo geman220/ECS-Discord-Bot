@@ -10,7 +10,7 @@ import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 let cropper;
 
-function init() {
+function initCropper() {
     if (_initialized) return;
 
     // Page guard - only run on pages with image cropper
@@ -98,7 +98,7 @@ function onClickUpload() {
 // EXPORTS
 // ========================================================================
 
-export { init, croppingimg, onClickUpload };
+export { initCropper, croppingimg, onClickUpload };
 
 // Expose globally for button onclick (backward compatibility)
 window.onClickUpload = onClickUpload;
@@ -106,7 +106,7 @@ window.croppingimg = croppingimg;
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('cropper', init, {
+    window.InitSystem.register('cropper', initCropper, {
         priority: 45,
         reinitializable: false,
         description: 'Image cropper for profile photos'

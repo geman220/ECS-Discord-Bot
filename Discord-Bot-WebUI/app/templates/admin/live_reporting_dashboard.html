@@ -10,62 +10,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.status-card {
-    border-left: 4px solid var(--ecs-primary, #007bff);
-    margin-bottom: 20px;
-}
-
-.status-healthy {
-    border-left-color: var(--ecs-success, #28a745) !important;
-}
-
-.status-degraded {
-    border-left-color: var(--ecs-warning, #ffc107) !important;
-}
-
-.status-offline {
-    border-left-color: var(--ecs-danger, #dc3545) !important;
-}
-
-.service-indicator {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-right: 8px;
-}
-
-.service-healthy { background-color: var(--ecs-success, #28a745); }
-.service-degraded { background-color: var(--ecs-warning, #ffc107); }
-.service-offline { background-color: var(--ecs-danger, #dc3545); }
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.match-list {
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.session-item {
-    border-bottom: 1px solid #eee;
-    padding: 10px 0;
-}
-
-.session-item:last-child {
-    border-bottom: none;
-}
-
-.auto-refresh {
-    color: var(--ecs-secondary, #6c757d);
-    font-size: 0.9em;
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block panel_content %}
@@ -82,7 +27,7 @@
     <!-- System Status Cards -->
     <div class="stats-grid">
         <!-- Real-time Service Status -->
-        <div class="c-card status-card status-{{ 'healthy' if realtime_health.health == 'healthy' else 'degraded' if realtime_health.health == 'degraded' else 'offline' }}">
+        <div class="c-card status-c-card status-{{ 'healthy' if realtime_health.health == 'healthy' else 'degraded' if realtime_health.health == 'degraded' else 'offline' }}">
             <div class="c-card__header">
                 <i class="fas fa-server"></i> Real-time Service
             </div>
@@ -109,7 +54,7 @@
         </div>
 
         <!-- Active Sessions -->
-        <div class="c-card status-card">
+        <div class="c-card status-c-card">
             <div class="c-card__header">
                 <i class="fas fa-play-circle"></i> Active Sessions
             </div>
@@ -125,7 +70,7 @@
         </div>
 
         <!-- Coordination Status -->
-        <div class="c-card status-card status-{{ 'healthy' if coordination_status.coordination_status == 'healthy' else 'degraded' }}">
+        <div class="c-card status-c-card status-{{ 'healthy' if coordination_status.coordination_status == 'healthy' else 'degraded' }}">
             <div class="c-card__header">
                 <i class="fas fa-link"></i> Coordination
             </div>
@@ -141,7 +86,7 @@
         </div>
 
         <!-- Upcoming Matches -->
-        <div class="c-card status-card">
+        <div class="c-card status-c-card">
             <div class="c-card__header">
                 <i class="fas fa-calendar"></i> Upcoming Matches
             </div>

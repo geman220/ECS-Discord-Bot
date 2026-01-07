@@ -5,7 +5,7 @@
  *
  * Modern, production-ready admin navigation following architectural standards:
  * - BEM naming convention (c-admin-nav)
- * - Minimal !important usage (only for display:block on dropdown visibility)
+ * - Minimal usage (only for display:block on dropdown visibility)
  * - CSS variables with hardcoded fallbacks for theme support
  * - Design tokens for all values
  * - State-driven styling (is-* classes)
@@ -43,8 +43,8 @@
   width: 100%;
 
   /* Visual - Light mode defaults */
-  background-color: var(--color-bg-elevated, #ffffff);
-  border: var(--border-width, 1px) solid var(--color-border-primary, #e4e4e7);
+  background-color: var(--color-bg-elevated, var(--color-white)fff);
+  border: var(--border-width, 1px) solid var(--color-border-primary, var(--color-neutral-200));
   border-radius: var(--radius-lg, 0.5rem);
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
 
@@ -63,16 +63,16 @@
 /* Modern Theme - Light Mode */
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav {
-  background-color: var(--ecs-neutral-0, #ffffff);
-  border-color: var(--ecs-neutral-20, #e4e4e7);
+  background-color: var(--ecs-neutral-0, var(--color-white)fff);
+  border-color: var(--ecs-neutral-20, var(--color-neutral-200));
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 /* Modern Theme - Dark Mode - use semantic tokens */
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav {
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
-  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
@@ -83,8 +83,8 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav {
 [data-theme="dark"] .c-admin-nav,
 .dark-mode .c-admin-nav,
 body[data-style="dark"] .c-admin-nav {
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
-  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
 }
 
 /* ============================================================================
@@ -151,7 +151,7 @@ body[data-style="dark"] .c-admin-nav {
 /* ============================================================================
    NAVIGATION LINKS
    Clickable nav links with icons
-   Use full BEM path for higher specificity without !important
+   Use full BEM path for higher specificity without
    ============================================================================ */
 
 .c-admin-nav .c-admin-nav__list .c-admin-nav__link {
@@ -200,42 +200,42 @@ body[data-style="dark"] .c-admin-nav {
 /* Hover state */
 .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover {
   background-color: var(--color-primary-subtle, rgba(37, 99, 235, 0.1));
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* Active state */
 .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active {
-  background-color: var(--color-primary, var(--color-primary-600, #2563EB));
-  color: var(--color-text-on-primary, #ffffff);
+  background-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
+  color: var(--color-text-on-primary, var(--color-white)fff);
   font-weight: var(--font-semibold, 600);
 }
 
 /* Focus state for accessibility */
 .c-admin-nav .c-admin-nav__list .c-admin-nav__link:focus-visible {
-  outline: 2px solid var(--color-primary, var(--color-primary-600, #2563EB));
+  outline: 2px solid var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   outline-offset: 2px;
 }
 
 /* ============================================================================
    NAVIGATION LINKS - Modern Theme Light Mode
-   Improved contrast: #3F3F46 gives 9.6:1 ratio (WCAG AAA compliant)
+   Improved contrast: var(--color-neutral-700) gives 9.6:1 ratio (WCAG AAA compliant)
    ============================================================================ */
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link {
-  color: var(--color-text-secondary, #3F3F46);
+  color: var(--color-text-secondary, var(--color-neutral-700));
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover {
   background-color: rgba(var(--ecs-primary-rgb, 37, 99, 235), 0.08);
-  color: var(--ecs-primary, var(--color-primary-600, #2563EB));
+  color: var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active {
-  background-color: var(--ecs-primary, var(--color-primary-600, #2563EB));
-  color: var(--ecs-neutral-0, #ffffff);
+  background-color: var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
+  color: var(--ecs-neutral-0, var(--color-white)fff);
 }
 
 /* ============================================================================
@@ -244,19 +244,19 @@ html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link {
-  color: var(--ecs-dark-text-muted, #a1a1aa);
+  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
 }
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover {
   background-color: rgba(96, 165, 250, 0.15);
-  color: var(--ecs-primary-light, var(--color-primary-400, #60A5FA));
+  color: var(--ecs-primary-light, var(--color-primary-400, var(--color-primary-400)));
 }
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active {
-  background-color: var(--ecs-primary-light, var(--color-primary-400, #60A5FA));
-  color: var(--ecs-dark-bg-body, #09090b);
+  background-color: var(--ecs-primary-light, var(--color-primary-400, var(--color-primary-400)));
+  color: var(--ecs-dark-bg-body, var(--color-neutral-950));
 }
 
 /* Generic dark mode fallbacks */
@@ -264,7 +264,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__
 [data-theme="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link,
 .dark-mode .c-admin-nav .c-admin-nav__list .c-admin-nav__link,
 body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link {
-  color: var(--color-neutral-400, #a1a1aa);
+  color: var(--color-neutral-400, var(--color-neutral-400));
 }
 
 [data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover,
@@ -272,15 +272,15 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link {
 .dark-mode .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover,
 body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover {
   background-color: rgba(96, 165, 250, 0.15);
-  color: var(--color-primary-400, var(--color-primary-400, #60A5FA));
+  color: var(--color-primary-400, var(--color-primary-400, var(--color-primary-400)));
 }
 
 [data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active,
 [data-theme="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active,
 .dark-mode .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active,
 body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active {
-  background-color: var(--color-primary-600, var(--color-primary-400, #60A5FA));
-  color: var(--color-text-on-primary, #ffffff);
+  background-color: var(--color-primary-600, var(--color-primary-400, var(--color-primary-400)));
+  color: var(--color-text-on-primary, var(--color-white)fff);
 }
 
 /* ============================================================================
@@ -315,7 +315,7 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-ac
 }
 
 /* Hide text on small tablets to save space */
-@media (min-width: 768px) and (max-width: 991px) {
+@media (min-width: 768px) and (max-width: 991.98px) {
   .c-admin-nav__text {
     display: none;
   }
@@ -371,8 +371,8 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-ac
   max-width: 22rem;
 
   /* Visual - Light mode defaults */
-  background-color: var(--color-bg-elevated, #ffffff);
-  border: var(--border-width, 1px) solid var(--color-border-primary, #e4e4e7);
+  background-color: var(--color-bg-elevated, var(--color-white)fff);
+  border: var(--border-width, 1px) solid var(--color-border-primary, var(--color-neutral-200));
   border-radius: var(--radius-md, 0.375rem);
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.1),
@@ -389,9 +389,9 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-ac
   margin: 0;
 }
 
-/* Show when parent has is-open - using !important to override any conflicting display:none */
+/* Show when parent has is-open - using to override any conflicting display:none */
 .c-admin-nav .c-admin-nav__item.is-open > .c-admin-nav__dropdown {
-  display: block !important;
+  display: block ;
   animation: adminNavDropdownFadeIn var(--duration-normal, 200ms) var(--ease-smooth, ease-out);
 }
 
@@ -399,7 +399,7 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-ac
 .c-admin-nav .c-admin-nav__item [aria-expanded="true"] + .c-admin-nav__dropdown,
 .c-admin-nav [data-dropdown].is-open .c-admin-nav__dropdown,
 nav.c-admin-nav .c-admin-nav__list .c-admin-nav__item.is-open > ul.c-admin-nav__dropdown {
-  display: block !important;
+  display: block ;
 }
 
 /* Animation - Scoped to admin nav */
@@ -420,8 +420,8 @@ nav.c-admin-nav .c-admin-nav__list .c-admin-nav__item.is-open > ul.c-admin-nav__
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
-  background-color: var(--ecs-neutral-0, #ffffff);
-  border-color: var(--ecs-neutral-20, #e4e4e7);
+  background-color: var(--ecs-neutral-0, var(--color-white)fff);
+  border-color: var(--ecs-neutral-20, var(--color-neutral-200));
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.1),
     0 4px 6px -2px rgba(0, 0, 0, 0.05);
@@ -434,8 +434,8 @@ html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
-  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.4),
     0 4px 6px -2px rgba(0, 0, 0, 0.3);
@@ -446,22 +446,22 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__
 [data-theme="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown,
 .dark-mode .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown,
 body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
-  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.4),
     0 4px 6px -2px rgba(0, 0, 0, 0.3);
 }
 
 /* Mobile: full width dropdown (inline, not absolute) */
-@media (max-width: 991px) {
+@media (max-width: 991.98px) {
   .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
     position: static;
     width: 100%;
     margin-top: var(--space-1, 0.25rem);
     box-shadow: none;
     border: none;
-    border-left: 2px solid var(--color-primary, var(--color-primary-600, #2563EB));
+    border-left: 2px solid var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
     border-radius: 0;
     margin-left: var(--space-4, 1rem);
     padding-left: var(--space-2, 0.5rem);
@@ -473,8 +473,8 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
   [data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown,
   html[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown,
   body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
-    border-left-color: var(--color-primary, var(--color-primary-400, #60A5FA));
-    background-color: var(--color-bg-primary, #0F172A);
+    border-left-color: var(--color-primary, var(--color-primary-400, var(--color-primary-400)));
+    background-color: var(--color-bg-primary, var(--color-secondary-950));
   }
 }
 
@@ -495,7 +495,7 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
   /* Typography */
   font-size: var(--text-sm, 0.875rem);
   font-weight: var(--font-normal, 400);
-  color: var(--color-text-primary, #18181b);
+  color: var(--color-text-primary, var(--color-neutral-900));
   text-decoration: none;
   white-space: nowrap;
 
@@ -518,13 +518,13 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
 /* Hover state */
 .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover {
   background-color: var(--color-primary-subtle, rgba(37, 99, 235, 0.1));
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* Active state */
 .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item.is-active {
-  background-color: var(--color-primary, var(--color-primary-600, #2563EB));
-  color: var(--color-text-on-primary, #ffffff);
+  background-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
+  color: var(--color-text-on-primary, var(--color-white)fff);
 }
 
 /* ============================================================================
@@ -533,13 +533,13 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item {
-  color: var(--ecs-neutral-70, #3f3f46);
+  color: var(--ecs-neutral-70, var(--color-neutral-700));
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover {
   background-color: rgba(var(--ecs-primary-rgb, 37, 99, 235), 0.08);
-  color: var(--ecs-primary, var(--color-primary-600, #2563EB));
+  color: var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* ============================================================================
@@ -549,19 +549,19 @@ html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item {
-  color: var(--color-text-secondary, #d4d4d8);
+  color: var(--color-text-secondary, var(--color-neutral-300));
 }
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover {
   background-color: rgba(96, 165, 250, 0.2);
-  color: var(--color-primary-400, var(--color-primary-400, #60A5FA));
+  color: var(--color-primary-400, var(--color-primary-400, var(--color-primary-400)));
 }
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item.is-active,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item.is-active {
-  background-color: var(--color-primary-400, var(--color-primary-400, #60A5FA));
-  color: var(--color-bg-primary, #09090b);
+  background-color: var(--color-primary-400, var(--color-primary-400, var(--color-primary-400)));
+  color: var(--color-bg-primary, var(--color-neutral-950));
 }
 
 /* Generic dark mode fallbacks - use semantic tokens NOT inverted neutral scale */
@@ -569,7 +569,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__
 [data-theme="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item,
 .dark-mode .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item,
 body[data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item {
-  color: var(--color-text-secondary, #d4d4d8);
+  color: var(--color-text-secondary, var(--color-neutral-300));
 }
 
 [data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover,
@@ -577,7 +577,7 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdo
 .dark-mode .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover,
 body[data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover {
   background-color: rgba(96, 165, 250, 0.2);
-  color: var(--color-primary-400, var(--color-primary-400, #60A5FA));
+  color: var(--color-primary-400, var(--color-primary-400, var(--color-primary-400)));
 }
 
 /* ============================================================================
@@ -591,26 +591,26 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdo
   margin: var(--space-2, 0.5rem) 0;
 
   /* Visual */
-  background-color: var(--color-border-primary, #e4e4e7);
+  background-color: var(--color-border-primary, var(--color-neutral-200));
   border: none;
 }
 
 /* Modern Theme Light Mode divider */
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav__dropdown-divider,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav__dropdown-divider {
-  background-color: var(--ecs-neutral-20, #e4e4e7);
+  background-color: var(--ecs-neutral-20, var(--color-neutral-200));
 }
 
 /* Modern Theme Dark Mode divider */
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divider,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divider {
-  background-color: var(--color-border-primary, #52525b);
+  background-color: var(--color-border-primary, var(--color-neutral-600));
 }
 
 /* Generic dark mode fallback - use semantic tokens */
 [data-style="dark"] .c-admin-nav__dropdown-divider,
 [data-theme="dark"] .c-admin-nav__dropdown-divider {
-  background-color: var(--color-border-primary, #3f3f46);
+  background-color: var(--color-border-primary, var(--color-neutral-700));
 }
 
 /* ============================================================================
@@ -626,7 +626,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
   /* Typography */
   font-size: 0.6875rem;
   font-weight: var(--font-bold, 700);
-  color: var(--color-text-muted, #71717a);
+  color: var(--color-text-muted, var(--color-neutral-500));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 
@@ -643,7 +643,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
 /* Dark mode dropdown headers */
 [data-style="dark"] .c-admin-nav__dropdown-header,
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-header {
-  color: var(--color-text-muted, #a1a1aa);
+  color: var(--color-text-muted, var(--color-neutral-400));
 }
 
 /* ============================================================================
@@ -668,19 +668,19 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
 }
 
 .c-admin-nav__dropdown--wide::-webkit-scrollbar-thumb {
-  background-color: var(--color-border-primary, #e4e4e7);
+  background-color: var(--color-border-primary, var(--color-neutral-200));
   border-radius: 3px;
 }
 
 [data-style="dark"] .c-admin-nav__dropdown--wide::-webkit-scrollbar-thumb {
-  background-color: var(--color-border-primary, #52525b);
+  background-color: var(--color-border-primary, var(--color-neutral-600));
 }
 
 /* ============================================================================
    ACCESSIBILITY FEATURES
    ============================================================================ */
 
-/* Skip navigation link - Use clip method instead of !important */
+/* Skip navigation link - Use clip method instead of */
 .c-admin-nav__skip {
   position: absolute;
   width: 1px;
@@ -693,7 +693,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
   border-width: 0;
 }
 
-/* Visible on focus - proper method without !important */
+/* Visible on focus - proper method without */
 .c-admin-nav__skip:focus {
   position: fixed;
   top: var(--space-2);
@@ -770,7 +770,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
 /*
  * Reset any button framework styles (.ecs-btn, .btn, etc.)
  * that might be accidentally applied to the nav toggle buttons.
- * Uses high specificity path without !important.
+ * Uses high specificity path without.
  */
 .c-admin-nav .c-admin-nav__list .c-admin-nav__item .c-admin-nav__dropdown-toggle.ecs-btn,
 .c-admin-nav .c-admin-nav__list .c-admin-nav__item .c-admin-nav__dropdown-toggle.ecs-btn-icon,
@@ -794,7 +794,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
   padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
   font-size: var(--text-sm, 0.875rem);
   font-weight: var(--font-medium, 500);
-  color: var(--color-text-secondary, #52525b);
+  color: var(--color-text-secondary, var(--color-neutral-600));
   cursor: pointer;
   transition: all var(--duration-fast, 150ms) var(--ease-smooth, ease-out);
 }
@@ -816,7 +816,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
 .c-admin-nav .c-admin-nav__list .c-admin-nav__item .c-admin-nav__dropdown-toggle.btn:hover,
 .c-admin-nav .c-admin-nav__list .c-admin-nav__item button.c-admin-nav__link:hover {
   background-color: var(--color-primary-subtle, rgba(37, 99, 235, 0.1));
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* Dark mode reset for conflicting button classes */
@@ -830,7 +830,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
 [data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__item button.c-admin-nav__link {
   background-color: transparent;
   border-color: transparent;
-  color: var(--ecs-dark-text-muted, #a1a1aa);
+  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
 }
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__item .c-admin-nav__dropdown-toggle.ecs-btn:hover,
@@ -842,7 +842,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
 [data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__item .c-admin-nav__dropdown-toggle.btn:hover,
 [data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__item button.c-admin-nav__link:hover {
   background-color: rgba(96, 165, 250, 0.15);
-  color: var(--ecs-primary-light, var(--color-primary-400, #60A5FA));
+  color: var(--ecs-primary-light, var(--color-primary-400, var(--color-primary-400)));
 }
 
 /*
@@ -918,7 +918,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
    - Modals remain above at z-index: 1050+
 
    SPECIFICITY MANAGEMENT:
-   - NO !important declarations
+   - NO  declarations
    - Use full BEM paths for higher specificity
    - Proper cascade ordering
    - State classes combine with base classes

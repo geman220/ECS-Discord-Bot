@@ -36,14 +36,14 @@
         <!-- Left Column: Live Preview -->
         <div class="col-lg-4 mb-4">
             <div class="pass-preview-container">
-                <div class="c-card-modern">
-                    <div class="c-card-modern__header">
-                        <h6 class="c-card-modern__title"><i class="ti ti-device-mobile me-2"></i>Live Preview</h6>
+                <div class="c-card">
+                    <div class="c-card__header">
+                        <h6 class="c-card__title"><i class="ti ti-device-mobile me-2"></i>Live Preview</h6>
                     </div>
-                    <div class="c-card-modern__body">
+                    <div class="c-card__body">
                         {% include 'admin/pass_studio/components/preview_card.html' %}
                     </div>
-                    <div class="c-card-modern__footer c-card-modern__footer--center">
+                    <div class="c-card__footer c-card__footer--center">
                         <small class="c-text-muted">Preview updates as you make changes</small>
                     </div>
                 </div>
@@ -52,8 +52,8 @@
 
         <!-- Right Column: Editor Tabs -->
         <div class="col-lg-8">
-            <div class="c-card-modern">
-                <div class="c-card-modern__header">
+            <div class="c-card">
+                <div class="c-card__header">
                     <!-- Tabs -->
                     <ul class="c-tabs" role="tablist" data-tabs>
                         <li class="c-tabs__item">
@@ -86,7 +86,7 @@
                         {% endif %}
                     </ul>
                 </div>
-                <div class="c-card-modern__body">
+                <div class="c-card__body">
                     <div class="c-tabs__content">
                         <!-- Appearance Tab -->
                         <div class="c-tabs__pane {{ 'is-active' if active_tab == 'appearance' }}" data-tab-id="tab-appearance" role="tabpanel">
@@ -262,23 +262,6 @@
 <script src="{{ url_for('static', filename='js/pass-studio.js') }}"></script>
 {% endif %}
 
-<!--
-MIGRATION NOTE: Inline JavaScript has been extracted to /app/static/js/pass-studio.js
-All pass studio functionality now uses external JS with data attributes for configuration
-
-Migrated functions:
-- PassStudio.init()
-- PassStudio.loadPreviewData()
-- PassStudio.loadAssets()
-- PassStudio.updateAssetPreviews()
-- PassStudio.setPreviewPlatform()
-- PassStudio.updatePassStylePreview()
-- PassStudio.openAssetCropper()
-- PassStudio.updatePreview()
-- PassStudio.updatePreviewFields()
-- PassStudio.saveAppearance()
-- And all other PassStudio methods
--->
 
 <script data-pass-type-code="{{ pass_type_code }}">
 // Initialize with pass type code from data attribute

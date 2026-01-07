@@ -35,7 +35,7 @@ let _initialized = false;
 /**
  * Initialize appearance page functionality
  */
-function init() {
+function initAppearance() {
     // Only run on appearance page
     if (!document.querySelector('[data-component="appearance-header"]')) {
         return;
@@ -539,7 +539,7 @@ function importColors() {
 
 // Register with InitSystem
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('appearance', init, {
+    window.InitSystem.register('appearance', initAppearance, {
         priority: 50,
         reinitializable: false,
         description: 'Appearance customization page'
@@ -548,7 +548,7 @@ if (window.InitSystem && window.InitSystem.register) {
 
 // Export for global access
 window.AppearanceManager = {
-    init,
+    init: initAppearance,
     saveColors,
     resetColors,
     exportColors,

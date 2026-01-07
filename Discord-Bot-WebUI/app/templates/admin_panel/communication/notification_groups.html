@@ -96,7 +96,7 @@
                 <div class="c-card__body p-0">
                     {% if groups %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="notification-groups">
+                        <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="notification-groups">
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">Group Name</th>
@@ -110,7 +110,7 @@
                             <tbody>
                                 {% for group in groups %}
                                 <tr>
-                                    <td>
+                                    <td data-label="Group Name">
                                         <div>
                                             <strong>{{ group.name }}</strong>
                                             {% if group.description %}
@@ -118,28 +118,28 @@
                                             {% endif %}
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Type">
                                         <span class="badge bg-{% if group.group_type == 'dynamic' %}success{% else %}info{% endif %}" data-badge>
                                             <i class="ti ti-{% if group.group_type == 'dynamic' %}adjustments{% else %}list-check{% endif %} me-1"></i>
                                             {{ group.group_type|title }}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Members/Reach">
                                         {% if group.group_type == 'static' %}
                                         <span class="badge bg-secondary" data-badge>{{ group.members|length if group.members else 0 }} members</span>
                                         {% else %}
                                         <span class="badge bg-secondary" title="Dynamic - based on criteria" data-badge>Dynamic</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Created">
                                         <small>{{ group.created_at.strftime('%Y-%m-%d') if group.created_at else 'N/A' }}</small>
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         <span class="badge bg-{% if group.is_active %}success{% else %}danger{% endif %}" data-badge>
                                             {% if group.is_active %}Active{% else %}Inactive{% endif %}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Actions">
                                         <div class="btn-group btn-group-sm">
                                             <button class="c-btn c-btn--outline-info js-view-group"
                                                     data-action="view-group"
@@ -718,34 +718,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.list-group-item-action:hover {
-    background-color: var(--bs-light);
-}
-
-.member-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-@media (max-width: 768px) {
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.75rem;
-    }
-
-    .table-responsive {
-        font-size: 0.875rem;
-    }
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}
@@ -1135,7 +1108,7 @@ async function loadMembers() {
                             <strong>${member.name || 'Unknown'}</strong>
                             <br><small class="text-muted">${member.email || ''}</small>
                         </div>
-                        <button class="c-btn c-btn--sm c-btn--outline-danger js-remove-member" data-action="remove-member" data-member-id="${member.id}" aria-label="Button"><i class="ti ti-x"></i></button>
+                        <button class="c-btn c-btn--sm c-btn--outline-danger js-remove-member" data-action="remove-member" data-member-id="${member.id}" aria-label="Remove member"><i class="ti ti-x"></i></button>
                     </div>
                 `).join('');
 

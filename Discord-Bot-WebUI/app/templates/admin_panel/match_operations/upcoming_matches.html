@@ -87,7 +87,7 @@
             <div class="c-card__body">
                 {% if upcoming %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="matches">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="matches">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Date</th>
@@ -102,7 +102,7 @@
                         <tbody>
                             {% for match in upcoming %}
                             <tr>
-                                <td>
+                                <td data-label="Date">
                                     {% if match.date %}
                                         <strong>{{ match.date.strftime('%Y-%m-%d') }}</strong>
                                         <br><small class="text-muted">{{ match.date.strftime('%A') }}</small>
@@ -110,14 +110,14 @@
                                         <span class="text-muted">TBD</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Time">
                                     {% if match.time %}
                                         {{ match.time.strftime('%H:%M') }}
                                     {% else %}
                                         <span class="text-muted">TBD</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Match">
                                     <div class="d-flex align-items-center">
                                         <div>
                                             <strong>{{ match.home_team.name if match.home_team else 'TBD' }}</strong>
@@ -126,21 +126,21 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="League">
                                     {% if match.league %}
                                         <span class="badge bg-primary" data-badge>{{ match.league.name }}</span>
                                     {% else %}
                                         <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Venue">
                                     {% if match.venue %}
                                         {{ match.venue }}
                                     {% else %}
                                         <span class="text-muted">TBD</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     {% if match.date and match.time %}
                                         {% set days_until = (match.date - moment().date()).days %}
                                         {% if days_until == 0 %}
@@ -156,7 +156,7 @@
                                         <span class="badge bg-warning" data-badge>Unscheduled</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         <button class="c-btn c-btn--outline-info" data-action="view-match" data-match-id="{{ match.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                         <button class="c-btn c-btn--outline-warning" data-action="edit-match" data-match-id="{{ match.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>

@@ -53,7 +53,7 @@
 .mobile-wizard-body .form-select {
     border-radius: 12px;
     padding: 15px;
-    border: 2px solid var(--ecs-neutral-10, #e9ecef);
+    border: 2px solid var(--ecs-neutral-10, var(--color-neutral-200));
     font-size: 16px; /* Prevents zoom on iOS */
 }
 
@@ -65,7 +65,7 @@
 
 .mobile-wizard-body .form-label {
     font-weight: 600;
-    color: var(--ecs-neutral-60, #495057);
+    color: var(--ecs-neutral-60, var(--color-secondary-700));
     margin-bottom: 8px;
 }
 
@@ -86,7 +86,7 @@
    ============================================ */
 
 /* Remove default margins/padding for full mobile experience */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .mobile-wizard-body .container-fluid {
         padding-left: 15px;
         padding-right: 15px;

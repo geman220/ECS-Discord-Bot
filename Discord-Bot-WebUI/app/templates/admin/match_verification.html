@@ -37,12 +37,12 @@
     {% endif %}
 
     <!-- Filters Card -->
-    <div class="row filters-card">
+    <div class="row filters-c-card">
         <div class="col-12">
             <div class="c-card shadow-sm">
-                <div class="c-card__header filters-card-header">
+                <div class="c-card__header filters-c-card__header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="filters-card-title">
+                        <h5 class="filters-c-card__title">
                             <i class="ti ti-filter me-2"></i>Filter Matches
                         </h5>
                         <div>
@@ -57,7 +57,7 @@
                     <div class="c-card__body">
                         <!-- Season Selector Collapse -->
                         <div class="collapse season-selector-collapse c-season-selector-collapse" id="seasonSelectorCollapse">
-                            <div class="c-card c-card__body season-selector-card">
+                            <div class="c-card c-card__body season-selector-c-card">
                                 <h6 class="season-selector-title">Select Season</h6>
                                 <div class="season-grid">
                                     {% for season in seasons %}
@@ -134,13 +134,13 @@
     <!-- Stats Cards -->
     <div class="row stats-cards-row">
         <div class="col-xl-3 col-md-6 col-6">
-            <div class="c-card shadow-sm stat-card">
+            <div class="c-card shadow-sm stat-c-card">
                 <div class="c-card__body">
                     <div class="d-flex align-items-center mb-2">
                         <div class="stat-card-avatar stat-card-avatar--primary">
                             <i class="ti ti-soccer-field text-primary"></i>
                         </div>
-                        <h6 class="stat-card-title">Total Matches</h6>
+                        <h6 class="stat-c-card__title">Total Matches</h6>
                     </div>
                     <h3 class="stat-card-value">{{ matches|length }}</h3>
                     <p class="stat-card-description">Current season</p>
@@ -149,13 +149,13 @@
         </div>
 
         <div class="col-xl-3 col-md-6 col-6">
-            <div class="c-card shadow-sm stat-card">
+            <div class="c-card shadow-sm stat-c-card">
                 <div class="c-card__body">
                     <div class="d-flex align-items-center mb-2">
                         <div class="stat-card-avatar stat-card-avatar--success">
                             <i class="ti ti-check text-success"></i>
                         </div>
-                        <h6 class="stat-card-title">Fully Verified</h6>
+                        <h6 class="stat-c-card__title">Fully Verified</h6>
                     </div>
                     <h3 class="stat-card-value">{{ matches|selectattr('home_team_verified', 'defined')|selectattr('home_team_verified')|selectattr('away_team_verified', 'defined')|selectattr('away_team_verified')|list|length }}</h3>
                     <p class="stat-card-description">Both teams verified</p>
@@ -164,13 +164,13 @@
         </div>
 
         <div class="col-xl-3 col-md-6 col-6">
-            <div class="c-card shadow-sm stat-card">
+            <div class="c-card shadow-sm stat-c-card">
                 <div class="c-card__body">
                     <div class="d-flex align-items-center mb-2">
                         <div class="stat-card-avatar stat-card-avatar--warning">
                             <i class="ti ti-clock text-warning"></i>
                         </div>
-                        <h6 class="stat-card-title">Partially</h6>
+                        <h6 class="stat-c-card__title">Partially</h6>
                     </div>
                     <h3 class="stat-card-value">{{ matches|selectattr('home_team_score', 'defined')|selectattr('away_team_score', 'defined')|rejectattr('home_team_verified')|rejectattr('away_team_verified')|list|length }}</h3>
                     <p class="stat-card-description">One team verified</p>
@@ -179,13 +179,13 @@
         </div>
 
         <div class="col-xl-3 col-md-6 col-6">
-            <div class="c-card shadow-sm stat-card">
+            <div class="c-card shadow-sm stat-c-card">
                 <div class="c-card__body">
                     <div class="d-flex align-items-center mb-2">
                         <div class="stat-card-avatar stat-card-avatar--danger">
                             <i class="ti ti-alert-triangle text-danger"></i>
                         </div>
-                        <h6 class="stat-card-title">Not Reported</h6>
+                        <h6 class="stat-c-card__title">Not Reported</h6>
                     </div>
                     <h3 class="stat-card-value">{{ matches|rejectattr('home_team_score', 'defined')|list|length + matches|rejectattr('away_team_score', 'defined')|list|length }}</h3>
                     <p class="stat-card-description">Needs initial report</p>
@@ -197,7 +197,7 @@
     <!-- Matches Table Card -->
     <div class="row">
         <div class="col-12">
-            <div class="c-card shadow-sm matches-table-card">
+            <div class="c-card shadow-sm matches-table-c-card">
                 <div class="c-card__header matches-table-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="matches-table-title">
@@ -215,7 +215,7 @@
                     </div>
                 </div>
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable ecs-table ecs-table-hover c-match-verification-table" id="match-verification-table" data-table data-mobile-table data-table-type="matches">
+                    <table class="c-table c-table--hoverable ecs-table ecs-c-table--hoverable c-match-verification-c-table" id="match-verification-table" data-table data-mobile-table data-table-type="matches">
                         <thead class="c-table--light" scope="col">
                             <tr>
                                 <th scope="col">
@@ -334,7 +334,7 @@
                                     </td>
                                     <td class="match-actions-cell" data-label="Actions">
                                         <div class="dropdown match-actions-dropdown">
-                                            <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" id="matchActions{{ match.id }}" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
+                                            <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-c-btn--sm ecs-btn-icon" type="button" id="matchActions{{ match.id }}" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                             <ul class="dropdown-menu dropdown-menu-end match-actions-menu" aria-labelledby="matchActions{{ match.id }}" data-dropdown-menu>
                                                 <li>
                                                     <a class="dropdown-item" href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}">

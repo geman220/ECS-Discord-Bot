@@ -138,7 +138,7 @@
                 <!-- Table View (mobile.css will convert to cards automatically) -->
                 <div>
                     <div class="c-table-wrapper overflow-visible" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0 ecs-table ecs-table-hover user-management-table" data-table data-mobile-table data-table-type="users">
+                        <table class="c-table c-table--hoverable mb-0 ecs-table ecs-c-table--hoverable user-management-c-table" data-table data-mobile-table data-table-type="users">
                         <thead class="c-table--light" scope="col">
                             <tr>
                                 <th scope="col">Name</th>
@@ -152,16 +152,16 @@
                         <tbody>
                             {% for user in users %}
                             <tr>
-                                <td>
+                                <td data-label="Name">
                                     <div class="user-display-name">{{ user.actual_name }}</div>
                                     <small class="user-username">@{{ user.username }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Roles">
                                     {% for role in user.roles %}
                                     <span class="badge bg-label-primary" data-badge>{{ role }}</span>
                                     {% endfor %}
                                 </td>
-                                <td class="user-team-cell">
+                                <td data-label="Teams" class="user-team-cell">
                                     <div class="text-truncate">
                                         <strong>{{ user.team if user.team != 'N/A' else 'No Team' }}</strong>
                                         {% if user.secondary_team %}
@@ -169,7 +169,7 @@
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td class="user-league-cell">
+                                <td data-label="Leagues" class="user-league-cell">
                                     <div class="text-truncate">
                                         <strong>{{ user.league if user.league else 'None' }}</strong>
                                         {% if user.secondary_league %}
@@ -177,7 +177,7 @@
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     <div>
                                         {% if user.is_current_player %}
                                         <span class="badge bg-label-success" data-badge>Active</span>
@@ -192,10 +192,10 @@
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td class="text-end user-actions-cell" data-label="Actions">
+                                <td data-label="Actions" class="text-end user-actions-cell">
                                     <!-- Desktop Dropdown -->
                                     <div class="dropdown d-none d-lg-block">
-                                        <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" id="userActions{{ user.id }}" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
+                                        <button class="c-btn c-btn--sm c-btn--icon-only btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-c-btn--sm ecs-btn-icon" type="button" id="userActions{{ user.id }}" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userActions{{ user.id }}" data-dropdown-menu>
                                             <li>
                                                 <a class="dropdown-item" href="#" data-action="edit-user" data-user-id="{{ user.id }}">
@@ -358,7 +358,7 @@
                             <label for="editEmail" class="form-label">Email</label>
                             <div class="input-group" data-input-group>
                                 <span class="input-group-text"><i class="ti ti-mail"></i></span>
-                                <input type="email" class="form-control" id="editEmail" name="email" required data-form-control>
+                                <input type="email" class="form-control" id="editEmail" name="email" required inputmode="email" autocomplete="email" data-form-control>
                             </div>
                         </div>
 
@@ -481,7 +481,7 @@
                         <label for="editEmail" class="form-label">Email</label>
                         <div class="input-group" data-input-group>
                             <span class="input-group-text"><i class="ti ti-mail"></i></span>
-                            <input type="email" class="form-control" id="editEmail" name="email" required data-form-control>
+                            <input type="email" class="form-control" id="editEmail" name="email" required inputmode="email" autocomplete="email" data-form-control>
                         </div>
                     </div>
 
@@ -1513,7 +1513,7 @@
                         icon: 'info',
                         title: 'No Active Tasks',
                         text: 'There are no active sync tasks to review.',
-                        confirmButtonClass: 'btn btn-primary'
+                        confirmButtonClass: 'c-btn c-btn--primary'
                     });
                 }
             })
@@ -1522,7 +1522,7 @@
                     icon: 'error',
                     title: 'Error',
                     text: 'Failed to check for active sync tasks.',
-                    confirmButtonClass: 'btn btn-danger'
+                    confirmButtonClass: 'c-btn c-btn--danger'
                 });
             });
         }

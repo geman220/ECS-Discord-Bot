@@ -32,7 +32,7 @@ let _navCardsSetup = false;
 // INITIALIZATION
 // ============================================================================
 
-function init() {
+function initAdminPanelDashboard() {
     // Guard against duplicate initialization
     if (_initialized) return;
 
@@ -96,31 +96,28 @@ function highlightActiveNav() {
 // ============================================================================
 
 function openNavigationSettings() {
-    if (typeof window.Swal === 'undefined') {
-        alert('SweetAlert2 is required for this feature');
-        return;
-    }
-
-    window.Swal.fire({
-        title: 'Navigation Settings',
-        html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading navigation settings...</p></div>',
-        showConfirmButton: false,
-        allowOutsideClick: false
-    });
-
-    fetch('/admin-panel/api/navigation-settings')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNavigationSettingsModal(data.settings);
-            } else {
-                window.Swal.fire('Error', data.message || 'Failed to load navigation settings', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Navigation settings error:', error);
-            window.Swal.fire('Error', 'Failed to load navigation settings', 'error');
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Navigation Settings',
+            html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading navigation settings...</p></div>',
+            showConfirmButton: false,
+            allowOutsideClick: false
         });
+
+        fetch('/admin-panel/api/navigation-settings')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNavigationSettingsModal(data.settings);
+                } else {
+                    window.Swal.fire('Error', data.message || 'Failed to load navigation settings', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Navigation settings error:', error);
+                window.Swal.fire('Error', 'Failed to load navigation settings', 'error');
+            });
+    }
 }
 
 function showNavigationSettingsModal(settings) {
@@ -202,31 +199,28 @@ function saveNavigationSettings() {
 // ============================================================================
 
 function openRegistrationSettings() {
-    if (typeof window.Swal === 'undefined') {
-        alert('SweetAlert2 is required for this feature');
-        return;
-    }
-
-    window.Swal.fire({
-        title: 'Registration Settings',
-        html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading registration settings...</p></div>',
-        showConfirmButton: false,
-        allowOutsideClick: false
-    });
-
-    fetch('/admin-panel/api/registration-settings')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showRegistrationSettingsModal(data.settings, data.available_roles);
-            } else {
-                window.Swal.fire('Error', data.message || 'Failed to load registration settings', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Registration settings error:', error);
-            window.Swal.fire('Error', 'Failed to load registration settings', 'error');
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Registration Settings',
+            html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading registration settings...</p></div>',
+            showConfirmButton: false,
+            allowOutsideClick: false
         });
+
+        fetch('/admin-panel/api/registration-settings')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showRegistrationSettingsModal(data.settings, data.available_roles);
+                } else {
+                    window.Swal.fire('Error', data.message || 'Failed to load registration settings', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Registration settings error:', error);
+                window.Swal.fire('Error', 'Failed to load registration settings', 'error');
+            });
+    }
 }
 
 function showRegistrationSettingsModal(settings, roles) {
@@ -332,28 +326,25 @@ function saveRegistrationSettings() {
 // ============================================================================
 
 function openTaskMonitor() {
-    if (typeof window.Swal === 'undefined') {
-        alert('SweetAlert2 is required for this feature');
-        return;
-    }
-
-    window.Swal.fire({
-        title: 'Task Monitor',
-        html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading task information...</p></div>',
-        width: '800px',
-        showConfirmButton: false,
-        allowOutsideClick: false
-    });
-
-    fetch('/admin-panel/api/task-monitor')
-        .then(response => response.json())
-        .then(data => {
-            showTaskMonitorModal(data);
-        })
-        .catch(error => {
-            console.error('Error loading task monitor:', error);
-            window.Swal.fire('Error', 'Failed to load task monitor data', 'error');
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Task Monitor',
+            html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading task information...</p></div>',
+            width: '800px',
+            showConfirmButton: false,
+            allowOutsideClick: false
         });
+
+        fetch('/admin-panel/api/task-monitor')
+            .then(response => response.json())
+            .then(data => {
+                showTaskMonitorModal(data);
+            })
+            .catch(error => {
+                console.error('Error loading task monitor:', error);
+                window.Swal.fire('Error', 'Failed to load task monitor data', 'error');
+            });
+    }
 }
 
 function showTaskMonitorModal(data) {
@@ -437,28 +428,25 @@ function showTaskMonitorModal(data) {
 // ============================================================================
 
 function openDatabaseMonitor() {
-    if (typeof window.Swal === 'undefined') {
-        alert('SweetAlert2 is required for this feature');
-        return;
-    }
-
-    window.Swal.fire({
-        title: 'Database Monitor',
-        html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading system information...</p></div>',
-        width: '900px',
-        showConfirmButton: false,
-        allowOutsideClick: false
-    });
-
-    fetch('/admin-panel/api/system-status')
-        .then(response => response.json())
-        .then(data => {
-            showDatabaseMonitorModal(data);
-        })
-        .catch(error => {
-            console.error('Error loading database monitor:', error);
-            window.Swal.fire('Error', 'Failed to load system monitor data', 'error');
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Database Monitor',
+            html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading system information...</p></div>',
+            width: '900px',
+            showConfirmButton: false,
+            allowOutsideClick: false
         });
+
+        fetch('/admin-panel/api/system-status')
+            .then(response => response.json())
+            .then(data => {
+                showDatabaseMonitorModal(data);
+            })
+            .catch(error => {
+                console.error('Error loading database monitor:', error);
+                window.Swal.fire('Error', 'Failed to load system monitor data', 'error');
+            });
+    }
 }
 
 function showDatabaseMonitorModal(data) {
@@ -515,28 +503,42 @@ function showDatabaseMonitorModal(data) {
 // ============================================================================
 
 function openMatchReports() {
-    if (typeof window.Swal === 'undefined') {
-        alert('SweetAlert2 is required for this feature');
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Match Reports',
+            html: `
+            <div class="text-start">
+              <p class="text-info mb-3"><i class="ti ti-info-circle me-1"></i>Access match reports and statistics.</p>
+              <div class="mb-3">
+                <strong>Available Reports:</strong>
+                <ul class="mt-2">
+                  <li>Match results are available on the Matches page</li>
+                  <li>Team statistics are on individual Team pages</li>
+                  <li>Season standings on the Leagues page</li>
+                </ul>
+              </div>
+              <div class="d-flex gap-2 flex-wrap">
+                <a href="/matches" class="btn btn-outline-primary btn-sm">
+                  <i class="ti ti-calendar me-1"></i>Matches
+                </a>
+                <a href="/teams" class="btn btn-outline-info btn-sm">
+                  <i class="ti ti-users me-1"></i>Teams
+                </a>
+                <a href="/leagues" class="btn btn-outline-success btn-sm">
+                  <i class="ti ti-trophy me-1"></i>Leagues
+                </a>
+              </div>
+            </div>
+          `,
+            width: '600px',
+            confirmButtonText: 'Close'
+        });
     }
-
-    window.Swal.fire({
-        title: 'Match Reports',
-        html: `
-        <div class="text-start">
-          <p class="text-info mb-3"><i class="ti ti-info-circle me-1"></i>Generate comprehensive match reports with various options.</p>
-          <div class="alert alert-warning">
-            <strong>Note:</strong> This feature is currently in development. Report generation will be available soon.
-          </div>
-        </div>
-      `,
-        width: '600px',
-        confirmButtonText: 'Close'
-    });
 }
 
 function generateReport() {
-    console.log('Generate report functionality coming soon');
+    // Navigate to matches page for match-related reports
+    window.location.href = '/matches';
 }
 
 // ============================================================================
@@ -557,20 +559,7 @@ function createToggle(id, label, description, checked, disabled = false) {
     `;
 }
 
-function getCSRFToken() {
-    const metaToken = document.querySelector('meta[name="csrf-token"]');
-    if (metaToken) {
-        return metaToken.getAttribute('content');
-    }
-
-    const formToken = document.querySelector('input[name="csrf_token"]');
-    if (formToken) {
-        return formToken.value;
-    }
-
-    console.error('CSRF token not found');
-    return '';
-}
+// getCSRFToken is provided globally by csrf-fetch.js
 
 // ============================================================================
 // EVENT DELEGATION - Registered at module scope
@@ -589,7 +578,7 @@ window.EventDelegation.register('generate-report', generateReport, { preventDefa
 // ============================================================================
 
 // Register with window.InitSystem
-window.InitSystem.register('admin-panel-dashboard', init, {
+window.InitSystem.register('admin-panel-dashboard', initAdminPanelDashboard, {
     priority: 30,
     reinitializable: true,
     description: 'Admin panel dashboard'
@@ -598,30 +587,11 @@ window.InitSystem.register('admin-panel-dashboard', init, {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility exports
-window.init = init;
-window.registerEventHandlers = registerEventHandlers;
-window.setupNavigationCards = setupNavigationCards;
-window.handleNavigate = handleNavigate;
-window.highlightActiveNav = highlightActiveNav;
-window.openNavigationSettings = openNavigationSettings;
-window.showNavigationSettingsModal = showNavigationSettingsModal;
-window.saveNavigationSettings = saveNavigationSettings;
-window.openRegistrationSettings = openRegistrationSettings;
-window.showRegistrationSettingsModal = showRegistrationSettingsModal;
-window.saveRegistrationSettings = saveRegistrationSettings;
-window.openTaskMonitor = openTaskMonitor;
-window.showTaskMonitorModal = showTaskMonitorModal;
-window.openDatabaseMonitor = openDatabaseMonitor;
-window.showDatabaseMonitorModal = showDatabaseMonitorModal;
-window.openMatchReports = openMatchReports;
-window.generateReport = generateReport;
-window.createToggle = createToggle;
-window.getCSRFToken = getCSRFToken;
+// No window exports needed - handlers are registered with EventDelegation
 
 // Named exports for ES modules
 export {
-    init,
+    initAdminPanelDashboard,
     registerEventHandlers,
     setupNavigationCards,
     handleNavigate,

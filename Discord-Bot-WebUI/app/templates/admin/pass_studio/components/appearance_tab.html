@@ -24,7 +24,7 @@
                            {% if pass_type.apple_pass_style == 'storeCard' %}checked{% endif %}
                            data-on-change="update-pass-style">
                     <label class="c-btn c-btn--outline-primary" for="style_storeCard">
-                        <i class="ti ti-credit-card me-1"></i>Store Card
+                        <i class="ti ti-credit-c-card me-1"></i>Store Card
                     </label>
 
                     <input type="radio" class="btn-check" name="apple_pass_style" id="style_eventTicket" value="eventTicket"
@@ -239,7 +239,7 @@
             <div class="row">
                 {# Icon #}
                 <div class="col-md-4 col-lg-3 mb-3">
-                    <div class="asset-upload-card js-open-asset-cropper" data-asset-type="icon" data-action="open-asset-cropper">
+                    <div class="asset-upload-c-card js-open-asset-cropper" data-asset-type="icon" data-action="open-asset-cropper">
                         <div class="asset-preview">
                             {% if assets.get('icon') %}
                             <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['icon'].id) }}"
@@ -261,7 +261,7 @@
 
                 {# Logo #}
                 <div class="col-md-4 col-lg-3 mb-3">
-                    <div class="asset-upload-card js-open-asset-cropper" data-asset-type="logo" data-action="open-asset-cropper">
+                    <div class="asset-upload-c-card js-open-asset-cropper" data-asset-type="logo" data-action="open-asset-cropper">
                         <div class="asset-preview">
                             {% if assets.get('logo') %}
                             <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['logo'].id) }}"
@@ -289,7 +289,7 @@
             <div class="row">
                 {# Strip - for storeCard and eventTicket #}
                 <div class="col-md-4 col-lg-3 mb-3 asset-strip-container {% if (pass_type.apple_pass_style or 'generic') == 'generic' %}u-hidden{% endif %}" id="asset-strip-wrapper">
-                    <div class="asset-upload-card js-open-asset-cropper" data-asset-type="strip" data-action="open-asset-cropper">
+                    <div class="asset-upload-c-card js-open-asset-cropper" data-asset-type="strip" data-action="open-asset-cropper">
                         <div class="asset-preview">
                             {% if assets.get('strip') %}
                             <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['strip'].id) }}"
@@ -311,7 +311,7 @@
 
                 {# Thumbnail - for generic only #}
                 <div class="col-md-4 col-lg-3 mb-3 asset-thumbnail-container {% if (pass_type.apple_pass_style or 'generic') != 'generic' %}u-hidden{% endif %}" id="asset-thumbnail-wrapper">
-                    <div class="asset-upload-card js-open-asset-cropper" data-asset-type="thumbnail" data-action="open-asset-cropper">
+                    <div class="asset-upload-c-card js-open-asset-cropper" data-asset-type="thumbnail" data-action="open-asset-cropper">
                         <div class="asset-preview">
                             {% if assets.get('thumbnail') %}
                             <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['thumbnail'].id) }}"

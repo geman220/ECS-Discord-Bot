@@ -31,25 +31,25 @@
     <!-- Stats Cards -->
     <div class="row mb-4">
         <div class="col-md-3 mb-3">
-            <div class="stats-card pending" data-role="stats-card" data-status="pending">
+            <div class="stats-c-card pending" data-role="stats-card" data-status="pending">
                 <div class="stats-number" data-role="stats-number">{{ stats.pending_count }}</div>
                 <div class="stats-label">Pending Approval</div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="stats-card approved" data-role="stats-card" data-status="approved">
+            <div class="stats-c-card approved" data-role="stats-card" data-status="approved">
                 <div class="stats-number" data-role="stats-number">{{ stats.total_approved }}</div>
                 <div class="stats-label">Total Approved</div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="stats-card denied" data-role="stats-card" data-status="denied">
+            <div class="stats-c-card denied" data-role="stats-card" data-status="denied">
                 <div class="stats-number" data-role="stats-number">{{ stats.total_denied }}</div>
                 <div class="stats-label">Total Denied</div>
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="stats-card" data-role="stats-card" data-status="total">
+            <div class="stats-c-card" data-role="stats-card" data-status="total">
                 <div class="stats-number" data-role="stats-number">{{ stats.pending_count + stats.total_approved + stats.total_denied }}</div>
                 <div class="stats-label">Total Applications</div>
             </div>
@@ -67,7 +67,7 @@
                 <div class="c-card__body" data-role="table-container">
                     {% if pending_users %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable" data-mobile-table data-table-type="users" data-table data-role="approval-table">
+                        <table class="c-c-table c-table--hoverable" data-mobile-table data-table-type="users" data-table data-role="approval-table">
                             <thead scope="col">
                                 <tr>
                                     <th scope="col">User</th>
@@ -82,7 +82,7 @@
                             <tbody>
                                 {% for user in pending_users %}
                                 <tr data-role="user-row" data-user-id="{{ user.id }}">
-                                    <td>
+                                    <td data-label="User">
                                         <div class="user-info">
                                             <div class="user-avatar js-show-player-details u-cursor-pointer" data-action="show-player-details" data-user-id="{{ user.id }}">
                                                 {% if user.player and user.player.profile_picture_url %}
@@ -101,8 +101,8 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td>{{ user.email }}</td>
-                                    <td>
+                                    <td data-label="Email">{{ user.email }}</td>
+                                    <td data-label="League Preference">
                                         {% if user.preferred_league %}
                                             {% if user.preferred_league == 'pub_league_classic' %}
                                                 <span class="badge bg-label-primary" data-badge>🏆 Pub League Classic</span>
@@ -123,20 +123,20 @@
                                             {% endif %}
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Discord ID">
                                         {% if user.player and user.player.discord_id %}
                                             <code>{{ user.player.discord_id }}</code>
                                         {% else %}
                                             <span class="text-muted">No Discord ID</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown' }}</td>
-                                    <td>
+                                    <td data-label="Registered">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown' }}</td>
+                                    <td data-label="Current Roles">
                                         {% for role in user.roles %}
                                             <span class="badge bg-label-primary me-1" data-badge data-role="user-role">{{ role.name }}</span>
                                         {% endfor %}
                                     </td>
-                                    <td>
+                                    <td data-label="Actions">
                                         <button class="c-btn c-btn--sm btn-approve me-2 js-show-approval-modal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
                                             <i class="ti ti-check"></i> Approve
                                         </button>
@@ -171,7 +171,7 @@
                 </div>
                 <div class="c-card__body">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--compact" data-mobile-table data-table-type="users" data-table>
+                        <table class="c-c-table c-table--compact" data-mobile-table data-table-type="users" data-table>
                             <thead scope="col">
                                 <tr>
                                     <th scope="col">User</th>
@@ -184,15 +184,15 @@
                             <tbody>
                                 {% for user in recent_actions %}
                                 <tr>
-                                    <td>{{ user.username }}</td>
-                                    <td>
+                                    <td data-label="User">{{ user.username }}</td>
+                                    <td data-label="Action">
                                         {% if user.approval_status == 'approved' %}
                                             <span class="badge status-approved" data-badge data-status="approved">Approved</span>
                                         {% elif user.approval_status == 'denied' %}
                                             <span class="badge status-denied" data-badge data-status="denied">Denied</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="League">
                                         {% if user.approval_league %}
                                             {% if user.approval_league.startswith('sub-') %}
                                                 <span class="badge bg-label-warning" data-badge>{{ user.approval_league[4:].title() }} Sub</span>
@@ -203,8 +203,8 @@
                                             <span class="text-muted">N/A</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ user.approved_by_user.username if user.approved_by_user else 'Unknown' }}</td>
-                                    <td>{{ user.approved_at.strftime('%Y-%m-%d %H:%M') if user.approved_at else 'Unknown' }}</td>
+                                    <td data-label="Processed By">{{ user.approved_by_user.username if user.approved_by_user else 'Unknown' }}</td>
+                                    <td data-label="Date">{{ user.approved_at.strftime('%Y-%m-%d %H:%M') if user.approved_at else 'Unknown' }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

@@ -7,540 +7,572 @@
 /* ================================
    Display & Visibility
    ================================ */
+
 .u-hidden {
-    display: none !important;
+  display: none;
 }
 
 .u-block {
-    display: block !important;
+  display: block;
 }
 
 .u-inline-block {
-    display: inline-block !important;
+  display: inline-block;
 }
 
 /* ================================
    Height Utilities
    ================================ */
+
 .u-h-8 {
-    height: 8px;
+  height: 8px;
 }
 
 .u-h-20 {
-    height: 20px;
+  height: 20px;
 }
 
 .u-h-25 {
-    height: 25px;
+  height: 25px;
 }
 
 .u-h-30 {
-    height: 30px;
+  height: 30px;
 }
 
 .u-h-40 {
-    height: 40px;
+  height: 40px;
 }
 
 .u-h-300 {
-    height: 300px;
+  height: 300px;
 }
 
 .u-h-400 {
-    height: 400px;
+  height: 400px;
 }
 
 .u-max-h-180 {
-    max-height: 180px;
-    width: auto;
+  max-height: 180px;
+  width: auto;
 }
 
 .u-max-h-200 {
-    max-height: 200px;
+  max-height: 200px;
 }
 
 .u-max-h-300 {
-    max-height: 300px;
+  max-height: 300px;
 }
 
 /* ================================
    Width Utilities
    ================================ */
+
 .u-w-30 {
-    width: 30px;
+  width: 30px;
 }
 
 .u-w-32 {
-    width: 32px;
+  width: 32px;
 }
 
 .u-w-40 {
-    width: 40px;
+  width: 40px;
 }
 
 .u-w-50 {
-    width: 50px;
+  width: 50px;
 }
 
 .u-w-60 {
-    width: 60px;
+  width: 60px;
 }
 
 .u-w-80 {
-    width: 80px;
+  width: 80px;
 }
 
 .u-w-100 {
-    width: 100px;
+  width: 100px;
 }
 
 .u-w-120 {
-    width: 120px;
+  width: 120px;
 }
 
 .u-w-160 {
-    width: 160px;
+  width: 160px;
 }
 
 .u-w-200 {
-    width: 200px;
+  width: 200px;
 }
 
 .u-w-250 {
-    width: 250px;
+  width: 250px;
 }
 
 .u-w-full {
-    width: 100%;
+  width: 100%;
 }
 
 .u-max-w-200 {
-    max-width: 200px;
+  max-width: 200px;
 }
 
 .u-max-w-320 {
-    max-width: 320px;
+  max-width: 320px;
 }
 
 /* Combined utilities for common patterns */
+
 .u-w-h-40 {
-    width: 40px;
-    height: 40px;
+  width: 40px;
+  height: 40px;
 }
 
 /* ================================
    Overflow Utilities
    ================================ */
+
 .u-overflow-y-auto {
-    overflow-y: auto;
+  overflow-y: auto;
 }
 
 .u-overflow-x-auto {
-    overflow-x: auto;
+  overflow-x: auto;
 }
 
 /* ================================
    Icon Sizes
    ================================ */
+
 .u-icon-lg {
-    font-size: 2rem;
+  font-size: 2rem;
 }
 
 .u-icon-xl {
-    font-size: 3rem;
+  font-size: 3rem;
 }
 
 .u-icon-xxl {
-    font-size: 4rem;
+  font-size: 4rem;
 }
 
 /* Card icon stats - used in dashboard cards */
+
 .u-card-icon-stat {
-    font-size: 2rem;
-    opacity: 0.5;
+  font-size: 2rem;
+  opacity: 0.5;
 }
 
 /* ================================
    Progress Bar Utilities
    ================================ */
+
 .u-progress-sm {
-    height: 6px;
+  height: 6px;
 }
 
 .u-progress-md {
-    height: 10px;
+  height: 10px;
 }
 
 .u-progress-h-6 {
-    height: 6px;
+  height: 6px;
 }
 
 .u-progress-h-8 {
-    height: 8px;
+  height: 8px;
 }
 
 .u-progress-h-20 {
-    height: 20px;
+  height: 20px;
 }
 
 .u-progress-inline {
-    width: 80px;
-    height: 8px;
+  width: 80px;
+  height: 8px;
 }
 
 /* Circular progress indicators */
+
 .u-progress-circle {
-    position: relative;
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--ecs-neutral-20, #e9ecef);
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ecs-neutral-20, var(--color-neutral-200));
 }
 
 .u-progress-circle .progress-bar {
-    position: absolute;
-    width: 100% !important;
-    height: 100% !important;
-    border-radius: 50%;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
 }
 
 .u-progress-circle--info .progress-bar {
-    /* Info color will be applied via bg-info class */
+  /* Info color will be applied via bg-info class */
 }
 
 /* ================================
    Opacity Utilities
    ================================ */
+
 .u-opacity-30 {
-    opacity: 0.3;
+  opacity: 0.3;
 }
 
 .u-opacity-50 {
-    opacity: 0.5;
+  opacity: 0.5;
 }
 
 .u-opacity-75 {
-    opacity: 0.75;
+  opacity: 0.75;
 }
 
 .u-opacity-80 {
-    opacity: 0.8;
+  opacity: 0.8;
 }
 
 /* ================================
    Background & Theme Utilities
    ================================ */
+
 .u-bg-theme {
-    /* Dynamic background color - apply via data attribute + JavaScript */
+  /* Dynamic background color - apply via data attribute + JavaScript */
 }
 
 /* ================================
    Health Status Icon
    ================================ */
+
 .u-health-status-icon {
-    width: 60px;
-    height: 60px;
+  width: 60px;
+  height: 60px;
 }
 
 .u-health-status-icon--success {
-    background-color: rgba(40, 167, 69, 0.2);
+  background-color: rgba(40, 167, 69, 0.2);
 }
 
 .u-health-status-icon--warning {
-    background-color: rgba(255, 193, 7, 0.2);
+  background-color: rgba(255, 193, 7, 0.2);
 }
 
 .u-health-status-icon--danger {
-    background-color: rgba(220, 53, 69, 0.2);
+  background-color: rgba(220, 53, 69, 0.2);
 }
 
 /* ================================
    Empty State Icons
    ================================ */
+
 .icon-empty-state {
-    font-size: 4rem;
+  font-size: 4rem;
 }
 
 /* ================================
    Item Thumbnail
    ================================ */
+
 .u-item-thumbnail {
-    width: 50px;
-    height: 50px;
-    object-fit: cover;
-    border-radius: 4px;
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
 }
 
 /* ================================
    Spacing Utilities
    ================================ */
+
 .u-mx-auto {
-    margin-left: auto !important;
-    margin-right: auto !important;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ================================
    Z-Index Utilities
    ================================ */
+
 .u-z-index-toast {
-    z-index: 1055;
+  z-index: 1055;
 }
 
 .u-z-index-modal {
-    z-index: 9999;
+  z-index: 9999;
 }
 
 /* ================================
    Cursor Utilities
    ================================ */
+
 .u-cursor-pointer {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 /* ================================
    Additional Height Utilities
    ================================ */
+
 .u-h-35 {
-    height: 35px;
+  height: 35px;
 }
 
 .u-h-80 {
-    height: 80px;
+  height: 80px;
 }
 
 .u-h-100 {
-    height: 100px;
+  height: 100px;
 }
 
 .u-max-h-100 {
-    max-height: 100px;
+  max-height: 100px;
 }
 
 .u-max-h-350 {
-    max-height: 350px;
+  max-height: 350px;
 }
 
 /* ================================
    Additional Width Utilities
    ================================ */
+
 .u-w-auto {
-    width: auto;
+  width: auto;
 }
 
 .u-max-w-400 {
-    max-width: 400px;
+  max-width: 400px;
 }
 
 /* ================================
    Combined Width/Height Utilities
    ================================ */
+
 .u-w-h-30 {
-    width: 30px;
-    height: 30px;
+  width: 30px;
+  height: 30px;
 }
 
 .u-w-h-32 {
-    width: 32px;
-    height: 32px;
+  width: 32px;
+  height: 32px;
 }
 
 .u-w-h-80 {
-    width: 80px;
-    height: 80px;
+  width: 80px;
+  height: 80px;
 }
 
 .u-w-h-100 {
-    width: 100px;
-    height: 100px;
+  width: 100px;
+  height: 100px;
 }
 
 .u-w-200-h-200 {
-    width: 200px;
-    height: 200px;
+  width: 200px;
+  height: 200px;
 }
 
 /* ================================
    Icon Size Utilities (Extended)
    ================================ */
+
 .u-icon-2xl {
-    font-size: 2.5rem;
+  font-size: 2.5rem;
 }
 
 .u-icon-3xl {
-    font-size: 3rem;
+  font-size: 3rem;
 }
 
 .u-icon-4xl {
-    font-size: 4rem;
+  font-size: 4rem;
 }
 
 /* ================================
    Object Fit Utilities
    ================================ */
+
 .u-object-fit-cover {
-    object-fit: cover;
+  object-fit: cover;
 }
 
 /* ================================
    Max Height with Scroll Utilities
    ================================ */
+
 .u-max-h-200-scroll {
-    max-height: 200px;
-    overflow-y: auto;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .u-max-h-300-scroll {
-    max-height: 300px;
-    overflow-y: auto;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .u-max-h-350-scroll {
-    max-height: 350px;
-    overflow-y: auto;
+  max-height: 350px;
+  overflow-y: auto;
 }
 
 /* ================================
    Progress Bar Height Utilities
    ================================ */
-.u-progress-h-6 {
-    height: 6px;
-}
 
 /* ================================
    White Space Utilities
    ================================ */
+
 .u-white-space-pre-wrap {
-    white-space: pre-wrap;
+  white-space: pre-wrap;
 }
 
 /* ================================
    Overflow & Display Utilities
    ================================ */
+
 .u-overflow-visible {
-    overflow: visible !important;
+  overflow: visible;
 }
 
 .u-overflow-hidden {
-    overflow: hidden;
+  overflow: hidden;
 }
 
 /* ================================
    Flex & Alignment Utilities
    ================================ */
+
 .u-flex-center {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ================================
    Font Size Utilities
    ================================ */
+
 .u-font-size-11 {
-    font-size: 11px;
+  font-size: 11px;
 }
 
 .u-font-size-12 {
-    font-size: 12px;
+  font-size: 12px;
 }
 
 .u-font-size-14 {
-    font-size: 14px;
+  font-size: 14px;
 }
 
 .u-font-size-15 {
-    font-size: 15px;
+  font-size: 15px;
 }
 
 .u-font-size-24 {
-    font-size: 24px;
+  font-size: 24px;
 }
 
 .u-font-size-0-65rem {
-    font-size: 0.65rem;
+  font-size: 0.65rem;
 }
 
 .u-font-size-0-7rem {
-    font-size: 0.7rem;
+  font-size: 0.7rem;
 }
 
 .u-font-size-0-8rem {
-    font-size: 0.8rem;
+  font-size: 0.8rem;
 }
 
 .u-font-size-0-9rem {
-    font-size: 0.9rem;
+  font-size: 0.9rem;
 }
 
 /* ================================
    Letter Spacing
    ================================ */
+
 .u-letter-spacing-1 {
-    letter-spacing: 1px;
+  letter-spacing: 1px;
 }
 
 /* ================================
    Border Radius
    ================================ */
+
 .u-border-radius-50 {
-    border-radius: 50%;
+  border-radius: 50%;
 }
 
 .u-border-3 {
-    border: 3px solid;
+  border: 3px solid;
 }
 
 /* ================================
    Object Fit
    ================================ */
+
 .u-object-fit-cover-100 {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* ================================
    Max Percentage Utilities
    ================================ */
+
 .u-max-h-100-percent {
-    max-height: 100%;
+  max-height: 100%;
 }
 
 .u-max-w-100-percent {
-    max-width: 100%;
+  max-width: 100%;
 }
 
 /* ================================
    Margin Utilities
    ================================ */
+
 .u-mt-5 {
-    margin-top: 5px;
+  margin-top: 5px;
 }
 
 /* ================================
    Text Alignment
    ================================ */
+
 .u-text-center {
-    text-align: center;
+  text-align: center;
 }
 
 /* ================================
    Percentage Width Utilities
    ================================ */
+
 .u-w-14-percent {
-    width: 14%;
+  width: 14%;
 }
 
 .u-w-35-percent {
-    width: 35%;
+  width: 35%;
 }
 
 /* ================================
    JavaScript-Applied Utilities
    ================================ */
+
 /*
  * For truly dynamic values (from database/backend),
  * use data attributes and apply with JavaScript:

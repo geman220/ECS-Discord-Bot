@@ -150,34 +150,42 @@ const ModalHelpers = {
      * Loads modals dynamically if needed (AJAX-based modal loading)
      * @returns {Promise<boolean>} Promise that resolves when modals are loaded
      */
-    loadModalsIfNotFound: function() {
-        return new Promise((resolve, reject) => {
-            if (!window.jQuery) {
-                console.warn('[Modal Helpers] jQuery not available for modal loading');
-                reject(new Error('jQuery not available'));
-                return;
-            }
-
-            jQuery.ajax({
-                url: '/modals/render_modals',
+    loadModalsIfNotFound: async function() {
+        try {
+            const response = await fetch('/modals/render_modals', {
                 method: 'GET',
-                success: function(modalContent) {
-                    jQuery('body').append(modalContent);
-                    console.log('[Modal Helpers] Modals loaded dynamically');
-
-                    // Reinitialize window.ModalManager if available
-                    if (window.ModalManager) {
-                        window.ModalManager.reinit();
-                    }
-
-                    resolve(true);
-                },
-                error: function(err) {
-                    console.error('[Modal Helpers] Failed to load modals:', err);
-                    reject(err);
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             });
-        });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const modalContent = await response.text();
+
+            // Create a temporary container and append content
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = modalContent;
+
+            // Append each child to body
+            while (tempContainer.firstChild) {
+                document.body.appendChild(tempContainer.firstChild);
+            }
+
+            console.log('[Modal Helpers] Modals loaded dynamically');
+
+            // Reinitialize window.ModalManager if available
+            if (window.ModalManager) {
+                window.ModalManager.reinit();
+            }
+
+            return true;
+        } catch (error) {
+            console.error('[Modal Helpers] Failed to load modals:', error);
+            throw error;
+        }
     },
 
     // ========================================================================
@@ -425,6 +433,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility
-window.CONFIG = CONFIG;
-window.CSS_CLASSES = CSS_CLASSES;
+// CONFIG and CSS_CLASSES are internal implementation details

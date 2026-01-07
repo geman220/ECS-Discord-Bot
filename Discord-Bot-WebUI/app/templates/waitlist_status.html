@@ -1,0 +1,187 @@
+{% extends "base_unauthenticated.html" %}
+
+{% block title %}Waitlist Status - ECS FC Pub League{% endblock %}
+
+{% block page_css %}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/authentication.css') }}" />
+{% endif %}
+{% endblock %}
+
+{% block main_content %}
+<div class="c-auth-wrapper c-auth-wrapper--wide" data-component="auth-wrapper">
+    <!-- Logo Section -->
+    <div class="c-auth-logo" data-component="auth-logo">
+        <img src="{{ url_for('static', filename='img/ecs_logo.png') }}"
+             alt="ECS Logo"
+             class="c-auth-logo__image">
+        <div class="c-auth-logo__divider"></div>
+        <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}"
+             alt="ECS FC Pub League Logo"
+             class="c-auth-logo__image">
+    </div>
+
+    <!-- Status Content -->
+    <div class="c-auth-form" data-component="auth-form">
+        <div class="c-auth-form__header">
+            {% if is_returning_player %}
+            <h1 class="c-auth-form__title">Waiting for Spot</h1>
+            <p class="c-auth-form__subtitle">You're on the waitlist for {{ approval_league|replace('_', ' ')|title if approval_league else 'the league' }}</p>
+            {% else %}
+            <h1 class="c-auth-form__title">Application Under Review</h1>
+            <p class="c-auth-form__subtitle">Thanks for joining the waitlist!</p>
+            {% endif %}
+        </div>
+
+        <div class="c-auth-form__body">
+            <!-- Status Alert -->
+            {% if is_returning_player %}
+            <div class="c-auth-alert c-auth-alert--info" data-alert>
+                <h6 class="c-auth-alert__title">
+                    <i class="ti ti-clock"></i>
+                    League Currently Full
+                </h6>
+                <p class="c-auth-alert__text">
+                    The current season is at capacity. We'll notify you as soon as a spot opens up!
+                </p>
+            </div>
+            {% else %}
+            <div class="c-auth-alert c-auth-alert--warning" data-alert>
+                <h6 class="c-auth-alert__title">
+                    <i class="ti ti-hourglass"></i>
+                    Pending Review
+                </h6>
+                <p class="c-auth-alert__text">
+                    A league admin will review your application and reach out with more information.
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- Waitlist Info -->
+            <div class="c-auth-help-card c-auth-help-card--mb-lg" data-component="waitlist-info">
+                <h6 class="c-auth-help-card__title">Waitlist Details</h6>
+                <div class="c-auth-help-card__list">
+                    <div class="c-auth-help-card__item">
+                        <strong>Joined:</strong> {{ waitlist_date.strftime('%B %d, %Y') if waitlist_date else 'Unknown' }}
+                    </div>
+                    {% if approval_league %}
+                    <div class="c-auth-help-card__item">
+                        <strong>League:</strong>
+                        {% if approval_league == 'classic' %}Pub League Classic
+                        {% elif approval_league == 'premier' %}Pub League Premier
+                        {% elif approval_league == 'ecs-fc' %}ECS FC
+                        {% else %}{{ approval_league|replace('_', ' ')|title }}{% endif %}
+                    </div>
+                    {% endif %}
+                    <div class="c-auth-help-card__item">
+                        <strong>Status:</strong>
+                        {% if is_returning_player %}
+                        <span style="color: var(--color-info-500);">Waiting for Spot</span>
+                        {% else %}
+                        <span style="color: var(--color-warning-500);">Under Review</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Summary -->
+            {% if player %}
+            <div class="c-auth-help-card c-auth-help-card--mb-lg" data-component="profile-summary">
+                <h6 class="c-auth-help-card__title">Your Profile</h6>
+                <div class="c-auth-help-card__list">
+                    <div class="c-auth-help-card__item">
+                        <strong>Name:</strong> {{ player.name if player.name else user.username }}
+                    </div>
+                    <div class="c-auth-help-card__item">
+                        <strong>Email:</strong> {{ user.email }}
+                    </div>
+                    {% if player.phone %}
+                    <div class="c-auth-help-card__item">
+                        <strong>Phone:</strong> {{ player.phone }}
+                    </div>
+                    {% endif %}
+                    {% if player.favorite_position %}
+                    <div class="c-auth-help-card__item">
+                        <strong>Position:</strong> {{ player.favorite_position }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <a href="{{ url_for('players.player_profile_wizard', player_id=player.id) }}"
+               class="c-auth-btn c-auth-btn--outline"
+               data-action="update-profile">
+                <i class="ti ti-edit c-auth-btn__icon"></i>
+                Update Profile
+            </a>
+            {% endif %}
+
+            <!-- Discord CTA -->
+            <div class="c-auth-alert c-auth-alert--info" data-alert>
+                <h6 class="c-auth-alert__title">
+                    <i class="ti ti-brand-discord"></i>
+                    Join Our Discord
+                </h6>
+                <p class="c-auth-alert__text">
+                    Stay connected with the ECS community! Join our Discord server for updates, announcements, and to chat with other players.
+                </p>
+            </div>
+
+            <a href="{{ discord_server_url }}"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="c-auth-btn c-auth-btn--discord"
+               data-action="join-discord">
+                <i class="ti ti-brand-discord c-auth-btn__icon"></i>
+                Join ECS Discord
+            </a>
+
+            <!-- What's Next -->
+            <div class="c-auth-benefits" data-component="next-steps">
+                <h3 class="c-auth-benefits__title">What Happens Next?</h3>
+                <div class="c-auth-benefits__grid">
+                    {% if is_returning_player %}
+                    <div class="c-auth-benefits__item">
+                        <i class="ti ti-bell c-auth-benefits__icon"></i>
+                        <p class="c-auth-benefits__text">We'll notify you when a spot opens</p>
+                    </div>
+                    <div class="c-auth-benefits__item">
+                        <i class="ti ti-mail c-auth-benefits__icon"></i>
+                        <p class="c-auth-benefits__text">Check your email for updates</p>
+                    </div>
+                    <div class="c-auth-benefits__item">
+                        <i class="ti ti-users c-auth-benefits__icon"></i>
+                        <p class="c-auth-benefits__text">Sub opportunities may be available</p>
+                    </div>
+                    {% else %}
+                    <div class="c-auth-benefits__item">
+                        <i class="ti ti-user-search c-auth-benefits__icon"></i>
+                        <p class="c-auth-benefits__text">Admin reviews your application</p>
+                    </div>
+                    <div class="c-auth-benefits__item">
+                        <i class="ti ti-message c-auth-benefits__icon"></i>
+                        <p class="c-auth-benefits__text">We'll reach out with more info</p>
+                    </div>
+                    <div class="c-auth-benefits__item">
+                        <i class="ti ti-calendar-event c-auth-benefits__icon"></i>
+                        <p class="c-auth-benefits__text">Get notified when spots open</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Footer Links -->
+            <div class="c-auth-form__footer">
+                <a href="{{ url_for('main.index') }}" class="c-auth-link" data-action="back-home">
+                    <i class="ti ti-chevron-left"></i>
+                    Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+{% endblock %}

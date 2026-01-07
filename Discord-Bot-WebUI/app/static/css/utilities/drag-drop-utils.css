@@ -22,14 +22,14 @@
  * Applied to element being dragged
  */
 .drag-active {
-    opacity: 0.5 !important;
+    opacity: 0.5;
 }
 
 /**
  * Remove drag styling (reset opacity)
  */
 .drag-inactive {
-    opacity: 1 !important;
+    opacity: 1;
 }
 
 /* ============================================
@@ -41,7 +41,7 @@
  * Uses theme-aware border color via CSS custom property
  */
 .drop-indicator-top {
-    border-top: 3px solid var(--drop-indicator-color, #0d6efd) !important;
+    border-top: 3px solid var(--drop-indicator-color, var(--color-primary));
 }
 
 /**
@@ -49,15 +49,15 @@
  * Uses theme-aware border color via CSS custom property
  */
 .drop-indicator-bottom {
-    border-bottom: 3px solid var(--drop-indicator-color, #0d6efd) !important;
+    border-bottom: 3px solid var(--drop-indicator-color, var(--color-primary));
 }
 
 /**
  * Clear drop indicators (remove borders)
  */
 .drop-indicator-clear {
-    border-top: none !important;
-    border-bottom: none !important;
+    border-top: none;
+    border-bottom: none;
 }
 
 /* ============================================
@@ -75,7 +75,7 @@
 /* Dark mode adjustments */
 [data-style="dark"] .drop-indicator-top,
 [data-style="dark"] .drop-indicator-bottom {
-    --drop-indicator-color: var(--color-primary, #0d6efd);
+    --drop-indicator-color: var(--color-primary, var(--color-primary));
 }
 
 /* ============================================
@@ -87,11 +87,11 @@
  * Alternative to class-based approach when using data-drop-position
  */
 [data-drop-position="before"] {
-    border-top: 3px solid var(--drop-indicator-color, #0d6efd) !important;
+    border-top: 3px solid var(--drop-indicator-color, var(--color-primary));
 }
 
 [data-drop-position="after"] {
-    border-bottom: 3px solid var(--drop-indicator-color, #0d6efd) !important;
+    border-bottom: 3px solid var(--drop-indicator-color, var(--color-primary));
 }
 
 /* ============================================
@@ -102,28 +102,28 @@
  * Ensure drag handles are keyboard accessible
  */
 .drag-handle {
-    cursor: move !important;
-    outline-offset: 2px !important;
+    cursor: move;
+    outline-offset: 2px;
 }
 
 .drag-handle:focus-visible {
-    outline: 2px solid var(--color-primary, #0d6efd) !important;
+    outline: 2px solid var(--color-primary, var(--color-primary));
 }
 
 /**
  * Screen reader announcements for drag state
  */
 .drag-active::after {
-    content: attr(aria-label) !important;
-    position: absolute !important;
-    width: 1px !important;
-    height: 1px !important;
-    padding: 0 !important;
-    margin: -1px !important;
-    overflow: hidden !important;
-    clip: rect(0, 0, 0, 0) !important;
-    white-space: nowrap !important;
-    border: 0 !important;
+    content: attr(aria-label);
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 /* ============================================
@@ -135,7 +135,7 @@
  * Applied to cloned element during drag operation
  */
 .drag-image-transform {
-    transform: rotate(3deg) scale(0.9) !important;
+    transform: rotate(3deg) scale(0.9);
 }
 
 /**
@@ -143,7 +143,7 @@
  * Makes dragged element appear floating
  */
 .drag-image-opacity {
-    opacity: 0.9 !important;
+    opacity: 0.9;
 }
 
 /**
@@ -151,6 +151,6 @@
  * Use this single class instead of separate transform + opacity
  */
 .drag-image-preview {
-    transform: rotate(3deg) scale(0.9) !important;
-    opacity: 0.9 !important;
+    transform: rotate(3deg) scale(0.9);
+    opacity: 0.9;
 }

@@ -224,8 +224,8 @@
             </button>
         </div>
         <div class="c-card__body">
-            <div class="c-table-responsive">
-                <table class="c-table" data-mobile-table data-table-type="matches">
+            <div class="c-c-table-wrapper">
+                <table class="c-c-table" data-mobile-table data-table-type="matches">
                     <thead class="c-table__head">
                         <tr>
                             <th class="c-table__header">Date</th>
@@ -239,16 +239,16 @@
                     <tbody class="c-table__body">
                         {% for match in reports_data.recent_matches[:10] %}
                         <tr class="c-table__row">
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Date">
                                 {{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}
                                 {% if match.time %}
                                     <br><small class="c-text-muted">{{ match.time.strftime('%H:%M') }}</small>
                                 {% endif %}
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Home Team">
                                 <strong>{{ match.home_team.name if match.home_team else 'TBD' }}</strong>
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Score">
                                 {% if match.home_score is not none and match.away_score is not none %}
                                     <span class="c-badge c-badge--{{ 'success' if match.home_score > match.away_score else 'info' if match.home_score == match.away_score else 'secondary' }}">
                                         {{ match.home_score }} - {{ match.away_score }}
@@ -257,17 +257,17 @@
                                     <span class="c-badge c-badge--warning">Pending</span>
                                 {% endif %}
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Away Team">
                                 {{ match.away_team.name if match.away_team else 'TBD' }}
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="League">
                                 {% if match.league %}
                                     <span class="c-badge c-badge--info">{{ match.league.name }}</span>
                                 {% else %}
                                     <span class="c-text-muted">No League</span>
                                 {% endif %}
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Actions">
                                 <div class="c-btn-group">
                                     <button class="c-btn c-btn--icon c-btn--outline-info" data-action="view-match-report" data-match-id="{{ match.id }}" aria-label="View match">
                                         <i class="ti ti-eye"></i>
@@ -324,8 +324,8 @@
             </div>
         </div>
         <div class="c-card__body">
-            <div class="c-table-responsive">
-                <table class="c-table" data-mobile-table data-table-type="teams">
+            <div class="c-c-table-wrapper">
+                <table class="c-c-table" data-mobile-table data-table-type="teams">
                     <thead class="c-table__head">
                         <tr>
                             <th class="c-table__header">Team</th>
@@ -342,7 +342,7 @@
                     <tbody class="c-table__body">
                         {% for team in reports_data.teams[:10] %}
                         <tr class="c-table__row">
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Team">
                                 <div class="c-team-name">
                                     <div class="c-team-avatar">
                                         <span class="c-team-avatar__initial">{{ team.name[0] if team.name else 'T' }}</span>
@@ -350,29 +350,29 @@
                                     <strong>{{ team.name }}</strong>
                                 </div>
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="League">
                                 {% if team.league %}
                                     <span class="c-badge c-badge--info">{{ team.league.name }}</span>
                                 {% else %}
                                     <span class="c-text-muted">No League</span>
                                 {% endif %}
                             </td>
-                            <td class="c-table__cell">{{ team.matches_played if team.matches_played else 0 }}</td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Played">{{ team.matches_played if team.matches_played else 0 }}</td>
+                            <td class="c-table__cell" data-label="Won">
                                 <span class="c-badge c-badge--success">{{ team.wins if team.wins else 0 }}</span>
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Lost">
                                 <span class="c-badge c-badge--danger">{{ team.losses if team.losses else 0 }}</span>
                             </td>
-                            <td class="c-table__cell">{{ team.goals_for if team.goals_for else 0 }}</td>
-                            <td class="c-table__cell">{{ team.goals_against if team.goals_against else 0 }}</td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Goals For">{{ team.goals_for if team.goals_for else 0 }}</td>
+                            <td class="c-table__cell" data-label="Goals Against">{{ team.goals_against if team.goals_against else 0 }}</td>
+                            <td class="c-table__cell" data-label="Goal Difference">
                                 {% set goal_diff = (team.goals_for or 0) - (team.goals_against or 0) %}
                                 <span class="c-badge c-badge--{{ 'success' if goal_diff > 0 else 'danger' if goal_diff < 0 else 'secondary' }}">
                                     {{ '+' + goal_diff|string if goal_diff > 0 else goal_diff }}
                                 </span>
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Actions">
                                 <div class="c-btn-group">
                                     <button class="c-btn c-btn--icon c-btn--outline-info" data-action="view-team-report" data-team-id="{{ team.id }}" aria-label="View team">
                                         <i class="ti ti-eye"></i>

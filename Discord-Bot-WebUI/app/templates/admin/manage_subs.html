@@ -28,7 +28,7 @@
     <!-- Sub Management Card -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="c-admin-card" data-component="subs-card">
+            <div class="c-admin-c-card" data-component="subs-card">
                 <div class="c-admin-card__header">
                     <h5 class="c-admin-card__title">Substitute Player Pool</h5>
                     <div class="c-admin-card__actions">
@@ -45,7 +45,7 @@
                 </div>
                 <div class="c-admin-card__body">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table id="subsTable" class="c-table c-table--striped c-table--hoverable border-top" data-mobile-table data-table-type="users" data-table data-component="subs-table">
+                        <table id="subsTable" class="c-c-table c-table--striped c-table--hoverable border-top" data-mobile-table data-table-type="users" data-table data-component="subs-table">
                             <thead scope="col">
                                 <tr>
                                     <th scope="col">Player</th>
@@ -58,7 +58,7 @@
                             <tbody>
                                 {% for sub in subs %}
                                 <tr data-player-id="{{ sub.id }}">
-                                    <td>
+                                    <td data-label="Player">
                                         <div class="c-player-row" data-component="player-row">
                                             <div class="c-player-avatar c-player-avatar--sm" data-component="player-avatar">
                                                 {% if sub.profile_picture_url %}
@@ -75,14 +75,14 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Primary Team">
                                         {% if sub.primary_team_name %}
                                             <span class="c-badge c-badge--primary" data-badge data-team-name="{{ sub.primary_team_name }}">{{ sub.primary_team_name }}</span>
                                         {% else %}
                                             <span class="c-badge c-badge--secondary" data-badge>No Primary Team</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Contact Info">
                                         <div class="c-contact-info" data-component="contact-info">
                                             {% if sub.phone %}
                                                 <span class="c-contact-info__item"><i class="ti ti-phone me-1"></i> {{ sub.phone }}</span>
@@ -95,7 +95,7 @@
                                             {% endif %}
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Assignments">
                                         <div class="c-assignments-container" data-component="assignments-container" data-player-id="{{ sub.id }}">
                                             <div class="spinner-border spinner-border-sm text-primary u-hidden" role="status" data-spinner data-role="assignment-spinner">
                                                 <span class="visually-hidden">Loading...</span>
@@ -106,7 +106,7 @@
                                             <div class="c-assignments-list u-hidden" data-role="assignments-list"></div>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Actions">
                                         <div class="dropdown">
                                             <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown" aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                             <div class="dropdown-menu dropdown-menu-end" data-dropdown-menu>

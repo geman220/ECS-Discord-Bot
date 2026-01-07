@@ -20,7 +20,7 @@
 
 import { InitSystem } from './init-system.js';
 
-export class MessengerWidget {
+class MessengerWidget {
   constructor() {
     this.widget = null;
     this.currentUserId = null;
@@ -492,7 +492,25 @@ export class MessengerWidget {
    * Delete a message
    */
   async deleteMessage(messageId) {
-    if (!confirm('Delete this message?')) return;
+    let confirmed = false;
+    if (typeof window.Swal !== 'undefined') {
+      const result = await window.Swal.fire({
+        title: 'Delete Message?',
+        text: 'Are you sure you want to delete this message?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Delete',
+        cancelButtonText: 'Cancel',
+        customClass: {
+          confirmButton: 'btn btn-danger',
+          cancelButton: 'btn btn-secondary'
+        },
+        buttonsStyling: false
+      });
+      confirmed = result.isConfirmed;
+    }
+
+    if (!confirmed) return;
 
     try {
       const response = await fetch(`/api/messages/message/${messageId}`, {

@@ -66,12 +66,12 @@
                                value="{{ current_filters.date_to or '' }}" data-form-control>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">&nbsp;</label>
+                        <span class="u-form-label-spacer" aria-hidden="true"></span>
                         <div class="c-action-bar">
                             <button type="submit" class="c-btn c-btn--primary flex-grow-1">
                                 <i class="ti ti-search me-1"></i>Filter
                             </button>
-                            <a href="{{ url_for('admin_panel.audit_logs') }}" class="c-btn c-btn--outline-secondary" aria-label="Button"><i class="ti ti-x"></i></a>
+                            <a href="{{ url_for('admin_panel.audit_logs') }}" class="c-btn c-btn--outline-secondary" aria-label="Clear filters"><i class="ti ti-x"></i></a>
                         </div>
                     </div>
                 </form>
@@ -161,7 +161,7 @@
             <div class="c-card__body">
                 {% if logs.items %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--striped" data-table data-mobile-table data-table-type="logs">
+                    <table class="c-c-table c-table--striped" data-table data-mobile-table data-table-type="logs">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Timestamp</th>
@@ -175,18 +175,18 @@
                         <tbody>
                             {% for log in logs.items %}
                             <tr>
-                                <td>
+                                <td data-label="Timestamp">
                                     <span class="text-nowrap">{{ log.timestamp.strftime('%Y-%m-%d') }}</span><br>
                                     <small class="text-muted">{{ log.timestamp.strftime('%H:%M:%S') }}</small>
                                 </td>
-                                <td>
+                                <td data-label="User">
                                     {% if log.user %}
                                     <span class="badge bg-secondary" data-badge>{{ log.user.name or log.user.username or log.user.email }}</span>
                                     {% else %}
                                     <span class="text-muted">System</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Action">
                                     {% if log.action == 'create' %}
                                     <span class="badge bg-success" data-badge><i class="ti ti-plus me-1"></i>{{ log.action }}</span>
                                     {% elif log.action == 'update' or log.action == 'toggle' %}
@@ -201,13 +201,13 @@
                                     <span class="badge bg-secondary" data-badge>{{ log.action }}</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Resource Type">
                                     <span class="badge bg-light text-dark" data-badge>{{ log.resource_type.replace('_', ' ').title() if log.resource_type else 'N/A' }}</span>
                                 </td>
-                                <td>
+                                <td data-label="Resource ID">
                                     <code>{{ log.resource_id or '-' }}</code>
                                 </td>
-                                <td>
+                                <td data-label="Details">
                                     <button type="button" class="c-btn c-btn--sm c-btn--outline-info js-show-log-details"
                                             data-action="show-log-details"
                                             data-log-id="{{ log.id }}"

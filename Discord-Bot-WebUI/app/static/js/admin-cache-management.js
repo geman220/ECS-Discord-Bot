@@ -27,7 +27,7 @@ let clearCacheUrl = '';
 /**
  * Initialize cache management module
  */
-function init() {
+function initAdminCacheManagement() {
     // Get config from data attributes
     const configEl = document.querySelector('[data-cache-management-config]');
     if (configEl) {
@@ -88,26 +88,23 @@ function initializeKeyboardShortcuts() {
  * Clear cache by type with confirmation
  */
 async function clearCacheByType(cacheType, title) {
-    if (typeof window.Swal === 'undefined') {
-        if (!confirm(`${title}\nThis action cannot be undone. Continue?`)) return;
-        performClearCache(cacheType);
-        return;
-    }
+    if (typeof window.Swal !== 'undefined') {
+        const result = await window.Swal.fire({
+            title: title,
+            text: 'This action cannot be undone. Continue?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : '#3085d6',
+            confirmButtonText: 'Yes, clear it!'
+        });
 
-    const result = await window.Swal.fire({
-        title: title,
-        text: 'This action cannot be undone. Continue?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('info') : '#3085d6',
-        confirmButtonText: 'Yes, clear it!'
-    });
-
-    if (result.isConfirmed) {
-        performClearCache(cacheType);
+        if (result.isConfirmed) {
+            performClearCache(cacheType);
+        }
     }
 }
+
 
 /**
  * Perform the actual cache clear
@@ -239,13 +236,11 @@ function resetCacheConfig() {
 function showError(message) {
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire('Error', message, 'error');
-    } else {
-        alert(message);
     }
 }
 
 // Register with window.InitSystem
-window.InitSystem.register('admin-cache-management', init, {
+window.InitSystem.register('admin-cache-management', initAdminCacheManagement, {
     priority: 30,
     reinitializable: true,
     description: 'Admin cache management page functionality'
@@ -256,7 +251,7 @@ window.InitSystem.register('admin-cache-management', init, {
 
 // Export for ES modules
 export {
-    init,
+    initAdminCacheManagement,
     clearAllCache,
     clearUserCache,
     clearSessionCache,
@@ -265,11 +260,5 @@ export {
     resetCacheConfig
 };
 
-// Backward compatibility
-window.adminCacheManagementInit = init;
-window.clearAllCache = clearAllCache;
-window.clearUserCache = clearUserCache;
-window.clearSessionCache = clearSessionCache;
-window.refreshCacheStats = refreshCacheStats;
-window.updateCacheConfig = updateCacheConfig;
-window.resetCacheConfig = resetCacheConfig;
+// No window exports needed - InitSystem handles initialization
+// Template has its own local function definitions

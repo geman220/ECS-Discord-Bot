@@ -9,7 +9,7 @@
  * ARCHITECTURAL COMPLIANCE:
  * - 100% BEM naming: .c-component__element--modifier
  * - Zero hardcoded values (design tokens only)
- * - Zero !important declarations
+ * - Zero declarations
  * - State-driven styling with .is-* classes
  * - Mobile-first responsive design
  * - Full dark mode support via [data-style="dark"]
@@ -639,7 +639,7 @@
 
 .c-carousel-nav:hover {
   background: var(--color-primary);
-  color: var(--color-text-on-primary, #fff);
+  color: var(--color-text-on-primary, var(--color-white));
 }
 
 .c-carousel-nav:focus-visible {

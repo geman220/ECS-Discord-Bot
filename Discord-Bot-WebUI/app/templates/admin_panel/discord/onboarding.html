@@ -124,7 +124,7 @@
             <div class="c-card__body c-card__body--flush">
                 {% if overview_data %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hover" data-table data-mobile-table data-table-type="onboarding">
+                    <table class="c-c-table c-table--hover" data-table data-mobile-table data-table-type="onboarding">
                         <thead class="c-table__head">
                             <tr class="c-table__row">
                                 <th class="c-table__header" scope="col">User</th>
@@ -139,14 +139,14 @@
                         <tbody class="c-table__body">
                             {% for user in overview_data %}
                             <tr class="c-table__row">
-                                <td class="c-table__cell">
+                                <td class="c-table__cell" data-label="User">
                                     <strong>{{ user.username }}</strong>
                                     <br><small class="u-text-muted">{{ user.email }}</small>
                                     {% if user.player_name %}
                                     <br><small class="u-text-primary">{{ user.player_name }}</small>
                                     {% endif %}
                                 </td>
-                                <td class="c-table__cell">
+                                <td class="c-table__cell" data-label="Discord">
                                     {% if user.discord_id %}
                                     <span class="c-badge c-badge--success" data-badge>
                                         <i class="ti ti-check c-badge__icon"></i>Linked
@@ -156,7 +156,7 @@
                                     <span class="c-badge c-badge--warning" data-badge>Not Linked</span>
                                     {% endif %}
                                 </td>
-                                <td class="c-table__cell">
+                                <td class="c-table__cell" data-label="Status">
                                     {% if user.onboarding_status == 'completed' %}
                                     <span class="c-badge c-badge--success" data-badge>Completed</span>
                                     {% elif user.onboarding_status == 'pending_discord' %}
@@ -167,7 +167,7 @@
                                     <span class="c-badge c-badge--secondary" data-badge>Unknown</span>
                                     {% endif %}
                                 </td>
-                                <td class="c-table__cell">
+                                <td class="c-table__cell" data-label="Approval">
                                     {% if user.approval_status == 'approved' %}
                                     <span class="c-badge c-badge--success" data-badge>Approved</span>
                                     {% elif user.approval_status == 'denied' %}
@@ -176,7 +176,7 @@
                                     <span class="c-badge c-badge--secondary" data-badge>Pending</span>
                                     {% endif %}
                                 </td>
-                                <td class="c-table__cell">
+                                <td class="c-table__cell" data-label="Roles">
                                     {% if user.roles %}
                                     {% for role in user.roles[:3] %}
                                     <span class="c-badge c-badge--label-primary" data-badge>{{ role }}</span>
@@ -188,14 +188,14 @@
                                     <span class="u-text-muted">No roles</span>
                                     {% endif %}
                                 </td>
-                                <td class="c-table__cell">
+                                <td class="c-table__cell" data-label="Registered">
                                     {% if user.created_at %}
                                     <small>{{ user.created_at[:10] }}</small>
                                     {% else %}
                                     <small class="u-text-muted">N/A</small>
                                     {% endif %}
                                 </td>
-                                <td class="c-table__cell">
+                                <td class="c-table__cell" data-label="Actions">
                                     <div class="c-button-group c-button-group--sm">
                                         {% if user.bot_interaction_status in ['not_contacted', 'failed', None] %}
                                         <button class="c-button c-button--outline-primary"

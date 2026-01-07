@@ -10,7 +10,7 @@
    ============================================ */
 
 .menu-item-overflow-hidden {
-  overflow: hidden !important;
+  overflow: hidden;
 }
 
 /* ============================================
@@ -19,6 +19,9 @@
 
 .menu-item-animating {
   transition: height 0.3s ease-in-out;
+  --transition-duration: 0.3s;
+  --transition-timing: ease-in-out;
+  transition: height var(--transition-duration) var(--transition-timing);
 }
 
 .menu-item-closing {
@@ -26,11 +29,13 @@
 }
 
 /* Dynamic height via data attribute */
+
 .menu-item-animating[data-menu-height] {
   height: var(--menu-item-height, auto);
 }
 
 /* Support for data-menu-height attribute binding */
+
 .menu-item[data-menu-height] {
   height: var(--menu-item-height, auto);
 }
@@ -40,11 +45,11 @@
    ============================================ */
 
 .menu-position-left-100 {
-  left: -100% !important;
+  left: -100%;
 }
 
 .menu-position-right-100 {
-  right: 100% !important;
+  right: 100%;
 }
 
 /* ============================================
@@ -52,22 +57,23 @@
    ============================================ */
 
 .menu-margin-left {
-  margin-left: var(--menu-margin-value, 0) !important;
+  margin-left: var(--menu-margin-value, 0);
 }
 
 .menu-margin-right {
-  margin-right: var(--menu-margin-value, 0) !important;
+  margin-right: var(--menu-margin-value, 0);
 }
 
 /* RTL Support */
+
 [dir="rtl"] .menu-margin-left {
-  margin-right: var(--menu-margin-value, 0) !important;
-  margin-left: auto !important;
+  margin-right: var(--menu-margin-value, 0);
+  margin-left: auto;
 }
 
 [dir="rtl"] .menu-margin-right {
-  margin-left: var(--menu-margin-value, 0) !important;
-  margin-right: auto !important;
+  margin-left: var(--menu-margin-value, 0);
+  margin-right: auto;
 }
 
 /* ============================================
@@ -81,30 +87,31 @@
 }
 
 .menu-inner[data-inner-position] {
-  margin-left: var(--menu-margin-left) !important;
-  margin-right: var(--menu-margin-right) !important;
+  margin-left: var(--menu-margin-left);
+  margin-right: var(--menu-margin-right);
 }
 
 /* RTL adjustments for inner position */
+
 [dir="rtl"] .menu-inner[data-inner-position] {
-  margin-right: var(--menu-margin-right) !important;
-  margin-left: var(--menu-margin-left) !important;
+  margin-right: var(--menu-margin-right);
+  margin-left: var(--menu-margin-left);
 }
 
 /* ============================================
    MENU SLIDER BUTTON STATES
    ============================================ */
 
-.menu-horizontal-prev,
-.menu-horizontal-next {
+.menu-horizontal-next,
+.menu-horizontal-prev {
   transition: opacity 0.2s ease-in-out;
 }
 
-.menu-horizontal-prev.disabled,
-.menu-horizontal-next.disabled {
-  opacity: 0.5 !important;
-  cursor: not-allowed !important;
-  pointer-events: none !important;
+.menu-horizontal-next.disabled,
+.menu-horizontal-prev.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* ============================================
@@ -113,13 +120,13 @@
 
 @media (max-width: 991.98px) {
   .menu-item-overflow-hidden {
-    overflow: visible !important;
+    overflow: visible;
   }
 
   .menu-margin-left,
   .menu-margin-right {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+    margin-left: 0;
+    margin-right: 0;
   }
 }
 
@@ -127,13 +134,8 @@
    ANIMATION TIMING FUNCTIONS
    ============================================ */
 
-.menu-item-animating {
-  --transition-duration: 0.3s;
-  --transition-timing: ease-in-out;
-  transition: height var(--transition-duration) var(--transition-timing);
-}
-
 /* Support for custom animation durations */
+
 .menu-item-animating.slow {
   --transition-duration: 0.5s;
 }
@@ -147,8 +149,8 @@
    ============================================ */
 
 .menu-item[data-menu-height="0px"] {
-  height: 0 !important;
-  overflow: hidden !important;
+  height: 0;
+  overflow: hidden;
 }
 
 /* ============================================
@@ -165,18 +167,19 @@
    ============================================ */
 
 /* Fallback for browsers without CSS custom properties support */
+
 @supports not (--foo: bar) {
   .menu-margin-left {
-    margin-left: 0 !important;
+    margin-left: 0;
   }
 
   .menu-margin-right {
-    margin-right: 0 !important;
+    margin-right: 0;
   }
 
   .menu-inner {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+    margin-left: 0;
+    margin-right: 0;
   }
 }
 
@@ -185,21 +188,21 @@
    ============================================ */
 
 .menu-hidden {
-  display: none !important;
-  visibility: hidden !important;
+  display: none;
+  visibility: hidden;
 }
 
 .menu-visible {
-  display: block !important;
-  visibility: visible !important;
+  display: block;
+  visibility: visible;
 }
 
 .menu-transform-none {
-  transform: none !important;
+  transform: none;
 }
 
 .menu-no-scroll {
-  overflow: hidden !important;
+  overflow: hidden;
 }
 
 /* ============================================

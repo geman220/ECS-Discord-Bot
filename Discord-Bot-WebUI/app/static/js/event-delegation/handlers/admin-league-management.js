@@ -159,8 +159,6 @@ window.EventDelegation.register('delete-season', function(element, e) {
                     performDeleteSeason(seasonId);
                 }
             });
-        } else if (confirm(confirmMessage)) {
-            performDeleteSeason(seasonId);
         }
     }
 });
@@ -428,8 +426,19 @@ window.EventDelegation.register('sync-discord', function(element, e) {
 
         if (typeof AdminPanel !== 'undefined' && AdminPanel.confirmAction) {
             AdminPanel.confirmAction('This will sync Discord resources for this team. Continue?', doSync);
-        } else if (confirm('This will sync Discord resources for this team. Continue?')) {
-            doSync();
+        } else if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
+                title: 'Sync Discord?',
+                text: 'This will sync Discord resources for this team. Continue?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, sync',
+                confirmButtonColor: '#3085d6'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    doSync();
+                }
+            });
         }
     }
 });
@@ -484,8 +493,19 @@ window.EventDelegation.register('delete-team', function(element, e) {
 
         if (typeof AdminPanel !== 'undefined' && AdminPanel.confirmAction) {
             AdminPanel.confirmAction(confirmMessage, doDelete);
-        } else if (confirm(confirmMessage)) {
-            doDelete();
+        } else if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
+                title: 'Delete Team?',
+                text: confirmMessage,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete',
+                confirmButtonColor: '#dc3545'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    doDelete();
+                }
+            });
         }
     }
 });
@@ -535,15 +555,10 @@ window.EventDelegation.register('auto-assign-playoffs', function(element, e) {
                     }).then(() => {
                         location.reload();
                     });
-                } else {
-                    alert('Playoff teams have been auto-assigned based on standings!');
-                    location.reload();
                 }
             } else {
                 if (typeof window.Swal !== 'undefined') {
                     window.Swal.fire('Error', data.error || 'Failed to auto-assign playoffs', 'error');
-                } else {
-                    alert('Error: ' + (data.error || 'Failed to auto-assign playoffs'));
                 }
             }
         })
@@ -551,8 +566,6 @@ window.EventDelegation.register('auto-assign-playoffs', function(element, e) {
             console.error('[auto-assign-playoffs] Error:', error);
             if (typeof window.Swal !== 'undefined') {
                 window.Swal.fire('Error', 'An error occurred while auto-assigning playoffs', 'error');
-            } else {
-                alert('An error occurred while auto-assigning playoffs');
             }
         })
         .finally(() => {
@@ -575,8 +588,6 @@ window.EventDelegation.register('auto-assign-playoffs', function(element, e) {
                 doAssign();
             }
         });
-    } else if (confirm('This will automatically assign playoff teams based on current standings. Are you sure?')) {
-        doAssign();
     }
 });
 

@@ -21,7 +21,7 @@
  */
 
 // Pass Studio JavaScript
-export const PassStudio = {
+const PassStudio = {
     passTypeCode: '',
     hasUnsavedChanges: false,
     previewData: null,
@@ -755,8 +755,6 @@ export const PassStudio = {
                 showConfirmButton: false,
                 timer: 3000
             });
-        } else {
-            alert(message);
         }
     },
 

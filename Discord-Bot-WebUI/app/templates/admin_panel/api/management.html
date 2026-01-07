@@ -164,7 +164,7 @@
             <div class="c-card__body">
                 {% if stats.endpoint_breakdown %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="api-breakdown">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="api-breakdown">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Blueprint</th>
@@ -178,12 +178,12 @@
                         <tbody>
                             {% for blueprint, blueprint_stats in stats.endpoint_breakdown.items() %}
                             <tr>
-                                <td><strong>{{ blueprint }}</strong></td>
-                                <td>{{ blueprint_stats.count }}</td>
-                                <td>{{ blueprint_stats.active }}</td>
-                                <td>{{ "{:,}".format(blueprint_stats.total_requests) }}</td>
-                                <td>{{ "%.3f"|format(blueprint_stats.avg_response_time) }}s</td>
-                                <td>
+                                <td data-label="Blueprint"><strong>{{ blueprint }}</strong></td>
+                                <td data-label="Total">{{ blueprint_stats.count }}</td>
+                                <td data-label="Active">{{ blueprint_stats.active }}</td>
+                                <td data-label="Requests">{{ "{:,}".format(blueprint_stats.total_requests) }}</td>
+                                <td data-label="Avg Response">{{ "%.3f"|format(blueprint_stats.avg_response_time) }}s</td>
+                                <td data-label="Status">
                                     {% set health_score = (blueprint_stats.active / blueprint_stats.count) * 100 if blueprint_stats.count > 0 else 0 %}
                                     <span class="badge bg-{% if health_score > 80 %}success{% elif health_score > 60 %}warning{% else %}danger{% endif %}" data-badge>
                                         {{ "%.0f"|format(health_score) }}%
@@ -246,7 +246,7 @@
             <div class="c-card__body">
                 {% if endpoints %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="api-endpoints">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="api-endpoints">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Endpoint</th>
@@ -261,30 +261,30 @@
                         <tbody>
                             {% for endpoint in endpoints %}
                             <tr>
-                                <td>
+                                <td data-label="Endpoint">
                                     <code class="small">{{ endpoint.path }}</code>
                                     {% if endpoint.description %}
                                     <br><small class="text-muted">{{ endpoint.description }}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Blueprint">
                                     <span class="badge bg-secondary" data-badge>{{ endpoint.blueprint }}</span>
                                 </td>
-                                <td>
+                                <td data-label="Methods">
                                     {% for method in endpoint.methods %}
                                     <span class="badge bg-{% if method == 'GET' %}info{% elif method == 'POST' %}primary{% elif method == 'PUT' %}warning{% elif method == 'DELETE' %}danger{% else %}secondary{% endif %} me-1" data-badge>
                                         {{ method }}
                                     </span>
                                     {% endfor %}
                                 </td>
-                                <td>{{ "{:,}".format(endpoint.request_count) }}</td>
-                                <td>{{ "%.3f"|format(endpoint.avg_response_time) }}s</td>
-                                <td>
+                                <td data-label="Requests">{{ "{:,}".format(endpoint.request_count) }}</td>
+                                <td data-label="Avg Response">{{ "%.3f"|format(endpoint.avg_response_time) }}s</td>
+                                <td data-label="Status">
                                     <span class="badge bg-{% if endpoint.status == 'active' %}success{% else %}warning{% endif %}" data-badge>
                                         {{ endpoint.status }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         <button type="button" class="c-btn c-btn--outline-info js-view-endpoint"
                                                 data-action="view-endpoint" data-endpoint-path="{{ endpoint.path[1:] }}" title="View Details">
@@ -318,49 +318,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.timeline {
-    position: relative;
-    padding-left: 30px;
-}
-
-.timeline::before {
-    content: '';
-    position: absolute;
-    left: 10px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: var(--bs-border-color);
-}
-
-.timeline-item {
-    position: relative;
-    margin-bottom: 20px;
-}
-
-.timeline-marker {
-    position: absolute;
-    left: -24px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    border: 2px solid var(--bs-body-bg);
-    top: 5px;
-}
-
-.timeline-content {
-    background: var(--bs-light);
-    padding: 12px;
-    border-radius: 8px;
-}
-
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

@@ -320,7 +320,7 @@ function handleDeleteTemplate(e) {
 /**
  * Initialize all template detail functionality
  */
-function init() {
+function initMessageTemplateDetail() {
     // Page guard: only run on template detail page
     if (!document.getElementById('viewTemplateModal') && !document.getElementById('editTemplateModal')) {
         return;
@@ -353,7 +353,7 @@ let _initialized = false;
 function initWithGuard() {
     if (_initialized) return;
     _initialized = true;
-    init();
+    initMessageTemplateDetail();
 }
 
 window.InitSystem.register('message-template-detail', initWithGuard, {
@@ -376,7 +376,7 @@ const MessageTemplateDetail = {
     toggleTemplate,
     deleteTemplate,
     insertVariable,
-    init
+    init: initMessageTemplateDetail
 };
 
 // Expose public API
@@ -408,5 +408,5 @@ export {
     handleEditTemplate,
     handleToggleTemplate,
     handleDeleteTemplate,
-    init
+    initMessageTemplateDetail
 };

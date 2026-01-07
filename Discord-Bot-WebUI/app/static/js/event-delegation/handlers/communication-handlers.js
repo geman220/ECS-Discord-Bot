@@ -1,5 +1,6 @@
 import { EventDelegation } from '../core.js';
 import { ModalManager } from '../../modal-manager.js';
+import { escapeHtml } from '../../utils/sanitize.js';
 
 /**
  * Communication Action Handlers
@@ -32,7 +33,8 @@ window.EventDelegation.register('preview-announcement', function(element, e) {
     const previewMessage = document.getElementById('preview-message');
 
     if (previewTitle) previewTitle.textContent = title || 'Announcement';
-    if (previewMessage) previewMessage.innerHTML = message.replace(/\n/g, '<br>');
+    // Escape HTML to prevent XSS, then convert newlines to <br>
+    if (previewMessage) previewMessage.innerHTML = escapeHtml(message).replace(/\n/g, '<br>');
 
     if (previewModal) {
         window.ModalManager.show('announcementPreviewModal');
@@ -148,24 +150,20 @@ window.EventDelegation.register('delete-comm-campaign', function(element, e) {
         return;
     }
 
-    if (typeof window.Swal === 'undefined') {
-        if (!confirm(`Delete "${campaignName}"?`)) return;
-        performDeleteCampaign(campaignId, element);
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Delete Campaign',
+            text: `Are you sure you want to delete "${campaignName}"?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performDeleteCampaign(campaignId, element);
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Delete Campaign',
-        text: `Are you sure you want to delete "${campaignName}"?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Delete',
-        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performDeleteCampaign(campaignId, element);
-        }
-    });
 });
 
 function performDeleteCampaign(campaignId, element) {
@@ -290,24 +288,20 @@ window.EventDelegation.register('delete-message', function(element, e) {
         return;
     }
 
-    if (typeof window.Swal === 'undefined') {
-        if (!confirm('Delete this message?')) return;
-        performDeleteMessage(messageId, element);
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Delete Message',
+            text: 'Are you sure you want to delete this message?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performDeleteMessage(messageId, element);
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Delete Message',
-        text: 'Are you sure you want to delete this message?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Delete',
-        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performDeleteMessage(messageId, element);
-        }
-    });
 });
 
 function performDeleteMessage(messageId, element) {
@@ -484,24 +478,20 @@ window.EventDelegation.register('delete-comm-category', function(element, e) {
         return;
     }
 
-    if (typeof window.Swal === 'undefined') {
-        if (!confirm(`Delete "${categoryName}"? This will also delete all templates in this category.`)) return;
-        performDeleteCategory(categoryId, element);
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Delete Category',
+            text: `Are you sure you want to delete "${categoryName}"? This will also delete all templates in this category.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performDeleteCategory(categoryId, element);
+            }
+        });
     }
-
-    window.Swal.fire({
-        title: 'Delete Category',
-        text: `Are you sure you want to delete "${categoryName}"? This will also delete all templates in this category.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Delete',
-        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            performDeleteCategory(categoryId, element);
-        }
-    });
 });
 
 function performDeleteCategory(categoryId, element) {

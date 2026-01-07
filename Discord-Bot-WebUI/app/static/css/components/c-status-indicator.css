@@ -22,7 +22,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-text-muted, var(--color-secondary-600, #64748b));
+  background: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600)));
   flex-shrink: 0;
   display: inline-block;
 }
@@ -57,38 +57,38 @@
 
 /* Active/Online - Green with glow */
 .c-status-indicator--active {
-  background: var(--color-success, var(--color-success-500, #10b981));
+  background: var(--color-success, var(--color-success-500, var(--color-success-500)));
   box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
   animation: c-status-pulse 2s ease-in-out infinite;
 }
 
 /* Warning - Amber with glow */
 .c-status-indicator--warning {
-  background: var(--color-warning, var(--color-warning-500, #f59e0b));
+  background: var(--color-warning, var(--color-warning-500, var(--color-warning-500)));
   box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
 }
 
 /* Danger/Error - Red with glow */
 .c-status-indicator--danger {
-  background: var(--color-danger, var(--color-danger-500, #ef4444));
+  background: var(--color-danger, var(--color-danger-500, var(--color-danger-500)));
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 
 /* Inactive/Offline - Gray, no glow */
 .c-status-indicator--inactive {
-  background: var(--color-text-muted, var(--color-secondary-500, #64748b));
+  background: var(--color-text-muted, var(--color-secondary-500, var(--color-secondary-600)));
   box-shadow: none;
 }
 
 /* Info - Blue with glow */
 .c-status-indicator--info {
-  background: var(--color-info, var(--color-info-500, #0ea5e9));
+  background: var(--color-info, var(--color-info-500, var(--color-info)));
   box-shadow: 0 0 8px rgba(14, 165, 233, 0.5);
 }
 
 /* Primary - Brand color with glow */
 .c-status-indicator--primary {
-  background: var(--color-primary, var(--color-primary-600, #2563EB));
+  background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   box-shadow: 0 0 8px rgba(37, 99, 235, 0.5);
 }
 
@@ -129,7 +129,7 @@
 
 .c-status-indicator__label {
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-secondary, var(--color-secondary-600, #64748b));
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600)));
 }
 
 /* ============================================================================
@@ -137,31 +137,31 @@
    ============================================================================ */
 
 [data-style="dark"] .c-status-indicator {
-  background: var(--color-text-muted, var(--color-secondary-500, #64748b));
+  background: var(--color-text-muted, var(--color-secondary-500, var(--color-secondary-600)));
 }
 
 [data-style="dark"] .c-status-indicator--active {
-  background: var(--color-success-400, #4ade80);
+  background: var(--color-success-400, var(--color-success-400));
   box-shadow: 0 0 10px rgba(74, 222, 128, 0.6);
 }
 
 [data-style="dark"] .c-status-indicator--warning {
-  background: var(--color-warning-400, #fbbf24);
+  background: var(--color-warning-400, var(--color-warning-400));
   box-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
 }
 
 [data-style="dark"] .c-status-indicator--danger {
-  background: var(--color-danger-400, #f87171);
+  background: var(--color-danger-400, var(--color-danger-400));
   box-shadow: 0 0 10px rgba(248, 113, 113, 0.6);
 }
 
 [data-style="dark"] .c-status-indicator--info {
-  background: var(--color-info-400, #38bdf8);
+  background: var(--color-info-400, var(--color-info-400));
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
 }
 
 [data-style="dark"] .c-status-indicator--primary {
-  background: var(--color-primary-400, #60a5fa);
+  background: var(--color-primary-400, var(--color-primary-400));
   box-shadow: 0 0 10px rgba(96, 165, 250, 0.6);
 }
 
@@ -184,14 +184,14 @@
   }
 
   .c-status-indicator--active {
-    border-color: var(--color-success, #10b981);
+    border-color: var(--color-success, var(--color-success-500));
   }
 
   .c-status-indicator--warning {
-    border-color: var(--color-warning, #f59e0b);
+    border-color: var(--color-warning, var(--color-warning-500));
   }
 
   .c-status-indicator--danger {
-    border-color: var(--color-danger, #ef4444);
+    border-color: var(--color-danger, var(--color-danger-500));
   }
 }

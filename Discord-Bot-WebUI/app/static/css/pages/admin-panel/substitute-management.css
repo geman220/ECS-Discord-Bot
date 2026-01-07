@@ -22,20 +22,20 @@
    ============================================================================ */
 
 :root {
-  --sub-primary: #3b82f6;
-  --sub-success: var(--color-success-500, #10b981);
-  --sub-warning: var(--color-warning-500, #f59e0b);
-  --sub-info: #06b6d4;
-  --sub-danger: var(--color-danger-500, #ef4444);
+  --sub-primary: var(--color-primary-500);
+  --sub-success: var(--color-success-500, var(--color-success-500));
+  --sub-warning: var(--color-warning-500, var(--color-accent-600));
+  --sub-info: var(--color-info-500);
+  --sub-danger: var(--color-danger-500, var(--color-danger-600));
 
-  --sub-bg-base: var(--color-secondary-50, #f8fafc);
-  --sub-bg-card: var(--color-white, #ffffff);
-  --sub-border: var(--color-secondary-200, #e2e8f0);
-  --sub-border-hover: var(--color-secondary-300, #cbd5e1);
+  --sub-bg-base: var(--color-secondary-50, var(--color-secondary-50));
+  --sub-bg-card: var(--color-white, var(--color-white));
+  --sub-border: var(--color-secondary-200, var(--color-secondary-200));
+  --sub-border-hover: var(--color-secondary-300, var(--color-secondary-300));
 
-  --sub-text-primary: #0f172a;
-  --sub-text-secondary: var(--color-secondary-600, #475569);
-  --sub-text-muted: var(--color-secondary-400, #94a3b8);
+  --sub-text-primary: var(--color-secondary-950);
+  --sub-text-secondary: var(--color-secondary-600, var(--color-secondary-700));
+  --sub-text-muted: var(--color-secondary-400, var(--color-secondary-400));
 
   --sub-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --sub-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -46,14 +46,14 @@
 }
 
 [data-style="dark"] {
-  --sub-bg-base: #0f172a;
-  --sub-bg-card: var(--color-secondary-900, var(--color-secondary-900, #1e293b));
-  --sub-border: var(--color-secondary-700, #334155);
-  --sub-border-hover: var(--color-secondary-600, #475569);
+  --sub-bg-base: var(--color-secondary-950);
+  --sub-bg-card: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)));
+  --sub-border: var(--color-secondary-700, var(--color-secondary-800));
+  --sub-border-hover: var(--color-secondary-600, var(--color-secondary-700));
 
-  --sub-text-primary: var(--color-secondary-100, #f1f5f9);
-  --sub-text-secondary: var(--color-secondary-300, #cbd5e1);
-  --sub-text-muted: var(--color-secondary-500, #64748b);
+  --sub-text-primary: var(--color-secondary-100, var(--color-secondary-100));
+  --sub-text-secondary: var(--color-secondary-300, var(--color-secondary-300));
+  --sub-text-muted: var(--color-secondary-500, var(--color-secondary-600));
 
   --sub-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
   --sub-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
@@ -112,7 +112,7 @@
   margin: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-sub-header {
     flex-direction: column;
     padding: 20px;
@@ -141,7 +141,7 @@
   margin-bottom: 28px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-sub-stats {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
@@ -247,7 +247,7 @@
   color: var(--sub-info);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-sub-stat {
     padding: 16px;
     gap: 12px;
@@ -296,6 +296,6 @@
 
   .c-sub-stat {
     box-shadow: none;
-    border: 1px solid var(--color-secondary-300, #ddd);
+    border: 1px solid var(--color-secondary-300, var(--color-neutral-300));
   }
 }

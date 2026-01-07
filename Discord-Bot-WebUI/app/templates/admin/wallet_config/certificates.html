@@ -139,7 +139,7 @@
                                 
                                 <h6 class="mb-3">Uploaded Certificates</h6>
                                 <div class="c-table-wrapper" data-table-responsive>
-                                    <table class="c-table c-table--hoverable" data-mobile-table data-table-type="config" data-table>
+                                    <table class="c-c-table c-table--hoverable" data-mobile-table data-table-type="config" data-table>
                                         <thead scope="col">
                                             <tr>
                                                 <th scope="col">Type</th>
@@ -152,7 +152,7 @@
                                         <tbody>
                                             {% for cert in apple_certs %}
                                             <tr>
-                                                <td>
+                                                <td data-label="Type">
                                                     {% if cert.type == 'certificate' %}
                                                     <span class="badge bg-label-primary" data-badge>Certificate</span>
                                                     {% elif cert.type == 'key' %}
@@ -161,16 +161,16 @@
                                                     <span class="badge bg-label-info" data-badge>WWDR</span>
                                                     {% endif %}
                                                 </td>
-                                                <td>{{ cert.name }}</td>
-                                                <td>
+                                                <td data-label="Name">{{ cert.name }}</td>
+                                                <td data-label="Status">
                                                     {% if cert.is_active %}
                                                     <span class="badge bg-label-success" data-badge>Active</span>
                                                     {% else %}
                                                     <span class="badge bg-label-secondary" data-badge>Inactive</span>
                                                     {% endif %}
                                                 </td>
-                                                <td>{{ cert.created_at.strftime('%Y-%m-%d') }}</td>
-                                                <td>
+                                                <td data-label="Uploaded">{{ cert.created_at.strftime('%Y-%m-%d') }}</td>
+                                                <td data-label="Actions">
                                                     <div class="btn-group">
                                                         <form action="{{ url_for('wallet_config.toggle_certificate', cert_id=cert.id) }}" method="post" class="d-inline">
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -261,7 +261,7 @@
                                 
                                 <h6 class="mb-3">Uploaded Credentials</h6>
                                 <div class="c-table-wrapper" data-table-responsive>
-                                    <table class="c-table c-table--hoverable" data-mobile-table data-table-type="config" data-table>
+                                    <table class="c-c-table c-table--hoverable" data-mobile-table data-table-type="config" data-table>
                                         <thead scope="col">
                                             <tr>
                                                 <th scope="col">Name</th>
@@ -274,17 +274,17 @@
                                         <tbody>
                                             {% for cert in google_certs %}
                                             <tr>
-                                                <td>{{ cert.name }}</td>
-                                                <td>
+                                                <td data-label="Name">{{ cert.name }}</td>
+                                                <td data-label="Status">
                                                     {% if cert.is_active %}
                                                     <span class="badge bg-label-success" data-badge>Active</span>
                                                     {% else %}
                                                     <span class="badge bg-label-secondary" data-badge>Inactive</span>
                                                     {% endif %}
                                                 </td>
-                                                <td>{{ cert.issuer_id }}</td>
-                                                <td>{{ cert.created_at.strftime('%Y-%m-%d') }}</td>
-                                                <td>
+                                                <td data-label="Issuer ID">{{ cert.issuer_id }}</td>
+                                                <td data-label="Uploaded">{{ cert.created_at.strftime('%Y-%m-%d') }}</td>
+                                                <td data-label="Actions">
                                                     <div class="btn-group">
                                                         <form action="{{ url_for('wallet_config.toggle_certificate', cert_id=cert.id) }}" method="post" class="d-inline">
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

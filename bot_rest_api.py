@@ -438,24 +438,479 @@ def _log_bot_activity(message: str, level: str = "INFO"):
     """Add a log entry to bot state."""
     try:
         from datetime import datetime
-        
+
         if not hasattr(bot_state, 'recent_logs'):
             bot_state.recent_logs = []
-        
+
         log_entry = {
             "timestamp": datetime.utcnow().isoformat(),
             "level": level,
             "message": message
         }
-        
+
         bot_state.recent_logs.append(log_entry)
-        
+
         # Keep only last 100 log entries
         if len(bot_state.recent_logs) > 100:
             bot_state.recent_logs = bot_state.recent_logs[-100:]
-            
+
     except Exception as e:
         logger.error(f"Error logging bot activity: {e}")
+
+
+# ============================================================================
+# COMMAND PERMISSIONS API
+# ============================================================================
+
+@app.get("/api/commands/permissions")
+async def get_command_permissions():
+    """Get permissions for all commands."""
+    try:
+        # Get command permissions from bot state or defaults
+        permissions = getattr(bot_state, 'command_permissions', {})
+
+        # Default permissions for known commands
+        default_permissions = {
+            "verify": {"roles": ["@everyone"], "cooldown": 10},
+            "nextmatch": {"roles": ["@everyone"], "cooldown": 5},
+            "record": {"roles": ["@everyone"], "cooldown": 5},
+            "rsvp": {"roles": ["@everyone"], "cooldown": 3},
+            "admin": {"roles": ["Global Admin", "Moderator"], "cooldown": 0},
+            "clear": {"roles": ["Global Admin", "Moderator"], "cooldown": 0},
+        }
+
+        # Merge defaults with saved permissions
+        merged = {**default_permissions, **permissions}
+
+        return {"success": True, "permissions": merged}
+    except Exception as e:
+        logger.error(f"Error getting command permissions: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/commands/permissions")
+async def update_command_permissions(data: dict):
+    """Update permissions for a command."""
+    try:
+        command = data.get("command")
+        roles = data.get("roles", [])
+        cooldown = data.get("cooldown", 5)
+
+        if not command:
+            return {"success": False, "error": "Command name required"}
+
+        if not hasattr(bot_state, 'command_permissions'):
+            bot_state.command_permissions = {}
+
+        bot_state.command_permissions[command] = {
+            "roles": roles,
+            "cooldown": cooldown
+        }
+
+        _log_bot_activity(f"Command permissions updated: {command} - roles: {roles}")
+
+        return {"success": True, "message": f"Permissions updated for /{command}"}
+    except Exception as e:
+        logger.error(f"Error updating command permissions: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# ============================================================================
+# CUSTOM COMMANDS API
+# ============================================================================
+
+@app.get("/api/custom-commands")
+async def get_custom_commands():
+    """Get list of custom commands."""
+    try:
+        commands = getattr(bot_state, 'custom_commands', [])
+        return {"success": True, "commands": commands}
+    except Exception as e:
+        logger.error(f"Error getting custom commands: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/custom-commands")
+async def create_custom_command(data: dict):
+    """Create a new custom command."""
+    try:
+        name = data.get("name", "").lower().strip()
+        description = data.get("description", "")
+        response_type = data.get("type", "text")
+        response_content = data.get("response", "")
+        enabled = data.get("enabled", True)
+
+        if not name:
+            return {"success": False, "error": "Command name required"}
+        if not response_content:
+            return {"success": False, "error": "Response content required"}
+
+        # Validate command name (alphanumeric, underscores, hyphens)
+        import re
+        if not re.match(r'^[a-z0-9_-]+$', name):
+            return {"success": False, "error": "Invalid command name. Use lowercase letters, numbers, underscores, and hyphens only."}
+
+        if not hasattr(bot_state, 'custom_commands'):
+            bot_state.custom_commands = []
+
+        # Check for existing command with same name
+        for cmd in bot_state.custom_commands:
+            if cmd.get("name") == name:
+                return {"success": False, "error": f"Command /{name} already exists"}
+
+        new_command = {
+            "name": name,
+            "description": description,
+            "type": response_type,
+            "response": response_content,
+            "enabled": enabled,
+            "created_at": __import__('datetime').datetime.utcnow().isoformat()
+        }
+
+        bot_state.custom_commands.append(new_command)
+
+        _log_bot_activity(f"Custom command created: /{name}")
+
+        return {"success": True, "message": f"Custom command /{name} created", "command": new_command}
+    except Exception as e:
+        logger.error(f"Error creating custom command: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.delete("/api/custom-commands/{command_name}")
+async def delete_custom_command(command_name: str):
+    """Delete a custom command."""
+    try:
+        if not hasattr(bot_state, 'custom_commands'):
+            return {"success": False, "error": "Command not found"}
+
+        original_length = len(bot_state.custom_commands)
+        bot_state.custom_commands = [
+            cmd for cmd in bot_state.custom_commands
+            if cmd.get("name") != command_name
+        ]
+
+        if len(bot_state.custom_commands) == original_length:
+            return {"success": False, "error": f"Command /{command_name} not found"}
+
+        _log_bot_activity(f"Custom command deleted: /{command_name}")
+
+        return {"success": True, "message": f"Custom command /{command_name} deleted"}
+    except Exception as e:
+        logger.error(f"Error deleting custom command: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# ============================================================================
+# GUILD MANAGEMENT API
+# ============================================================================
+
+@app.get("/api/guilds/{guild_id}/settings")
+async def get_guild_settings(guild_id: str):
+    """Get settings for a specific guild."""
+    try:
+        bot = get_bot_instance()
+
+        # Get guild-specific settings from bot state
+        guild_settings = getattr(bot_state, 'guild_settings', {})
+        settings = guild_settings.get(guild_id, {})
+
+        # Default settings
+        default_settings = {
+            "prefix": "!",
+            "language": "en",
+            "welcome_messages": True,
+            "mod_logging": True,
+            "announce_channel_id": None,
+            "log_channel_id": None,
+            "admin_role_id": None,
+            "mod_role_id": None
+        }
+
+        # Merge defaults with saved settings
+        merged = {**default_settings, **settings}
+
+        # Add guild info if bot is available
+        if bot and bot.is_ready():
+            guild = bot.get_guild(int(guild_id))
+            if guild:
+                merged["guild_name"] = guild.name
+                merged["guild_icon"] = str(guild.icon.url) if guild.icon else None
+                merged["channels"] = [
+                    {"id": str(ch.id), "name": ch.name, "type": str(ch.type)}
+                    for ch in guild.channels if hasattr(ch, 'send')
+                ][:50]  # Limit to 50 channels
+                merged["roles"] = [
+                    {"id": str(role.id), "name": role.name, "color": str(role.color)}
+                    for role in guild.roles if role.name != "@everyone"
+                ][:50]  # Limit to 50 roles
+
+        return {"success": True, "settings": merged}
+    except Exception as e:
+        logger.error(f"Error getting guild settings: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/guilds/{guild_id}/settings")
+async def update_guild_settings(guild_id: str, data: dict):
+    """Update settings for a specific guild."""
+    try:
+        if not hasattr(bot_state, 'guild_settings'):
+            bot_state.guild_settings = {}
+
+        if guild_id not in bot_state.guild_settings:
+            bot_state.guild_settings[guild_id] = {}
+
+        # Update only provided fields
+        allowed_fields = [
+            "prefix", "language", "welcome_messages", "mod_logging",
+            "announce_channel_id", "log_channel_id", "admin_role_id", "mod_role_id"
+        ]
+
+        for field in allowed_fields:
+            if field in data:
+                bot_state.guild_settings[guild_id][field] = data[field]
+
+        _log_bot_activity(f"Guild settings updated for {guild_id}")
+
+        return {"success": True, "message": "Guild settings updated successfully"}
+    except Exception as e:
+        logger.error(f"Error updating guild settings: {e}")
+        return {"success": False, "error": str(e)}
+
+# ============================================================================
+# DISCORD ROLE SYNC API
+# ============================================================================
+
+@app.get("/api/discord/roles")
+async def get_discord_roles():
+    """Get all roles from the Discord server."""
+    try:
+        import os
+        bot = get_bot_instance()
+        guild_id = int(os.getenv('SERVER_ID', '0'))
+
+        if not bot or not bot.is_ready():
+            return {"success": False, "error": "Bot not ready", "roles": []}
+
+        guild = bot.get_guild(guild_id)
+        if not guild:
+            return {"success": False, "error": f"Guild {guild_id} not found", "roles": []}
+
+        roles = []
+        for role in sorted(guild.roles, key=lambda r: r.position, reverse=True):
+            if role.name == "@everyone":
+                continue
+            roles.append({
+                "id": str(role.id),
+                "name": role.name,
+                "color": str(role.color),
+                "position": role.position,
+                "permissions": role.permissions.value,
+                "mentionable": role.mentionable,
+                "hoist": role.hoist,
+                "managed": role.managed,  # True if managed by integration/bot
+                "member_count": len(role.members)
+            })
+
+        return {"success": True, "roles": roles, "guild_id": str(guild_id), "guild_name": guild.name}
+    except Exception as e:
+        logger.error(f"Error getting Discord roles: {e}")
+        return {"success": False, "error": str(e), "roles": []}
+
+
+@app.get("/api/discord/roles/{role_id}/members")
+async def get_role_members(role_id: str):
+    """Get all members with a specific Discord role."""
+    try:
+        import os
+        bot = get_bot_instance()
+        guild_id = int(os.getenv('SERVER_ID', '0'))
+
+        if not bot or not bot.is_ready():
+            return {"success": False, "error": "Bot not ready", "members": []}
+
+        guild = bot.get_guild(guild_id)
+        if not guild:
+            return {"success": False, "error": f"Guild {guild_id} not found", "members": []}
+
+        role = guild.get_role(int(role_id))
+        if not role:
+            return {"success": False, "error": f"Role {role_id} not found", "members": []}
+
+        members = []
+        for member in role.members:
+            members.append({
+                "id": str(member.id),
+                "username": member.name,
+                "display_name": member.display_name,
+                "discriminator": member.discriminator,
+                "avatar_url": str(member.avatar.url) if member.avatar else None,
+                "joined_at": member.joined_at.isoformat() if member.joined_at else None
+            })
+
+        return {
+            "success": True,
+            "role": {"id": str(role.id), "name": role.name},
+            "members": members,
+            "member_count": len(members)
+        }
+    except Exception as e:
+        logger.error(f"Error getting role members: {e}")
+        return {"success": False, "error": str(e), "members": []}
+
+
+@app.post("/api/discord/roles/assign")
+async def assign_discord_role(data: dict):
+    """Assign a Discord role to a user."""
+    try:
+        import os
+        bot = get_bot_instance()
+        guild_id = int(os.getenv('SERVER_ID', '0'))
+
+        user_id = data.get("user_id")
+        role_id = data.get("role_id")
+
+        if not user_id or not role_id:
+            return {"success": False, "error": "user_id and role_id required"}
+
+        if not bot or not bot.is_ready():
+            return {"success": False, "error": "Bot not ready"}
+
+        guild = bot.get_guild(guild_id)
+        if not guild:
+            return {"success": False, "error": f"Guild {guild_id} not found"}
+
+        member = guild.get_member(int(user_id))
+        if not member:
+            # Try to fetch member
+            try:
+                member = await guild.fetch_member(int(user_id))
+            except:
+                return {"success": False, "error": f"Member {user_id} not found in guild"}
+
+        role = guild.get_role(int(role_id))
+        if not role:
+            return {"success": False, "error": f"Role {role_id} not found"}
+
+        await member.add_roles(role, reason="Assigned via Flask admin panel")
+
+        _log_bot_activity(f"Role '{role.name}' assigned to user '{member.display_name}'")
+
+        return {
+            "success": True,
+            "message": f"Role '{role.name}' assigned to '{member.display_name}'"
+        }
+    except Exception as e:
+        logger.error(f"Error assigning Discord role: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/discord/roles/remove")
+async def remove_discord_role(data: dict):
+    """Remove a Discord role from a user."""
+    try:
+        import os
+        bot = get_bot_instance()
+        guild_id = int(os.getenv('SERVER_ID', '0'))
+
+        user_id = data.get("user_id")
+        role_id = data.get("role_id")
+
+        if not user_id or not role_id:
+            return {"success": False, "error": "user_id and role_id required"}
+
+        if not bot or not bot.is_ready():
+            return {"success": False, "error": "Bot not ready"}
+
+        guild = bot.get_guild(guild_id)
+        if not guild:
+            return {"success": False, "error": f"Guild {guild_id} not found"}
+
+        member = guild.get_member(int(user_id))
+        if not member:
+            return {"success": False, "error": f"Member {user_id} not found in guild"}
+
+        role = guild.get_role(int(role_id))
+        if not role:
+            return {"success": False, "error": f"Role {role_id} not found"}
+
+        await member.remove_roles(role, reason="Removed via Flask admin panel")
+
+        _log_bot_activity(f"Role '{role.name}' removed from user '{member.display_name}'")
+
+        return {
+            "success": True,
+            "message": f"Role '{role.name}' removed from '{member.display_name}'"
+        }
+    except Exception as e:
+        logger.error(f"Error removing Discord role: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/discord/roles/bulk-sync")
+async def bulk_sync_roles(data: dict):
+    """Bulk sync roles for multiple users based on Flask role mappings."""
+    try:
+        import os
+        bot = get_bot_instance()
+        guild_id = int(os.getenv('SERVER_ID', '0'))
+
+        mappings = data.get("mappings", [])  # [{user_id, discord_role_id, action: "add"|"remove"}]
+
+        if not mappings:
+            return {"success": False, "error": "No mappings provided"}
+
+        if not bot or not bot.is_ready():
+            return {"success": False, "error": "Bot not ready"}
+
+        guild = bot.get_guild(guild_id)
+        if not guild:
+            return {"success": False, "error": f"Guild {guild_id} not found"}
+
+        results = []
+        success_count = 0
+        error_count = 0
+
+        for mapping in mappings:
+            user_id = mapping.get("user_id")
+            role_id = mapping.get("discord_role_id")
+            action = mapping.get("action", "add")
+
+            try:
+                member = guild.get_member(int(user_id))
+                if not member:
+                    member = await guild.fetch_member(int(user_id))
+
+                role = guild.get_role(int(role_id))
+                if not role:
+                    results.append({"user_id": user_id, "status": "error", "message": "Role not found"})
+                    error_count += 1
+                    continue
+
+                if action == "add":
+                    await member.add_roles(role, reason="Bulk sync from Flask")
+                else:
+                    await member.remove_roles(role, reason="Bulk sync from Flask")
+
+                results.append({"user_id": user_id, "status": "success", "action": action, "role": role.name})
+                success_count += 1
+
+            except Exception as e:
+                results.append({"user_id": user_id, "status": "error", "message": str(e)})
+                error_count += 1
+
+        _log_bot_activity(f"Bulk role sync: {success_count} successful, {error_count} errors")
+
+        return {
+            "success": True,
+            "results": results,
+            "summary": {"success": success_count, "errors": error_count}
+        }
+    except Exception as e:
+        logger.error(f"Error in bulk role sync: {e}")
+        return {"success": False, "error": str(e)}
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -5,6 +5,8 @@
  * @module auto-schedule-wizard/ui-helpers
  */
 
+import { showToast } from '../services/toast-service.js';
+
 /**
  * Apply theme color to element using CSS custom property
  * @param {HTMLElement} element - The element to apply theme color to
@@ -131,48 +133,8 @@ export function showErrorModal(title, message) {
     showModal('errorModal', title, message, 'error');
 }
 
-/**
- * Show a toast notification
- * @param {string} message - Toast message
- * @param {string} type - Toast type (info, success, warning, error)
- */
-export function showToast(message, type = 'info') {
-    const bgClassMap = {
-        info: 'bg-info',
-        success: 'bg-success',
-        warning: 'bg-warning',
-        error: 'bg-danger'
-    };
-
-    const toastContainer = document.querySelector('.toast-container') || createToastContainer();
-
-    const toastHTML = `
-        <div class="toast align-items-center text-white ${bgClassMap[type] || bgClassMap.info} border-0" role="alert">
-            <div class="d-flex">
-                <div class="toast-body">${message}</div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-        </div>
-    `;
-
-    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-    const toastElement = toastContainer.lastElementChild;
-    const toast = new bootstrap.Toast(toastElement, { delay: 5000 });
-    toast.show();
-
-    toastElement.addEventListener('hidden.bs.toast', () => toastElement.remove());
-}
-
-/**
- * Create a toast container if it doesn't exist
- * @returns {HTMLElement} Toast container element
- */
-function createToastContainer() {
-    const container = document.createElement('div');
-    container.className = 'toast-container position-fixed top-0 end-0 p-3 z-index-9999';
-    document.body.appendChild(container);
-    return container;
-}
+// showToast imported from services/toast-service.js
+export { showToast };
 
 /**
  * Add spinner CSS dynamically (fallback if not in stylesheet)

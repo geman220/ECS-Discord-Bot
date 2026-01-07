@@ -82,19 +82,19 @@
 
     <!-- Statistics Dashboard -->
     <div class="league-pool-stats">
-        <div class="league-pool-stat-card">
+        <div class="league-pool-stat-c-card">
             <div class="league-pool-stat-number">{{ stats.total_active }}</div>
             <div class="league-pool-stat-label">Active Substitutes</div>
         </div>
-        <div class="league-pool-stat-card">
+        <div class="league-pool-stat-c-card">
             <div class="league-pool-stat-number">{{ stats.pending_approval }}</div>
             <div class="league-pool-stat-label">Pending Approval</div>
         </div>
-        <div class="league-pool-stat-card">
+        <div class="league-pool-stat-c-card">
             <div class="league-pool-stat-number">{{ stats.total_requests_sent }}</div>
             <div class="league-pool-stat-label">Total Requests Sent</div>
         </div>
-        <div class="league-pool-stat-card">
+        <div class="league-pool-stat-c-card">
             <div class="league-pool-stat-number">{{ stats.total_matches_played }}</div>
             <div class="league-pool-stat-label">Matches Played</div>
         </div>
@@ -135,7 +135,7 @@
                     {% if available_players %}
                         <div class="league-pool-player-grid">
                             {% for player in available_players %}
-                            <div class="league-pool-player-card"
+                            <div class="league-pool-player-c-card"
                                  draggable="true"
                                  data-player-id="{{ player.id }}"
                                  data-player-name="{{ player.name }}">
@@ -192,7 +192,7 @@
                     {% if active_pools %}
                         <div class="league-pool-player-grid">
                             {% for pool in active_pools %}
-                            <div class="league-pool-player-card"
+                            <div class="league-pool-player-c-card"
                                  draggable="true"
                                  data-player-id="{{ pool.player_id }}"
                                  data-player-name="{{ pool.player.name }}">

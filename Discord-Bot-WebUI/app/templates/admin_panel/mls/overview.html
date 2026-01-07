@@ -91,7 +91,7 @@
             <div class="c-card__body">
                 {% if matches %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="matches">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="matches">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Match</th>
@@ -104,7 +104,7 @@
                         <tbody>
                             {% for match in matches %}
                             <tr>
-                                <td>
+                                <td data-label="Match">
                                     {% if match.is_home_game %}
                                     <strong>Seattle Sounders FC</strong> vs {{ match.opponent }}
                                     {% else %}
@@ -114,19 +114,19 @@
                                     <br><small class="text-muted">{{ match.venue }}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Date/Time">
                                     {{ match.date_time.strftime('%b %d, %Y') }}<br>
                                     <small class="text-muted">{{ match.date_time.strftime('%I:%M %p') }} UTC</small>
                                 </td>
-                                <td>
+                                <td data-label="Competition">
                                     <span class="badge bg-secondary" data-badge>{{ match.competition or 'MLS' }}</span>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     <span class="badge bg-{{ match.status_color }}" data-badge>
                                         <i class="ti {{ match.status_icon }} me-1"></i>{{ match.status_display }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         {% if not match.thread_created %}
                                         <button class="c-btn c-btn--outline-primary" data-action="create-thread" data-match-id="{{ match.id }}" title="Create Thread">

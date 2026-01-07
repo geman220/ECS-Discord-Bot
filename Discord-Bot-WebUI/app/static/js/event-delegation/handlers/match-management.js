@@ -228,7 +228,9 @@ window.EventDelegation.register('change-sort', function(element, e) {
  */
 window.EventDelegation.register('show-discord-channel-info', function(element, e) {
     e.preventDefault();
-    alert('Check Discord #pl-new-players channel for notifications');
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire('Discord Channel', 'Check Discord #pl-new-players channel for notifications', 'info');
+    }
 }, { preventDefault: true });
 
 // ============================================================================

@@ -24,6 +24,44 @@ import * as bootstrap from 'bootstrap';
 window.bootstrap = bootstrap;
 
 // ============================================================================
+// 2b. JQUERY MODAL COMPATIBILITY SHIM
+// Wraps Bootstrap 5 native Modal API for legacy $(element).modal() calls
+// ============================================================================
+if (window.jQuery && window.jQuery.fn && !window.jQuery.fn.modal) {
+  window.jQuery.fn.modal = function(action, options) {
+    return this.each(function() {
+      const element = this;
+      let instance = bootstrap.Modal.getInstance(element);
+
+      if (action === 'show') {
+        if (!instance) {
+          instance = new bootstrap.Modal(element, options || {});
+        }
+        instance.show();
+      } else if (action === 'hide') {
+        if (instance) {
+          instance.hide();
+        }
+      } else if (action === 'toggle') {
+        if (!instance) {
+          instance = new bootstrap.Modal(element, options || {});
+        }
+        instance.toggle();
+      } else if (action === 'dispose') {
+        if (instance) {
+          instance.dispose();
+        }
+      } else if (typeof action === 'object' || action === undefined) {
+        // Initialize with options
+        if (!instance) {
+          new bootstrap.Modal(element, action || {});
+        }
+      }
+    });
+  };
+}
+
+// ============================================================================
 // 3. HAMMER.JS - Touch gestures
 // ============================================================================
 import Hammer from 'hammerjs';

@@ -169,7 +169,7 @@
             </div>
             <div class="c-card__body">
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="stats">
+                    <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="stats">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Endpoint</th>
@@ -180,13 +180,13 @@
                         <tbody>
                             {% for endpoint in performance_metrics.top_endpoints %}
                             <tr>
-                                <td>
+                                <td data-label="Endpoint">
                                     <code>{{ endpoint.path }}</code>
                                 </td>
-                                <td>
+                                <td data-label="Requests">
                                     <span class="badge bg-info" data-badge>{{ endpoint.requests }}</span>
                                 </td>
-                                <td>
+                                <td data-label="Avg Time">
                                     <small class="text-muted">{{ endpoint.avg_time }}ms</small>
                                 </td>
                             </tr>
@@ -225,55 +225,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.icon-overlay i {
-    font-size: 2rem;
-    opacity: 0.5;
-}
-
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Utility classes for chart heights */
-.u-h-300 {
-    height: 300px;
-}
-
-.u-h-400 {
-    height: 400px;
-}
-
-/* Progress bar utilities */
-.u-progress-sm {
-    height: 6px;
-}
-
-/* Circular progress indicators */
-.u-progress-circle {
-    position: relative;
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--ecs-neutral-20, #e9ecef);
-}
-
-.u-progress-circle .progress-bar {
-    position: absolute;
-    width: 100% !important;
-    height: 100% !important;
-    border-radius: 50%;
-}
-
-.u-progress-circle--info .progress-bar {
-    /* Info color will be applied via bg-info class */
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

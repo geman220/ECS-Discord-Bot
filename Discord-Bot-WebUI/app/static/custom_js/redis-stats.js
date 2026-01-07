@@ -9,7 +9,7 @@ import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
   let autoRefreshInterval;
 
-  function init() {
+  function initRedisStats() {
     if (_initialized) return;
 
     // Page guard - only run on Redis stats page
@@ -171,14 +171,20 @@ let _initialized = false;
       .then(response => response.json())
       .then(data => {
         if (data.error) {
-          alert('Error during cleanup: ' + data.error);
+          if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', 'Error during cleanup: ' + data.error, 'error');
+          }
         } else {
-          alert('Connection cleanup completed successfully');
+          if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Success', 'Connection cleanup completed successfully', 'success');
+          }
           redisUpdateStats();
         }
       })
       .catch(error => {
-        alert('Error during cleanup: ' + error);
+        if (typeof window.Swal !== 'undefined') {
+          window.Swal.fire('Error', 'Error during cleanup: ' + error, 'error');
+        }
       })
       .finally(() => {
         cleanupButton.textContent = originalText;
@@ -188,7 +194,7 @@ let _initialized = false;
 
   // Register with window.InitSystem (primary)
   if (true && window.InitSystem.register) {
-    window.InitSystem.register('redis-stats', init, {
+    window.InitSystem.register('redis-stats', initRedisStats, {
       priority: 30,
       reinitializable: true,
       description: 'Redis connection statistics'
@@ -198,17 +204,5 @@ let _initialized = false;
   // Fallback
   // window.InitSystem handles initialization
 
-// Backward compatibility
-window.init = init;
-
-// Backward compatibility
-window.redisUpdateStats = redisUpdateStats;
-
-// Backward compatibility
-window.updateElement = updateElement;
-
-// Backward compatibility
-window.testConnection = testConnection;
-
-// Backward compatibility
-window.cleanupConnections = cleanupConnections;
+// No window exports needed - InitSystem handles initialization
+// Template has its own local function definitions

@@ -193,7 +193,7 @@ main,
 }
 
 /* Mobile responsive banner */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .role-impersonation-banner,
   .c-role-banner {
     margin: var(--space-2);
@@ -231,27 +231,20 @@ main,
   margin-top: auto;
   flex-shrink: 0; /* Don't shrink footer */
   padding: 1rem 1.5rem;
-  background: var(--color-bg-card, #ffffff);
-  border-top: 1px solid var(--color-border-primary, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
+  background: var(--color-bg-card, var(--color-white));
+  border-top: 1px solid var(--color-border-primary, var(--color-secondary-200, var(--color-secondary-200, var(--color-secondary-200))));
   position: relative;
   z-index: 10; /* Above content but below modals and widgets */
   min-height: 60px; /* Ensure footer has minimum height */
 }
 
-/* Footer must respect sidebar width on desktop */
+/* Footer is full-width within the content-wrapper which already handles sidebar offset */
+/* Removed margin-left to prevent two-color gap issue in dark mode */
 @media (min-width: 1200px) {
   .content-footer,
   .c-base-layout__footer {
-    margin-left: 260px; /* Match sidebar width */
-    width: calc(100% - 260px);
-    transition: margin-left 0.3s ease, width 0.3s ease;
-  }
-
-  /* When sidebar is collapsed, adjust footer */
-  .layout-menu-collapsed .content-footer,
-  .layout-menu-collapsed .c-base-layout__footer {
-    margin-left: 72px; /* Match collapsed sidebar width */
-    width: calc(100% - 72px);
+    width: 100%;
+    transition: width 0.3s ease;
   }
 }
 
@@ -266,8 +259,8 @@ main,
 
 [data-style="dark"] .content-footer,
 [data-style="dark"] .c-base-layout__footer {
-  background: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
-  border-top-color: var(--color-secondary-700, var(--color-secondary-700, #475569));
+  background: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
+  border-top-color: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
 }
 
 .footer-container,
@@ -289,27 +282,27 @@ main,
 
 .footer-container .text-body,
 .c-base-layout__footer-copyright {
-  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, #64748b))) !important;
-  font-size: 0.875rem !important;
-  visibility: visible !important;
-  opacity: 1 !important;
+  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
+  font-size: 0.875rem;
+  visibility: visible;
+  opacity: 1;
 }
 
 [data-style="dark"] .footer-container .text-body,
 [data-style="dark"] .c-base-layout__footer-copyright {
-  color: var(--color-secondary-400, var(--color-secondary-400, #94a3b8));
+  color: var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400)));
 }
 
 .footer-container a,
 .c-base-layout__footer-link {
-  color: var(--color-primary, var(--color-primary-600, #2563eb));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
 [data-style="dark"] .footer-container a,
 [data-style="dark"] .c-base-layout__footer-link {
-  color: var(--color-primary-400, #60a5fa);
+  color: var(--color-primary-400, var(--color-primary-400));
 }
 
 .footer-container a:hover,
@@ -342,7 +335,7 @@ main,
 }
 
 /* Mobile footer responsive */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .footer-container,
   .c-base-layout__footer-content {
     flex-direction: column;
@@ -443,7 +436,7 @@ main,
    * JUSTIFIED !important usage:
    * Desktop devices with precise mouse input should NOT have transform effects.
    * This overrides various framework and component-level transforms that create
-   * undesirable "jump" effects on desktop browsers. The !important is necessary
+   * undesirable "jump" effects on desktop browsers. The is necessary
    * because button transforms may be set by:
    * - Bootstrap framework utilities
    * - Third-party component libraries
@@ -454,10 +447,10 @@ main,
   .btn,
   .ecs-btn,
   [class*="btn-"] {
-    transform: none !important;
+    transform: none;
     transition: background-color var(--duration-fast) var(--ease-smooth),
                 color var(--duration-fast) var(--ease-smooth),
-                border-color var(--duration-fast) var(--ease-smooth) !important;
+                border-color var(--duration-fast) var(--ease-smooth);
   }
 
   button:active,
@@ -472,12 +465,12 @@ main,
   [class*="btn-"]:active,
   [class*="btn-"]:hover,
   [class*="btn-"]:focus {
-    transform: none !important;
+    transform: none;
   }
 
   /* Touch feedback for desktop - opacity only */
   .touch-active {
-    transform: none !important;
+    transform: none;
     opacity: 0.9;
   }
 }
@@ -515,7 +508,7 @@ main,
   border: 1px solid var(--border-color-primary);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
-  z-index: var(--z-dropdown);
+  z-index: var(--z-autocomplete, 1060);
   padding: var(--space-2) 0;
 }
 
@@ -604,7 +597,7 @@ main,
 }
 
 /* Mobile toast positioning */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .c-flash-toast-container {
     top: var(--space-4);
     right: var(--space-4);
@@ -621,12 +614,12 @@ main,
 /**
  * JUSTIFIED !important usage:
  * Responsive utility classes must override component styles regardless of specificity.
- * Bootstrap's display utilities use !important to ensure responsive behavior works
+ * Bootstrap's display utilities use to ensure responsive behavior works
  * consistently across all components and third-party integrations.
  */
-@media (max-width: 991px) {
+@media (max-width: 991.98px) {
   .d-lg-inline-block {
-    display: none !important;
+    display: none;
   }
 }
 
@@ -735,8 +728,8 @@ textarea:focus-visible {
 [data-style="dark"] .skip-to-content,
 [data-style="dark"] .skip-link,
 [data-style="dark"] .c-base-layout__skip-link {
-  background-color: var(--color-primary-600, var(--color-primary-600, #2563EB));
-  color: var(--color-white, #FFFFFF);
+  background-color: var(--color-primary-600, var(--color-primary-600, var(--color-primary-600)));
+  color: var(--color-white, var(--color-white));
 }
 
 /* ============================================================================
@@ -749,7 +742,7 @@ textarea:focus-visible {
  * Accessibility requirement to override ALL animations and transitions when user
  * has enabled "reduce motion" in their OS settings (prefers-reduced-motion: reduce).
  * This is a WCAG guideline for motion sensitivity and vestibular disorders.
- * Must use !important to override:
+ * Must use to override:
  * - Inline styles from JavaScript animations
  * - Third-party library animations
  * - All component-level transitions
@@ -759,10 +752,10 @@ textarea:focus-visible {
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }
 
@@ -790,21 +783,21 @@ textarea:focus-visible {
   .content-backdrop,
   .c-flash-toast-container,
   .role-impersonation-banner {
-    display: none !important;
+    display: none;
   }
 
   .content-wrapper {
-    padding: 0 !important;
+    padding: 0;
   }
 
   .layout-page {
-    width: 100% !important;
-    margin: 0 !important;
+    width: 100%;
+    margin: 0;
   }
 
   body {
-    background: white !important;
-    color: black !important;
+    background: white;
+    color: black;
   }
 }
 
@@ -846,7 +839,7 @@ textarea:focus-visible {
     right: max(var(--space-6), env(safe-area-inset-right));
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 767.98px) {
     .c-flash-toast-container {
       left: max(var(--space-4), env(safe-area-inset-left));
       right: max(var(--space-4), env(safe-area-inset-right));

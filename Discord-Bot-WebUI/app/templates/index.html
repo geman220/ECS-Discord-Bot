@@ -146,7 +146,7 @@
 
                     {% if team_next_matches|length > 0 %}
                         {% for date, matches in team_next_matches.items() | sort %}
-                            <div class="c-match-card" data-component="match-card" data-match-date="{{ date }}">
+                            <div class="c-match-c-card" data-component="match-card" data-match-date="{{ date }}">
                                 <div class="c-match-card__header">
                                     <h5 class="c-match-card__header-title">
                                         <i class="ti ti-calendar-event c-match-card__header-icon"></i>
@@ -336,7 +336,7 @@
                     {% set team_prev_matches = team_matches.get(t.id, {}).get('prev', {}) %}
 
                     {% if team_prev_matches|length > 0 %}
-                        <div class="c-match-card" data-component="match-card" data-match-type="recent">
+                        <div class="c-match-c-card" data-component="match-card" data-match-type="recent">
                             <div class="c-match-card__body">
                                 {% for date, matches in team_prev_matches.items() | sort(reverse=true) %}
                                     {% for match_data in matches %}

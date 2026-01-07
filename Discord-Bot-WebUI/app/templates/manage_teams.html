@@ -55,12 +55,12 @@
                      id="pane-{{ league.name|replace(' ', '_') }}-season-{{ season.id }}"
                      role="tabpanel"
                      aria-labelledby="tab-{{ league.name|replace(' ', '_') }}-season-{{ season.id }}">
-                    <div class="c-card-modern">
-                        <div class="c-card-modern__header">
-                            <h6 class="c-card-modern__title">
+                    <div class="c-card">
+                        <div class="c-card__header">
+                            <h6 class="c-card__title">
                                 {{ league.name }} Teams ({{ season.name }})
                             </h6>
-                            <div class="c-card-modern__actions">
+                            <div class="c-card__actions">
                                 <button class="c-btn c-btn--success c-btn--sm"
                                         data-bs-toggle="modal"
                                         data-bs-target="#addTeamModal"
@@ -72,7 +72,7 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="c-card-modern__body">
+                        <div class="c-card__body">
                             {{ render_team_list(league.teams, league.name, season.id) }}
                         </div>
                     </div>

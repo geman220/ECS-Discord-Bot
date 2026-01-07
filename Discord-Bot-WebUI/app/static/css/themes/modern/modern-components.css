@@ -38,8 +38,9 @@
 }
 
 /* Headlines - Athletic, commanding */
-[data-theme-variant="modern"] h1,
-[data-theme-variant="modern"] .h1 {
+
+[data-theme-variant="modern"] .h1,
+[data-theme-variant="modern"] h1 {
   font-family: var(--ecs-font-display);
   font-size: var(--ecs-text-4xl);
   line-height: var(--ecs-leading-tight);
@@ -47,8 +48,8 @@
   text-transform: uppercase;
 }
 
-[data-theme-variant="modern"] h2,
-[data-theme-variant="modern"] .h2 {
+[data-theme-variant="modern"] .h2,
+[data-theme-variant="modern"] h2 {
   font-family: var(--ecs-font-body);
   font-size: var(--ecs-text-3xl);
   font-weight: var(--ecs-weight-bold);
@@ -56,32 +57,32 @@
   letter-spacing: -0.01em;
 }
 
-[data-theme-variant="modern"] h3,
-[data-theme-variant="modern"] .h3 {
+[data-theme-variant="modern"] .h3,
+[data-theme-variant="modern"] h3 {
   font-family: var(--ecs-font-body);
   font-size: var(--ecs-text-2xl);
   font-weight: var(--ecs-weight-bold);
   line-height: var(--ecs-leading-snug);
 }
 
-[data-theme-variant="modern"] h4,
-[data-theme-variant="modern"] .h4 {
+[data-theme-variant="modern"] .h4,
+[data-theme-variant="modern"] h4 {
   font-family: var(--ecs-font-body);
   font-size: var(--ecs-text-xl);
   font-weight: var(--ecs-weight-semibold);
   line-height: var(--ecs-leading-snug);
 }
 
-[data-theme-variant="modern"] h5,
-[data-theme-variant="modern"] .h5 {
+[data-theme-variant="modern"] .h5,
+[data-theme-variant="modern"] h5 {
   font-family: var(--ecs-font-body);
   font-size: var(--ecs-text-lg);
   font-weight: var(--ecs-weight-semibold);
   line-height: var(--ecs-leading-normal);
 }
 
-[data-theme-variant="modern"] h6,
-[data-theme-variant="modern"] .h6 {
+[data-theme-variant="modern"] .h6,
+[data-theme-variant="modern"] h6 {
   font-family: var(--ecs-font-body);
   font-size: var(--ecs-text-base);
   font-weight: var(--ecs-weight-semibold);
@@ -89,22 +90,25 @@
 }
 
 /* Data/Numbers - Tabular figures for alignment */
+
 [data-theme-variant="modern"] .data-value,
+[data-theme-variant="modern"] .number,
 [data-theme-variant="modern"] .score,
-[data-theme-variant="modern"] .stat,
-[data-theme-variant="modern"] .number {
+[data-theme-variant="modern"] .stat {
   font-family: var(--ecs-font-body);
   font-weight: var(--ecs-weight-semibold);
   font-variant-numeric: tabular-nums;
 }
 
 /* Small text */
-[data-theme-variant="modern"] small,
-[data-theme-variant="modern"] .small {
+
+[data-theme-variant="modern"] .small,
+[data-theme-variant="modern"] small {
   font-size: var(--ecs-text-sm);
 }
 
 /* Links */
+
 [data-theme-variant="modern"] a {
   text-decoration: none;
   transition: color var(--ecs-transition-fast);
@@ -115,6 +119,7 @@
 }
 
 /* Responsive Typography */
+
 @media (max-width: 767.98px) {
   [data-theme-variant="modern"] h1,
   [data-theme-variant="modern"] .h1 {
@@ -137,13 +142,15 @@
    ============================================================================ */
 
 /* Main container */
-[data-theme-variant="modern"] .container-xxl,
-[data-theme-variant="modern"] .container-fluid {
+
+[data-theme-variant="modern"] .container-fluid,
+[data-theme-variant="modern"] .container-xxl {
   padding-top: var(--ecs-space-6);
   padding-bottom: var(--ecs-space-6);
 }
 
 /* Page headers */
+
 [data-theme-variant="modern"] .page-header {
   margin-bottom: var(--ecs-space-6);
 }
@@ -153,6 +160,7 @@
 }
 
 /* Breadcrumbs */
+
 [data-theme-variant="modern"] .breadcrumb {
   font-size: var(--ecs-text-sm);
   background: transparent;
@@ -165,8 +173,9 @@
    ============================================================================ */
 
 /* Sidebar text */
-[data-theme-variant="modern"] .layout-menu .menu-link,
-[data-theme-variant="modern"] #layout-menu .menu-link {
+
+[data-theme-variant="modern"] #layout-menu .menu-link,
+[data-theme-variant="modern"] .layout-menu .menu-link {
   font-weight: var(--ecs-weight-medium);
   border-radius: var(--ecs-radius-md);
   margin: 0.125rem 0.5rem;
@@ -174,8 +183,9 @@
 }
 
 /* Sidebar section headers */
-[data-theme-variant="modern"] .layout-menu .menu-header,
-[data-theme-variant="modern"] #layout-menu .menu-header {
+
+[data-theme-variant="modern"] #layout-menu .menu-header,
+[data-theme-variant="modern"] .layout-menu .menu-header {
   font-size: var(--ecs-text-xs);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -183,6 +193,7 @@
 }
 
 /* Brand section */
+
 [data-theme-variant="modern"] .app-brand {
   padding: var(--ecs-space-5);
 }
@@ -226,8 +237,12 @@
 }
 
 /* Firefox */
+
 [data-theme-variant="modern"] * {
   scrollbar-width: thin;
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ============================================================================
@@ -235,17 +250,17 @@
    ============================================================================ */
 
 [data-theme-variant="modern"] .modal-content {
-  border: none !important;
-  border-radius: 0.75rem !important;
-  overflow: hidden !important;
+  border: none;
+  border-radius: 0.75rem;
+  overflow: hidden;
 }
 
 [data-theme-variant="modern"] .modal-header {
-  padding: 1rem 1.5rem !important;
+  padding: 1rem 1.5rem;
 }
 
 [data-theme-variant="modern"] .modal-footer {
-  padding: 1rem 1.5rem !important;
+  padding: 1rem 1.5rem;
 }
 
 /* ============================================================================
@@ -253,26 +268,26 @@
    ============================================================================ */
 
 [data-theme-variant="modern"] .dropdown-menu {
-  border-radius: 0.5rem !important;
-  padding: 0.5rem 0 !important;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0;
 }
 
 [data-theme-variant="modern"] .dropdown-item {
-  padding: 0.625rem 1rem !important;
-  font-weight: 500 !important;
-  transition: all 0.15s ease !important;
+  padding: 0.625rem 1rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
 }
 
 [data-theme-variant="modern"] .dropdown-divider {
-  margin: 0.5rem 0 !important;
-  opacity: 1 !important;
+  margin: 0.5rem 0;
+  opacity: 1;
 }
 
 [data-theme-variant="modern"] .dropdown-header {
-  font-weight: 600 !important;
-  font-size: 0.75rem !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* ============================================================================
@@ -374,6 +389,7 @@
 }
 
 /* Disable hover on cards that shouldn't lift */
+
 [data-theme-variant="modern"] .card.no-hover:hover,
 [data-theme-variant="modern"] .modal .card:hover {
   transform: none;
@@ -475,16 +491,21 @@
    LOADING STATES
    ============================================================================ */
 
-[data-theme-variant="modern"] .skeleton,
-[data-theme-variant="modern"] .loading {
+[data-theme-variant="modern"] .loading,
+[data-theme-variant="modern"] .skeleton {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--ecs-radius-md);
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ============================================================================
@@ -500,19 +521,14 @@
    Professional micro-interactions
    ============================================================================ */
 
-[data-theme-variant="modern"] * {
-  transition-property: background-color, border-color, color, box-shadow, transform, opacity;
-  transition-duration: 0.15s;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 /* Disable transitions on elements that shouldn't animate */
-[data-theme-variant="modern"] .no-transition,
+
 [data-theme-variant="modern"] .modal,
 [data-theme-variant="modern"] .modal-backdrop,
-[data-theme-variant="modern"] .tooltip,
-[data-theme-variant="modern"] .popover {
-  transition: none !important;
+[data-theme-variant="modern"] .no-transition,
+[data-theme-variant="modern"] .popover,
+[data-theme-variant="modern"] .tooltip {
+  transition: none;
 }
 
 /* ============================================================================
@@ -522,7 +538,7 @@
 @media print {
   [data-theme-variant="modern"] .btn,
   [data-theme-variant="modern"] .card {
-    box-shadow: none !important;
-    transform: none !important;
+    box-shadow: none;
+    transform: none;
   }
 }

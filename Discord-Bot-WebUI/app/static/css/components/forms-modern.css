@@ -15,7 +15,7 @@
  * - Design tokens only
  * - State classes: is-invalid, is-valid, is-focused
  * - Event delegation: data-form-control, data-form-select, etc.
- * - Zero !important
+ * - Zero
  *
  * Components:
  * - Text inputs, textareas, selects
@@ -62,6 +62,7 @@
 }
 
 /* Floating label variant */
+
 .c-form-modern__label--floating {
   position: absolute;
   left: var(--space-4);
@@ -75,9 +76,9 @@
   z-index: 1;
 }
 
+.c-form-modern__input.is-filled ~ .c-form-modern__label--floating,
 .c-form-modern__input:focus ~ .c-form-modern__label--floating,
-.c-form-modern__input:not(:placeholder-shown) ~ .c-form-modern__label--floating,
-.c-form-modern__input.is-filled ~ .c-form-modern__label--floating {
+.c-form-modern__input:not(:placeholder-shown) ~ .c-form-modern__label--floating {
   top: -0.625rem;
   font-size: var(--text-xs);
   color: var(--color-primary);
@@ -91,22 +92,18 @@
   /* Layout */
   width: 100%;
   display: block;
-
   /* Spacing */
   padding: var(--space-3) var(--space-4);
-
   /* Typography */
   font-size: var(--text-sm);
   font-family: inherit;
   font-weight: var(--font-normal);
   color: var(--color-text-primary);
   line-height: var(--leading-normal);
-
   /* Visual */
   background: var(--color-bg-elevated);
   border: 2px solid var(--color-border-primary);
   border-radius: var(--radius-lg);
-
   /* Interaction */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
@@ -117,15 +114,16 @@
 }
 
 /* Focus state - athletic glow */
+
 .c-form-modern__input:focus {
   border-color: var(--color-primary);
-  box-shadow:
-    0 0 0 4px rgba(14, 165, 233, 0.1),
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1),
     0 4px 12px rgba(14, 165, 233, 0.08);
   transform: translateY(-1px);
 }
 
 /* Dark mode */
+
 [data-style="dark"] .c-form-modern__input {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.1);
@@ -134,18 +132,19 @@
 
 [data-style="dark"] .c-form-modern__input:focus {
   background: rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 0 0 4px rgba(14, 165, 233, 0.2),
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.2),
     0 4px 12px rgba(14, 165, 233, 0.15);
 }
 
 /* Textarea */
+
 .c-form-modern__textarea {
   min-height: 120px;
   resize: vertical;
 }
 
 /* 2FA/OTP Code Input */
+
 .c-form-modern__input--2fa {
   text-align: center;
   font-size: 1.5rem;
@@ -177,29 +176,30 @@
    ============================================================================ */
 
 /* Invalid */
+
 .c-form-modern__input.is-invalid,
 .c-form-modern__input:invalid {
   border-color: var(--color-danger);
 }
 
 .c-form-modern__input.is-invalid:focus {
-  box-shadow:
-    0 0 0 4px rgba(239, 68, 68, 0.1),
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1),
     0 4px 12px rgba(239, 68, 68, 0.08);
 }
 
 /* Valid */
+
 .c-form-modern__input.is-valid {
   border-color: var(--color-success);
 }
 
 .c-form-modern__input.is-valid:focus {
-  box-shadow:
-    0 0 0 4px rgba(16, 185, 129, 0.1),
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1),
     0 4px 12px rgba(16, 185, 129, 0.08);
 }
 
 /* Feedback messages */
+
 .c-form-modern__feedback {
   display: flex;
   align-items: center;
@@ -249,7 +249,6 @@
   flex-shrink: 0;
   width: 1.25rem;
   height: 1.25rem;
-
   background: var(--color-bg-elevated);
   border: 2px solid var(--color-border-primary);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -264,6 +263,7 @@
 }
 
 /* Checked state */
+
 .c-form-modern__checkbox-input:checked + .c-form-modern__checkbox-box,
 .c-form-modern__radio-input:checked + .c-form-modern__radio-box {
   background: var(--color-primary);
@@ -271,6 +271,7 @@
 }
 
 /* Checkmark */
+
 .c-form-modern__checkbox-box::after {
   content: '';
   position: absolute;
@@ -289,6 +290,7 @@
 }
 
 /* Radio dot */
+
 .c-form-modern__radio-box::after {
   content: '';
   position: absolute;
@@ -307,12 +309,14 @@
 }
 
 /* Focus state */
+
 .c-form-modern__checkbox-input:focus + .c-form-modern__checkbox-box,
 .c-form-modern__radio-input:focus + .c-form-modern__radio-box {
   box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
 }
 
 /* Checkbox label text (alternative structure) */
+
 .c-form-modern__checkbox-label {
   display: flex;
   align-items: flex-start;
@@ -343,12 +347,10 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4);
-
   background: var(--color-bg-elevated);
   border: 2px dashed var(--color-border-primary);
   border-radius: var(--radius-lg);
   cursor: pointer;
-
   transition: all 0.2s ease;
 }
 
@@ -390,6 +392,7 @@
 
 .c-form-modern__input-group .c-form-modern__input {
   flex: 1;
+  border-radius: 0;
 }
 
 .c-form-modern__input-prefix,
@@ -412,10 +415,6 @@
 .c-form-modern__input-suffix {
   border-left: none;
   border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-}
-
-.c-form-modern__input-group .c-form-modern__input {
-  border-radius: 0;
 }
 
 .c-form-modern__input-group .c-form-modern__input:first-child {
@@ -527,6 +526,7 @@
 }
 
 /* Dark mode */
+
 [data-style="dark"] .c-form-actions--bordered {
   border-color: var(--color-border-primary);
 }
@@ -535,7 +535,7 @@
    RESPONSIVE
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-form-modern__group--inline {
     flex-direction: column;
     align-items: stretch;
@@ -560,8 +560,8 @@
    ACCESSIBILITY
    ============================================================================ */
 
-.c-form-modern__input:focus-visible,
 .c-form-modern__checkbox-input:focus-visible + .c-form-modern__checkbox-box,
+.c-form-modern__input:focus-visible,
 .c-form-modern__radio-input:focus-visible + .c-form-modern__radio-box {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

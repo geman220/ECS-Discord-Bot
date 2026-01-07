@@ -382,7 +382,7 @@
    RESPONSIVE DESIGN
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .c-schedule-wizard__title {
         font-size: var(--text-xl);
     }
@@ -433,7 +433,7 @@
 }
 
 /* Mobile table responsiveness */
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
     .c-schedule-table {
         display: block;
     }
@@ -539,12 +539,12 @@
     .c-match-item__actions,
     .c-week-card__delete-form,
     .c-match-item__delete-form {
-        display: none !important;
+        display: none;
     }
 
     .c-week-card {
-        box-shadow: none !important;
-        transform: none !important;
+        box-shadow: none;
+        transform: none;
         page-break-inside: avoid;
     }
 }

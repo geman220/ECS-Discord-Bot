@@ -13,7 +13,7 @@
 import { InitSystem } from './init-system.js';
 
 // Main design system helper
-export const ECSDesignSystem = {
+const ECSDesignSystem = {
   // Module-level initialization guard - prevents multiple init calls
   _initialized: false,
 
@@ -48,38 +48,8 @@ export const ECSDesignSystem = {
   },
 
   // Ensure the ECS CSS architecture is loaded
-  ensureStylesheetLoaded: function() {
-    // DISABLED: These CSS files don't exist in the project
-    // Commenting out to prevent 404 errors
-    /*
-    // Load core CSS if not already present
-    if (!document.getElementById('ecs-core-stylesheet')) {
-      const coreLink = document.createElement('link');
-      coreLink.id = 'ecs-core-stylesheet';
-      coreLink.rel = 'stylesheet';
-      coreLink.href = '/static/css/ecs-core.css';
-      document.head.appendChild(coreLink);
-    }
-
-    // Load components CSS if not already present
-    if (!document.getElementById('ecs-components-stylesheet')) {
-      const componentsLink = document.createElement('link');
-      componentsLink.id = 'ecs-components-stylesheet';
-      componentsLink.rel = 'stylesheet';
-      componentsLink.href = '/static/css/ecs-components.css';
-      document.head.appendChild(componentsLink);
-    }
-
-    // Load utilities CSS if not already present
-    if (!document.getElementById('ecs-utilities-stylesheet')) {
-      const utilitiesLink = document.createElement('link');
-      utilitiesLink.id = 'ecs-utilities-stylesheet';
-      utilitiesLink.rel = 'stylesheet';
-      utilitiesLink.href = '/static/css/ecs-utilities.css';
-      document.head.appendChild(utilitiesLink);
-    }
-    */
-  },
+  // Note: CSS is now loaded via Vite build system (main-entry.css)
+  ensureStylesheetLoaded: function() {},
 
   // Add consistent styling to buttons
   enhanceButtons: function() {
@@ -103,7 +73,7 @@ export const ECSDesignSystem = {
       '.c-admin-nav',         // Admin navigation component
       '.c-mobile-nav',        // Mobile navigation component
       '.c-modal',             // BEM modal components
-      '.c-btn-modern',        // BEM button components
+      '.c-btn',        // BEM button components
       '.c-form-modern',       // BEM form components
       '.c-settings-tabs',     // Settings tabs component
       '.c-messages-inbox',    // Messages inbox component
@@ -405,10 +375,7 @@ export const ECSDesignSystem = {
     const isDark = isDarkStyle || isDarkBsTheme;
     this.applyDarkModeToContent(isDark);
 
-    // Add dark mode toggle functionality if it doesn't exist
-    if (!document.querySelector('.dark-mode-toggle')) {
-      this.addDarkModeToggle();
-    }
+    // Note: Dark mode toggle is provided by navbar.html
   },
 
   // Apply dark mode to content areas
@@ -429,20 +396,8 @@ export const ECSDesignSystem = {
     }
   },
 
-  // Add dark mode toggle if it doesn't exist
-  addDarkModeToggle: function() {
-    // DISABLED: Don't add the toggle at all since there's already one in the navbar.html
-    return;
-  },
-
   // Set up custom behaviors for the design system
   setupCustomBehaviors: function() {
-    // Add ripple effect to buttons for better feedback
-    this.addRippleEffect();
-
-    // Improve keyboard navigation
-    this.improveKeyboardNavigation();
-
     // Add support for custom transitions
     this.setupTransitions();
   },
@@ -475,9 +430,12 @@ export const ECSDesignSystem = {
       ripple.classList.add('waves-ripple');
 
       const rect = button.getBoundingClientRect();
-      const size = Math.max(rect.width, rect.height);
+      // Cap ripple size at 60px to prevent massive ripples on wide buttons
+      // A small ripple that expands looks better than a huge one
+      const rawSize = Math.min(rect.width, rect.height);
+      const size = Math.min(rawSize, 60);
 
-      // Set custom properties for ripple positioning
+      // Set custom properties for ripple positioning (centered on click point)
       ripple.style.setProperty('--ripple-size', `${size}px`);
       ripple.style.setProperty('--ripple-left', `${e.clientX - rect.left - size / 2}px`);
       ripple.style.setProperty('--ripple-top', `${e.clientY - rect.top - size / 2}px`);

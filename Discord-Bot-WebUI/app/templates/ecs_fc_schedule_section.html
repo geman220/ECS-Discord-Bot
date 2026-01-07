@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Create the button
             const createButton = document.createElement('button');
             createButton.type = 'button';
-            createButton.className = 'btn btn-primary btn-sm ms-2';
+            createButton.className = 'c-btn c-btn--primary c-btn--sm ms-2';
             createButton.id = 'ecs-fc-create-match-btn';
             createButton.setAttribute('data-team-id', teamId);
             createButton.innerHTML = '<i class="fas fa-plus me-1"></i>Create Match';
@@ -146,25 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<style>
-#ecs-fc-create-match-btn {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-#ecs-fc-create-match-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
-#ecsFcCreateMatchModal .modal-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-
-#ecsFcCreateMatchModal .btn-close {
-    filter: invert(1);
-}
-</style>
+<!-- Styles moved to /app/static/css/features/schedule-manager.css -->
 
 {% block modals %}
 {{ super() }}

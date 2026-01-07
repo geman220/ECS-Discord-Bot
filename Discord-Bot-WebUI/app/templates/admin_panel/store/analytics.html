@@ -198,7 +198,7 @@
             <div class="c-card__body">
                 {% if analytics.top_customers %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="customers">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="customers">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Rank</th>
@@ -211,7 +211,7 @@
                         <tbody>
                             {% for customer in analytics.top_customers %}
                             <tr>
-                                <td>
+                                <td data-label="Rank">
                                     {% if loop.index == 1 %}
                                     <i class="ti ti-trophy text-warning"></i> #{{ loop.index }}
                                     {% elif loop.index == 2 %}
@@ -222,10 +222,10 @@
                                     #{{ loop.index }}
                                     {% endif %}
                                 </td>
-                                <td><strong>{{ customer.username }}</strong></td>
-                                <td>{{ customer.orders }}</td>
-                                <td>{{ customer.items }}</td>
-                                <td>
+                                <td data-label="Customer"><strong>{{ customer.username }}</strong></td>
+                                <td data-label="Orders">{{ customer.orders }}</td>
+                                <td data-label="Total Items">{{ customer.items }}</td>
+                                <td data-label="Activity">
                                     <div class="progress u-h-8">
                                         <div class="progress-bar bg-{% if loop.index == 1 %}warning{% elif loop.index <= 3 %}info{% else %}primary{% endif %}"
                                              data-width-percent="{{ (customer.orders / analytics.top_customers[0].orders * 100) }}">

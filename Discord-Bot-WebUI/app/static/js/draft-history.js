@@ -5,7 +5,7 @@ import { ModalManager } from './modal-manager.js';
  * JavaScript functionality for managing draft order history
  */
 
-export class DraftHistoryManager {
+class DraftHistoryManager {
     constructor() {
         this.csrfToken = null;
         this.init();
@@ -241,10 +241,23 @@ export class DraftHistoryManager {
 
     // Delete a draft pick
     async deleteDraftPick(pickId, position, playerName, teamName) {
-        const confirmed = confirm(
-            `Are you sure you want to delete draft pick #${position} (${playerName} to ${teamName})?\n\n` +
-            'This will adjust all subsequent draft positions and cannot be undone.'
-        );
+        let confirmed = false;
+        if (typeof window.Swal !== 'undefined') {
+            const result = await window.Swal.fire({
+                title: 'Delete Draft Pick?',
+                html: `Are you sure you want to delete draft pick #${position} (<strong>${playerName}</strong> to <strong>${teamName}</strong>)?<br><br>This will adjust all subsequent draft positions and cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Delete',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                    confirmButton: 'btn btn-danger',
+                    cancelButton: 'btn btn-secondary'
+                },
+                buttonsStyling: false
+            });
+            confirmed = result.isConfirmed;
+        }
 
         if (!confirmed) return;
 
@@ -279,10 +292,23 @@ export class DraftHistoryManager {
 
     // Normalize draft positions for a season/league
     async normalizeDraftPositions(seasonId, leagueId, seasonName, leagueName) {
-        const confirmed = confirm(
-            `Fix the draft order for ${seasonName} - ${leagueName}?\n\n` +
-            'This will renumber all positions to run 1, 2, 3, 4... with no gaps. This action cannot be undone.'
-        );
+        let confirmed = false;
+        if (typeof window.Swal !== 'undefined') {
+            const result = await window.Swal.fire({
+                title: 'Fix Draft Order?',
+                html: `Fix the draft order for <strong>${seasonName} - ${leagueName}</strong>?<br><br>This will renumber all positions to run 1, 2, 3, 4... with no gaps. This action cannot be undone.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Fix Order',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                    confirmButton: 'btn btn-primary',
+                    cancelButton: 'btn btn-secondary'
+                },
+                buttonsStyling: false
+            });
+            confirmed = result.isConfirmed;
+        }
 
         if (!confirmed) return;
 
@@ -321,10 +347,23 @@ export class DraftHistoryManager {
 
     // Clear all draft picks for a season/league
     async clearSeasonLeague(seasonId, leagueId, seasonName, leagueName) {
-        const confirmed = confirm(
-            `Are you sure you want to clear ALL draft picks for ${seasonName} - ${leagueName}?\n\n` +
-            'This action cannot be undone.'
-        );
+        let confirmed = false;
+        if (typeof window.Swal !== 'undefined') {
+            const result = await window.Swal.fire({
+                title: 'Clear All Draft Picks?',
+                html: `Are you sure you want to clear <strong>ALL</strong> draft picks for <strong>${seasonName} - ${leagueName}</strong>?<br><br>This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Clear All',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                    confirmButton: 'btn btn-danger',
+                    cancelButton: 'btn btn-secondary'
+                },
+                buttonsStyling: false
+            });
+            confirmed = result.isConfirmed;
+        }
 
         if (!confirmed) return;
 
@@ -415,23 +454,23 @@ export class DraftHistoryManager {
 // Global functions for template compatibility (using var to allow safe re-declaration if script loads twice)
 var draftHistoryManager;
 
-export function clearFilters() {
+function clearFilters() {
     draftHistoryManager.clearFilters();
 }
 
-export function editDraftPick(pickId, position, notes, playerName) {
+function editDraftPick(pickId, position, notes, playerName) {
     draftHistoryManager.editDraftPick(pickId, position, notes, playerName);
 }
 
-export function deleteDraftPick(pickId, position, playerName, teamName) {
+function deleteDraftPick(pickId, position, playerName, teamName) {
     draftHistoryManager.deleteDraftPick(pickId, position, playerName, teamName);
 }
 
-export function normalizeDraftPositions(seasonId, leagueId, seasonName, leagueName) {
+function normalizeDraftPositions(seasonId, leagueId, seasonName, leagueName) {
     draftHistoryManager.normalizeDraftPositions(seasonId, leagueId, seasonName, leagueName);
 }
 
-export function clearSeasonLeague(seasonId, leagueId, seasonName, leagueName) {
+function clearSeasonLeague(seasonId, leagueId, seasonName, leagueName) {
     draftHistoryManager.clearSeasonLeague(seasonId, leagueId, seasonName, leagueName);
 }
 
@@ -439,7 +478,7 @@ import { InitSystem } from './init-system.js';
 
 let _initialized = false;
 
-function init() {
+function initDraftHistory() {
     if (_initialized) return;
 
     // Page guard - only run on draft history page
@@ -457,7 +496,7 @@ function init() {
     console.log('Draft History interface loaded successfully');
 }
 
-window.InitSystem.register('draft-history', init, {
+window.InitSystem.register('draft-history', initDraftHistory, {
     priority: 30,
     reinitializable: false,
     description: 'Draft history admin interface'
@@ -466,20 +505,5 @@ window.InitSystem.register('draft-history', init, {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility
-window.DraftHistoryManager = DraftHistoryManager;
-
-// Backward compatibility
-window.clearFilters = clearFilters;
-
-// Backward compatibility
-window.editDraftPick = editDraftPick;
-
-// Backward compatibility
-window.deleteDraftPick = deleteDraftPick;
-
-// Backward compatibility
-window.normalizeDraftPositions = normalizeDraftPositions;
-
-// Backward compatibility
-window.clearSeasonLeague = clearSeasonLeague;
+// No window exports needed - InitSystem handles initialization
+// All functions are used internally via event delegation

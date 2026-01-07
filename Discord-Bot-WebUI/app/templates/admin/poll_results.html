@@ -115,7 +115,7 @@
                 <div class="c-card__body">
                     {% if team_breakdown %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--striped" id="teamBreakdownTable" data-mobile-table data-table-type="polls" data-table>
+                        <table class="c-c-table c-table--striped" id="teamBreakdownTable" data-mobile-table data-table-type="polls" data-table>
                             <thead scope="col">
                                 <tr>
                                     <th scope="col">Team</th>
@@ -129,20 +129,20 @@
                             <tbody>
                                 {% for team_name, data in team_breakdown.items() %}
                                 <tr>
-                                    <td><strong>{{ team_name }}</strong></td>
-                                    <td class="text-center">
+                                    <td data-label="Team"><strong>{{ team_name }}</strong></td>
+                                    <td class="text-center" data-label="Yes">
                                         <span class="badge bg-success" data-badge>{{ data.yes }}</span>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center" data-label="No">
                                         <span class="badge bg-danger" data-badge>{{ data.no }}</span>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center" data-label="Maybe">
                                         <span class="badge bg-warning" data-badge>{{ data.maybe }}</span>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center" data-label="Total">
                                         <strong>{{ data.total }}</strong>
                                     </td>
-                                    <td>
+                                    <td data-label="Response Rate">
                                         <div class="d-flex align-items-center">
                                             <div class="progress flex-grow-1 me-2" class="u-progress-h-6">
                                                 {% if data.total > 0 %}
@@ -178,7 +178,7 @@
         </div>
         <div class="c-card__body">
             <div class="c-table-wrapper" data-table-responsive>
-                <table class="c-table c-table--striped" id="responsesTable" data-mobile-table data-table-type="polls" data-table>
+                <table class="c-c-table c-table--striped" id="responsesTable" data-mobile-table data-table-type="polls" data-table>
                     <thead scope="col">
                         <tr>
                             <th scope="col">Player</th>
@@ -190,9 +190,9 @@
                     <tbody>
                         {% for response, player, team in responses %}
                         <tr>
-                            <td>{{ player.name }}</td>
-                            <td>{{ team.name }}</td>
-                            <td>
+                            <td data-label="Player">{{ player.name }}</td>
+                            <td data-label="Team">{{ team.name }}</td>
+                            <td data-label="Response">
                                 {% if response.response == 'yes' %}
                                 <span class="badge bg-success" data-badge>✅ Yes</span>
                                 {% elif response.response == 'no' %}
@@ -201,7 +201,7 @@
                                 <span class="badge bg-warning" data-badge>⚠️ Maybe</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Responded At">
                                 <small>{{ response.responded_at.strftime('%Y-%m-%d %H:%M') }}</small>
                             </td>
                         </tr>

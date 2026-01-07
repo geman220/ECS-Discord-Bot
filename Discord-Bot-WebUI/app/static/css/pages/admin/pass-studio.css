@@ -10,7 +10,7 @@
  * Design System Compliance:
  * - Uses CSS variables from tokens/colors.css
  * - Full dark mode support via [data-style="dark"] selectors
- * - NO !important declarations (proper specificity via .pass-studio-page wrapper)
+ * - NO declarations (proper specificity via .pass-studio-page wrapper)
  * - All hardcoded colors converted to design tokens
  * - Follows patterns from authentication.css, user-waitlist.css, seasons.css
  *
@@ -209,7 +209,7 @@
     margin-top: auto;
     padding: var(--space-5, 20px) var(--space-4, 16px);
     text-align: center;
-    background: var(--color-neutral-0, #ffffff);
+    background: var(--color-neutral-0, var(--color-white));
 }
 
 .pass-studio-page .pass-barcode svg {
@@ -321,12 +321,12 @@
     margin: 0 auto;
     box-shadow: var(--shadow-lg, 0 4px 20px rgba(0, 0, 0, 0.15));
     overflow: hidden;
-    background: var(--color-neutral-0, #fff);
+    background: var(--color-neutral-0, var(--color-white));
 }
 
 .pass-studio-page .google-hero-image {
     height: 100px;
-    background-color: var(--color-neutral-100, #f0f0f0);
+    background-color: var(--color-neutral-100, var(--color-neutral-100));
     background-size: cover;
     background-position: center;
     display: flex;

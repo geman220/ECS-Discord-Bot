@@ -161,3 +161,37 @@ body:not(.auth-page) .btn-lg {
 .btn:active {
   will-change: transform, box-shadow;
 }
+
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .btn-outline-secondary {
+  color: var(--color-text-secondary, var(--color-secondary-300));
+  border-color: var(--color-border-primary, var(--color-secondary-600));
+}
+
+[data-style="dark"] .btn-outline-secondary:hover {
+  background: var(--color-bg-tertiary, var(--color-secondary-700));
+  color: var(--color-text-primary, var(--color-secondary-50));
+}
+
+[data-style="dark"] .btn-outline-light {
+  color: var(--color-text-primary, var(--color-secondary-50));
+  border-color: var(--color-border-secondary, var(--color-secondary-500));
+}
+
+[data-style="dark"] .btn-light {
+  background: var(--color-bg-elevated, var(--color-secondary-800));
+  color: var(--color-text-primary, var(--color-secondary-50));
+  border-color: var(--color-border-primary, var(--color-secondary-600));
+}
+
+[data-style="dark"] .btn-light:hover {
+  background: var(--color-bg-tertiary, var(--color-secondary-700));
+}
+
+[data-style="dark"] .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}

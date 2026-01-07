@@ -44,10 +44,10 @@
 <div class="row mb-4">
     <!-- Real-time Service Status -->
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="c-card live-reporting-status-card h-100 {% if realtime_health.health == 'healthy' %}card-border-health-healthy{% elif realtime_health.health == 'degraded' %}card-border-health-degraded{% else %}card-border-health-unhealthy{% endif %}">
+        <div class="c-card live-reporting-status-c-card h-100 {% if realtime_health.health == 'healthy' %}card-border-health-healthy{% elif realtime_health.health == 'degraded' %}card-border-health-degraded{% else %}card-border-health-unhealthy{% endif %}">
             <div class="c-card__body">
                 <div class="d-flex align-items-center mb-2">
-                    <i class="ti ti-server me-2 text-primary icon-status-card"></i>
+                    <i class="ti ti-server me-2 text-primary icon-status-c-card"></i>
                     <h6 class="mb-0">Real-time Service</h6>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
@@ -75,10 +75,10 @@
 
     <!-- Active Sessions -->
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="c-card live-reporting-status-card card-border-primary h-100">
+        <div class="c-card live-reporting-status-c-card card-border-primary h-100">
             <div class="c-card__body">
                 <div class="d-flex align-items-center mb-2">
-                    <i class="ti ti-player-play me-2 text-info icon-status-card"></i>
+                    <i class="ti ti-player-play me-2 text-info icon-status-c-card"></i>
                     <h6 class="mb-0">Active Sessions</h6>
                 </div>
                 <h3 class="session-count mb-0">{{ stats.active_sessions }}</h3>
@@ -94,10 +94,10 @@
 
     <!-- Coordination Status -->
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="c-card live-reporting-status-card h-100 {% if coordination_status.coordination_status == 'healthy' %}card-border-coordination-healthy{% else %}card-border-coordination-degraded{% endif %}">
+        <div class="c-card live-reporting-status-c-card h-100 {% if coordination_status.coordination_status == 'healthy' %}card-border-coordination-healthy{% else %}card-border-coordination-degraded{% endif %}">
             <div class="c-card__body">
                 <div class="d-flex align-items-center mb-2">
-                    <i class="ti ti-link me-2 text-warning icon-status-card"></i>
+                    <i class="ti ti-link me-2 text-warning icon-status-c-card"></i>
                     <h6 class="mb-0">Coordination</h6>
                 </div>
                 <span class="badge bg-{% if coordination_status.coordination_status == 'healthy' %}success{% else %}warning{% endif %}" data-badge>
@@ -110,10 +110,10 @@
 
     <!-- Upcoming Matches -->
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="c-card live-reporting-status-card card-border-neutral h-100">
+        <div class="c-card live-reporting-status-c-card card-border-neutral h-100">
             <div class="c-card__body">
                 <div class="d-flex align-items-center mb-2">
-                    <i class="ti ti-calendar me-2 text-secondary icon-status-card"></i>
+                    <i class="ti ti-calendar me-2 text-secondary icon-status-c-card"></i>
                     <h6 class="mb-0">Upcoming Matches</h6>
                 </div>
                 <h3 class="mb-0">{{ stats.upcoming_matches }}</h3>
@@ -139,7 +139,7 @@
             <div class="c-card__body p-0">
                 <div class="live-reporting-table-scroll">
                     {% if active_sessions %}
-                    <table class="c-table c-table--hoverable live-reporting-table" data-table data-mobile-table data-table-type="matches">
+                    <table class="c-table c-table--hoverable live-reporting-c-table" data-table data-mobile-table data-table-type="matches">
                         <thead class="c-table--light sticky-top" scope="col">
                             <tr>
                                 <th scope="col">Match</th>
@@ -151,25 +151,25 @@
                         <tbody>
                             {% for session in active_sessions %}
                             <tr>
-                                <td>
+                                <td data-label="Match">
                                     <strong>Match {{ session.match_id }}</strong>
                                     <br>
                                     <small class="text-muted">{{ session.competition or 'MLS' }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     {% if session.last_status %}
                                     <span class="badge bg-info" data-badge>{{ session.last_status }}</span>
                                     {% else %}
                                     <span class="badge bg-secondary" data-badge>Active</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Updates">
                                     <span>{{ session.update_count or 0 }}</span>
                                     {% if session.error_count and session.error_count > 0 %}
                                     <br><small class="text-warning">{{ session.error_count }} errors</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <button class="c-btn btn-xs c-btn--outline-danger live-reporting-action-btn js-stop-session" data-action="stop-session" data-session-id="{{ session.id }}" title="Stop Session">
                                         <i class="ti ti-player-stop"></i>
                                     </button>
@@ -203,7 +203,7 @@
             <div class="c-card__body p-0">
                 <div class="live-reporting-table-scroll">
                     {% if upcoming_matches %}
-                    <table class="c-table c-table--hoverable live-reporting-table" data-table data-mobile-table data-table-type="matches">
+                    <table class="c-table c-table--hoverable live-reporting-c-table" data-table data-mobile-table data-table-type="matches">
                         <thead class="c-table--light sticky-top" scope="col">
                             <tr>
                                 <th scope="col">Match</th>
@@ -215,7 +215,7 @@
                         <tbody>
                             {% for match in upcoming_matches %}
                             <tr>
-                                <td>
+                                <td data-label="Match">
                                     <strong>
                                         {% if match.is_home_game %}
                                         Sounders vs {{ match.opponent }}
@@ -226,19 +226,19 @@
                                     <br>
                                     <small class="text-muted">{{ match.competition or 'MLS' }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Date/Time">
                                     <small>{{ match.date_time.strftime('%b %d, %I:%M %p') if match.date_time else 'TBD' }}</small>
                                     {% if match.venue %}
                                     <br><small class="text-muted">{{ match.venue }}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     <span class="match-status-badge" data-status-color="{{ match.status_color }}" data-badge>
                                         <i class="ti ti-{{ match.status_icon }}"></i>
                                         {{ match.status_display }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     {% if match.live_reporting_status != 'running' %}
                                     <button class="c-btn btn-xs c-btn--outline-success live-reporting-action-btn js-start-reporting" data-action="start-reporting" data-match-id="{{ match.id }}" title="Start Live Reporting">
                                         <i class="ti ti-player-play"></i>
@@ -277,7 +277,7 @@
             </div>
             <div class="c-card__body p-0">
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable recent-sessions-table" data-table data-mobile-table data-table-type="matches">
+                    <table class="c-table c-table--hoverable recent-sessions-c-table" data-table data-mobile-table data-table-type="matches">
                         <thead class="c-table--light" scope="col">
                             <tr>
                                 <th scope="col">Session ID</th>
@@ -291,16 +291,16 @@
                         <tbody>
                             {% for session in recent_sessions %}
                             <tr>
-                                <td><code>{{ session.id }}</code></td>
-                                <td>{{ session.match_id }}</td>
-                                <td>
+                                <td data-label="Session ID"><code>{{ session.id }}</code></td>
+                                <td data-label="Match">{{ session.match_id }}</td>
+                                <td data-label="Started">
                                     <small>{{ session.started_at.strftime('%m/%d %H:%M') if session.started_at else 'N/A' }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Ended">
                                     <small>{{ session.ended_at.strftime('%m/%d %H:%M') if session.ended_at else '-' }}</small>
                                 </td>
-                                <td>{{ session.update_count or 0 }}</td>
-                                <td>
+                                <td data-label="Updates">{{ session.update_count or 0 }}</td>
+                                <td data-label="Status">
                                     {% if session.is_active %}
                                     <span class="badge bg-success" data-badge>Active</span>
                                     {% elif session.ended_at %}

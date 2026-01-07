@@ -30,16 +30,18 @@
  * Light green background to indicate playoff qualification
  * Uses higher specificity to override Bootstrap table row styles
  */
+
 .playoff-standings-table tr.playoff-qualified {
-    background-color: var(--color-success-subtle);
+  background-color: var(--color-success-subtle);
 }
 
 /**
  * Playoff Qualified Row - Hover State
  * Enhanced green background on hover for better interaction feedback
  */
+
 .playoff-standings-table tr.playoff-qualified:hover {
-    background-color: rgba(var(--color-success-rgb), 0.2);
+  background-color: rgba(var(--color-success-rgb), 0.2);
 }
 
 /**
@@ -47,21 +49,23 @@
  * Ensures text remains readable on the light green background
  * Inherits color from parent to maintain consistency
  */
+
 .playoff-standings-table tr.playoff-qualified td {
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 
 /* Dark Mode: Playoff Qualification */
+
 [data-style="dark"] .playoff-standings-table tr.playoff-qualified {
-    background-color: var(--color-success-subtle);
+  background-color: var(--color-success-subtle);
 }
 
 [data-style="dark"] .playoff-standings-table tr.playoff-qualified:hover {
-    background-color: rgba(var(--color-success-rgb), 0.25);
+  background-color: rgba(var(--color-success-rgb), 0.25);
 }
 
 [data-style="dark"] .playoff-standings-table tr.playoff-qualified td {
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 
 /* ============================================================================
@@ -74,16 +78,20 @@
  * Main container for the schedule preview
  * Hidden by default, shown via JavaScript when schedule is generated
  */
+
 .playoff-preview-section {
-    display: block;
+  display: block;
+  transition: opacity var(--duration-normal, 0.2s) var(--ease-smooth, ease);
+  opacity: 0;
 }
 
 .playoff-preview-section.is-hidden {
-    display: none;
+  display: none;
 }
 
 .playoff-preview-section.is-visible {
-    display: block;
+  display: block;
+  opacity: 1;
 }
 
 /* ============================================================================
@@ -96,32 +104,34 @@
  * Shown when loading a previously generated playoff schedule
  * Hidden by default, shown via JavaScript
  */
+
 .playoff-existing-schedule-note {
-    display: block;
+  display: block;
 }
 
 .playoff-existing-schedule-note.is-hidden {
-    display: none;
+  display: none;
 }
 
 .playoff-existing-schedule-note.is-visible {
-    display: block;
+  display: block;
 }
 
 /**
  * Generate Help Text
  * Instructional text shown below generate button
  */
+
 .playoff-generate-help-text {
-    display: block;
+  display: block;
 }
 
 .playoff-generate-help-text.is-hidden {
-    display: none;
+  display: none;
 }
 
 .playoff-generate-help-text.is-visible {
-    display: block;
+  display: block;
 }
 
 /* ============================================================================
@@ -134,54 +144,58 @@
  * Editable fields in the preview table
  * Includes date, time, team selects, and location selects
  */
+
 .c-playoff-matches-table__input,
 .c-playoff-matches-table__select {
-    font-size: var(--text-sm, 0.875rem);
-    background-color: var(--color-bg-primary);
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-border-input);
-    transition: all var(--duration-normal, 0.2s) var(--ease-smooth, ease);
-    border-radius: var(--radius-sm, 0.25rem);
-    padding: var(--space-2, 0.5rem);
+  font-size: var(--text-sm, 0.875rem);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-input);
+  transition: all var(--duration-normal, 0.2s) var(--ease-smooth, ease);
+  border-radius: var(--radius-sm, 0.25rem);
+  padding: var(--space-2, 0.5rem);
 }
 
 /**
  * Match Table Inputs - Focus State
  * Enhanced focus state with primary color border and glow
  */
+
 .c-playoff-matches-table__input:focus,
 .c-playoff-matches-table__select:focus {
-    border-color: var(--color-border-focus);
-    box-shadow: 0 0 0 0.2rem rgba(var(--color-primary-rgb), 0.15);
-    outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 0.2rem rgba(var(--color-primary-rgb), 0.15);
+  outline: none;
 }
 
 /**
  * Match Table Inputs - Hover State
  * Lighter primary color on hover to indicate interactivity
  */
+
 .c-playoff-matches-table__input:hover,
 .c-playoff-matches-table__select:hover {
-    border-color: var(--color-primary-400);
+  border-color: var(--color-primary-400);
 }
 
 /* Dark Mode: Match Table Inputs */
+
 [data-style="dark"] .c-playoff-matches-table__input,
 [data-style="dark"] .c-playoff-matches-table__select {
-    background-color: var(--color-bg-tertiary);
-    color: var(--color-text-primary);
-    border-color: var(--color-border-input);
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-input);
 }
 
 [data-style="dark"] .c-playoff-matches-table__input:focus,
 [data-style="dark"] .c-playoff-matches-table__select:focus {
-    border-color: var(--color-border-focus);
-    background-color: var(--color-bg-tertiary);
+  border-color: var(--color-border-focus);
+  background-color: var(--color-bg-tertiary);
 }
 
 [data-style="dark"] .c-playoff-matches-table__input:hover,
 [data-style="dark"] .c-playoff-matches-table__select:hover {
-    border-color: var(--color-primary-400);
+  border-color: var(--color-primary-400);
 }
 
 /* ============================================================================
@@ -193,22 +207,24 @@
  * Group Card Lists
  * Lists within group cards showing team assignments
  */
+
 .playoff-group-list {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .playoff-group-list .list-group-item {
-    padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
-    border-color: var(--color-border-primary);
-    background-color: var(--color-bg-card);
-    color: var(--color-text-primary);
+  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+  border-color: var(--color-border-primary);
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
 }
 
 /* Dark Mode: Group Lists */
+
 [data-style="dark"] .playoff-group-list .list-group-item {
-    background-color: var(--color-bg-card);
-    color: var(--color-text-primary);
-    border-color: var(--color-border-primary);
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-primary);
 }
 
 /* ============================================================================
@@ -220,20 +236,22 @@
  * Swap Groups Button
  * Secondary button for swapping Group A and Group B
  */
+
 .playoff-swap-groups-btn {
-    margin-bottom: var(--space-2, 0.5rem);
+  margin-bottom: var(--space-2, 0.5rem);
 }
 
 /**
  * Action Button Container
  * Centers action buttons with proper spacing
  */
+
 .playoff-actions {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: var(--space-2, 0.5rem);
-    flex-wrap: wrap;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  flex-wrap: wrap;
 }
 
 /* ============================================================================
@@ -245,56 +263,58 @@
  * Standings Table
  * Display table showing current season standings
  */
+
 .playoff-standings-table {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .playoff-standings-table th {
-    font-weight: var(--font-semibold, 600);
-    color: var(--color-text-primary);
-    padding: var(--space-3, 0.75rem);
-    background-color: var(--color-bg-secondary);
-    border-color: var(--color-border-primary);
+  font-weight: var(--font-semibold, 600);
+  color: var(--color-text-primary);
+  padding: var(--space-3, 0.75rem);
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border-primary);
 }
 
 .playoff-standings-table td {
-    padding: var(--space-3, 0.75rem);
-    vertical-align: middle;
-    color: var(--color-text-primary);
-    border-color: var(--color-border-primary);
+  padding: var(--space-3, 0.75rem);
+  vertical-align: middle;
+  color: var(--color-text-primary);
+  border-color: var(--color-border-primary);
 }
 
 .playoff-standings-table tbody tr {
-    background-color: var(--color-bg-card);
-    transition: background-color var(--duration-fast, 0.15s) ease;
+  background-color: var(--color-bg-card);
+  transition: background-color var(--duration-fast, 0.15s) ease;
 }
 
 .playoff-standings-table tbody tr:hover {
-    background-color: var(--color-hover-bg);
+  background-color: var(--color-hover-bg);
 }
 
 /* Dark Mode: Standings Table */
+
 [data-style="dark"] .playoff-standings-table {
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 
 [data-style="dark"] .playoff-standings-table th {
-    color: var(--color-text-primary);
-    background-color: var(--color-bg-secondary);
-    border-color: var(--color-border-primary);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border-primary);
 }
 
 [data-style="dark"] .playoff-standings-table td {
-    border-color: var(--color-border-primary);
-    color: var(--color-text-primary);
+  border-color: var(--color-border-primary);
+  color: var(--color-text-primary);
 }
 
 [data-style="dark"] .playoff-standings-table tbody tr {
-    background-color: var(--color-bg-card);
+  background-color: var(--color-bg-card);
 }
 
 [data-style="dark"] .playoff-standings-table tbody tr:hover {
-    background-color: var(--color-hover-bg);
+  background-color: var(--color-hover-bg);
 }
 
 /* ============================================================================
@@ -306,48 +326,50 @@
  * Matches Preview Table
  * Editable table showing generated playoff matches
  */
+
 .playoff-matches-table {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .playoff-matches-table th {
-    font-weight: var(--font-semibold, 600);
-    color: var(--color-text-primary);
-    padding: var(--space-3, 0.75rem);
-    white-space: nowrap;
-    background-color: var(--color-bg-secondary);
-    border-color: var(--color-border-primary);
+  font-weight: var(--font-semibold, 600);
+  color: var(--color-text-primary);
+  padding: var(--space-3, 0.75rem);
+  white-space: nowrap;
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border-primary);
 }
 
 .playoff-matches-table td {
-    padding: var(--space-2, 0.5rem);
-    vertical-align: middle;
-    color: var(--color-text-primary);
-    border-color: var(--color-border-primary);
+  padding: var(--space-2, 0.5rem);
+  vertical-align: middle;
+  color: var(--color-text-primary);
+  border-color: var(--color-border-primary);
 }
 
 .playoff-matches-table tbody tr {
-    background-color: var(--color-bg-card);
+  background-color: var(--color-bg-card);
 }
 
 /* Dark Mode: Matches Table */
+
 [data-style="dark"] .playoff-matches-table {
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 
 [data-style="dark"] .playoff-matches-table th {
-    color: var(--color-text-primary);
-    background-color: var(--color-bg-secondary);
-    border-color: var(--color-border-primary);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-border-primary);
 }
 
 [data-style="dark"] .playoff-matches-table td {
-    border-color: var(--color-border-primary);
-    color: var(--color-text-primary);
+  border-color: var(--color-border-primary);
+  color: var(--color-text-primary);
 }
 
 [data-style="dark"] .playoff-matches-table tbody tr {
-    background-color: var(--color-bg-card);
+  background-color: var(--color-bg-card);
 }
 
 /* ============================================================================
@@ -359,50 +381,56 @@
  * Mobile Responsive Adjustments
  * Optimize layout and spacing for mobile devices
  */
+
 @media (max-width: 767.98px) {
-    /* Reduce padding in table cells */
-    .playoff-standings-table td,
-    .playoff-standings-table th,
-    .playoff-matches-table td,
-    .playoff-matches-table th {
-        padding: var(--space-2, 0.5rem);
-        font-size: var(--text-sm, 0.875rem);
-    }
+  /* Reduce padding in table cells */
 
-    /* Stack action buttons vertically */
-    .playoff-actions {
-        flex-direction: column;
-        width: 100%;
-    }
+  .playoff-standings-table td,
+  .playoff-standings-table th,
+  .playoff-matches-table td,
+  .playoff-matches-table th {
+    padding: var(--space-2, 0.5rem);
+    font-size: var(--text-sm, 0.875rem);
+  }
 
-    .playoff-actions .btn {
-        width: 100%;
-        max-width: 300px;
-    }
+  /* Stack action buttons vertically */
 
-    /* Adjust form inputs in match table */
-    .c-playoff-matches-table__input,
-    .c-playoff-matches-table__select {
-        font-size: var(--text-xs, 0.75rem);
-        padding: var(--space-1, 0.25rem);
-    }
+  .playoff-actions {
+    flex-direction: column;
+    width: 100%;
+  }
 
-    /* Make group cards full width */
-    .playoff-group-card {
-        margin-bottom: var(--space-4, 1rem);
-    }
+  .playoff-actions .btn {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  /* Adjust form inputs in match table */
+
+  .c-playoff-matches-table__input,
+  .c-playoff-matches-table__select {
+    font-size: var(--text-xs, 0.75rem);
+    padding: var(--space-1, 0.25rem);
+  }
+
+  /* Make group cards full width */
+
+  .playoff-group-card {
+    margin-bottom: var(--space-4, 1rem);
+  }
 }
 
 /**
  * Tablet Responsive Adjustments
  * Optimize for medium-sized screens
  */
+
 @media (min-width: 768px) and (max-width: 991.98px) {
-    .playoff-matches-table td,
-    .playoff-matches-table th {
-        padding: var(--space-2, 0.5rem);
-        font-size: var(--text-sm, 0.875rem);
-    }
+  .playoff-matches-table td,
+  .playoff-matches-table th {
+    padding: var(--space-2, 0.5rem);
+    font-size: var(--text-sm, 0.875rem);
+  }
 }
 
 /* ============================================================================
@@ -411,30 +439,34 @@
    ============================================================================ */
 
 @media print {
-    /* Hide action buttons when printing */
-    .playoff-actions,
-    .playoff-swap-groups-btn,
-    .btn {
-        display: none !important;
-    }
+  /* Hide action buttons when printing */
 
-    /* Ensure tables print clearly */
-    .playoff-standings-table,
-    .playoff-matches-table {
-        page-break-inside: avoid;
-    }
+  .playoff-actions,
+  .playoff-swap-groups-btn,
+  .btn {
+    display: none;
+  }
 
-    /* Remove hover effects for print */
-    .playoff-standings-table tr.playoff-qualified:hover {
-        background-color: var(--color-success-subtle) !important;
-    }
+  /* Ensure tables print clearly */
 
-    /* Make inputs appear as plain text */
-    .c-playoff-matches-table__input,
-    .c-playoff-matches-table__select {
-        border: none;
-        background: transparent;
-    }
+  .playoff-standings-table,
+  .playoff-matches-table {
+    page-break-inside: avoid;
+  }
+
+  /* Remove hover effects for print */
+
+  .playoff-standings-table tr.playoff-qualified:hover {
+    background-color: var(--color-success-subtle);
+  }
+
+  /* Make inputs appear as plain text */
+
+  .c-playoff-matches-table__input,
+  .c-playoff-matches-table__select {
+    border: none;
+    background: transparent;
+  }
 }
 
 /* ============================================================================
@@ -446,26 +478,28 @@
  * Focus Visible
  * Enhanced focus indicators for keyboard navigation
  */
+
 .playoff-matches-table input:focus-visible,
 .playoff-matches-table select:focus-visible {
-    outline: 2px solid var(--color-focus-ring);
-    outline-offset: 2px;
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }
 
 /**
  * Screen Reader Only Text
  * Utility class for screen reader only content
  */
+
 .playoff-sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 /* ============================================================================
@@ -477,27 +511,20 @@
  * Preview Section Transitions
  * Smooth show/hide animation for preview section
  */
-.playoff-preview-section {
-    transition: opacity var(--duration-normal, 0.2s) var(--ease-smooth, ease);
-    opacity: 0;
-}
-
-.playoff-preview-section.is-visible {
-    opacity: 1;
-}
 
 /**
  * Alert Transitions
  * Smooth show/hide for alerts
  */
+
 .playoff-existing-schedule-note,
 .playoff-generate-help-text {
-    transition: opacity var(--duration-normal, 0.2s) var(--ease-smooth, ease);
+  transition: opacity var(--duration-normal, 0.2s) var(--ease-smooth, ease);
 }
 
 .playoff-existing-schedule-note.is-hidden,
 .playoff-generate-help-text.is-hidden {
-    opacity: 0;
+  opacity: 0;
 }
 
 /* ============================================================================

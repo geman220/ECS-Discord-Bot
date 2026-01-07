@@ -4,44 +4,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    .comparison-card {
-        border: 2px solid var(--ecs-neutral-10, #e7eaf3);
-        transition: all 0.2s ease;
-    }
-
-    .comparison-card:hover {
-        border-color: var(--ecs-primary, #696cff);
-        box-shadow: 0 0.25rem 1rem rgba(105, 108, 255, 0.25);
-    }
-
-    .field-comparison {
-        background: var(--ecs-neutral-5, #f8f9fa);
-        border-radius: 8px;
-        padding: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .confidence-meter {
-        height: 8px;
-        background: var(--ecs-neutral-10, #e7eaf3);
-        border-radius: 4px;
-        overflow: hidden;
-    }
-
-    .confidence-fill {
-        height: 100%;
-        transition: width 0.3s ease;
-    }
-
-    .confidence-high { background: linear-gradient(90deg, var(--ecs-danger, #ea5455), var(--ecs-danger-light, #ff6b6c)); }
-    .confidence-medium { background: linear-gradient(90deg, var(--ecs-warning, #ff9f43), var(--ecs-warning-light, #ffb976)); }
-    .confidence-low { background: linear-gradient(90deg, var(--ecs-success, #28c76f), var(--ecs-success-light, #48da89)); }
-
-    .action-button {
-        min-width: 120px;
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block main_content %}
@@ -106,7 +69,7 @@
             <!-- Profile Comparison -->
             <div class="row">
                 <div class="col-lg-6 mb-4">
-                    <div class="c-card comparison-card h-100">
+                    <div class="c-card comparison-c-card h-100">
                         <div class="c-card__header bg-primary text-white">
                             <h6 class="mb-0">
                                 <i class="ti ti-user-plus me-2"></i>New Registration
@@ -150,7 +113,7 @@
                 </div>
 
                 <div class="col-lg-6 mb-4">
-                    <div class="c-card comparison-card h-100">
+                    <div class="c-card comparison-c-card h-100">
                         <div class="c-card__header bg-success text-white">
                             <h6 class="mb-0">
                                 <i class="ti ti-user-check me-2"></i>Existing Player

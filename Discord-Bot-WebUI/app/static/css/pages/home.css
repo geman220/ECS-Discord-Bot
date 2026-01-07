@@ -7,11 +7,11 @@
  * Replaces inline JavaScript styles with proper CSS classes using design tokens
  *
  * REMEDIATION CHANGES:
- * - Removed ALL 6 !important declarations
+ * - Removed ALL 6 declarations
  * - Fixed specificity issues properly with .home-page wrapper
  * - All colors already using design tokens (no hardcoded colors found)
  * - Maintained full dark mode support
- * - Uses proper cascade without !important
+ * - Uses proper cascade without
  *
  * Structure:
  *   1. Welcome Header Component
@@ -36,7 +36,7 @@
  *   - iOS-specific modal body fixes
  *   - Mobile-specific viewport height adjustments
  *
- * Target: 0 !important declarations in custom rules
+ * Target: 0 declarations in custom rules
  * ============================================================================
  */
 
@@ -369,9 +369,9 @@
  *   document.body.style.position = 'fixed'
  *   document.body.style.width = '100%'
  *
- * REMEDIATION: Removed !important declarations, using higher specificity
+ * REMEDIATION: Removed declarations, using higher specificity
  * The body.modal-open-ios selector has sufficient specificity (two classes)
- * to override default body styles without needing !important
+ * to override default body styles without needing
  */
 body.modal-open-ios.home-page {
   overflow: hidden;
@@ -424,7 +424,7 @@ body.modal-open-ios.home-page {
   }
 
   /* Stack RSVP controls and details button vertically
-   * REMEDIATION: Removed !important from align-items, using higher specificity instead */
+   * REMEDIATION: Removed from align-items, using higher specificity instead */
   .home-page .match-card-wrapper .d-flex.align-items-center {
     flex-direction: column;
     align-items: flex-start;
@@ -475,7 +475,7 @@ body.modal-open-ios.home-page {
   }
 
   /* List group items on mobile
-   * REMEDIATION: Removed !important, using higher specificity instead */
+   * REMEDIATION: Removed, using higher specificity instead */
   .home-page .list-group-item {
     padding: var(--space-3) var(--space-2);
   }
@@ -485,16 +485,10 @@ body.modal-open-ios.home-page {
     font-size: var(--text-xs);
   }
 
-  /* Button sizing */
-  .btn {
-    min-height: 44px;
-    padding: var(--space-2) var(--space-3);
-  }
-
-  .btn-sm {
-    min-height: 38px;
+  /* NOTE: .btn and .btn-sm base mobile sizing in mobile/buttons.css (source of truth) */
+  /* Home page RSVP-specific button adjustments */
+  .rsvp-controls .btn-sm {
     padding: var(--space-1) var(--space-2);
-    font-size: var(--text-sm);
   }
 }
 

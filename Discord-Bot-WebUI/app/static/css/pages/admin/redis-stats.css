@@ -3,8 +3,8 @@
  */
 
 .redis-stat-card {
-    background: var(--ecs-neutral-5, #f8f9fa);
-    border: 1px solid var(--ecs-neutral-20, #dee2e6);
+    background: var(--ecs-neutral-5, var(--color-neutral-50));
+    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
     border-radius: 0.375rem;
     padding: 1rem;
     margin-bottom: 1rem;
@@ -13,11 +13,11 @@
 .redis-stat-value {
     font-size: 1.5rem;
     font-weight: bold;
-    color: var(--ecs-neutral-60, #495057);
+    color: var(--ecs-neutral-60, var(--color-secondary-700));
 }
 
 .redis-stat-label {
-    color: var(--ecs-secondary, var(--color-secondary, var(--color-secondary, #6c757d)));
+    color: var(--ecs-secondary, var(--color-secondary, var(--color-secondary, var(--color-secondary-600))));
     font-size: 0.875rem;
 }
 
@@ -30,19 +30,19 @@
 }
 
 .redis-health-healthy {
-    background-color: var(--ecs-success, #28a745);
+    background-color: var(--ecs-success, var(--color-success-500));
 }
 
 .redis-health-unhealthy {
-    background-color: var(--ecs-danger, var(--color-danger, var(--color-danger, #dc3545)));
+    background-color: var(--ecs-danger, var(--color-danger, var(--color-danger, var(--color-danger-600))));
 }
 
 .redis-health-warning {
-    background-color: var(--ecs-warning, var(--color-warning, var(--color-warning, #ffc107)));
+    background-color: var(--ecs-warning, var(--color-warning, var(--color-warning, var(--color-warning))));
 }
 
 .redis-auto-refresh {
-    background: var(--ecs-neutral-10, #e9ecef);
+    background: var(--ecs-neutral-10, var(--color-neutral-200));
     padding: 10px;
     border-radius: 5px;
     margin-bottom: 20px;

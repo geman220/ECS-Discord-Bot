@@ -62,7 +62,7 @@
 {# ----- Card Header Macro ----- #}
 {# Renders a card header with optional edit button #}
 {% macro render_card_header(title, icon='', show_edit=false, edit_section='') %}
-<div class="c-profile-card-header c-card__header border-bottom" data-component="profile-card-header">
+<div class="c-profile-c-card__header c-card__header border-bottom" data-component="profile-card-header">
     <h5 class="c-profile-card-header__title c-card__title mb-0">
         {% if icon %}<i class="{{ icon }} c-profile-card-header__icon"></i>{% endif %}{{ title }}
     </h5>

@@ -12,7 +12,7 @@
  * - Zero inline styles
  * - Zero inline event handlers (data-action attributes for delegation)
  * - Design tokens only (no hardcoded values)
- * - Zero !important declarations (except justified accessibility needs)
+ * - Zero declarations (except justified accessibility needs)
  * - Mobile-first responsive
  * - Full dark mode support
  * - WCAG AA compliant
@@ -151,59 +151,66 @@
    IMPORTANT: Use high specificity to override Tabler icon defaults (.ti uses inline-block) */
 
 /* Default: Hide both icons. Must use parent context for higher specificity */
+
 .c-sidebar__toggle .c-sidebar__toggle-icon--desktop,
 .c-sidebar__toggle .c-sidebar__toggle-icon--mobile,
 .c-sidebar__toggle i.c-sidebar__toggle-icon--desktop,
 .c-sidebar__toggle i.c-sidebar__toggle-icon--mobile,
 i.ti.c-sidebar__toggle-icon--desktop,
 i.ti.c-sidebar__toggle-icon--mobile {
-  display: none !important;
+  display: none;
 }
 
 /* Desktop (1200px+): Show menu icon only */
+
 @media (min-width: 1200px) {
   .c-sidebar__toggle .c-sidebar__toggle-icon--desktop,
   .c-sidebar__toggle i.c-sidebar__toggle-icon--desktop,
   i.ti.c-sidebar__toggle-icon--desktop {
-    display: inline-flex !important;
+    display: inline-flex;
   }
+
   .c-sidebar__toggle .c-sidebar__toggle-icon--mobile,
   .c-sidebar__toggle i.c-sidebar__toggle-icon--mobile,
   i.ti.c-sidebar__toggle-icon--mobile {
-    display: none !important;
+    display: none;
   }
 }
 
 /* Mobile (<1200px): Show menu icon by default (sidebar closed) */
+
 @media (max-width: 1199.98px) {
   .c-sidebar__toggle .c-sidebar__toggle-icon--desktop,
   .c-sidebar__toggle i.c-sidebar__toggle-icon--desktop,
   i.ti.c-sidebar__toggle-icon--desktop {
-    display: inline-flex !important;
+    display: inline-flex;
   }
+
   .c-sidebar__toggle .c-sidebar__toggle-icon--mobile,
   .c-sidebar__toggle i.c-sidebar__toggle-icon--mobile,
   i.ti.c-sidebar__toggle-icon--mobile {
-    display: none !important;
+    display: none;
   }
 
   /* When sidebar is open on mobile: Show X, hide menu */
+
   .layout-menu-expanded .c-sidebar__toggle .c-sidebar__toggle-icon--desktop,
   .layout-menu-expanded i.ti.c-sidebar__toggle-icon--desktop,
   body.sidebar-open .c-sidebar__toggle .c-sidebar__toggle-icon--desktop,
   body.sidebar-open i.ti.c-sidebar__toggle-icon--desktop {
-    display: none !important;
+    display: none;
   }
 
   .layout-menu-expanded .c-sidebar__toggle .c-sidebar__toggle-icon--mobile,
   .layout-menu-expanded i.ti.c-sidebar__toggle-icon--mobile,
   body.sidebar-open .c-sidebar__toggle .c-sidebar__toggle-icon--mobile,
   body.sidebar-open i.ti.c-sidebar__toggle-icon--mobile {
-    display: inline-flex !important;
+    display: inline-flex;
   }
 }
 
 /* Shadow decorative element */
+
 .c-sidebar__shadow {
   height: 8px;
   flex-shrink: 0;
@@ -216,6 +223,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Widget at bottom of sidebar (e.g., online users) */
+
 .c-sidebar__widget {
   flex-shrink: 0;
   border-top: 1px solid var(--color-border-primary);
@@ -234,60 +242,69 @@ i.ti.c-sidebar__toggle-icon--mobile {
   /* Native scrollbar fallback when PerfectScrollbar isn't available */
   overflow-y: auto;
   /* CRITICAL: Force no horizontal scroll - even if PerfectScrollbar tries to add it */
-  overflow-x: hidden !important;
+  overflow-x: hidden;
   /* Constrain width to prevent content from expanding */
   max-width: 100%;
   width: 100%;
 }
 
 /* Force no horizontal scroll on sidebar and all children */
+
 .c-sidebar,
-.c-sidebar__nav,
-.c-sidebar__nav.ps,
-.c-sidebar__nav.menu-inner,
-.c-sidebar__list,
-.c-sidebar__submenu,
 .c-sidebar,
 .c-sidebar .menu-inner,
-.c-sidebar .menu-inner.ps {
-  overflow-x: hidden !important;
+.c-sidebar .menu-inner.ps,
+.c-sidebar__list,
+.c-sidebar__nav,
+.c-sidebar__nav.menu-inner,
+.c-sidebar__nav.ps,
+.c-sidebar__submenu {
+  overflow-x: hidden;
   max-width: 100%;
 }
 
 /* Override PerfectScrollbar inline styles that enable horizontal scroll */
+
+#layout-menu .ps,
 .c-sidebar__nav.ps,
-.menu-inner.ps,
-#layout-menu .ps {
-  overflow-x: hidden !important;
+.menu-inner.ps {
+  overflow-x: hidden;
 }
 
 /* Disable PerfectScrollbar horizontal functionality completely */
+
 .c-sidebar .ps--active-x,
 .menu-inner.ps--active-x {
-  overflow-x: hidden !important;
+  overflow-x: hidden;
 }
 
 /* Hide horizontal scrollbar from PerfectScrollbar - sidebar only needs vertical scroll */
+
 .c-sidebar .ps__rail-x,
-.c-sidebar__nav .ps__rail-x,
-.menu-inner .ps__rail-x,
 .c-sidebar .ps__thumb-x,
+.c-sidebar__nav .ps__rail-x,
 .c-sidebar__nav .ps__thumb-x,
+.menu-inner .ps__rail-x,
 .menu-inner .ps__thumb-x {
-  display: none !important;
-  opacity: 0 !important;
-  height: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
+  display: none;
+  opacity: 0;
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* Ensure no horizontal overflow on sidebar list */
+
 .c-sidebar__list {
-  overflow-x: hidden !important;
+  overflow-x: hidden;
   max-width: 100%;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
 /* Custom scrollbar for nav (fallback when PerfectScrollbar not loaded) */
+
 .c-sidebar__nav::-webkit-scrollbar {
   width: 6px;
 }
@@ -305,12 +322,6 @@ i.ti.c-sidebar__toggle-icon--mobile {
   background-color: var(--color-neutral-400);
 }
 
-.c-sidebar__list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
 /* ============================================================================
    4. NAVIGATION ITEMS & LINKS
    Individual menu items and their states
@@ -323,6 +334,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Header items (section labels) */
+
 .c-sidebar__header-item {
   padding: var(--space-4) var(--space-5) var(--space-2);
   margin-top: var(--space-3);
@@ -344,6 +356,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Navigation links */
+
 .c-sidebar__link {
   display: flex;
   align-items: center;
@@ -373,6 +386,12 @@ i.ti.c-sidebar__toggle-icon--mobile {
   color: var(--color-text-primary);
 }
 
+/* Remove default focus outline for mouse clicks */
+
+.c-sidebar__link:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .c-sidebar__link:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
@@ -380,9 +399,10 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Active state - rounded pill style */
+
 .c-sidebar__item.is-active > .c-sidebar__link {
   background-color: var(--color-primary-subtle, rgba(37, 99, 235, 0.1));
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   font-weight: var(--font-semibold, 600);
   border-radius: var(--radius-lg, 0.5rem);
   margin-left: var(--space-3, 0.75rem);
@@ -396,6 +416,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Icon */
+
 .c-sidebar__icon {
   flex-shrink: 0;
   width: 20px;
@@ -405,6 +426,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Label */
+
 .c-sidebar__label {
   flex: 1;
   min-width: 0;
@@ -438,6 +460,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Submenu */
+
 .c-sidebar__submenu {
   display: none;
   list-style: none;
@@ -460,6 +483,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Nested submenu (third level) */
+
 .c-sidebar__submenu--nested {
   background-color: rgba(0, 0, 0, 0.05);
 }
@@ -490,13 +514,14 @@ i.ti.c-sidebar__toggle-icon--mobile {
    ============================================================================ */
 
 /* Primary link variant (Admin Panel) - Higher specificity to override base styles */
+
 .c-sidebar .c-sidebar__link.c-sidebar__link--primary,
 .c-sidebar__link.c-sidebar__link--primary {
-  background: linear-gradient(135deg, var(--color-primary-600, var(--color-primary-600, #2563EB)) 0%, var(--color-primary-700, #1d4ed8) 100%);
+  background: linear-gradient(135deg, var(--color-primary-600, var(--color-primary-600, var(--color-primary-600))) 0%, var(--color-primary-700, var(--color-primary-700)) 100%);
   border-radius: var(--radius-lg, 0.5rem);
   margin: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
   padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
-  color: var(--color-neutral-0, #ffffff);
+  color: var(--color-neutral-0, var(--color-white));
   font-weight: var(--font-semibold, 600);
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
   width: auto;
@@ -514,8 +539,9 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Active state for primary link - maintains rounded pill styling */
+
 .c-sidebar__item.is-active > .c-sidebar__link.c-sidebar__link--primary {
-  background: linear-gradient(135deg, var(--color-primary-700, #1d4ed8) 0%, var(--color-primary-800, #1e40af) 100%);
+  background: linear-gradient(135deg, var(--color-primary-700, var(--color-primary-700)) 0%, var(--color-primary-800, var(--color-primary-800)) 100%);
   border-radius: var(--radius-lg, 0.5rem);
   margin: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
   width: auto;
@@ -526,6 +552,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Legacy variant (subdued appearance) */
+
 .c-sidebar__link--legacy .c-sidebar__label--legacy {
   color: var(--color-text-muted);
   font-size: 0.85rem;
@@ -537,6 +564,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Disabled state */
+
 .c-sidebar__link--disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -595,6 +623,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
    ============================================================================ */
 
 /* Mobile: Hidden by default, slides in on demand */
+
 @media (max-width: 1199.98px) {
   .c-sidebar {
     left: -280px;
@@ -604,24 +633,27 @@ i.ti.c-sidebar__toggle-icon--mobile {
   }
 
   /* Support both BEM is-open class and legacy layout-menu-expanded class */
+
   .c-sidebar.is-open,
   .layout-menu-expanded .c-sidebar {
     left: 0;
   }
 
-  /* Toggle icon rules are defined above with !important for proper state handling */
+  /* Toggle icon rules are defined above with for proper state handling */
 }
 
 /* Desktop: Always visible */
+
 @media (min-width: 1200px) {
   .c-sidebar {
     left: 0;
   }
 
-  /* Toggle icon rules are defined above with !important for proper state handling */
+  /* Toggle icon rules are defined above with for proper state handling */
 }
 
 /* Collapsed state (desktop only) */
+
 @media (min-width: 1200px) {
   .layout-menu-collapsed .c-sidebar {
     width: 72px;
@@ -670,6 +702,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Dark mode scrollbar for nav (fallback when PerfectScrollbar not loaded) */
+
 [data-style="dark"] .c-sidebar__nav::-webkit-scrollbar-thumb {
   background-color: var(--color-neutral-700);
 }
@@ -689,7 +722,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
 
 [data-style="dark"] .c-sidebar__item.is-active > .c-sidebar__link {
   background-color: rgba(96, 165, 250, 0.15);
-  color: var(--color-primary-400, var(--color-primary-400, #60a5fa));
+  color: var(--color-primary-400, var(--color-primary-400, var(--color-primary-400)));
 }
 
 [data-style="dark"] .c-sidebar__submenu {
@@ -702,14 +735,14 @@ i.ti.c-sidebar__toggle-icon--mobile {
 
 [data-style="dark"] .c-sidebar .c-sidebar__link.c-sidebar__link--primary,
 [data-style="dark"] .c-sidebar__link.c-sidebar__link--primary {
-  background: linear-gradient(135deg, var(--color-primary-500, #3b82f6) 0%, var(--color-primary-600, var(--color-primary-600, #2563eb)) 100%);
+  background: linear-gradient(135deg, var(--color-primary-500, var(--color-primary-500)) 0%, var(--color-primary-600, var(--color-primary-600, var(--color-primary-600))) 100%);
   border-radius: var(--radius-lg, 0.5rem);
   margin: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
   width: auto;
 }
 
 [data-style="dark"] .c-sidebar__link.c-sidebar__link--primary:hover {
-  background: linear-gradient(135deg, var(--color-primary-600, var(--color-primary-600, #2563eb)) 0%, var(--color-primary-700, #1d4ed8) 100%);
+  background: linear-gradient(135deg, var(--color-primary-600, var(--color-primary-600, var(--color-primary-600))) 0%, var(--color-primary-700, var(--color-primary-700)) 100%);
 }
 
 [data-style="dark"] .c-sidebar__info-banner {
@@ -732,6 +765,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
    ============================================================================ */
 
 /* Skip to main content link */
+
 .c-sidebar__skip-link {
   position: absolute;
   top: -40px;
@@ -750,6 +784,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Screen reader only content */
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -763,14 +798,16 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* Focus visible enhancements */
+
+.c-sidebar__brand:focus-visible,
 .c-sidebar__link:focus-visible,
-.c-sidebar__toggle:focus-visible,
-.c-sidebar__brand:focus-visible {
+.c-sidebar__toggle:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
 }
 
 /* Reduce motion for accessibility */
+
 @media (prefers-reduced-motion: reduce) {
   .c-sidebar,
   .c-sidebar__link,
@@ -787,6 +824,7 @@ i.ti.c-sidebar__toggle-icon--mobile {
 }
 
 /* High contrast mode support */
+
 @media (prefers-contrast: more) {
   .c-sidebar {
     border-width: 2px;

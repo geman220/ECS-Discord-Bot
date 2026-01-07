@@ -77,7 +77,7 @@ let sidebar = null;
  * ============================================================================
  */
 
-function init() {
+function initSidebarInteractions() {
   // Guard against duplicate initialization
   if (State._initialized) return;
   State._initialized = true;
@@ -285,25 +285,7 @@ function handleSubmenuToggle(button) {
   // Update ARIA
   button.setAttribute('aria-expanded', isOpen);
 
-  // Close other submenus at the same level (optional - comment out for accordion behavior)
-  // closeOtherSubmenus(item);
-
   console.log('Submenu toggled:', isOpen);
-}
-
-function closeOtherSubmenus(currentItem) {
-  const parent = currentItem.parentElement;
-  const siblings = Array.from(parent.children).filter(
-    child => child !== currentItem && child.matches(CONFIG.selectors.expandableItem)
-  );
-
-  siblings.forEach(sibling => {
-    sibling.classList.remove(CONFIG.classes.open);
-    const toggle = sibling.querySelector(CONFIG.selectors.submenuToggle);
-    if (toggle) {
-      toggle.setAttribute('aria-expanded', 'false');
-    }
-  });
 }
 
 /**
@@ -313,7 +295,9 @@ function closeOtherSubmenus(currentItem) {
  */
 
 function handleNoActiveSeason() {
-  alert('No active Pub League season');
+  if (typeof window.Swal !== 'undefined') {
+    window.Swal.fire('No Active Season', 'No active Pub League season', 'info');
+  }
 }
 
 /**
@@ -558,8 +542,8 @@ function handleResize() {
  * ============================================================================
  */
 
-export const SidebarInteractions = {
-  init,
+const SidebarInteractions = {
+  init: initSidebarInteractions,
   open: openSidebar,
   close: closeSidebar,
   toggle: handleSidebarToggle,
@@ -582,7 +566,7 @@ export const SidebarInteractions = {
  */
 
 // Register with window.InitSystem
-window.InitSystem.register('sidebar-interactions', init, {
+window.InitSystem.register('sidebar-interactions', initSidebarInteractions, {
   priority: 80,
   description: 'Sidebar toggle, collapse, and mobile drawer interactions',
   reinitializable: false
@@ -591,34 +575,5 @@ window.InitSystem.register('sidebar-interactions', init, {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility
+// Export public API for programmatic control
 window.SidebarInteractions = SidebarInteractions;
-window.CONFIG = CONFIG;
-window.State = State;
-window.init = init;
-window.setupEventDelegation = setupEventDelegation;
-window.handleClick = handleClick;
-window.handleOutsideClick = handleOutsideClick;
-window.handleSidebarToggle = handleSidebarToggle;
-window.toggleCollapsedState = toggleCollapsedState;
-window.toggleMobileSidebar = toggleMobileSidebar;
-window.openSidebar = openSidebar;
-window.closeSidebar = closeSidebar;
-window.handleSubmenuToggle = handleSubmenuToggle;
-window.closeOtherSubmenus = closeOtherSubmenus;
-window.handleNoActiveSeason = handleNoActiveSeason;
-window.setupKeyboardNavigation = setupKeyboardNavigation;
-window.handleKeyDown = handleKeyDown;
-window.focusPreviousItem = focusPreviousItem;
-window.focusNextItem = focusNextItem;
-window.focusFirstItem = focusFirstItem;
-window.focusLastItem = focusLastItem;
-window.getFocusableElements = getFocusableElements;
-window.setupAriaAttributes = setupAriaAttributes;
-window.trapFocus = trapFocus;
-window.releaseFocus = releaseFocus;
-window.handleFocusTrap = handleFocusTrap;
-window.createBackdrop = createBackdrop;
-window.removeBackdrop = removeBackdrop;
-window.setupResizeHandler = setupResizeHandler;
-window.handleResize = handleResize;

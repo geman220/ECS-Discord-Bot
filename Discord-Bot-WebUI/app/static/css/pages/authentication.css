@@ -34,13 +34,14 @@
   --auth-border: rgba(148, 163, 184, 0.12);
   --auth-border-focus: rgba(88, 101, 242, 0.5);
 
-  --auth-text-primary: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9));
-  --auth-text-secondary: var(--color-secondary-400, var(--color-secondary-400, #94a3b8));
-  --auth-text-muted: var(--color-secondary-600, var(--color-secondary-600, #64748b));
+  /* Text colors - ensure good contrast on dark backgrounds */
+  --auth-text-primary: var(--color-secondary-100, #F1F5F9);
+  --auth-text-secondary: var(--color-secondary-300, #CBD5E1);
+  --auth-text-muted: var(--color-secondary-400, #94A3B8);
 
-  --auth-discord: #5865F2;
-  --auth-discord-hover: #4752c4;
-  --auth-warning: var(--color-warning-500, #f59e0b);
+  --auth-discord: var(--color-discord);
+  --auth-discord-hover: var(--color-discord-hover);
+  --auth-warning: var(--color-warning-500, var(--color-accent-600));
   --auth-warning-bg: rgba(245, 158, 11, 0.12);
 
   --auth-radius: 12px;
@@ -177,14 +178,14 @@
 .c-auth-form__title {
   font-size: 1.625rem;
   font-weight: 700;
-  color: var(--auth-text-primary);
+  color: var(--auth-text-primary, #F1F5F9);
   margin: 0 0 0.5rem 0;
   letter-spacing: -0.02em;
 }
 
 .c-auth-form__subtitle {
   font-size: 0.9375rem;
-  color: var(--auth-text-secondary);
+  color: var(--auth-text-secondary, #CBD5E1);
   margin: 0;
   line-height: 1.5;
 }
@@ -289,7 +290,7 @@
 
 .c-auth-divider__text {
   font-size: 0.8125rem;
-  color: var(--auth-text-muted);
+  color: var(--auth-text-muted, #94A3B8);
   cursor: pointer;
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
@@ -298,7 +299,7 @@
 }
 
 .c-auth-divider__text:hover {
-  color: var(--auth-text-secondary);
+  color: var(--auth-text-secondary, #CBD5E1);
   background: var(--auth-bg-input);
 }
 
@@ -370,20 +371,54 @@
 
 .c-auth-checkbox {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
+  cursor: pointer;
 }
 
 .c-auth-checkbox__input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--auth-discord);
-  cursor: pointer;
+  /* Hide native checkbox but keep accessible */
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .c-auth-checkbox__label {
-  color: var(--auth-text-secondary);
+  color: var(--auth-text-secondary, #CBD5E1);
   cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  line-height: 1.5;
+}
+
+.c-auth-checkbox__label::before {
+  /* Custom checkbox box */
+  content: '';
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  border: 2px solid var(--auth-border);
+  border-radius: 4px;
+  background: transparent;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  margin-top: 1px;
+}
+
+.c-auth-checkbox__input:checked + .c-auth-checkbox__label::before {
+  background: var(--auth-accent);
+  border-color: var(--auth-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px;
+}
+
+.c-auth-checkbox__input:focus + .c-auth-checkbox__label::before {
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.15);
 }
 
 .c-auth-link {
@@ -419,13 +454,13 @@
 .c-auth-alert__title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--auth-text-primary);
+  color: var(--auth-text-primary, #F1F5F9);
   margin: 0 0 0.5rem 0;
 }
 
 .c-auth-alert__text {
   font-size: 0.8125rem;
-  color: var(--auth-text-secondary);
+  color: var(--auth-text-secondary, #CBD5E1);
   margin: 0;
   line-height: 1.5;
 }
@@ -571,7 +606,7 @@
 .c-auth-benefits__title {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--auth-text-primary);
+  color: var(--auth-text-primary, #F1F5F9);
   text-align: center;
   margin: 0 0 var(--auth-space-lg) 0;
 }
@@ -589,14 +624,14 @@
 
 .c-auth-benefits__icon {
   font-size: 1.5rem;
-  color: var(--color-success, #22c55e);
+  color: var(--color-success, #10B981);
   display: block;
   margin-bottom: 0.5rem;
 }
 
 .c-auth-benefits__text {
   font-size: 0.8125rem;
-  color: var(--auth-text-secondary);
+  color: var(--auth-text-secondary, #CBD5E1);
   margin: 0;
   line-height: 1.4;
 }
@@ -648,7 +683,7 @@
 .c-auth-help-card__title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--auth-text-primary);
+  color: var(--auth-text-primary, #F1F5F9);
   margin: 0 0 0.75rem 0;
 }
 
@@ -660,11 +695,11 @@
 
 .c-auth-help-card__item {
   font-size: 0.8125rem;
-  color: var(--auth-text-secondary);
+  color: var(--auth-text-secondary, #CBD5E1);
 }
 
 .c-auth-help-card__item strong {
-  color: var(--auth-text-primary);
+  color: var(--auth-text-primary, #F1F5F9);
 }
 
 /* =============================================================================
@@ -857,4 +892,341 @@
   .c-auth-form__subtitle {
     font-size: 0.8125rem;
   }
+}
+
+/* =============================================================================
+   Section Headers
+   ============================================================================ */
+
+.c-auth-section {
+  margin-bottom: var(--auth-space-lg);
+}
+
+.c-auth-section__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--auth-text-primary, #F1F5F9);
+  margin: 0 0 var(--auth-space) 0;
+}
+
+.c-auth-section__title i {
+  color: var(--auth-accent);
+  font-size: 1.125rem;
+}
+
+/* =============================================================================
+   Radio Button Group
+   ============================================================================ */
+
+.c-auth-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.c-auth-radio {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: var(--auth-space);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.c-auth-radio:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--auth-accent);
+}
+
+.c-auth-radio__input {
+  /* Hide the native radio but keep it accessible */
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.c-auth-radio__box {
+  /* Force exact circle dimensions */
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  max-width: 20px;
+  max-height: 20px;
+  border: 2px solid var(--auth-border);
+  border-radius: 50%;
+  background: transparent;
+  transition: all 0.2s ease;
+  position: relative;
+  margin-top: 2px;
+  box-sizing: border-box;
+}
+
+.c-auth-radio__input:checked + .c-auth-radio__box {
+  border-color: var(--auth-accent);
+  background: var(--auth-accent);
+}
+
+.c-auth-radio__input:checked + .c-auth-radio__box::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+}
+
+.c-auth-radio__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.c-auth-radio__title {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--auth-text-primary, #F1F5F9);
+}
+
+.c-auth-radio__desc {
+  font-size: 0.8125rem;
+  color: var(--auth-text-muted, #94A3B8);
+}
+
+/* =============================================================================
+   Collapsible Details Sections
+   ============================================================================ */
+
+.c-auth-details {
+  margin-bottom: var(--auth-space-lg);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.c-auth-details__summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: var(--auth-space);
+  cursor: pointer;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--auth-text-primary, #F1F5F9);
+  list-style: none;
+}
+
+.c-auth-details__summary::-webkit-details-marker {
+  display: none;
+}
+
+.c-auth-details__summary i:first-child {
+  color: var(--auth-accent);
+}
+
+.c-auth-details__badge {
+  margin-left: auto;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  color: var(--auth-text-muted, #94A3B8);
+}
+
+.c-auth-details__chevron {
+  transition: transform 0.2s ease;
+  color: var(--auth-text-muted, #94A3B8);
+}
+
+.c-auth-details[open] .c-auth-details__chevron {
+  transform: rotate(180deg);
+}
+
+.c-auth-details__content {
+  padding: 0 var(--auth-space) var(--auth-space);
+}
+
+/* =============================================================================
+   Select and Textarea Inputs
+   ============================================================================ */
+
+.c-auth-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  color: var(--auth-text-primary, #F1F5F9);
+  background-color: rgba(255, 255, 255, 0.05);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394A3B8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius);
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.c-auth-select:focus {
+  outline: none;
+  border-color: var(--auth-accent);
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.15);
+}
+
+.c-auth-select option {
+  background: var(--auth-bg);
+  color: var(--auth-text-primary, #F1F5F9);
+}
+
+.c-auth-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--auth-text-primary, #F1F5F9);
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius);
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.c-auth-textarea:focus {
+  outline: none;
+  border-color: var(--auth-accent);
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.15);
+}
+
+.c-auth-textarea::placeholder {
+  color: var(--auth-text-muted, #94A3B8);
+}
+
+/* =============================================================================
+   Input Row (Side by Side)
+   ============================================================================ */
+
+.c-auth-input-row {
+  display: flex;
+  gap: var(--auth-space);
+  margin-bottom: var(--auth-space);
+}
+
+.c-auth-input-group--half {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 575.98px) {
+  .c-auth-input-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .c-auth-input-group--half {
+    width: 100%;
+  }
+}
+
+/* =============================================================================
+   Readonly Input Modifier
+   ============================================================================ */
+
+.c-auth-input--readonly {
+  background-color: rgba(255, 255, 255, 0.02);
+  color: var(--auth-text-muted, #94A3B8);
+  cursor: not-allowed;
+}
+
+/* =============================================================================
+   Checkbox Modifier
+   ============================================================================ */
+
+.c-auth-checkbox--mt-lg {
+  margin-top: var(--auth-space-lg);
+}
+
+/* =============================================================================
+   Progress Bar (for wizards)
+   ============================================================================ */
+
+.c-auth-progress {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  margin: 0 0 var(--auth-space-lg) 0;
+  overflow: hidden;
+}
+
+.c-auth-progress__bar {
+  height: 100%;
+  background: var(--auth-accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* =============================================================================
+   Step Visibility (for wizards)
+   ============================================================================ */
+
+.c-auth-step {
+  animation: fadeIn 0.3s ease;
+}
+
+.c-auth-step--hidden {
+  display: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* =============================================================================
+   Wizard Button Row
+   ============================================================================ */
+
+.c-auth-btn-row--wizard {
+  display: flex;
+  gap: var(--auth-space);
+  margin-top: var(--auth-space-xl);
+}
+
+.c-auth-btn--flex-grow {
+  flex: 1;
+}
+
+.c-auth-btn--outline {
+  background: transparent;
+  border: 1px solid var(--auth-border);
+  color: var(--auth-text-primary, #F1F5F9);
+}
+
+.c-auth-btn--outline:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--auth-text-secondary);
+}
+
+/* =============================================================================
+   Input Error State
+   ============================================================================ */
+
+.c-auth-input--error {
+  border-color: var(--color-danger-500, #EF4444) !important;
+}
+
+.c-auth-input--error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
 }

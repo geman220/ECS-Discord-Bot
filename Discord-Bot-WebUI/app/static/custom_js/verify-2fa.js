@@ -8,7 +8,7 @@ import { InitSystem } from '../js/init-system.js';
 
 let _initialized = false;
 
-export function init() {
+export function initVerify2fa() {
     if (_initialized) return;
     _initialized = true;
 
@@ -45,7 +45,7 @@ export function init() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem.register) {
-    window.InitSystem.register('verify-2fa', init, {
+    window.InitSystem.register('verify-2fa', initVerify2fa, {
         priority: 45,
         reinitializable: false,
         description: '2FA verification page'
@@ -56,4 +56,4 @@ if (window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.init = init;
+window.initVerify2fa = initVerify2fa;

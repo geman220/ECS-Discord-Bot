@@ -35,7 +35,7 @@
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .c-empty-state--roles {
         padding: 3rem 1.5rem;
     }

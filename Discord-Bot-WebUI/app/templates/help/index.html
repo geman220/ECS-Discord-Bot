@@ -3,19 +3,19 @@
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <div class="c-card-modern__header mb-4">
-        <h4 class="c-card-modern__title">Help Topics</h4>
+    <div class="c-card__header mb-4">
+        <h4 class="c-card__title">Help Topics</h4>
         {% if can_access_admin %}
-        <div class="c-card-modern__actions">
-            <a href="{{ url_for('help.admin_help_topics') }}" class="c-btn-modern c-btn-modern--secondary">
-                <i class="ti ti-settings c-btn-modern__icon"></i>
+        <div class="c-card__actions">
+            <a href="{{ url_for('help.admin_help_topics') }}" class="c-btn c-btn--secondary">
+                <i class="ti ti-settings c-btn__icon"></i>
                 Admin Dashboard
             </a>
         </div>
         {% endif %}
     </div>
-    <div class="c-card-modern">
-        <div class="c-card-modern__body">
+    <div class="c-card">
+        <div class="c-card__body">
             <!-- Search Input -->
             <div class="c-form-modern__group mb-3">
                 <div class="c-form-modern__input-wrapper">

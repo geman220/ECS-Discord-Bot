@@ -17,6 +17,7 @@
 'use strict';
 
 import { InitSystem } from './init-system.js';
+import { showToast } from './services/toast-service.js';
 
 // CSRF Token
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -24,7 +25,7 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribut
 /**
  * Initialize feature toggles
  */
-function init() {
+function initAdminPanelFeatureToggles() {
     initializeToggleHandlers();
     initializeFormHandlers();
 }
@@ -90,7 +91,7 @@ function handleToggleChange(toggle, settingKey, isEnabled) {
             }
 
             // Show success message
-            showToast('success', 'Setting Updated', data.message);
+            showToast(data.message, 'success', { title: 'Setting Updated' });
         } else {
             // Revert the toggle and status
             toggle.checked = !isEnabled;
@@ -99,7 +100,7 @@ function handleToggleChange(toggle, settingKey, isEnabled) {
             }
 
             // Show error message
-            showToast('error', 'Error', data.message || 'Failed to update setting');
+            showToast(data.message || 'Failed to update setting', 'error');
         }
     })
     .catch(error => {
@@ -111,7 +112,7 @@ function handleToggleChange(toggle, settingKey, isEnabled) {
             statusLabel.textContent = !isEnabled ? 'Enabled' : 'Disabled';
         }
 
-        showToast('error', 'Network Error', 'Failed to communicate with server');
+        showToast('Failed to communicate with server', 'error');
     })
     .finally(() => {
         toggle.disabled = false;
@@ -141,29 +142,10 @@ function initializeFormHandlers() {
     });
 }
 
-/**
- * Show toast notification
- * Uses SweetAlert2 if available, falls back to alert
- */
-function showToast(icon, title, text) {
-    if (typeof window.Swal !== 'undefined') {
-        window.Swal.fire({
-            icon: icon,
-            title: title,
-            text: text,
-            timer: 2000,
-            showConfirmButton: false,
-            toast: true,
-            position: 'top-end'
-        });
-    } else {
-        // Fallback to alert if SweetAlert2 not available
-        alert(`${title}: ${text}`);
-    }
-}
+// showToast imported from services/toast-service.js
 
 // Register with window.InitSystem
-window.InitSystem.register('admin-panel-feature-toggles', init, {
+window.InitSystem.register('admin-panel-feature-toggles', initAdminPanelFeatureToggles, {
     priority: 30,
     reinitializable: true,
     description: 'Admin panel feature toggles'
@@ -172,16 +154,12 @@ window.InitSystem.register('admin-panel-feature-toggles', init, {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility exports
-window.init = init;
-window.initializeToggleHandlers = initializeToggleHandlers;
-window.handleToggleChange = handleToggleChange;
-window.initializeFormHandlers = initializeFormHandlers;
-window.showToast = showToast;
+// No window exports needed - InitSystem handles initialization
+// showToast available via window.showToast from toast-service.js
 
 // Named exports for ES modules
 export {
-    init,
+    initAdminPanelFeatureToggles,
     initializeToggleHandlers,
     handleToggleChange,
     initializeFormHandlers,

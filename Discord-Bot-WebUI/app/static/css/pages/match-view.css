@@ -176,6 +176,7 @@
 }
 
 /* Desktop RSVP Summary Row */
+
 .rsvp-summary-row .card {
   transition: var(--transition-all);
 }
@@ -615,19 +616,14 @@
 
 .avatar {
   transition: var(--transition-all);
+  position: relative;
 }
 
 .avatar:hover {
   transform: scale(1.05);
 }
 
-.badge {
-  transition: var(--transition-all);
-}
-
-.btn {
-  transition: var(--transition-all);
-}
+/* NOTE: .badge/.btn transition in component files (source of truth) */
 
 .btn:hover {
   transform: translateY(-1px);
@@ -667,6 +663,7 @@
 
 @media (max-width: 767.98px) {
   /* Compact match header badges */
+
   .match-header-wrapper .badge {
     font-size: 0.75rem;
     padding: var(--space-1) var(--space-2);
@@ -678,22 +675,26 @@
   }
 
   /* Add bottom padding to prevent content being hidden behind action bar */
+
   .container-xxl {
     padding-bottom: 80px;
   }
 
   /* Hide desktop-only elements */
+
   .d-none.d-md-block {
     display: none;
   }
 
   /* Simplify sort dropdown on mobile */
+
   .dropdown-toggle {
     font-size: var(--text-xs);
     padding: var(--space-2);
   }
 
   /* Mobile team tabs - make them more touch-friendly */
+
   .nav-tabs .nav-link {
     padding: var(--space-3) var(--space-2);
     font-size: var(--text-sm);
@@ -710,8 +711,8 @@
    Full dark mode implementation using [data-style="dark"]
    ============================================================================ */
 
-[data-style="dark"] .player-list-mobile-compact,
-[data-style="dark"] .player-list-desktop-compact {
+[data-style="dark"] .player-list-desktop-compact,
+[data-style="dark"] .player-list-mobile-compact {
   background-color: var(--color-bg-card);
   border-color: var(--border-color-primary);
 }
@@ -737,8 +738,8 @@
   color: var(--color-primary);
 }
 
-[data-style="dark"] .team-summary-mobile,
-[data-style="dark"] .team-summary-desktop {
+[data-style="dark"] .team-summary-desktop,
+[data-style="dark"] .team-summary-mobile {
   background-color: var(--color-bg-elevated);
   color: var(--color-text-primary);
 }
@@ -782,6 +783,7 @@
 }
 
 /* RSVP Cards Dark Mode - Override Bootstrap opacity backgrounds */
+
 [data-style="dark"] .bg-success.bg-opacity-10 {
   background-color: rgba(40, 167, 69, 0.15);
   color: var(--color-text-primary);
@@ -808,6 +810,7 @@
 }
 
 /* Mobile RSVP Cards with background overrides */
+
 [data-style="dark"] .rsvp-card-mobile.bg-success.bg-opacity-10 {
   background-color: rgba(40, 167, 69, 0.15);
 }
@@ -825,12 +828,14 @@
 }
 
 /* Text colors in dark mode */
+
 [data-style="dark"] .fw-bold,
 [data-style="dark"] .small {
   color: var(--color-text-primary);
 }
 
 /* Card text elements */
+
 [data-style="dark"] .card .fw-bold,
 [data-style="dark"] .card .small,
 [data-style="dark"] .card span:not([class*="text-"]) {
@@ -842,8 +847,8 @@
    Backward compatibility with older dark mode implementation
    ============================================================================ */
 
-.dark-mode .player-list-mobile-compact,
-.dark-mode .player-list-desktop-compact {
+.dark-mode .player-list-desktop-compact,
+.dark-mode .player-list-mobile-compact {
   background-color: var(--color-bg-card);
   border-color: var(--border-color-primary);
 }
@@ -858,8 +863,8 @@
   background-color: var(--color-bg-hover);
 }
 
-.dark-mode .team-summary-mobile,
-.dark-mode .team-summary-desktop {
+.dark-mode .team-summary-desktop,
+.dark-mode .team-summary-mobile {
   background-color: var(--color-bg-elevated);
   color: var(--color-text-primary);
 }
@@ -893,10 +898,6 @@
   background-color: var(--color-bg-hover);
 }
 
-.avatar {
-  position: relative;
-}
-
 .avatar-md img {
   width: 40px;
   height: 40px;
@@ -914,6 +915,7 @@
 }
 
 /* Match Styling */
+
 .match-detail-card {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
@@ -925,6 +927,7 @@
 }
 
 /* RSVP Summary Counter */
+
 .rsvp-counter {
   transition: var(--transition-all);
 }
@@ -934,6 +937,7 @@
 }
 
 /* Badge Pills */
+
 .badge-pill {
   border-radius: var(--radius-full);
   padding-right: 0.6em;
@@ -941,6 +945,7 @@
 }
 
 /* Clean button styling - no transform on desktop */
+
 .ecs-btn {
   transform: none;
   transition: var(--transition-all);
@@ -952,7 +957,7 @@
    Additional mobile-specific refinements
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .match-header-wrapper {
     flex-direction: column;
   }
@@ -984,11 +989,10 @@
     height: 30px;
   }
 
-  .card-body {
-    padding: var(--space-4) var(--space-2);
-  }
+  /* NOTE: .card-body mobile padding in mobile/cards.css (source of truth) */
 
   /* Enhance report modal for mobile */
+
   .c-report-match-modal .modal-dialog {
     margin: 10px;
     max-width: calc(100% - 20px);
@@ -1005,6 +1009,7 @@
   }
 
   /* Increase touch targets */
+
   .c-report-match-modal .btn {
     min-height: 44px;
   }
@@ -1015,7 +1020,7 @@
    Extra refinements for phones
    ============================================================================ */
 
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
   .match-info h1 {
     font-size: 1.5rem;
   }
@@ -1036,12 +1041,14 @@
   }
 
   /* Better column management on phone */
+
   .col-3 {
     width: 50%;
     margin-bottom: 10px;
   }
 
   /* Ensure inputs are large enough for touch */
+
   input,
   select,
   textarea,
@@ -1051,12 +1058,14 @@
   }
 
   /* Force form elements to stay visible */
+
   .form-control,
   .form-select {
     z-index: auto;
   }
 
   /* Ensure buttons are big enough */
+
   .btn {
     padding: var(--space-2) var(--space-3);
     font-size: 0.9rem;

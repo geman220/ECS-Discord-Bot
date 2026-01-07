@@ -33,7 +33,7 @@
    ============================================================================ */
 
 .c-success-card {
-  background: linear-gradient(135deg, var(--color-success-500, #10b981) 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--color-success-500, var(--color-success-500)) 0%, var(--color-success-700) 100%);
   border-radius: 16px;
   margin-bottom: 20px;
   box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
@@ -48,7 +48,7 @@
 .c-success-card__title {
   font-size: 28px;
   font-weight: 700;
-  color: var(--color-white, #ffffff);
+  color: var(--color-white, var(--color-white));
   margin: 24px 0 12px;
   animation: fade-in-up 0.5s ease-out 0.3s both;
 }
@@ -77,7 +77,7 @@
 
 .c-success-icon i {
   font-size: 100px;
-  color: var(--color-white, #ffffff);
+  color: var(--color-white, var(--color-white));
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
 }
 
@@ -100,8 +100,8 @@
    ============================================================================ */
 
 .c-confirmation-card {
-  background: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
-  border: 2px solid var(--color-success-500, #10b981);
+  background: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
+  border: 2px solid var(--color-success-500, var(--color-success-500));
   border-radius: 12px;
   margin-bottom: 20px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -118,7 +118,7 @@
 .c-confirmation-card__title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--color-success-500, #10b981);
+  color: var(--color-success-500, var(--color-success-500));
   margin: 0;
   display: flex;
   align-items: center;
@@ -146,7 +146,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  border: 3px solid var(--color-success-500, #10b981);
+  border: 3px solid var(--color-success-500, var(--color-success-500));
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -160,7 +160,7 @@
   font-weight: 600;
   font-size: 18px;
   margin: 0 0 6px;
-  color: var(--color-white, #ffffff) !important; /* Force white for readability */
+  color: var(--color-white, var(--color-white)); /* Force white for readability */
 }
 
 /* ============================================================================
@@ -194,17 +194,17 @@
   font-size: 24px;
   display: block;
   margin-bottom: 8px;
-  color: var(--color-secondary-600, var(--color-secondary-600, #64748b));
+  color: var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600)));
 }
 
 .c-status-item__icon--success {
-  color: var(--color-success-500, #10b981);
+  color: var(--color-success-500, var(--color-success-500));
 }
 
 .c-status-item__label {
   display: block;
   font-size: 12px;
-  color: var(--color-secondary-400, var(--color-secondary-400, #94a3b8));
+  color: var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400)));
   margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -213,11 +213,11 @@
 .c-status-item__value {
   font-weight: 600;
   font-size: 16px;
-  color: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9));
+  color: var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100)));
 }
 
 .c-status-item__value--success {
-  color: var(--color-success-500, #10b981);
+  color: var(--color-success-500, var(--color-success-500));
 }
 
 /* ============================================================================
@@ -225,8 +225,8 @@
    ============================================================================ */
 
 .c-staff-notice {
-  background: var(--color-warning-100, #fef3c7);
-  border: 2px solid var(--color-warning-500, #f59e0b);
+  background: var(--color-warning-100, var(--color-accent-100));
+  border: 2px solid var(--color-warning-500, var(--color-accent-600));
   border-radius: 12px;
   margin-bottom: 20px;
   animation: fade-in-up 0.5s ease-out 0.6s both;
@@ -268,8 +268,8 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: var(--color-success-500, #10b981);
-  color: var(--color-white, #ffffff);
+  background: var(--color-success-500, var(--color-success-500));
+  color: var(--color-white, var(--color-white));
   font-size: 20px;
   font-weight: 700;
   padding: 14px 32px;
@@ -306,8 +306,8 @@
   padding: 16px 24px;
   font-size: 18px;
   font-weight: 600;
-  color: var(--color-white, #ffffff);
-  background: linear-gradient(135deg, var(--color-primary-600, #2563eb) 0%, #1d4ed8 100%);
+  color: var(--color-white, var(--color-white));
+  background: linear-gradient(135deg, var(--color-primary-600, var(--color-primary-600)) 0%, var(--color-primary-700) 100%);
   border: none;
   border-radius: 12px;
   text-decoration: none;
@@ -317,7 +317,7 @@
 
 .c-profile-success .c-form-actions .c-btn--primary:hover,
 .c-profile-success .c-form-actions .c-btn--lg:hover {
-  background: linear-gradient(135deg, var(--color-primary-700, #1d4ed8) 0%, var(--color-primary-800, #1e40af) 100%);
+  background: linear-gradient(135deg, var(--color-primary-700, var(--color-primary-700)) 0%, var(--color-primary-800, var(--color-primary-800)) 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(37, 99, 235, 0.5);
 }
@@ -346,19 +346,19 @@
   justify-content: center;
   gap: 8px;
   font-size: 16px;
-  color: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9));
+  color: var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100)));
   font-weight: 500;
 }
 
 .c-thank-you__icon {
-  color: var(--color-danger-500, #ef4444);
+  color: var(--color-danger-500, var(--color-danger-600));
   animation: heart-beat 1s infinite;
 }
 
 .c-thank-you__subtitle {
   font-size: 14px;
   margin: 0;
-  color: var(--color-secondary-400, var(--color-secondary-400, #94a3b8));
+  color: var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400)));
 }
 
 /* ============================================================================
@@ -371,8 +371,8 @@
   padding: 4px 10px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-white, #ffffff);
-  background: var(--color-success-500, #10b981);
+  color: var(--color-white, var(--color-white));
+  background: var(--color-success-500, var(--color-success-500));
   border-radius: 20px;
 }
 
@@ -427,7 +427,7 @@
   .c-form-actions,
   .c-thank-you,
   .c-thank-you__icon {
-    animation: none !important;
+    animation: none;
   }
 
   .c-success-checkmark__line--tip {

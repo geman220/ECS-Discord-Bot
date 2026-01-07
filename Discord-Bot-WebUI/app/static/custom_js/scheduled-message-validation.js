@@ -9,7 +9,7 @@
 import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
-    function init() {
+    function initScheduledMessageValidation() {
         if (_initialized) return;
         _initialized = true;
 
@@ -130,26 +130,34 @@ export function scheduledMsgShowQueueStatus() {
     fetch('/admin/scheduled_messages/queue_status')
         .then(response => response.json())
         .then(data => {
-            let message = 'Celery Queue Status:\n\n';
-            message += `Total Workers: ${data.stats.total_workers}\n`;
-            message += `Active Tasks: ${data.stats.total_active_tasks}\n`;
-            message += `Scheduled Tasks: ${data.stats.total_scheduled_tasks}\n`;
-            message += `Reserved Tasks: ${data.stats.total_reserved_tasks}\n\n`;
-            
+            let message = 'Celery Queue Status:<br><br>';
+            message += `Total Workers: ${data.stats.total_workers}<br>`;
+            message += `Active Tasks: ${data.stats.total_active_tasks}<br>`;
+            message += `Scheduled Tasks: ${data.stats.total_scheduled_tasks}<br>`;
+            message += `Reserved Tasks: ${data.stats.total_reserved_tasks}<br><br>`;
+
             if (data.queues) {
-                message += 'Queue Lengths:\n';
+                message += 'Queue Lengths:<br>';
                 for (const [queue, length] of Object.entries(data.queues)) {
                     if (queue !== 'error') {
-                        message += `  ${queue}: ${length} messages\n`;
+                        message += `&nbsp;&nbsp;${queue}: ${length} messages<br>`;
                     }
                 }
             }
-            
-            alert(message);
+
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
+                    title: 'Queue Status',
+                    html: message,
+                    icon: 'info'
+                });
+            }
         })
         .catch(error => {
             console.error('Error fetching queue status:', error);
-            alert('Error fetching queue status. Check console for details.');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', 'Error fetching queue status. Check console for details.', 'error');
+            }
         });
 }
 
@@ -198,7 +206,7 @@ export function startCountdownUpdates() {
 
     // Register with window.InitSystem (primary)
     if (true && window.InitSystem.register) {
-        window.InitSystem.register('scheduled-message-validation', init, {
+        window.InitSystem.register('scheduled-message-validation', initScheduledMessageValidation, {
             priority: 40,
             reinitializable: false,
             description: 'Scheduled message validation'
@@ -208,20 +216,5 @@ export function startCountdownUpdates() {
     // Fallback
     // window.InitSystem handles initialization
 
-// Backward compatibility
-window.initializeValidationPage = initializeValidationPage;
-
-// Backward compatibility
-window.setupAutoRefresh = setupAutoRefresh;
-
-// Backward compatibility
-window.updatePageTitle = updatePageTitle;
-
-// Backward compatibility
-window.setupRefreshButton = setupRefreshButton;
-
-// Backward compatibility
-window.updateCountdowns = updateCountdowns;
-
-// Backward compatibility
-window.startCountdownUpdates = startCountdownUpdates;
+// No window exports needed - InitSystem handles initialization
+// All functions are used internally

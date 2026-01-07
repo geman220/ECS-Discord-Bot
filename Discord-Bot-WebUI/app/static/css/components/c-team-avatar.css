@@ -31,7 +31,7 @@
 
 .c-team-avatar:hover {
   transform: scale(1.05);
-  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   box-shadow: 0 4px 12px rgba(105, 108, 255, 0.2);
 }
 
@@ -84,7 +84,7 @@
 .c-team-avatar__initial {
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
 }
 
 /* Initial size based on avatar size */
@@ -115,7 +115,7 @@
 
 /* Fallback with gradient background */
 .c-team-avatar--fallback {
-  background: linear-gradient(135deg, var(--color-primary, #696cff) 0%, #5f63f2 100%);
+  background: linear-gradient(135deg, var(--color-primary, var(--color-primary)) 0%, #5f63f2 100%);
 }
 
 /* With kit/jersey image */
@@ -138,7 +138,7 @@
 }
 
 [data-style="dark"] .c-team-avatar:hover {
-  border-color: var(--color-primary-400, #60a5fa);
+  border-color: var(--color-primary-400, var(--color-primary-400));
   box-shadow: 0 4px 12px rgba(105, 108, 255, 0.3);
 }
 
@@ -152,7 +152,7 @@
 }
 
 [data-style="light"] .c-team-avatar:hover {
-  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* ============================================================================

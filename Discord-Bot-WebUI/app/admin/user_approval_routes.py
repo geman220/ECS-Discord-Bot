@@ -399,7 +399,10 @@ def approve_user(user_id: int):
         user.approved_by = current_user.id
         user.approved_at = datetime.utcnow()
         user.approval_notes = notes
-        
+
+        # Clear waitlist timestamp - user now has a spot
+        user.waitlist_joined_at = None
+
         db_session.add(user)
         db_session.flush()
         

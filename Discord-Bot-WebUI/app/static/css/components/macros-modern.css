@@ -22,7 +22,7 @@
  * Architecture:
  * - BEM naming convention
  * - CSS custom properties for theming
- * - Zero !important declarations
+ * - Zero declarations
  * - Event delegation compatible
  * - WCAG 2.1 AA compliant
  *
@@ -35,7 +35,7 @@
 
 :root {
   /* Match Modal Colors */
-  --macro-match-primary: #696cff;
+  --macro-match-primary: var(--color-primary);
   --macro-match-success: #71dd37;
   --macro-match-warning: #ffab00;
   --macro-match-danger: #ff3e1d;
@@ -394,12 +394,12 @@ body[data-style="dark"] {
 
 .c-event-entry__indicator--yellow {
   background: var(--macro-match-warning);
-  color: var(--color-black, #000);
+  color: var(--color-black, var(--color-black));
 }
 
 .c-event-entry__indicator--red {
   background: var(--macro-match-danger);
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
 }
 
 .c-event-entry__select {
@@ -1201,7 +1201,7 @@ body[data-style="dark"] .c-onboarding-controls {
    ============================================================================ */
 
 .u-hidden {
-  display: none !important;
+  display: none ;
 }
 
 
@@ -1209,7 +1209,7 @@ body[data-style="dark"] .c-onboarding-controls {
    MOBILE RESPONSIVE - ADAPTIVE LAYOUTS
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-match-modal__dialog {
     margin: 0.5rem;
   }
@@ -1286,7 +1286,7 @@ body[data-style="dark"] .c-onboarding-controls {
   }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
   .c-event-card__actions {
     flex-direction: column;
   }
@@ -1702,7 +1702,7 @@ body[data-style="dark"] .c-profile-avatar__badge {
   font-weight: 500;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-settings-tabs__text {
     display: none;
   }

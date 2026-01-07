@@ -32,11 +32,11 @@
 }
 
 .animate-slide-out-right {
-    animation: slideOutRight 0.3s ease !important;
+    animation: slideOutRight 0.3s ease;
 }
 
 .animate-fade-out {
-    animation: fadeOut 0.3s ease !important;
+    animation: fadeOut 0.3s ease;
 }
 
 /* ============================================
@@ -44,20 +44,20 @@
    ============================================ */
 
 .h-0 {
-    height: 0 !important;
+    height: 0;
 }
 
 .max-h-0 {
-    max-height: 0 !important;
+    max-height: 0;
 }
 
 /* Dynamic max-height - used with JS */
 .max-h-full {
-    max-height: 100% !important;
+    max-height: 100%;
 }
 
 .max-h-fit {
-    max-height: fit-content !important;
+    max-height: fit-content;
 }
 
 /* ============================================
@@ -65,23 +65,23 @@
    ============================================ */
 
 .m-0-important {
-    margin: 0 !important;
+    margin: 0;
 }
 
 .mb-0-important {
-    margin-bottom: 0 !important;
+    margin-bottom: 0;
 }
 
 .p-0-important {
-    padding: 0 !important;
+    padding: 0;
 }
 
 .pt-0-important {
-    padding-top: 0 !important;
+    padding-top: 0;
 }
 
 .pb-0-important {
-    padding-bottom: 0 !important;
+    padding-bottom: 0;
 }
 
 /* ============================================
@@ -89,15 +89,15 @@
    ============================================ */
 
 .border-transparent {
-    border-color: transparent !important;
+    border-color: transparent;
 }
 
 .border-left-0 {
-    border-left: 0 !important;
+    border-left: 0;
 }
 
 .border-left-4 {
-    border-left-width: 4px !important;
+    border-left-width: 4px;
 }
 
 /* ============================================
@@ -105,11 +105,11 @@
    ============================================ */
 
 .bg-transparent {
-    background-color: transparent !important;
+    background-color: transparent;
 }
 
 .bg-reset {
-    background-color: initial !important;
+    background-color: initial;
 }
 
 /* ============================================
@@ -117,7 +117,7 @@
    ============================================ */
 
 .opacity-50 {
-    opacity: 0.5 !important;
+    opacity: 0.5;
 }
 
 /* ============================================
@@ -160,8 +160,8 @@
    ============================================ */
 
 .dragging {
-    cursor: grabbing !important;
-    z-index: 1000 !important;
+    cursor: grabbing;
+    z-index: 1000;
 }
 
 .drag-over {
@@ -170,20 +170,20 @@
 
 /* Drag over states for available players pool */
 .drag-over-available {
-    border-color: var(--bs-success, #28c76f) !important;
-    background-color: rgba(40, 199, 111, 0.1) !important;
+    border-color: var(--bs-success, var(--color-success-500));
+    background-color: rgba(40, 199, 111, 0.1);
 }
 
 /* Drag over states for team sections */
 .drag-over-team {
-    border-color: var(--bs-primary, #7367f0) !important;
-    background-color: rgba(115, 103, 240, 0.1) !important;
+    border-color: var(--bs-primary, #7367f0);
+    background-color: rgba(115, 103, 240, 0.1);
 }
 
 /* Drag over state for team drop zones */
 .drag-over-team-zone {
-    background-color: rgba(115, 103, 240, 0.1) !important;
-    border-left: 4px solid var(--bs-primary, #7367f0) !important;
+    background-color: rgba(115, 103, 240, 0.1);
+    border-left: 4px solid var(--bs-primary, #7367f0);
 }
 
 /* ============================================
@@ -192,19 +192,19 @@
 
 /* Smart crop utilities for player images */
 .object-position-top-20 {
-    object-position: center 20% !important;
+    object-position: center 20%;
 }
 
 .object-position-top-15 {
-    object-position: center 15% !important;
+    object-position: center 15%;
 }
 
 .object-position-top-25 {
-    object-position: center 25% !important;
+    object-position: center 25%;
 }
 
 .object-position-center-35 {
-    object-position: center 35% !important;
+    object-position: center 35%;
 }
 
 /* ============================================
@@ -212,11 +212,11 @@
    ============================================ */
 
 .z-index-100 {
-    z-index: 100 !important;
+    z-index: 100;
 }
 
 .z-index-1060 {
-    z-index: 1060 !important;
+    z-index: 1060;
 }
 
 /* ============================================
@@ -224,13 +224,13 @@
    ============================================ */
 
 .sticky-top-60 {
-    position: sticky !important;
-    top: 60px !important;
+    position: sticky;
+    top: 60px;
 }
 
 .sticky-top-80 {
-    position: sticky !important;
-    top: 80px !important;
+    position: sticky;
+    top: 80px;
 }
 
 /* ============================================
@@ -238,7 +238,7 @@
    ============================================ */
 
 .webkit-overflow-scrolling-touch {
-    -webkit-overflow-scrolling: touch !important;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* ============================================
@@ -246,15 +246,15 @@
    ============================================ */
 
 .transform-origin-center {
-    transform-origin: center center !important;
+    transform-origin: center center;
 }
 
 .transform-origin-top {
-    transform-origin: top center !important;
+    transform-origin: top center;
 }
 
 .transform-origin-bottom {
-    transform-origin: bottom center !important;
+    transform-origin: bottom center;
 }
 
 /* ============================================
@@ -263,24 +263,24 @@
 
 /* Quick draft panel z-index overlay */
 .mobile-quick-draft-overlay {
-    z-index: 1060 !important;
+    z-index: 1060;
 }
 
 /* iOS smooth scrolling for pitch */
 .pitch-smooth-scroll {
-    -webkit-overflow-scrolling: touch !important;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Transform origin for pinch zoom */
 .pinch-zoom-origin {
-    transform-origin: center center !important;
+    transform-origin: center center;
 }
 
 /* Sticky filter with proper positioning */
 .sticky-filter-mobile {
-    position: sticky !important;
-    top: 60px !important;
-    z-index: 100 !important;
+    position: sticky;
+    top: 60px;
+    z-index: 100;
 }
 
 /* ============================================
@@ -289,100 +289,178 @@
 
 /* Virtual scroll wrapper - container with scrolling */
 .virtual-scroll-wrapper {
-    position: relative !important;
-    overflow-y: auto !important;
-    height: 100% !important;
+    position: relative;
+    overflow-y: auto;
+    height: 100%;
 }
 
 /* Virtual scroll content - maintains total height */
 .virtual-scroll-content {
-    position: relative !important;
+    position: relative;
 }
 
 /* Virtual scroll viewport - visible items container */
 .virtual-scroll-viewport {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
 }
 
 /* Virtual scroll item - individual item wrapper */
 .virtual-scroll-item {
-    margin-bottom: 10px !important;
-    position: relative !important;
+    margin-bottom: 10px;
+    position: relative;
 }
 
 /* Player card content layout */
 .player-card-content {
-    display: flex !important;
-    align-items: center !important;
-    padding: 15px !important;
-    background: var(--bg-secondary) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: 8px !important;
-    height: 100% !important;
-    box-sizing: border-box !important;
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    height: 100%;
+    box-sizing: border-box;
 }
 
 /* Player avatar container */
 .player-avatar-container {
-    width: 60px !important;
-    height: 60px !important;
-    margin-right: 15px !important;
-    position: relative !important;
-    flex-shrink: 0 !important;
+    width: 60px;
+    height: 60px;
+    margin-right: 15px;
+    position: relative;
+    flex-shrink: 0;
 }
 
 /* Player avatar image */
 .player-avatar {
-    width: 100% !important;
-    height: 100% !important;
-    border-radius: 50% !important;
-    object-fit: cover !important;
-    border: 2px solid var(--border-color) !important;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-color);
 }
 
 /* Player info section */
 .player-info {
-    flex: 1 !important;
-    min-width: 0 !important;
+    flex: 1;
+    min-width: 0;
 }
 
 /* Player name styling */
 .player-name {
-    font-weight: 600 !important;
-    font-size: 16px !important;
-    color: var(--text-primary) !important;
-    margin-bottom: 5px !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text-primary);
+    margin-bottom: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Player details section */
 .player-details {
-    font-size: 14px !important;
-    color: var(--text-secondary) !important;
-    display: flex !important;
-    gap: 15px !important;
-    flex-wrap: wrap !important;
+    font-size: 14px;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
 }
 
 /* Player actions button group */
 .player-actions {
-    display: flex !important;
-    gap: 10px !important;
-    flex-shrink: 0 !important;
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
 /* Action button min widths */
 .player-actions .draft-player-btn {
-    min-width: 80px !important;
+    min-width: 80px;
 }
 
 .player-actions .view-details-btn {
-    min-width: 70px !important;
+    min-width: 70px;
+}
+
+/* ============================================
+   DRAFT CARD INLINE STYLE REPLACEMENTS
+   ============================================ */
+
+/* Grabable card with min-height */
+.draft-card-grabable {
+    min-height: 120px;
+    cursor: grab;
+}
+
+.draft-card-grabable-lg {
+    min-height: 320px;
+    cursor: grab;
+    transition: all 0.2s ease;
+}
+
+/* Z-index for overlays */
+.z-2 {
+    z-index: 2;
+}
+
+/* Referee badge */
+.draft-referee-badge {
+    padding: 2px 4px;
+    border-radius: 0 0 8px 0;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+/* Avatar sizes */
+.avatar-40 {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+}
+
+.avatar-120 {
+    width: 120px;
+    height: 120px;
+}
+
+/* Text size utilities */
+.text-xs-75 {
+    font-size: 0.75rem;
+}
+
+.text-xs-70 {
+    font-size: 0.7rem;
+}
+
+/* Image header section */
+.draft-card-image-header {
+    height: 120px;
+}
+
+/* Full cover image */
+.draft-img-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+    display: block;
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Dark overlay */
+.draft-dark-overlay {
+    background: rgba(0, 0, 0, 0.3);
+    top: 0;
+    left: 0;
+}
+
+/* Success gradient background */
+.bg-success-gradient {
+    background: linear-gradient(45deg, var(--ecs-success, var(--color-success-500)), var(--ecs-success-light, #20c997));
 }
 
 /* ============================================
@@ -395,7 +473,7 @@
     .draft-card-exit,
     .draft-card-enter-active,
     .team-player-exit {
-        animation-duration: 0.01ms !important;
-        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms;
+        transition-duration: 0.01ms;
     }
 }

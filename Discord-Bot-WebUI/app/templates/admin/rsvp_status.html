@@ -216,7 +216,7 @@
                             <!-- Mobile Card Layout -->
                             <div class="rsvp-mobile-list">
                                 {% for rsvp in rsvps %}
-                                <div class="rsvp-mobile-card" data-player-id="{{ rsvp['player'].id }}">
+                                <div class="rsvp-mobile-c-card" data-player-id="{{ rsvp['player'].id }}">
                                     <div class="rsvp-card-main">
                                         <div class="player-info-mobile">
                                             <div class="avatar avatar-sm me-3 rsvp-avatar">
@@ -258,7 +258,7 @@
                                         </div>
                                     </div>
                                     
-                                    <div class="rsvp-card-body">
+                                    <div class="rsvp-c-card__body">
                                         <!-- Response Time -->
                                         <div class="rsvp-response-time-box">
                                             <small class="text-muted d-block rsvp-response-time-label">Response Time</small>
@@ -335,7 +335,7 @@
                             
                             <!-- Desktop Table Layout -->
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table id="rsvpStatusTable" class="c-table c-table--striped c-table--hoverable border-top" data-mobile-table data-table-type="rsvp" data-table>
+                                <table id="rsvpStatusTable" class="c-c-table c-table--striped c-table--hoverable border-top" data-mobile-table data-table-type="rsvp" data-table>
                                     <thead scope="col">
                                         <tr>
                                             <th scope="col">Player</th>
@@ -348,7 +348,7 @@
                                     <tbody>
                                         {% for rsvp in rsvps %}
                                         <tr>
-                                            <td>
+                                            <td data-label="Player">
                                                 <div class="d-flex align-items-center">
                                                     <div class="avatar avatar-sm me-2 rsvp-avatar">
                                                         {% if rsvp['player'].profile_picture_url %}
@@ -376,7 +376,7 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Team">
                                                 {% if is_ecs_fc_match %}
                                                 <span class="badge bg-primary" data-badge>
                                                     {{ rsvp['team'].name }}
@@ -387,7 +387,7 @@
                                                 </span>
                                                 {% endif %}
                                             </td>
-                                            <td>
+                                            <td data-label="Response">
                                                 <div class="d-flex align-items-center">
                                                     <span class="badge {{ 'bg-success' if rsvp['response'] == 'yes' else 'bg-danger' if rsvp['response'] == 'no' else 'bg-warning' if rsvp['response'] == 'maybe' else 'bg-secondary' }} me-2" data-badge>
                                                         {{ rsvp['response']|capitalize }}
@@ -399,7 +399,7 @@
                                                     {% endif %}
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Responded At">
                                                 {% if rsvp['responded_at'] %}
                                                     <div class="d-flex flex-column">
                                                         <span>{{ rsvp['responded_at'].strftime('%Y-%m-%d') }}</span>
@@ -409,7 +409,7 @@
                                                     <span class="text-muted">No response</span>
                                                 {% endif %}
                                             </td>
-                                            <td>
+                                            <td data-label="Actions">
                                                 <div class="dropdown">
                                                     <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                                     <div class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
@@ -496,7 +496,7 @@
                             <!-- Mobile Card Layout for Home Team -->
                             <div class="rsvp-mobile-list">
                                 {% for rsvp in home_team_responses %}
-                                <div class="rsvp-mobile-card" data-player-id="{{ rsvp['player'].id }}">
+                                <div class="rsvp-mobile-c-card" data-player-id="{{ rsvp['player'].id }}">
                                     <div class="rsvp-card-main">
                                         <div class="player-info-mobile">
                                             <div class="avatar avatar-sm me-3 rsvp-avatar">
@@ -534,7 +534,7 @@
                                         </div>
                                     </div>
                                     
-                                    <div class="rsvp-card-body">
+                                    <div class="rsvp-c-card__body">
                                         <!-- Response Time -->
                                         <div class="rsvp-response-time-box">
                                             <small class="text-muted d-block rsvp-response-time-label">Response Time</small>
@@ -611,7 +611,7 @@
                             
                             <!-- Desktop Table Layout for Home Team -->
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table id="homeTeamTable" class="c-table c-table--striped c-table--hoverable border-top" data-mobile-table data-table-type="rsvp" data-table>
+                                <table id="homeTeamTable" class="c-c-table c-table--striped c-table--hoverable border-top" data-mobile-table data-table-type="rsvp" data-table>
                                     <thead scope="col">
                                         <tr>
                                             <th scope="col">Player</th>
@@ -623,7 +623,7 @@
                                     <tbody>
                                         {% for rsvp in home_team_responses %}
                                         <tr>
-                                            <td>
+                                            <td data-label="Player">
                                                 <div class="d-flex align-items-center">
                                                     <div class="avatar avatar-sm me-2 rsvp-avatar">
                                                         {% if rsvp['player'].profile_picture_url %}
@@ -651,12 +651,12 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Response">
                                                 <span class="badge {{ 'bg-success' if rsvp['response'] == 'yes' else 'bg-danger' if rsvp['response'] == 'no' else 'bg-warning' if rsvp['response'] == 'maybe' else 'bg-secondary' }}" data-badge>
                                                     {{ rsvp['response']|capitalize }}
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td data-label="Responded At">
                                                 {% if rsvp['responded_at'] %}
                                                     <div class="d-flex flex-column">
                                                         <span>{{ rsvp['responded_at'].strftime('%Y-%m-%d') }}</span>
@@ -666,14 +666,14 @@
                                                     <span class="text-muted">No response</span>
                                                 {% endif %}
                                             </td>
-                                            <td>
+                                            <td data-label="Actions">
                                                 <div class="dropdown">
                                                     <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                                     <div class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                                         <a class="dropdown-item" href="{{ url_for('players.player_profile', player_id=rsvp['player'].id) }}">
                                                             <i class="ti ti-user me-1"></i> View Profile
                                                         </a>
-                                                        
+
                                                         <!-- Contact Options -->
                                                         {% set has_sms = rsvp['player'].phone and rsvp['player'].user and rsvp['player'].user.sms_notifications %}
                                                         {% set has_discord = rsvp['player'].discord_id and rsvp['player'].user and rsvp['player'].user.discord_notifications %}
@@ -753,7 +753,7 @@
                             <!-- Mobile Card Layout for Away Team -->
                             <div class="rsvp-mobile-list">
                                 {% for rsvp in away_team_responses %}
-                                <div class="rsvp-mobile-card" data-player-id="{{ rsvp['player'].id }}">
+                                <div class="rsvp-mobile-c-card" data-player-id="{{ rsvp['player'].id }}">
                                     <div class="rsvp-card-main">
                                         <div class="player-info-mobile">
                                             <div class="avatar avatar-sm me-3 rsvp-avatar">
@@ -791,7 +791,7 @@
                                         </div>
                                     </div>
                                     
-                                    <div class="rsvp-card-body">
+                                    <div class="rsvp-c-card__body">
                                         <!-- Response Time -->
                                         <div class="rsvp-response-time-box">
                                             <small class="text-muted d-block rsvp-response-time-label">Response Time</small>
@@ -868,7 +868,7 @@
                             
                             <!-- Desktop Table Layout for Away Team -->
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table id="awayTeamTable" class="c-table c-table--striped c-table--hoverable border-top" data-mobile-table data-table-type="rsvp" data-table>
+                                <table id="awayTeamTable" class="c-c-table c-table--striped c-table--hoverable border-top" data-mobile-table data-table-type="rsvp" data-table>
                                     <thead scope="col">
                                         <tr>
                                             <th scope="col">Player</th>
@@ -880,7 +880,7 @@
                                     <tbody>
                                         {% for rsvp in away_team_responses %}
                                         <tr>
-                                            <td>
+                                            <td data-label="Player">
                                                 <div class="d-flex align-items-center">
                                                     <div class="avatar avatar-sm me-2 rsvp-avatar">
                                                         {% if rsvp['player'].profile_picture_url %}
@@ -908,12 +908,12 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Response">
                                                 <span class="badge {{ 'bg-success' if rsvp['response'] == 'yes' else 'bg-danger' if rsvp['response'] == 'no' else 'bg-warning' if rsvp['response'] == 'maybe' else 'bg-secondary' }}" data-badge>
                                                     {{ rsvp['response']|capitalize }}
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td data-label="Responded At">
                                                 {% if rsvp['responded_at'] %}
                                                     <div class="d-flex flex-column">
                                                         <span>{{ rsvp['responded_at'].strftime('%Y-%m-%d') }}</span>
@@ -923,14 +923,14 @@
                                                     <span class="text-muted">No response</span>
                                                 {% endif %}
                                             </td>
-                                            <td>
+                                            <td data-label="Actions">
                                                 <div class="dropdown">
                                                     <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown" data-dropdown-toggle aria-label="More options"><i class="ti ti-dots-vertical"></i></button>
                                                     <div class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                                         <a class="dropdown-item" href="{{ url_for('players.player_profile', player_id=rsvp['player'].id) }}">
                                                             <i class="ti ti-user me-1"></i> View Profile
                                                         </a>
-                                                        
+
                                                         <!-- Contact Options -->
                                                         {% set has_sms = rsvp['player'].phone and rsvp['player'].user and rsvp['player'].user.sms_notifications %}
                                                         {% set has_discord = rsvp['player'].discord_id and rsvp['player'].user and rsvp['player'].user.discord_notifications %}
@@ -1227,7 +1227,7 @@
             </div>
             <div class="modal-body c-modal__body p-4" data-modal-body>
                 <div id="subListContainer" class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--striped" data-mobile-table data-table-type="rsvp" data-table>
+                    <table class="c-c-table c-table--striped" data-mobile-table data-table-type="rsvp" data-table>
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Player</th>
@@ -1304,7 +1304,7 @@
                             </div>
                             
                             <div class="c-table-wrapper" data-table-responsive>
-                                <table class="c-table c-table--compact" data-mobile-table data-table-type="rsvp" data-table>
+                                <table class="c-c-table c-table--compact" data-mobile-table data-table-type="rsvp" data-table>
                                     <thead scope="col">
                                         <tr>
                                             <th scope="col">Created</th>

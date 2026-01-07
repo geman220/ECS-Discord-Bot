@@ -66,19 +66,19 @@ def create_production_css_bundle():
         'css/core/bootstrap-theming.css',
 
         # Components
-        'css/components/buttons.css',
-        'css/components/forms.css',
-        'css/components/cards.css',
+        'css/components/c-btn.css',       # Button system (.c-btn) - BEM buttons
+        'css/components/forms-modern.css', # Form inputs (BEM)
+        'css/components/cards-modern.css', # Card containers (BEM)
         'css/components/modals.css',
         'css/components/c-modal.css',
         'css/components/c-dropdown.css',
         'css/components/dropdowns.css',
-        'css/components/tables.css',
+        'css/components/tables-modern.css', # Table layouts (BEM)
         'css/components/badges.css',
         'css/components/alerts.css',
         'css/components/navigation.css',
-        'css/components/toasts.css',
-        'css/components/macros.css',
+        'css/components/toasts-modern.css',
+        'css/components/macros-modern.css',
         # Modern BEM Components
         'css/components/tabs-modern.css',
         'css/components/settings-components.css',
@@ -109,7 +109,7 @@ def create_production_css_bundle():
         'css/components/link-list.css',
         'css/components/c-table.css',
         'css/components/c-tabs.css',
-        'css/components/c-btn.css',
+        # Note: c-btn.css listed earlier in bundle
         'css/components/profile-components.css',
         'css/components/dropdown-fixes.css',
         # Extended BEM Components
@@ -156,12 +156,9 @@ def create_production_css_bundle():
         'css/layout/base-layout.css',
         'css/layout/sidebar-modern.css',
         'css/layout/navbar.css',
-        'css/layout/navbar-modern.css',
+        # Note: layout/navbar-modern.css removed - use components/navbar-modern.css instead
         'css/layout/auth-layout.css',
-        'css/layout/mobile.css',
-        'css/layout/mobile-navigation.css',
-        'css/layout/mobile-forms.css',
-        'css/layout/mobile-tables.css',
+        'css/mobile/index.css',                 # Mobile orchestrator (modular architecture)
 
         # Features
         'css/features/draft.css',
@@ -350,13 +347,13 @@ def create_production_js_bundle():
         'custom_js/draft-enhanced.js',
         'custom_js/draft-predictions.js',
         'custom_js/ecs-fc-schedule.js',
-        'custom_js/ecsfc-schedule.js',
+        'custom_js/ecs-fc-bulk-admin.js',
         'custom_js/handle_2fa.js',
         'custom_js/home.js',
         'custom_js/live_reporting.js',
         'custom_js/match-management.js',
         'custom_js/match_stats.js',
-        'custom_js/matches-management.js',
+        'custom_js/matches-deprecated.js',
         'custom_js/merge-profiles.js',
         'custom_js/onboarding.js',
         'custom_js/player-profile.js',
@@ -427,7 +424,7 @@ def create_production_js_bundle():
         'js/draft-history.js',
         'js/draft-system.js',
         'js/mobile-draft.js',
-        'js/mobile-table-enhancer.js',
+        # Note: mobile-table-enhancer.js removed (doesn't exist)
         'js/message-management.js',
         'js/messages-inbox.js',
         'js/pass-studio.js',

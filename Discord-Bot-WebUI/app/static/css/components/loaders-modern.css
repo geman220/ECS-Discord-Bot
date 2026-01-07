@@ -14,7 +14,7 @@
  * - BEM naming: c-loader-modern, c-skeleton-modern, etc.
  * - Design tokens only
  * - State classes: is-loading, is-success, is-error
- * - Zero !important
+ * - Zero
  *
  * Features:
  * - Spinners (circle, dots, bars)
@@ -293,7 +293,7 @@
   background: linear-gradient(
     90deg,
     var(--color-success) 0%,
-    var(--color-success, #10B981) 100%
+    var(--color-success, var(--color-success-500)) 100%
   );
 }
 
@@ -301,7 +301,7 @@
   background: linear-gradient(
     90deg,
     var(--color-danger) 0%,
-    var(--color-danger, #EF4444) 100%
+    var(--color-danger, var(--color-danger-500)) 100%
   );
 }
 
@@ -309,7 +309,7 @@
   background: linear-gradient(
     90deg,
     var(--color-warning) 0%,
-    var(--color-warning, #F59E0B) 100%
+    var(--color-warning, var(--color-warning-500)) 100%
   );
 }
 

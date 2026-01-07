@@ -16,6 +16,7 @@
  */
 
 import { EventDelegation } from '../core.js';
+import { escapeHtml } from '../../utils/sanitize.js';
 
 // ============================================================================
 // DIAGNOSTICS HANDLERS
@@ -591,14 +592,14 @@ window.EventDelegation.register('view-pass-stats', (element, event) => {
                 </div>
                 <div class="mb-3">
                     <strong>Platform Breakdown:</strong><br>
-                    <ul style="margin-left: 20px;">
+                    <ul class="ms-4">
                         <li>Apple Wallet: 856 (74%)</li>
                         <li>Google Wallet: 300 (26%)</li>
                     </ul>
                 </div>
                 <div class="mb-3">
                     <strong>This Month:</strong><br>
-                    <ul style="margin-left: 20px;">
+                    <ul class="ms-4">
                         <li>New Passes: 45</li>
                         <li>Updates: 23</li>
                         <li>Revocations: 3</li>
@@ -814,11 +815,11 @@ window.EventDelegation.register('save-woocommerce-url', (element, event) => {
             if (statusDiv) statusDiv.innerHTML = '<span class="text-success"><i class="ti ti-check me-1"></i>Saved successfully!</span>';
             if (warningDiv) warningDiv.style.display = 'none';
         } else {
-            if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="ti ti-x me-1"></i>' + (data.error || 'Failed to save') + '</span>';
+            if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="ti ti-x me-1"></i>' + escapeHtml(data.error || 'Failed to save') + '</span>';
         }
     })
     .catch(error => {
-        if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="ti ti-x me-1"></i>Error: ' + error.message + '</span>';
+        if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="ti ti-x me-1"></i>Error: ' + escapeHtml(error.message) + '</span>';
     });
 });
 
@@ -860,11 +861,11 @@ window.EventDelegation.register('validate-plugin-connection', (element, event) =
                                 </tr>
                                 <tr>
                                     <td><strong>Webhook URL</strong></td>
-                                    <td><code>${data.webhook_url || 'N/A'}</code></td>
+                                    <td><code>${escapeHtml(data.webhook_url || 'N/A')}</code></td>
                                 </tr>
                                 <tr>
                                     <td><strong>Message</strong></td>
-                                    <td>${data.message || 'Endpoint reachable'}</td>
+                                    <td>${escapeHtml(data.message || 'Endpoint reachable')}</td>
                                 </tr>
                             </table>
                         </div>
@@ -883,7 +884,7 @@ window.EventDelegation.register('validate-plugin-connection', (element, event) =
                 <div class="alert alert-danger mb-0" data-alert>
                     <i class="ti ti-alert-circle me-2"></i>
                     <strong>Error:</strong> Could not reach webhook endpoint
-                    <p class="mb-0 mt-2 small">${error.message}</p>
+                    <p class="mb-0 mt-2 small">${escapeHtml(error.message)}</p>
                 </div>
             `;
         });

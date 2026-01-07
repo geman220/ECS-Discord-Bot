@@ -23,7 +23,7 @@
 
 .c-online-status {
   --status-size: 10px;
-  --status-color: var(--bs-secondary, #6c757d);
+  --status-color: var(--bs-secondary, var(--color-secondary-600));
   --status-glow: transparent;
 
   position: relative;
@@ -32,7 +32,7 @@
   height: var(--status-size);
   border-radius: 50%;
   background-color: var(--status-color);
-  border: 2px solid var(--bs-body-bg, #fff);
+  border: 2px solid var(--bs-body-bg, var(--color-white));
   box-shadow: 0 0 0 0 var(--status-glow);
   transition:
     background-color 0.3s ease,
@@ -45,27 +45,27 @@
 
 /* Online - Vibrant green with pulse animation */
 .c-online-status.is-online {
-  --status-color: var(--color-success, #22c55e);
+  --status-color: var(--color-success, var(--color-success-500));
   --status-glow: rgba(34, 197, 94, 0.4);
   animation: online-pulse 2s ease-in-out infinite;
 }
 
 /* Offline - Subtle gray */
 .c-online-status.is-offline {
-  --status-color: var(--bs-secondary, #6c757d);
+  --status-color: var(--bs-secondary, var(--color-secondary-600));
   --status-glow: transparent;
   opacity: 0.7;
 }
 
 /* Away - Amber/yellow */
 .c-online-status.is-away {
-  --status-color: var(--color-warning-500, #f59e0b);
+  --status-color: var(--color-warning-500, var(--color-warning-500));
   --status-glow: rgba(245, 158, 11, 0.3);
 }
 
 /* Do Not Disturb - Red */
 .c-online-status.is-dnd {
-  --status-color: var(--color-danger-500, #ef4444);
+  --status-color: var(--color-danger-500, var(--color-danger-500));
   --status-glow: rgba(239, 68, 68, 0.3);
 }
 
@@ -181,12 +181,12 @@
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
-  background-color: var(--bs-body-bg, #fff);
-  border: 1px solid var(--bs-border-color, #dee2e6);
+  background-color: var(--bs-body-bg, var(--color-white));
+  border: 1px solid var(--bs-border-color, var(--color-neutral-300));
 }
 
 .c-status-badge .c-online-status {
-  border-color: var(--bs-body-bg, #fff);
+  border-color: var(--bs-body-bg, var(--color-white));
 }
 
 .c-status-badge.is-online {
@@ -196,8 +196,8 @@
 }
 
 .c-status-badge.is-offline {
-  background-color: var(--bs-body-bg, #fff);
-  color: var(--bs-secondary, #6c757d);
+  background-color: var(--bs-body-bg, var(--color-white));
+  color: var(--bs-secondary, var(--color-secondary-600));
 }
 
 .c-status-badge__text {
@@ -209,11 +209,11 @@
  * -------------------------------------------------------------------------- */
 
 [data-style="dark"] .c-online-status {
-  border-color: var(--bs-body-bg, #212529);
+  border-color: var(--bs-body-bg, var(--color-secondary-900));
 }
 
 [data-style="dark"] .c-online-status.is-online {
-  --status-color: var(--color-success-400, #4ade80);
+  --status-color: var(--color-success-400, var(--color-success-400));
   --status-glow: rgba(74, 222, 128, 0.4);
 }
 
@@ -225,7 +225,7 @@
 [data-style="dark"] .c-status-badge.is-online {
   background-color: rgba(74, 222, 128, 0.15);
   border-color: rgba(74, 222, 128, 0.25);
-  color: var(--color-success-400, #4ade80);
+  color: var(--color-success-400, var(--color-success-400));
 }
 
 /* -----------------------------------------------------------------------------
@@ -237,7 +237,7 @@
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
-  background-color: var(--bs-secondary-bg, #e9ecef);
+  background-color: var(--bs-secondary-bg, var(--color-neutral-200));
 }
 
 .c-player-avatar--sm {

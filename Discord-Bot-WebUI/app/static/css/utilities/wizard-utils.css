@@ -22,7 +22,7 @@
  * Ensures toasts appear above all content including modals
  */
 .toast-overlay {
-    z-index: 9999 !important;
+    z-index: 9999;
 }
 
 /**
@@ -30,7 +30,7 @@
  * Ensures readable toast width across different message lengths
  */
 .toast-min-width {
-    min-width: 300px !important;
+    min-width: 300px;
 }
 
 /**
@@ -38,8 +38,8 @@
  * Use this for quick toast styling with both z-index and min-width
  */
 .toast-styled {
-    z-index: 9999 !important;
-    min-width: 300px !important;
+    z-index: 9999;
+    min-width: 300px;
 }
 
 /* ============================================
@@ -57,7 +57,7 @@
  * is properly initialized with theme colors
  */
 .theme-drop-indicator {
-    --drop-indicator-color: var(--bs-primary, #0d6efd);
+    --drop-indicator-color: var(--bs-primary, var(--color-primary));
 }
 
 /* Dark mode support for drop indicators */
@@ -70,17 +70,17 @@
    ============================================ */
 
 /* Mobile adjustments for toast sizing */
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
     .toast-min-width,
     .toast-styled {
-        min-width: 250px !important;
+        min-width: 250px;
     }
 }
 
 /* Tablet adjustments */
-@media (min-width: 577px) and (max-width: 768px) {
+@media (min-width: 577px) and (max-width: 767.98px) {
     .toast-min-width,
     .toast-styled {
-        min-width: 280px !important;
+        min-width: 280px;
     }
 }

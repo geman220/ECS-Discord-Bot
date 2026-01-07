@@ -253,25 +253,25 @@
                 </div>
                 <div id="roster-{{ team.id }}" class="collapse show">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="roster">
+                        <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="roster">
                             <thead scope="col"><tr><th scope="col">Player</th><th class="text-center d-none d-md-table-cell" scope="col">G</th><th class="text-center d-none d-md-table-cell" scope="col">A</th><th class="text-center d-none d-lg-table-cell" scope="col">YC</th><th class="text-center d-none d-lg-table-cell" scope="col">RC</th><th class="text-center" scope="col">Attendance</th></tr></thead>
                             <tbody>
                                 {% for player, attendance, season_stats in stats.roster %}
                                 <tr>
-                                    <td class="fw-semibold">{{ player.name }}</td>
-                                    <td class="text-center d-none d-md-table-cell">
+                                    <td class="fw-semibold" data-label="Player">{{ player.name }}</td>
+                                    <td class="text-center d-none d-md-table-cell" data-label="Goals">
                                         {% if season_stats and season_stats.goals > 0 %}<span class="badge bg-label-primary" data-badge>{{ season_stats.goals }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
                                     </td>
-                                    <td class="text-center d-none d-md-table-cell">
+                                    <td class="text-center d-none d-md-table-cell" data-label="Assists">
                                         {% if season_stats and season_stats.assists > 0 %}<span class="badge bg-label-info" data-badge>{{ season_stats.assists }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
                                     </td>
-                                    <td class="text-center d-none d-lg-table-cell">
+                                    <td class="text-center d-none d-lg-table-cell" data-label="Yellow Cards">
                                         {% if season_stats and season_stats.yellow_cards > 0 %}<span class="badge bg-label-warning" data-badge>{{ season_stats.yellow_cards }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
                                     </td>
-                                    <td class="text-center d-none d-lg-table-cell">
+                                    <td class="text-center d-none d-lg-table-cell" data-label="Red Cards">
                                         {% if season_stats and season_stats.red_cards > 0 %}<span class="badge bg-label-danger" data-badge>{{ season_stats.red_cards }}</span>{% else %}<span class="text-muted">0</span>{% endif %}
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center" data-label="Attendance">
                                         {% if attendance %}
                                         {% set rate = (attendance.season_attendance_rate * 100)|int %}
                                         <span class="badge {% if rate >= 80 %}bg-success{% elif rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}" data-badge>{{ rate }}%</span>

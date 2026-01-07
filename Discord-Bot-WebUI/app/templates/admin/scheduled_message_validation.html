@@ -211,7 +211,7 @@
         <div class="c-card__body">
             {% if validation.upcoming_messages %}
             <div class="c-table-wrapper" data-table-responsive>
-                <table class="c-table c-table--hoverable border-top" data-table data-mobile-table data-table-type="messages">
+                <table class="c-c-table c-table--hoverable border-top" data-table data-mobile-table data-table-type="messages">
                     <thead scope="col">
                         <tr>
                             <th scope="col">Status</th>
@@ -224,16 +224,16 @@
                     <tbody>
                         {% for msg in validation.upcoming_messages %}
                         <tr>
-                            <td>
+                            <td data-label="Status">
                                 <span class="badge bg-label-{{ 'warning' if msg.status == 'QUEUED' else ('success' if msg.status == 'SENT' else 'secondary') }}" data-badge>
                                     {{ msg.status }}
                                 </span>
                             </td>
-                            <td>
+                            <td data-label="Send Time">
                                 <small class="text-muted d-block">{{ msg.send_time.split(' ')[0] }}</small>
                                 <span class="fw-medium">{{ msg.send_time.split(' ')[1] }}</span>
                             </td>
-                            <td>
+                            <td data-label="Countdown">
                                 {% if msg.is_overdue %}
                                 <span class="badge bg-danger" data-badge>OVERDUE</span>
                                 {% elif msg.hours_until < 0 %}
@@ -244,10 +244,10 @@
                                 <span class="text-muted">{{ msg.hours_until }}h</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Match">
                                 <div class="fw-medium">{{ msg.match_info }}</div>
                             </td>
-                            <td>
+                            <td data-label="Type">
                                 <span class="badge bg-label-info" data-badge>{{ msg.type }}</span>
                             </td>
                         </tr>

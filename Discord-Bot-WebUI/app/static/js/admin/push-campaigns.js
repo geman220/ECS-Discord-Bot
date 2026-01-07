@@ -387,7 +387,7 @@ function handleDuplicateCampaign(e) {
 
 let _initialized = false;
 
-function init() {
+function initPushCampaigns() {
     // Guard against duplicate initialization
     if (_initialized) return;
 
@@ -437,7 +437,7 @@ window.EventDelegation.register('duplicate-campaign', handleDuplicateCampaign, {
 
 import { InitSystem } from '../init-system.js';
 
-window.InitSystem.register('push-campaigns', init, {
+window.InitSystem.register('push-campaigns', initPushCampaigns, {
     priority: 30,
     reinitializable: false,
     description: 'Push campaigns management'
@@ -459,7 +459,7 @@ const PushCampaigns = {
     deleteCampaign,
     cancelCampaign,
     duplicateCampaign,
-    init
+    init: initPushCampaigns
 };
 
 // Expose public API
@@ -496,5 +496,5 @@ export {
     handleDeleteCampaign,
     handleCancelCampaign,
     handleDuplicateCampaign,
-    init
+    initPushCampaigns
 };

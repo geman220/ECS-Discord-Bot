@@ -31,7 +31,7 @@
  *
  * FIXES SPECIFICITY NIGHTMARE:
  *   - Replaces 10+ duplicate selectors with 2-3 clean selectors
- *   - Removes ALL !important declarations
+ *   - Removes ALL declarations
  *   - Uses CSS variables for theming (no hardcoded colors)
  *   - Relies on cascade and data attributes for specificity
  *   - Single source of truth for dropdown styling
@@ -42,9 +42,9 @@
  *   .admin-nav-scroll ul.dropdown-menu,
  *   .navbar .admin-nav-scroll .dropdown-menu,
  *   [data-bs-popper], etc... {
- *     position: absolute !important;
- *     z-index: 9999 !important;
- *     background: var(--color-white, #ffffff) !important;
+ *     position: absolute ;
+ *     z-index: 9999 ;
+ *     background: var(--color-white, var(--color-white)fff) ;
  *   }
  *
  * AFTER (✅ GOOD):
@@ -63,15 +63,16 @@
    ============================================================================ */
 
 .dropdown,
-.dropup,
 .dropend,
-.dropstart {
+.dropstart,
+.dropup {
   /* Position context for absolute dropdown menus */
   position: relative;
   display: inline-block;
 }
 
 /* Dropdown toggle button indicator */
+
 .dropdown-toggle::after {
   display: inline-block;
   margin-left: var(--space-2);
@@ -85,18 +86,20 @@
 }
 
 /* Rotate caret when dropdown is open */
+
 .dropdown-toggle[aria-expanded="true"]::after {
   transform: rotate(180deg);
 }
 
 /* Hide caret when explicitly disabled */
+
 .dropdown-toggle-no-caret::after {
   display: none;
 }
 
 /* ============================================================================
    2. DROPDOWN MENU POSITIONING
-   Clean positioning without !important hacks
+   Clean positioning without hacks
    ============================================================================ */
 
 .dropdown-menu {
@@ -105,35 +108,51 @@
   top: 100%;
   left: 0;
   z-index: var(--z-dropdown);
-
   /* Sizing */
   min-width: 220px;
   max-width: 320px;
-
   /* Spacing */
   margin: var(--space-1) 0 0;
   padding: var(--space-2) 0;
-
   /* Hidden by default */
   display: none;
-
   /* Enable scrolling for long menus */
   max-height: 400px;
   overflow-y: auto;
-
   /* Typography */
   font-size: var(--text-sm);
   line-height: var(--leading-normal);
   text-align: left;
   list-style: none;
+  background-color: var(--color-white, var(--color-white)fff);
+  background: var(--color-bg-elevated, var(--color-white)fff);
+  background-clip: padding-box;
+  border: 1px solid var(--color-border-primary, var(--color-secondary-200, var(--color-secondary-200, var(--color-secondary-200))));
+  border-radius: var(--radius-md, 0.375rem);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity var(--duration-normal) var(--ease-deceleration),
+              transform var(--duration-normal) var(--ease-deceleration),
+              visibility 0s linear var(--duration-normal);
+  visibility: hidden;
 }
 
 /* Show dropdown when active */
+
 .dropdown-menu.show {
   display: block;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--duration-normal) var(--ease-deceleration),
+              transform var(--duration-normal) var(--ease-deceleration);
+  visibility: visible;
 }
 
 /* Prevent layout shift while dropdown is positioning */
+
 .dropdown-menu[data-bs-popper] {
   /* Bootstrap Popper.js positioning - maintain same rules */
   top: 100%;
@@ -146,24 +165,6 @@
    Visual appearance using CSS variables (no hardcoded colors!)
    ============================================================================ */
 
-.dropdown-menu {
-  /* Background - explicit fallback prevents transparency */
-  background-color: var(--color-white, #ffffff);
-  background: var(--color-bg-elevated, #ffffff);
-  background-clip: padding-box;
-
-  /* Border */
-  border: 1px solid var(--color-border-primary, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
-  border-radius: var(--radius-md, 0.375rem);
-
-  /* Shadow - explicit fallback */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-
-  /* Remove backdrop blur (was causing issues in admin panel) */
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
 /* ============================================================================
    4. DROPDOWN ITEMS
    Interactive menu items with hover, active, and disabled states
@@ -174,26 +175,21 @@
   display: block;
   width: 100%;
   clear: both;
-
   /* Spacing */
   padding: var(--space-2) var(--space-4);
-
   /* Typography */
   font-weight: var(--font-normal);
   color: var(--color-text-primary);
   text-align: inherit;
   text-decoration: none;
   white-space: nowrap;
-
   /* Visual */
   background-color: transparent;
   border: 0;
   border-radius: 0;
-
   /* Interaction */
   cursor: pointer;
   transition: var(--transition-colors);
-
   /* Remove button defaults */
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -201,8 +197,9 @@
 }
 
 /* Hover state */
-.dropdown-item:hover,
-.dropdown-item:focus {
+
+.dropdown-item:focus,
+.dropdown-item:hover {
   background-color: var(--color-hover-bg);
   color: var(--color-text-primary);
   text-decoration: none;
@@ -211,6 +208,7 @@
 }
 
 /* Active state */
+
 .dropdown-item.active,
 .dropdown-item:active {
   background-color: var(--color-primary-600);
@@ -219,8 +217,9 @@
 }
 
 /* Disabled state */
-.dropdown-item:disabled,
-.dropdown-item.disabled {
+
+.dropdown-item.disabled,
+.dropdown-item:disabled {
   color: var(--color-text-muted);
   pointer-events: none;
   background-color: transparent;
@@ -229,9 +228,18 @@
 }
 
 /* Focus-visible for accessibility */
+
 .dropdown-item:focus-visible {
   outline: none;
   box-shadow: inset 0 0 0 2px var(--color-primary-600);
+}
+
+/* Remove focus outline from dropdown menu container - Bootstrap adds tabindex for accessibility
+   but the visual outline is jarring. Items inside handle their own focus states. */
+.dropdown-menu:focus,
+.dropdown-menu:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-lg);
 }
 
 /* ============================================================================
@@ -240,6 +248,7 @@
    ============================================================================ */
 
 /* Divider - horizontal line separator */
+
 .dropdown-divider {
   height: 0;
   margin: var(--space-2) 0;
@@ -249,6 +258,7 @@
 }
 
 /* Header - section label */
+
 .dropdown-header {
   display: block;
   padding: var(--space-2) var(--space-4);
@@ -262,6 +272,7 @@
 }
 
 /* Text item (non-interactive) */
+
 .dropdown-item-text {
   display: block;
   padding: var(--space-2) var(--space-4);
@@ -274,11 +285,13 @@
    ============================================================================ */
 
 /* DROPUP - Opens above the toggle */
+
 .dropup .dropdown-menu {
   top: auto;
   bottom: 100%;
   margin-top: 0;
   margin-bottom: var(--space-1);
+  transform: translateY(8px);
 }
 
 .dropup .dropdown-toggle::after {
@@ -291,12 +304,14 @@
 }
 
 /* DROPEND - Opens to the right */
+
 .dropend .dropdown-menu {
   top: 0;
   right: auto;
   left: 100%;
   margin-top: 0;
   margin-left: var(--space-1);
+  transform: translateX(-8px);
 }
 
 .dropend .dropdown-toggle::after {
@@ -312,16 +327,19 @@
 }
 
 /* DROPSTART - Opens to the left */
+
 .dropstart .dropdown-menu {
   top: 0;
   right: 100%;
   left: auto;
   margin-top: 0;
   margin-right: var(--space-1);
+  transform: translateX(8px);
 }
 
 .dropstart .dropdown-toggle::after {
-  display: none; /* Hide default caret */
+  display: none;
+  /* Hide default caret */
 }
 
 .dropstart .dropdown-toggle::before {
@@ -344,52 +362,29 @@
    ============================================================================ */
 
 /* Initial hidden state */
-.dropdown-menu {
-  opacity: 0;
-  transform: translateY(-8px);
-  transition: opacity var(--duration-normal) var(--ease-deceleration),
-              transform var(--duration-normal) var(--ease-deceleration),
-              visibility 0s linear var(--duration-normal);
-  visibility: hidden;
-}
 
 /* Visible state with animation */
-.dropdown-menu.show {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity var(--duration-normal) var(--ease-deceleration),
-              transform var(--duration-normal) var(--ease-deceleration);
-  visibility: visible;
-}
 
 /* Dropup animation (slide down instead of up) */
-.dropup .dropdown-menu {
-  transform: translateY(8px);
-}
 
 .dropup .dropdown-menu.show {
   transform: translateY(0);
 }
 
 /* Dropend animation (slide from left) */
-.dropend .dropdown-menu {
-  transform: translateX(-8px);
-}
 
 .dropend .dropdown-menu.show {
   transform: translateX(0);
 }
 
 /* Dropstart animation (slide from right) */
-.dropstart .dropdown-menu {
-  transform: translateX(8px);
-}
 
 .dropstart .dropdown-menu.show {
   transform: translateX(0);
 }
 
 /* Disable animations for users who prefer reduced motion */
+
 @media (prefers-reduced-motion: reduce) {
   .dropdown-menu {
     transition: none;
@@ -448,6 +443,7 @@
 }
 
 /* Align text when icon is present */
+
 .dropdown-item-icon {
   display: inline-flex;
   align-items: center;
@@ -463,17 +459,16 @@
   /* Use consistent positioning in navbar context */
   position: absolute;
   z-index: var(--z-dropdown);
+  background-color: var(--color-white, var(--color-white)fff);
+  background: var(--color-bg-elevated, var(--color-white)fff);
 }
 
 /* Ensure navbar dropdowns don't inherit navbar background */
-.navbar .dropdown-menu {
-  background-color: var(--color-white, #ffffff);
-  background: var(--color-bg-elevated, #ffffff);
-}
 
 [data-style="dark"] .navbar .dropdown-menu {
-  background-color: var(--color-secondary-800, var(--color-secondary-800, #334155)); /* Slate-800 */
-  background: var(--color-secondary-800, var(--color-secondary-800, #334155));
+  background-color: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  /* Slate-800 */
+  background: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
 }
 
 /* ============================================================================
@@ -487,60 +482,59 @@
 
 /* ============================================================================
    13. DARK MODE SUPPORT
-   Automatic dark theme using data attribute (no !important needed!)
+   Automatic dark theme using data attribute (no needed!)
    ============================================================================ */
 
 [data-style="dark"] .dropdown-menu,
-html[data-style="dark"] .dropdown-menu,
 [data-style="dark"] .dropdown-menu.show,
+html[data-style="dark"] .dropdown-menu,
 html[data-style="dark"] .dropdown-menu.show {
   /* Background - explicit dark solid color (slate palette) - MUST be opaque */
-  background-color: #334155 !important; /* Slate-800 - hardcoded for reliability */
-  background: #334155 !important;
-
+  background-color: var(--color-secondary-800);
+  /* Slate-800 - hardcoded for reliability */
+  background: var(--color-secondary-800);
   /* Border - dark border for contrast */
-  border-color: #475569 !important; /* Slate-700 */
-
+  border-color: var(--color-secondary-700);
+  /* Slate-700 */
   /* Enhanced shadow for visibility on dark backgrounds */
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.3),
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
     0 10px 15px -3px rgba(0, 0, 0, 0.4),
-    0 20px 25px -5px rgba(0, 0, 0, 0.2) !important;
+    0 20px 25px -5px rgba(0, 0, 0, 0.2);
 }
 
 [data-style="dark"] .dropdown-item {
   /* Text color for dark theme - light text on dark */
-  color: var(--color-secondary-50, #fafafa);
+  color: var(--color-secondary-50, var(--color-neutral-50));
 }
 
-[data-style="dark"] .dropdown-item:hover,
-[data-style="dark"] .dropdown-item:focus {
+[data-style="dark"] .dropdown-item:focus,
+[data-style="dark"] .dropdown-item:hover {
   /* Hover background for dark theme */
   background-color: rgba(255, 255, 255, 0.06);
-  color: var(--color-secondary-50, #fafafa);
+  color: var(--color-secondary-50, var(--color-neutral-50));
 }
 
 [data-style="dark"] .dropdown-item.active,
 [data-style="dark"] .dropdown-item:active {
   /* Active state uses primary color (works in both themes) */
-  background-color: var(--color-primary-600, var(--color-primary-600, #2563EB));
+  background-color: var(--color-primary-600, var(--color-primary-600, var(--color-primary-600)));
   color: white;
 }
 
-[data-style="dark"] .dropdown-item:disabled,
-[data-style="dark"] .dropdown-item.disabled {
+[data-style="dark"] .dropdown-item.disabled,
+[data-style="dark"] .dropdown-item:disabled {
   /* Muted text for disabled items */
-  color: var(--color-secondary-400, #a1a1aa);
+  color: var(--color-secondary-400, var(--color-neutral-400));
 }
 
 [data-style="dark"] .dropdown-divider {
   /* Divider for dark theme */
-  border-top-color: var(--color-secondary-700, #3f3f46);
+  border-top-color: var(--color-secondary-700, var(--color-neutral-700));
 }
 
 [data-style="dark"] .dropdown-header {
   /* Header text for dark theme */
-  color: var(--color-secondary-400, #a1a1aa);
+  color: var(--color-secondary-400, var(--color-neutral-400));
 }
 
 [data-style="dark"] .dropdown-item-text {
@@ -553,8 +547,9 @@ html[data-style="dark"] .dropdown-menu.show {
    Full-width dropdowns and touch-friendly sizing
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   /* Full-width dropdowns on mobile */
+
   .dropdown-menu-mobile-fullwidth {
     position: fixed;
     top: auto;
@@ -570,18 +565,22 @@ html[data-style="dark"] .dropdown-menu.show {
   }
 
   /* Larger touch targets for mobile */
+
   .dropdown-item {
     padding: var(--space-3) var(--space-4);
     font-size: var(--text-base);
-    min-height: 44px; /* Minimum touch target size */
+    min-height: 44px;
+    /* Minimum touch target size */
   }
 
   /* Larger dividers for better visual separation */
+
   .dropdown-divider {
     margin: var(--space-3) 0;
   }
 
   /* Mobile-specific animation (slide up from bottom) */
+
   .dropdown-menu-mobile-fullwidth {
     transform: translateY(100%);
   }
@@ -603,6 +602,7 @@ html[data-style="dark"] .dropdown-menu.show {
 }
 
 /* Custom scrollbar styling */
+
 .dropdown-menu-scrollable::-webkit-scrollbar {
   width: 8px;
 }
@@ -622,6 +622,7 @@ html[data-style="dark"] .dropdown-menu.show {
 }
 
 /* Dark mode scrollbar */
+
 [data-style="dark"] .dropdown-menu-scrollable::-webkit-scrollbar-track {
   background: var(--color-neutral-700);
 }
@@ -678,6 +679,7 @@ html[data-style="dark"] .dropdown-menu.show {
    ============================================================================ */
 
 /* Success item (positive action) */
+
 .dropdown-item-success {
   color: var(--color-success-700);
 }
@@ -688,6 +690,7 @@ html[data-style="dark"] .dropdown-menu.show {
 }
 
 /* Warning item (caution action) */
+
 .dropdown-item-warning {
   color: var(--color-warning-700);
 }
@@ -698,6 +701,7 @@ html[data-style="dark"] .dropdown-menu.show {
 }
 
 /* Danger item (destructive action) */
+
 .dropdown-item-danger {
   color: var(--color-danger-700);
 }
@@ -708,6 +712,7 @@ html[data-style="dark"] .dropdown-menu.show {
 }
 
 /* Info item (informational) */
+
 .dropdown-item-info {
   color: var(--color-info-700);
 }
@@ -718,6 +723,7 @@ html[data-style="dark"] .dropdown-menu.show {
 }
 
 /* Dark mode adjustments for colored items */
+
 [data-style="dark"] .dropdown-item-success {
   color: var(--color-success-400);
 }
@@ -760,6 +766,7 @@ html[data-style="dark"] .dropdown-menu.show {
    ============================================================================ */
 
 /* Bootstrap uses .text-danger, .text-warning, etc. on dropdown items */
+
 .dropdown-item.text-danger {
   color: var(--color-danger-700);
 }
@@ -802,24 +809,24 @@ html[data-style="dark"] .dropdown-menu.show {
    ============================================================================ */
 
 /*
- * BEFORE: 10+ selectors with !important everywhere
+ * BEFORE: 10+ selectors with everywhere
  * AFTER: Simple, clean selectors using the cascade
  *
  * The .admin-nav-scroll context is preserved for backwards compatibility,
- * but we use proper cascade instead of !important.
+ * but we use proper cascade instead of.
  */
 
 .admin-nav-scroll .dropdown-menu {
   /* All styling already defined above - no overrides needed! */
   /* This selector exists only for specificity context */
-  /* No hardcoded colors, no !important, just clean CSS */
+  /* No hardcoded colors, no, just clean CSS */
 }
 
 /*
  * That's it! The entire admin panel dropdown system now works with:
  * - 1 selector (instead of 10+)
- * - 0 !important declarations (instead of 12+)
- * - CSS variables (instead of hardcoded #ffffff, #27272a)
+ * - 0 declarations (instead of 12+)
+ * - CSS variables (instead of hardcoded var(--color-white)fff, var(--color-neutral-800))
  * - Proper cascade (instead of specificity warfare)
  */
 
@@ -829,21 +836,25 @@ html[data-style="dark"] .dropdown-menu.show {
    ============================================================================ */
 
 /* Prevent dropdown from closing on inside click */
+
 .dropdown-menu-static {
   pointer-events: auto;
 }
 
 /* Dropdown menu with padding */
+
 .dropdown-menu-padded {
   padding: var(--space-4);
 }
 
 /* Dropdown menu without padding */
+
 .dropdown-menu-flush {
   padding: 0;
 }
 
 /* Dropdown item without hover effect */
+
 .dropdown-item-no-hover:hover {
   background-color: transparent;
   color: inherit;
@@ -851,6 +862,7 @@ html[data-style="dark"] .dropdown-menu.show {
 }
 
 /* Dropdown with custom width */
+
 .dropdown-menu-auto-width {
   min-width: auto;
   width: auto;
@@ -864,16 +876,16 @@ html[data-style="dark"] .dropdown-menu.show {
    - Base styles use simple class selectors (.dropdown-menu)
    - Context-specific styles use single compound selector (.navbar .dropdown-menu)
    - Theme variations use data attribute selector ([data-style="dark"])
-   - NO !important declarations needed
+   - NO declarations needed
 
    WHY THIS WORKS:
    1. CSS variables handle theming (light/dark mode)
-   2. Proper cascade eliminates need for !important
+   2. Proper cascade eliminates need for
    3. Single source of truth for each style rule
    4. Data attributes provide natural specificity boost
 
    MIGRATION GUIDE:
-   1. Remove all inline !important dropdown styles
+   1. Remove all inline dropdown styles
    2. Remove duplicate .admin-nav-scroll selectors
    3. Let this file handle all dropdown styling
    4. Use data-style="dark" for dark mode
@@ -882,7 +894,7 @@ html[data-style="dark"] .dropdown-menu.show {
    - To change dropdown colors: Update color tokens in tokens/colors.css
    - To change dropdown shadows: Update shadow tokens in tokens/shadows.css
    - To change animations: Update animation tokens in tokens/animations.css
-   - DO NOT add !important declarations
+   - DO NOT add declarations
    - DO NOT hardcode colors
 
  * ============================================================================

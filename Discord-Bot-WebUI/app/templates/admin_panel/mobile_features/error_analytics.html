@@ -99,7 +99,7 @@
             <div class="c-card__body">
                 {% if stats.top_errors %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="errors">
+                    <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="errors">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Error Type</th>
@@ -110,13 +110,13 @@
                         <tbody>
                             {% for error in stats.top_errors %}
                             <tr>
-                                <td>{{ error.error_type }}</td>
-                                <td>
+                                <td data-label="Error Type">{{ error.error_type }}</td>
+                                <td data-label="Severity">
                                     <span class="badge bg-{% if error.severity == 'critical' %}danger{% elif error.severity == 'error' %}warning{% else %}info{% endif %}" data-badge>
                                         {{ error.severity }}
                                     </span>
                                 </td>
-                                <td>{{ error.count }}</td>
+                                <td data-label="Count">{{ error.count }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

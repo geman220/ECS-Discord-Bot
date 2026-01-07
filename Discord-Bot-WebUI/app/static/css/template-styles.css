@@ -20,8 +20,8 @@
     position: absolute;
     top: -40px;
     left: 0;
-    background: var(--color-black, #000);
-    color: var(--color-white, #fff);
+    background: var(--color-black, var(--color-neutral-950));
+    color: var(--color-white, var(--color-white));
     padding: 8px 16px;
     text-decoration: none;
     z-index: 100;
@@ -43,19 +43,19 @@
 /* BEM: c-list-group__item--dark */
 [data-style="dark"] .c-list-group__item-action,
 [data-style="dark"] .list-group-item-action {
-    color: var(--ecs-dark-text-primary, #ffffff) !important;
-    background-color: transparent !important;
+    color: var(--ecs-dark-text-primary, var(--color-white));
+    background-color: transparent;
 }
 
 [data-style="dark"] .c-list-group__item-action:hover,
 [data-style="dark"] .list-group-item-action:hover {
-    color: var(--ecs-dark-text-primary, #ffffff) !important;
-    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--ecs-dark-text-primary, var(--color-white));
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 [data-style="dark"] .c-list-group__item-action i,
 [data-style="dark"] .list-group-item-action i {
-    color: var(--ecs-dark-text-primary, #ffffff) !important;
+    color: var(--ecs-dark-text-primary, var(--color-white));
 }
 
 /* ============================================================================
@@ -70,10 +70,10 @@
     .btn,
     .ecs-btn,
     [class*="btn-"] {
-        transform: none !important;
+        transform: none;
         transition: background-color 0.15s ease-in-out,
                    color 0.15s ease-in-out,
-                   border-color 0.15s ease-in-out !important;
+                   border-color 0.15s ease-in-out;
     }
 
     .c-btn:active,
@@ -91,13 +91,13 @@
     .btn:focus,
     .ecs-btn:focus,
     [class*="btn-"]:focus {
-        transform: none !important;
+        transform: none;
     }
 
     /* Never apply scaling on desktop */
     .is-touch-active,
     .touch-active {
-        transform: none !important;
+        transform: none;
         opacity: 0.9;
     }
 }
@@ -164,9 +164,9 @@
 .waiver-content {
     max-height: 300px;
     overflow-y: auto;
-    border: 1px solid var(--ecs-neutral-20, #dee2e6);
+    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
     padding: 15px;
-    background-color: var(--ecs-neutral-5, #f8f9fa);
+    background-color: var(--ecs-neutral-5, var(--color-neutral-50));
     border-radius: 5px;
     margin-bottom: 15px;
 }
@@ -188,39 +188,39 @@
 /* Registration form checkbox fixes - override conflicting CSS */
 .c-checkbox--terms,
 .c-terms-checkbox {
-    width: 1em !important;
-    height: 1em !important;
-    margin-top: 0.125em !important;
-    font-size: 16px !important; /* Control the base size */
+    width: 1em;
+    height: 1em;
+    margin-top: 0.125em;
+    font-size: 16px; /* Control the base size */
 }
 
 .c-checkbox__label,
 .form-group .form-check-label {
-    font-size: 14px !important;
-    line-height: 1.5 !important;
-    margin-left: 0.25rem !important;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-left: 0.25rem;
 }
 
 /* Mobile checkbox fixes */
 @media (max-width: 767.98px) {
     .c-checkbox--terms,
     .c-terms-checkbox {
-        width: 1em !important;
-        height: 1em !important;
-        font-size: 18px !important; /* Slightly larger base for mobile */
+        width: 1em;
+        height: 1em;
+        font-size: 18px; /* Slightly larger base for mobile */
     }
 
     .c-checkbox__label,
     .form-group .form-check-label {
-        font-size: 16px !important;
-        line-height: 1.4 !important;
+        font-size: 16px;
+        line-height: 1.4;
     }
 
     .c-checkbox__wrapper,
     .form-group .form-check {
-        min-height: 44px !important;
-        padding-top: 0.5rem !important;
-        padding-bottom: 0.5rem !important;
+        min-height: 44px;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
     }
 }
 
@@ -228,66 +228,66 @@
 /* Notification Preferences Checkbox Styling - Simple Fix */
 .c-notification-checkbox,
 .notification-group .form-check .form-check-input[type="checkbox"] {
-    width: 1.25rem !important;
-    height: 1.25rem !important;
-    -webkit-appearance: none !important;
-    -moz-appearance: none !important;
-    appearance: none !important;
-    background-color: var(--ecs-bg-card, #fff) !important;
-    border: 2px solid var(--ecs-neutral-20, #dee2e6) !important;
-    border-radius: 0.25rem !important;
+    width: 1.25rem;
+    height: 1.25rem;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: var(--ecs-bg-card, var(--color-white));
+    border: 2px solid var(--ecs-neutral-20, var(--color-neutral-300));
+    border-radius: 0.25rem;
 }
 
 .c-notification-checkbox:checked,
 .notification-group .form-check .form-check-input[type="checkbox"]:checked {
-    background-color: var(--ecs-primary) !important;
-    border-color: var(--ecs-primary) !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
-    background-repeat: no-repeat !important;
-    background-position: center !important;
-    background-size: contain !important;
+    background-color: var(--ecs-primary);
+    border-color: var(--ecs-primary);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
 }
 
 /* Override foundation.css active state that could interfere */
 .c-notification-checkbox:active,
 .notification-group .form-check .form-check-input[type="checkbox"]:active {
-    filter: none !important;
+    filter: none;
 }
 
 .c-notification-checkbox:checked:active,
 .notification-group .form-check .form-check-input[type="checkbox"]:checked:active {
-    background-color: var(--ecs-primary) !important;
-    border-color: var(--ecs-primary) !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
-    background-repeat: no-repeat !important;
-    background-position: center !important;
-    background-size: contain !important;
-    filter: none !important;
+    background-color: var(--ecs-primary);
+    border-color: var(--ecs-primary);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    filter: none;
 }
 
 /* Focus state styling */
 .c-notification-checkbox:focus,
 .notification-group .form-check .form-check-input[type="checkbox"]:focus {
-    box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb), 0.25) !important;
-    outline: none !important;
+    box-shadow: 0 0 0 0.2rem rgba(var(--ecs-primary-rgb), 0.25);
+    outline: none;
 }
 
 .c-notification-checkbox:checked:focus,
 .notification-group .form-check .form-check-input[type="checkbox"]:checked:focus {
-    background-color: var(--ecs-primary) !important;
-    border-color: var(--ecs-primary) !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e") !important;
-    background-repeat: no-repeat !important;
-    background-position: center !important;
-    background-size: contain !important;
+    background-color: var(--ecs-primary);
+    border-color: var(--ecs-primary);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
 }
 
 /* Mobile notification improvements */
 @media (max-width: 767.98px) {
     .c-notification-checkbox,
     .notification-group .form-check-input[type="checkbox"] {
-        width: 1.35rem !important;
-        height: 1.35rem !important;
+        width: 1.35rem;
+        height: 1.35rem;
     }
 
     .c-notification-group__card,
@@ -302,13 +302,13 @@
 
     .c-notification-checkbox__label,
     .notification-group .form-check-label {
-        font-size: 15px !important;
+        font-size: 15px;
         line-height: 1.4;
     }
 
     .c-notification-group__help-text,
     .notification-group .small {
-        font-size: 13px !important;
+        font-size: 13px;
     }
 }
 
@@ -317,7 +317,7 @@
    ============================================================================ */
 
 /* BEM: c-waitlist-modal (Mobile optimizations - MOBILE ONLY) */
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
     /* Modal dialog */
     .c-waitlist-modal .modal-dialog {
         margin: 0.5rem;
@@ -330,93 +330,93 @@
 
     /* Content wrapper */
     .c-waitlist-modal__content {
-        padding: 0.75rem !important;
+        padding: 0.75rem;
     }
 
     /* Header section */
     .c-waitlist-modal__header {
-        margin-bottom: 1rem !important;
+        margin-bottom: 1rem;
     }
 
     .c-waitlist-modal__header h4,
     .c-waitlist-modal__header h5 {
-        font-size: 1.1rem !important;
-        margin-bottom: 0.25rem !important;
+        font-size: 1.1rem;
+        margin-bottom: 0.25rem;
     }
 
     .c-waitlist-modal__header p,
     .c-waitlist-modal__header small {
-        font-size: 0.85rem !important;
+        font-size: 0.85rem;
     }
 
     .c-waitlist-modal__header i {
-        font-size: 1.75rem !important;
+        font-size: 1.75rem;
     }
 
     /* Card components */
     .c-waitlist-modal__card {
-        padding: 0.75rem !important;
-        margin-bottom: 0.5rem !important;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
     }
 
     /* Form elements */
     .c-waitlist-modal__input,
     .c-waitlist-modal__select {
-        padding: 0.5rem 0.75rem !important;
-        font-size: 0.9rem !important;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
     }
 
     .c-waitlist-modal__label {
-        font-size: 0.85rem !important;
-        margin-bottom: 0.25rem !important;
-        font-weight: 600 !important;
+        font-size: 0.85rem;
+        margin-bottom: 0.25rem;
+        font-weight: 600;
     }
 
     .c-waitlist-modal__help-text {
-        font-size: 0.75rem !important;
-        margin-top: 0.25rem !important;
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
     }
 
     /* Grid system adjustments */
     .c-waitlist-modal .row {
-        margin-left: -0.25rem !important;
-        margin-right: -0.25rem !important;
+        margin-left: -0.25rem;
+        margin-right: -0.25rem;
     }
 
     .c-waitlist-modal .row > [class*="col-"] {
-        padding-left: 0.25rem !important;
-        padding-right: 0.25rem !important;
-        margin-bottom: 0.75rem !important;
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+        margin-bottom: 0.75rem;
     }
 
     /* Profile picture section compact */
     .c-waitlist-modal__cropper-image {
-        max-height: 200px !important;
+        max-height: 200px;
     }
 
     .c-waitlist-modal__profile-preview {
-        max-height: 150px !important;
+        max-height: 150px;
     }
 
     /* Button sizing */
     .c-waitlist-modal .btn {
-        padding: 0.5rem 1rem !important;
-        font-size: 0.85rem !important;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
     }
 
     .c-waitlist-modal .btn-lg {
-        padding: 0.6rem 1.2rem !important;
-        font-size: 0.9rem !important;
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
     }
 
     /* Progress bar container */
     .c-waitlist-modal__progress {
-        padding: 0.5rem !important;
+        padding: 0.5rem;
     }
 
     /* Carousel navigation */
     .c-waitlist-modal__nav {
-        padding: 0.5rem !important;
+        padding: 0.5rem;
     }
 }
 
@@ -425,27 +425,27 @@
    ============================================================================ */
 
 /* BEM: c-registration (Tablet) */
-@media (max-width: 768px) and (min-width: 577px) {
+@media (max-width: 767.98px) and (min-width: 577px) {
     .c-registration__content,
     .registration-content {
-        padding: 1rem !important;
+        padding: 1rem;
     }
 
     .c-registration__section-header,
     .section-header {
-        margin-bottom: 1.5rem !important;
+        margin-bottom: 1.5rem;
     }
 
     .c-registration__card,
     .card {
-        padding: 1rem !important;
+        padding: 1rem;
     }
 
     .c-registration__input,
     .c-registration__select,
     .form-control,
     .form-select {
-        padding: 0.6rem 0.9rem !important;
+        padding: 0.6rem 0.9rem;
     }
 }
 
@@ -487,12 +487,12 @@ div.dataTables_scrollBody > table.dataTable > thead > tr > th::before,
 div.dataTables_scrollBody > table.dataTable > thead > tr > th::after,
 div.dataTables_scrollBody > table.dataTable > thead > tr > td::before,
 div.dataTables_scrollBody > table.dataTable > thead > tr > td::after {
-    display: none !important;
-    content: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    width: 0 !important;
-    height: 0 !important;
+    display: none;
+    content: none;
+    visibility: hidden;
+    opacity: 0;
+    width: 0;
+    height: 0;
 }
 
 /* Create clean single sorting indicators */
@@ -501,75 +501,75 @@ table.dataTable thead th.sorting,
 table.dataTable thead th.sorting_asc,
 table.dataTable thead th.sorting_desc {
     position: relative;
-    padding-right: 20px !important;
+    padding-right: 20px;
 }
 
 /* Add single sorting arrow using a single pseudo-element */
 .c-datatable__header--sortable::after,
 table.dataTable thead th.sorting::after {
-    display: inline-block !important;
-    content: "⇅" !important;
-    position: absolute !important;
-    right: 6px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    opacity: 0.3 !important;
-    font-size: 12px !important;
-    line-height: 1 !important;
-    color: var(--ecs-neutral-50, #666) !important;
+    display: inline-block;
+    content: "⇅";
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.3;
+    font-size: 12px;
+    line-height: 1;
+    color: var(--ecs-neutral-50, var(--color-neutral-600));
 }
 
 .c-datatable__header--sort-asc::after,
 table.dataTable thead th.sorting_asc::after {
-    display: inline-block !important;
-    content: "▲" !important;
-    position: absolute !important;
-    right: 6px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    opacity: 0.8 !important;
-    font-size: 10px !important;
-    line-height: 1 !important;
-    color: var(--ecs-primary) !important;
+    display: inline-block;
+    content: "▲";
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.8;
+    font-size: 10px;
+    line-height: 1;
+    color: var(--ecs-primary);
 }
 
 .c-datatable__header--sort-desc::after,
 table.dataTable thead th.sorting_desc::after {
-    display: inline-block !important;
-    content: "▼" !important;
-    position: absolute !important;
-    right: 6px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    opacity: 0.8 !important;
-    font-size: 10px !important;
-    line-height: 1 !important;
-    color: var(--ecs-primary) !important;
+    display: inline-block;
+    content: "▼";
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.8;
+    font-size: 10px;
+    line-height: 1;
+    color: var(--ecs-primary);
 }
 
 /* Hover effects */
 .c-datatable__header--sortable:hover::after,
 table.dataTable thead th.sorting:hover::after {
-    opacity: 0.6 !important;
-    color: var(--ecs-primary) !important;
+    opacity: 0.6;
+    color: var(--ecs-primary);
 }
 
 /* Dark mode compatibility */
 [data-style="dark"] .c-datatable__header--sortable::after,
 [data-style="dark"] table.dataTable thead th.sorting::after {
-    color: var(--ecs-neutral-40, #cccccc) !important;
+    color: var(--ecs-neutral-40, var(--color-neutral-400)ccc);
 }
 
 [data-style="dark"] .c-datatable__header--sort-asc::after,
 [data-style="dark"] .c-datatable__header--sort-desc::after,
 [data-style="dark"] table.dataTable thead th.sorting_asc::after,
 [data-style="dark"] table.dataTable thead th.sorting_desc::after {
-    color: var(--ecs-accent, #4dabf7) !important;
+    color: var(--ecs-accent, #4dabf7);
 }
 
 [data-style="dark"] .c-datatable__header--sortable:hover::after,
 [data-style="dark"] table.dataTable thead th.sorting:hover::after {
-    color: var(--ecs-accent, #4dabf7) !important;
+    color: var(--ecs-accent, #4dabf7);
 }
 
 /* Force our arrows to show with maximum specificity */
@@ -579,21 +579,21 @@ table.c-rsvp-status-table.table.dataTable thead th.sorting::after,
 html body div.container-xxl table.dataTable thead th.sorting::after,
 html body div table.dataTable thead th.sorting::after,
 html body table.dataTable thead th.sorting::after {
-    display: inline-block !important;
-    content: "⇅" !important;
-    position: absolute !important;
-    right: 6px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    opacity: 0.3 !important;
-    font-size: 12px !important;
-    line-height: 1 !important;
-    color: var(--ecs-neutral-50, #666) !important;
-    visibility: visible !important;
-    width: auto !important;
-    height: auto !important;
-    background: none !important;
-    border: none !important;
+    display: inline-block;
+    content: "⇅";
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.3;
+    font-size: 12px;
+    line-height: 1;
+    color: var(--ecs-neutral-50, var(--color-neutral-600));
+    visibility: visible;
+    width: auto;
+    height: auto;
+    background: none;
+    border: none;
 }
 
 div.table-responsive table.c-rsvp-status-table.dataTable thead th.sorting_asc::after,
@@ -602,21 +602,21 @@ table.c-rsvp-status-table.table.dataTable thead th.sorting_asc::after,
 html body div.container-xxl table.dataTable thead th.sorting_asc::after,
 html body div table.dataTable thead th.sorting_asc::after,
 html body table.dataTable thead th.sorting_asc::after {
-    display: inline-block !important;
-    content: "▲" !important;
-    position: absolute !important;
-    right: 6px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    opacity: 0.8 !important;
-    font-size: 10px !important;
-    line-height: 1 !important;
-    color: var(--ecs-primary) !important;
-    visibility: visible !important;
-    width: auto !important;
-    height: auto !important;
-    background: none !important;
-    border: none !important;
+    display: inline-block;
+    content: "▲";
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.8;
+    font-size: 10px;
+    line-height: 1;
+    color: var(--ecs-primary);
+    visibility: visible;
+    width: auto;
+    height: auto;
+    background: none;
+    border: none;
 }
 
 div.table-responsive table.c-rsvp-status-table.dataTable thead th.sorting_desc::after,
@@ -625,21 +625,21 @@ table.c-rsvp-status-table.table.dataTable thead th.sorting_desc::after,
 html body div.container-xxl table.dataTable thead th.sorting_desc::after,
 html body div table.dataTable thead th.sorting_desc::after,
 html body table.dataTable thead th.sorting_desc::after {
-    display: inline-block !important;
-    content: "▼" !important;
-    position: absolute !important;
-    right: 6px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    opacity: 0.8 !important;
-    font-size: 10px !important;
-    line-height: 1 !important;
-    color: var(--ecs-primary) !important;
-    visibility: visible !important;
-    width: auto !important;
-    height: auto !important;
-    background: none !important;
-    border: none !important;
+    display: inline-block;
+    content: "▼";
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.8;
+    font-size: 10px;
+    line-height: 1;
+    color: var(--ecs-primary);
+    visibility: visible;
+    width: auto;
+    height: auto;
+    background: none;
+    border: none;
 }
 
 /* ============================================================================
@@ -679,16 +679,10 @@ html body table.dataTable thead th.sorting_desc::after {
    LAYOUT FIXES (Extracted from demo.css - critical)
    ============================================================================ */
 
-/* BEM: c-layout--navbar-fixed */
-/* Fix padding for fixed navbar layout */
-.c-layout--navbar-fixed .c-layout__wrapper:not(.c-layout--without-menu) .c-layout__page,
-.layout-navbar-fixed .layout-wrapper:not(.layout-without-menu) .layout-page {
-    padding-top: 64px !important;
-}
-
-.c-layout--navbar-fixed .c-layout__wrapper:not(.c-layout--horizontal):not(.c-layout--without-menu) .c-layout__page,
-.layout-navbar-fixed .layout-wrapper:not(.layout-horizontal):not(.layout-without-menu) .layout-page {
-    padding-top: 72px !important;
+/* Content area padding to account for fixed navbar */
+.layout-navbar-fixed .layout-page .content-wrapper,
+.layout-navbar-fixed .c-base-layout__page .c-base-layout__content {
+  padding-top: 80px; /* Navbar height (~64px) + some spacing */
 }
 
 /* Navbar z-index fix */

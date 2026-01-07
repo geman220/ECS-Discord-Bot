@@ -39,7 +39,7 @@
         <div class="c-card__body">
             {% if polls %}
             <div class="c-table-wrapper" data-table-responsive>
-                <table class="c-table c-table--striped" id="pollsTable" data-mobile-table data-table-type="polls" data-table>
+                <table class="c-c-table c-table--striped" id="pollsTable" data-mobile-table data-table-type="polls" data-table>
                     <thead scope="col">
                         <tr>
                             <th scope="col">Title</th>
@@ -54,25 +54,25 @@
                         {% for poll in polls %}
                         {% if poll.status != 'DELETED' %}
                         <tr>
-                            <td>
+                            <td data-label="Title">
                                 <strong>{{ poll.title }}</strong>
                             </td>
-                            <td>
+                            <td data-label="Question">
                                 <div class="text-truncate poll-question-cell" title="{{ poll.question }}">
                                     {{ poll.question }}
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="Status">
                                 {% if poll.status == 'ACTIVE' %}
                                 <span class="badge bg-success" data-badge>Active</span>
                                 {% elif poll.status == 'CLOSED' %}
                                 <span class="badge bg-warning" data-badge>Closed</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Created">
                                 <small>{{ poll.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
                             </td>
-                            <td>
+                            <td data-label="Responses">
                                 <div class="d-flex align-items-center">
                                     <span class="me-2">{{ poll.total_responses }}</span>
                                     <div class="progress poll-progress-bar">
@@ -85,12 +85,12 @@
                                     </div>
                                 </div>
                                 <small class="text-muted">
-                                    Y: {{ poll.response_counts.yes }} | 
-                                    N: {{ poll.response_counts.no }} | 
+                                    Y: {{ poll.response_counts.yes }} |
+                                    N: {{ poll.response_counts.no }} |
                                     M: {{ poll.response_counts.maybe }}
                                 </small>
                             </td>
-                            <td>
+                            <td data-label="Actions">
                                 <div class="dropdown">
                                     <button class="c-btn c-btn--sm c-btn--outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-dropdown-toggle>
                                         Actions

@@ -16,7 +16,7 @@
 
 import { InitSystem } from './init-system.js';
 
-export class OnlineStatusManager {
+class OnlineStatusManager {
   constructor() {
     this.updateInterval = 30000; // 30 seconds
     this.intervalId = null;

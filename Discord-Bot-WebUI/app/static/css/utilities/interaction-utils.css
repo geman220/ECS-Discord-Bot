@@ -23,163 +23,163 @@
    ============================================ */
 
 .cursor-auto {
-    cursor: auto !important;
+    cursor: auto;
 }
 
 .cursor-default {
-    cursor: default !important;
+    cursor: default;
 }
 
 .cursor-pointer {
-    cursor: pointer !important;
+    cursor: pointer;
 }
 
 .cursor-wait {
-    cursor: wait !important;
+    cursor: wait;
 }
 
 .cursor-text {
-    cursor: text !important;
+    cursor: text;
 }
 
 .cursor-move {
-    cursor: move !important;
+    cursor: move;
 }
 
 .cursor-help {
-    cursor: help !important;
+    cursor: help;
 }
 
 .cursor-not-allowed {
-    cursor: not-allowed !important;
+    cursor: not-allowed;
 }
 
 .cursor-none {
-    cursor: none !important;
+    cursor: none;
 }
 
 .cursor-context-menu {
-    cursor: context-menu !important;
+    cursor: context-menu;
 }
 
 .cursor-progress {
-    cursor: progress !important;
+    cursor: progress;
 }
 
 .cursor-cell {
-    cursor: cell !important;
+    cursor: cell;
 }
 
 .cursor-crosshair {
-    cursor: crosshair !important;
+    cursor: crosshair;
 }
 
 .cursor-vertical-text {
-    cursor: vertical-text !important;
+    cursor: vertical-text;
 }
 
 .cursor-alias {
-    cursor: alias !important;
+    cursor: alias;
 }
 
 .cursor-copy {
-    cursor: copy !important;
+    cursor: copy;
 }
 
 .cursor-no-drop {
-    cursor: no-drop !important;
+    cursor: no-drop;
 }
 
 /* Directional resize cursors */
 .cursor-e-resize {
-    cursor: e-resize !important;
+    cursor: e-resize;
 }
 
 .cursor-n-resize {
-    cursor: n-resize !important;
+    cursor: n-resize;
 }
 
 .cursor-ne-resize {
-    cursor: ne-resize !important;
+    cursor: ne-resize;
 }
 
 .cursor-nw-resize {
-    cursor: nw-resize !important;
+    cursor: nw-resize;
 }
 
 .cursor-s-resize {
-    cursor: s-resize !important;
+    cursor: s-resize;
 }
 
 .cursor-se-resize {
-    cursor: se-resize !important;
+    cursor: se-resize;
 }
 
 .cursor-sw-resize {
-    cursor: sw-resize !important;
+    cursor: sw-resize;
 }
 
 .cursor-w-resize {
-    cursor: w-resize !important;
+    cursor: w-resize;
 }
 
 .cursor-ew-resize {
-    cursor: ew-resize !important;
+    cursor: ew-resize;
 }
 
 .cursor-ns-resize {
-    cursor: ns-resize !important;
+    cursor: ns-resize;
 }
 
 .cursor-nesw-resize {
-    cursor: nesw-resize !important;
+    cursor: nesw-resize;
 }
 
 .cursor-nwse-resize {
-    cursor: nwse-resize !important;
+    cursor: nwse-resize;
 }
 
 .cursor-col-resize {
-    cursor: col-resize !important;
+    cursor: col-resize;
 }
 
 .cursor-row-resize {
-    cursor: row-resize !important;
+    cursor: row-resize;
 }
 
 .cursor-all-scroll {
-    cursor: all-scroll !important;
+    cursor: all-scroll;
 }
 
 /* Zoom cursors */
 .cursor-zoom-in {
-    cursor: zoom-in !important;
+    cursor: zoom-in;
 }
 
 .cursor-zoom-out {
-    cursor: zoom-out !important;
+    cursor: zoom-out;
 }
 
 /* Grab cursors */
 .cursor-grab {
-    cursor: grab !important;
+    cursor: grab;
 }
 
 .cursor-grabbing {
-    cursor: grabbing !important;
+    cursor: grabbing;
 }
 
 /* Cursor on hover */
 .hover-cursor-pointer:hover {
-    cursor: pointer !important;
+    cursor: pointer;
 }
 
 .hover-cursor-move:hover {
-    cursor: move !important;
+    cursor: move;
 }
 
 .hover-cursor-grab:hover {
-    cursor: grab !important;
+    cursor: grab;
 }
 
 /* ============================================
@@ -187,26 +187,26 @@
    ============================================ */
 
 .pointer-events-auto {
-    pointer-events: auto !important;
+    pointer-events: auto;
 }
 
 .pointer-events-none {
-    pointer-events: none !important;
+    pointer-events: none;
 }
 
 .pointer-events-all {
-    pointer-events: all !important;
+    pointer-events: all;
 }
 
 /**
  * Allow pointer events on children only
  */
 .pointer-events-children-only {
-    pointer-events: none !important;
+    pointer-events: none;
 }
 
 .pointer-events-children-only > * {
-    pointer-events: auto !important;
+    pointer-events: auto;
 }
 
 /* ============================================
@@ -214,31 +214,31 @@
    ============================================ */
 
 .user-select-auto {
-    -webkit-user-select: auto !important;
-    -moz-user-select: auto !important;
-    -ms-user-select: auto !important;
-    user-select: auto !important;
+    -webkit-user-select: auto;
+    -moz-user-select: auto;
+    -ms-user-select: auto;
+    user-select: auto;
 }
 
 .user-select-none {
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
-    user-select: none !important;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .user-select-text {
-    -webkit-user-select: text !important;
-    -moz-user-select: text !important;
-    -ms-user-select: text !important;
-    user-select: text !important;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
 }
 
 .user-select-all {
-    -webkit-user-select: all !important;
-    -moz-user-select: all !important;
-    -ms-user-select: all !important;
-    user-select: all !important;
+    -webkit-user-select: all;
+    -moz-user-select: all;
+    -ms-user-select: all;
+    user-select: all;
 }
 
 /* ============================================
@@ -246,19 +246,19 @@
    ============================================ */
 
 .touch-action-auto {
-    touch-action: auto !important;
+    touch-action: auto;
 }
 
 .touch-action-none {
-    touch-action: none !important;
+    touch-action: none;
 }
 
 .touch-action-pan-x {
-    touch-action: pan-x !important;
+    touch-action: pan-x;
 }
 
 .touch-action-pan-y {
-    touch-action: pan-y !important;
+    touch-action: pan-y;
 }
 
 /* Note: pan-left, pan-right, pan-up, pan-down are not valid touch-action values
@@ -266,11 +266,11 @@
    Use pan-x for horizontal panning, pan-y for vertical panning */
 
 .touch-action-pinch-zoom {
-    touch-action: pinch-zoom !important;
+    touch-action: pinch-zoom;
 }
 
 .touch-action-manipulation {
-    touch-action: manipulation !important;
+    touch-action: manipulation;
 }
 
 /* ============================================
@@ -278,19 +278,19 @@
    ============================================ */
 
 .resize-none {
-    resize: none !important;
+    resize: none;
 }
 
 .resize-both {
-    resize: both !important;
+    resize: both;
 }
 
 .resize-horizontal {
-    resize: horizontal !important;
+    resize: horizontal;
 }
 
 .resize-vertical {
-    resize: vertical !important;
+    resize: vertical;
 }
 
 /* ============================================
@@ -298,15 +298,15 @@
    ============================================ */
 
 .appearance-none {
-    -webkit-appearance: none !important;
-    -moz-appearance: none !important;
-    appearance: none !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
 }
 
 .appearance-auto {
-    -webkit-appearance: auto !important;
-    -moz-appearance: auto !important;
-    appearance: auto !important;
+    -webkit-appearance: auto;
+    -moz-appearance: auto;
+    appearance: auto;
 }
 
 /* ============================================
@@ -314,31 +314,31 @@
    ============================================ */
 
 .caret-transparent {
-    caret-color: transparent !important;
+    caret-color: transparent;
 }
 
 .caret-current {
-    caret-color: currentColor !important;
+    caret-color: currentColor;
 }
 
 .caret-primary {
-    caret-color: var(--color-primary, #0d6efd) !important;
+    caret-color: var(--color-primary, var(--color-primary));
 }
 
 .caret-success {
-    caret-color: var(--color-success, #198754) !important;
+    caret-color: var(--color-success, var(--color-success-600));
 }
 
 .caret-danger {
-    caret-color: var(--color-danger, #dc3545) !important;
+    caret-color: var(--color-danger, var(--color-danger-600));
 }
 
 .caret-warning {
-    caret-color: var(--color-warning, #ffc107) !important;
+    caret-color: var(--color-warning, var(--color-warning));
 }
 
 .caret-info {
-    caret-color: var(--color-info, #0dcaf0) !important;
+    caret-color: var(--color-info, #0dcaf0);
 }
 
 /* ============================================
@@ -346,23 +346,23 @@
    ============================================ */
 
 .outline-none {
-    outline: none !important;
+    outline: none;
 }
 
 .outline-0 {
-    outline: 0 !important;
+    outline: 0;
 }
 
 .outline-dashed {
-    outline-style: dashed !important;
+    outline-style: dashed;
 }
 
 .outline-dotted {
-    outline-style: dotted !important;
+    outline-style: dotted;
 }
 
 .outline-solid {
-    outline-style: solid !important;
+    outline-style: solid;
 }
 
 /* ============================================
@@ -373,27 +373,27 @@
  * Force keyboard focusable
  */
 .focusable {
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    user-select: none !important;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
 }
 
 .focusable:focus {
-    outline: 2px solid var(--color-primary, #0d6efd) !important;
-    outline-offset: 2px !important;
+    outline: 2px solid var(--color-primary, var(--color-primary));
+    outline-offset: 2px;
 }
 
 /**
  * Not keyboard focusable
  */
 .not-focusable {
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    user-select: none !important;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
 }
 
 .not-focusable:focus {
-    outline: none !important;
+    outline: none;
 }
 
 /* ============================================
@@ -401,11 +401,11 @@
    ============================================ */
 
 .scroll-smooth {
-    scroll-behavior: smooth !important;
+    scroll-behavior: smooth;
 }
 
 .scroll-auto {
-    scroll-behavior: auto !important;
+    scroll-behavior: auto;
 }
 
 /* ============================================
@@ -413,20 +413,20 @@
    ============================================ */
 
 .draggable {
-    cursor: move !important;
-    -webkit-user-drag: element !important;
-    -khtml-user-drag: element !important;
-    -moz-user-drag: element !important;
-    -o-user-drag: element !important;
-    user-drag: element !important;
+    cursor: move;
+    -webkit-user-drag: element;
+    -khtml-user-drag: element;
+    -moz-user-drag: element;
+    -o-user-drag: element;
+    user-drag: element;
 }
 
 .not-draggable {
-    -webkit-user-drag: none !important;
-    -khtml-user-drag: none !important;
-    -moz-user-drag: none !important;
-    -o-user-drag: none !important;
-    user-drag: none !important;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
 }
 
 /* ============================================
@@ -438,12 +438,12 @@
  */
 .no-spin-buttons::-webkit-outer-spin-button,
 .no-spin-buttons::-webkit-inner-spin-button {
-    -webkit-appearance: none !important;
-    margin: 0 !important;
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .no-spin-buttons[type=number] {
-    -moz-appearance: textfield !important;
+    -moz-appearance: textfield;
 }
 
 /**
@@ -451,7 +451,7 @@
  */
 .no-clear-button::-ms-clear,
 .no-clear-button::-webkit-search-cancel-button {
-    display: none !important;
+    display: none;
 }
 
 /**
@@ -460,14 +460,14 @@
 .no-autocomplete-style:-webkit-autofill,
 .no-autocomplete-style:-webkit-autofill:hover,
 .no-autocomplete-style:-webkit-autofill:focus {
-    -webkit-box-shadow: 0 0 0 1000px white inset !important;
-    -webkit-text-fill-color: inherit !important;
+    -webkit-box-shadow: 0 0 0 1000px white inset;
+    -webkit-text-fill-color: inherit;
 }
 
 [data-style="dark"] .no-autocomplete-style:-webkit-autofill,
 [data-style="dark"] .no-autocomplete-style:-webkit-autofill:hover,
 [data-style="dark"] .no-autocomplete-style:-webkit-autofill:focus {
-    -webkit-box-shadow: 0 0 0 1000px var(--color-secondary-900, #212529) inset !important;
+    -webkit-box-shadow: 0 0 0 1000px var(--color-secondary-900, var(--color-secondary-900)) inset;
 }
 
 /* ============================================
@@ -475,11 +475,11 @@
    ============================================ */
 
 .placeholder-transparent::placeholder {
-    color: transparent !important;
+    color: transparent;
 }
 
 .placeholder-shown:placeholder-shown {
-    border-color: var(--color-secondary-300, #ced4da) !important;
+    border-color: var(--color-secondary-300, var(--color-neutral-300));
 }
 
 /* ============================================
@@ -487,23 +487,23 @@
    ============================================ */
 
 .selection-none::selection {
-    background: transparent !important;
-    color: inherit !important;
+    background: transparent;
+    color: inherit;
 }
 
 .selection-primary::selection {
-    background: rgba(13, 110, 253, 0.3) !important;
-    color: inherit !important;
+    background: rgba(13, 110, 253, 0.3);
+    color: inherit;
 }
 
 .selection-success::selection {
-    background: rgba(25, 135, 84, 0.3) !important;
-    color: inherit !important;
+    background: rgba(25, 135, 84, 0.3);
+    color: inherit;
 }
 
 .selection-danger::selection {
-    background: rgba(220, 53, 69, 0.3) !important;
-    color: inherit !important;
+    background: rgba(220, 53, 69, 0.3);
+    color: inherit;
 }
 
 /* ============================================
@@ -514,22 +514,22 @@
  * Active state on click
  */
 .clickable {
-    cursor: pointer !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    user-select: none !important;
-    transition: transform 0.1s ease-in-out !important;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    transition: transform 0.1s ease-in-out;
 }
 
 .clickable:active {
-    transform: scale(0.98) !important;
+    transform: scale(0.98);
 }
 
 /**
  * Prevent double-tap zoom on mobile
  */
 .no-double-tap-zoom {
-    touch-action: manipulation !important;
+    touch-action: manipulation;
 }
 
 /* ============================================
@@ -540,12 +540,12 @@
  * Show focus only on keyboard navigation
  */
 .keyboard-focus:focus:not(:focus-visible) {
-    outline: none !important;
+    outline: none;
 }
 
 .keyboard-focus:focus-visible {
-    outline: 2px solid var(--color-primary, #0d6efd) !important;
-    outline-offset: 2px !important;
+    outline: 2px solid var(--color-primary, var(--color-primary));
+    outline-offset: 2px;
 }
 
 /* ============================================
@@ -556,33 +556,33 @@
  * Interactive element (combines cursor, select, and tap behavior)
  */
 .interactive {
-    cursor: pointer !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    user-select: none !important;
-    touch-action: manipulation !important;
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
 }
 
 /**
  * Non-interactive element
  */
 .non-interactive {
-    cursor: default !important;
-    pointer-events: none !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    user-select: none !important;
+    cursor: default;
+    pointer-events: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
 }
 
 /**
  * Read-only interaction (can select text but not modify)
  */
 .read-only-interactive {
-    cursor: default !important;
-    -webkit-user-select: text !important;
-    -moz-user-select: text !important;
-    user-select: text !important;
+    cursor: default;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    user-select: text;
 }
 
 /* ============================================
@@ -593,29 +593,29 @@
  * Skip to content link (keyboard navigation)
  */
 .skip-to-content {
-    position: absolute !important;
-    top: -40px !important;
-    left: 0 !important;
-    background: var(--color-primary, #0d6efd) !important;
-    color: white !important;
-    padding: 8px !important;
-    text-decoration: none !important;
-    z-index: 10000 !important;
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--color-primary, var(--color-primary));
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    z-index: 10000;
 }
 
 .skip-to-content:focus {
-    top: 0 !important;
+    top: 0;
 }
 
 /**
  * Focus trap for modals/dialogs
  */
 .focus-trap {
-    position: relative !important;
+    position: relative;
 }
 
 .focus-trap:focus {
-    outline: none !important;
+    outline: none;
 }
 
 /* ============================================
@@ -627,7 +627,7 @@
  * Used for urgent call-to-action buttons that need attention
  */
 .btn-pulse-warning {
-    animation: btnPulseWarning 2s infinite !important;
+    animation: btnPulseWarning 2s infinite;
 }
 
 @keyframes btnPulseWarning {

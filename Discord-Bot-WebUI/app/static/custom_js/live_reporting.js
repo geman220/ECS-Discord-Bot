@@ -49,6 +49,8 @@ export function initLiveReporting(config) {
  * Set up all socket event listeners
  */
 export function setupSocketListeners() {
+    if (!socket) return;
+
     // Connection events
     socket.on('disconnect', () => {
         // Disconnected from live reporting server
@@ -255,8 +257,20 @@ export function setupUIListeners() {
         if (!matchState) return;
 
         // Ask for confirmation before resetting
-        if (confirm('Are you sure you want to reset the timer to 0?')) {
-            updateTimer(0, isTimerRunning);
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
+                title: 'Reset Timer',
+                text: 'Are you sure you want to reset the timer to 0?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, reset it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    updateTimer(0, isTimerRunning);
+                }
+            });
         }
     });
 
@@ -313,8 +327,20 @@ export function setupUIListeners() {
         if (!matchState) return;
 
         // Ask for confirmation
-        if (confirm('Are you sure you want to submit the final match report? This action cannot be undone.')) {
-            submitFinalReport();
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
+                title: 'Submit Final Report',
+                text: 'Are you sure you want to submit the final match report? This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, submit it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitFinalReport();
+                }
+            });
         }
     });
 
@@ -342,6 +368,7 @@ export function setupUIListeners() {
  * Join a match room
  */
 export function joinMatch() {
+    if (!socket) return;
     socket.emit('join_match', {
         match_id: matchId,
         team_id: teamId
@@ -352,6 +379,7 @@ export function joinMatch() {
  * Leave a match room
  */
 export function leaveMatch() {
+    if (!socket) return;
     socket.emit('leave_match', {
         match_id: matchId
     });
@@ -361,6 +389,7 @@ export function leaveMatch() {
  * Update the match score
  */
 export function updateScore(homeScore, awayScore) {
+    if (!socket) return;
     socket.emit('update_score', {
         match_id: matchId,
         home_score: homeScore,
@@ -382,6 +411,7 @@ export function updateTimer(elapsedSeconds, isRunning, period = null) {
         data.period = period;
     }
 
+    if (!socket) return;
     socket.emit('update_timer', data);
 }
 
@@ -452,6 +482,7 @@ export function startTimerInterval() {
  * Add a match event
  */
 export function addEvent(eventData) {
+    if (!socket) return;
     socket.emit('add_event', {
         match_id: matchId,
         event: eventData
@@ -462,6 +493,7 @@ export function addEvent(eventData) {
  * Toggle a player's shift status
  */
 export function togglePlayerShift(playerId, isActive) {
+    if (!socket) return;
     socket.emit('update_player_shift', {
         match_id: matchId,
         player_id: playerId,
@@ -474,6 +506,7 @@ export function togglePlayerShift(playerId, isActive) {
  * Submit the final match report
  */
 export function submitFinalReport() {
+    if (!socket) return;
     const notes = window.$('#matchNotes').val();
 
     socket.emit('submit_report', {
@@ -808,7 +841,7 @@ window.LiveReporting = {
 };
 
 // Initialize function
-function init() {
+function initLiveReportingModule() {
     if (_initialized) return;
     _initialized = true;
 
@@ -818,7 +851,7 @@ function init() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('live-reporting', init, {
+    window.InitSystem.register('live-reporting', initLiveReportingModule, {
         priority: 45,
         reinitializable: false,
         description: 'Live match reporting client'
@@ -828,29 +861,5 @@ if (window.InitSystem && window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility
-window.initLiveReporting = initLiveReporting;
-window.setupSocketListeners = setupSocketListeners;
-window.setupUIListeners = setupUIListeners;
-window.joinMatch = joinMatch;
-window.leaveMatch = leaveMatch;
-window.updateScore = updateScore;
-window.updateTimer = updateTimer;
-window.updatePeriod = updatePeriod;
-window.toggleTimer = toggleTimer;
-window.startTimerInterval = startTimerInterval;
+// Window exports - only functions used by event delegation handlers
 window.addEvent = addEvent;
-window.togglePlayerShift = togglePlayerShift;
-window.submitFinalReport = submitFinalReport;
-window.updateMatchUI = updateMatchUI;
-window.updateScoreUI = updateScoreUI;
-window.updateTimerUI = updateTimerUI;
-window.updateTimerDisplay = updateTimerDisplay;
-window.updateEventsUI = updateEventsUI;
-window.updateMatchStatusUI = updateMatchStatusUI;
-window.updateReportersUI = updateReportersUI;
-window.timeSinceLastActive = timeSinceLastActive;
-window.updateShiftsUI = updateShiftsUI;
-window.updatePlayerDropdown = updatePlayerDropdown;
-window.disableReportingControls = disableReportingControls;
-window.liveReportingShowNotification = liveReportingShowNotification;

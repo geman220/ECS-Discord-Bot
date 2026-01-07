@@ -163,7 +163,7 @@
                     
                     {% if week_data.matches %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="schedule">
+                        <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="schedule">
                             <thead scope="col">
                                 <tr>
                                     <th scope="col">Time</th>
@@ -184,13 +184,13 @@
                                     data-away-team="{{ match.away_team_id }}"
                                     data-match-id="{{ match.id }}"
                                     data-week="{{ week_num }}">
-                                    <td class="match-time" data-time="{{ match.time.strftime('%H:%M') }}">
+                                    <td class="match-time" data-time="{{ match.time.strftime('%H:%M') }}" data-label="Time">
                                         <i class="ti ti-clock me-1"></i>
                                         <span class="time-display">{{ match.time.strftime('%I:%M %p') }}</span>
                                         <input type="time" class="form-control time-edit"
                                                value="{{ match.time.strftime('%H:%M') }}" data-form-control>
                                     </td>
-                                    <td class="match-field" data-field="{{ match.location }}">
+                                    <td class="match-field" data-field="{{ match.location }}" data-label="Field">
                                         <span class="field-display">
                                             <span class="badge bg-label-primary" data-badge>{{ match.location }}</span>
                                         </span>
@@ -201,10 +201,10 @@
                                             <option value="West" {% if match.location == 'West' %}selected{% endif %}>West</option>
                                         </select>
                                     </td>
-                                    <td>
+                                    <td data-label="League">
                                         <small class="text-muted">{{ match.home_team.league.name }}</small>
                                     </td>
-                                    <td>
+                                    <td data-label="Home Team">
                                         {% if match.week_type == 'PLAYOFF' and match.home_team_id != match.away_team_id %}
                                             {# Confirmed playoff match - show actual team #}
                                             <span class="badge bg-info" data-badge>Playoff</span>
@@ -253,7 +253,7 @@
                                             </select>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Away Team">
                                         {% if match.week_type == 'PLAYOFF' and match.home_team_id != match.away_team_id %}
                                             {# Confirmed playoff match - show actual team #}
                                             <span class="team-display">
@@ -301,18 +301,18 @@
                                             </select>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         {% if match.reported %}
                                         <span class="badge bg-success" data-badge>Reported</span>
                                         {% else %}
                                         <span class="badge bg-secondary" data-badge>Scheduled</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Actions">
                                         <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
                                            class="c-btn c-btn--sm c-btn--outline-primary" aria-label="View"><i class="ti ti-eye"></i></a>
                                     </td>
-                                    <td class="edit-controls">
+                                    <td class="edit-controls" data-label="Edit">
                                         <button class="c-btn c-btn--sm c-btn--outline-secondary me-1 js-edit-match"
                                                 data-action="edit-match" data-match-id="{{ match.id }}" title="Edit Match">
                                             <i class="ti ti-edit"></i>

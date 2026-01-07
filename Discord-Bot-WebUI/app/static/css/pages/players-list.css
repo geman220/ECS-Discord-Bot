@@ -72,7 +72,7 @@
 }
 
 /* Mobile */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-filter-bar__search {
     max-width: 100%;
   }
@@ -128,7 +128,7 @@
 }
 
 /* Mobile: Hide table, show cards */
-@media (max-width: 992px) {
+@media (max-width: 991.98px) {
   .c-players-table__head {
     display: none;
   }
@@ -149,7 +149,7 @@
    ============================================================================ */
 
 /* Mobile: Convert player rows to card layout */
-@media (max-width: 992px) {
+@media (max-width: 991.98px) {
   .c-players-table .c-player-row {
     display: block;
     margin-block-end: var(--space-4);
@@ -203,7 +203,7 @@
   }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
   .c-players-table .c-player-row__action-text {
     display: none;
   }
@@ -322,7 +322,7 @@
 
   .c-players-table {
     box-shadow: none;
-    border: 1px solid var(--color-black, #000);
+    border: 1px solid var(--color-black, var(--color-neutral-950));
   }
 
   .c-player-row {

@@ -28,7 +28,7 @@ let _initialized = false;
 /**
  * Initialize on DOM load
  */
-function init() {
+function initAdminPanelPerformance() {
     // Guard against duplicate initialization
     if (_initialized) return;
     _initialized = true;
@@ -159,11 +159,27 @@ function handleToggleAutoRefresh() {
 /**
  * Handle cache clear with confirmation
  */
-function handleClearCache(e) {
-    const confirmed = confirm('Are you sure you want to clear all cache?');
-    if (!confirmed) {
-        e.preventDefault();
-        return false;
+async function handleClearCache(e) {
+    e.preventDefault();
+
+    if (typeof window.Swal !== 'undefined') {
+        const result = await window.Swal.fire({
+            title: 'Clear Cache?',
+            text: 'Are you sure you want to clear all cache?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, clear it!'
+        });
+
+        if (result.isConfirmed) {
+            // Submit the form or trigger the cache clear action
+            const form = e.target.closest('form');
+            if (form) {
+                form.submit();
+            }
+        }
     }
 }
 
@@ -299,7 +315,7 @@ window.EventDelegation.register('performance-toggle-auto-refresh', handleToggleA
 window.EventDelegation.register('performance-clear-cache', handleClearCache, { preventDefault: true });
 
 // Register with window.InitSystem
-window.InitSystem.register('admin-panel-performance', init, {
+window.InitSystem.register('admin-panel-performance', initAdminPanelPerformance, {
     priority: 30,
     reinitializable: true,
     description: 'Admin panel performance monitoring'
@@ -308,23 +324,11 @@ window.InitSystem.register('admin-panel-performance', init, {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility exports
-window.init = init;
-window.initializeCharts = initializeCharts;
-window.registerEventHandlers = registerEventHandlers;
-window.handleToggleAutoRefresh = handleToggleAutoRefresh;
-window.handleClearCache = handleClearCache;
-window.startAutoRefresh = startAutoRefresh;
-window.updateMetrics = updateMetrics;
-window.updateLiveValue = updateLiveValue;
-window.updateMetricColors = updateMetricColors;
-window.updateQueryChart = updateQueryChart;
-window.updateCacheChart = updateCacheChart;
-window.getCSSVariable = getCSSVariable;
+// No window exports needed - handlers are registered with EventDelegation
 
 // Named exports for ES modules
 export {
-    init,
+    initAdminPanelPerformance,
     initializeCharts,
     registerEventHandlers,
     handleToggleAutoRefresh,

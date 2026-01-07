@@ -177,7 +177,7 @@
         </div>
         <div class="c-card__body">
             <div class="c-table-wrapper" data-table-responsive>
-                <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="matches">
+                <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="matches">
                     <thead scope="col">
                         <tr>
                             <th scope="col">Player</th>
@@ -190,7 +190,7 @@
                         {% for player in match.team.players %}
                         {% set availability = rsvp_responses.get(player.id) %}
                         <tr>
-                            <td>
+                            <td data-label="Player">
                                 <div class="d-flex align-items-center">
                                     <div class="avatar avatar-sm me-2">
                                         {% if player.profile_picture %}
@@ -209,7 +209,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="Response">
                                 {% if availability %}
                                 <span class="badge {% if availability.response == 'yes' %}bg-success{% elif availability.response == 'no' %}bg-danger{% elif availability.response == 'maybe' %}bg-warning{% else %}bg-secondary{% endif %}" data-badge>
                                     {% if availability.response == 'yes' %}Available{% elif availability.response == 'no' %}Unavailable{% elif availability.response == 'maybe' %}Maybe{% else %}No Response{% endif %}
@@ -218,14 +218,14 @@
                                 <span class="badge bg-secondary" data-badge>No Response</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Response Time">
                                 {% if availability and availability.response_time %}
                                 <small class="text-muted">{{ availability.response_time.strftime('%m/%d %I:%M %p') }}</small>
                                 {% else %}
                                 <small class="text-muted">-</small>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Notes">
                                 {% if availability and availability.notes %}
                                 <small>{{ availability.notes }}</small>
                                 {% else %}

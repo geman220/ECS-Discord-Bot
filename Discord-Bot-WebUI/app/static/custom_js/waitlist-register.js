@@ -12,7 +12,7 @@ import { InitSystem } from '../js/init-system.js';
 
 let _initialized = false;
 
-export function init() {
+export function initWaitlistRegister() {
     if (_initialized) return;
     _initialized = true;
 
@@ -41,4 +41,4 @@ export function init() {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.init = init;
+window.initWaitlistRegister = initWaitlistRegister;

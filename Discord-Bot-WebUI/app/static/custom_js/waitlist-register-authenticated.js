@@ -10,7 +10,7 @@ import { ModalManager } from '../js/modal-manager.js';
 let _initialized = false;
 let isEditing = false;
 
-export function init() {
+export function initWaitlistRegisterAuthenticated() {
     if (_initialized) return;
     _initialized = true;
 
@@ -190,7 +190,7 @@ export function verifyProfile() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem.register) {
-    window.InitSystem.register('waitlist-register-authenticated', init, {
+    window.InitSystem.register('waitlist-register-authenticated', initWaitlistRegisterAuthenticated, {
         priority: 20,
         reinitializable: false,
         description: 'Waitlist registration for authenticated users'
@@ -200,8 +200,5 @@ if (window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility
-window.showProfileModal = showProfileModal;
-window.toggleEdit = toggleEdit;
-window.verifyProfile = verifyProfile;
-window.init = init;
+// No window exports needed - InitSystem handles initialization
+// All functions are used internally via event delegation

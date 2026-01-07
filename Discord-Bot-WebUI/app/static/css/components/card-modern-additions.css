@@ -12,46 +12,46 @@
    CARD MODERN VARIANTS
    ============================================================================ */
 
-.c-card-modern--primary {
-  border-left: 3px solid var(--color-primary, var(--color-primary-600, #2563EB));
+.c-card--primary {
+  border-left: 3px solid var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
-.c-card-modern--alternative {
+.c-card--alternative {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(139, 92, 246, 0.08));
 }
 
-.c-card-modern--selectable {
+.c-card--selectable {
   cursor: pointer;
   transition: all var(--duration-fast, 150ms) ease;
 }
 
-.c-card-modern--selectable:hover {
+.c-card--selectable:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
 
-.c-card-modern--team {
+.c-card--team {
   height: 100%;
   display: flex;
   flex-direction: column;
-  border-left: 3px solid var(--color-success, var(--color-success-500, #10b981));
+  border-left: 3px solid var(--color-success, var(--color-success-500, var(--color-success-500)));
 }
 
-.c-card-modern--team .c-card-modern__body {
+.c-card--team .c-card__body {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-.c-card-modern--team .c-card-modern__meta {
+.c-card--team .c-card__meta {
   flex: 1;
 }
 
-.c-card-modern--team .c-btn-modern {
+.c-card--team .c-btn {
   margin-top: auto;
 }
 
-.c-card-modern--full-height {
+.c-card--full-height {
   height: 100%;
 }
 
@@ -59,7 +59,7 @@
    CARD MODERN BODY VARIANTS
    ============================================================================ */
 
-.c-card-modern__body--center {
+.c-card__body--center {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -67,7 +67,7 @@
   text-align: center;
 }
 
-.c-card-modern__body--padded {
+.c-card__body--padded {
   padding: var(--space-6, 24px);
 }
 
@@ -75,24 +75,24 @@
    CARD MODERN HEADER EXTENSIONS
    ============================================================================ */
 
-.c-card-modern__header-group {
+.c-card__header-group {
   display: flex;
   align-items: center;
   gap: var(--space-3, 12px);
 }
 
-.c-card-modern__header-info {
+.c-card__header-info {
   flex: 1;
   min-width: 0;
 }
 
-.c-card-modern__help-icon {
+.c-card__help-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 24px;
   height: 24px;
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   cursor: help;
 }
 
@@ -100,7 +100,7 @@
    CARD MODERN ICON
    ============================================================================ */
 
-.c-card-modern__icon-wrapper {
+.c-card__icon-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -111,35 +111,35 @@
   flex-shrink: 0;
 }
 
-.c-card-modern__icon-wrapper--primary {
+.c-card__icon-wrapper--primary {
   background: rgba(59, 130, 246, 0.15);
-  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
+  color: var(--color-primary-light, var(--color-primary-400, var(--color-primary-400)));
 }
 
-.c-card-modern__icon {
+.c-card__icon {
   font-size: 1.5rem;
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
 /* ============================================================================
    CARD MODERN CONTENT
    ============================================================================ */
 
-.c-card-modern__content {
+.c-card__content {
   flex: 1;
   min-width: 0;
 }
 
-.c-card-modern__title--primary {
-  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
+.c-card__title--primary {
+  color: var(--color-primary-light, var(--color-primary-400, var(--color-primary-400)));
 }
 
-.c-card-modern__label {
+.c-card__label {
   display: block;
   margin-bottom: var(--space-1, 4px);
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -148,21 +148,21 @@
    CARD MODERN META
    ============================================================================ */
 
-.c-card-modern__meta {
+.c-card__meta {
   display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
-.c-card-modern__meta-group {
+.c-card__meta-group {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3, 12px);
 }
 
-.c-card-modern__meta-item {
+.c-card__meta-item {
   display: flex;
   align-items: center;
   gap: var(--space-1, 4px);
@@ -172,35 +172,35 @@
    CARD MODERN STATS
    ============================================================================ */
 
-.c-card-modern__stat-number {
+.c-card__stat-number {
   font-size: var(--text-3xl, 1.875rem);
   font-weight: 700;
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   line-height: 1.2;
 }
 
-.c-card-modern__stat-sublabel {
+.c-card__stat-sublabel {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
-.c-card-modern__stat-sublabel--primary {
-  color: var(--color-primary-light, var(--color-primary-400, #60a5fa));
+.c-card__stat-sublabel--primary {
+  color: var(--color-primary-light, var(--color-primary-400, var(--color-primary-400)));
 }
 
-.c-card-modern__stat-sublabel--info {
-  color: var(--color-info-light, #22d3ee);
+.c-card__stat-sublabel--info {
+  color: var(--color-info-light, var(--color-info-400));
 }
 
-.c-card-modern__stat-sublabel--danger {
-  color: var(--color-danger-light, #f87171);
+.c-card__stat-sublabel--danger {
+  color: var(--color-danger-light, var(--color-danger-400));
 }
 
 /* ============================================================================
    CARD MODERN FOOTER
    ============================================================================ */
 
-.c-card-modern__footer--center {
+.c-card__footer--center {
   justify-content: center;
 }
 
@@ -208,23 +208,23 @@
    LIGHT MODE
    ============================================================================ */
 
-[data-style="light"] .c-card-modern--alternative {
+[data-style="light"] .c-card--alternative {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.04), rgba(139, 92, 246, 0.04));
 }
 
-[data-style="light"] .c-card-modern__icon-wrapper {
+[data-style="light"] .c-card__icon-wrapper {
   background: rgba(0, 0, 0, 0.04);
 }
 
-[data-style="light"] .c-card-modern__icon-wrapper--primary {
+[data-style="light"] .c-card__icon-wrapper--primary {
   background: rgba(59, 130, 246, 0.1);
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
-[data-style="light"] .c-card-modern__stat-number {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+[data-style="light"] .c-card__stat-number {
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
-[data-style="light"] .c-card-modern__title--primary {
-  color: var(--color-primary, var(--color-primary-600, #2563EB));
+[data-style="light"] .c-card__title--primary {
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }

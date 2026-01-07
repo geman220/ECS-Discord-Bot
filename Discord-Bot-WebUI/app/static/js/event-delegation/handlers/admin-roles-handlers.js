@@ -10,6 +10,7 @@
  */
 
 import { EventDelegation } from '../core.js';
+import { escapeHtml } from '../../utils/sanitize.js';
 
 // Store references for modal management
 let roleModal = null;
@@ -174,9 +175,9 @@ window.EventDelegation.register('view-role-details', function(element, e) {
                         <div class="col-md-6">
                             <h6>Role Information</h6>
                             <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="roles">
-                                <tr><td><strong>Name:</strong></td><td>${role.name}</td></tr>
-                                <tr><td><strong>Description:</strong></td><td>${role.description || 'No description'}</td></tr>
-                                <tr><td><strong>Users:</strong></td><td>${role.user_count}</td></tr>
+                                <tr><td><strong>Name:</strong></td><td>${escapeHtml(role.name)}</td></tr>
+                                <tr><td><strong>Description:</strong></td><td>${escapeHtml(role.description) || 'No description'}</td></tr>
+                                <tr><td><strong>Users:</strong></td><td>${escapeHtml(String(role.user_count))}</td></tr>
                                 <tr><td><strong>Created:</strong></td><td>${role.created_at ? new Date(role.created_at).toLocaleDateString() : '-'}</td></tr>
                             </table>
                         </div>
@@ -190,8 +191,8 @@ window.EventDelegation.register('view-role-details', function(element, e) {
                         content += `
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div>
-                                    <strong>${user.username}</strong>
-                                    <br><small class="text-muted">${user.email}</small>
+                                    <strong>${escapeHtml(user.username)}</strong>
+                                    <br><small class="text-muted">${escapeHtml(user.email)}</small>
                                 </div>
                                 <div>
                                     <span class="badge bg-label-${user.is_approved ? 'success' : 'warning'}" data-badge>${user.is_approved ? 'Approved' : 'Pending'}</span>
@@ -219,7 +220,13 @@ window.EventDelegation.register('view-role-details', function(element, e) {
         })
         .catch(error => {
             if (detailsContent) {
-                detailsContent.innerHTML = `<div class="alert alert-danger" data-alert>Error: ${error.message}</div>`;
+                // Use textContent to prevent XSS from error messages
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger';
+                alertDiv.setAttribute('data-alert', '');
+                alertDiv.textContent = `Error: ${error.message}`;
+                detailsContent.innerHTML = '';
+                detailsContent.appendChild(alertDiv);
             }
         });
 });
@@ -378,14 +385,68 @@ window.EventDelegation.register('delete-role', function(element, e) {
 
 /**
  * Export Roles
- * Exports role data
+ * Exports role data as JSON
  */
 window.EventDelegation.register('export-roles', function(element, e) {
     e.preventDefault();
 
-    if (typeof window.Swal !== 'undefined') {
-        window.Swal.fire('Feature Coming Soon', 'Role export functionality will be added soon.', 'info');
+    if (typeof window.Swal === 'undefined') {
+        console.error('[export-roles] SweetAlert2 not available');
+        return;
     }
+
+    window.Swal.fire({
+        title: 'Export Roles?',
+        text: 'This will export all roles and their permissions as a JSON file.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Export Roles'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.Swal.fire({
+                title: 'Exporting Roles...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    window.Swal.showLoading();
+
+                    fetch('/admin-panel/users/roles/export', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Create download link
+                            const blob = new Blob([JSON.stringify(data.export_data, null, 2)], { type: 'application/json' });
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = data.filename || 'roles-export.json';
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+
+                            window.Swal.fire({
+                                title: 'Export Complete!',
+                                html: `<p>${data.message}</p><p class="text-muted small mt-2">File: ${data.filename}</p>`,
+                                icon: 'success'
+                            });
+                        } else {
+                            window.Swal.fire('Error', data.message || 'Failed to export roles', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('[export-roles] Error:', error);
+                        window.Swal.fire('Error', 'Failed to export roles. Check server connectivity.', 'error');
+                    });
+                }
+            });
+        }
+    });
 });
 
 // ============================================================================
@@ -485,5 +546,146 @@ window.EventDelegation.register('submit-assign-role-form', function(element, e) 
         }
     });
 });
+
+// ============================================================================
+// USER ROLE MANAGEMENT (Modal-based add/remove)
+// ============================================================================
+
+/**
+ * Add Role to User
+ * Adds a role to a user via the user role management modal
+ */
+window.EventDelegation.register('add-role', function(element, e) {
+    e.preventDefault();
+
+    const userId = element.dataset.userId;
+    const roleId = element.dataset.roleId;
+    const roleName = element.dataset.roleName;
+
+    if (!userId || !roleId) {
+        console.error('[add-role] Missing user ID or role ID');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('user_id', userId);
+    formData.append('role_id', roleId);
+    formData.append('action', 'add');
+
+    fetch('/admin-panel/users/assign-role', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Success', data.message || `Role "${roleName}" added successfully`, 'success').then(() => {
+                    // Refresh the modal content
+                    const refreshBtn = document.querySelector('[data-action="refresh-user-roles"]');
+                    if (refreshBtn) {
+                        refreshBtn.click();
+                    } else {
+                        location.reload();
+                    }
+                });
+            } else {
+                location.reload();
+            }
+        } else {
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', data.message || 'Failed to add role', 'error');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error adding role:', error);
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', 'Failed to add role', 'error');
+        }
+    });
+});
+
+/**
+ * Remove Role from User
+ * Removes a role from a user via the user role management modal
+ */
+window.EventDelegation.register('remove-role', function(element, e) {
+    e.preventDefault();
+
+    const userId = element.dataset.userId;
+    const roleId = element.dataset.roleId;
+    const roleName = element.dataset.roleName;
+
+    if (!userId || !roleId) {
+        console.error('[remove-role] Missing user ID or role ID');
+        return;
+    }
+
+    // Confirm removal
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Remove Role?',
+            text: `Are you sure you want to remove the "${roleName}" role from this user?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Yes, remove it'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performRemoveRole(userId, roleId, roleName);
+            }
+        });
+    }
+});
+
+/**
+ * Perform the actual role removal
+ */
+function performRemoveRole(userId, roleId, roleName) {
+    const formData = new FormData();
+    formData.append('user_id', userId);
+    formData.append('role_id', roleId);
+    formData.append('action', 'remove');
+
+    fetch('/admin-panel/users/assign-role', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Success', data.message || `Role "${roleName}" removed successfully`, 'success').then(() => {
+                    // Refresh the modal content
+                    const refreshBtn = document.querySelector('[data-action="refresh-user-roles"]');
+                    if (refreshBtn) {
+                        refreshBtn.click();
+                    } else {
+                        location.reload();
+                    }
+                });
+            } else {
+                location.reload();
+            }
+        } else {
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', data.message || 'Failed to remove role', 'error');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error removing role:', error);
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', 'Failed to remove role', 'error');
+        }
+    });
+}
 
 // Handlers loaded

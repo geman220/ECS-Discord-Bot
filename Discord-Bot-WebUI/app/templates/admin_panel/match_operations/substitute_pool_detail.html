@@ -48,37 +48,37 @@
 <!-- Statistics Cards -->
 <div class="row mb-4">
     <div class="col-md-2 col-sm-4 mb-3">
-        <div class="stat-card stat-primary">
+        <div class="stat-c-card stat-primary">
             <div class="stat-value">{{ stats.total_active }}</div>
             <div class="stat-label">Active Subs</div>
         </div>
     </div>
     <div class="col-md-2 col-sm-4 mb-3">
-        <div class="stat-card stat-success">
+        <div class="stat-c-card stat-success">
             <div class="stat-value">{{ stats.total_eligible }}</div>
             <div class="stat-label">Eligible</div>
         </div>
     </div>
     <div class="col-md-2 col-sm-4 mb-3">
-        <div class="stat-card stat-info">
+        <div class="stat-c-card stat-info">
             <div class="stat-value">{{ stats.total_requests_sent }}</div>
             <div class="stat-label">Requests</div>
         </div>
     </div>
     <div class="col-md-2 col-sm-4 mb-3">
-        <div class="stat-card stat-warning">
+        <div class="stat-c-card stat-warning">
             <div class="stat-value">{{ stats.total_matches_played }}</div>
             <div class="stat-label">Matches</div>
         </div>
     </div>
     <div class="col-md-2 col-sm-4 mb-3">
-        <div class="stat-card stat-secondary">
+        <div class="stat-c-card stat-secondary">
             <div class="stat-value">{{ stats.pending_approval }}</div>
             <div class="stat-label">Available</div>
         </div>
     </div>
     <div class="col-md-2 col-sm-4 mb-3">
-        <div class="stat-card stat-action">
+        <div class="stat-c-card stat-action">
             <button class="c-btn c-btn--sm c-btn--outline-primary js-load-stats" data-action="load-stats">
                 <i class="ti ti-refresh me-1"></i>Stats
             </button>
@@ -99,7 +99,7 @@
             <div class="c-card__body p-0">
                 {% if active_pools %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="substitutes">
+                    <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="substitutes">
                         <thead class="c-table--light" scope="col">
                             <tr>
                                 <th scope="col">Player</th>
@@ -113,7 +113,7 @@
                         <tbody>
                             {% for pool in active_pools %}
                             <tr>
-                                <td>
+                                <td data-label="Player">
                                     <div class="d-flex align-items-center">
                                         <div class="player-avatar me-2">
                                             <span>{{ pool.player.name[0] if pool.player else '?' }}</span>
@@ -134,24 +134,24 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="text-center">
+                                <td class="text-center" data-label="Matches">
                                     <span class="badge bg-info" data-badge>{{ pool.matches_played }}</span>
                                 </td>
-                                <td class="text-center">
+                                <td class="text-center" data-label="Requests">
                                     {{ pool.requests_received }}
                                 </td>
-                                <td class="text-center">
+                                <td class="text-center" data-label="Acceptance">
                                     <div class="acceptance-progress">
                                         <div class="acceptance-progress-bar" data-width="{{ pool.acceptance_rate }}"></div>
                                     </div>
                                     <small class="acceptance-rate-text">{{ pool.acceptance_rate|round(1) }}%</small>
                                 </td>
-                                <td class="text-center">
+                                <td class="text-center" data-label="Notifications">
                                     <span class="notification-badge {{ 'enabled' if pool.sms_for_sub_requests else 'disabled' }}" title="SMS" data-badge>S</span>
                                     <span class="notification-badge {{ 'enabled' if pool.discord_for_sub_requests else 'disabled' }}" title="Discord" data-badge>D</span>
                                     <span class="notification-badge {{ 'enabled' if pool.email_for_sub_requests else 'disabled' }}" title="Email" data-badge>E</span>
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         <button class="c-btn c-btn--outline-danger js-remove-player" data-action="remove-pool-player" data-player-id="{{ pool.player_id }}" data-player-name="{{ pool.player.name if pool.player else 'Unknown' }}" title="Remove from pool">
                                             <i class="ti ti-trash"></i>
@@ -623,24 +623,26 @@ async function loadStatistics() {
 
                 ${stats.top_performers.length > 0 ? `
                 <h6>Top Performers</h6>
-                <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="statistics">
-                    <thead scope="col">
-                        <tr>
-                            <th scope="col">Player</th>
-                            <th class="text-center" scope="col">Matches</th>
-                            <th class="text-center" scope="col">Acceptance</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${stats.top_performers.map(p => `
+                <div class="c-table-wrapper">
+                    <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="statistics">
+                        <thead scope="col">
                             <tr>
-                                <td>${p.player_name}</td>
-                                <td class="text-center">${p.matches_played}</td>
-                                <td class="text-center">${p.acceptance_rate.toFixed(1)}%</td>
+                                <th scope="col">Player</th>
+                                <th class="text-center" scope="col">Matches</th>
+                                <th class="text-center" scope="col">Acceptance</th>
                             </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            ${stats.top_performers.map(p => `
+                                <tr>
+                                    <td data-label="Player">${p.player_name}</td>
+                                    <td data-label="Matches" class="text-center">${p.matches_played}</td>
+                                    <td data-label="Acceptance" class="text-center">${p.acceptance_rate.toFixed(1)}%</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
                 ` : '<p class="text-muted">No performance data yet</p>'}
             `;
             document.getElementById('statisticsContent').innerHTML = html;

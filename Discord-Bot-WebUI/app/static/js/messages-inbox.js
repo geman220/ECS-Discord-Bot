@@ -40,7 +40,7 @@ let userResultsList = null;
 /**
  * Initialize the inbox
  */
-export function init() {
+function initMessagesInbox() {
     // Configuration from server
     config = window.MessagesInboxConfig || {};
     API_BASE = config.apiBase || '/api/messages';
@@ -93,56 +93,91 @@ export function init() {
 }
 
 /**
- * Set up event listeners
+ * Set up event listeners using event delegation
  */
-export function setupEventListeners() {
+function setupEventListeners() {
     if (_eventListenersSetup) return;
     _eventListenersSetup = true;
 
-    // New conversation buttons
-    const newConversationBtns = document.querySelectorAll('[data-action="new-conversation"]');
-    newConversationBtns.forEach((btn) => {
-        btn.addEventListener('click', function(e) {
+    // Delegated click handler for all inbox interactions
+    document.addEventListener('click', (e) => {
+        // New conversation buttons
+        if (e.target.closest('[data-action="new-conversation"]')) {
             openNewConversationModal(e);
-        });
+            return;
+        }
+
+        // Mark all read button
+        if (e.target.closest('[data-action="mark-all-read"]')) {
+            markAllAsRead();
+            return;
+        }
+
+        // Back to list (mobile)
+        if (e.target.closest('[data-action="back-to-list"]')) {
+            closeChat();
+            return;
+        }
+
+        // Send button
+        if (e.target.closest('[data-action="send-message"]')) {
+            sendMessage();
+            return;
+        }
+
+        // Conversation item clicks
+        const conversationItem = e.target.closest('.c-messages-conversation[data-user-id]');
+        if (conversationItem && inbox && inbox.contains(conversationItem)) {
+            const userId = parseInt(conversationItem.dataset.userId);
+            const conv = conversations.find(c => c.user.id === userId);
+            if (conv) {
+                openConversation(conv.user);
+            }
+            return;
+        }
+
+        // User search result clicks
+        const userResultItem = e.target.closest('.c-user-search-results__item');
+        if (userResultItem && userResultItem.dataset.userId) {
+            const userData = JSON.parse(userResultItem.dataset.user || '{}');
+            if (userData.id) {
+                openConversation(userData);
+            }
+            return;
+        }
     });
 
-    // Mark all read button
-    const markAllReadBtn = inbox.querySelector('[data-action="mark-all-read"]');
-    if (markAllReadBtn) {
-        markAllReadBtn.addEventListener('click', markAllAsRead);
-    }
+    // Delegated input handler
+    document.addEventListener('input', (e) => {
+        // Message input
+        if (e.target.matches('[data-input="message"]')) {
+            handleInputChange();
+            return;
+        }
 
-    // Back to list (mobile)
-    const backBtn = inbox.querySelector('[data-action="back-to-list"]');
-    if (backBtn) {
-        backBtn.addEventListener('click', closeChat);
-    }
+        // Conversation search
+        if (e.target.matches('[data-input="search-conversations"]')) {
+            handleConversationSearch();
+            return;
+        }
 
-    // Message input
-    if (elements.messageInput) {
-        elements.messageInput.addEventListener('input', handleInputChange);
-        elements.messageInput.addEventListener('keydown', handleKeyDown);
-    }
+        // User search in modal
+        if (e.target.matches('#userSearchInput')) {
+            handleUserSearch();
+            return;
+        }
+    });
 
-    // Send button
-    if (elements.sendButton) {
-        elements.sendButton.addEventListener('click', sendMessage);
-    }
+    // Delegated keydown handler
+    document.addEventListener('keydown', (e) => {
+        if (e.target.matches('[data-input="message"]')) {
+            handleKeyDown(e);
+        }
+    });
 
-    // Conversation search
-    if (elements.searchInput) {
-        elements.searchInput.addEventListener('input', handleConversationSearch);
-    }
-
-    // User search in modal
-    if (userSearchInput) {
-        userSearchInput.addEventListener('input', handleUserSearch);
-    }
-
-    // Modal reset on hide
-    if (modal) {
-        modal.addEventListener('hidden.bs.modal', () => {
+    // Modal reset on hide (Bootstrap event - document level)
+    document.addEventListener('hidden.bs.modal', (e) => {
+        if (e.target.id === 'newConversationModal') {
             if (userSearchInput) userSearchInput.value = '';
             if (userResultsList) {
                 userResultsList.innerHTML = `
@@ -152,14 +187,14 @@ export function setupEventListeners() {
                     </div>
                 `;
             }
-        });
-    }
+        }
+    });
 }
 
 /**
  * Set up WebSocket connection
  */
-export function setupWebSocket() {
+function setupWebSocket() {
     if (typeof window.SocketManager !== 'undefined') {
         console.log('[MessagesInbox] Using SocketManager');
         socket = window.SocketManager.getSocket();
@@ -191,7 +226,7 @@ export function setupWebSocket() {
 /**
  * Set up socket event listeners
  */
-export function setupSocketListeners() {
+function setupSocketListeners() {
     if (!window.socket) return;
 
     window.socket.on('connect', () => {
@@ -225,13 +260,13 @@ async function loadConversations() {
     }
 }
 
-export function showLoading(show) {
+function showLoading(show) {
     if (elements.loadingState) {
         elements.loadingState.classList.toggle('u-hidden', !show);
     }
 }
 
-export function renderConversations(filteredList = null) {
+function renderConversations(filteredList = null) {
     const list = filteredList || conversations;
 
     if (elements.emptyState) {
@@ -251,7 +286,7 @@ export function renderConversations(filteredList = null) {
     });
 }
 
-export function createConversationElement(conv) {
+function createConversationElement(conv) {
     const div = document.createElement('div');
     div.className = 'c-messages-conversation';
     div.dataset.userId = conv.user.id;
@@ -280,7 +315,7 @@ export function createConversationElement(conv) {
         </div>
     `;
 
-    div.addEventListener('click', () => openConversation(conv.user));
+    // Click handled by event delegation in setupEventListeners
 
     return div;
 }
@@ -311,7 +346,7 @@ async function openConversation(user) {
     }
 }
 
-export function updateChatHeader(user) {
+function updateChatHeader(user) {
     const avatarUrl = user.avatar_url || '/static/img/default-avatar.png';
     const roleBadges = renderRoleBadges(user);
 
@@ -340,7 +375,7 @@ export function updateChatHeader(user) {
     }
 }
 
-export function showChatView(show) {
+function showChatView(show) {
     if (elements.welcomeState) {
         elements.welcomeState.classList.toggle('u-hidden', show);
     }
@@ -352,7 +387,7 @@ export function showChatView(show) {
     }
 }
 
-export function closeChat() {
+function closeChat() {
     activeUserId = null;
     activeConversation = null;
     showChatView(false);
@@ -398,7 +433,7 @@ async function loadMessages(userId) {
     }
 }
 
-export function renderMessages(messages) {
+function renderMessages(messages) {
     let lastDate = null;
 
     messages.forEach(msg => {
@@ -416,7 +451,7 @@ export function renderMessages(messages) {
     scrollToBottom();
 }
 
-export function createDateSeparator(dateStr) {
+function createDateSeparator(dateStr) {
     const div = document.createElement('div');
     div.className = 'c-messages-date-separator';
 
@@ -438,7 +473,7 @@ export function createDateSeparator(dateStr) {
     return div;
 }
 
-export function createMessageElement(msg) {
+function createMessageElement(msg) {
     const div = document.createElement('div');
     const isSent = msg.sender_id === CURRENT_USER_ID;
     div.className = `c-messages-message ${isSent ? 'c-messages-message--sent' : 'c-messages-message--received'}`;
@@ -456,7 +491,7 @@ export function createMessageElement(msg) {
     return div;
 }
 
-export function handleInputChange() {
+function handleInputChange() {
     const value = elements.messageInput.value;
     const length = value.length;
     const maxLength = SETTINGS.max_message_length || 2000;
@@ -484,7 +519,7 @@ export function handleInputChange() {
     }
 }
 
-export function handleKeyDown(e) {
+function handleKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         sendMessage();
@@ -542,7 +577,7 @@ async function sendMessage() {
     handleInputChange();
 }
 
-export function handleNewMessage(msg) {
+function handleNewMessage(msg) {
     if (msg.sender_id === activeUserId) {
         const element = createMessageElement(msg);
         elements.messagesContainer.appendChild(element);
@@ -561,7 +596,7 @@ export function handleNewMessage(msg) {
     loadConversations();
 }
 
-export function handleTypingStart(data) {
+function handleTypingStart(data) {
     if (data.user_id === activeUserId && elements.typingIndicator) {
         elements.typingIndicator.classList.remove('u-hidden');
         if (elements.typingName) {
@@ -571,13 +606,13 @@ export function handleTypingStart(data) {
     }
 }
 
-export function handleTypingStop(data) {
+function handleTypingStop(data) {
     if (data.user_id === activeUserId && elements.typingIndicator) {
         elements.typingIndicator.classList.add('u-hidden');
     }
 }
 
-export function handleMessageRead(data) {
+function handleMessageRead(data) {
     if (data.reader_id === activeUserId) {
         document.querySelectorAll('.c-messages-message--sent').forEach(el => {
             const timeEl = el.querySelector('.c-messages-message__time');
@@ -620,7 +655,7 @@ async function markAllAsRead() {
     }
 }
 
-export function updateConversationPreview(userId, content, sentByMe) {
+function updateConversationPreview(userId, content, sentByMe) {
     const conv = document.querySelector(`.c-messages-conversation[data-user-id="${userId}"]`);
     if (conv) {
         const preview = conv.querySelector('.c-messages-conversation__preview');
@@ -636,7 +671,7 @@ export function updateConversationPreview(userId, content, sentByMe) {
     }
 }
 
-export function updateConversationUnread(userId, count) {
+function updateConversationUnread(userId, count) {
     const conv = document.querySelector(`.c-messages-conversation[data-user-id="${userId}"]`);
     if (conv) {
         let badge = conv.querySelector('.c-messages-conversation__unread');
@@ -653,7 +688,7 @@ export function updateConversationUnread(userId, count) {
     }
 }
 
-export function incrementConversationUnread(userId) {
+function incrementConversationUnread(userId) {
     const conv = document.querySelector(`.c-messages-conversation[data-user-id="${userId}"]`);
     if (conv) {
         let badge = conv.querySelector('.c-messages-conversation__unread');
@@ -668,7 +703,7 @@ export function incrementConversationUnread(userId) {
     }
 }
 
-export function handleConversationSearch() {
+function handleConversationSearch() {
     const query = elements.searchInput.value.toLowerCase().trim();
 
     if (!query) {
@@ -684,7 +719,7 @@ export function handleConversationSearch() {
     renderConversations(filtered);
 }
 
-export function openNewConversationModal() {
+function openNewConversationModal() {
     if (modal) {
         if (true) {
             window.ModalManager.show('newConversationModal');
@@ -699,7 +734,7 @@ export function openNewConversationModal() {
     }
 }
 
-export function handleUserSearch() {
+function handleUserSearch() {
     const query = userSearchInput.value.trim();
 
     clearTimeout(searchTimeout);
@@ -730,18 +765,20 @@ export function handleUserSearch() {
                 data.users.forEach(user => {
                     const div = document.createElement('div');
                     div.className = 'c-user-search-results__item';
+                    div.dataset.userId = user.id;
+                    div.dataset.user = JSON.stringify(user);
                     const roleBadges = renderRoleBadges(user);
                     div.innerHTML = `
                         <img src="${user.avatar_url || '/static/img/default-avatar.png'}" alt="${user.name}" class="c-user-search-results__avatar">
                         <span class="c-user-search-results__name">${escapeHtml(user.name)}${roleBadges}</span>
                     `;
-                    div.addEventListener('click', () => openConversation(user));
+                    // Click handled by event delegation in setupEventListeners
                     userResultsList.appendChild(div);
                 });
             } else {
                 userResultsList.innerHTML = `
                     <div class="c-user-search-results__empty">
-                        <i class="ti ti-user-off" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;" aria-hidden="true"></i>
+                        <i class="ti ti-user-off icon-2x mb-2 opacity-50" aria-hidden="true"></i>
                         <p>No users found</p>
                     </div>
                 `;
@@ -757,13 +794,13 @@ export function handleUserSearch() {
     }, 300);
 }
 
-export function scrollToBottom() {
+function scrollToBottom() {
     if (elements.messagesContainer) {
         elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
     }
 }
 
-export function formatTime(dateStr) {
+function formatTime(dateStr) {
     const date = new Date(dateStr);
     return date.toLocaleTimeString('en-US', {
         hour: 'numeric',
@@ -772,13 +809,9 @@ export function formatTime(dateStr) {
     });
 }
 
-export function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+// escapeHtml is now provided globally by utils/safe-html.js
 
-export function renderRoleBadges(user) {
+function renderRoleBadges(user) {
     if (!user) return '';
 
     const badges = [];
@@ -800,12 +833,10 @@ export function renderRoleBadges(user) {
     return badges.length > 0 ? `<span class="c-role-badges">${badges.join('')}</span>` : '';
 }
 
-export function getCsrfToken() {
-    const meta = document.querySelector('meta[name="csrf-token"]');
-    return meta ? meta.getAttribute('content') : '';
-}
+// getCsrfToken is provided globally by csrf-fetch.js (as getCSRFToken)
+const getCsrfToken = window.getCSRFToken;
 
-export function updateGlobalBadge(count) {
+function updateGlobalBadge(count) {
     const badge = document.querySelector('[data-badge="messages-count"]');
     if (badge) {
         badge.textContent = count;
@@ -813,7 +844,7 @@ export function updateGlobalBadge(count) {
     }
 }
 
-export function showError(message) {
+function showError(message) {
     if (typeof window.showToast === 'function') {
         window.showToast(message, 'error');
     } else {
@@ -828,7 +859,7 @@ let _moduleInitialized = false;
 function initWithGuard() {
     if (_moduleInitialized) return;
     _moduleInitialized = true;
-    init();
+    initMessagesInbox();
 }
 
 window.InitSystem.register('messages-inbox', initWithGuard, {
@@ -842,7 +873,7 @@ window.InitSystem.register('messages-inbox', initWithGuard, {
 
 // Backward compatibility
 window.MessagesInbox = {
-    init,
+    init: initMessagesInbox,
     setupEventListeners,
     setupWebSocket,
     showLoading,

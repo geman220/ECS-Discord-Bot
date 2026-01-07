@@ -76,9 +76,11 @@
 .c-disclosure__trigger:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
+  outline-offset: 2px;
 }
 
 /* Trigger text */
+
 .c-disclosure__trigger-text {
   flex: 1;
   min-width: 0;
@@ -98,6 +100,7 @@
 }
 
 /* Rotate icon when expanded */
+
 .c-disclosure.is-expanded .c-disclosure__icon {
   transform: rotate(180deg);
 }
@@ -120,12 +123,14 @@
 }
 
 /* Expanded state */
+
 .c-disclosure.is-expanded .c-disclosure__content {
   grid-template-rows: 1fr;
   opacity: 1;
 }
 
 /* For browsers that don't support grid animation */
+
 @supports not (grid-template-rows: 0fr) {
   .c-disclosure__content {
     max-height: 0;
@@ -134,7 +139,8 @@
   }
 
   .c-disclosure.is-expanded .c-disclosure__content {
-    max-height: 2000px; /* Large enough for most content */
+    max-height: 2000px;
+    /* Large enough for most content */
   }
 }
 
@@ -222,6 +228,7 @@
 }
 
 /* Bordered accordion style */
+
 .c-accordion--bordered {
   border: 1px solid var(--color-border-primary);
   border-radius: var(--radius-lg);
@@ -303,6 +310,7 @@
 }
 
 /* Two-column layout for detail panels */
+
 @media (min-width: 480px) {
   .c-detail-panel--two-col {
     grid-template-columns: repeat(2, 1fr);
@@ -315,12 +323,14 @@
 
 @media (max-width: 767.98px) {
   /* Larger touch targets on mobile */
+
   .c-disclosure__trigger {
     min-height: 48px;
     padding: var(--space-3) var(--space-4);
   }
 
   /* Full-width disclosure on mobile */
+
   .c-disclosure {
     border-radius: 0;
   }
@@ -332,12 +342,14 @@
   }
 
   /* Larger icon for better visibility */
+
   .c-disclosure__icon {
     width: 24px;
     height: 24px;
   }
 
   /* Stacked accordions with no gap on mobile */
+
   .c-accordion {
     gap: 0;
   }
@@ -373,6 +385,7 @@
    ============================================================================ */
 
 /* Respect reduced motion preference */
+
 @media (prefers-reduced-motion: reduce) {
   .c-disclosure__content,
   .c-disclosure__icon {
@@ -381,12 +394,9 @@
 }
 
 /* Focus visible for keyboard navigation */
-.c-disclosure__trigger:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
 
 /* Screen reader text for expand/collapse state */
+
 .c-disclosure__sr-status {
   position: absolute;
   width: 1px;

@@ -77,7 +77,7 @@
     <div class="c-card__body p-0">
         {% if orders.items %}
         <div class="c-table-wrapper" data-table-responsive>
-            <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="orders">
+            <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="orders">
                 <thead class="c-table--light" scope="col">
                     <tr>
                         <th scope="col">Order ID</th>
@@ -92,10 +92,10 @@
                 <tbody>
                     {% for order in orders.items %}
                     <tr>
-                        <td>
+                        <td data-label="Order ID">
                             <strong>#{{ order.id }}</strong>
                         </td>
-                        <td>
+                        <td data-label="Item">
                             <div class="d-flex align-items-center">
                                 {% if order.item and order.item.image_url %}
                                 <img src="{{ order.item.image_url }}" alt="{{ order.item.name }}"
@@ -111,10 +111,10 @@
                                 </div>
                             </div>
                         </td>
-                        <td>
+                        <td data-label="Customer">
                             <strong>{{ order.orderer.username if order.orderer else 'Unknown User' }}</strong>
                         </td>
-                        <td>
+                        <td data-label="Details">
                             {% if order.selected_color %}
                             <small class="badge bg-light text-dark me-1">{{ order.selected_color }}</small>
                             {% endif %}
@@ -125,15 +125,15 @@
                             <span class="text-muted">No options</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Status">
                             <span class="badge bg-{% if order.status == 'PENDING' %}warning{% elif order.status == 'PROCESSING' %}info{% elif order.status == 'ORDERED' %}primary{% elif order.status == 'DELIVERED' %}success{% else %}secondary{% endif %}" data-badge>
                                 {{ order.status }}
                             </span>
                         </td>
-                        <td>
+                        <td data-label="Order Date">
                             <small>{{ order.order_date.strftime('%Y-%m-%d %H:%M') if order.order_date else 'Unknown' }}</small>
                         </td>
-                        <td>
+                        <td data-label="Actions">
                             <div class="btn-group btn-group-sm">
                                 <button type="button" class="c-btn c-btn--outline-info"
                                         data-action="view-order-details" data-order-id="{{ order.id }}" title="View Details">

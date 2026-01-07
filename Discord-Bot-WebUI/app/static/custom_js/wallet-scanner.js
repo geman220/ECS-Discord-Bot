@@ -56,14 +56,8 @@ async function startScanning() {
         recentBarcodes.clear();
     } catch (err) {
         console.error('[WalletScanner] Start error:', err);
-        if (window.Swal) {
-            window.Swal.fire({
-                title: 'Camera Error',
-                text: 'Could not access camera. Please ensure camera permissions are granted and try again.',
-                icon: 'error'
-            });
-        } else {
-            alert('Could not access camera. Please ensure camera permissions are granted and try again.');
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Camera Error', 'Could not access camera. Please ensure camera permissions are granted and try again.', 'error');
         }
     }
 }
@@ -251,7 +245,7 @@ function clearHistory() {
 /**
  * Initialize module
  */
-function init() {
+function initWalletScanner() {
     if (_initialized) return;
 
     // Get DOM elements
@@ -298,7 +292,7 @@ function init() {
 
 // Export functions
 export {
-    init,
+    initWalletScanner,
     startScanning,
     stopScanning,
     validateBarcode,
@@ -307,7 +301,7 @@ export {
 
 // Register with window.InitSystem
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('wallet-scanner', init, {
+    window.InitSystem.register('wallet-scanner', initWalletScanner, {
         priority: 30,
         reinitializable: false,
         description: 'Wallet pass QR scanner'
@@ -319,7 +313,7 @@ if (window.InitSystem && window.InitSystem.register) {
 
 // Backward compatibility
 window.WalletScanner = {
-    init,
+    init: initWalletScanner,
     startScanning,
     stopScanning,
     validateBarcode,

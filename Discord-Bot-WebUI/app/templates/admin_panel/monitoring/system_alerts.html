@@ -265,7 +265,7 @@
             <div class="c-card__body">
                 {% if resolved_alerts %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="logs">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="logs">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Alert</th>
@@ -280,25 +280,25 @@
                         <tbody>
                             {% for alert in resolved_alerts %}
                             <tr>
-                                <td>
+                                <td data-label="Alert">
                                     <strong>{{ alert.title }}</strong>
                                     <br><small class="text-muted">{{ alert.description[:50] }}...</small>
                                 </td>
-                                <td>
+                                <td data-label="Severity">
                                     <span class="badge bg-{% if alert.severity == 'critical' %}danger{% elif alert.severity == 'warning' %}warning{% else %}info{% endif %}" data-badge>
                                         {{ alert.severity|upper }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Component">
                                     <small>{{ alert.component }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Triggered">
                                     <small>{{ alert.created_at.strftime('%m/%d %H:%M') }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Resolved">
                                     <small>{{ alert.resolved_at.strftime('%m/%d %H:%M') if alert.resolved_at else '-' }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Duration">
                                     {% if alert.resolved_at and alert.created_at %}
                                         {% set duration = (alert.resolved_at - alert.created_at).total_seconds() / 60 %}
                                         <small>{{ "%.0f"|format(duration) }}m</small>
@@ -306,7 +306,7 @@
                                         <small>-</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Resolved By">
                                     <small>{{ alert.resolved_by.username if alert.resolved_by else 'System' }}</small>
                                 </td>
                             </tr>

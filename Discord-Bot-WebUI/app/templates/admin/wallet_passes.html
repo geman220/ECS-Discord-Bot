@@ -3,22 +3,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    /* Passes list - Theme-aware styling */
-    .pass-stat-card {
-        border-radius: 8px;
-        transition: all 0.2s;
-    }
-    .pass-stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--bs-box-shadow-sm);
-    }
-    .filter-row {
-        background-color: var(--bs-tertiary-bg);
-        border-radius: 8px;
-        padding: 16px;
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock custom_css %}
 
 {% block content %}
@@ -67,7 +52,7 @@
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="c-card pass-stat-card h-100">
+            <div class="c-card pass-stat-c-card h-100">
                 <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -84,7 +69,7 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="c-card pass-stat-card h-100">
+            <div class="c-card pass-stat-c-card h-100">
                 <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -101,7 +86,7 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="c-card pass-stat-card h-100">
+            <div class="c-card pass-stat-c-card h-100">
                 <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -118,7 +103,7 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="c-card pass-stat-card h-100">
+            <div class="c-card pass-stat-c-card h-100">
                 <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -220,7 +205,7 @@
             <!-- Passes Table -->
             {% if passes and passes.items %}
             <div class="c-table-wrapper" data-table-responsive>
-                <table class="c-table c-table--hoverable" data-mobile-table data-table-type="wallet" data-table>
+                <table class="c-c-table c-table--hoverable" data-mobile-table data-table-type="wallet" data-table>
                     <thead scope="col">
                         <tr>
                             {% if 'Global Admin' in user_roles %}
@@ -243,14 +228,14 @@
                         {% for wallet_pass in passes.items %}
                         <tr>
                             {% if 'Global Admin' in user_roles %}
-                            <td>
+                            <td data-label="Select">
                                 <input type="checkbox" class="form-check-input pass-checkbox js-update-bulk-actions"
                                        value="{{ wallet_pass.id }}"
                                        data-status="{{ wallet_pass.status }}"
                                        data-action="update-selection" data-count="#selectedCount" data-bar="#bulkActionsBar" data-items=".pass-checkbox:checked">
                             </td>
                             {% endif %}
-                            <td>
+                            <td data-label="Member">
                                 <div class="d-flex align-items-center">
                                     <div class="avatar avatar-sm me-2">
                                         <span class="avatar-initial rounded-circle bg-label-{{ 'info' if active_tab == 'ecs' or not active_tab else 'warning' }}">
@@ -266,7 +251,7 @@
                                 </div>
                             </td>
                             {% if active_tab == 'pub_league' %}
-                            <td>
+                            <td data-label="Team">
                                 {% if wallet_pass.team_name %}
                                 <span class="badge bg-label-warning" data-badge>{{ wallet_pass.team_name }}</span>
                                 {% else %}
@@ -274,12 +259,12 @@
                                 {% endif %}
                             </td>
                             {% endif %}
-                            <td>
+                            <td data-label="Validity Period">
                                 <span class="badge bg-label-{{ 'primary' if active_tab == 'ecs' or not active_tab else 'warning' }}" data-badge>
                                     {{ wallet_pass.display_validity if wallet_pass.display_validity else 'N/A' }}
                                 </span>
                             </td>
-                            <td>
+                            <td data-label="Status">
                                 {% if wallet_pass.status == 'active' and wallet_pass.is_valid %}
                                 <span class="badge bg-label-success" data-badge>
                                     <i class="ti ti-check me-1"></i>Active
@@ -296,17 +281,17 @@
                                 <span class="badge bg-label-warning" data-badge>{{ wallet_pass.status }}</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Downloads">
                                 <span class="badge bg-label-info" data-badge>
                                     <i class="ti ti-download me-1"></i>{{ wallet_pass.download_count }}
                                 </span>
                             </td>
-                            <td>
+                            <td data-label="Created">
                                 <small class="text-muted">
                                     {{ wallet_pass.created_at.strftime('%b %d, %Y') }}
                                 </small>
                             </td>
-                            <td class="text-end">
+                            <td data-label="Actions" class="text-end">
                                 <div class="btn-group btn-group-sm">
                                     <a href="{{ url_for('wallet_admin.pass_detail', pass_id=wallet_pass.id) }}"
                                        class="c-btn c-btn--outline-primary" title="View Details">

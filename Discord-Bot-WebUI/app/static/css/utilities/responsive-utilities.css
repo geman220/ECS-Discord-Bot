@@ -8,44 +8,44 @@
 
 /* ===== Body Scroll Management ===== */
 .scroll-locked {
-  position: fixed !important;
-  width: 100% !important;
-  overflow: hidden !important;
+  position: fixed;
+  width: 100%;
+  overflow: hidden;
 }
 
 /* ===== Modal Body Scrolling ===== */
 .modal-body-scrollable {
-  max-height: calc(85vh - 120px) !important;
-  overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch !important;
+  max-height: calc(85vh - 120px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ===== Modal Content Sizing ===== */
 .modal-content-mobile {
-  max-height: 85vh !important;
-  border-radius: 16px 16px 0 0 !important;
+  max-height: 85vh;
+  border-radius: 16px 16px 0 0;
 }
 
 /* ===== Form Control Touch Targets ===== */
 .form-control-touch-target,
 .form-select-touch-target {
-  min-height: var(--input-height, 44px) !important;
+  min-height: var(--input-height, 44px);
 }
 
 .form-control-ios-date {
-  min-height: var(--input-height, 44px) !important;
-  padding-right: 0.75rem !important;
+  min-height: var(--input-height, 44px);
+  padding-right: 0.75rem;
 }
 
 /* ===== Menu Touch Targets ===== */
 .menu-toggle-touch,
 .menu-link-touch {
-  min-height: var(--touch-target-size, 44px) !important;
+  min-height: var(--touch-target-size, 44px);
 }
 
 /* ===== Table Scroll Enhancements ===== */
 .table-responsive-touch {
-  -webkit-overflow-scrolling: touch !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table-scroll-hint {
@@ -63,9 +63,9 @@
 
 /* ===== Navigation Scrolling ===== */
 .scrollable-tabs {
-  overflow-x: auto !important;
-  flex-wrap: nowrap !important;
-  -webkit-overflow-scrolling: touch !important;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tabs-scroll-hint {
@@ -92,11 +92,11 @@
 }
 
 .network-status-indicator.online {
-  background-color: var(--bs-success, #198754);
+  background-color: var(--bs-success, var(--color-success-600));
 }
 
 .network-status-indicator.offline {
-  background-color: var(--bs-danger, #dc3545);
+  background-color: var(--bs-danger, var(--color-danger-600));
 }
 
 .network-status-indicator.visible {
@@ -105,55 +105,55 @@
 
 /* ===== Modal Swipe Gestures ===== */
 .modal-dialog.swiping {
-  transition: none !important;
+  transition: none;
 }
 
 .modal-dialog.swipe-animating {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modal-dialog.swipe-dismiss {
-  transform: translateY(100%) !important;
+  transform: translateY(100%);
 }
 
 .modal-dialog.swipe-reset {
-  transform: none !important;
+  transform: none;
 }
 
 /* ===== Position Utilities ===== */
 .position-relative {
-  position: relative !important;
+  position: relative;
 }
 
 .position-fixed {
-  position: fixed !important;
+  position: fixed;
 }
 
 /* ===== Overflow Utilities ===== */
 .overflow-y-auto {
-  overflow-y: auto !important;
+  overflow-y: auto;
 }
 
 .overflow-x-auto {
-  overflow-x: auto !important;
+  overflow-x: auto;
 }
 
 .overflow-hidden {
-  overflow: hidden !important;
+  overflow: hidden;
 }
 
 /* ===== Z-Index Utilities ===== */
 .z-index-9999 {
-  z-index: 9999 !important;
+  z-index: 9999;
 }
 
 .z-index-10 {
-  z-index: 10 !important;
+  z-index: 10;
 }
 
 /* ===== Flex Utilities ===== */
 .flex-nowrap {
-  flex-wrap: nowrap !important;
+  flex-wrap: nowrap;
 }
 
 /* ===== Transform Utilities ===== */
@@ -167,7 +167,7 @@
 
 /* ===== Transition Utilities ===== */
 .transition-none {
-  transition: none !important;
+  transition: none;
 }
 
 .transition-opacity {
@@ -193,40 +193,40 @@
 
 /* ===== Display Utilities ===== */
 .display-none {
-  display: none !important;
+  display: none;
 }
 
 /* ===== Width Utilities ===== */
 .width-100 {
-  width: 100% !important;
+  width: 100%;
 }
 
 /* ===== Padding Utilities ===== */
 .padding-right-075 {
-  padding-right: 0.75rem !important;
+  padding-right: 0.75rem;
 }
 
 /* ===== Margin Utilities ===== */
 .margin-top-025 {
-  margin-top: 0.25rem !important;
+  margin-top: 0.25rem;
 }
 
 /* ===== Border Radius Utilities ===== */
 .border-radius-top-large {
-  border-radius: 16px 16px 0 0 !important;
+  border-radius: 16px 16px 0 0;
 }
 
 /* ===== Text Utilities ===== */
 .text-center {
-  text-align: center !important;
+  text-align: center;
 }
 
 .font-size-07rem {
-  font-size: 0.7rem !important;
+  font-size: 0.7rem;
 }
 
 .font-weight-bold {
-  font-weight: bold !important;
+  font-weight: bold;
 }
 
 /* ===== Box Shadow Utilities ===== */
@@ -236,27 +236,27 @@
 
 /* ===== WebKit Specific ===== */
 .webkit-overflow-scrolling-touch {
-  -webkit-overflow-scrolling: touch !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ===== Color Utilities ===== */
 .color-white {
-  color: white !important;
+  color: white;
 }
 
 .bg-success {
-  background-color: var(--bs-success, #198754) !important;
+  background-color: var(--bs-success, var(--color-success-600));
 }
 
 .bg-danger {
-  background-color: var(--bs-danger, #dc3545) !important;
+  background-color: var(--bs-danger, var(--color-danger-600));
 }
 
 /* ===== Min Height Utilities ===== */
 .min-height-input {
-  min-height: var(--input-height, 44px) !important;
+  min-height: var(--input-height, 44px);
 }
 
 .min-height-touch-target {
-  min-height: var(--touch-target-size, 44px) !important;
+  min-height: var(--touch-target-size, 44px);
 }

@@ -21,14 +21,14 @@
    ============================================================================ */
 
 :root {
-  --tmpl-primary: #8b5cf6;
-  --tmpl-success: var(--color-success-500, #10b981);
-  --tmpl-warning: var(--color-warning-500, #f59e0b);
-  --tmpl-info: #06b6d4;
-  --tmpl-danger: var(--color-danger-500, #ef4444);
+  --tmpl-primary: var(--color-primary-500);
+  --tmpl-success: var(--color-success-500, var(--color-success-500));
+  --tmpl-warning: var(--color-warning-500, var(--color-accent-600));
+  --tmpl-info: var(--color-info-500);
+  --tmpl-danger: var(--color-danger-500, var(--color-danger-600));
 
-  --tmpl-bg-base: #fafafa;
-  --tmpl-bg-card: var(--color-white, #ffffff);
+  --tmpl-bg-base: var(--color-neutral-50);
+  --tmpl-bg-card: var(--color-white, var(--color-white));
   --tmpl-border-color: var(--color-border);
   --tmpl-border-hover: #d6d3d1;
 
@@ -47,7 +47,7 @@
 [data-style="dark"] {
   --tmpl-bg-base: #1c1917;
   --tmpl-bg-card: #292524;
-  --tmpl-border: #44403c;
+  --tmpl-border: var(--color-neutral-700)03c;
   --tmpl-border-hover: #57534e;
 
   --tmpl-text-primary: #fafaf9;
@@ -71,7 +71,7 @@
   margin-bottom: 32px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-template-stats {
     grid-template-columns: 1fr;
   }
@@ -168,7 +168,7 @@
   color: var(--tmpl-info);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-template-stat {
     padding: 20px;
     gap: 14px;
@@ -227,7 +227,7 @@
   gap: 14px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-template-actions__grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -279,8 +279,8 @@
 }
 
 .c-template-btn--primary:hover {
-  background: var(--color-primary-600, #2563EB);
-  border-color: var(--color-primary-600, #2563EB);
+  background: var(--color-primary-600, var(--color-primary-600));
+  border-color: var(--color-primary-600, var(--color-primary-600));
   box-shadow: var(--tmpl-shadow-lg);
   transform: translateY(-2px);
 }
@@ -317,7 +317,7 @@
   background: rgba(6, 182, 212, 0.1);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-template-actions {
     padding: 20px;
   }
@@ -370,7 +370,7 @@
   .c-template-stat,
   .c-template-actions {
     box-shadow: none;
-    border: 1px solid var(--color-secondary-300, #ddd);
+    border: 1px solid var(--color-secondary-300, var(--color-neutral-300));
   }
 
   .c-template-btn {

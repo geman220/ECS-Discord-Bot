@@ -18,6 +18,7 @@
 'use strict';
 
 import { InitSystem } from '../js/init-system.js';
+import { showToast } from '../js/services/toast-service.js';
 
 let _initialized = false;
 
@@ -25,7 +26,7 @@ let _initialized = false;
 // INITIALIZATION
 // ========================================================================
 
-function init() {
+function initAdminManageSubs() {
     if (_initialized) return;
     _initialized = true;
 
@@ -175,12 +176,12 @@ function handleLoadAssignments(button) {
                 list.classList.remove('u-hidden');
                 updateButtonIcon(button, 'ti-calendar-minus', 'Hide Assignments');
             } else {
-                window.showToast('error', 'Failed to load assignments.');
+                showToast('Failed to load assignments.', 'error');
             }
         })
         .catch(error => {
             console.error('Error loading assignments:', error);
-            window.showToast('error', 'An error occurred while loading assignments.');
+            showToast('An error occurred while loading assignments.', 'error');
         })
         .finally(() => {
             spinner.classList.add('u-hidden');
@@ -312,7 +313,7 @@ function handleAssignSubFormSubmit(form) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            window.showToast('success', data.message);
+            showToast(data.message, 'success');
 
             // Close modal
             const modal = window.bootstrap.Modal.getInstance(document.getElementById('assignSubModal'));
@@ -328,12 +329,12 @@ function handleAssignSubFormSubmit(form) {
                 window.location.reload();
             }, 1500);
         } else {
-            window.showToast('error', data.message);
+            showToast(data.message, 'error');
         }
     })
     .catch(error => {
         console.error('Error assigning sub:', error);
-        window.showToast('error', 'An error occurred while trying to assign the sub.');
+        showToast('An error occurred while trying to assign the sub.', 'error');
     })
     .finally(() => {
         // Re-enable button
@@ -349,10 +350,25 @@ function handleAssignSubFormSubmit(form) {
 function handleRemoveAssignment(button) {
     const assignmentId = button.dataset.assignmentId;
 
-    if (!confirm('Are you sure you want to remove this sub assignment?')) {
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Are you sure?',
+            text: 'Are you sure you want to remove this sub assignment?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, remove it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performRemoveAssignment(assignmentId, button);
+            }
+        });
     }
+}
 
+function performRemoveAssignment(assignmentId, button) {
     const formData = new FormData();
     formData.append('csrf_token', window.subsPageData.csrfToken);
 
@@ -366,7 +382,7 @@ function handleRemoveAssignment(button) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            window.showToast('success', data.message);
+            showToast(data.message, 'success');
 
             // Find and remove the assignment item
             const item = button.closest('.c-assignment-item');
@@ -383,33 +399,23 @@ function handleRemoveAssignment(button) {
                 }
             }, 300);
         } else {
-            window.showToast('error', data.message);
+            showToast(data.message, 'error');
         }
     })
     .catch(error => {
         console.error('Error removing assignment:', error);
-        window.showToast('error', 'An error occurred while trying to remove the assignment.');
+        showToast('An error occurred while trying to remove the assignment.', 'error');
     });
 }
 
-// ========================================================================
-// TOAST NOTIFICATION
-// ========================================================================
-
-function showToast(type, message) {
-    if (typeof toastr !== 'undefined') {
-        toastr[type](message);
-    } else {
-        console.log(`[${type.toUpperCase()}]: ${message}`);
-    }
-}
+// showToast imported from services/toast-service.js
 
 // ========================================================================
 // EXPORTS
 // ========================================================================
 
 export {
-    init,
+    initAdminManageSubs,
     initPageLoader,
     initDataTable,
     initEventDelegation,
@@ -423,12 +429,12 @@ export {
     handleAssignSub,
     handleAssignSubFormSubmit,
     handleRemoveAssignment,
-    showToast
+    performRemoveAssignment
 };
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('admin-manage-subs', init, {
+    window.InitSystem.register('admin-manage-subs', initAdminManageSubs, {
         priority: 30,
         reinitializable: true,
         description: 'Admin manage substitutes page'
@@ -439,5 +445,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.adminManageSubsInit = init;
-window.showToast = showToast;
+window.adminManageSubsInit = initAdminManageSubs;

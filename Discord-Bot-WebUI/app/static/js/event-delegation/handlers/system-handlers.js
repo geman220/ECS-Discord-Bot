@@ -151,9 +151,6 @@ window.EventDelegation.register('delete-redis-key', function(element, e) {
     }
 
     if (typeof window.Swal === 'undefined') {
-        if (confirm(`Delete key "${keyName}"?`)) {
-            performDeleteRedisKey(keyName, element);
-        }
         return;
     }
 

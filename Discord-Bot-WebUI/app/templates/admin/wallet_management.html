@@ -3,36 +3,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    /* Dashboard Cards - Theme-aware styling */
-    .stat-card {
-        border-radius: 8px;
-        transition: all 0.2s;
-    }
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--bs-box-shadow);
-    }
-    .stat-icon {
-        width: 48px;
-        height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 8px;
-    }
-    .quick-action-btn {
-        transition: all 0.2s;
-    }
-    .quick-action-btn:hover {
-        transform: translateY(-2px);
-    }
-    .setup-required-banner {
-        background: linear-gradient(135deg, var(--bs-warning-bg-subtle) 0%, var(--bs-warning) 100%);
-        border-radius: 12px;
-        padding: 24px;
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock custom_css %}
 
 {% block content %}
@@ -120,7 +91,7 @@
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="c-card stat-card h-100">
+            <div class="c-card stat-c-card h-100">
                 <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="stat-icon bg-primary bg-opacity-10">
@@ -138,7 +109,7 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="c-card stat-card h-100">
+            <div class="c-card stat-c-card h-100">
                 <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="stat-icon bg-info bg-opacity-10">
@@ -156,7 +127,7 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="c-card stat-card h-100">
+            <div class="c-card stat-c-card h-100">
                 <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="stat-icon bg-success bg-opacity-10">
@@ -174,7 +145,7 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
-            <div class="c-card stat-card h-100">
+            <div class="c-card stat-c-card h-100">
                 <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="stat-icon bg-warning bg-opacity-10">
@@ -314,7 +285,7 @@
         <div class="c-card__body">
             {% if eligible_players %}
             <div class="c-table-wrapper" data-table-responsive>
-                <table class="c-table c-table--hoverable" data-mobile-table data-table-type="wallet" data-table>
+                <table class="c-c-table c-table--hoverable" data-mobile-table data-table-type="wallet" data-table>
                     <thead class="c-table--light" scope="col">
                         <tr>
                             <th scope="col">Player</th>
@@ -327,7 +298,7 @@
                     <tbody>
                         {% for player in eligible_players[:10] %}
                         <tr>
-                            <td>
+                            <td data-label="Player">
                                 <div class="d-flex align-items-center">
                                     <div class="avatar avatar-sm me-2">
                                         <span class="avatar-initial rounded-circle bg-label-primary">
@@ -340,28 +311,28 @@
                                     </div>
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="Team">
                                 {% if player.primary_team %}
                                 <span class="badge bg-label-info" data-badge>{{ player.primary_team.name }}</span>
                                 {% else %}
                                 <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="League">
                                 {% if player.league %}
                                 {{ player.league.name }}
                                 {% else %}
                                 <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Contact">
                                 {% if player.user %}
                                 <small>{{ player.user.email }}</small>
                                 {% else %}
                                 <span class="text-muted">No account</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end">
+                            <td data-label="Actions" class="text-end">
                                 <div class="btn-group btn-group-sm">
                                     {% if config_status.configured %}
                                     <a href="{{ url_for('wallet.get_wallet_pass_by_player', player_id=player.id) }}"

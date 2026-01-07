@@ -18,8 +18,8 @@
 </div>
 
 <!-- Filters -->
-<div class="c-card c-card-modern mb-4">
-    <div class="c-card__body c-card-modern__body">
+<div class="c-card c-card mb-4">
+    <div class="c-card__body c-card__body">
         <form method="GET" class="c-form-modern row g-3">
             <div class="col-md-3">
                 <label class="c-form-modern__label">Category</label>
@@ -61,8 +61,8 @@
 </div>
 
 <!-- Items Table -->
-<div class="c-card c-card-modern">
-    <div class="c-card__body c-card-modern__body p-0">
+<div class="c-card c-card">
+    <div class="c-card__body c-card__body p-0">
         {% if items.items %}
         <div class="c-table-modern__wrapper" data-table-responsive>
             <table class="c-table-modern" data-table data-mobile-table data-table-type="items">
@@ -200,12 +200,12 @@
         {% endif %}
         
         {% else %}
-        <div class="c-empty-modern">
-            <div class="c-empty-modern__icon">
+        <div class="empty-state">
+            <div class="empty-state-icon">
                 <i class="ti ti-package"></i>
             </div>
-            <h5 class="c-empty-modern__title">No Items Found</h5>
-            <p class="c-empty-modern__text">No store items match your current filters.</p>
+            <h5 class="empty-state-title">No Items Found</h5>
+            <p class="empty-state-description">No store items match your current filters.</p>
             <a href="{{ url_for('admin_panel.create_store_item') }}" class="c-button c-button--primary" data-action="create-item">
                 <i class="ti ti-plus me-2"></i>Add First Item
             </a>

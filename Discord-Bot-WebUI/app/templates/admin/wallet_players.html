@@ -3,16 +3,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    /* Filter row - Theme-aware styling */
-    .filter-card {
-        background-color: var(--bs-tertiary-bg);
-        border: 1px solid var(--bs-border-color);
-    }
-    .eligibility-badge {
-        font-size: 0.75rem;
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock custom_css %}
 
 {% block content %}
@@ -45,7 +36,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="c-card filter-card mb-4">
+    <div class="c-card filter-c-card mb-4">
         <div class="c-card__body py-3">
             <form method="GET" class="row g-3 align-items-end">
                 <div class="col-md-3">
@@ -93,7 +84,7 @@
         <div class="c-card__body">
             {% if players.items %}
             <div class="c-table-wrapper" data-table-responsive>
-                <table class="c-table c-table--hoverable" data-mobile-table data-table-type="users" data-table>
+                <table class="c-c-table c-table--hoverable" data-mobile-table data-table-type="users" data-table>
                     <thead class="c-table--light" scope="col">
                         <tr>
                             <th scope="col">Player</th>
@@ -108,7 +99,7 @@
                     <tbody>
                         {% for player in players.items %}
                         <tr>
-                            <td>
+                            <td data-label="Player">
                                 <div class="d-flex align-items-center">
                                     <div class="avatar avatar-sm me-2">
                                         <span class="avatar-initial rounded-circle bg-label-primary">
@@ -121,7 +112,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="Status">
                                 {% if player.is_current_player %}
                                 <span class="badge bg-label-success" data-badge>
                                     <i class="ti ti-check me-1"></i>Active
@@ -132,21 +123,21 @@
                                 </span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Team">
                                 {% if player.primary_team %}
                                 <span class="badge bg-label-info" data-badge>{{ player.primary_team.name }}</span>
                                 {% else %}
                                 <span class="text-muted">No team</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="League">
                                 {% if player.league %}
                                 {{ player.league.name }}
                                 {% else %}
                                 <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Contact">
                                 {% if player.user %}
                                 <small>{{ player.user.email }}</small>
                                 {% if player.phone %}
@@ -156,7 +147,7 @@
                                 <span class="text-muted">No account</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Eligible">
                                 {% if player.is_current_player and player.primary_team %}
                                 <span class="badge bg-label-success eligibility-badge" data-badge>
                                     <i class="ti ti-check me-1"></i>Eligible
@@ -167,7 +158,7 @@
                                 </span>
                                 {% endif %}
                             </td>
-                            <td class="text-end">
+                            <td data-label="Actions" class="text-end">
                                 <div class="btn-group btn-group-sm">
                                     {% if player.is_current_player and player.primary_team %}
                                     <a href="{{ url_for('wallet.get_wallet_pass_by_player', player_id=player.id) }}"

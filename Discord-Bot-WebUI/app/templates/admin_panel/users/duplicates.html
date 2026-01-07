@@ -96,7 +96,7 @@
                 </div>
                 <div class="c-card__body p-0">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--compact c-table--hoverable mb-0" data-table data-mobile-table data-table-type="duplicates">
+                        <table class="c-c-table c-table--compact c-table--hoverable mb-0" data-table data-mobile-table data-table-type="duplicates">
                             <thead scope="col">
                                 <tr>
                                     <th class="u-w-80" scope="col">
@@ -114,23 +114,23 @@
                             <tbody>
                                 {% for user in group.users %}
                                 <tr>
-                                    <td>
+                                    <td data-label="Select">
                                         <input type="radio" name="primary-{{ loop.parent.loop.index }}"
                                                value="{{ user.id }}"
                                                class="primary-select"
                                                data-group="{{ loop.parent.loop.index }}">
                                     </td>
-                                    <td><strong>{{ user.username }}</strong></td>
-                                    <td>{{ user.email }}</td>
-                                    <td>{{ user.player.name if user.player else '-' }}</td>
-                                    <td>
+                                    <td data-label="Username"><strong>{{ user.username }}</strong></td>
+                                    <td data-label="Email">{{ user.email }}</td>
+                                    <td data-label="Player Name">{{ user.player.name if user.player else '-' }}</td>
+                                    <td data-label="Discord ID">
                                         {% if user.player and user.player.discord_id %}
                                         <code>{{ user.player.discord_id }}</code>
                                         {% else %}
                                         -
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         {% if user.approval_status == 'approved' %}
                                         <span class="badge bg-success" data-badge>Approved</span>
                                         {% elif user.approval_status == 'pending' %}
@@ -139,8 +139,8 @@
                                         <span class="badge bg-secondary" data-badge>{{ user.approval_status }}</span>
                                         {% endif %}
                                     </td>
-                                    <td><small>{{ user.created_at[:10] if user.created_at else 'N/A' }}</small></td>
-                                    <td>
+                                    <td data-label="Created"><small>{{ user.created_at[:10] if user.created_at else 'N/A' }}</small></td>
+                                    <td data-label="Actions">
                                         <a href="{{ url_for('admin_panel.user_details_api', user_id=user.id) }}"
                                            class="c-btn c-btn--sm c-btn--outline-primary" title="View Details" target="_blank">
                                             <i class="ti ti-eye"></i>

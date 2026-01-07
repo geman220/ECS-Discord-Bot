@@ -47,8 +47,8 @@ window.EventDelegation.register('toggle-prompt', function(element, e) {
     .catch(error => {
         if (typeof window.toastr !== 'undefined') {
             window.toastr.error('Error: ' + error.message);
-        } else {
-            alert('Error: ' + error.message);
+        } else if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', error.message, 'error');
         }
     })
     .finally(() => {
@@ -70,11 +70,21 @@ window.EventDelegation.register('delete-prompt', function(element, e) {
         return;
     }
 
-    if (!confirm('Are you sure you want to delete this AI prompt? This cannot be undone.')) {
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Delete AI Prompt?',
+            text: 'This cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
     }
-
-    form.submit();
 });
 
 /**
@@ -90,8 +100,20 @@ window.EventDelegation.register('confirm-delete-prompt', function(element, e) {
         return;
     }
 
-    if (confirm('Are you sure you want to delete this AI prompt? This cannot be undone.')) {
-        form.submit();
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Delete AI Prompt?',
+            text: 'This cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
     }
 });
 
@@ -170,9 +192,23 @@ window.EventDelegation.register('load-ai-template', function(element, e) {
         return;
     }
 
-    if (!confirm('This will replace the current prompt configuration. Continue?')) {
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Load Template?',
+            text: 'This will replace the current prompt configuration.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Load',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performLoadAITemplate(templateId);
+            }
+        });
     }
+});
+
+function performLoadAITemplate(templateId) {
 
     fetch(`/ai-prompts/api/template/${templateId}`)
         .then(response => response.json())
@@ -208,7 +244,7 @@ window.EventDelegation.register('load-ai-template', function(element, e) {
                 window.toastr.error('Failed to load template');
             }
         });
-});
+}
 
 /**
  * Use AI Prompt Template

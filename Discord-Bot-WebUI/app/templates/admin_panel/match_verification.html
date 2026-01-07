@@ -67,7 +67,7 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">&nbsp;</label>
+                        <span class="u-form-label-spacer" aria-hidden="true"></span>
                         <div class="d-flex gap-2">
                             <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search me-1"></i>Filter
@@ -162,7 +162,7 @@
             <div class="c-card__body">
                 {% if matches %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--striped" data-table data-mobile-table data-table-type="verification">
+                    <table class="c-c-table c-table--striped" data-table data-mobile-table data-table-type="verification">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Week</th>
@@ -178,30 +178,30 @@
                         <tbody>
                             {% for match in matches %}
                             <tr>
-                                <td>
+                                <td data-label="Week">
                                     {% if match.schedule %}
                                     <span class="badge bg-secondary" data-badge>Week {{ match.schedule.week }}</span>
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Date">
                                     {{ match.date.strftime('%m/%d') if match.date else 'TBD' }}<br>
                                     <small class="text-muted">{{ match.time.strftime('%I:%M %p') if match.time else '' }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Match">
                                     <strong>{{ match.home_team.name if match.home_team else 'TBD' }}</strong><br>
                                     <small class="text-muted">vs</small><br>
                                     <strong>{{ match.away_team.name if match.away_team else 'TBD' }}</strong>
                                 </td>
-                                <td>
+                                <td data-label="Score">
                                     {% if match.home_team_score is not none and match.away_team_score is not none %}
                                     <span class="fw-bold">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
                                     {% else %}
                                     <span class="text-muted">Not reported</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Home Verification">
                                     {% if match.home_team_verified %}
                                     <span class="badge bg-success" data-badge>
                                         <i class="ti ti-check me-1"></i>Verified
@@ -216,7 +216,7 @@
                                     </span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Away Verification">
                                     {% if match.away_team_verified %}
                                     <span class="badge bg-success" data-badge>
                                         <i class="ti ti-check me-1"></i>Verified
@@ -231,7 +231,7 @@
                                     </span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     {% if match.home_team_verified and match.away_team_verified %}
                                     <span class="badge bg-success" data-badge>Fully Verified</span>
                                     {% elif match.home_team_verified or match.away_team_verified %}
@@ -242,7 +242,7 @@
                                     <span class="badge bg-secondary" data-badge>Not Reported</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     {% if match.home_team_score is not none and match.away_team_score is not none %}
                                     <div class="btn-group" role="group">
                                         <button type="button" class="c-btn c-btn--sm c-btn--outline-primary dropdown-toggle" data-bs-toggle="dropdown" data-dropdown-toggle>
@@ -296,7 +296,6 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script>
 // Event delegation for match verification actions
 document.addEventListener('DOMContentLoaded', function() {
@@ -356,5 +355,4 @@ setTimeout(() => {
     location.reload();
 }, 300000);
 </script>
-{% endif %}
 {% endblock %}

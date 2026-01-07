@@ -45,7 +45,7 @@ document.addEventListener('click', function(e) {
     <div class="c-card__body p-0">
         {% if category.templates %}
         <div class="c-table-wrapper" data-table-responsive>
-            <table class="c-table c-table--hoverable mb-0" data-mobile-table data-table-type="templates" data-table>
+            <table class="c-c-table c-table--hoverable mb-0" data-mobile-table data-table-type="templates" data-table>
                 <thead class="c-table--light" scope="col">
                     <tr>
                         <th scope="col">Template</th>
@@ -57,14 +57,14 @@ document.addEventListener('click', function(e) {
                 <tbody>
                     {% for template in category.templates %}
                     <tr>
-                        <td>
+                        <td data-label="Template">
                             <div>
                                 <h6 class="mb-1">{{ template.name }}</h6>
                                 <small class="text-muted">{{ template.description or 'Discord bot message template' }}</small>
                                 <br><code class="text-xs">{{ template.key }}</code>
                             </div>
                         </td>
-                        <td>
+                        <td data-label="Context">
                             <div class="d-flex flex-column">
                                 {% set context_info = {
                                     'welcome': 'Sent when new users join Discord server',
@@ -103,7 +103,7 @@ document.addEventListener('click', function(e) {
                                 {% endif %}
                             </div>
                         </td>
-                        <td>
+                        <td data-label="Status">
                             <div class="form-check form-switch">
                                 <input class="form-check-input js-toggle-template-status" type="checkbox"
                                        id="template_{{ template.id }}_active"
@@ -114,7 +114,7 @@ document.addEventListener('click', function(e) {
                                 </label>
                             </div>
                         </td>
-                        <td>
+                        <td data-label="Actions">
                             <div class="d-flex gap-1">
                                 <button type="button" class="c-btn c-btn--sm c-btn--icon-only c-btn--outline-primary js-edit-template"
                                         data-action="edit-template" data-template-id="{{ template.id }}"

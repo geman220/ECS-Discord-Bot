@@ -8,7 +8,7 @@ import { InitSystem } from '../js/init-system.js';
 
 let _initialized = false;
 
-export function init() {
+export function initWaitlistLoginRegister() {
     if (_initialized) return;
     _initialized = true;
 
@@ -21,7 +21,7 @@ export function init() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem.register) {
-    window.InitSystem.register('waitlist-login-register', init, {
+    window.InitSystem.register('waitlist-login-register', initWaitlistLoginRegister, {
         priority: 20,
         reinitializable: false,
         description: 'Waitlist login/register page'
@@ -32,4 +32,4 @@ if (window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.init = init;
+window.initWaitlistLoginRegister = initWaitlistLoginRegister;

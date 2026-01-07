@@ -9,7 +9,7 @@ import { InitSystem } from '../js/init-system.js';
 
 let _initialized = false;
 
-function init() {
+function initCreatePoll() {
     if (_initialized) return;
 
     // Page guard - only run if poll title element exists
@@ -42,11 +42,11 @@ function init() {
 // EXPORTS
 // ========================================================================
 
-export { init };
+export { initCreatePoll };
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('create-poll', init, {
+    window.InitSystem.register('create-poll', initCreatePoll, {
         priority: 35,
         reinitializable: true,
         description: 'Create poll live preview'
@@ -57,4 +57,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.createPollInit = init;
+window.createPollInit = initCreatePoll;

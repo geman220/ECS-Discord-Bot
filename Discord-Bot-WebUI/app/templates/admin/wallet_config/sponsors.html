@@ -3,18 +3,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    .sponsor-card {
-        transition: all 0.2s;
-    }
-    .sponsor-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--bs-box-shadow);
-    }
-    .sponsor-inactive {
-        opacity: 0.6;
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block content %}
@@ -105,7 +94,7 @@
         <div class="c-card__body">
             {% if sponsors %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-mobile-table data-table-type="sponsors" data-table>
+                    <table class="c-c-table c-table--hoverable" data-mobile-table data-table-type="sponsors" data-table>
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Name</th>
@@ -120,14 +109,14 @@
                         <tbody>
                             {% for sponsor in sponsors %}
                             <tr class="{% if not sponsor.is_active %}sponsor-inactive{% endif %}">
-                                <td><strong>{{ sponsor.name }}</strong></td>
-                                <td>{{ sponsor.display_name }}</td>
-                                <td>
+                                <td data-label="Name"><strong>{{ sponsor.name }}</strong></td>
+                                <td data-label="Display Name">{{ sponsor.display_name }}</td>
+                                <td data-label="Type">
                                     <span class="badge bg-label-{% if sponsor.sponsor_type == 'presenting' %}warning{% elif sponsor.sponsor_type == 'venue' %}info{% else %}secondary{% endif %}" data-badge>
                                         {{ sponsor.sponsor_type|title }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Applies To">
                                     {% if sponsor.applies_to == 'all' %}
                                         <span class="badge bg-label-primary" data-badge>All Passes</span>
                                     {% elif sponsor.applies_to == 'ecs_membership' %}
@@ -136,15 +125,15 @@
                                         <span class="badge bg-label-info" data-badge>Pub League</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ sponsor.display_location|title }}</td>
-                                <td>
+                                <td data-label="Location">{{ sponsor.display_location|title }}</td>
+                                <td data-label="Status">
                                     {% if sponsor.is_active %}
                                         <span class="badge bg-success" data-badge>Active</span>
                                     {% else %}
                                         <span class="badge bg-secondary" data-badge>Inactive</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         <button type="button" class="c-btn c-btn--outline-primary"
                                                 data-bs-toggle="modal" data-bs-target="#editSponsorModal"

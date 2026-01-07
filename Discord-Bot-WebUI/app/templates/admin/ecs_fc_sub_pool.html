@@ -18,7 +18,7 @@
                             <h5>Active Substitutes ({{ sub_pool_entries|length }})</h5>
                             {% if sub_pool_entries %}
                                 <div class="c-table-wrapper" data-table-responsive>
-                                    <table class="c-table c-table--striped c-table--compact" data-mobile-table data-table-type="users" data-table>
+                                    <table class="c-c-table c-table--striped c-table--compact" data-mobile-table data-table-type="users" data-table>
                                         <thead scope="col">
                                             <tr>
                                                 <th scope="col">Player</th>
@@ -32,18 +32,18 @@
                                         <tbody>
                                             {% for entry in sub_pool_entries %}
                                             <tr>
-                                                <td>
+                                                <td data-label="Player">
                                                     <strong>{{ entry.player.name }}</strong>
                                                     {% if entry.player.phone_number %}
                                                         <br><small class="text-muted">{{ entry.player.phone_number }}</small>
                                                     {% endif %}
                                                 </td>
-                                                <td>
+                                                <td data-label="Positions">
                                                     <span class="badge badge-secondary" data-badge>
                                                         {{ entry.preferred_positions or 'Any' }}
                                                     </span>
                                                 </td>
-                                                <td>
+                                                <td data-label="Notifications">
                                                     <div class="notification-badges">
                                                         {% if entry.sms_for_sub_requests %}
                                                             <span class="badge badge-success badge-sm" data-badge>SMS</span>
@@ -56,18 +56,18 @@
                                                         {% endif %}
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td data-label="Stats">
                                                     <small class="text-muted">
                                                         {{ entry.requests_accepted }}/{{ entry.requests_received }} accepted<br>
                                                         {{ entry.matches_played }} matches played
                                                     </small>
                                                 </td>
-                                                <td>
+                                                <td data-label="Joined">
                                                     <small class="text-muted">
                                                         {{ entry.joined_pool_at.strftime('%m/%d/%Y') }}
                                                     </small>
                                                 </td>
-                                                <td>
+                                                <td data-label="Actions">
                                                     <div class="btn-group btn-group-sm">
                                                         <button class="c-btn c-btn--outline-primary js-edit-sub-preferences"
                                                                 data-action="edit-sub-preferences" data-entry-id="{{ entry.id }}">
@@ -98,7 +98,7 @@
                             <h5>Add Players to Substitute Pool</h5>
                             {% if eligible_players %}
                                 <div class="c-table-wrapper" data-table-responsive>
-                                    <table class="c-table c-table--striped c-table--compact" data-mobile-table data-table-type="users" data-table>
+                                    <table class="c-c-table c-table--striped c-table--compact" data-mobile-table data-table-type="users" data-table>
                                         <thead scope="col">
                                             <tr>
                                                 <th scope="col">Player</th>
@@ -110,13 +110,13 @@
                                         <tbody>
                                             {% for player in eligible_players %}
                                             <tr>
-                                                <td>
+                                                <td data-label="Player">
                                                     <strong>{{ player.name }}</strong>
                                                     {% if player.user and player.user.email %}
                                                         <br><small class="text-muted">{{ player.user.email }}</small>
                                                     {% endif %}
                                                 </td>
-                                                <td>
+                                                <td data-label="Team">
                                                     {% if player.teams %}
                                                         {% for team in player.teams %}
                                                             <span class="badge badge-primary" data-badge>{{ team.name }}</span>
@@ -125,12 +125,12 @@
                                                         <span class="text-muted">No team</span>
                                                     {% endif %}
                                                 </td>
-                                                <td>
+                                                <td data-label="Phone">
                                                     <small class="text-muted">
                                                         {{ player.phone_number or 'Not provided' }}
                                                     </small>
                                                 </td>
-                                                <td>
+                                                <td data-label="Actions">
                                                     <button class="c-btn c-btn--sm c-btn--success js-add-to-pool"
                                                             data-action="add-to-pool" data-player-id="{{ player.id }}">
                                                         Add to Pool

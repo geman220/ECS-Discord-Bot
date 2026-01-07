@@ -14,7 +14,7 @@
  *   - Smooth transitions and animations
  *   - Dark mode support
  *   - Bootstrap class compatibility
- *   - Zero !important declarations
+ *   - Zero declarations
  *
  * COMPONENTS:
  *   1. Navbar (Primary navigation bar)
@@ -1278,7 +1278,7 @@ body.has-fixed-navbar {
    6.1 Mobile Navbar Collapse
    -------------------------------------------------------------------------- */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .navbar-toggler {
     display: flex;
   }
@@ -1400,7 +1400,7 @@ body.has-fixed-navbar {
   font-size: var(--text-xs);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .bottom-nav {
     display: block;
   }
@@ -1432,7 +1432,7 @@ body.has-fixed-navbar {
   opacity: 1;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .sidebar-nav {
     position: fixed;
     top: 0;
@@ -1481,7 +1481,7 @@ body.has-fixed-navbar {
    7.1 Tablet and Below (768px)
    -------------------------------------------------------------------------- */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   /* Breadcrumbs */
   .breadcrumb {
     padding: var(--space-2) var(--space-3);
@@ -1545,7 +1545,7 @@ body.has-fixed-navbar {
    7.2 Mobile Devices (576px)
    -------------------------------------------------------------------------- */
 
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
   /* Navbar */
   .navbar {
     padding: var(--space-2) var(--space-3);
@@ -1927,7 +1927,7 @@ body.has-fixed-navbar {
   display: flex;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .nav-hide-mobile {
     display: none;
   }
@@ -1937,7 +1937,7 @@ body.has-fixed-navbar {
   display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .nav-show-mobile {
     display: flex;
   }

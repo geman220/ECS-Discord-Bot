@@ -46,85 +46,104 @@ class AdminSeasonWizardManager {
     }
 
     /**
-     * Setup step navigation clicks
+     * Setup all event handlers using event delegation
      */
     setupStepNavigation() {
-        document.querySelectorAll('.js-goto-step').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const step = parseInt(btn.dataset.step);
-                this.goToStep(step);
-            });
-        });
+        // All wizard event handlers are now in setupNavigationButtons via delegation
     }
 
     /**
-     * Setup navigation buttons
+     * Setup navigation buttons and all wizard interactions using event delegation
      */
     setupNavigationButtons() {
-        document.querySelectorAll('.js-wizard-prev').forEach(btn => {
-            btn.addEventListener('click', () => this.wizardPrev());
-        });
+        const self = this;
 
-        document.querySelectorAll('.js-wizard-next').forEach(btn => {
-            btn.addEventListener('click', () => this.wizardNext());
-        });
+        // Delegated click handler for all wizard interactions
+        document.addEventListener('click', function(e) {
+            // Step navigation
+            const stepBtn = e.target.closest('.js-goto-step');
+            if (stepBtn) {
+                const step = parseInt(stepBtn.dataset.step);
+                self.goToStep(step);
+                return;
+            }
 
-        document.querySelectorAll('.js-create-season').forEach(btn => {
-            btn.addEventListener('click', () => this.createSeason());
+            // Previous button
+            if (e.target.closest('.js-wizard-prev')) {
+                self.wizardPrev();
+                return;
+            }
+
+            // Next button
+            if (e.target.closest('.js-wizard-next')) {
+                self.wizardNext();
+                return;
+            }
+
+            // Create season button
+            if (e.target.closest('.js-create-season')) {
+                self.createSeason();
+                return;
+            }
         });
     }
 
     /**
-     * Setup league type change handler
+     * Setup league type change handler using event delegation
      */
     setupLeagueTypeChange() {
-        document.querySelectorAll('input[name="league_type"]').forEach(radio => {
-            radio.addEventListener('change', () => this.handleLeagueTypeChange());
+        const self = this;
+
+        // Delegated change handler for league type and other form controls
+        document.addEventListener('change', function(e) {
+            // League type radio buttons
+            if (e.target.matches('input[name="league_type"]')) {
+                self.handleLeagueTypeChange();
+                return;
+            }
+
+            // Set as current checkbox
+            if (e.target.id === 'setAsCurrent') {
+                const rolloverWarning = document.getElementById('rolloverWarning');
+                if (rolloverWarning) {
+                    rolloverWarning.classList.toggle('u-hidden', !e.target.checked);
+                }
+                return;
+            }
+
+            // Custom names toggles
+            if (e.target.id === 'premierCustomNames') {
+                const div = document.getElementById('premierCustomNamesDiv');
+                if (div) div.classList.toggle('u-hidden', !e.target.checked);
+                return;
+            }
+
+            if (e.target.id === 'classicCustomNames') {
+                const div = document.getElementById('classicCustomNamesDiv');
+                if (div) div.classList.toggle('u-hidden', !e.target.checked);
+                return;
+            }
+
+            if (e.target.id === 'ecsFcCustomNames') {
+                const div = document.getElementById('ecsFcCustomNamesDiv');
+                if (div) div.classList.toggle('u-hidden', !e.target.checked);
+                return;
+            }
         });
     }
 
     /**
-     * Setup set as current checkbox handler
+     * Setup set as current checkbox handler (handled by setupLeagueTypeChange delegation)
      */
     setupSetAsCurrentCheckbox() {
-        const setAsCurrent = document.getElementById('setAsCurrent');
-        if (setAsCurrent) {
-            setAsCurrent.addEventListener('change', function() {
-                const rolloverWarning = document.getElementById('rolloverWarning');
-                if (rolloverWarning) {
-                    rolloverWarning.classList.toggle('u-hidden', !this.checked);
-                }
-            });
-        }
+        // Now handled by delegated change handler in setupLeagueTypeChange
     }
 
     /**
-     * Setup custom names toggle handlers
+     * Setup custom names toggle handlers (handled by setupLeagueTypeChange delegation)
      */
     setupCustomNamesToggles() {
-        const premierCustomNames = document.getElementById('premierCustomNames');
-        if (premierCustomNames) {
-            premierCustomNames.addEventListener('change', function() {
-                const div = document.getElementById('premierCustomNamesDiv');
-                if (div) div.classList.toggle('u-hidden', !this.checked);
-            });
-        }
-
-        const classicCustomNames = document.getElementById('classicCustomNames');
-        if (classicCustomNames) {
-            classicCustomNames.addEventListener('change', function() {
-                const div = document.getElementById('classicCustomNamesDiv');
-                if (div) div.classList.toggle('u-hidden', !this.checked);
-            });
-        }
-
-        const ecsFcCustomNames = document.getElementById('ecsFcCustomNames');
-        if (ecsFcCustomNames) {
-            ecsFcCustomNames.addEventListener('change', function() {
-                const div = document.getElementById('ecsFcCustomNamesDiv');
-                if (div) div.classList.toggle('u-hidden', !this.checked);
-            });
-        }
+        // Now handled by delegated change handler in setupLeagueTypeChange
     }
 
     /**
@@ -497,7 +516,7 @@ function getManager() {
 /**
  * Initialize function
  */
-function init() {
+function initAdminSeasonWizard() {
     if (_initialized) return;
     _initialized = true;
 
@@ -519,7 +538,7 @@ function init() {
 
 // Register with window.InitSystem
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('admin-season-wizard', init, {
+    window.InitSystem.register('admin-season-wizard', initAdminSeasonWizard, {
         priority: 40,
         reinitializable: false,
         description: 'Admin season wizard'
@@ -530,4 +549,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Export for ES modules
-export { AdminSeasonWizardManager, getManager, init };
+export { AdminSeasonWizardManager, getManager, initAdminSeasonWizard };

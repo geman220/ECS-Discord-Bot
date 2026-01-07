@@ -108,7 +108,7 @@ function toggleTheme() {
 /**
  * Initialize the mobile bottom navigation
  */
-function init() {
+function initMobileBottomNav() {
     // Check if we're on the mobile bottom nav page
     const mobileNav = document.getElementById('mobileBottomNav');
     if (!mobileNav) return;
@@ -139,7 +139,7 @@ if (typeof window.EventDelegation !== 'undefined') {
 }
 
 // Register with window.InitSystem
-window.InitSystem.register('mobile-bottom-nav', init, {
+window.InitSystem.register('mobile-bottom-nav', initMobileBottomNav, {
     priority: 25,
     description: 'Mobile bottom navigation module'
 });
@@ -152,7 +152,7 @@ window.toggleTheme = toggleTheme;
 
 // Export module
 window.MobileBottomNav = {
-    init,
+    init: initMobileBottomNav,
     updateActiveState,
     updateThemeToggle,
     toggleTheme

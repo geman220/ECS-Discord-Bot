@@ -20,49 +20,51 @@
    ============================================ */
 
 /* Percentage widths */
+
 .w-25 {
-    width: 25% !important;
+  width: 25%;
 }
 
 .w-50 {
-    width: 50% !important;
+  width: 50%;
 }
 
 .w-75 {
-    width: 75% !important;
+  width: 75%;
 }
 
 .w-100 {
-    width: 100% !important;
+  width: 100%;
 }
 
 .w-auto {
-    width: auto !important;
+  width: auto;
 }
 
 /* Fixed widths (common sizes) */
+
 .w-80px {
-    width: 80px !important;
+  width: 80px;
 }
 
 .w-100px {
-    width: 100px !important;
+  width: 100px;
 }
 
 .w-150px {
-    width: 150px !important;
+  width: 150px;
 }
 
 .w-200px {
-    width: 200px !important;
+  width: 200px;
 }
 
 .w-250px {
-    width: 250px !important;
+  width: 250px;
 }
 
 .w-300px {
-    width: 300px !important;
+  width: 300px;
 }
 
 /* ============================================
@@ -70,40 +72,41 @@
    ============================================ */
 
 .min-w-0 {
-    min-width: 0 !important;
+  min-width: 0;
 }
 
 .min-w-32 {
-    min-width: 32px !important;
+  min-width: 32px;
 }
 
 .min-w-50 {
-    min-width: 50px !important;
+  min-width: 50px;
 }
 
 .min-w-100 {
-    min-width: 100px !important;
+  min-width: 100px;
 }
 
 .min-w-150 {
-    min-width: 150px !important;
+  min-width: 150px;
 }
 
 .min-w-200 {
-    min-width: 200px !important;
+  min-width: 200px;
 }
 
 .min-w-250 {
-    min-width: 250px !important;
+  min-width: 250px;
 }
 
 .min-w-300 {
-    min-width: 300px !important;
+  min-width: 300px;
 }
 
 /* Viewport-based min-width */
+
 .min-w-100vw {
-    min-width: 100vw !important;
+  min-width: 100vw;
 }
 
 /* ============================================
@@ -111,73 +114,75 @@
    ============================================ */
 
 .max-w-50 {
-    max-width: 50px !important;
+  max-width: 50px;
 }
 
 .max-w-80 {
-    max-width: 80px !important;
+  max-width: 80px;
 }
 
 .max-w-100 {
-    max-width: 100px !important;
+  max-width: 100px;
 }
 
 .max-w-150 {
-    max-width: 150px !important;
+  max-width: 150px;
 }
 
 .max-w-200 {
-    max-width: 200px !important;
+  max-width: 200px;
 }
 
 .max-w-300 {
-    max-width: 300px !important;
+  max-width: 300px;
 }
 
 .max-w-400 {
-    max-width: 400px !important;
+  max-width: 400px;
 }
 
 .max-w-500 {
-    max-width: 500px !important;
+  max-width: 500px;
 }
 
 .max-w-600 {
-    max-width: 600px !important;
+  max-width: 600px;
 }
 
 .max-w-700 {
-    max-width: 700px !important;
+  max-width: 700px;
 }
 
 .max-w-800 {
-    max-width: 800px !important;
+  max-width: 800px;
 }
 
 /* Max-width percentages */
+
 .max-w-25 {
-    max-width: 25% !important;
+  max-width: 25%;
 }
 
 .max-w-50-percent {
-    max-width: 50% !important;
+  max-width: 50%;
 }
 
 .max-w-75 {
-    max-width: 75% !important;
+  max-width: 75%;
 }
 
 .max-w-100-percent {
-    max-width: 100% !important;
+  max-width: 100%;
 }
 
 /* Viewport-based max-width */
+
 .max-w-100vw {
-    max-width: 100vw !important;
+  max-width: 100vw;
 }
 
 .max-w-none {
-    max-width: none !important;
+  max-width: none;
 }
 
 /* ============================================
@@ -185,41 +190,43 @@
    ============================================ */
 
 /* Percentage heights */
+
 .h-25 {
-    height: 25% !important;
+  height: 25%;
 }
 
 .h-50 {
-    height: 50% !important;
+  height: 50%;
 }
 
 .h-75 {
-    height: 75% !important;
+  height: 75%;
 }
 
 .h-100 {
-    height: 100% !important;
+  height: 100%;
 }
 
 .h-auto {
-    height: auto !important;
+  height: auto;
 }
 
 /* Fixed heights */
+
 .h-50px {
-    height: 50px !important;
+  height: 50px;
 }
 
 .h-100px {
-    height: 100px !important;
+  height: 100px;
 }
 
 .h-150px {
-    height: 150px !important;
+  height: 150px;
 }
 
 .h-200px {
-    height: 200px !important;
+  height: 200px;
 }
 
 /* ============================================
@@ -227,40 +234,41 @@
    ============================================ */
 
 .min-h-0 {
-    min-height: 0 !important;
+  min-height: 0;
 }
 
 .min-h-50 {
-    min-height: 50px !important;
+  min-height: 50px;
 }
 
 .min-h-100 {
-    min-height: 100px !important;
+  min-height: 100px;
 }
 
 .min-h-150 {
-    min-height: 150px !important;
+  min-height: 150px;
 }
 
 .min-h-200 {
-    min-height: 200px !important;
+  min-height: 200px;
 }
 
 .min-h-300 {
-    min-height: 300px !important;
+  min-height: 300px;
 }
 
 .min-h-400 {
-    min-height: 400px !important;
+  min-height: 400px;
 }
 
 .min-h-500 {
-    min-height: 500px !important;
+  min-height: 500px;
 }
 
 /* Viewport-based min-height */
+
 .min-h-100vh {
-    min-height: 100vh !important;
+  min-height: 100vh;
 }
 
 /* ============================================
@@ -268,44 +276,45 @@
    ============================================ */
 
 .max-h-50 {
-    max-height: 50px !important;
+  max-height: 50px;
 }
 
 .max-h-100 {
-    max-height: 100px !important;
+  max-height: 100px;
 }
 
 .max-h-150 {
-    max-height: 150px !important;
+  max-height: 150px;
 }
 
 .max-h-200 {
-    max-height: 200px !important;
+  max-height: 200px;
 }
 
 .max-h-300 {
-    max-height: 300px !important;
+  max-height: 300px;
 }
 
 .max-h-400 {
-    max-height: 400px !important;
+  max-height: 400px;
 }
 
 .max-h-500 {
-    max-height: 500px !important;
+  max-height: 500px;
 }
 
 .max-h-600 {
-    max-height: 600px !important;
+  max-height: 600px;
 }
 
 /* Viewport-based max-height */
+
 .max-h-100vh {
-    max-height: 100vh !important;
+  max-height: 100vh;
 }
 
 .max-h-none {
-    max-height: none !important;
+  max-height: none;
 }
 
 /* ============================================
@@ -316,34 +325,37 @@
  * Common form control widths
  * Used for selects, inputs, and form fields
  */
+
 .form-control-narrow {
-    max-width: 80px !important;
+  max-width: 80px;
 }
 
 .form-control-sm-width {
-    max-width: 120px !important;
+  max-width: 120px;
 }
 
 .form-control-md-width {
-    min-width: 200px !important;
+  min-width: 200px;
 }
 
 .form-control-lg-width {
-    min-width: 300px !important;
+  min-width: 300px;
 }
 
 /**
  * Minute input sizing (compact numeric input)
  */
+
 .input-minute {
-    max-width: 80px !important;
+  max-width: 80px;
 }
 
 /**
  * Player select sizing (standard dropdown)
  */
+
 .select-player {
-    min-width: 200px !important;
+  min-width: 200px;
 }
 
 /* ============================================
@@ -353,17 +365,18 @@
 /**
  * Input group text/prepend/append sizing
  */
+
 .input-group-text-compact {
-    min-width: 32px !important;
-    padding: 0.375rem 0.25rem !important;
+  min-width: 32px;
+  padding: 0.375rem 0.25rem;
 }
 
 .input-group-text-md {
-    min-width: 48px !important;
+  min-width: 48px;
 }
 
 .input-group-text-lg {
-    min-width: 64px !important;
+  min-width: 64px;
 }
 
 /* ============================================
@@ -371,27 +384,67 @@
    ============================================ */
 
 /* Medium devices (tablets, 768px and up) */
-@media (min-width: 768px) {
-    .w-md-25 { width: 25% !important; }
-    .w-md-50 { width: 50% !important; }
-    .w-md-75 { width: 75% !important; }
-    .w-md-100 { width: 100% !important; }
-    .w-md-auto { width: auto !important; }
 
-    .min-w-md-200 { min-width: 200px !important; }
-    .max-w-md-100 { max-width: 100px !important; }
+@media (min-width: 768px) {
+  .w-md-25 {
+    width: 25%;
+  }
+
+  .w-md-50 {
+    width: 50%;
+  }
+
+  .w-md-75 {
+    width: 75%;
+  }
+
+  .w-md-100 {
+    width: 100%;
+  }
+
+  .w-md-auto {
+    width: auto;
+  }
+
+  .min-w-md-200 {
+    min-width: 200px;
+  }
+
+  .max-w-md-100 {
+    max-width: 100px;
+  }
 }
 
 /* Large devices (desktops, 992px and up) */
-@media (min-width: 992px) {
-    .w-lg-25 { width: 25% !important; }
-    .w-lg-50 { width: 50% !important; }
-    .w-lg-75 { width: 75% !important; }
-    .w-lg-100 { width: 100% !important; }
-    .w-lg-auto { width: auto !important; }
 
-    .min-w-lg-250 { min-width: 250px !important; }
-    .max-w-lg-150 { max-width: 150px !important; }
+@media (min-width: 992px) {
+  .w-lg-25 {
+    width: 25%;
+  }
+
+  .w-lg-50 {
+    width: 50%;
+  }
+
+  .w-lg-75 {
+    width: 75%;
+  }
+
+  .w-lg-100 {
+    width: 100%;
+  }
+
+  .w-lg-auto {
+    width: auto;
+  }
+
+  .min-w-lg-250 {
+    min-width: 250px;
+  }
+
+  .max-w-lg-150 {
+    max-width: 150px;
+  }
 }
 
 /* ============================================
@@ -399,11 +452,11 @@
    ============================================ */
 
 .w-100vw {
-    width: 100vw !important;
+  width: 100vw;
 }
 
 .h-100vh {
-    height: 100vh !important;
+  height: 100vh;
 }
 
 /* ============================================
@@ -411,11 +464,11 @@
    ============================================ */
 
 .box-border {
-    box-sizing: border-box !important;
+  box-sizing: border-box;
 }
 
 .box-content {
-    box-sizing: content-box !important;
+  box-sizing: content-box;
 }
 
 /* ============================================
@@ -426,24 +479,25 @@
  * Icon size utilities for consistent icon scaling
  * Used for icons in empty states, badges, and decorative elements
  */
+
 .icon-sm {
-    font-size: 1rem !important;
+  font-size: 1rem;
 }
 
 .icon-md {
-    font-size: 1.5rem !important;
+  font-size: 1.5rem;
 }
 
 .icon-lg {
-    font-size: 2rem !important;
+  font-size: 2rem;
 }
 
 .icon-xl {
-    font-size: 3rem !important;
+  font-size: 3rem;
 }
 
 .icon-2xl {
-    font-size: 4rem !important;
+  font-size: 4rem;
 }
 
 /* ============================================
@@ -456,57 +510,60 @@
  */
 
 /* Profile Image Containers */
+
 .profile-image-container {
-    position: relative;
-    display: inline-block;
+  position: relative;
+  display: inline-block;
 }
 
-.profile-image-sm,
-.profile-image-container.profile-image-sm {
-    width: 50px !important;
-    height: 50px !important;
+.profile-image-container.profile-image-sm,
+.profile-image-sm {
+  width: 50px;
+  height: 50px;
 }
 
-.profile-image-md,
-.profile-image-container.profile-image-md {
-    width: 80px !important;
-    height: 80px !important;
+.profile-image-container.profile-image-md,
+.profile-image-md {
+  width: 80px;
+  height: 80px;
 }
 
-.profile-image-lg,
-.profile-image-container.profile-image-lg {
-    width: 130px !important;
-    height: 130px !important;
+.profile-image-container.profile-image-lg,
+.profile-image-lg {
+  width: 130px;
+  height: 130px;
 }
 
 /* Profile Pictures (alternate naming) */
+
 .profile-picture-sm {
-    width: 60px !important;
-    height: 60px !important;
-    object-fit: cover !important;
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
 }
 
 .profile-picture-md {
-    width: 80px !important;
-    height: 80px !important;
-    object-fit: cover !important;
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
 }
 
 .profile-picture-lg {
-    width: 100px !important;
-    height: 100px !important;
-    object-fit: cover !important;
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
 }
 
 /* Avatar Sizing (for small icons/badges) */
+
 .avatar-xxs {
-    width: 24px !important;
-    height: 24px !important;
+  width: 24px;
+  height: 24px;
 }
 
 .avatar-xs {
-    width: 30px !important;
-    height: 30px !important;
+  width: 30px;
+  height: 30px;
 }
 
 /* ============================================
@@ -517,16 +574,17 @@
  * Fixed heights for multi-select form controls
  * Replaces inline style="height: 100px"
  */
+
 .select-height-100 {
-    height: 100px !important;
+  height: 100px;
 }
 
 .select-height-120 {
-    height: 120px !important;
+  height: 120px;
 }
 
 .select-height-150 {
-    height: 150px !important;
+  height: 150px;
 }
 
 /* ============================================
@@ -536,6 +594,108 @@
 /**
  * Profile-specific container sizing
  */
+
 .profile-desktop-container {
-    max-width: 800px !important;
+  max-width: 800px;
+}
+
+/* ============================================
+   JS INLINE STYLE REPLACEMENT UTILITIES
+   ============================================ */
+
+/* Avatar/Icon sizes */
+
+.avatar-32 {
+  width: 32px;
+  height: 32px;
+}
+
+.avatar-80 {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+}
+
+/* Icon font sizes */
+
+.icon-2x {
+  font-size: 2rem;
+}
+
+/* Text sizes for push notification previews */
+
+.text-14 {
+  font-size: 14px;
+}
+
+.text-15 {
+  font-size: 15px;
+}
+
+/* Max-width utilities */
+
+/* Scrollable containers */
+
+.scroll-container-sm {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.scroll-container-md {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.scroll-container-lg {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* Code/Log display */
+
+.code-display {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+}
+
+.code-display-sm {
+  font-size: 11px;
+}
+
+/* Message preview */
+
+.message-preview {
+  white-space: pre-wrap;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Chat widget read indicator */
+
+.chat-read-indicator {
+  margin-left: 4px;
+  color: var(--cw-accent);
+}
+
+/* Min-height utilities */
+
+/* Max-width utilities for tables */
+
+/* Overflow utilities */
+
+.overflow-visible {
+  overflow: visible;
+}
+
+/* Discord-style channel mention */
+
+.discord-channel-mention {
+  background-color: rgba(88, 101, 242, 0.3);
+  color: var(--color-discord);
+  padding: 0 2px;
+  border-radius: 3px;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  cursor: default;
+  text-decoration: none;
 }

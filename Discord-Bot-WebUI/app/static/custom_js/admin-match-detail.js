@@ -28,7 +28,7 @@ let _initialized = false;
 // INITIALIZATION
 // ========================================================================
 
-function init() {
+function initAdminMatchDetail() {
     if (_initialized) return;
     _initialized = true;
 
@@ -102,10 +102,28 @@ function handleScheduleMatch(element) {
         return;
     }
 
-    if (!confirm('Schedule live reporting for this match?')) {
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Schedule Match',
+            text: 'Schedule live reporting for this match?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, schedule it',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performScheduleMatch(element, matchId);
+            }
+        });
     }
+}
 
+/**
+ * Execute the schedule match API call
+ * @param {HTMLElement} element - The clicked element
+ * @param {string} matchId - The match ID
+ */
+function performScheduleMatch(element, matchId) {
     // Show loading state
     setButtonLoading(element, true);
 
@@ -146,10 +164,28 @@ function handleStopSession(element) {
         return;
     }
 
-    if (!confirm('Stop this live reporting session?')) {
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Stop Session',
+            text: 'Stop this live reporting session?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, stop it',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performStopSession(element, sessionId);
+            }
+        });
     }
+}
 
+/**
+ * Execute the stop session API call
+ * @param {HTMLElement} element - The clicked element
+ * @param {string} sessionId - The session ID
+ */
+function performStopSession(element, sessionId) {
     // Show loading state
     setButtonLoading(element, true);
 
@@ -223,10 +259,27 @@ function handleRefreshSession(element) {
  * @param {HTMLElement} element - The clicked element
  */
 function handleForceSync(element) {
-    if (!confirm('Force synchronization with real-time service?')) {
-        return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Force Sync',
+            text: 'Force synchronization with real-time service?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, sync now',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performForceSync(element);
+            }
+        });
     }
+}
 
+/**
+ * Execute the force sync API call
+ * @param {HTMLElement} element - The clicked element
+ */
+function performForceSync(element) {
     // Show loading state
     setButtonLoading(element, true);
 
@@ -269,24 +322,7 @@ function handleReloadPage(element) {
 // UTILITY FUNCTIONS
 // ========================================================================
 
-/**
- * Get CSRF token from meta tag or cookie
- * @returns {string} CSRF token
- */
-function getCSRFToken() {
-    // Try meta tag first
-    const metaTag = document.querySelector('meta[name="csrf-token"]');
-    if (metaTag) {
-        return metaTag.getAttribute('content');
-    }
-
-    // Try cookie as fallback
-    const cookieValue = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('csrf_token='));
-
-    return cookieValue ? cookieValue.split('=')[1] : '';
-}
+// getCSRFToken is provided globally by csrf-fetch.js
 
 /**
  * Set loading state on a button
@@ -325,9 +361,11 @@ function setButtonLoading(button, isLoading) {
  * @param {string} message - Success message
  */
 function showSuccessNotification(message) {
-    // Use native alert as fallback (can be replaced with toast library)
+    // Use toastr, then Swal, then native alert as fallback
     if (window.toastr) {
         window.toastr.success(message);
+    } else if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire('Success', message, 'success');
     } else {
         alert(`Success: ${message}`);
     }
@@ -338,9 +376,11 @@ function showSuccessNotification(message) {
  * @param {string} message - Error message
  */
 function showErrorNotification(message) {
-    // Use native alert as fallback (can be replaced with toast library)
+    // Use toastr, then Swal, then native alert as fallback
     if (window.toastr) {
         window.toastr.error(message);
+    } else if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire('Error', message, 'error');
     } else {
         alert(`Error: ${message}`);
     }
@@ -351,7 +391,7 @@ function showErrorNotification(message) {
 // ========================================================================
 
 export {
-    init,
+    initAdminMatchDetail,
     initEventDelegation,
     handleClick,
     handleScheduleMatch,
@@ -359,6 +399,9 @@ export {
     handleRefreshSession,
     handleForceSync,
     handleReloadPage,
+    performScheduleMatch,
+    performStopSession,
+    performForceSync,
     getCSRFToken,
     setButtonLoading,
     showSuccessNotification,
@@ -378,7 +421,7 @@ window.MatchDetail = {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('admin-match-detail', init, {
+    window.InitSystem.register('admin-match-detail', initAdminMatchDetail, {
         priority: 30,
         reinitializable: true,
         description: 'Admin match detail page'
@@ -388,15 +431,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility
-window.initEventDelegation = initEventDelegation;
-window.handleClick = handleClick;
-window.handleScheduleMatch = handleScheduleMatch;
-window.handleStopSession = handleStopSession;
-window.handleRefreshSession = handleRefreshSession;
-window.handleForceSync = handleForceSync;
-window.handleReloadPage = handleReloadPage;
-window.getCSRFToken = getCSRFToken;
-window.setButtonLoading = setButtonLoading;
-window.showSuccessNotification = showSuccessNotification;
-window.showErrorNotification = showErrorNotification;
+// No additional window exports needed - window.MatchDetail provides public API

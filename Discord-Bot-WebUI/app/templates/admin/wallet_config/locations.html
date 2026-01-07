@@ -3,25 +3,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    .location-card {
-        transition: all 0.2s;
-    }
-    .location-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--bs-box-shadow);
-    }
-    .location-inactive {
-        opacity: 0.6;
-    }
-    .location-badge {
-        font-size: 0.7rem;
-    }
-    .coordinates {
-        font-family: monospace;
-        font-size: 0.85rem;
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block content %}
@@ -109,7 +91,7 @@
         {% if locations %}
             {% for location in locations %}
             <div class="col-md-6 col-lg-4 mb-4">
-                <div class="c-card location-card h-100 {% if not location.is_active %}location-inactive{% endif %}">
+                <div class="c-card location-c-card h-100 {% if not location.is_active %}location-inactive{% endif %}">
                     <div class="c-card__body">
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>

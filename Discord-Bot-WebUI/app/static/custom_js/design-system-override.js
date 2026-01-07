@@ -24,7 +24,7 @@
 
 import { InitSystem } from '../js/init-system.js';
 
-function init() {
+function initDesignSystemOverride() {
     // Debug messages removed
 
     // If ECSDesignSystem is defined, monkey patch its problematic methods
@@ -70,11 +70,11 @@ function init() {
 // EXPORTS
 // ========================================================================
 
-export { init };
+export { initDesignSystemOverride };
 
 // Register with window.InitSystem
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('design-system-override', init, {
+    window.InitSystem.register('design-system-override', initDesignSystemOverride, {
         priority: 30,
         reinitializable: false,
         description: 'Design system override fixes'
@@ -85,4 +85,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.designSystemOverrideInit = init;
+window.designSystemOverrideInit = initDesignSystemOverride;

@@ -320,24 +320,20 @@ const SeasonalSchedule = {
      * @param {string} weekNum - Week number
      */
     deleteWeek(weekNum) {
-        if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire({
-                title: 'Delete Entire Week?',
-                text: 'Are you sure you want to delete this entire week and all its matches? This action cannot be undone.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-                cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-                confirmButtonText: 'Yes, delete it',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    this.performDeleteWeek(weekNum);
-                }
-            });
-        } else if (confirm('Delete this entire week and all its matches?')) {
-            this.performDeleteWeek(weekNum);
-        }
+        window.Swal.fire({
+            title: 'Delete Entire Week?',
+            text: 'Are you sure you want to delete this entire week and all its matches? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+            confirmButtonText: 'Yes, delete it',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                this.performDeleteWeek(weekNum);
+            }
+        });
     },
 
     /**
@@ -555,24 +551,20 @@ const SeasonalSchedule = {
      * @param {string} matchId - Match ID
      */
     deleteMatch(matchId) {
-        if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire({
-                title: 'Delete Match?',
-                text: 'Are you sure you want to delete this match? This action cannot be undone.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-                cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
-                confirmButtonText: 'Yes, delete it',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    this.performDeleteMatch(matchId);
-                }
-            });
-        } else if (confirm('Delete this match?')) {
-            this.performDeleteMatch(matchId);
-        }
+        window.Swal.fire({
+            title: 'Delete Match?',
+            text: 'Are you sure you want to delete this match? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
+            cancelButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('secondary') : '#6c757d',
+            confirmButtonText: 'Yes, delete it',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                this.performDeleteMatch(matchId);
+            }
+        });
     },
 
     /**
@@ -627,31 +619,32 @@ const SeasonalSchedule = {
     },
 
     /**
-     * Setup modals
+     * Setup modals using event delegation
      */
     setupModals() {
+        const self = this;
+
         // Save match from edit modal
         document.addEventListener('click', (e) => {
             const saveBtn = e.target.closest('[data-action="save-match-modal"]');
             if (saveBtn) {
-                this.saveMatchFromModal();
+                self.saveMatchFromModal();
                 return;
             }
 
             const addBtn = e.target.closest('[data-action="save-match-add"]');
             if (addBtn) {
-                this.saveMatchFromAddModal();
+                self.saveMatchFromAddModal();
                 return;
             }
         });
 
-        // Add match league change handler
-        const addMatchLeagueSelect = document.getElementById('addMatchLeague');
-        if (addMatchLeagueSelect) {
-            addMatchLeagueSelect.addEventListener('change', () => {
-                this.updateAddMatchTeams();
-            });
-        }
+        // Delegated change handler for add match league select
+        document.addEventListener('change', (e) => {
+            if (e.target.id === 'addMatchLeague') {
+                self.updateAddMatchTeams();
+            }
+        });
     },
 
     /**
@@ -848,14 +841,14 @@ const SeasonalSchedule = {
     },
 
     /**
-     * Setup league filter change handler
+     * Setup league filter change handler using event delegation
      */
     setupLeagueFilterChange() {
-        const leagueFilter = document.getElementById('leagueFilter');
-        if (!leagueFilter) return;
+        // Delegated change handler for league filter
+        document.addEventListener('change', (e) => {
+            if (e.target.id !== 'leagueFilter') return;
 
-        leagueFilter.addEventListener('change', () => {
-            const selectedLeague = leagueFilter.value;
+            const selectedLeague = e.target.value;
             const teamFilter = document.getElementById('teamFilter');
 
             if (!teamFilter) return;

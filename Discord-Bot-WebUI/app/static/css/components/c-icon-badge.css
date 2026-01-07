@@ -1,0 +1,247 @@
+/**
+ * Icon Badge Component
+ *
+ * BEM component for icon containers in stat cards, headers, and lists.
+ * Replaces Bootstrap utility pattern: "bg-info rounded-circle p-2"
+ *
+ * Usage:
+ *   <div class="c-icon-badge c-icon-badge--primary">
+ *     <i class="ti ti-users"></i>
+ *   </div>
+ *
+ * Sizes: --sm, --md (default), --lg, --xl
+ * Colors: --primary, --secondary, --success, --danger, --warning, --info
+ * Shapes: default (circle), --rounded (rounded square)
+ */
+
+/* ============================================
+ * Base Component
+ * ============================================ */
+.c-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: var(--bs-white);
+  background-color: var(--bs-primary);
+  transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Default size (medium) */
+.c-icon-badge {
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 1.25rem;
+}
+
+/* ============================================
+ * Size Modifiers
+ * ============================================ */
+.c-icon-badge--sm {
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 0.875rem;
+}
+
+.c-icon-badge--lg {
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.5rem;
+}
+
+.c-icon-badge--xl {
+  width: 4rem;
+  height: 4rem;
+  font-size: 2rem;
+}
+
+/* ============================================
+ * Color Modifiers
+ * ============================================ */
+.c-icon-badge--primary {
+  background-color: var(--bs-primary);
+  color: var(--bs-white);
+}
+
+.c-icon-badge--secondary {
+  background-color: var(--bs-secondary);
+  color: var(--bs-white);
+}
+
+.c-icon-badge--success {
+  background-color: var(--bs-success);
+  color: var(--bs-white);
+}
+
+.c-icon-badge--danger {
+  background-color: var(--bs-danger);
+  color: var(--bs-white);
+}
+
+.c-icon-badge--warning {
+  background-color: var(--bs-warning);
+  color: var(--bs-dark);
+}
+
+.c-icon-badge--info {
+  background-color: var(--bs-info);
+  color: var(--bs-white);
+}
+
+.c-icon-badge--light {
+  background-color: var(--bs-light);
+  color: var(--bs-dark);
+}
+
+.c-icon-badge--dark {
+  background-color: var(--bs-dark);
+  color: var(--bs-white);
+}
+
+/* ============================================
+ * Outline Variants
+ * ============================================ */
+.c-icon-badge--outline-primary {
+  background-color: transparent;
+  border: 2px solid var(--bs-primary);
+  color: var(--bs-primary);
+}
+
+.c-icon-badge--outline-secondary {
+  background-color: transparent;
+  border: 2px solid var(--bs-secondary);
+  color: var(--bs-secondary);
+}
+
+.c-icon-badge--outline-success {
+  background-color: transparent;
+  border: 2px solid var(--bs-success);
+  color: var(--bs-success);
+}
+
+.c-icon-badge--outline-danger {
+  background-color: transparent;
+  border: 2px solid var(--bs-danger);
+  color: var(--bs-danger);
+}
+
+.c-icon-badge--outline-warning {
+  background-color: transparent;
+  border: 2px solid var(--bs-warning);
+  color: var(--bs-warning);
+}
+
+.c-icon-badge--outline-info {
+  background-color: transparent;
+  border: 2px solid var(--bs-info);
+  color: var(--bs-info);
+}
+
+/* ============================================
+ * Soft Variants (subtle background)
+ * ============================================ */
+.c-icon-badge--soft-primary {
+  background-color: rgba(var(--bs-primary-rgb), 0.15);
+  color: var(--bs-primary);
+}
+
+.c-icon-badge--soft-secondary {
+  background-color: rgba(var(--bs-secondary-rgb), 0.15);
+  color: var(--bs-secondary);
+}
+
+.c-icon-badge--soft-success {
+  background-color: rgba(var(--bs-success-rgb), 0.15);
+  color: var(--bs-success);
+}
+
+.c-icon-badge--soft-danger {
+  background-color: rgba(var(--bs-danger-rgb), 0.15);
+  color: var(--bs-danger);
+}
+
+.c-icon-badge--soft-warning {
+  background-color: rgba(var(--bs-warning-rgb), 0.15);
+  color: var(--bs-warning);
+}
+
+.c-icon-badge--soft-info {
+  background-color: rgba(var(--bs-info-rgb), 0.15);
+  color: var(--bs-info);
+}
+
+/* ============================================
+ * Shape Modifiers
+ * ============================================ */
+.c-icon-badge--rounded {
+  border-radius: var(--bs-border-radius);
+}
+
+.c-icon-badge--rounded-lg {
+  border-radius: var(--bs-border-radius-lg);
+}
+
+.c-icon-badge--square {
+  border-radius: 0;
+}
+
+/* ============================================
+ * Interactive States
+ * ============================================ */
+.c-icon-badge--interactive {
+  cursor: pointer;
+}
+
+.c-icon-badge--interactive:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.c-icon-badge--interactive:active {
+  transform: scale(0.95);
+}
+
+/* ============================================
+ * Stat Card Icon (larger overlay style)
+ * Used in colored stat cards
+ * ============================================ */
+.c-icon-badge--stat {
+  width: 3.5rem;
+  height: 3.5rem;
+  font-size: 1.75rem;
+  background-color: rgba(255, 255, 255, 0.2);
+  color: inherit;
+}
+
+/* ============================================
+ * Dark Mode Support
+ * ============================================ */
+[data-style="dark"] .c-icon-badge--light {
+  background-color: var(--bs-gray-700);
+  color: var(--bs-light);
+}
+
+[data-style="dark"] .c-icon-badge--soft-primary {
+  background-color: rgba(var(--bs-primary-rgb), 0.25);
+}
+
+[data-style="dark"] .c-icon-badge--soft-secondary {
+  background-color: rgba(var(--bs-secondary-rgb), 0.25);
+}
+
+[data-style="dark"] .c-icon-badge--soft-success {
+  background-color: rgba(var(--bs-success-rgb), 0.25);
+}
+
+[data-style="dark"] .c-icon-badge--soft-danger {
+  background-color: rgba(var(--bs-danger-rgb), 0.25);
+}
+
+[data-style="dark"] .c-icon-badge--soft-warning {
+  background-color: rgba(var(--bs-warning-rgb), 0.25);
+}
+
+[data-style="dark"] .c-icon-badge--soft-info {
+  background-color: rgba(var(--bs-info-rgb), 0.25);
+}

@@ -52,7 +52,7 @@ function toggleMenu() {
     }
 }
 
-function init() {
+function initMobileMenuFix() {
     if (_initialized) return;
     _initialized = true;
 
@@ -133,7 +133,7 @@ function init() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('mobile-menu-fix', init, {
+    window.InitSystem.register('mobile-menu-fix', initMobileMenuFix, {
         priority: 30,
         reinitializable: false,
         description: 'Enhance mobile menu interactions and iOS compatibility'
@@ -143,7 +143,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-// Backward compatibility
-window.openMenu = openMenu;
-window.closeMenu = closeMenu;
-window.toggleMenu = toggleMenu;
+// No window exports needed - InitSystem handles initialization

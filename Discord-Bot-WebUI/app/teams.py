@@ -721,6 +721,7 @@ def report_match(match_id):
             can_verify_away = admin_or_ref or (match.away_team_id in user_team_ids)
             
             data = {
+                'id': match.id,  # Include match ID for frontend
                 'goal_scorers': [],
                 'assist_providers': [],
                 'yellow_cards': [],

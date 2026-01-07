@@ -33,7 +33,7 @@
     <div class="c-card__body p-0">
         {% if locations %}
         <div class="c-table-wrapper" data-table-responsive>
-            <table class="c-table c-table--hoverable mb-0" data-mobile-table data-table-type="locations" data-table>
+            <table class="c-c-table c-table--hoverable mb-0" data-mobile-table data-table-type="locations" data-table>
                 <thead scope="col">
                     <tr>
                         <th scope="col">Name</th>
@@ -47,7 +47,7 @@
                 <tbody>
                     {% for location in locations %}
                     <tr class="{{ 'opacity-50' if not location.is_active }}">
-                        <td>
+                        <td data-label="Name">
                             <strong>{{ location.name }}</strong>
                             <br>
                             <small class="text-muted">
@@ -55,7 +55,7 @@
                                 {{ "%.4f"|format(location.latitude) }}, {{ "%.4f"|format(location.longitude) }}
                             </small>
                         </td>
-                        <td>
+                        <td data-label="Address">
                             {% if location.address %}
                             {{ location.address }}<br>
                             <small class="text-muted">{{ location.city }}, {{ location.state }}</small>
@@ -63,22 +63,22 @@
                             <span class="text-muted">—</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Notification Text">
                             <small>{{ location.relevant_text }}</small>
                         </td>
-                        <td>
+                        <td data-label="Applies To">
                             <span class="badge bg-label-{{ 'primary' if location.applies_to == 'all' else 'success' if location.applies_to == 'ecs_membership' else 'info' }}" data-badge>
                                 {{ 'All Passes' if location.applies_to == 'all' else 'ECS Only' if location.applies_to == 'ecs_membership' else 'Pub League' }}
                             </span>
                         </td>
-                        <td>
+                        <td data-label="Status">
                             {% if location.is_active %}
                             <span class="badge bg-success" data-badge>Active</span>
                             {% else %}
                             <span class="badge bg-secondary" data-badge>Inactive</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Actions">
                             <div class="btn-group btn-group-sm">
                                 <button type="button" class="c-btn c-btn--outline-primary js-edit-location" data-action="edit-location" data-location-id="{{ location.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
                                 <button type="button" class="c-btn btn-outline-{{ 'warning' if location.is_active else 'success' }} js-toggle-location" data-action="toggle-location" data-location-id="{{ location.id }}" data-active="{{ 'false' if location.is_active else 'true' }}" aria-label="View"><i class="ti ti-{{ 'eye-off' if location.is_active else 'eye' }}"></i></button>

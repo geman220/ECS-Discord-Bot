@@ -3,35 +3,35 @@
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <div class="c-card-modern__header mb-4">
-        <h4 class="c-card-modern__title">Admin - Help Topics</h4>
-        <div class="c-card-modern__actions">
-            <a href="{{ url_for('help.bulk_upload_help_topics') }}" class="c-btn-modern c-btn-modern--secondary">
-                <i class="ti ti-upload c-btn-modern__icon"></i>
+    <div class="c-card__header mb-4">
+        <h4 class="c-card__title">Admin - Help Topics</h4>
+        <div class="c-card__actions">
+            <a href="{{ url_for('help.bulk_upload_help_topics') }}" class="c-btn c-btn--secondary">
+                <i class="ti ti-upload c-btn__icon"></i>
                 Bulk Upload
             </a>
-            <a href="{{ url_for('help.new_help_topic') }}" class="c-btn-modern c-btn-modern--primary">
-                <i class="ti ti-plus c-btn-modern__icon"></i>
+            <a href="{{ url_for('help.new_help_topic') }}" class="c-btn c-btn--primary">
+                <i class="ti ti-plus c-btn__icon"></i>
                 Create New Help Topic
             </a>
         </div>
     </div>
-    <div class="c-card-modern">
-        <div class="c-card-modern__body">
+    <div class="c-card">
+        <div class="c-card__body">
             <ul class="c-list-modern">
                 {% for topic in topics %}
                 <li class="c-list-modern__item">
                     <span class="c-list-modern__title">{{ topic.title }}</span>
                     <div class="c-list-modern__actions">
                         <a href="{{ url_for('help.edit_help_topic', topic_id=topic.id) }}"
-                           class="c-btn-modern c-btn-modern--sm c-btn-modern--warning">
-                            <i class="ti ti-edit c-btn-modern__icon"></i>
+                           class="c-btn c-btn--sm c-btn--warning">
+                            <i class="ti ti-edit c-btn__icon"></i>
                             Edit
                         </a>
-                        <button class="c-btn-modern c-btn-modern--sm c-btn-modern--danger"
+                        <button class="c-btn c-btn--sm c-btn--danger"
                                 data-action="confirm-delete"
                                 data-topic-id="{{ topic.id }}">
-                            <i class="ti ti-trash c-btn-modern__icon"></i>
+                            <i class="ti ti-trash c-btn__icon"></i>
                             Delete
                         </button>
                         <form class="js-delete-form"

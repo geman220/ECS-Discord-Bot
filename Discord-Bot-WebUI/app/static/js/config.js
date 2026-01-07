@@ -12,7 +12,7 @@
  * @param {string} fallback - Fallback value if variable not found
  * @returns {string} The CSS variable value or fallback
  */
-export function getCSSVariable(name, fallback) {
+function getCSSVariable(name, fallback) {
     const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     return value || fallback;
 }
@@ -20,7 +20,7 @@ export function getCSSVariable(name, fallback) {
 /**
  * Initialize colors from CSS variables (called after DOM ready)
  */
-export function initConfigColors() {
+function initConfigColors() {
     window.config.colors = {
         primary: getCSSVariable('--ecs-primary', '#7C3AED'),
         success: getCSSVariable('--ecs-success', '#10B981'),
@@ -44,7 +44,7 @@ export function initConfigColors() {
 /**
  * Default configuration object
  */
-export const defaultConfig = {
+const defaultConfig = {
     colors: {
         primary: '#7C3AED',
         success: '#10B981',

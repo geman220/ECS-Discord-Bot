@@ -93,7 +93,7 @@
             <div class="c-card__body p-0">
                 {% if players %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="players">
+                    <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="players">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Player</th>
@@ -107,16 +107,16 @@
                         <tbody>
                             {% for player in players %}
                             <tr>
-                                <td>
+                                <td data-label="Player">
                                     <strong>{{ player.name }}</strong>
                                     {% if player.user %}
                                     <br><small class="text-muted">{{ player.user.email }}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Discord ID">
                                     <code>{{ player.discord_id }}</code>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     {% if player.discord_in_server == True %}
                                     <span class="badge bg-success" data-badge>In Server</span>
                                     {% elif player.discord_in_server == False %}
@@ -125,7 +125,7 @@
                                     <span class="badge bg-warning" data-badge>Unknown</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Teams">
                                     {% if player_current_teams.get(player.id) %}
                                         {% for team in player_current_teams[player.id][:2] %}
                                         <span class="badge bg-secondary" data-badge>{{ team.name }}</span>
@@ -137,14 +137,14 @@
                                     <span class="text-muted">No current teams</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Last Checked">
                                     {% if player.discord_last_checked %}
                                     {{ player.discord_last_checked.strftime('%b %d, %Y %H:%M') }}
                                     {% else %}
                                     <span class="text-muted">Never</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <button class="c-btn c-btn--sm c-btn--outline-primary js-update-roles" data-action="update-player-roles" data-player-id="{{ player.id }}" title="Update Roles">
                                         <i class="ti ti-refresh"></i>
                                     </button>

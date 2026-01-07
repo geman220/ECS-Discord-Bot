@@ -343,3 +343,74 @@
     border-color: var(--bs-primary, var(--ecs-primary));
   }
 }
+
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .navbar {
+  background: var(--color-bg-primary, var(--color-secondary-950));
+  border-color: var(--color-border-primary, var(--color-secondary-700));
+}
+
+[data-style="dark"] .navbar-brand {
+  color: var(--color-text-primary, var(--color-secondary-50));
+}
+
+[data-style="dark"] .navbar-nav .nav-link {
+  color: var(--color-text-secondary, var(--color-secondary-200));
+}
+
+[data-style="dark"] .navbar-nav .nav-link:hover {
+  color: var(--color-text-primary, var(--color-secondary-50));
+}
+
+[data-style="dark"] .navbar-nav .nav-link.active {
+  color: var(--color-primary-400);
+}
+
+[data-style="dark"] .navbar-toggler {
+  border-color: var(--color-border-primary, var(--color-secondary-600));
+  color: var(--color-text-primary, var(--color-secondary-50));
+}
+
+[data-style="dark"] .navbar-toggler-icon {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+[data-style="dark"] .dropdown-menu {
+  background: var(--color-bg-elevated, var(--color-secondary-900));
+  border-color: var(--color-border-primary, var(--color-secondary-700));
+}
+
+[data-style="dark"] .dropdown-item {
+  color: var(--color-text-primary, var(--color-secondary-100));
+}
+
+[data-style="dark"] .dropdown-item:hover,
+[data-style="dark"] .dropdown-item:focus {
+  background: var(--color-bg-tertiary, var(--color-secondary-800));
+  color: var(--color-text-primary, var(--color-secondary-50));
+}
+
+[data-style="dark"] .dropdown-divider {
+  border-color: var(--color-border-primary, var(--color-secondary-700));
+}
+
+@media (max-width: 767.98px) {
+  [data-style="dark"] .layout-menu .nav-link,
+  [data-style="dark"] .sidebar .nav-link,
+  [data-style="dark"] .c-sidebar__nav-link {
+    background: var(--color-bg-elevated, var(--color-secondary-800));
+    border-color: var(--color-border-primary, var(--color-secondary-700));
+    color: var(--color-text-primary, var(--color-secondary-100));
+  }
+
+  [data-style="dark"] .layout-menu .nav-link:hover:not(.active),
+  [data-style="dark"] .sidebar .nav-link:hover:not(.active),
+  [data-style="dark"] .c-sidebar__nav-link:hover:not(.c-sidebar__nav-link--active) {
+    background: var(--color-bg-tertiary, var(--color-secondary-700));
+    border-color: var(--color-primary-500);
+  }
+}

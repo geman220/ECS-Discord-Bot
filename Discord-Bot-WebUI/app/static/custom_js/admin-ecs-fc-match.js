@@ -82,7 +82,7 @@ function getManager() {
 /**
  * Initialize function
  */
-function init() {
+function initAdminEcsFcMatch() {
     if (_initialized) return;
     _initialized = true;
 
@@ -95,7 +95,7 @@ function init() {
 
 // Register with window.InitSystem
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('admin-ecs-fc-match', init, {
+    window.InitSystem.register('admin-ecs-fc-match', initAdminEcsFcMatch, {
         priority: 40,
         reinitializable: false,
         description: 'Admin ECS FC match form'
@@ -106,4 +106,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Export for ES modules
-export { AdminEcsFcMatchFormManager, getManager, init };
+export { AdminEcsFcMatchFormManager, getManager, initAdminEcsFcMatch };

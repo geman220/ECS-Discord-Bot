@@ -108,7 +108,7 @@
                         <input type="text" name="search" class="form-control" placeholder="Username or email..." value="{{ request.args.get('search', '') }}" data-form-control aria-label="Username or email...">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">&nbsp;</label>
+                        <span class="u-form-label-spacer" aria-hidden="true"></span>
                         <div class="d-grid">
                             <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search me-1"></i>Filter
@@ -160,7 +160,7 @@
             <div class="c-card__body">
                 {% if mobile_users %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="users">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="users">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">
@@ -179,12 +179,12 @@
                         <tbody>
                             {% for user in mobile_users %}
                             <tr>
-                                <td>
+                                <td data-label="Select">
                                     <div class="form-check">
                                         <input class="form-check-input user-checkbox" type="checkbox" value="{{ user.id }}">
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="User">
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-sm rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2">
                                             {{ user.username[0].upper() if user.username else 'U' }}
@@ -195,24 +195,24 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="Platform">
                                     {% set platform = 'iOS' if 'iOS' in (user.device_tokens[0].token if user.device_tokens else '') else 'Android' %}
                                     <span class="badge bg-{{ 'primary' if platform == 'iOS' else 'success' }}" data-badge>
                                         <i class="ti ti-{{ 'brand-apple' if platform == 'iOS' else 'brand-android' }} me-1"></i>
                                         {{ platform }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Last Active">
                                     {% if user.device_tokens and user.device_tokens[0].updated_at %}
                                         {{ user.device_tokens[0].updated_at.strftime('%Y-%m-%d %H:%M') }}
                                     {% else %}
                                         <span class="text-muted">Unknown</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Device Tokens">
                                     <span class="badge bg-info" data-badge>{{ user.device_tokens|length or 0 }} devices</span>
                                 </td>
-                                <td>
+                                <td data-label="Push Status">
                                     {% if user.device_tokens and user.device_tokens[0].is_active %}
                                         <span class="badge bg-success" data-badge>
                                             <i class="ti ti-check me-1"></i>Enabled
@@ -223,11 +223,11 @@
                                         </span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         <button class="c-btn c-btn--outline-info" data-action="view-user-details" data-user-id="{{ user.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                         <button class="c-btn c-btn--outline-primary" data-action="send-notification" data-user-id="{{ user.id }}" aria-label="Send"><i class="ti ti-send"></i></button>
-                                        <button class="c-btn c-btn--outline-warning" data-action="manage-devices" data-user-id="{{ user.id }}" aria-label="Button"><i class="ti ti-device-mobile"></i></button>
+                                        <button class="c-btn c-btn--outline-warning" data-action="manage-devices" data-user-id="{{ user.id }}" aria-label="Manage devices"><i class="ti ti-device-mobile"></i></button>
                                     </div>
                                 </td>
                             </tr>

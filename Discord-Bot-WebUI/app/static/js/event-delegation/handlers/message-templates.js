@@ -124,8 +124,6 @@ function copyTemplate(templateId) {
     .catch(error => {
         if (window.Swal) {
             window.Swal.fire('Error', 'Error copying template: ' + error.message, 'error');
-        } else {
-            alert('Error copying template: ' + error.message);
         }
     });
 }

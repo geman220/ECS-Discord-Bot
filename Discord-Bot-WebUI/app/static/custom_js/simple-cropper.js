@@ -461,7 +461,7 @@ window.getCroppedImage = function() {
     window.SimpleCropper = SimpleCropper;
 
     // Initialize function
-    function init() {
+    function initSimpleCropper() {
         if (_initialized) return;
         _initialized = true;
 
@@ -471,7 +471,7 @@ window.getCroppedImage = function() {
 
     // Register with window.InitSystem (primary)
     if (true && window.InitSystem.register) {
-        window.InitSystem.register('simple-cropper', init, {
+        window.InitSystem.register('simple-cropper', initSimpleCropper, {
             priority: 45,
             reinitializable: false,
             description: 'Simple image cropper for modals'
@@ -482,4 +482,4 @@ window.getCroppedImage = function() {
     // window.InitSystem handles initialization
 
 // Backward compatibility
-window.init = init;
+window.initSimpleCropper = initSimpleCropper;

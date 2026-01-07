@@ -190,14 +190,20 @@ class AdminISpyManager {
             content.innerHTML = `
                 <div class="text-center py-4">
                     <i class="ti ti-chart-line u-text-4xl text-primary"></i>
-                    <p class="text-muted mt-2">Trends analysis coming soon</p>
+                    <p class="text-muted mt-2">View trend data in the I-Spy statistics page</p>
+                    <a href="/admin-panel/ispy/statistics" class="btn btn-sm btn-outline-primary mt-2">
+                        <i class="ti ti-external-link me-1"></i>View Statistics
+                    </a>
                 </div>
             `;
         } else if (type === 'performance') {
             content.innerHTML = `
                 <div class="text-center py-4">
                     <i class="ti ti-chart-bar u-text-4xl text-success"></i>
-                    <p class="text-muted mt-2">Performance metrics coming soon</p>
+                    <p class="text-muted mt-2">Player performance is tracked in the leaderboard</p>
+                    <a href="/admin-panel/ispy/leaderboard" class="btn btn-sm btn-outline-success mt-2">
+                        <i class="ti ti-trophy me-1"></i>View Leaderboard
+                    </a>
                 </div>
             `;
         }
@@ -220,7 +226,7 @@ function getManager() {
 /**
  * Initialize function
  */
-function init() {
+function initAdminIspyManagement() {
     if (_initialized) return;
     _initialized = true;
 
@@ -237,7 +243,7 @@ function init() {
 
 // Register with window.InitSystem
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('admin-ispy-management', init, {
+    window.InitSystem.register('admin-ispy-management', initAdminIspyManagement, {
         priority: 40,
         reinitializable: false,
         description: 'Admin I-Spy management'
@@ -248,4 +254,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Export for ES modules
-export { AdminISpyManager, getManager, init };
+export { AdminISpyManager, getManager, initAdminIspyManagement };

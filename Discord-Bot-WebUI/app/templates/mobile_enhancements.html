@@ -9,8 +9,8 @@
 
 {# Example: Mobile-Optimized Table Structure #}
 {# For manage_users.html and similar tables #}
-<div class="c-table-wrapper table-responsive-mobile" data-table-responsive>
-    <table class="c-table" id="user-table" data-table>
+<div class="c-table-wrapper c-table-wrapper-mobile" data-table-responsive>
+    <table class="c-c-table" id="user-table" data-table>
         <thead scope="col">
             <tr>
                 <th scope="col">Username</th>
@@ -67,7 +67,7 @@
 {# Mobile-Only Summary Card (optional progressive enhancement) #}
 <div class="d-lg-none">
     {% for user in users %}
-    <div class="mobile-summary-card">
+    <div class="mobile-summary-c-card">
         <div class="summary-header">{{ user.username }}</div>
         <div class="summary-meta">
             <span class="badge bg-label-{{ 'success' if user.active else 'secondary' }}" data-badge>

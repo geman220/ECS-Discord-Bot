@@ -106,7 +106,7 @@
                             </div>
                         </div>
                         <div class="c-table-wrapper" data-table-responsive>
-                            <table class="c-table c-table--compact c-table--hoverable" data-table data-mobile-table data-table-type="draft">
+                            <table class="c-c-table c-table--compact c-table--hoverable" data-table data-mobile-table data-table-type="draft">
                                 <thead scope="col">
                                     <tr>
                                         <th class="u-w-60" scope="col">Pick #</th>
@@ -120,20 +120,20 @@
                                 <tbody>
                                     {% for pick in picks %}
                                     <tr id="pick-row-{{ pick.id }}">
-                                        <td>
+                                        <td data-label="Pick #">
                                             <span class="badge bg-primary" data-badge>{{ pick.draft_position }}</span>
                                         </td>
-                                        <td>
+                                        <td data-label="Player">
                                             <strong>{{ pick.player.name if pick.player else 'Unknown' }}</strong>
                                         </td>
-                                        <td>{{ pick.team.name if pick.team else 'Unknown' }}</td>
-                                        <td>
+                                        <td data-label="Team">{{ pick.team.name if pick.team else 'Unknown' }}</td>
+                                        <td data-label="Drafted By">
                                             <small class="text-muted">{{ pick.drafter.username if pick.drafter else 'System' }}</small>
                                         </td>
-                                        <td>
+                                        <td data-label="Notes">
                                             <small class="text-muted">{{ pick.notes|truncate(30) if pick.notes else '-' }}</small>
                                         </td>
-                                        <td>
+                                        <td data-label="Actions">
                                             <div class="btn-group btn-group-sm">
                                                 <button class="c-btn c-btn--outline-primary js-edit-pick" data-action="edit-pick" data-pick-id="{{ pick.id }}" data-position="{{ pick.draft_position }}" title="Edit Position">
                                                     <i class="ti ti-edit"></i>

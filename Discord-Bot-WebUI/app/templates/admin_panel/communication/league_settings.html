@@ -275,36 +275,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.icon-alert-lg {
-    font-size: 1.75rem;
-    line-height: 1;
-}
-
-.icon-empty-state {
-    font-size: 4rem;
-    opacity: 0.3;
-}
-
-.alert-gradient-info {
-    background: linear-gradient(135deg, rgba(13, 110, 253, 0.1) 0%, rgba(13, 110, 253, 0.05) 100%);
-    border-left: 4px solid var(--bs-info);
-}
-
-.c-card__footer {
-    padding: 0.75rem 1rem;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-[data-bs-theme="dark"] .c-card__footer {
-    border-top-color: rgba(255, 255, 255, 0.1);
-}
-
-#messagePreview {
-    white-space: pre-line;
-    line-height: 1.5;
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

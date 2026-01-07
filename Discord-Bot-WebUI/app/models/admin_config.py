@@ -68,16 +68,16 @@ class AdminConfig(db.Model):
     def get_setting(cls, key, default=None):
         """
         Get a setting value by key.
-        
+
         Args:
             key (str): The setting key
             default: Default value if setting doesn't exist or is disabled
-            
+
         Returns:
             The parsed setting value or default
         """
         from flask import g, has_request_context
-        
+
         try:
             # Use Flask request session when available to prevent session conflicts
             if has_request_context() and hasattr(g, 'db_session') and g.db_session:
@@ -93,10 +93,17 @@ class AdminConfig(db.Model):
                     if setting:
                         # Access parsed_value while session is still active
                         return setting.parsed_value
-            
+
             return default
         except Exception as e:
             logger.error(f"Error getting admin setting {key}: {e}")
+            # Rollback the session to clear the failed transaction state
+            # This prevents cascading "transaction aborted" errors
+            if has_request_context() and hasattr(g, 'db_session') and g.db_session:
+                try:
+                    g.db_session.rollback()
+                except Exception:
+                    pass  # Ignore rollback errors
             return default
 
     @classmethod

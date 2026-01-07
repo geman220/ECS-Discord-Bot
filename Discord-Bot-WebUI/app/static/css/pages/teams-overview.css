@@ -75,7 +75,7 @@
 }
 
 .teams-tabs .nav-link.active {
-    color: var(--color-neutral-0, #ffffff);
+    color: var(--color-neutral-0, var(--color-white));
     background-color: var(--ecs-primary);
     border-color: var(--ecs-primary);
     box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
@@ -296,7 +296,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-neutral-0, #ffffff);
+    color: var(--color-neutral-0, var(--color-white));
     font-weight: var(--font-bold, 700);
     box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
     transition: all var(--duration-fast, 150ms) var(--ease-smooth, ease-in-out);
@@ -576,7 +576,7 @@
     .team-card {
         break-inside: avoid;
         box-shadow: none;
-        border: 1px solid var(--color-black, #000);
+        border: 1px solid var(--color-black, var(--color-neutral-950));
     }
 
     .team-card:hover {

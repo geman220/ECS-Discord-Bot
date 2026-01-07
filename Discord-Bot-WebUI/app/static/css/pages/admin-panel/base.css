@@ -16,440 +16,722 @@
 
 /* Component Root
    ========================================================================== */
+
 [data-component="admin-panel-base"] {
-    position: relative;
-    min-height: 100vh;
+  position: relative;
+  min-height: 100vh;
 }
 
 /* Header Section
    ========================================================================== */
+
 .c-admin-panel-base__header-wrapper {
-    margin-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .c-admin-panel-base__header-container {
-    width: 100%;
+  width: 100%;
 }
 
 .c-admin-panel-base__header {
-    /* Use ECS primary colors (blue in modern theme) for consistent branding */
-    background: linear-gradient(135deg, var(--ecs-primary, var(--color-primary-600, #2563EB)) 0%, var(--ecs-primary-dark, #1D4ED8) 100%);
-    border-radius: var(--border-radius-lg, 0.5rem);
-    padding: 1.5rem;
-    color: white;
-    box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.1));
+  /* Use ECS primary colors (blue in modern theme) for consistent branding */
+  background: linear-gradient(135deg, var(--ecs-primary, var(--color-primary-600, var(--color-primary-600))) 0%, var(--ecs-primary-dark, var(--color-primary-700)) 100%);
+  border-radius: var(--border-radius-lg, 0.5rem);
+  padding: 1.5rem;
+  color: white;
+  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.1));
 }
 
 .c-admin-panel-base__header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-direction: column;
-    gap: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 @media (min-width: 768px) {
-    .c-admin-panel-base__header-content {
-        flex-direction: row;
-    }
+  .c-admin-panel-base__header-content {
+    flex-direction: row;
+  }
 }
 
 /* Header Text */
+
 .c-admin-panel-base__header-text {
-    text-align: center;
+  text-align: center;
 }
 
 @media (min-width: 768px) {
-    .c-admin-panel-base__header-text {
-        text-align: left;
-    }
+  .c-admin-panel-base__header-text {
+    text-align: left;
+  }
 }
 
 .c-admin-panel-base__title {
-    color: white;
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0 0 0.5rem 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 @media (min-width: 768px) {
-    .c-admin-panel-base__title {
-        font-size: 2rem;
-        justify-content: flex-start;
-    }
+  .c-admin-panel-base__title {
+    font-size: 2rem;
+    justify-content: flex-start;
+  }
 }
 
 .c-admin-panel-base__title-icon {
-    font-size: inherit;
+  font-size: inherit;
 }
 
 .c-admin-panel-base__description {
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 0.875rem;
-    margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.875rem;
+  margin: 0;
 }
 
 /* Header Meta (Role & User Info) */
+
 .c-admin-panel-base__header-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-    text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
 }
 
 @media (min-width: 768px) {
-    .c-admin-panel-base__header-meta {
-        align-items: flex-end;
-        text-align: right;
-    }
+  .c-admin-panel-base__header-meta {
+    align-items: flex-end;
+    text-align: right;
+  }
 }
 
 .c-admin-panel-base__role-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: white;
-    color: var(--ecs-primary, var(--color-primary-600, #2563EB));
-    padding: 0.375rem 0.75rem;
-    border-radius: var(--border-radius-sm, 0.25rem);
-    font-weight: 500;
-    font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  color: var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--border-radius-sm, 0.25rem);
+  font-weight: 500;
+  font-size: 0.875rem;
 }
 
 .c-admin-panel-base__role-icon {
-    font-size: 1rem;
+  font-size: 1rem;
 }
 
 .c-admin-panel-base__role-text--mobile {
-    display: inline;
+  display: inline;
 }
 
 .c-admin-panel-base__role-text--desktop {
-    display: none;
+  display: none;
 }
 
 @media (min-width: 576px) {
-    .c-admin-panel-base__role-text--mobile {
-        display: none;
-    }
+  .c-admin-panel-base__role-text--mobile {
+    display: none;
+  }
 
-    .c-admin-panel-base__role-text--desktop {
-        display: inline;
-    }
+  .c-admin-panel-base__role-text--desktop {
+    display: inline;
+  }
 }
 
 .c-admin-panel-base__user-info {
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.875rem;
 }
 
 .c-admin-panel-base__user-label--desktop {
-    display: none;
+  display: none;
 }
 
 @media (min-width: 768px) {
-    .c-admin-panel-base__user-label--desktop {
-        display: inline;
-    }
+  .c-admin-panel-base__user-label--desktop {
+    display: inline;
+  }
 }
 
 .c-admin-panel-base__user-name--mobile {
-    display: inline;
+  display: inline;
 }
 
 .c-admin-panel-base__user-name--desktop {
-    display: none;
+  display: none;
 }
 
 @media (min-width: 768px) {
-    .c-admin-panel-base__user-name--mobile {
-        display: none;
-    }
+  .c-admin-panel-base__user-name--mobile {
+    display: none;
+  }
 
-    .c-admin-panel-base__user-name--desktop {
-        display: inline;
-    }
+  .c-admin-panel-base__user-name--desktop {
+    display: inline;
+  }
 }
 
 /* Mobile Navigation Toggle
    ========================================================================== */
+
 .c-admin-panel-base__mobile-nav-toggle {
-    display: block;
-    margin-bottom: 1rem;
+  display: block;
+  margin-bottom: 1rem;
 }
 
 @media (min-width: 992px) {
-    .c-admin-panel-base__mobile-nav-toggle {
-        display: none;
-    }
+  .c-admin-panel-base__mobile-nav-toggle {
+    display: none;
+  }
 }
 
 .c-admin-panel-base__mobile-nav-icon {
-    margin-right: 0.5rem;
+  margin-right: 0.5rem;
 }
 
 .c-admin-panel-base__mobile-nav-text {
-    font-weight: 500;
+  font-weight: 500;
 }
 
 /* Navigation Section
    ========================================================================== */
+
 .c-admin-panel-base__navigation {
-    margin-bottom: 1.5rem;
-    /* Ensure navigation is always visible and not affected by Bootstrap */
-    display: block;
-    visibility: visible;
-    height: auto;
-    overflow: visible;
+  margin-bottom: 1.5rem;
+  /* Ensure navigation is always visible and not affected by Bootstrap */
+  display: block;
+  visibility: visible;
+  height: auto;
+  overflow: visible;
 }
 
 /* Mobile collapsed state - controlled by JS adding is-collapsed class */
-@media (max-width: 991px) {
-    .c-admin-panel-base__navigation.is-collapsed {
-        display: none;
-    }
+
+@media (max-width: 991.98px) {
+  .c-admin-panel-base__navigation.is-collapsed {
+    display: none;
+  }
 }
 
 .c-admin-panel-base__navigation-container {
-    width: 100%;
+  width: 100%;
 }
 
 /* Breadcrumb Navigation
    ========================================================================== */
+
 .c-admin-panel-base__breadcrumb {
-    margin-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .c-breadcrumb {
-    display: flex;
-    flex-wrap: wrap;
-    padding: 0.75rem 1rem;
-    margin: 0;
-    list-style: none;
-    background-color: var(--bs-gray-100, #f8f9fa);
-    border-radius: var(--border-radius-sm, 0.25rem);
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  margin: 0;
+  list-style: none;
+  background-color: var(--bs-gray-100, var(--color-neutral-50));
+  border-radius: var(--border-radius-sm, 0.25rem);
 }
 
 .c-breadcrumb__item {
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
 }
 
 .c-breadcrumb__item + .c-breadcrumb__item::before {
-    content: "/";
-    padding: 0 0.5rem;
-    color: var(--bs-gray-500, var(--color-secondary, var(--color-secondary, #6c757d)));
+  content: "/";
+  padding: 0 0.5rem;
+  color: var(--bs-gray-500, var(--color-secondary, var(--color-secondary, var(--color-secondary-600))));
 }
 
 .c-breadcrumb__link {
-    color: var(--bs-primary);
-    text-decoration: none;
-    transition: color 0.2s ease;
+  color: var(--bs-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
 .c-breadcrumb__link:hover {
-    color: var(--bs-primary-dark, #0056b3);
-    text-decoration: underline;
+  color: var(--bs-primary-dark, #0056b3);
+  text-decoration: underline;
 }
 
 .c-breadcrumb__item.is-active {
-    color: var(--bs-gray-700, #495057);
+  color: var(--bs-gray-700, var(--color-secondary-700));
 }
 
 /* Bootstrap breadcrumb-item compatibility within c-breadcrumb container
    This allows templates to use either BEM (c-breadcrumb__item) or Bootstrap (breadcrumb-item)
    ========================================================================== */
+
 .c-breadcrumb .breadcrumb-item {
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
 }
 
 .c-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
-    content: "/";
-    padding: 0 0.5rem;
-    color: var(--bs-gray-500, var(--color-secondary, var(--color-secondary, #6c757d)));
-    float: none;
+  content: "/";
+  padding: 0 0.5rem;
+  color: var(--bs-gray-500, var(--color-secondary, var(--color-secondary, var(--color-secondary-600))));
+  float: none;
 }
 
 .c-breadcrumb .breadcrumb-item a {
-    color: var(--bs-primary);
-    text-decoration: none;
-    transition: color 0.2s ease;
+  color: var(--bs-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
 .c-breadcrumb .breadcrumb-item a:hover {
-    color: var(--bs-primary-dark, #0056b3);
-    text-decoration: underline;
+  color: var(--bs-primary-dark, #0056b3);
+  text-decoration: underline;
 }
 
 .c-breadcrumb .breadcrumb-item.active {
-    color: var(--bs-gray-700, #495057);
+  color: var(--bs-gray-700, var(--color-secondary-700));
 }
 
 /* Content Section
    ========================================================================== */
+
 .c-admin-panel-base__content {
-    margin-bottom: 2rem;
+  margin-bottom: 2rem;
 }
 
 /* Network Status Indicator
    ========================================================================== */
+
 .c-admin-panel-base__network-status {
-    position: fixed;
-    bottom: 1rem;
-    right: 1rem;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background-color: var(--bs-success, #28a745);
-    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
-    z-index: 1050;
-    transition: all 0.3s ease;
-    pointer-events: none;
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--bs-success, var(--color-success-500));
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
+  z-index: 1050;
+  transition: all 0.3s ease;
+  pointer-events: none;
 }
 
 .c-admin-panel-base__network-status--online {
-    background-color: var(--bs-success, #28a745);
-    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
+  background-color: var(--bs-success, var(--color-success-500));
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3);
 }
 
 .c-admin-panel-base__network-status--offline {
-    background-color: var(--bs-danger, var(--color-danger, var(--color-danger, #dc3545)));
-    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3);
-    animation: pulse-danger 2s infinite;
+  background-color: var(--bs-danger, var(--color-danger, var(--color-danger, var(--color-danger-600))));
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3);
+  animation: pulse-danger 2s infinite;
 }
 
 @keyframes pulse-danger {
-    0%, 100% {
-        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3);
-    }
-    50% {
-        box-shadow: 0 0 0 6px rgba(220, 53, 69, 0.1);
-    }
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(220, 53, 69, 0.1);
+  }
 }
 
 /* Toast Container
    ========================================================================== */
+
 .c-admin-panel-base__toast-container {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
-    z-index: 1080;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    pointer-events: none;
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1080;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
 }
 
 .c-admin-panel-base__toast-container > * {
-    pointer-events: auto;
+  pointer-events: auto;
 }
 
 /* Mobile Optimizations
    ========================================================================== */
-@media (max-width: 767px) {
-    .c-admin-panel-base__header {
-        padding: 1rem;
-    }
 
-    .c-admin-panel-base__title {
-        font-size: 1.25rem;
-    }
+@media (max-width: 767.98px) {
+  .c-admin-panel-base__header {
+    padding: 1rem;
+  }
 
-    .c-admin-panel-base__description {
-        font-size: 0.75rem;
-    }
+  .c-admin-panel-base__title {
+    font-size: 1.25rem;
+  }
 
-    .c-admin-panel-base__toast-container {
-        top: 0.5rem;
-        right: 0.5rem;
-        left: 0.5rem;
-    }
+  .c-admin-panel-base__description {
+    font-size: 0.75rem;
+  }
+
+  .c-admin-panel-base__toast-container {
+    top: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+  }
 }
 
 /* Dark Mode Support
    ========================================================================== */
+
 [data-style="dark"] .c-admin-panel-base__header {
-    /* Use ECS primary colors (blue in modern theme) */
-    background: linear-gradient(135deg, var(--ecs-primary-light, #60A5FA) 0%, var(--ecs-primary, var(--color-primary-600, #2563EB)) 100%);
+  /* Use ECS primary colors (blue in modern theme) */
+  background: linear-gradient(135deg, var(--ecs-primary-light, var(--color-primary-400)) 0%, var(--ecs-primary, var(--color-primary-600, var(--color-primary-600))) 100%);
 }
 
 /* Modern theme dark mode - explicit override */
+
 [data-theme-variant="modern"][data-style="dark"] .c-admin-panel-base__header,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-panel-base__header {
-    background: linear-gradient(135deg, var(--ecs-primary-light, #60A5FA) 0%, var(--ecs-primary, var(--color-primary-600, #2563EB)) 100%);
-    box-shadow: 0 4px 12px rgba(96, 165, 250, 0.15);
+  background: linear-gradient(135deg, var(--ecs-primary-light, var(--color-primary-400)) 0%, var(--ecs-primary, var(--color-primary-600, var(--color-primary-600))) 100%);
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.15);
 }
 
 /* Role badge dark mode - ensure proper contrast */
+
 [data-style="dark"] .c-admin-panel-base__role-badge {
-    background: rgba(255, 255, 255, 0.95);
-    color: var(--ecs-primary, var(--color-primary-600, #2563EB));
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-panel-base__role-badge {
-    background: rgba(255, 255, 255, 0.95);
-    color: var(--ecs-primary, var(--color-primary-600, #2563EB));
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* Breadcrumb dark mode - slate palette */
+
 [data-style="dark"] .c-breadcrumb {
-    background-color: var(--color-bg-card, #1E293B);
+  background-color: var(--color-bg-card, var(--color-secondary-900));
 }
 
 /* BEM breadcrumb dark mode */
+
 [data-style="dark"] .c-breadcrumb__link {
-    color: var(--ecs-primary-light, #60A5FA);
+  color: var(--ecs-primary-light, var(--color-primary-400));
 }
 
 [data-style="dark"] .c-breadcrumb__link:hover {
-    color: var(--ecs-primary, #93C5FD);
+  color: var(--ecs-primary, var(--color-primary-300));
 }
 
 [data-style="dark"] .c-breadcrumb__item + .c-breadcrumb__item::before {
-    color: var(--color-text-muted, #94A3B8);
+  color: var(--color-text-muted, var(--color-secondary-400));
 }
 
 [data-style="dark"] .c-breadcrumb__item.is-active {
-    color: var(--color-text-secondary, #CBD5E1);
+  color: var(--color-text-secondary, var(--color-secondary-300));
 }
 
 /* Bootstrap breadcrumb-item dark mode compatibility */
+
 [data-style="dark"] .c-breadcrumb .breadcrumb-item a {
-    color: var(--ecs-primary-light, #60A5FA);
+  color: var(--ecs-primary-light, var(--color-primary-400));
 }
 
 [data-style="dark"] .c-breadcrumb .breadcrumb-item a:hover {
-    color: var(--ecs-primary, #93C5FD);
+  color: var(--ecs-primary, var(--color-primary-300));
 }
 
 [data-style="dark"] .c-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
-    color: var(--color-text-muted, #94A3B8);
+  color: var(--color-text-muted, var(--color-secondary-400));
 }
 
 [data-style="dark"] .c-breadcrumb .breadcrumb-item.active {
-    color: var(--color-text-secondary, #CBD5E1);
+  color: var(--color-text-secondary, var(--color-secondary-300));
 }
 
 /* Print Styles
    ========================================================================== */
-@media print {
-    .c-admin-panel-base__mobile-nav-toggle,
-    .c-admin-panel-base__navigation,
-    .c-admin-panel-base__network-status,
-    .c-admin-panel-base__toast-container {
-        display: none !important;
-    }
 
-    .c-admin-panel-base__header {
-        background: none !important;
-        color: black !important;
-        box-shadow: none !important;
-        border: 1px solid var(--color-black, #000);
-    }
+@media print {
+  .c-admin-panel-base__mobile-nav-toggle,
+  .c-admin-panel-base__navigation,
+  .c-admin-panel-base__network-status,
+  .c-admin-panel-base__toast-container {
+    display: none;
+  }
+
+  .c-admin-panel-base__header {
+    background: none;
+    color: black;
+    box-shadow: none;
+    border: 1px solid var(--color-black, var(--color-neutral-950));
+  }
+}
+
+/* ============================================================================
+   EXTRACTED INLINE STYLES
+   ============================================================================ */
+
+/* From: admin_panel/push_notifications.html */
+
+/* Note: Shared component styles (card-icon) are in foundation-overrides.css */
+
+/* Page-specific: Notification row filtering animation */
+
+.notification-row {
+  transition: opacity 0.3s ease;
+}
+
+.notification-row.filtered-out {
+  display: none;
+}
+
+/* Page-specific: Mobile responsive table adjustments */
+
+@media (max-width: 768px) {
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+}
+
+/* From: admin_panel/api/analytics.html */
+
+.icon-overlay i {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* From: admin_panel/api/management.html */
+
+.timeline {
+  position: relative;
+  padding-left: 30px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--bs-border-color);
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -24px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--bs-body-bg);
+  top: 5px;
+}
+
+.timeline-content {
+  background: var(--bs-light);
+  padding: 12px;
+  border-radius: 8px;
+}
+
+/* From: admin_panel/dashboard/navigation_settings.html */
+
+.form-switch .form-check-input {
+  width: 3rem;
+  height: 1.5rem;
+  cursor: pointer;
+}
+
+.form-switch .form-check-input:checked {
+  background-color: var(--ecs-success, var(--color-success-600));
+  border-color: var(--ecs-success, var(--color-success-600));
+}
+
+.nav-toggle {
+  transition: all 0.3s ease;
+}
+
+.card.border-success {
+  /* CSS layers handle Bootstrap override */
+  border-width: 2px;
+}
+
+.card.border-secondary {
+  opacity: 0.7;
+}
+
+.preview-item {
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .col-md-6.mb-3 {
+    /* CSS layers handle Bootstrap override */
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* From: admin_panel/ispy/management.html */
+
+.stat-item {
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.stat-item:hover {
+  background-color: var(--bs-light);
+}
+
+/* From: admin_panel/league_management/history.html */
+
+/* Player search autocomplete styling */
+
+.player-search-container {
+  position: relative;
+}
+
+.player-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0 0 0.375rem 0.375rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  display: none;
+}
+
+.player-search-results.show {
+  display: block;
+}
+
+.player-search-item {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.player-search-item:last-child {
+  border-bottom: none;
+}
+
+.player-search-item:hover {
+  background-color: var(--bs-tertiary-bg);
+}
+
+.player-search-item.selected {
+  background-color: var(--bs-primary);
+  color: var(--color-white);
+}
+
+.player-search-item .player-name {
+  font-weight: 500;
+}
+
+.player-search-item .player-id {
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
+/* From: admin_panel/matches/management.html */
+
+/* Utility classes */
+
+.u-card-icon-stat {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+.u-progress-md {
+  height: 10px;
+}
+
+.u-progress-inline {
+  width: 80px;
+  height: 8px;
+}
+
+.u-icon-lg {
+  font-size: 2rem;
+}
+
+/* From: admin_panel/match_operations/substitute_pools.html */
+
+.scrollable-list {
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.league-header[data-league-color] {
+  border-bottom-width: 3px;
+  border-bottom-style: solid;
+}
+
+.league-badge[data-league-color],
+.league-btn[data-league-color],
+.league-title[data-league-color] {
+  color: white;
+}
+
+/* From: admin_panel/mobile_features/push_history.html */
+
+.role-users-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* From: admin_panel/statistics/management.html */
+
+/* From: admin_panel/store/management.html */
+
+/* From: admin_panel/users/management.html */
+
+@media (max-width: 768px) {
+  .card-title {
+    font-size: 1.1rem;
+  }
+
+  .card-text {
+    font-size: 0.9rem;
+  }
+}
+
+/* From: admin_panel/users/roles.html */
+
+@media (max-width: 768px) {
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .table-responsive {
+    font-size: 0.875rem;
+  }
 }

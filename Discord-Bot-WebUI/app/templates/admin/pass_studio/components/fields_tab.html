@@ -62,7 +62,7 @@
                 <div class="col-md-4 mb-3">
                     <div class="pass-layout-diagram" id="layout-generic">
                         <h6 class="text-center mb-2">Generic Pass</h6>
-                        <div class="layout-card">
+                        <div class="layout-c-card">
                             <div class="layout-header">
                                 <div class="layout-logo">Logo</div>
                                 <div class="layout-logo-text">Logo Text</div>
@@ -82,7 +82,7 @@
                 <div class="col-md-4 mb-3">
                     <div class="pass-layout-diagram" id="layout-storeCard">
                         <h6 class="text-center mb-2">Store Card</h6>
-                        <div class="layout-card">
+                        <div class="layout-c-card">
                             <div class="layout-header">
                                 <div class="layout-logo">Logo</div>
                                 <div class="layout-logo-text">Logo Text</div>
@@ -104,7 +104,7 @@
                 <div class="col-md-4 mb-3">
                     <div class="pass-layout-diagram" id="layout-eventTicket">
                         <h6 class="text-center mb-2">Event Ticket</h6>
-                        <div class="layout-card">
+                        <div class="layout-c-card">
                             <div class="layout-notch"></div>
                             <div class="layout-header">
                                 <div class="layout-logo">Logo</div>
@@ -171,13 +171,13 @@
         <div class="c-card__body py-3">
             <p class="text-muted small mb-3">These variables are automatically replaced with actual data when passes are generated:</p>
             <div class="c-table-wrapper" data-table-responsive>
-                <table class="c-table c-table--compact c-table--borderless mb-0" data-mobile-table data-table-type="config" data-table>
+                <table class="c-c-table c-table--compact c-table--borderless mb-0" data-mobile-table data-table-type="config" data-table>
                     <tbody>
                         {% for variable in template_variables %}
                         <tr>
-                            <td class="u-w-160"><code class="bg-light px-2 py-1 rounded">{{ variable.name }}</code></td>
-                            <td class="text-muted">{{ variable.description }}</td>
-                            <td class="u-w-120" class="text-muted small">
+                            <td data-label="Variable" class="u-w-160"><code class="bg-light px-2 py-1 rounded">{{ variable.name }}</code></td>
+                            <td data-label="Description" class="text-muted">{{ variable.description }}</td>
+                            <td data-label="Sample" class="u-w-120" class="text-muted small">
                                 {% if sample_data and sample_data.get(variable.name) %}
                                     <em>"{{ sample_data.get(variable.name) }}"</em>
                                 {% endif %}
@@ -196,7 +196,7 @@
     <div class="col-lg-6 mb-4">
         <div class="c-card h-100">
             <div class="c-card__header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0"><i class="ti ti-credit-card me-2"></i>Front of Pass</h6>
+                <h6 class="mb-0"><i class="ti ti-credit-c-card me-2"></i>Front of Pass</h6>
                 <button type="button" class="c-btn c-btn--sm c-btn--primary js-add-front-field" data-action="add-pass-field" data-field-type="front">
                     <i class="ti ti-plus me-1"></i>Add Field
                 </button>
@@ -283,8 +283,8 @@
 
 <!-- Field Card Template (hidden, used by JavaScript) -->
 <template id="field-card-template">
-    <div class="field-card" data-field-key="">
-        <div class="field-card-header">
+    <div class="field-c-card" data-field-key="">
+        <div class="field-c-card__header">
             <div class="d-flex align-items-center gap-2">
                 <span class="drag-handle" title="Drag to reorder">
                     <i class="ti ti-grip-vertical"></i>
@@ -301,7 +301,7 @@
                 </button>
             </div>
         </div>
-        <div class="field-card-body">
+        <div class="field-c-card__body">
             <div class="row g-2 mb-2">
                 <div class="col-4">
                     <input type="text" class="form-control form-control-sm label-input" placeholder="Label" data-form-control aria-label="Label">

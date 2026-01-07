@@ -210,23 +210,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.scrollable-list {
-    max-height: 150px;
-    overflow-y: auto;
-}
-
-.league-header[data-league-color] {
-    border-bottom-width: 3px;
-    border-bottom-style: solid;
-}
-
-.league-title[data-league-color],
-.league-badge[data-league-color],
-.league-btn[data-league-color] {
-    color: white;
-}
-</style>
+{# Styles moved to external CSS #}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Apply dynamic league colors

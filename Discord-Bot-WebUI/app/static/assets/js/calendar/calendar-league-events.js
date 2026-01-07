@@ -361,33 +361,11 @@ export function getEventTypeInfo(type) {
  * @param {string} message
  */
 function showToast(type, message) {
-    // Use existing toast system if available
+    // Use centralized toast service (via compat layer)
+    // Note: toast-service uses (message, type) signature
     if (typeof window.showToast === 'function') {
-        window.showToast(type, message);
-        return;
+        window.showToast(message, type);
     }
-
-    // Fallback to Toastify
-    if (typeof window.Toastify !== 'undefined') {
-        const bgColors = {
-            success: 'linear-gradient(to right, #00b09b, #96c93d)',
-            error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
-            warning: 'linear-gradient(to right, #f7b733, #fc4a1a)',
-            info: 'linear-gradient(to right, #2193b0, #6dd5ed)'
-        };
-
-        window.Toastify({
-            text: message,
-            duration: 3000,
-            gravity: 'top',
-            position: 'right',
-            style: { background: bgColors[type] || bgColors.info }
-        }).showToast();
-        return;
-    }
-
-    // Final fallback
-    alert(message);
 }
 
 // LeagueEventManager object for backward compatibility

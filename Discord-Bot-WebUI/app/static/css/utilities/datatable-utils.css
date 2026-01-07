@@ -10,7 +10,7 @@
  *
  * Usage:
  * Apply these classes to DataTable containers in HTML, and they will
- * override DataTables' inline styles via !important.
+ * override DataTables' inline styles via.
  */
 
 /* ============================================
@@ -22,8 +22,8 @@
  * Prevents DataTables from clipping action menus
  */
 .dt-container-visible {
-    overflow: visible !important;
-    position: relative !important;
+    overflow: visible;
+    position: relative;
 }
 
 /* Specific selectors for DataTables-generated elements */
@@ -33,8 +33,8 @@ div.dataTables_wrapper,
 .card-body.dt-container-visible,
 .tab-content.dt-container-visible,
 .tab-pane.dt-container-visible {
-    overflow: visible !important;
-    position: relative !important;
+    overflow: visible;
+    position: relative;
 }
 
 /* ============================================
@@ -50,26 +50,26 @@ div.dataTables_wrapper,
  * [data-dropdown] elements including navbar buttons.
  */
 .dt-dropdown {
-    z-index: 9999 !important;
+    z-index: 9999;
     /* Removed position:absolute - was breaking navbar flex layout */
 }
 
 /* Only apply position:absolute to dropdown menus, not triggers */
 .dt-dropdown.dropdown-menu,
 .dt-dropdown[role="menu"] {
-    position: absolute !important;
+    position: absolute;
 }
 
 /* Prevent position:absolute on navbar action buttons */
 .c-navbar-modern__actions .dt-dropdown {
-    position: relative !important;
+    position: relative;
 }
 
 /* Target Bootstrap dropdown menus within DataTables */
 .dataTables_wrapper .dropdown-menu,
 .table-responsive .dropdown-menu {
-    z-index: 9999 !important;
-    position: absolute !important;
+    z-index: 9999;
+    position: absolute;
 }
 
 /* ============================================
@@ -81,13 +81,13 @@ div.dataTables_wrapper,
  * Ensures they don't get clipped by table boundaries
  */
 .dataTables_wrapper .dropdown {
-    position: static !important;
+    position: static;
 }
 
 .dataTables_wrapper .dropdown .dropdown-menu {
-    position: absolute !important;
-    z-index: 9999 !important;
-    transform: none !important;
+    position: absolute;
+    z-index: 9999;
+    transform: none;
 }
 
 /* ============================================
@@ -99,11 +99,11 @@ div.dataTables_wrapper,
  * Prevents overflow issues during tab switches
  */
 .tab-pane .dataTables_wrapper {
-    overflow: visible !important;
+    overflow: visible;
 }
 
 .tab-content {
-    overflow: visible !important;
+    overflow: visible;
 }
 
 /* ============================================
@@ -115,12 +115,12 @@ div.dataTables_wrapper,
  * Only when it contains DataTables
  */
 .table-responsive:has(.dataTables_wrapper) {
-    overflow: visible !important;
+    overflow: visible;
 }
 
 /* Fallback for browsers that don't support :has() */
 .table-responsive.has-datatable {
-    overflow: visible !important;
+    overflow: visible;
 }
 
 /* ============================================
@@ -132,20 +132,20 @@ div.dataTables_wrapper,
  * Ensures dropdown menus aren't clipped by card boundaries
  */
 .card-body:has(.dataTables_wrapper) {
-    overflow: visible !important;
+    overflow: visible;
 }
 
 /* Fallback for browsers that don't support :has() */
 .card-body.has-datatable {
-    overflow: visible !important;
+    overflow: visible;
 }
 
 .card:has(.dataTables_wrapper) {
-    overflow: visible !important;
+    overflow: visible;
 }
 
 .card.has-datatable {
-    overflow: visible !important;
+    overflow: visible;
 }
 
 /* ============================================
@@ -153,10 +153,10 @@ div.dataTables_wrapper,
    ============================================ */
 
 /**
- * Why use !important:
+ * Why use:
  * - DataTables applies inline styles with high specificity
  * - We need to override these without modifying DataTables core
- * - !important ensures our styles take precedence
+ * - ensures our styles take precedence
  *
  * Why use :has() with fallback:
  * - Modern approach using CSS containment queries

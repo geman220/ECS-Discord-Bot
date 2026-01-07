@@ -507,27 +507,47 @@ class AdminMatchOperationsManager {
     }
 
     viewMatch(matchId) {
-        window.Swal.fire({
-            title: 'Match Details',
-            text: 'Match details functionality coming soon!',
-            icon: 'info'
-        });
+        // Navigate to match detail page or open modal
+        if (typeof window.handleEditButtonClick === 'function') {
+            window.handleEditButtonClick(matchId);
+        } else {
+            // Fallback: navigate to teams page with match context
+            window.location.href = `/teams/match/${matchId}`;
+        }
     }
 
     editMatch(matchId) {
-        window.Swal.fire({
-            title: 'Edit Match',
-            text: 'Match editing functionality coming soon!',
-            icon: 'info'
-        });
+        // Use the report match modal for editing
+        if (typeof window.handleEditButtonClick === 'function') {
+            window.handleEditButtonClick(matchId);
+        } else {
+            // Fallback: try to trigger edit modal via data attribute
+            const editBtn = document.querySelector(`[data-action="edit-match-report"][data-match-id="${matchId}"]`);
+            if (editBtn) {
+                editBtn.click();
+            } else {
+                window.Swal.fire({
+                    title: 'Edit Match',
+                    text: 'Please navigate to the team page to edit this match.',
+                    icon: 'info',
+                    confirmButtonText: 'Go to Teams',
+                    showCancelButton: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '/teams';
+                    }
+                });
+            }
+        }
     }
 
     enterResult(matchId) {
-        window.Swal.fire({
-            title: 'Enter Match Result',
-            text: 'Result entry feature will be implemented here',
-            icon: 'info'
-        });
+        // Use the report match modal for entering results
+        if (typeof window.handleEditButtonClick === 'function') {
+            window.handleEditButtonClick(matchId);
+        } else {
+            this.editMatch(matchId);
+        }
     }
 
     // Transfer Methods
@@ -537,14 +557,21 @@ class AdminMatchOperationsManager {
             text: 'This will complete the player transfer.',
             icon: 'question',
             showCancelButton: true,
-            confirmButtonText: 'Yes, approve',
+            confirmButtonText: 'Approve Transfer',
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
+                // TODO: Add API endpoint for transfer approval when transfer system is implemented
                 window.Swal.fire({
-                    title: 'Transfer Approved',
-                    text: 'Transfer approval functionality coming soon!',
-                    icon: 'success'
+                    title: 'Transfer System',
+                    text: 'Player transfers are currently managed through team pages. Navigate to the team to manage roster.',
+                    icon: 'info',
+                    confirmButtonText: 'Go to Teams',
+                    showCancelButton: true
+                }).then((r) => {
+                    if (r.isConfirmed) {
+                        window.location.href = '/teams';
+                    }
                 });
             }
         });
@@ -554,15 +581,16 @@ class AdminMatchOperationsManager {
         window.Swal.fire({
             title: 'Reject Transfer?',
             text: 'This will reject the player transfer request.',
-            icon: 'question',
+            icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes, reject',
+            confirmButtonText: 'Reject Transfer',
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
+                // TODO: Add API endpoint for transfer rejection when transfer system is implemented
                 window.Swal.fire({
-                    title: 'Transfer Rejected',
-                    text: 'Transfer rejection functionality coming soon!',
+                    title: 'Transfer System',
+                    text: 'Player transfers are currently managed through team pages.',
                     icon: 'info'
                 });
             }
@@ -572,34 +600,58 @@ class AdminMatchOperationsManager {
     exportTransferHistory() {
         window.Swal.fire({
             title: 'Export Transfer History',
-            text: 'Export functionality coming soon!',
-            icon: 'info'
+            text: 'This will download a CSV of all player transfers.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Export CSV',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // TODO: Add API endpoint for transfer history export
+                window.Swal.fire('Note', 'Transfer history export will be available when the transfer system is fully implemented.', 'info');
+            }
         });
     }
 
     // Team Roster Methods
     managePlayerAssignments() {
         window.Swal.fire({
-            title: 'Assign Players',
-            text: 'Player assignment functionality coming soon!',
-            icon: 'info'
+            title: 'Manage Player Assignments',
+            text: 'Navigate to a team page to manage player assignments and rosters.',
+            icon: 'info',
+            confirmButtonText: 'Go to Teams',
+            showCancelButton: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '/teams';
+            }
         });
     }
 
     viewTeamRoster(teamId) {
-        window.Swal.fire({
-            title: 'View Team Roster',
-            text: 'Team roster details functionality coming soon!',
-            icon: 'info'
-        });
+        if (teamId) {
+            window.location.href = `/teams/${teamId}`;
+        } else {
+            window.location.href = '/teams';
+        }
     }
 
     editTeamRoster(teamId) {
-        window.Swal.fire({
-            title: 'Edit Team Roster',
-            text: 'Team roster editing functionality coming soon!',
-            icon: 'info'
-        });
+        if (teamId) {
+            window.location.href = `/teams/${teamId}`;
+        } else {
+            window.Swal.fire({
+                title: 'Edit Team Roster',
+                text: 'Select a team to edit its roster.',
+                icon: 'info',
+                confirmButtonText: 'Go to Teams',
+                showCancelButton: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '/teams';
+                }
+            });
+        }
     }
 
     showTeamsWithoutPlayers() {
@@ -636,7 +688,7 @@ function getManager() {
 /**
  * Initialize function
  */
-function init() {
+function initAdminMatchOperations() {
     if (_initialized) return;
     _initialized = true;
 
@@ -659,7 +711,7 @@ function init() {
 
 // Register with window.InitSystem
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('admin-match-operations', init, {
+    window.InitSystem.register('admin-match-operations', initAdminMatchOperations, {
         priority: 40,
         reinitializable: false,
         description: 'Admin match operations management'
@@ -670,4 +722,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Export for ES modules
-export { AdminMatchOperationsManager, getManager, init };
+export { AdminMatchOperationsManager, getManager, initAdminMatchOperations };

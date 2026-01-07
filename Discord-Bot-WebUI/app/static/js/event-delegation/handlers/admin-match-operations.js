@@ -128,8 +128,6 @@ window.EventDelegation.register('confirm-delete-team', function(element, e) {
                     deleteTeamById(teamId);
                 }
             });
-        } else if (confirm(confirmMessage)) {
-            deleteTeamById(teamId);
         }
     }
 });
@@ -150,15 +148,10 @@ function deleteTeamById(teamId) {
         if (result.success) {
             if (typeof window.Swal !== 'undefined') {
                 window.Swal.fire('Deleted!', result.message, 'success').then(() => window.location.reload());
-            } else {
-                alert(result.message);
-                window.location.reload();
             }
         } else {
             if (typeof window.Swal !== 'undefined') {
                 window.Swal.fire('Error', result.message, 'error');
-            } else {
-                alert(result.message);
             }
         }
     })
@@ -299,9 +292,6 @@ window.EventDelegation.register('submit-match-result', function(element, e) {
             if (result.success) {
                 if (typeof window.Swal !== 'undefined') {
                     window.Swal.fire('Success', result.message, 'success').then(() => window.location.reload());
-                } else {
-                    alert(result.message);
-                    window.location.reload();
                 }
             } else {
                 if (typeof window.Swal !== 'undefined') {
@@ -418,9 +408,6 @@ window.EventDelegation.register('submit-transfer', function(element, e) {
             if (result.success) {
                 if (typeof window.Swal !== 'undefined') {
                     window.Swal.fire('Success', result.message, 'success').then(() => window.location.reload());
-                } else {
-                    alert(result.message);
-                    window.location.reload();
                 }
             } else {
                 if (typeof window.Swal !== 'undefined') {
@@ -463,11 +450,18 @@ window.EventDelegation.register('manage-player-assignments', function(element, e
     if (typeof managePlayerAssignments === 'function') {
         managePlayerAssignments();
     } else {
+        // Navigate to teams page for player management
         if (typeof window.Swal !== 'undefined') {
             window.Swal.fire({
-                title: 'Assign Players',
-                text: 'Player assignment functionality coming soon!',
-                icon: 'info'
+                title: 'Manage Player Assignments',
+                text: 'Navigate to a team page to manage player assignments.',
+                icon: 'info',
+                confirmButtonText: 'Go to Teams',
+                showCancelButton: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '/teams';
+                }
             });
         }
     }
@@ -475,7 +469,7 @@ window.EventDelegation.register('manage-player-assignments', function(element, e
 
 /**
  * View Team Roster Action
- * Shows detailed team roster
+ * Shows detailed team roster - navigates to team page
  */
 window.EventDelegation.register('view-team-roster', function(element, e) {
     e.preventDefault();
@@ -485,19 +479,18 @@ window.EventDelegation.register('view-team-roster', function(element, e) {
     if (typeof viewTeamRoster === 'function') {
         viewTeamRoster(teamId);
     } else {
-        if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire({
-                title: 'View Team Roster',
-                text: 'Team roster details functionality coming soon!',
-                icon: 'info'
-            });
+        // Navigate directly to team page
+        if (teamId) {
+            window.location.href = `/teams/${teamId}`;
+        } else {
+            window.location.href = '/teams';
         }
     }
 });
 
 /**
  * Edit Team Roster Action
- * Opens team roster editing interface
+ * Opens team roster editing interface - navigates to team page
  */
 window.EventDelegation.register('edit-team-roster', function(element, e) {
     e.preventDefault();
@@ -507,12 +500,11 @@ window.EventDelegation.register('edit-team-roster', function(element, e) {
     if (typeof editTeamRoster === 'function') {
         editTeamRoster(teamId);
     } else {
-        if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire({
-                title: 'Edit Team Roster',
-                text: 'Team roster editing functionality coming soon!',
-                icon: 'info'
-            });
+        // Navigate directly to team page for editing
+        if (teamId) {
+            window.location.href = `/teams/${teamId}`;
+        } else {
+            window.location.href = '/teams';
         }
     }
 });
@@ -553,7 +545,7 @@ window.EventDelegation.register('show-teams-without-players', function(element, 
 
 /**
  * View Match Action (Upcoming Matches)
- * Shows match details
+ * Shows match details - uses report match modal or navigates
  */
 window.EventDelegation.register('view-match', function(element, e) {
     e.preventDefault();
@@ -562,34 +554,51 @@ window.EventDelegation.register('view-match', function(element, e) {
 
     if (typeof viewMatch === 'function') {
         viewMatch(matchId);
+    } else if (typeof window.handleEditButtonClick === 'function') {
+        // Use report match modal to view/edit
+        window.handleEditButtonClick(matchId);
     } else {
-        if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire({
-                title: 'Match Details',
-                text: 'Match details functionality coming soon!',
-                icon: 'info'
-            });
-        }
+        // Fallback - navigate to teams page
+        window.location.href = '/teams';
     }
 });
 
 /**
  * Edit Match Action (Upcoming Matches)
- * Opens match editing interface
+ * Opens match editing interface - delegates to report_match.js handleEditButtonClick
  */
 window.EventDelegation.register('edit-match', function(element, e) {
     e.preventDefault();
 
     const matchId = element.dataset.matchId;
 
-    if (typeof editMatch === 'function') {
-        editMatch(matchId);
+    // Try report_match.js handler (primary method for match reporting)
+    if (typeof window.handleEditButtonClick === 'function') {
+        window.handleEditButtonClick(matchId);
     } else {
+        // Handler not yet loaded - show loading and retry after short delay
+        console.warn('[edit-match] handleEditButtonClick not ready, retrying...');
         if (typeof window.Swal !== 'undefined') {
             window.Swal.fire({
-                title: 'Edit Match',
-                text: 'Match editing functionality coming soon!',
-                icon: 'info'
+                title: 'Loading...',
+                text: 'Please wait...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    window.Swal.showLoading();
+                    // Retry after a short delay for async module loading
+                    setTimeout(() => {
+                        if (typeof window.handleEditButtonClick === 'function') {
+                            window.Swal.close();
+                            window.handleEditButtonClick(matchId);
+                        } else {
+                            window.Swal.fire({
+                                title: 'Error',
+                                text: 'Match editing is not available. Please refresh the page.',
+                                icon: 'error'
+                            });
+                        }
+                    }, 500);
+                }
             });
         }
     }
@@ -597,7 +606,7 @@ window.EventDelegation.register('edit-match', function(element, e) {
 
 /**
  * Schedule Match Action (Upcoming Matches)
- * Opens match scheduling interface
+ * Opens match scheduling interface - navigates to season management
  */
 window.EventDelegation.register('schedule-match', function(element, e) {
     e.preventDefault();
@@ -607,11 +616,18 @@ window.EventDelegation.register('schedule-match', function(element, e) {
     if (typeof scheduleMatch === 'function') {
         scheduleMatch(matchId);
     } else {
+        // Navigate to season management for scheduling
         if (typeof window.Swal !== 'undefined') {
             window.Swal.fire({
                 title: 'Schedule Match',
-                text: 'Match scheduling functionality coming soon!',
-                icon: 'info'
+                text: 'Match scheduling is done through Season Management.',
+                icon: 'info',
+                confirmButtonText: 'Go to Seasons',
+                showCancelButton: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '/admin/season_management';
+                }
             });
         }
     }

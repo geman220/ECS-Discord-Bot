@@ -23,11 +23,11 @@
  * Base event indicator - prepend/badge in input groups
  */
 .event-indicator {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 32px !important;
-    padding: 0.375rem 0.25rem !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    padding: 0.375rem 0.25rem;
 }
 
 /* ============================================
@@ -39,14 +39,14 @@
  * Used for yellow card event entries
  */
 .card-indicator-yellow {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 32px !important;
-    padding: 0.375rem 0.25rem !important;
-    background-color: var(--bs-warning, #ffc107) !important;
-    color: var(--bs-dark, #212529) !important;
-    border: none !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    padding: 0.375rem 0.25rem;
+    background-color: var(--bs-warning, var(--color-warning));
+    color: var(--bs-dark, var(--color-secondary-900));
+    border: none;
 }
 
 /**
@@ -54,25 +54,25 @@
  * Used for red card event entries
  */
 .card-indicator-red {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 32px !important;
-    padding: 0.375rem 0.25rem !important;
-    background-color: var(--bs-danger, var(--color-danger, #dc3545)) !important;
-    color: var(--bs-white, #ffffff) !important;
-    border: none !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    padding: 0.375rem 0.25rem;
+    background-color: var(--bs-danger, var(--color-danger, var(--color-danger-600)));
+    color: var(--bs-white, var(--color-white));
+    border: none;
 }
 
 /**
  * Combined with Bootstrap's .input-group-text for proper styling
  */
 .input-group-text.card-indicator-yellow {
-    border: 1px solid var(--bs-warning, #ffc107) !important;
+    border: 1px solid var(--bs-warning, var(--color-warning));
 }
 
 .input-group-text.card-indicator-red {
-    border: 1px solid var(--bs-danger, var(--color-danger, #dc3545)) !important;
+    border: 1px solid var(--bs-danger, var(--color-danger, var(--color-danger-600)));
 }
 
 /* ============================================
@@ -83,26 +83,26 @@
  * Goal event indicator
  */
 .goal-indicator {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 32px !important;
-    padding: 0.375rem 0.25rem !important;
-    background-color: var(--bs-success, var(--color-success, #198754)) !important;
-    color: var(--bs-white, #ffffff) !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    padding: 0.375rem 0.25rem;
+    background-color: var(--bs-success, var(--color-success, var(--color-success-600)));
+    color: var(--bs-white, var(--color-white));
 }
 
 /**
  * Assist event indicator
  */
 .assist-indicator {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 32px !important;
-    padding: 0.375rem 0.25rem !important;
-    background-color: var(--bs-info, #0dcaf0) !important;
-    color: var(--bs-dark, #212529) !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    padding: 0.375rem 0.25rem;
+    background-color: var(--bs-info, #0dcaf0);
+    color: var(--bs-dark, var(--color-secondary-900));
 }
 
 /* ============================================
@@ -113,23 +113,23 @@
  * Player event entry row spacing
  */
 .player-event-entry {
-    margin-bottom: 0.5rem !important;
+    margin-bottom: 0.5rem;
 }
 
 /**
  * Compact event entry (for cards)
  */
 .player-event-entry-compact {
-    margin-bottom: 0.25rem !important;
+    margin-bottom: 0.25rem;
 }
 
 /**
  * Event entry being removed (marked for deletion)
  */
 .player-event-entry.to-be-removed {
-    opacity: 0.5 !important;
-    text-decoration: line-through !important;
-    display: none !important;
+    opacity: 0.5;
+    text-decoration: line-through;
+    display: none;
 }
 
 /* ============================================
@@ -140,16 +140,16 @@
  * Emoji/icon sizing in event indicators
  */
 .event-indicator-icon {
-    font-size: 1rem !important;
-    line-height: 1 !important;
+    font-size: 1rem;
+    line-height: 1;
 }
 
 .event-indicator-icon-sm {
-    font-size: 0.875rem !important;
+    font-size: 0.875rem;
 }
 
 .event-indicator-icon-lg {
-    font-size: 1.25rem !important;
+    font-size: 1.25rem;
 }
 
 /* ============================================
@@ -157,23 +157,23 @@
    ============================================ */
 
 [data-style="dark"] .card-indicator-yellow {
-    background-color: var(--color-warning-400, #f0ad4e) !important;
-    color: var(--color-black, #000000) !important;
+    background-color: var(--color-warning-400, #f0ad4e);
+    color: var(--color-black, var(--color-neutral-950)000);
 }
 
 [data-style="dark"] .card-indicator-red {
-    background-color: var(--color-danger-700, #c9302c) !important;
-    color: var(--color-white, #ffffff) !important;
+    background-color: var(--color-danger-700, #c9302c);
+    color: var(--color-white, var(--color-white));
 }
 
 [data-style="dark"] .goal-indicator {
-    background-color: var(--color-success, #198754) !important;
-    color: var(--color-white, #ffffff) !important;
+    background-color: var(--color-success, var(--color-success-600));
+    color: var(--color-white, var(--color-white));
 }
 
 [data-style="dark"] .assist-indicator {
-    background-color: var(--color-info-600, #17a2b8) !important;
-    color: var(--color-white, #ffffff) !important;
+    background-color: var(--color-info-600, var(--color-info-600));
+    color: var(--color-white, var(--color-white));
 }
 
 /* ============================================
@@ -183,18 +183,18 @@
 /**
  * Smaller indicators on mobile devices
  */
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
     .event-indicator,
     .card-indicator-yellow,
     .card-indicator-red,
     .goal-indicator,
     .assist-indicator {
-        min-width: 28px !important;
-        padding: 0.25rem 0.125rem !important;
+        min-width: 28px;
+        padding: 0.25rem 0.125rem;
     }
 
     .event-indicator-icon {
-        font-size: 0.875rem !important;
+        font-size: 0.875rem;
     }
 }
 
@@ -206,27 +206,27 @@
  * Event indicator with border radius
  */
 .event-indicator-rounded {
-    border-radius: 0.25rem !important;
+    border-radius: 0.25rem;
 }
 
 .event-indicator-pill {
-    border-radius: 50rem !important;
+    border-radius: 50rem;
 }
 
 /**
  * Event indicator with shadow
  */
 .event-indicator-shadow {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
 /**
  * Event indicator with border
  */
 .event-indicator-bordered {
-    border: 1px solid rgba(0, 0, 0, 0.125) !important;
+    border: 1px solid rgba(0, 0, 0, 0.125);
 }
 
 [data-style="dark"] .event-indicator-bordered {
-    border-color: rgba(255, 255, 255, 0.125) !important;
+    border-color: rgba(255, 255, 255, 0.125);
 }

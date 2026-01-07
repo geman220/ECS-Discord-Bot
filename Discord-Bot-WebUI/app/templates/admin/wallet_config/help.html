@@ -3,45 +3,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    /* Help Documentation - Theme-aware styling */
-    .help-card {
-        margin-bottom: 25px;
-        border-radius: 8px;
-        transition: all 0.2s;
-        height: 100%;
-    }
-    .help-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--bs-box-shadow);
-    }
-    .help-icon {
-        font-size: 2.5rem;
-        margin-bottom: 15px;
-        color: var(--bs-primary, #696cff);
-    }
-    .topic-section {
-        border-left: 3px solid var(--bs-primary, #696cff);
-        padding-left: 20px;
-        margin-bottom: 30px;
-    }
-    .code-block {
-        background-color: var(--bs-tertiary-bg, #f8f9fa);
-        border-radius: 5px;
-        padding: 15px;
-        margin: 15px 0;
-        font-family: monospace;
-        overflow-x: auto;
-    }
-    .faq-item {
-        margin-bottom: 20px;
-    }
-    .faq-question {
-        font-weight: bold;
-        margin-bottom: 8px;
-        color: var(--bs-primary, #696cff);
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock custom_css %}
 
 {% block content %}
@@ -68,7 +30,7 @@
     <!-- Help Topics -->
     <div class="row mb-4">
         <div class="col-md-3 mb-3">
-            <div class="c-card help-card">
+            <div class="c-card help-c-card">
                 <div class="c-card__body text-center">
                     <div class="help-icon">
                         <i class="ti ti-info-circle"></i>
@@ -80,7 +42,7 @@
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="c-card help-card">
+            <div class="c-card help-c-card">
                 <div class="c-card__body text-center">
                     <div class="help-icon">
                         <i class="ti ti-certificate"></i>
@@ -92,7 +54,7 @@
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="c-card help-card">
+            <div class="c-card help-c-card">
                 <div class="c-card__body text-center">
                     <div class="help-icon">
                         <i class="ti ti-photo"></i>
@@ -104,7 +66,7 @@
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="c-card help-card">
+            <div class="c-card help-c-card">
                 <div class="c-card__body text-center">
                     <div class="help-icon">
                         <i class="ti ti-file-text"></i>
@@ -226,7 +188,7 @@
                         <p>Wallet passes require specific images to display correctly. Here's what you need to know:</p>
                         
                         <div class="c-table-wrapper" data-table-responsive>
-                            <table class="c-table" data-mobile-table data-table-type="config" data-table>
+                            <table class="c-c-table" data-mobile-table data-table-type="config" data-table>
                                 <thead scope="col">
                                     <tr>
                                         <th scope="col">Asset Type</th>

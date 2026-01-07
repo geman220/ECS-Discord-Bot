@@ -139,12 +139,12 @@
 @media print {
   .c-auth-layout__body,
   .auth-page {
-    background: white !important;
-    padding: 0 !important;
+    background: white;
+    padding: 0;
   }
 
   .c-auth-layout__body::before {
-    display: none !important;
+    display: none;
   }
 }
 

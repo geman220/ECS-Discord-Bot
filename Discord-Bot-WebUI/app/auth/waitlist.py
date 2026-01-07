@@ -15,7 +15,7 @@ from flask import (
     render_template, redirect, url_for, request,
     current_app, session, g
 )
-from flask_login import login_user
+from flask_login import login_user, login_required, current_user as flask_current_user
 
 from app.auth import auth
 from app.alert_helpers import show_error, show_warning, show_success, show_info
@@ -56,6 +56,10 @@ def waitlist_register():
 
     # Handle authenticated users - add them to waitlist
     if current_user.is_authenticated:
+        # If already on waitlist, redirect to status page
+        if current_user.waitlist_joined_at:
+            return redirect(url_for('auth.waitlist_status'))
+
         if request.method == 'POST':
             try:
                 # Find or create pl-waitlist role
@@ -119,6 +123,46 @@ def waitlist_register():
 
         return render_template('waitlist_login_register.html',
                               title='Join the Waitlist')
+
+
+@auth.route('/waitlist_status')
+@login_required
+def waitlist_status():
+    """
+    Display waitlist status for authenticated users.
+
+    Shows different messaging based on user type:
+    - New users (not approved): "Application Under Review"
+    - Returning approved players: "Waiting for Spot"
+    """
+    db_session = g.db_session
+    user = flask_current_user
+
+    # Check if user is on waitlist
+    if not user.waitlist_joined_at:
+        return redirect(url_for('auth.waitlist_register'))
+
+    # Get player data
+    player = user.player
+
+    # Determine waitlist type
+    # is_approved=True means they're an approved player waiting for a spot (league full)
+    # is_approved=False means they're a new user under review
+    is_returning_player = user.is_approved
+
+    # Get Discord server info
+    discord_server_url = current_app.config.get('DISCORD_SERVER_URL', 'https://discord.gg/weareecs')
+
+    return render_template('waitlist_status.html',
+        title='Waitlist Status',
+        user=user,
+        player=player,
+        waitlist_date=user.waitlist_joined_at,
+        approval_status=user.approval_status,
+        approval_league=user.approval_league,
+        is_returning_player=is_returning_player,
+        discord_server_url=discord_server_url
+    )
 
 
 @auth.route('/waitlist_discord_login')

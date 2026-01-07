@@ -41,7 +41,7 @@ const DEBOUNCE_MS = 16; // ~1 frame at 60fps
 // Handler registry
 const _handlers = new Map();
 
-export const UnifiedMutationObserver = {
+const UnifiedMutationObserver = {
     /**
      * Register a handler for DOM mutations
      *

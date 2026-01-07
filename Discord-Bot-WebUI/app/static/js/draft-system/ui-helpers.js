@@ -5,6 +5,8 @@
  * @module draft-system/ui-helpers
  */
 
+import { showToast } from '../services/toast-service.js';
+
 /**
  * Update connection status indicator
  * @param {boolean} connected - Connection status
@@ -47,33 +49,8 @@ export function hideLoading() {
     }
 }
 
-/**
- * Show toast notification
- * @param {string} message - Toast message
- * @param {string} type - Toast type (success, error, warning, info)
- */
-export function showToast(message, type = 'info') {
-    if (window.Swal) {
-        const iconMap = {
-            'success': 'success',
-            'error': 'error',
-            'warning': 'warning',
-            'info': 'info'
-        };
-
-        window.Swal.fire({
-            title: message,
-            icon: iconMap[type] || 'info',
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true
-        });
-    } else if (window.showToast) {
-        window.showToast(message, type);
-    }
-}
+// showToast imported from services/toast-service.js
+export { showToast };
 
 /**
  * Show drafting indicator

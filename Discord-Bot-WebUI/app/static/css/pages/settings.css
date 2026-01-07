@@ -26,29 +26,29 @@
    ============================================================================ */
 
 .c-settings-page {
-  --settings-bg-page: var(--color-bg-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
-  --settings-bg-card: var(--color-bg-card, #ffffff);
-  --settings-bg-elevated: var(--color-bg-elevated, var(--color-secondary-100, var(--color-secondary-100, #f1f5f9)));
-  --settings-bg-input: var(--color-bg-primary, #ffffff);
+  --settings-bg-page: var(--color-bg-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
+  --settings-bg-card: var(--color-bg-card, var(--color-white));
+  --settings-bg-elevated: var(--color-bg-elevated, var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100))));
+  --settings-bg-input: var(--color-bg-primary, var(--color-white));
 
   --settings-border: var(--color-border-primary, rgba(0, 0, 0, 0.08));
-  --settings-border-focus: var(--color-primary, var(--color-primary-600, #2563EB));
+  --settings-border-focus: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 
-  --settings-text-primary: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
-  --settings-text-secondary: var(--color-text-secondary, var(--color-secondary-700, var(--color-secondary-700, #475569)));
-  --settings-text-muted: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  --settings-text-primary: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
+  --settings-text-secondary: var(--color-text-secondary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
+  --settings-text-muted: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 
-  --settings-primary: var(--color-primary, var(--color-primary-600, #2563EB));
+  --settings-primary: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   --settings-primary-subtle: rgba(37, 99, 235, 0.08);
-  --settings-success: var(--color-success, #22c55e);
+  --settings-success: var(--color-success, var(--color-success-500));
   --settings-success-subtle: rgba(34, 197, 94, 0.08);
-  --settings-warning: var(--color-warning, var(--color-warning-500, #f59e0b));
+  --settings-warning: var(--color-warning, var(--color-warning-500, var(--color-accent-600)));
   --settings-warning-subtle: rgba(245, 158, 11, 0.08);
-  --settings-danger: var(--color-danger, var(--color-danger-500, #ef4444));
+  --settings-danger: var(--color-danger, var(--color-danger-500, var(--color-danger-600)));
   --settings-danger-subtle: rgba(239, 68, 68, 0.08);
-  --settings-info: var(--color-info, #3b82f6);
+  --settings-info: var(--color-info, var(--color-primary-500));
   --settings-info-subtle: rgba(59, 130, 246, 0.08);
-  --settings-discord: #5865F2;
+  --settings-discord: var(--color-discord);
   --settings-discord-subtle: rgba(88, 101, 242, 0.08);
 
   --settings-radius: 8px;
@@ -68,16 +68,16 @@
 
 /* Dark mode token overrides */
 [data-style="dark"] .c-settings-page {
-  --settings-bg-page: var(--color-secondary-950, var(--color-secondary-950, #0f172a));
-  --settings-bg-card: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
-  --settings-bg-elevated: var(--color-secondary-800, var(--color-secondary-800, #334155));
-  --settings-bg-input: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
+  --settings-bg-page: var(--color-secondary-950, var(--color-secondary-950, var(--color-secondary-950)));
+  --settings-bg-card: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
+  --settings-bg-elevated: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  --settings-bg-input: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
 
   --settings-border: rgba(148, 163, 184, 0.12);
 
-  --settings-text-primary: var(--color-secondary-100, var(--color-secondary-100, #f1f5f9));
-  --settings-text-secondary: #cbd5e1;
-  --settings-text-muted: var(--color-secondary-400, var(--color-secondary-400, #94a3b8));
+  --settings-text-primary: var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100)));
+  --settings-text-secondary: var(--color-secondary-300);
+  --settings-text-muted: var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400)));
 
   --settings-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
   --settings-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
@@ -987,17 +987,17 @@
 .c-settings-page .c-notification-switch__input.is-invalid {
   width: 44px;
   height: 24px;
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  background: var(--color-secondary-600, var(--color-secondary-600, #64748b)); /* slate-500 - toggle track off state */
-  background-image: none !important;
-  border: none !important;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))); /* slate-500 - toggle track off state */
+  background-image: none;
+  border: none;
   border-radius: 12px;
   cursor: pointer;
   transition: background 0.2s ease;
   position: relative;
-  padding: 0 !important;
+  padding: 0;
   margin: 0;
   flex-shrink: 0;
 }
@@ -1019,7 +1019,7 @@
 
 .c-settings-page .c-notification-switch__input:checked,
 .c-settings-page .c-notification-switch__input.is-valid:checked {
-  background: var(--color-success-500, #10b981); /* emerald-500 - success green */
+  background: var(--color-success-500, var(--color-success-500)); /* emerald-500 - success green */
 }
 
 .c-settings-page .c-notification-switch__input:checked::before,
@@ -1143,12 +1143,7 @@
     padding: var(--settings-space-md);
   }
 
-  .c-settings-card__icon {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    font-size: 1.1rem;
-  }
+  /* NOTE: .c-settings-card__icon mobile sizing handled by components/settings-components.css */
 
   .c-tips-box__grid {
     grid-template-columns: 1fr;

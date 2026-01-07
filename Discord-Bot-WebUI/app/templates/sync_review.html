@@ -54,7 +54,7 @@
     <!-- Stats Overview Cards -->
     <div class="row mb-4">
         <div class="col-md-2">
-            <div class="c-card stats-card text-center shadow-sm">
+            <div class="c-card stats-c-card text-center shadow-sm">
                 <div class="c-card__body py-3">
                     <h3 class="c-card__title text-primary mb-1" id="newPlayersCount">{{ sync_data.new_players|length }}</h3>
                     <p class="c-card__description text-muted mb-0">New Players</p>
@@ -62,7 +62,7 @@
             </div>
         </div>
         <div class="col-md-2">
-            <div class="c-card stats-card text-center shadow-sm">
+            <div class="c-card stats-c-card text-center shadow-sm">
                 <div class="c-card__body py-3">
                     <h3 class="c-card__title text-success mb-1" id="existingPlayersCount">{{ sync_data.player_league_updates|length }}</h3>
                     <p class="c-card__description text-muted mb-0">Existing Players</p>
@@ -70,7 +70,7 @@
             </div>
         </div>
         <div class="col-md-2">
-            <div class="c-card stats-card text-center shadow-sm">
+            <div class="c-card stats-c-card text-center shadow-sm">
                 <div class="c-card__body py-3">
                     <h3 class="c-card__title text-warning mb-1" id="flaggedOrdersCount">{{ sync_data.flagged_multi_orders|length }}</h3>
                     <p class="c-card__description text-muted mb-0">Multi-Orders</p>
@@ -78,7 +78,7 @@
             </div>
         </div>
         <div class="col-md-2">
-            <div class="c-card stats-card text-center shadow-sm">
+            <div class="c-card stats-c-card text-center shadow-sm">
                 <div class="c-card__body py-3">
                     <h3 class="c-card__title text-danger mb-1" id="emailMismatchCount">{{ sync_data.email_mismatch_players|length }}</h3>
                     <p class="c-card__description text-muted mb-0">Email Mismatches</p>
@@ -86,7 +86,7 @@
             </div>
         </div>
         <div class="col-md-2">
-            <div class="c-card stats-card text-center shadow-sm">
+            <div class="c-card stats-c-card text-center shadow-sm">
                 <div class="c-card__body py-3">
                     <h3 class="c-card__title text-info mb-1" id="potentialInactiveCount">{{ sync_data.potential_inactive|length }}</h3>
                     <p class="c-card__description text-muted mb-0">Potential Inactive</p>
@@ -94,7 +94,7 @@
             </div>
         </div>
         <div class="col-md-2">
-            <div class="c-card stats-card text-center shadow-sm">
+            <div class="c-card stats-c-card text-center shadow-sm">
                 <div class="c-card__body py-3">
                     <h3 class="c-card__title text-secondary mb-1" id="issuesResolvedCount">0</h3>
                     <p class="c-card__description text-muted mb-0">Issues Resolved</p>
@@ -164,7 +164,7 @@
 
                                 {% for order in sync_data.flagged_multi_orders %}
                                 {% set outer_loop = loop %}
-                                <div class="issue-card issue-pending border rounded p-4 mb-4" data-issue-type="multi-order" data-issue-id="{{ loop.index0 }}">
+                                <div class="issue-c-card issue-pending border rounded p-4 mb-4" data-issue-type="multi-order" data-issue-id="{{ loop.index0 }}">
                                     <div class="d-flex justify-content-between align-items-start mb-3">
                                         <div class="flex-grow-1">
                                             <div class="d-flex align-items-center mb-2">
@@ -320,7 +320,7 @@
                                 </div>
 
                                 {% for player in sync_data.new_players %}
-                                <div class="issue-card issue-pending border rounded p-4 mb-4" data-issue-type="new-player" data-issue-id="{{ loop.index0 }}">
+                                <div class="issue-c-card issue-pending border rounded p-4 mb-4" data-issue-type="new-player" data-issue-id="{{ loop.index0 }}">
                                     <div class="d-flex justify-content-between align-items-start mb-3">
                                         <div class="d-flex align-items-center">
                                             <i class="ti ti-user-plus me-2 text-primary"></i>
@@ -420,7 +420,7 @@
                                 </div>
 
                                 {% for player in sync_data.email_mismatch_players %}
-                                <div class="issue-card issue-pending border rounded p-4 mb-4" data-issue-type="email-mismatch" data-issue-id="{{ loop.index0 }}">
+                                <div class="issue-c-card issue-pending border rounded p-4 mb-4" data-issue-type="email-mismatch" data-issue-id="{{ loop.index0 }}">
                                     <div class="d-flex justify-content-between align-items-start mb-3">
                                         <div class="d-flex align-items-center">
                                             <i class="ti ti-mail-x me-2 text-danger"></i>
@@ -540,7 +540,7 @@
                                 </div>
 
                                 {% for update in sync_data.player_league_updates %}
-                                <div class="issue-card issue-resolved border rounded p-4 mb-3">
+                                <div class="issue-c-card issue-resolved border rounded p-4 mb-3">
                                     <div class="row align-items-center">
                                         <div class="col-md-4">
                                             <h6 class="mb-1">
@@ -623,7 +623,7 @@
                                 </div>
 
                                 {% for player in sync_data.players_to_inactivate %}
-                                <div class="issue-card inactive-player-card border rounded p-3 mb-3">
+                                <div class="issue-card inactive-player-c-card border rounded p-3 mb-3">
                                     <div class="row align-items-center">
                                         <div class="col-md-4">
                                             <h6 class="mb-1">

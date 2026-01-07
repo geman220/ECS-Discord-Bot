@@ -20,7 +20,7 @@
       <h1 class="c-messages-header__text">Messages</h1>
     </div>
     <div class="c-messages-header__actions">
-      <button class="c-btn-modern c-btn-modern--primary c-btn-modern--sm" data-action="new-conversation">
+      <button class="c-btn c-btn--primary c-btn--sm" data-action="new-conversation">
         <i class="ti ti-plus" aria-hidden="true"></i>
         New Message
       </button>
@@ -59,7 +59,7 @@
           <i class="ti ti-message-off c-messages-list__empty-icon" aria-hidden="true"></i>
           <p class="c-messages-list__empty-title">No conversations yet</p>
           <p class="c-messages-list__empty-text">Start a new conversation to connect with other players and coaches</p>
-          <button class="c-btn-modern c-btn-modern--primary c-btn-modern--sm" data-action="new-conversation">
+          <button class="c-btn c-btn--primary c-btn--sm" data-action="new-conversation">
             <i class="ti ti-plus" aria-hidden="true"></i>
             Start Conversation
           </button>
@@ -71,7 +71,7 @@
 
       {# Mark All Read Button #}
       <div class="c-messages-sidebar__footer u-hidden" data-footer="sidebar">
-        <button class="c-btn-modern c-btn-modern--outline-secondary c-btn-modern--sm c-btn-modern--block" data-action="mark-all-read">
+        <button class="c-btn c-btn--outline-secondary c-btn--sm c-btn--block" data-action="mark-all-read">
           <i class="ti ti-checks" aria-hidden="true"></i>
           Mark All as Read
         </button>
@@ -92,7 +92,7 @@
           <p class="c-messages-welcome__text">
             Select a conversation from the sidebar or start a new one to begin messaging.
           </p>
-          <button class="c-btn-modern c-btn-modern--primary" data-action="new-conversation">
+          <button class="c-btn c-btn--primary" data-action="new-conversation">
             <i class="ti ti-plus" aria-hidden="true"></i>
             Start New Conversation
           </button>
@@ -104,7 +104,7 @@
 
         {# Chat Header #}
         <div class="c-messages-chat__header">
-          <button class="c-messages-chat__back c-btn-modern c-btn-modern--ghost c-btn-modern--icon-only d-md-none"
+          <button class="c-messages-chat__back c-btn c-btn--ghost c-btn--icon-only d-md-none"
                   data-action="back-to-list"
                   aria-label="Back to conversations">
             <i class="ti ti-arrow-left" aria-hidden="true"></i>
@@ -121,7 +121,7 @@
           </div>
           <div class="c-messages-chat__actions">
             <a href="#"
-               class="c-btn-modern c-btn-modern--outline-secondary c-btn-modern--sm c-btn-modern--icon-only"
+               class="c-btn c-btn--outline-secondary c-btn--sm c-btn--icon-only"
                data-chat-profile-link
                title="View Profile">
               <i class="ti ti-user" aria-hidden="true"></i>
@@ -161,7 +161,7 @@
               <span class="c-messages-chat__char-count" data-char-count>
                 0/{{ settings.max_message_length }}
               </span>
-              <button class="c-messages-chat__send c-btn-modern c-btn-modern--primary"
+              <button class="c-messages-chat__send c-btn c-btn--primary"
                       data-action="send-message"
                       disabled
                       aria-label="Send message">

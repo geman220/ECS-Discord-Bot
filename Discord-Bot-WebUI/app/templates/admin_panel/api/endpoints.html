@@ -74,7 +74,7 @@
     <div class="c-card__body p-0">
         {% if endpoints %}
         <div class="c-table-wrapper" data-table-responsive>
-            <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="api-endpoints">
+            <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="api-endpoints">
                 <thead class="c-table--light" scope="col">
                     <tr>
                         <th scope="col">Endpoint</th>
@@ -91,7 +91,7 @@
                 <tbody>
                     {% for endpoint in endpoints %}
                     <tr>
-                        <td>
+                        <td data-label="Endpoint">
                             <div>
                                 <code class="text-primary">{{ endpoint.path }}</code>
                                 {% if endpoint.description %}
@@ -99,38 +99,38 @@
                                 {% endif %}
                             </div>
                         </td>
-                        <td>
+                        <td data-label="Blueprint">
                             <span class="badge bg-secondary" data-badge>{{ endpoint.blueprint }}</span>
                         </td>
-                        <td>
+                        <td data-label="Methods">
                             {% for method in endpoint.methods %}
                             <span class="badge bg-{% if method == 'GET' %}info{% elif method == 'POST' %}primary{% elif method == 'PUT' %}warning{% elif method == 'DELETE' %}danger{% else %}secondary{% endif %} me-1" data-badge>
                                 {{ method }}
                             </span>
                             {% endfor %}
                         </td>
-                        <td>
+                        <td data-label="Authentication">
                             <span class="badge bg-{% if endpoint.authentication == 'admin' %}danger{% elif endpoint.authentication == 'required' %}warning{% else %}success{% endif %}" data-badge>
                                 {{ endpoint.authentication }}
                             </span>
                         </td>
-                        <td>
+                        <td data-label="Requests">
                             <span class="fw-bold">{{ "{:,}".format(endpoint.request_count) }}</span>
                         </td>
-                        <td>
+                        <td data-label="Avg Response">
                             <span class="{% if endpoint.avg_response_time > 0.5 %}text-danger{% elif endpoint.avg_response_time > 0.2 %}text-warning{% else %}text-success{% endif %}">
                                 {{ "%.3f"|format(endpoint.avg_response_time) }}s
                             </span>
                         </td>
-                        <td>
+                        <td data-label="Status">
                             <span class="badge bg-{% if endpoint.status == 'active' %}success{% elif endpoint.status == 'deprecated' %}warning{% else %}danger{% endif %}" data-badge>
                                 {{ endpoint.status }}
                             </span>
                         </td>
-                        <td>
+                        <td data-label="Last Used">
                             <small>{{ endpoint.last_used.strftime('%Y-%m-%d %H:%M') if endpoint.last_used else 'Never' }}</small>
                         </td>
-                        <td>
+                        <td data-label="Actions">
                             <div class="btn-group btn-group-sm">
                                 <button type="button" class="c-btn c-btn--outline-info js-view-endpoint-details"
                                         data-action="view-endpoint-details" data-endpoint-path="{{ endpoint.path[1:] }}" title="View Details">
@@ -374,7 +374,7 @@ function viewEndpointDetails(endpointPath) {
                             <div class="col-12">
                                 <h6>Common Errors</h6>
                                 <div class="c-table-wrapper" data-table-responsive>
-                                    <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="api">
+                                    <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="api">
                                         <thead scope="col">
                                             <tr><th scope="col">Error</th><th scope="col">Count</th></tr>
                                         </thead>
@@ -396,7 +396,7 @@ function viewEndpointDetails(endpointPath) {
                             <div class="col-12">
                                 <h6>Recent Activity</h6>
                                 <div class="c-table-wrapper" data-table-responsive>
-                                    <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="api">
+                                    <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="api">
                                         <thead scope="col">
                                             <tr><th scope="col">Time</th><th scope="col">Method</th><th scope="col">Status</th><th scope="col">Response Time</th></tr>
                                         </thead>

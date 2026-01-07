@@ -27,8 +27,12 @@ export function subPoolShowAlert(type, message) {
             timer: 3000,
             showConfirmButton: false
         });
-    } else {
-        alert(message);
+    } else if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            icon: type === 'success' ? 'success' : type === 'error' ? 'error' : 'info',
+            title: type.charAt(0).toUpperCase() + type.slice(1),
+            text: message
+        });
     }
 }
 
@@ -125,27 +129,34 @@ export function initializeSearch() {
     });
 }
 
-export function performSearch(query) {
-    const leagueFilter = window.$('#searchLeagueFilter').val();
+export async function performSearch(query) {
+    const leagueFilterEl = document.getElementById('searchLeagueFilter');
+    const leagueFilter = leagueFilterEl ? leagueFilterEl.value : '';
 
-    window.$.ajax({
-        url: '/api/substitute-pools/player-search',
-        method: 'GET',
-        data: {
+    try {
+        const params = new URLSearchParams({
             q: query,
             league_type: leagueFilter
-        },
-        success: function(response) {
-            if (response.success) {
-                displaySearchResults(response.players);
-            } else {
-                window.subPoolShowAlert('error', response.message);
+        });
+
+        const response = await fetch(`/api/substitute-pools/player-search?${params}`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
-        },
-        error: function() {
-            window.subPoolShowAlert('error', 'Search failed. Please try again.');
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            displaySearchResults(data.players);
+        } else {
+            window.subPoolShowAlert('error', data.message);
         }
-    });
+    } catch (error) {
+        console.error('[substitute-pool] Search error:', error);
+        window.subPoolShowAlert('error', 'Search failed. Please try again.');
+    }
 }
 
 export function displaySearchResults(players) {
@@ -209,57 +220,82 @@ export function subPoolInitializeEventHandlers() {
 }
 
 // Player management functions
-export function approvePlayer(playerId, league) {
-    window.$.ajax({
-        url: `/admin/substitute-pools/${league}/add-player`,
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            player_id: playerId,
-            sms_notifications: true,
-            discord_notifications: true,
-            email_notifications: true
-        }),
-        success: function(response) {
-            if (response.success) {
-                window.subPoolShowAlert('success', response.message);
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                window.subPoolShowAlert('error', response.message);
-            }
-        },
-        error: function() {
-            window.subPoolShowAlert('error', 'Failed to add player to pool');
+export async function approvePlayer(playerId, league) {
+    try {
+        const response = await fetch(`/admin/substitute-pools/${league}/add-player`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                player_id: playerId,
+                sms_notifications: true,
+                discord_notifications: true,
+                email_notifications: true
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            window.subPoolShowAlert('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            window.subPoolShowAlert('error', data.message);
         }
-    });
+    } catch (error) {
+        console.error('[substitute-pool] Approve error:', error);
+        window.subPoolShowAlert('error', 'Failed to add player to pool');
+    }
 }
 
 export function removePlayer(playerId, league) {
     // Confirmation is now handled by the window.EventDelegation system
     // But we keep it here as a safety check for direct function calls
-    if (!confirm('Are you sure you want to remove this player from the substitute pool?')) {
-        return;
-    }
-
-    window.$.ajax({
-        url: `/admin/substitute-pools/${league}/remove-player`,
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            player_id: playerId
-        }),
-        success: function(response) {
-            if (response.success) {
-                window.subPoolShowAlert('success', response.message);
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                window.subPoolShowAlert('error', response.message);
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Confirm Removal',
+            text: 'Are you sure you want to remove this player from the substitute pool?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, remove',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performRemovePlayer(playerId, league);
             }
-        },
-        error: function() {
-            window.subPoolShowAlert('error', 'Failed to remove player from pool');
+        });
+    } else {
+        performRemovePlayer(playerId, league);
+    }
+}
+
+async function performRemovePlayer(playerId, league) {
+    try {
+        const response = await fetch(`/admin/substitute-pools/${league}/remove-player`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                player_id: playerId
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            window.subPoolShowAlert('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            window.subPoolShowAlert('error', data.message);
         }
-    });
+    } catch (error) {
+        console.error('[substitute-pool] Remove error:', error);
+        window.subPoolShowAlert('error', 'Failed to remove player from pool');
+    }
 }
 
 // Player details modal
@@ -284,7 +320,7 @@ export function openPlayerDetailsModal(playerId) {
             console.error('Error loading player profile:', error);
             document.getElementById('detailsLoading').innerHTML = `
                 <div class="text-center py-4">
-                    <i class="ti ti-alert-circle text-danger mb-2" style="font-size: 2rem;"></i>
+                    <i class="ti ti-alert-circle text-danger mb-2" class="icon-2x"></i>
                     <p class="text-muted">Failed to load player details</p>
                     <button class="btn btn-sm btn-outline-primary" data-action="view-pool-player-details" data-player-id="${playerId}">
                         <i class="ti ti-refresh me-1"></i>Retry
@@ -312,9 +348,8 @@ export function displayPlayerDetails(data, playerId) {
                     <div class="col-auto">
                         <img src="${profile.profile_picture_url || '/static/img/default_player.png'}"
                              alt="${profile.name}"
-                             class="rounded-circle"
-                             style="width: 80px; height: 80px; object-fit: cover;"
-                             onerror="this.src='/static/img/default_player.png';">
+                             class="rounded-circle avatar-80"
+                             data-fallback-src="/static/img/default_player.png">
                     </div>
                     <div class="col">
                         <h4 class="mb-1">${profile.name}</h4>
@@ -345,7 +380,7 @@ export function displayPlayerDetails(data, playerId) {
     } else {
         document.getElementById('detailsData').innerHTML = `
             <div class="text-center py-4">
-                <i class="ti ti-user-off text-muted mb-2" style="font-size: 2rem;"></i>
+                <i class="ti ti-user-off text-muted mb-2" class="icon-2x"></i>
                 <p class="text-muted">Player details not available</p>
             </div>
         `;
@@ -461,7 +496,7 @@ export function generatePaginationControls(league, section, currentPage, totalPa
 }
 
 // Initialize function
-function init() {
+function initSubstitutePoolManagement() {
     if (_initialized) return;
     _initialized = true;
 
@@ -471,7 +506,7 @@ function init() {
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem.register) {
-    window.InitSystem.register('substitute-pool-management', init, {
+    window.InitSystem.register('substitute-pool-management', initSubstitutePoolManagement, {
         priority: 40,
         reinitializable: false,
         description: 'Substitute pool management'
@@ -481,24 +516,9 @@ if (window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-// Export to window for template compatibility
-window.paginationState = paginationState;
-window.subPoolShowAlert = subPoolShowAlert;
-window.subPoolHandleDragStart = subPoolHandleDragStart;
-window.subPoolHandleDragEnd = subPoolHandleDragEnd;
-window.subPoolHandleDragOver = subPoolHandleDragOver;
-window.subPoolHandleDragLeave = subPoolHandleDragLeave;
-window.subPoolHandleDrop = subPoolHandleDrop;
-window.initializePaginationState = initializePaginationState;
-window.updatePagination = updatePagination;
+// Window exports - only functions used by event delegation handlers (substitute-pool.js)
 window.approvePlayer = approvePlayer;
 window.removePlayer = removePlayer;
 window.openPlayerDetailsModal = openPlayerDetailsModal;
 window.filterPlayerCards = filterPlayerCards;
-window.initializeSearch = initializeSearch;
-window.performSearch = performSearch;
-window.displaySearchResults = displaySearchResults;
-window.subPoolInitializeEventHandlers = subPoolInitializeEventHandlers;
-window.displayPlayerDetails = displayPlayerDetails;
-window.generatePaginationControls = generatePaginationControls;
-window.init = init;
+window.updatePagination = updatePagination;

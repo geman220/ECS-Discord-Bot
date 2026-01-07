@@ -2,7 +2,7 @@
  * Bootstrap Theming
  * =================
  * Themes Bootstrap classes (btn, form-control, nav-tabs, etc.)
- * with our design token system (ECS Deep Blue var(--color-primary-600, #2563EB) as primary).
+ * with our design token system (ECS Deep Blue var(--color-primary-600, var(--color-primary-600)) as primary).
  *
  * LOAD ORDER: After tokens, before components
  *
@@ -16,14 +16,41 @@
    Elegant focus indicators for accessibility
    ============================================ */
 
-/* Remove ugly browser default outline, add subtle glow */
+/* Remove ugly browser default outline for mouse clicks */
 *:focus {
   outline: none;
 }
 
+/* Explicitly remove focus outline for mouse clicks on interactive elements */
+a:focus:not(:focus-visible),
+button:focus:not(:focus-visible),
+[role="button"]:focus:not(:focus-visible),
+[role="link"]:focus:not(:focus-visible),
+[role="menuitem"]:focus:not(:focus-visible),
+[tabindex]:focus:not(:focus-visible),
+.nav-link:focus:not(:focus-visible),
+.dropdown-item:focus:not(:focus-visible),
+.list-group-item:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Dropdown menus should NEVER show focus outlines - they are containers, not focusable elements */
+.dropdown-menu,
+.dropdown-menu:focus,
+.dropdown-menu:focus-visible,
+.dropdown-menu.show,
+.dropdown-menu.show:focus,
+.dropdown-menu.show:focus-visible,
+[data-bs-popper].dropdown-menu:focus,
+[data-bs-popper].dropdown-menu:focus-visible {
+  outline: none !important;
+}
+
 /* Accessible focus-visible styles (keyboard navigation only) */
-*:focus-visible {
-  outline: 2px solid var(--ecs-primary, var(--color-primary-600, #2563EB));
+/* Exclude dropdown menus - they should never show focus outlines */
+*:focus-visible:not(.dropdown-menu):not([data-bs-popper]) {
+  outline: 2px solid var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -33,7 +60,7 @@ a:focus-visible,
 [role="link"]:focus-visible {
   outline: none;
   text-decoration: underline;
-  text-decoration-color: var(--ecs-primary, var(--color-primary-600, #2563EB));
+  text-decoration-color: var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
   text-underline-offset: 3px;
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
   border-radius: 2px;
@@ -45,7 +72,7 @@ button:focus-visible,
 [type="button"]:focus-visible,
 [type="submit"]:focus-visible,
 .btn:focus-visible {
-  outline: 2px solid var(--ecs-primary, var(--color-primary-600, #2563EB));
+  outline: 2px solid var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
   outline-offset: 2px;
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
 }
@@ -54,7 +81,7 @@ button:focus-visible,
 [role="tab"]:focus-visible,
 .nav-link:focus-visible,
 .c-settings-tabs__trigger:focus-visible {
-  outline: 2px solid var(--ecs-primary, var(--color-primary-600, #2563EB));
+  outline: 2px solid var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
   outline-offset: -2px;
   border-radius: 6px;
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
@@ -67,33 +94,41 @@ select:focus-visible,
 .form-control:focus-visible,
 .form-select:focus-visible {
   outline: none;
-  border-color: var(--ecs-primary, var(--color-primary-600, #2563EB));
+  border-color: var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 /* Cards and clickable containers */
 .card:focus-visible,
 [data-action]:focus-visible {
-  outline: 2px solid var(--ecs-primary, var(--color-primary-600, #2563EB));
+  outline: 2px solid var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
   outline-offset: 2px;
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
 
-/* Dark mode focus styles */
-[data-style="dark"] *:focus-visible {
-  outline-color: var(--ecs-primary-light, var(--color-primary-400, #60A5FA));
+/* Dark mode focus styles - exclude dropdown menus */
+[data-style="dark"] *:focus-visible:not(.dropdown-menu):not([data-bs-popper]) {
+  outline-color: var(--ecs-primary-light, var(--color-primary-400, var(--color-primary-400)));
+}
+
+/* Ensure dropdown menus never show outline in dark mode either */
+[data-style="dark"] .dropdown-menu:focus,
+[data-style="dark"] .dropdown-menu:focus-visible,
+[data-style="dark"] .dropdown-menu.show:focus,
+[data-style="dark"] .dropdown-menu.show:focus-visible {
+  outline: none !important;
 }
 
 [data-style="dark"] a:focus-visible,
 [data-style="dark"] [role="link"]:focus-visible {
-  text-decoration-color: var(--ecs-primary-light, var(--color-primary-400, #60A5FA));
+  text-decoration-color: var(--ecs-primary-light, var(--color-primary-400, var(--color-primary-400)));
   box-shadow: 0 2px 8px rgba(96, 165, 250, 0.3);
 }
 
 [data-style="dark"] button:focus-visible,
 [data-style="dark"] .btn:focus-visible,
 [data-style="dark"] [role="tab"]:focus-visible {
-  outline-color: var(--ecs-primary-light, var(--color-primary-400, #60A5FA));
+  outline-color: var(--ecs-primary-light, var(--color-primary-400, var(--color-primary-400)));
   box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.15);
 }
 
@@ -104,7 +139,7 @@ select:focus-visible,
   left: 1rem;
   z-index: 9999;
   padding: 0.75rem 1.5rem;
-  background: var(--ecs-primary, var(--color-primary-600, #2563EB));
+  background: var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
   color: white;
   border-radius: 8px;
   font-weight: 600;
@@ -143,10 +178,10 @@ select:focus-visible,
 
   /* CRITICAL: Heading and text colors - override foundation.css #444050 */
   /* Updated for maximum readability - WCAG AAA compliant */
-  --bs-heading-color: var(--ecs-text-heading, #18181B);
-  --bs-body-color: var(--ecs-text-body, #3F3F46);
-  --bs-card-title-color: var(--ecs-text-heading, #18181B);
-  --bs-card-cap-color: var(--ecs-text-heading, #18181B);
+  --bs-heading-color: var(--ecs-text-heading, var(--color-neutral-900));
+  --bs-body-color: var(--ecs-text-body, var(--color-neutral-700));
+  --bs-card-title-color: var(--ecs-text-heading, var(--color-neutral-900));
+  --bs-card-cap-color: var(--ecs-text-heading, var(--color-neutral-900));
 
   /* Component-specific Bootstrap variables */
   --bs-dropdown-link-active-color: var(--ecs-primary);
@@ -164,15 +199,15 @@ select:focus-visible,
      ============================================ */
 
   /* Gray scale - used for subtle backgrounds and text emphasis */
-  --bs-gray-100: #F4F4F5;
-  --bs-gray-200: #E4E4E7;
-  --bs-gray-300: #D4D4D8;
-  --bs-gray-400: #A1A1AA;
-  --bs-gray-500: #71717A;
-  --bs-gray-600: #52525B;
-  --bs-gray-700: #3F3F46;
-  --bs-gray-800: #27272A;
-  --bs-gray-900: #18181B;
+  --bs-gray-100: var(--color-neutral-100);
+  --bs-gray-200: var(--color-neutral-200);
+  --bs-gray-300: var(--color-neutral-300);
+  --bs-gray-400: var(--color-neutral-400);
+  --bs-gray-500: var(--color-neutral-500);
+  --bs-gray-600: var(--color-neutral-600);
+  --bs-gray-700: var(--color-neutral-700);
+  --bs-gray-800: var(--color-neutral-800);
+  --bs-gray-900: var(--color-neutral-900);
 
   /* Gray semantic variants */
   --bs-gray-bg-subtle: var(--bs-gray-100);
@@ -194,15 +229,15 @@ select:focus-visible,
 /* Dark mode overrides for Bootstrap variables */
 [data-style="dark"] {
   /* Invert gray scale for dark mode - Using Slate palette for modern look */
-  --bs-gray-100: var(--color-secondary-800, var(--color-secondary-800, #334155));  /* Slate-800 - elevated surfaces */
-  --bs-gray-200: var(--color-secondary-700, var(--color-secondary-700, #475569));  /* Slate-700 - borders */
-  --bs-gray-300: #64748B;  /* Slate-600 - secondary borders */
-  --bs-gray-400: #94A3B8;  /* Slate-400 - muted text */
-  --bs-gray-500: #CBD5E1;  /* Slate-300 - secondary text */
-  --bs-gray-600: #E2E8F0;  /* Slate-200 - primary text */
-  --bs-gray-700: #F1F5F9;  /* Slate-100 - emphasized text */
-  --bs-gray-800: #F8FAFC;  /* Slate-50 - bright text */
-  --bs-gray-900: #FFFFFF;  /* White - headings */
+  --bs-gray-100: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));  /* Slate-800 - elevated surfaces */
+  --bs-gray-200: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));  /* Slate-700 - borders */
+  --bs-gray-300: var(--color-secondary-600);  /* Slate-600 - secondary borders */
+  --bs-gray-400: var(--color-secondary-400);  /* Slate-400 - muted text */
+  --bs-gray-500: var(--color-secondary-300);  /* Slate-300 - secondary text */
+  --bs-gray-600: var(--color-secondary-200);  /* Slate-200 - primary text */
+  --bs-gray-700: var(--color-secondary-100);  /* Slate-100 - emphasized text */
+  --bs-gray-800: var(--color-secondary-50);  /* Slate-50 - bright text */
+  --bs-gray-900: var(--color-white);  /* White - headings */
 
   /* Gray semantic variants - dark mode */
   --bs-gray-bg-subtle: var(--bs-gray-100);
@@ -280,11 +315,11 @@ select:focus-visible,
 .c-toggle-switch__input,
 .c-toggle-switch__input.is-valid,
 .c-toggle-switch__input.is-invalid {
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  background-image: none !important;
-  border: none !important;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none;
+  border: none;
 }
 
 /* NOTE: c-notification-switch__input is handled in notification-components.css
@@ -296,19 +331,19 @@ select:focus-visible,
 .form-switch .form-check-input.is-invalid,
 .form-switch .form-check-input:valid,
 .form-switch .form-check-input:invalid {
-  background-image: none !important;
+  background-image: none;
 }
 
 /* Restore the toggle circle for form-switch (Bootstrap uses background-image for this) */
 .form-switch .form-check-input {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%28255,255,255,0.75%29'/%3e%3c/svg%3e") !important;
-  background-position: left center !important;
-  background-size: contain !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%28255,255,255,0.75%29'/%3e%3c/svg%3e");
+  background-position: left center;
+  background-size: contain;
 }
 
 .form-switch .form-check-input:checked {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
-  background-position: right center !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+  background-position: right center;
 }
 
 /* ============================================
@@ -332,11 +367,11 @@ select.form-control:invalid,
 select[class*="field__select"].is-valid,
 select[class*="field__select"].is-invalid {
   /* Use only the dropdown arrow, no validation icon */
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
-  background-repeat: no-repeat !important;
-  background-position: right 0.75rem center !important;
-  background-size: 16px 12px !important;
-  padding-right: 2.25rem !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  padding-right: 2.25rem;
 }
 
 /* Dark mode dropdown arrow */
@@ -350,7 +385,7 @@ select[class*="field__select"].is-invalid {
 [data-style="dark"] .c-settings-field__select.is-invalid,
 [data-style="dark"] select[class*="field__select"].is-valid,
 [data-style="dark"] select[class*="field__select"].is-invalid {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23adb5bd' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
 }
 
 /* ============================================
@@ -433,7 +468,7 @@ select[class*="field__select"].is-invalid {
 .btn-outline-primary:hover {
   background-color: var(--ecs-primary);
   border-color: var(--ecs-primary);
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
 }
 
 .btn-outline-primary:focus {
@@ -466,53 +501,53 @@ select[class*="field__select"].is-invalid {
 }
 
 .nav-tabs.widget-nav-tabs .nav-link.active .badge {
-  background-color: rgba(var(--ecs-primary-rgb), 0.16) !important;
-  color: var(--ecs-primary) !important;
+  background-color: rgba(var(--ecs-primary-rgb), 0.16);
+  color: var(--ecs-primary);
 }
 
 /* Nav alignment hover states - foundation.css lines 9475, 9523, 9566, 9589 */
-/* These MUST use !important to override foundation.css !important declarations */
+/* These MUST use to override foundation.css declarations */
 .nav-align-top .nav-tabs .nav-link:not(.active):hover {
-  color: var(--ecs-primary) !important;
-  border-bottom: 2px solid rgba(var(--ecs-primary-rgb), 0.3) !important;
+  color: var(--ecs-primary);
+  border-bottom: 2px solid rgba(var(--ecs-primary-rgb), 0.3);
 }
 
 .nav-align-right .nav-tabs .nav-link:not(.active):hover {
-  color: var(--ecs-primary) !important;
-  border-left: 2px solid rgba(var(--ecs-primary-rgb), 0.3) !important;
+  color: var(--ecs-primary);
+  border-left: 2px solid rgba(var(--ecs-primary-rgb), 0.3);
 }
 
 .nav-align-bottom .nav-tabs .nav-link:not(.active):hover {
-  color: var(--ecs-primary) !important;
-  border-top: 2px solid rgba(var(--ecs-primary-rgb), 0.3) !important;
+  color: var(--ecs-primary);
+  border-top: 2px solid rgba(var(--ecs-primary-rgb), 0.3);
 }
 
 .nav-align-left .nav-tabs .nav-link:not(.active):hover {
-  color: var(--ecs-primary) !important;
-  border-right: 2px solid rgba(var(--ecs-primary-rgb), 0.3) !important;
+  color: var(--ecs-primary);
+  border-right: 2px solid rgba(var(--ecs-primary-rgb), 0.3);
 }
 
 /* Text paper hover - foundation.css line 7336 */
 .text-paper[href]:hover,
 .text-paper[href]:focus {
-  color: var(--ecs-primary) !important;
+  color: var(--ecs-primary);
 }
 
 /* Border primary utility - foundation.css line 13194 */
 .border-primary {
-  border-color: var(--ecs-primary) !important;
+  border-color: var(--ecs-primary);
 }
 
 /* Nav pills - Override active and hover states */
 .nav-pills .nav-link.active {
-  background-color: var(--ecs-primary) !important;
-  color: var(--color-white, #fff) !important;
+  background-color: var(--ecs-primary);
+  color: var(--color-white, var(--color-white));
 }
 
 /* Nav pills hover - foundation.css line 9334 */
 .nav-pills .nav-item .nav-link:not(.active):hover,
 .nav-pills .nav-link:not(.active):hover {
-  background-color: rgba(var(--ecs-primary-rgb), 0.1) !important;
+  background-color: rgba(var(--ecs-primary-rgb), 0.1);
 }
 
 /* Pagination - Override scoped CSS variables in .pagination - foundation.css lines 4609-4610 */
@@ -579,15 +614,15 @@ select[class*="field__select"].is-invalid {
    ============================================ */
 
 .text-primary {
-  color: var(--ecs-primary) !important;
+  color: var(--ecs-primary);
 }
 
 .bg-primary {
-  background-color: var(--ecs-primary) !important;
+  background-color: var(--ecs-primary);
 }
 
 .border-primary {
-  border-color: var(--ecs-primary) !important;
+  border-color: var(--ecs-primary);
 }
 
 .link-primary {
@@ -603,12 +638,12 @@ select[class*="field__select"].is-invalid {
    ============================================ */
 
 .badge.bg-primary {
-  background-color: var(--ecs-primary) !important;
+  background-color: var(--ecs-primary);
 }
 
 .bg-label-primary {
-  background-color: rgba(var(--ecs-primary-rgb), 0.16) !important;
-  color: var(--ecs-primary) !important;
+  background-color: rgba(var(--ecs-primary-rgb), 0.16);
+  color: var(--ecs-primary);
 }
 
 /* ============================================
@@ -663,11 +698,11 @@ select[class*="field__select"].is-invalid {
    ============================================ */
 
 .spinner-border.text-primary {
-  color: var(--ecs-primary) !important;
+  color: var(--ecs-primary);
 }
 
 .spinner-grow.text-primary {
-  color: var(--ecs-primary) !important;
+  color: var(--ecs-primary);
 }
 
 /* ============================================
@@ -720,7 +755,7 @@ select[class*="field__select"].is-invalid {
    ============================================ */
 
 .modal-header.bg-primary {
-  background-color: var(--ecs-primary) !important;
+  background-color: var(--ecs-primary);
 }
 
 /* ============================================
@@ -729,7 +764,7 @@ select[class*="field__select"].is-invalid {
 
 /* Sneat's custom primary label styling */
 .bg-gradient-primary {
-  background-image: linear-gradient(45deg, var(--ecs-primary), var(--ecs-primary-light)) !important;
+  background-image: linear-gradient(45deg, var(--ecs-primary), var(--ecs-primary-light));
 }
 
 /* Avatar ring colors */
@@ -792,20 +827,20 @@ html[data-style="dark"] .layout-container,
 html[data-style="dark"] .layout-page,
 html[data-style="dark"] .layout-wrapper,
 html[data-style="dark"] .content-wrapper {
-  background-color: var(--ecs-dark-bg-body, #0F172A) !important;
-  color: var(--ecs-dark-text-muted, #CBD5E1) !important;
+  background-color: var(--ecs-dark-bg-body, var(--color-secondary-950));
+  color: var(--ecs-dark-text-muted, var(--color-secondary-300));
 }
 
 /* Ensure containers also get dark background */
 html[data-style="dark"] .container-xxl,
 html[data-style="dark"] .container-xl,
 html[data-style="dark"] .container-fluid {
-  background-color: transparent !important;
+  background-color: transparent;
 }
 
 /* Fix any remaining light backgrounds in dark mode (slate palette) */
 html[data-style="dark"] .bg-body {
-  background-color: var(--ecs-dark-bg-body, #0F172A) !important;
+  background-color: var(--ecs-dark-bg-body, var(--color-secondary-950));
 }
 
 /* ============================================
@@ -818,58 +853,58 @@ html[data-style="dark"] .bg-body {
 
 /* Body uses grid to ensure footer at bottom */
 body {
-  display: grid !important;
-  grid-template-rows: 1fr auto !important;
-  min-height: 100vh !important;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 100vh;
 }
 
 /* Layout wrapper fills the first row */
 .layout-wrapper {
-  display: flex !important;
-  flex-direction: column !important;
-  min-height: 100vh !important;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 /* Layout container - horizontal layout for sidebar + content */
 .layout-container {
-  display: flex !important;
-  flex: 1 1 0% !important;
-  min-height: 0 !important; /* Override foundation.css */
+  display: flex;
+  flex: 1 1 0%;
+  min-height: 0; /* Override foundation.css */
 }
 
 /* Layout page (content column) - uses grid for sticky footer within content area */
 .layout-page {
-  display: grid !important;
-  grid-template-rows: auto 1fr auto !important;
-  flex: 1 1 0% !important;
-  min-height: 0 !important;
-  width: 100% !important;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  flex: 1 1 0%;
+  min-height: 0;
+  width: 100%;
 }
 
 /* Navbar in first row */
 .layout-navbar {
-  grid-row: 1 !important;
+  grid-row: 1;
 }
 
 /* Content wrapper fills middle, grows to push footer */
 .content-wrapper {
-  grid-row: 2 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  min-height: 0 !important;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* Main content grows */
 main {
-  flex: 1 1 auto !important;
+  flex: 1 1 auto;
 }
 
 /* Footer fixed to bottom of layout-page grid */
 .content-footer,
 .layout-page > footer {
-  grid-row: 3 !important;
-  margin-top: auto !important;
-  flex-shrink: 0 !important;
+  grid-row: 3;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 /* ============================================
@@ -879,72 +914,72 @@ main {
 
 /* Ensure tabler icons have proper display and font */
 .ti {
-  font-family: "tabler-icons" !important;
-  font-style: normal !important;
-  font-weight: normal !important;
-  font-variant: normal !important;
-  text-transform: none !important;
-  line-height: 1 !important;
-  display: inline-block !important;
-  vertical-align: middle !important;
-  -webkit-font-smoothing: antialiased !important;
-  speak: never !important;
+  font-family: "tabler-icons";
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: middle;
+  -webkit-font-smoothing: antialiased;
+  speak: never;
 }
 
 /* Ensure ::before pseudo-element shows */
 .ti::before,
 .ti:before {
-  display: inline-block !important;
-  font-family: "tabler-icons" !important;
+  display: inline-block;
+  font-family: "tabler-icons";
 }
 
 /* Common icon fixes in buttons */
 .btn .ti,
 .c-btn .ti,
 button .ti {
-  vertical-align: middle !important;
-  display: inline-block !important;
-  line-height: inherit !important;
+  vertical-align: middle;
+  display: inline-block;
+  line-height: inherit;
 }
 
 /* Icon visibility in dark mode */
 [data-style="dark"] .ti {
-  color: inherit !important;
+  color: inherit;
 }
 
 /* ============================================
    23. TAB CONTENT BACKGROUNDS
    Fix foundation.css line 9612 which sets
-   background: var(--color-white, #fff) for tab-content elements
+   background: var(--color-white, var(--color-white)) for tab-content elements
    ============================================ */
 
 /* Nav tabs background - foundation.css line 9224 (slate palette) */
 html[data-style="dark"] .nav .nav-tabs,
 html[data-style="dark"] .nav-tabs {
-  background-color: var(--ecs-dark-bg-card, var(--color-secondary-900, #1E293B)) !important;
+  background-color: var(--ecs-dark-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
 }
 
 /* Tab content backgrounds - transparent to inherit page/card background
-   This prevents visible strips between page bg (#0F172A) and card bg (var(--color-secondary-900, #1E293B))
+   This prevents visible strips between page bg (var(--color-secondary-950)) and card bg (var(--color-secondary-900, var(--color-secondary-900)))
    Cards inside tab-content have their own backgrounds */
 html[data-style="dark"] .nav-align-top > .tab-content,
 html[data-style="dark"] .nav-align-right > .tab-content,
 html[data-style="dark"] .nav-align-bottom > .tab-content,
 html[data-style="dark"] .nav-align-left > .tab-content,
 html[data-style="dark"] .tab-content {
-  background: transparent !important;
-  background-color: transparent !important;
+  background: transparent;
+  background-color: transparent;
 }
 
 /* ECS tab content class */
 html[data-style="dark"] .ecs-tab-content {
-  background: var(--ecs-dark-bg-card, var(--color-secondary-900, #1E293B)) !important;
-  background-color: var(--ecs-dark-bg-card, var(--color-secondary-900, #1E293B)) !important;
+  background: var(--ecs-dark-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
+  background-color: var(--ecs-dark-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
 }
 
 /* Tab panes inside dark mode */
 html[data-style="dark"] .tab-pane {
-  background-color: transparent !important;
+  background-color: transparent;
 }
 
 /* ============================================
@@ -953,36 +988,36 @@ html[data-style="dark"] .tab-pane {
    ============================================ */
 
 html[data-style="dark"] .card {
-  background-color: var(--ecs-dark-bg-card, var(--color-secondary-900, #1E293B)) !important;
-  border-color: var(--ecs-dark-border, var(--color-secondary-700, var(--color-secondary-700, #475569))) !important;
+  background-color: var(--ecs-dark-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
+  border-color: var(--ecs-dark-border, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
 }
 
 html[data-style="dark"] .card-body {
   /* Inherits from card background - don't set transparent */
-  background-color: inherit !important;
+  background-color: inherit;
 }
 
 html[data-style="dark"] .card-header {
   /* Slightly darker than card body for contrast */
-  background-color: rgba(0, 0, 0, 0.2) !important;
-  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-color: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
 }
 
 html[data-style="dark"] .card-header.bg-light {
   /* Override Bootstrap .bg-light to not be light in dark mode */
-  background-color: var(--color-secondary-900, #1E293B) !important;
-  background: var(--color-secondary-900, #1E293B) !important;
+  background-color: var(--color-secondary-900, var(--color-secondary-900));
+  background: var(--color-secondary-900, var(--color-secondary-900));
 }
 
 html[data-style="dark"] .card-footer {
   /* Slightly darker than card body for contrast */
-  background-color: rgba(0, 0, 0, 0.15) !important;
-  border-color: var(--color-secondary-700, var(--color-secondary-700, #475569)) !important;
+  background-color: rgba(0, 0, 0, 0.15);
+  border-color: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
 }
 
 /* Nested cards */
 html[data-style="dark"] .card .card {
-  background-color: var(--ecs-dark-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155))) !important;
+  background-color: var(--ecs-dark-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
 }
 
 /* ============================================
@@ -991,83 +1026,83 @@ html[data-style="dark"] .card .card {
    ============================================ */
 
 html[data-style="dark"] .modal-content {
-  /* Use semantic tokens: --color-bg-elevated = var(--color-secondary-800, var(--color-secondary-800, #334155)) in dark mode (Slate-800) */
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155))) !important;
-  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155))) !important;
-  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569))) !important;
-  color: var(--color-text-primary, #F8FAFC) !important;
+  /* Use semantic tokens: --color-bg-elevated = var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))) in dark mode (Slate-800) */
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
+  color: var(--color-text-primary, var(--color-secondary-50));
 }
 
 html[data-style="dark"] .modal-header {
   /* Inherit from modal-content */
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155))) !important;
-  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155))) !important;
-  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569))) !important;
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
 }
 
 html[data-style="dark"] .modal-body {
   /* Match modal-content background */
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155))) !important;
-  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155))) !important;
-  color: var(--color-text-secondary, #CBD5E1) !important;
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  background: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  color: var(--color-text-secondary, var(--color-secondary-300));
 }
 
 html[data-style="dark"] .modal-footer {
-  /* Slightly darker: --color-bg-secondary = var(--color-secondary-900, #1E293B) in dark mode (Slate-900) */
-  background-color: var(--color-bg-secondary, var(--color-secondary-900, #1E293B)) !important;
-  background: var(--color-bg-secondary, var(--color-secondary-900, #1E293B)) !important;
-  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569))) !important;
+  /* Slightly darker: --color-bg-secondary = var(--color-secondary-900, var(--color-secondary-900)) in dark mode (Slate-900) */
+  background-color: var(--color-bg-secondary, var(--color-secondary-900, var(--color-secondary-900)));
+  background: var(--color-bg-secondary, var(--color-secondary-900, var(--color-secondary-900)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
 }
 
 /* Cards INSIDE modals need solid backgrounds */
 html[data-style="dark"] .modal .card {
-  background-color: var(--color-bg-secondary, var(--color-secondary-900, #1E293B)) !important;
-  background: var(--color-bg-secondary, var(--color-secondary-900, #1E293B)) !important;
-  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569))) !important;
+  background-color: var(--color-bg-secondary, var(--color-secondary-900, var(--color-secondary-900)));
+  background: var(--color-bg-secondary, var(--color-secondary-900, var(--color-secondary-900)));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
 }
 
 html[data-style="dark"] .modal .card-header {
   /* Use --color-bg-primary for darkest surface (Slate-950) */
-  background-color: var(--color-bg-primary, #0F172A) !important;
-  background: var(--color-bg-primary, #0F172A) !important;
-  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, #475569))) !important;
-  color: var(--color-text-primary, #F8FAFC) !important;
+  background-color: var(--color-bg-primary, var(--color-secondary-950));
+  background: var(--color-bg-primary, var(--color-secondary-950));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
+  color: var(--color-text-primary, var(--color-secondary-50));
 }
 
 html[data-style="dark"] .modal .card-header.bg-light {
   /* Override Bootstrap .bg-light inside modals */
-  background-color: var(--color-bg-primary, #0F172A) !important;
-  background: var(--color-bg-primary, #0F172A) !important;
+  background-color: var(--color-bg-primary, var(--color-secondary-950));
+  background: var(--color-bg-primary, var(--color-secondary-950));
 }
 
 html[data-style="dark"] .modal .card-body {
   /* Use --color-bg-secondary for card bodies (Slate-900) */
-  background-color: var(--color-bg-secondary, var(--color-secondary-900, #1E293B)) !important;
-  background: var(--color-bg-secondary, var(--color-secondary-900, #1E293B)) !important;
+  background-color: var(--color-bg-secondary, var(--color-secondary-900, var(--color-secondary-900)));
+  background: var(--color-bg-secondary, var(--color-secondary-900, var(--color-secondary-900)));
 }
 
 /* Form elements inside modals */
 html[data-style="dark"] .modal .form-control,
 html[data-style="dark"] .modal .form-select {
-  background-color: var(--color-bg-primary, #0F172A) !important;
-  border-color: var(--color-border-input, var(--color-secondary-700, var(--color-secondary-700, #475569))) !important;
-  color: var(--color-text-primary, #F8FAFC) !important;
+  background-color: var(--color-bg-primary, var(--color-secondary-950));
+  border-color: var(--color-border-input, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
+  color: var(--color-text-primary, var(--color-secondary-50));
 }
 
 html[data-style="dark"] .modal .input-group-text {
-  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155))) !important;
-  border-color: var(--color-border-input, var(--color-secondary-700, var(--color-secondary-700, #475569))) !important;
-  color: var(--color-text-muted, #94A3B8) !important;
+  background-color: var(--color-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  border-color: var(--color-border-input, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
+  color: var(--color-text-muted, var(--color-secondary-400));
 }
 
 html[data-style="dark"] .modal .form-label {
-  color: var(--color-text-secondary, #CBD5E1) !important;
+  color: var(--color-text-secondary, var(--color-secondary-300));
 }
 
 /* ============================================
    25. DROPDOWN MENUS IN DARK MODE
    NOTE: Dark mode dropdown styling is now in components/dropdowns.css
-   This section removed to prevent cascade conflicts with !important
+   This section removed to prevent cascade conflicts with
    ============================================ */
 
 /* ============================================
@@ -1077,50 +1112,50 @@ html[data-style="dark"] .modal .form-label {
 
 html[data-style="dark"] .list-group-item,
 [data-style="dark"] .list-group-item {
-  background-color: var(--ecs-dark-bg-card, var(--color-secondary-900, #1E293B)) !important;
-  border-color: var(--ecs-dark-border, var(--color-secondary-700, var(--color-secondary-700, #475569))) !important;
-  color: var(--ecs-dark-text-muted, #94A3B8) !important;
+  background-color: var(--ecs-dark-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
+  border-color: var(--ecs-dark-border, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
+  color: var(--ecs-dark-text-muted, var(--color-secondary-400));
 }
 
 html[data-style="dark"] .list-group-item:hover,
 [data-style="dark"] .list-group-item:hover {
-  background-color: var(--ecs-dark-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155))) !important;
+  background-color: var(--ecs-dark-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
 }
 
 /* List group action items (clickable) */
 html[data-style="dark"] .list-group-item-action,
 [data-style="dark"] .list-group-item-action {
-  color: var(--ecs-dark-text-primary, #FAFAFA) !important;
-  background-color: transparent !important;
+  color: var(--ecs-dark-text-primary, var(--color-neutral-50));
+  background-color: transparent;
 }
 
 html[data-style="dark"] .list-group-item-action:hover,
 html[data-style="dark"] .list-group-item-action:focus,
 [data-style="dark"] .list-group-item-action:hover,
 [data-style="dark"] .list-group-item-action:focus {
-  color: var(--ecs-dark-text-primary, #FAFAFA) !important;
-  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--ecs-dark-text-primary, var(--color-neutral-50));
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* List group action item text and icons */
 html[data-style="dark"] .list-group-item-action *,
 [data-style="dark"] .list-group-item-action * {
-  color: inherit !important;
+  color: inherit;
 }
 
 /* Active list group items (slate palette) */
 html[data-style="dark"] .list-group-item.active,
 [data-style="dark"] .list-group-item.active {
-  background-color: var(--ecs-primary) !important;
-  border-color: var(--ecs-primary) !important;
-  color: var(--ecs-dark-bg-body, #0F172A) !important;
+  background-color: var(--ecs-primary);
+  border-color: var(--ecs-primary);
+  color: var(--ecs-dark-bg-body, var(--color-secondary-950));
 }
 
 /* List group flush variant (slate palette) */
 html[data-style="dark"] .list-group-flush .list-group-item,
 [data-style="dark"] .list-group-flush .list-group-item {
-  background-color: transparent !important;
-  border-color: var(--ecs-dark-border, var(--color-secondary-700, var(--color-secondary-700, #475569))) !important;
+  background-color: transparent;
+  border-color: var(--ecs-dark-border, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
 }
 
 /* List group badges maintain their colors */
@@ -1139,12 +1174,12 @@ html[data-style="dark"] .card-body p,
 html[data-style="dark"] .card-body .card-text,
 [data-style="dark"] .card-body p,
 [data-style="dark"] .card-body .card-text {
-  color: var(--ecs-dark-text-muted, #A1A1AA) !important;
+  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
 }
 
 html[data-style="dark"] .text-muted,
 [data-style="dark"] .text-muted {
-  color: var(--ecs-dark-text-muted, #A1A1AA) !important;
+  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
 }
 
 /* Card titles and headings in dark mode */
@@ -1154,7 +1189,7 @@ html[data-style="dark"] .card-header h6,
 [data-style="dark"] .card-title,
 [data-style="dark"] .card-header h5,
 [data-style="dark"] .card-header h6 {
-  color: var(--ecs-dark-text-primary, #FAFAFA) !important;
+  color: var(--ecs-dark-text-primary, var(--color-neutral-50));
 }
 
 /* Text center content (empty states, placeholders) */
@@ -1164,13 +1199,13 @@ html[data-style="dark"] .text-center small,
 [data-style="dark"] .text-center h6,
 [data-style="dark"] .text-center p,
 [data-style="dark"] .text-center small {
-  color: var(--ecs-dark-text-muted, #A1A1AA) !important;
+  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
 }
 
 /* Large icons in empty states */
 html[data-style="dark"] .text-center i[style*="font-size"],
 [data-style="dark"] .text-center i[style*="font-size"] {
-  color: var(--ecs-dark-text-muted, #A1A1AA) !important;
+  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
 }
 
 /* ============================================
@@ -1180,33 +1215,33 @@ html[data-style="dark"] .text-center i[style*="font-size"],
 
 html[data-style="dark"] .card i:not([class*="text-"]),
 [data-style="dark"] .card i:not([class*="text-"]) {
-  color: var(--ecs-dark-text-muted, #A1A1AA) !important;
+  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
 }
 
 /* Icons with text-* classes should keep their semantic colors */
 html[data-style="dark"] .card i.text-primary,
 [data-style="dark"] .card i.text-primary {
-  color: var(--ecs-primary) !important;
+  color: var(--ecs-primary);
 }
 
 html[data-style="dark"] .card i.text-success,
 [data-style="dark"] .card i.text-success {
-  color: var(--ecs-success) !important;
+  color: var(--ecs-success);
 }
 
 html[data-style="dark"] .card i.text-warning,
 [data-style="dark"] .card i.text-warning {
-  color: var(--ecs-warning) !important;
+  color: var(--ecs-warning);
 }
 
 html[data-style="dark"] .card i.text-danger,
 [data-style="dark"] .card i.text-danger {
-  color: var(--ecs-danger) !important;
+  color: var(--ecs-danger);
 }
 
 html[data-style="dark"] .card i.text-info,
 [data-style="dark"] .card i.text-info {
-  color: var(--ecs-info) !important;
+  color: var(--ecs-info);
 }
 
 /* ============================================
@@ -1218,31 +1253,31 @@ html[data-style="dark"] .form-control,
 html[data-style="dark"] .form-select,
 [data-style="dark"] .form-control,
 [data-style="dark"] .form-select {
-  background-color: var(--ecs-dark-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)))) !important;
-  border: 1px solid var(--color-secondary-600, var(--color-secondary-600, #64748b)) !important; /* Visible light slate border */
-  color: var(--ecs-dark-text-primary, #F8FAFC) !important;
+  background-color: var(--ecs-dark-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
+  border: 1px solid var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))); /* Visible light slate border */
+  color: var(--ecs-dark-text-primary, var(--color-secondary-50));
 }
 
 html[data-style="dark"] .form-control::placeholder,
 [data-style="dark"] .form-control::placeholder {
-  color: var(--color-secondary-400, var(--color-secondary-400, #94a3b8)) !important;
+  color: var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400)));
 }
 
 html[data-style="dark"] .form-control:focus,
 html[data-style="dark"] .form-select:focus,
 [data-style="dark"] .form-control:focus,
 [data-style="dark"] .form-select:focus {
-  border-color: var(--color-primary, #3b82f6) !important; /* Primary blue */
-  background-color: var(--ecs-dark-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)))) !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25) !important;
+  border-color: var(--color-primary, var(--color-primary-500)); /* Primary blue */
+  background-color: var(--ecs-dark-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
 }
 
 /* Also fix textarea */
 html[data-style="dark"] textarea.form-control,
 [data-style="dark"] textarea.form-control {
-  background-color: var(--ecs-dark-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b)))) !important;
-  border: 1px solid var(--color-secondary-600, var(--color-secondary-600, #64748b)) !important;
-  color: var(--color-secondary-50, #F8FAFC) !important;
+  background-color: var(--ecs-dark-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
+  border: 1px solid var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600)));
+  color: var(--color-secondary-50, var(--color-secondary-50));
 }
 
 /* ============================================
@@ -1250,17 +1285,17 @@ html[data-style="dark"] textarea.form-control,
    ============================================ */
 
 html[data-style="dark"] .table {
-  --bs-table-bg: var(--ecs-dark-bg-card, var(--color-secondary-900, #1E293B));
-  --bs-table-color: var(--ecs-dark-text-muted, #94A3B8);
-  --bs-table-border-color: var(--ecs-dark-border, var(--color-secondary-700, var(--color-secondary-700, #475569)));
+  --bs-table-bg: var(--ecs-dark-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
+  --bs-table-color: var(--ecs-dark-text-muted, var(--color-secondary-400));
+  --bs-table-border-color: var(--ecs-dark-border, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
 }
 
 html[data-style="dark"] .table > thead {
-  background-color: var(--ecs-dark-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155))) !important;
+  background-color: var(--ecs-dark-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
 }
 
 html[data-style="dark"] .table > tbody > tr:hover {
-  --bs-table-hover-bg: var(--ecs-dark-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  --bs-table-hover-bg: var(--ecs-dark-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
 }
 
 html[data-style="dark"] .table-striped > tbody > tr:nth-of-type(odd) {
@@ -1280,58 +1315,58 @@ html,
 html[data-style="light"] {
   /* CRITICAL: Override foundation.css inverted neutral scale (line 30534)
      Foundation.css sets --ecs-neutral-90: #f1f3f4 (light gray - WRONG!)
-     We need #18181B (dark) for readable text in light mode */
-  --ecs-neutral-90: #18181B;
-  --ecs-neutral-80: #27272A;
-  --ecs-neutral-70: #3F3F46;
-  --ecs-neutral-60: #52525B;
-  --ecs-neutral-50: #71717A;
-  --ecs-neutral-40: #A1A1AA;
-  --ecs-neutral-30: #D4D4D8;
-  --ecs-neutral-20: #E4E4E7;
-  --ecs-neutral-10: #F4F4F5;
-  --ecs-neutral-5: #FAFAFA;
-  --ecs-neutral-0: #FFFFFF;
+     We need var(--color-neutral-900) (dark) for readable text in light mode */
+  --ecs-neutral-90: var(--color-neutral-900);
+  --ecs-neutral-80: var(--color-neutral-800);
+  --ecs-neutral-70: var(--color-neutral-700);
+  --ecs-neutral-60: var(--color-neutral-600);
+  --ecs-neutral-50: var(--color-neutral-500);
+  --ecs-neutral-40: var(--color-neutral-400);
+  --ecs-neutral-30: var(--color-neutral-300);
+  --ecs-neutral-20: var(--color-neutral-200);
+  --ecs-neutral-10: var(--color-neutral-100);
+  --ecs-neutral-5: var(--color-neutral-50);
+  --ecs-neutral-0: var(--color-white);
 
   /* Map foundation.css variables to admin-configurable colors */
   /* Admin configures: --ecs-bg-body, --ecs-bg-card, --ecs-bg-input */
   /* Foundation.css uses: --ecs-bg-primary, --ecs-bg-secondary, --ecs-bg-tertiary */
-  --ecs-bg-primary: var(--ecs-bg-card, #FFFFFF);
-  --ecs-bg-secondary: var(--ecs-bg-body, #FAFAFA);
-  --ecs-bg-tertiary: #F4F4F5;
-  --ecs-bg-navbar: var(--ecs-bg-card, #FFFFFF);
-  --ecs-bg-sidebar: #18181B;
-  --ecs-bg-content: var(--ecs-bg-card, #FFFFFF);
+  --ecs-bg-primary: var(--ecs-bg-card, var(--color-white));
+  --ecs-bg-secondary: var(--ecs-bg-body, var(--color-neutral-50));
+  --ecs-bg-tertiary: var(--color-neutral-100);
+  --ecs-bg-navbar: var(--ecs-bg-card, var(--color-white));
+  --ecs-bg-sidebar: var(--color-neutral-900);
+  --ecs-bg-content: var(--ecs-bg-card, var(--color-white));
 
   /* Map foundation.css text variables to admin-configurable colors */
   /* Admin configures: --ecs-text-heading, --ecs-text-body, --ecs-text-muted */
   /* Foundation.css uses: --ecs-text-primary, --ecs-text-secondary */
-  --ecs-text-primary: var(--ecs-text-heading, #18181B);
-  --ecs-text-secondary: var(--ecs-text-body, #52525B);
+  --ecs-text-primary: var(--ecs-text-heading, var(--color-neutral-900));
+  --ecs-text-secondary: var(--ecs-text-body, var(--color-neutral-600));
 
   /* Map border variables */
   /* Admin configures: --ecs-border, --ecs-border-input */
-  --ecs-border-primary: var(--ecs-border, #E4E4E7);
-  --ecs-border-secondary: var(--ecs-border, #E4E4E7);
+  --ecs-border-primary: var(--ecs-border, var(--color-neutral-200));
+  --ecs-border-secondary: var(--ecs-border, var(--color-neutral-200));
 
   /* Map form variables */
-  --ecs-form-bg: var(--ecs-bg-input, #FFFFFF);
-  --ecs-form-border: var(--ecs-border-input, #D4D4D8);
-  --ecs-form-text: var(--ecs-text-heading, #18181B);
-  --ecs-form-placeholder: var(--ecs-text-muted, #A1A1AA);
+  --ecs-form-bg: var(--ecs-bg-input, var(--color-white));
+  --ecs-form-border: var(--ecs-border-input, var(--color-neutral-300));
+  --ecs-form-text: var(--ecs-text-heading, var(--color-neutral-900));
+  --ecs-form-placeholder: var(--ecs-text-muted, var(--color-neutral-400));
 
   /* Legacy background variable */
-  --ecs-background: var(--ecs-bg-body, #FAFAFA);
-  --ecs-card-bg: var(--ecs-bg-card, #FFFFFF);
+  --ecs-background: var(--ecs-bg-body, var(--color-neutral-50));
+  --ecs-card-bg: var(--ecs-bg-card, var(--color-white));
 
   /* CRITICAL: These are used by foundation.css lines 30743-30744 */
   /* Foundation.css uses var(--ecs-bg-light) but never defines it */
-  --ecs-bg-light: var(--ecs-bg-card, #FFFFFF);
-  --ecs-text-light: var(--ecs-text-heading, #18181B);
+  --ecs-bg-light: var(--ecs-bg-card, var(--color-white));
+  --ecs-text-light: var(--ecs-text-heading, var(--color-neutral-900));
 
   /* Base bg/text variables used by components */
-  --ecs-bg: var(--ecs-bg-card, #FFFFFF);
-  --ecs-text: var(--ecs-text-heading, #18181B);
+  --ecs-bg: var(--ecs-bg-card, var(--color-white));
+  --ecs-text: var(--ecs-text-heading, var(--color-neutral-900));
 }
 
 /* Dark mode - modern slate palette for professional look */
@@ -1339,64 +1374,64 @@ html[data-style="light"] {
 html[data-style="dark"] {
   /* Map foundation.css variables to admin-configurable colors */
   /* Admin configures: --ecs-bg-body, --ecs-bg-card, --ecs-bg-input, --ecs-bg-sidebar */
-  --ecs-bg-primary: var(--ecs-bg-body, #0F172A);
-  --ecs-bg-secondary: var(--ecs-bg-card, var(--color-secondary-900, #1E293B));
-  --ecs-bg-tertiary: var(--ecs-bg-input, var(--color-secondary-800, var(--color-secondary-800, #334155)));
-  --ecs-bg-navbar: var(--ecs-bg-card, var(--color-secondary-900, #1E293B));
-  --ecs-bg-sidebar: var(--ecs-bg-sidebar, #0F172A);
-  --ecs-bg-content: var(--ecs-bg-card, var(--color-secondary-900, #1E293B));
+  --ecs-bg-primary: var(--ecs-bg-body, var(--color-secondary-950));
+  --ecs-bg-secondary: var(--ecs-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
+  --ecs-bg-tertiary: var(--ecs-bg-input, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  --ecs-bg-navbar: var(--ecs-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
+  --ecs-bg-sidebar: var(--ecs-bg-sidebar, var(--color-secondary-950));
+  --ecs-bg-content: var(--ecs-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
 
   /* Map foundation.css text variables to admin-configurable colors */
   /* Admin configures: --ecs-text-heading, --ecs-text-body, --ecs-text-muted */
-  --ecs-text-primary: var(--ecs-text-heading, #FFFFFF);
-  --ecs-text-secondary: var(--ecs-text-body, #CBD5E1);
+  --ecs-text-primary: var(--ecs-text-heading, var(--color-white));
+  --ecs-text-secondary: var(--ecs-text-body, var(--color-secondary-300));
 
   /* Map border variables */
   /* Admin configures: --ecs-border, --ecs-border-input */
-  --ecs-border-primary: var(--ecs-border, var(--color-secondary-700, var(--color-secondary-700, #475569)));
-  --ecs-border-secondary: var(--ecs-border, var(--color-secondary-700, var(--color-secondary-700, #475569)));
+  --ecs-border-primary: var(--ecs-border, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
+  --ecs-border-secondary: var(--ecs-border, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
 
   /* Map form variables */
-  --ecs-form-bg: var(--ecs-bg-input, var(--color-secondary-800, var(--color-secondary-800, #334155)));
-  --ecs-form-border: var(--ecs-border-input, var(--color-secondary-700, var(--color-secondary-700, #475569)));
-  --ecs-form-text: var(--ecs-text-heading, #FFFFFF);
-  --ecs-form-placeholder: var(--ecs-text-muted, #94A3B8);
+  --ecs-form-bg: var(--ecs-bg-input, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  --ecs-form-border: var(--ecs-border-input, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
+  --ecs-form-text: var(--ecs-text-heading, var(--color-white));
+  --ecs-form-placeholder: var(--ecs-text-muted, var(--color-secondary-400));
 
   /* Legacy background variable */
-  --ecs-background: var(--ecs-bg-body, #0F172A);
+  --ecs-background: var(--ecs-bg-body, var(--color-secondary-950));
 
   /* Override neutral scale for dark mode (slate-based inverted scale)
      In dark mode, high numbers = light colors for readable text */
-  --ecs-neutral-0: #0F172A;
-  --ecs-neutral-5: var(--color-secondary-900, #1E293B);
-  --ecs-neutral-10: var(--color-secondary-800, var(--color-secondary-800, #334155));
-  --ecs-neutral-20: var(--color-secondary-700, var(--color-secondary-700, #475569));
-  --ecs-neutral-30: #64748B;
-  --ecs-neutral-40: #94A3B8;
-  --ecs-neutral-50: #CBD5E1;
-  --ecs-neutral-60: #E2E8F0;
-  --ecs-neutral-70: #F1F5F9;
-  --ecs-neutral-80: #F8FAFC;
-  --ecs-neutral-90: #FFFFFF;
+  --ecs-neutral-0: var(--color-secondary-950);
+  --ecs-neutral-5: var(--color-secondary-900, var(--color-secondary-900));
+  --ecs-neutral-10: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  --ecs-neutral-20: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
+  --ecs-neutral-30: var(--color-secondary-600);
+  --ecs-neutral-40: var(--color-secondary-400);
+  --ecs-neutral-50: var(--color-secondary-300);
+  --ecs-neutral-60: var(--color-secondary-200);
+  --ecs-neutral-70: var(--color-secondary-100);
+  --ecs-neutral-80: var(--color-secondary-50);
+  --ecs-neutral-90: var(--color-white);
 
   /* Card background variable used by mobile.css */
-  --ecs-card-bg: var(--ecs-bg-card, var(--color-secondary-900, #1E293B));
+  --ecs-card-bg: var(--ecs-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
 
   /* CRITICAL: These are used by foundation.css lines 30751-30752 */
-  --ecs-bg-dark: var(--ecs-bg-body, #0F172A);
-  --ecs-text-dark: var(--ecs-text-heading, #FFFFFF);
+  --ecs-bg-dark: var(--ecs-bg-body, var(--color-secondary-950));
+  --ecs-text-dark: var(--ecs-text-heading, var(--color-white));
 
   /* Base bg/text variables used by components */
-  --ecs-bg: var(--ecs-bg-card, var(--color-secondary-900, #1E293B));
-  --ecs-text: var(--ecs-text-heading, #FFFFFF);
+  --ecs-bg: var(--ecs-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
+  --ecs-text: var(--ecs-text-heading, var(--color-white));
 
   /* Dark mode specific variables for fallback (slate palette) */
-  --ecs-dark-bg-body: var(--ecs-bg-body, #0F172A);
-  --ecs-dark-bg-card: var(--ecs-bg-card, var(--color-secondary-900, #1E293B));
-  --ecs-dark-bg-elevated: var(--ecs-bg-input, var(--color-secondary-800, var(--color-secondary-800, #334155)));
-  --ecs-dark-border: var(--ecs-border, var(--color-secondary-700, var(--color-secondary-700, #475569)));
-  --ecs-dark-text-primary: var(--ecs-text-heading, #FFFFFF);
-  --ecs-dark-text-muted: var(--ecs-text-body, #CBD5E1);
+  --ecs-dark-bg-body: var(--ecs-bg-body, var(--color-secondary-950));
+  --ecs-dark-bg-card: var(--ecs-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
+  --ecs-dark-bg-elevated: var(--ecs-bg-input, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  --ecs-dark-border: var(--ecs-border, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
+  --ecs-dark-text-primary: var(--ecs-text-heading, var(--color-white));
+  --ecs-dark-text-muted: var(--ecs-text-body, var(--color-secondary-300));
 }
 
 /* ============================================
@@ -1420,12 +1455,12 @@ html[data-style="dark"] {
 }
 
 .status-indicator.active {
-  background-color: var(--ecs-success, #22C55E);
+  background-color: var(--ecs-success, var(--color-success-500));
   box-shadow: 0 0 0 2px rgba(var(--ecs-success-rgb, 34, 197, 94), 0.2);
 }
 
 .status-indicator.inactive {
-  background-color: var(--ecs-danger, #EF4444);
+  background-color: var(--ecs-danger, var(--color-danger-600));
   box-shadow: 0 0 0 2px rgba(var(--ecs-danger-rgb, 239, 68, 68), 0.2);
 }
 
@@ -1442,7 +1477,7 @@ html[data-style="dark"] {
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--bs-border-color, var(--ecs-border, #E4E4E7));
+  background: var(--bs-border-color, var(--ecs-border, var(--color-neutral-200)));
 }
 
 .timeline-item {
@@ -1456,18 +1491,18 @@ html[data-style="dark"] {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 2px solid var(--bs-body-bg, var(--ecs-bg-card, #FFFFFF));
+  border: 2px solid var(--bs-body-bg, var(--ecs-bg-card, var(--color-white)));
 }
 
 .timeline-content {
-  background: var(--bs-light, var(--ecs-bg-body, #FAFAFA));
+  background: var(--bs-light, var(--ecs-bg-body, var(--color-neutral-50)));
   padding: 15px;
   border-radius: 8px;
 }
 
 html[data-style="dark"] .timeline-content,
 [data-style="dark"] .timeline-content {
-  background: var(--ecs-dark-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  background: var(--ecs-dark-bg-elevated, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
 }
 
 .timeline-title {
@@ -1477,7 +1512,7 @@ html[data-style="dark"] .timeline-content,
 
 .timeline-text {
   font-size: 0.85rem;
-  color: var(--bs-text-muted, var(--ecs-text-muted, #71717A));
+  color: var(--bs-text-muted, var(--ecs-text-muted, var(--color-neutral-500)));
   margin-bottom: 5px;
 }
 
@@ -1529,7 +1564,7 @@ html[data-style="dark"] .card-body .row:hover,
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  color: var(--ecs-neutral-0, #ffffff);
+  color: var(--ecs-neutral-0, var(--color-white));
   font-weight: bold;
   font-size: 0.8rem;
 }
@@ -1554,7 +1589,7 @@ html[data-style="dark"] .card-body .row:hover,
 }
 
 .shadow-sm:hover {
-  box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
+  box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45);
 }
 
 /* Tabs styling */
@@ -1597,15 +1632,15 @@ html[data-style="dark"] .card-body .row:hover,
 
 /* Prevent buttons from growing too large when clicked */
 .btn {
-  transition: none !important;
-  transform: none !important;
+  transition: none;
+  transform: none;
 }
 
 .btn:active,
 .btn.active,
 .btn:focus {
-  transform: none !important;
-  box-shadow: none !important;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Mobile adaptations */
@@ -1627,7 +1662,7 @@ html[data-style="dark"] .card-body .row:hover,
 
   /* Adjust spacing on mobile */
   .mb-md-0 {
-    margin-bottom: 0.5rem !important;
+    margin-bottom: 0.5rem;
   }
 
   /* Fix for iOS devices */
@@ -1653,12 +1688,12 @@ html[data-style="dark"] .card-body .row:hover,
 
   /* Better match-item layout for mobile */
   .list-group-item {
-    padding: 0.75rem 0.5rem !important;
+    padding: 0.75rem 0.5rem;
   }
 
   .list-group-item .d-flex {
     flex-direction: column;
-    align-items: flex-start !important;
+    align-items: flex-start;
   }
 
   .list-group-item .d-flex > div:first-child {
@@ -1672,10 +1707,7 @@ html[data-style="dark"] .card-body .row:hover,
     justify-content: space-between;
   }
 
-  /* RSVP controls on mobile - bigger touch targets */
-  .rsvp-controls {
-    width: 65%;
-  }
+  /* NOTE: .rsvp-controls mobile width defined in pages/home.css (source of truth) */
 
   .rsvp-controls .btn-group {
     width: 100%;
@@ -1698,9 +1730,7 @@ html[data-style="dark"] .card-body .row:hover,
     justify-content: center;
   }
 
-  .btn-sm {
-    min-height: 38px;
-  }
+  /* NOTE: .btn-sm touch targets defined in mobile/buttons.css and components/buttons.css (source of truth) */
 
   /* Improved welcome header for mobile */
   .welcome-header h2 {
@@ -1757,7 +1787,7 @@ html[data-style="dark"] .card-body .row:hover,
   input[type="password"],
   select,
   textarea {
-    font-size: 16px !important;
+    font-size: 16px;
   }
 }
 
@@ -1819,22 +1849,7 @@ html[data-style="dark"] .card-body .row:hover,
   font-size: 0.85rem;
 }
 
-/* Empty State Styling */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: var(--bs-secondary);
-}
-
-.empty-state-icon {
-  font-size: 2.5rem;
-  color: var(--bs-secondary);
-}
-
-.empty-state-message {
-  font-size: 0.875rem;
-}
+/* NOTE: .empty-state base styles in components/empty-states.css (source of truth) */
 
 /* Table hover effect */
 .table-hover tbody tr:hover {
@@ -1915,21 +1930,21 @@ html[data-style="dark"] .card-body .row:hover,
 
 /* Override card-level CSS variables set by foundation.css .card selector */
 .card {
-  --bs-card-title-color: var(--ecs-text-heading, #18181B);
-  --bs-card-cap-color: var(--ecs-text-heading, #18181B);
-  --bs-card-color: var(--ecs-text-body, #52525B);
+  --bs-card-title-color: var(--ecs-text-heading, var(--color-neutral-900));
+  --bs-card-cap-color: var(--ecs-text-heading, var(--color-neutral-900));
+  --bs-card-color: var(--ecs-text-body, var(--color-neutral-600));
 }
 
 html:not([data-style="dark"]) .card {
-  --bs-card-title-color: var(--ecs-text-heading, #18181B);
-  --bs-card-cap-color: var(--ecs-text-heading, #18181B);
-  --bs-card-color: var(--ecs-neutral-60, #52525B);
+  --bs-card-title-color: var(--ecs-text-heading, var(--color-neutral-900));
+  --bs-card-cap-color: var(--ecs-text-heading, var(--color-neutral-900));
+  --bs-card-color: var(--ecs-neutral-60, var(--color-neutral-600));
 }
 
 html[data-style="dark"] .card {
-  --bs-card-title-color: var(--ecs-dark-text-primary, #FAFAFA);
-  --bs-card-cap-color: var(--ecs-dark-text-primary, #FAFAFA);
-  --bs-card-color: var(--ecs-dark-text-muted, #A1A1AA);
+  --bs-card-title-color: var(--ecs-dark-text-primary, var(--color-neutral-50));
+  --bs-card-cap-color: var(--ecs-dark-text-primary, var(--color-neutral-50));
+  --bs-card-color: var(--ecs-dark-text-muted, var(--color-neutral-400));
 }
 
 /* Force heading colors in light mode - override foundation.css #444050 */
@@ -1945,7 +1960,7 @@ html:not([data-style="dark"]) .h3,
 html:not([data-style="dark"]) .h4,
 html:not([data-style="dark"]) .h5,
 html:not([data-style="dark"]) .h6 {
-  color: var(--ecs-text-heading, #18181B) !important;
+  color: var(--ecs-text-heading, var(--color-neutral-900));
 }
 
 /* Card titles - maximum specificity */
@@ -1954,24 +1969,24 @@ html:not([data-style="dark"]) .card .card-title,
 html:not([data-style="dark"]) .card-header .card-title,
 html:not([data-style="dark"]) .ecs-card-title,
 html:not([data-style="dark"]) .card .ecs-card-title {
-  color: var(--ecs-text-heading, #18181B) !important;
+  color: var(--ecs-text-heading, var(--color-neutral-900));
 }
 
 /* Table headers */
 html:not([data-style="dark"]) .table thead th,
 html:not([data-style="dark"]) .table-light th,
 html:not([data-style="dark"]) thead.table-light th {
-  color: var(--ecs-neutral-70, #3F3F46) !important;
+  color: var(--ecs-neutral-70, var(--color-neutral-700));
 }
 
 /* Table body text */
 html:not([data-style="dark"]) .table tbody td {
-  color: var(--ecs-neutral-60, #52525B) !important;
+  color: var(--ecs-neutral-60, var(--color-neutral-600));
 }
 
 html:not([data-style="dark"]) .table tbody td.fw-bold,
 html:not([data-style="dark"]) .table tbody .fw-bold {
-  color: var(--ecs-text-heading, #18181B) !important;
+  color: var(--ecs-text-heading, var(--color-neutral-900));
 }
 
 /* Primary colored icons and text */
@@ -1979,81 +1994,81 @@ html:not([data-style="dark"]) .text-primary,
 html:not([data-style="dark"]) .text-primary i,
 html:not([data-style="dark"]) i.text-primary,
 html:not([data-style="dark"]) .ti.text-primary {
-  color: var(--ecs-primary, var(--color-primary-600, #2563EB)) !important;
+  color: var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* Card body text */
 html:not([data-style="dark"]) .card-body {
-  color: var(--ecs-neutral-60, #52525B) !important;
+  color: var(--ecs-neutral-60, var(--color-neutral-600));
 }
 
 html:not([data-style="dark"]) .card-body p,
 html:not([data-style="dark"]) .card-body span:not(.badge):not(.text-white) {
-  color: var(--ecs-neutral-60, #52525B) !important;
+  color: var(--ecs-neutral-60, var(--color-neutral-600));
 }
 
 /* Links in tables and cards */
 html:not([data-style="dark"]) .team-name,
 html:not([data-style="dark"]) a.team-name {
-  color: var(--ecs-primary, var(--color-primary-600, #2563EB)) !important;
+  color: var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* Match team names */
 html:not([data-style="dark"]) .match-teams h6,
 html:not([data-style="dark"]) .match-details h6 {
-  color: var(--ecs-text-heading, #18181B) !important;
+  color: var(--ecs-text-heading, var(--color-neutral-900));
 }
 
 /* Match time */
 html:not([data-style="dark"]) .match-time {
-  color: var(--ecs-neutral-60, #52525B) !important;
+  color: var(--ecs-neutral-60, var(--color-neutral-600));
 }
 
 /* Nav pills inactive state */
 html:not([data-style="dark"]) .nav-pills .nav-link:not(.active),
 html:not([data-style="dark"]) .ecs-nav-pills .ecs-nav-link:not(.active):not(.ecs-active) {
-  color: var(--ecs-neutral-60, #52525B) !important;
+  color: var(--ecs-neutral-60, var(--color-neutral-600));
 }
 
 /* Muted text - readable but still muted */
 html:not([data-style="dark"]) .text-muted {
-  color: var(--ecs-neutral-50, #71717A) !important;
+  color: var(--ecs-neutral-50, var(--color-neutral-500));
 }
 
 /* Popovers with solid backgrounds */
 html:not([data-style="dark"]) .popover {
-  background-color: var(--ecs-neutral-0, #ffffff) !important;
-  border-color: var(--ecs-neutral-20, #E4E4E7) !important;
+  background-color: var(--ecs-neutral-0, var(--color-white));
+  border-color: var(--ecs-neutral-20, var(--color-neutral-200));
 }
 
 html:not([data-style="dark"]) .popover-header {
-  background-color: var(--ecs-neutral-5, #FAFAFA) !important;
-  color: var(--ecs-text-heading, #18181B) !important;
-  border-bottom-color: var(--ecs-neutral-20, #E4E4E7) !important;
+  background-color: var(--ecs-neutral-5, var(--color-neutral-50));
+  color: var(--ecs-text-heading, var(--color-neutral-900));
+  border-bottom-color: var(--ecs-neutral-20, var(--color-neutral-200));
 }
 
 html:not([data-style="dark"]) .popover-body {
-  background-color: var(--ecs-neutral-0, #ffffff) !important;
-  color: var(--ecs-neutral-60, #52525B) !important;
+  background-color: var(--ecs-neutral-0, var(--color-white));
+  color: var(--ecs-neutral-60, var(--color-neutral-600));
 }
 
 html:not([data-style="dark"]) .popover-body strong {
-  color: var(--ecs-text-heading, #18181B) !important;
+  color: var(--ecs-text-heading, var(--color-neutral-900));
 }
 
 /* Semantic text colors */
 html:not([data-style="dark"]) .text-success {
-  color: var(--ecs-success, #10B981) !important;
+  color: var(--ecs-success, var(--color-success-500));
 }
 
 html:not([data-style="dark"]) .text-danger {
-  color: var(--ecs-danger, #EF4444) !important;
+  color: var(--ecs-danger, var(--color-danger-600));
 }
 
 html:not([data-style="dark"]) .text-warning {
-  color: var(--ecs-warning, #F59E0B) !important;
+  color: var(--ecs-warning, var(--color-accent-600));
 }
 
 html:not([data-style="dark"]) .text-info {
-  color: var(--ecs-info, #3B82F6) !important;
+  color: var(--ecs-info, var(--color-primary-500));
 }

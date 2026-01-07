@@ -148,7 +148,7 @@ export function viewAllMatches() {
 /**
  * Initialize module
  */
-export function init() {
+export function initMatchReports() {
     if (_initialized) return;
 
     // Page guard - only run on match reports page
@@ -242,7 +242,7 @@ export function registerEventHandlers() {
 
 // Register with window.InitSystem
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('match-reports', init, {
+    window.InitSystem.register('match-reports', initMatchReports, {
         priority: 30,
         reinitializable: false,
         description: 'Match reports page with charts'

@@ -237,6 +237,9 @@ def approve_user(user_id: int):
         user.approved_at = datetime.utcnow()
         user.approval_notes = notes
 
+        # Clear waitlist timestamp - user now has a spot
+        user.waitlist_joined_at = None
+
         db.session.add(user)
         db.session.flush()
 
@@ -456,7 +459,15 @@ def user_details_api(user_id):
         user = User.query.options(
             joinedload(User.player),
             joinedload(User.roles)
-        ).get_or_404(user_id)
+        ).get(user_id)
+
+        if not user:
+            logger.warning(f"User ID {user_id} not found in database - may be stale data in UI")
+            return jsonify({
+                'success': False,
+                'error': f'User with ID {user_id} not found. Please refresh the page.',
+                'user_id': user_id
+            }), 404
 
         user_data = {
             'id': user.id,

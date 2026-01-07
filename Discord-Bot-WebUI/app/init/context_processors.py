@@ -42,20 +42,39 @@ def _register_utility_processor(app):
         user_permissions = []
 
         # Get admin settings for template use
-        admin_settings = {
-            'teams_navigation_enabled': AdminConfig.get_setting('teams_navigation_enabled', True),
-            'store_navigation_enabled': AdminConfig.get_setting('store_navigation_enabled', True),
-            'matches_navigation_enabled': AdminConfig.get_setting('matches_navigation_enabled', True),
-            'leagues_navigation_enabled': AdminConfig.get_setting('leagues_navigation_enabled', True),
-            'drafts_navigation_enabled': AdminConfig.get_setting('drafts_navigation_enabled', True),
-            'players_navigation_enabled': AdminConfig.get_setting('players_navigation_enabled', True),
-            'messaging_navigation_enabled': AdminConfig.get_setting('messaging_navigation_enabled', True),
-            'mobile_features_navigation_enabled': AdminConfig.get_setting('mobile_features_navigation_enabled', True),
-            'waitlist_registration_enabled': AdminConfig.get_setting('waitlist_registration_enabled', True),
-            'apple_wallet_enabled': AdminConfig.get_setting('apple_wallet_enabled', True),
-            'push_notifications_enabled': AdminConfig.get_setting('push_notifications_enabled', True),
-            'maintenance_mode': AdminConfig.get_setting('maintenance_mode', False)
-        }
+        # Check if we're in a failed transaction state first
+        if (has_request_context() and
+            hasattr(g, '_session_creation_failed') and g._session_creation_failed):
+            # Return defaults when database is unavailable
+            admin_settings = {
+                'teams_navigation_enabled': True,
+                'store_navigation_enabled': True,
+                'matches_navigation_enabled': True,
+                'leagues_navigation_enabled': True,
+                'drafts_navigation_enabled': True,
+                'players_navigation_enabled': True,
+                'messaging_navigation_enabled': True,
+                'mobile_features_navigation_enabled': True,
+                'waitlist_registration_enabled': True,
+                'apple_wallet_enabled': True,
+                'push_notifications_enabled': True,
+                'maintenance_mode': False
+            }
+        else:
+            admin_settings = {
+                'teams_navigation_enabled': AdminConfig.get_setting('teams_navigation_enabled', True),
+                'store_navigation_enabled': AdminConfig.get_setting('store_navigation_enabled', True),
+                'matches_navigation_enabled': AdminConfig.get_setting('matches_navigation_enabled', True),
+                'leagues_navigation_enabled': AdminConfig.get_setting('leagues_navigation_enabled', True),
+                'drafts_navigation_enabled': AdminConfig.get_setting('drafts_navigation_enabled', True),
+                'players_navigation_enabled': AdminConfig.get_setting('players_navigation_enabled', True),
+                'messaging_navigation_enabled': AdminConfig.get_setting('messaging_navigation_enabled', True),
+                'mobile_features_navigation_enabled': AdminConfig.get_setting('mobile_features_navigation_enabled', True),
+                'waitlist_registration_enabled': AdminConfig.get_setting('waitlist_registration_enabled', True),
+                'apple_wallet_enabled': AdminConfig.get_setting('apple_wallet_enabled', True),
+                'push_notifications_enabled': AdminConfig.get_setting('push_notifications_enabled', True),
+                'maintenance_mode': AdminConfig.get_setting('maintenance_mode', False)
+            }
 
         # Only get roles if we have an active request context and user is authenticated
         if safe_current_user and safe_current_user.is_authenticated:
@@ -143,6 +162,11 @@ def _register_season_processor(app):
                     logger.warning(f"Pool exhaustion in context processor, returning default: {e}")
                     return dict(current_pub_league_season=None)
                 logger.warning(f"Error fetching pub league season from request session: {e}")
+                # Rollback to clear failed transaction state
+                try:
+                    g.db_session.rollback()
+                except Exception:
+                    pass
 
         # Fallback: Use managed_session
         try:

@@ -23,22 +23,22 @@
     --profile-primary-light: #4A90D9;
     --profile-accent: #50C878;
     --profile-accent-bright: #5FE396;
-    --profile-warning: #F59E0B;
-    --profile-danger: #DC2626;
-    --profile-info: #0EA5E9;
+    --profile-warning: var(--color-warning-600);
+    --profile-danger: var(--color-danger-700);
+    --profile-info: var(--color-info-500);
 
     /* Pitch Neutrals */
-    --profile-surface: #FFFFFF;
-    --profile-surface-alt: #F8FAFC;
-    --profile-surface-dark: var(--color-secondary-900, #1E293B);
+    --profile-surface: var(--color-white);
+    --profile-surface-alt: var(--color-secondary-50);
+    --profile-surface-dark: var(--color-secondary-900, var(--color-secondary-900));
     --profile-border-color: var(--color-border);
-    --profile-border-strong: #CBD5E1;
+    --profile-border-strong: var(--color-secondary-300);
 
     /* Typography */
-    --profile-text-primary: var(--color-secondary-900, #1E293B);
-    --profile-text-secondary: #64748B;
-    --profile-text-muted: #94A3B8;
-    --profile-text-inverse: #FFFFFF;
+    --profile-text-primary: var(--color-secondary-900, var(--color-secondary-900));
+    --profile-text-secondary: var(--color-secondary-600);
+    --profile-text-muted: var(--color-secondary-400);
+    --profile-text-inverse: var(--color-white);
 
     /* Spacing */
     --profile-space-xs: 0.5rem;
@@ -390,7 +390,7 @@
 /* ============================================
    RESPONSIVE DESIGN
    ============================================ */
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .c-profile-header--desktop .c-profile-header__layout {
         flex-direction: column;
         text-align: center;
@@ -415,8 +415,8 @@
     *,
     *::before,
     *::after {
-        animation-duration: 0.01ms !important;
-        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms;
+        transition-duration: 0.01ms;
     }
 }
 

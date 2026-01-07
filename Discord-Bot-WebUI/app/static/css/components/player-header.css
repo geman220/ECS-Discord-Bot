@@ -18,7 +18,7 @@
   align-items: center;
   gap: var(--space-5, 20px);
   padding: var(--space-6, 24px);
-  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
   border-radius: var(--radius-xl, 16px);
   margin-bottom: var(--space-5, 20px);
@@ -71,7 +71,7 @@
   font-family: var(--font-display, 'Archivo Black', sans-serif);
   font-size: var(--text-2xl, 1.5rem);
   font-weight: 700;
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   line-height: 1.2;
 }
 
@@ -90,7 +90,7 @@
 
 .c-player-header__action-text {
   font-size: var(--text-sm, 0.875rem);
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
 /* ============================================================================
@@ -112,7 +112,7 @@
 }
 
 .c-user-avatar__image--primary {
-  border-color: var(--color-primary, var(--color-primary-600, #2563EB));
+  border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 .c-user-avatar__info {
@@ -123,12 +123,12 @@
 .c-user-avatar__name {
   font-size: var(--text-sm, 0.875rem);
   font-weight: 500;
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-user-avatar__meta {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
 /* ============================================================================
@@ -144,11 +144,11 @@
    ============================================================================ */
 
 .c-profile-section--admin {
-  border-left: 3px solid var(--color-warning, var(--color-warning-500, #f59e0b));
+  border-left: 3px solid var(--color-warning, var(--color-warning-500, var(--color-warning-500)));
 }
 
 .c-profile-section--stats {
-  border-left: 3px solid var(--color-success, var(--color-success-500, #10b981));
+  border-left: 3px solid var(--color-success, var(--color-success-500, var(--color-success-500)));
 }
 
 .c-profile-section__header-group {
@@ -159,7 +159,7 @@
 
 .c-profile-section__subtitle {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, #64748b)));
+  color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
 .c-profile-section__filter {
@@ -170,7 +170,7 @@
 
 .c-profile-section__filter-label {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, #94a3b8)));
+  color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
 /* ============================================================================
@@ -197,7 +197,7 @@
    ============================================================================ */
 
 [data-style="light"] .c-player-header {
-  background: var(--color-bg-primary, #fff);
+  background: var(--color-bg-primary, var(--color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 
@@ -212,7 +212,7 @@
 
 [data-style="light"] .c-player-header__name,
 [data-style="light"] .c-user-avatar__name {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 [data-style="light"] .c-user-avatar__image {
@@ -223,7 +223,7 @@
    RESPONSIVE
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-player-header {
     flex-direction: column;
     text-align: center;

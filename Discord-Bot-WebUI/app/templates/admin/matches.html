@@ -11,27 +11,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.match-card {
-    transition: all 0.2s ease;
-}
-
-.match-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.status-badge {
-    font-size: 0.8em;
-    padding: 0.3em 0.6em;
-}
-
-.pagination-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 2rem;
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block panel_content %}
@@ -87,7 +67,7 @@
     <div class="row">
         {% for match in matches %}
         <div class="col-md-6 col-lg-4 mb-4">
-            <div class="c-card match-card h-100">
+            <div class="c-card match-c-card h-100">
                 <div class="c-card__header d-flex justify-content-between align-items-center">
                     <strong>Match {{ match.id }}</strong>
                     {% if match.match_id in sessions_by_match %}

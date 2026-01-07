@@ -9,7 +9,7 @@
  * ARCHITECTURAL COMPLIANCE:
  * - 100% BEM naming: .c-component__element--modifier
  * - Zero hardcoded values (design tokens only)
- * - Zero !important declarations
+ * - Zero declarations
  * - State-driven styling with .is-* classes
  * - Mobile-first responsive design
  * - Full dark mode support via [data-style="dark"]
@@ -42,6 +42,7 @@
 }
 
 /* Mobile: Stack on small screens */
+
 @media (max-width: 767.98px) {
   .c-admin-stats__grid {
     grid-template-columns: 1fr;
@@ -65,6 +66,7 @@
 }
 
 /* Tablet: 2 columns */
+
 @media (max-width: 991.98px) and (min-width: 768px) {
   .c-admin-sections__grid {
     grid-template-columns: repeat(2, 1fr);
@@ -72,6 +74,7 @@
 }
 
 /* Mobile: Stack on small screens */
+
 @media (max-width: 767.98px) {
   .c-admin-sections__grid {
     grid-template-columns: 1fr;
@@ -123,6 +126,7 @@
   outline: 2px solid var(--color-focus-ring);
   outline-offset: -2px;
   z-index: 1;
+  background: var(--color-hover-bg);
 }
 
 .c-admin-dashboard-page .c-link-list__content {
@@ -171,16 +175,19 @@
 }
 
 /* Mobile: Adjust spacing */
+
 @media (max-width: 767.98px) {
-  .c-link-list__item {
+  /* Dashboard-specific link list adjustments */
+
+  .c-admin-dashboard-page .c-link-list__item {
     padding: var(--space-3);
   }
 
-  .c-link-list__content {
+  .c-admin-dashboard-page .c-link-list__content {
     gap: var(--space-2);
   }
 
-  .c-link-list__text {
+  .c-admin-dashboard-page .c-link-list__text {
     font-size: var(--text-sm);
   }
 }
@@ -216,6 +223,7 @@
 }
 
 /* Mobile: Stack header elements */
+
 @media (max-width: 767.98px) {
   .c-admin-activity .c-card__header {
     flex-direction: column;
@@ -295,6 +303,7 @@
 }
 
 /* Mobile: Stack on small screens */
+
 @media (max-width: 767.98px) {
   .c-alert-inline {
     flex-direction: column;
@@ -326,17 +335,35 @@
    ============================================================================ */
 
 /* Dashboard-specific card title icon styling */
+
 .c-dashboard-card__title-icon {
   font-size: var(--text-lg);
   margin-right: var(--space-2);
 }
 
-.c-dashboard-card__title-icon--primary { color: var(--color-primary); }
-.c-dashboard-card__title-icon--success { color: var(--color-success); }
-.c-dashboard-card__title-icon--warning { color: var(--color-warning); }
-.c-dashboard-card__title-icon--danger { color: var(--color-danger); }
-.c-dashboard-card__title-icon--info { color: var(--color-info); }
-.c-dashboard-card__title-icon--purple { color: var(--color-purple, #6f42c1); }
+.c-dashboard-card__title-icon--primary {
+  color: var(--color-primary);
+}
+
+.c-dashboard-card__title-icon--success {
+  color: var(--color-success);
+}
+
+.c-dashboard-card__title-icon--warning {
+  color: var(--color-warning);
+}
+
+.c-dashboard-card__title-icon--danger {
+  color: var(--color-danger);
+}
+
+.c-dashboard-card__title-icon--info {
+  color: var(--color-info);
+}
+
+.c-dashboard-card__title-icon--purple {
+  color: var(--color-purple, #6f42c1);
+}
 
 /* ============================================================================
    DARK MODE SUPPORT
@@ -367,6 +394,7 @@
    ============================================================================ */
 
 /* Reduced motion support */
+
 @media (prefers-reduced-motion: reduce) {
   .c-link-list__item,
   .c-link-list__icon,
@@ -380,6 +408,7 @@
 }
 
 /* High contrast mode */
+
 @media (prefers-contrast: more) {
   .c-link-list__item {
     border-width: 2px;
@@ -395,9 +424,6 @@
 }
 
 /* Focus visible enhancement for keyboard navigation */
-.c-admin-dashboard-page .c-link-list__item:focus-visible {
-  background: var(--color-hover-bg);
-}
 
 /* ============================================================================
    PRINT STYLES

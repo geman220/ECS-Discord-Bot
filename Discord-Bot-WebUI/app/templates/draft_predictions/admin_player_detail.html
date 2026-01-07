@@ -141,7 +141,7 @@
                 <div class="c-card__body">
                     {% if predictions %}
                         <div class="c-table-wrapper" data-table-responsive>
-                            <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="predictions">
+                            <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="predictions">
                                 <thead>
                                     <tr>
                                         <th class="dp-col-coach">Coach</th>
@@ -155,7 +155,7 @@
                                 <tbody>
                                     {% for prediction, coach in predictions %}
                                     <tr>
-                                        <td>
+                                        <td data-label="Coach">
                                             <div class="d-flex align-items-center">
                                                 <div class="avatar avatar-xs me-2">
                                                     {% if coach.avatar_url %}
@@ -174,31 +174,31 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td>
+                                        <td data-label="Predicted Round">
                                             <span class="badge bg-{{ 'success' if prediction.predicted_round <= 5 else 'primary' if prediction.predicted_round <= 10 else 'warning' }}" data-badge>
                                                 Round {{ prediction.predicted_round }}
                                             </span>
                                         </td>
-                                        <td>
+                                        <td data-label="Confidence">
                                             {% if prediction.confidence_level %}
                                                 <span class="badge bg-label-info" data-badge>{{ prediction.confidence_level }}/5</span>
                                             {% else %}
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td data-label="Notes">
                                             {% if prediction.notes %}
                                                 <span class="text-muted">{{ prediction.notes }}</span>
                                             {% else %}
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td data-label="Submitted">
                                             <small class="text-muted">
                                                 {{ prediction.updated_at.strftime('%b %d, %Y %I:%M %p') }}
                                             </small>
                                         </td>
-                                        <td>
+                                        <td data-label="Actions">
                                             <a href="{{ url_for('draft_predictions.admin_coach_detail', coach_id=coach.id, season_id=season.id, league_type=league_type) }}"
                                                class="c-btn c-btn--sm c-btn--outline-secondary" aria-label="User"><i class="ti ti-user"></i></a>
                                         </td>

@@ -57,8 +57,8 @@
             </div>
             <div class="c-card__body p-0">
                 {% if matches %}
-                <div class="table-responsive">
-                    <table class="c-table c-table--hover" data-mobile-table data-table-type="matches">
+                <div class="c-table-wrapper">
+                    <table class="c-c-table c-table--hover" data-mobile-table data-table-type="matches">
                         <thead>
                             <tr>
                                 <th>Team</th>
@@ -74,14 +74,14 @@
                         <tbody>
                             {% for match in matches %}
                             <tr>
-                                <td>
+                                <td data-label="Team">
                                     <a href="{{ url_for('admin_panel.ecs_fc_team_schedule', team_id=match.team_id) }}">
                                         {{ match.team.name }}
                                     </a>
                                 </td>
-                                <td>{{ match.match_date.strftime('%a, %b %d') }}</td>
-                                <td>{{ match.match_time.strftime('%I:%M %p') }}</td>
-                                <td>
+                                <td data-label="Date">{{ match.match_date.strftime('%a, %b %d') }}</td>
+                                <td data-label="Time">{{ match.match_time.strftime('%I:%M %p') }}</td>
+                                <td data-label="Opponent">
                                     {% if match.is_home_match %}
                                     <span class="badge bg-success me-1">H</span>
                                     {% else %}
@@ -89,13 +89,13 @@
                                     {% endif %}
                                     {{ match.opponent_name }}
                                 </td>
-                                <td>
+                                <td data-label="Location">
                                     <div>{{ match.location }}</div>
                                     {% if match.field_name %}
                                     <small class="text-muted">{{ match.field_name }}</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="RSVP">
                                     <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
                                        class="text-decoration-none">
                                         <span class="badge bg-success">{{ match.rsvp_counts.yes }}</span>
@@ -103,12 +103,12 @@
                                         <span class="badge bg-warning">{{ match.rsvp_counts.maybe }}</span>
                                     </a>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     <span class="badge bg-{{ match.status_color }}">
                                         <i class="{{ match.status_icon }} me-1"></i>{{ match.status }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
                                            class="c-btn c-btn--sm c-btn--outline-info" title="View RSVP">

@@ -4,37 +4,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    .confidence-high { color: var(--ecs-danger, #ea5455); font-weight: bold; }
-    .confidence-medium { color: var(--ecs-warning, #ff9f43); font-weight: bold; }
-    .confidence-low { color: var(--ecs-success, #28c76f); font-weight: bold; }
-
-    .match-type-phone { background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.16)); color: var(--ecs-danger, #ea5455); }
-    .match-type-name { background-color: var(--ecs-warning-subtle, rgba(255, 159, 67, 0.16)); color: var(--ecs-warning, #ff9f43); }
-    .match-type-email { background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16)); color: var(--ecs-primary, #696cff); }
-
-    .duplicate-card {
-        transition: all 0.2s ease;
-        border-left: 4px solid transparent;
-    }
-
-    .duplicate-card.high-confidence {
-        border-left-color: var(--ecs-danger, #ea5455);
-    }
-
-    .duplicate-card.medium-confidence {
-        border-left-color: var(--ecs-warning, #ff9f43);
-    }
-
-    .duplicate-card.low-confidence {
-        border-left-color: var(--ecs-success, #28c76f);
-    }
-    
-    .duplicate-card:hover {
-        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45);
-        transform: translateY(-2px);
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block main_content %}
@@ -123,7 +93,7 @@
                         <div class="row">
                             {% for alert in pending_alerts %}
                             <div class="col-lg-6 mb-4">
-                                <div class="c-card duplicate-card {% if alert.confidence_score data-alert>= 0.8 %}high-confidence{% elif alert.confidence_score >= 0.6 %}medium-confidence{% else %}low-confidence{% endif %}">
+                                <div class="c-card duplicate-c-card {% if alert.confidence_score data-alert>= 0.8 %}high-confidence{% elif alert.confidence_score >= 0.6 %}medium-confidence{% else %}low-confidence{% endif %}">
                                     <div class="c-card__body">
                                         <div class="d-flex justify-content-between align-items-start mb-3">
                                             <div>
@@ -185,7 +155,7 @@
                 </div>
                 <div class="c-card__body">
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="users">
+                        <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="users">
                             <thead scope="col">
                                 <tr>
                                     <th scope="col">Alert #</th>
@@ -200,15 +170,15 @@
                             <tbody>
                                 {% for alert in resolved_alerts %}
                                 <tr>
-                                    <td>
+                                    <td data-label="Alert #">
                                         <a href="{{ url_for('duplicate_management.duplicate_registration_detail', alert_id=alert.id) }}">#{{ alert.id }}</a>
                                     </td>
-                                    <td>{{ alert.new_name or 'N/A' }}</td>
-                                    <td>{{ alert.existing_player.name }}</td>
-                                    <td>
+                                    <td data-label="New User">{{ alert.new_name or 'N/A' }}</td>
+                                    <td data-label="Existing Player">{{ alert.existing_player.name }}</td>
+                                    <td data-label="Match Type">
                                         <span class="badge match-type-{{ alert.match_type }}" data-badge>{{ alert.match_type.replace('_', ' ').title() }}</span>
                                     </td>
-                                    <td>
+                                    <td data-label="Resolution">
                                         {% if alert.resolution_action == 'merged' %}
                                         <span class="badge bg-success" data-badge>Merged</span>
                                         {% elif alert.resolution_action == 'allowed' %}
@@ -219,8 +189,8 @@
                                         <span class="badge bg-secondary" data-badge>{{ alert.resolution_action or 'N/A' }}</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ alert.resolved_by.username if alert.resolved_by else 'System' }}</td>
-                                    <td>{{ alert.resolved_at.strftime('%m/%d %H:%M') if alert.resolved_at else 'N/A' }}</td>
+                                    <td data-label="Resolved By">{{ alert.resolved_by.username if alert.resolved_by else 'System' }}</td>
+                                    <td data-label="Date">{{ alert.resolved_at.strftime('%m/%d %H:%M') if alert.resolved_at else 'N/A' }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

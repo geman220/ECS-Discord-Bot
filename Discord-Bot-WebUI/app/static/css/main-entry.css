@@ -1,270 +1,266 @@
 /**
  * ============================================================================
- * MAIN CSS ENTRY POINT - Vite Build System
+ * MAIN CSS ENTRY POINT - CSS Cascade Layers Architecture
  * ============================================================================
  *
- * Imports all CSS in the correct cascade order.
- * Vite will bundle and minify this into a single optimized file.
+ * Uses CSS @layer to establish explicit cascade priority.
+ * Later layers ALWAYS beat earlier layers - no needed.
  *
- * Order matters for CSS specificity:
- * 1. Design tokens (CSS custom properties)
- * 2. Core/foundation styles
- * 3. Components
- * 4. Layout
- * 5. Features/pages
- * 6. Themes
- * 7. Utilities (highest specificity)
+ * Layer Priority (lowest to highest):
+ * 1. tokens     - CSS custom properties
+ * 2. bootstrap  - Third-party Bootstrap CSS (always loses)
+ * 3. core       - Foundation, variables, z-index
+ * 4. layout     - Page structure, sidebar containers
+ * 5. components - BEM component styles (override layout)
+ * 6. features   - Feature-specific styles
+ * 7. pages      - Page-specific styles
+ * 8. themes     - Light/dark mode overrides
+ * 9. utilities  - Utility classes (always win)
+ *
+ * Browser Support: Chrome 99+, Firefox 97+, Safari 15.4+ (March 2022+)
  *
  * ============================================================================
  */
 
 /* ============================================================================
-   1. DESIGN TOKENS - CSS Custom Properties
+   LAYER ORDER DECLARATION - Establishes priority
    ============================================================================ */
-@import './tokens/colors.css';
-@import './tokens/typography.css';
-@import './tokens/spacing.css';
-@import './tokens/shadows.css';
-@import './tokens/borders.css';
-@import './tokens/animations.css';
+@layer tokens, bootstrap, core, components, layout, features, pages, themes, utilities;
 
 /* ============================================================================
-   2. CORE / FOUNDATION
+   1. TOKENS - CSS Custom Properties
    ============================================================================ */
-@import './core/variables.css';
-@import './core/z-index.css';
-@import './bootstrap-minimal.css';
-@import './core/component-aliases.css';
-@import './core/bootstrap-theming.css';
-
-/* Main components file (layout system, menu, navbar, footer) */
-@import './components.css';
+@import './tokens/colors.css' layer(tokens);
+@import './tokens/typography.css' layer(tokens);
+@import './tokens/spacing.css' layer(tokens);
+@import './tokens/shadows.css' layer(tokens);
+@import './tokens/borders.css' layer(tokens);
+@import './tokens/animations.css' layer(tokens);
 
 /* ============================================================================
-   3. COMPONENTS
+   2. BOOTSTRAP - Third-Party (Lowest Priority)
    ============================================================================ */
-@import './components/buttons.css';
-@import './components/forms.css';
-@import './components/cards.css';
-@import './components/modals.css';
-@import './components/c-modal.css';
-@import './components/c-dropdown.css';
-@import './components/dropdowns.css';
-@import './components/tables.css';
-@import './components/badges.css';
-@import './components/alerts.css';
-@import './components/navigation.css';
-@import './components/toasts.css';
-@import './components/macros.css';
-
-/* Modern BEM Components */
-@import './components/tabs-modern.css';
-@import './components/settings-components.css';
-@import './components/headers-modern.css';
-@import './components/navigation-modern.css';
-@import './components/admin-components.css';
-@import './components/buttons-modern.css';
-@import './components/forms-modern.css';
-@import './components/cards-modern.css';
-@import './components/tables-modern.css';
-@import './components/toasts-modern.css';
-@import './components/tooltips-modern.css';
-@import './components/loaders-modern.css';
-@import './components/empty-states-modern.css';
-@import './components/macros-modern.css';
-@import './components/navbar-modern.css';
-@import './components/sweetalert-modern.css';
-@import './components/admin-navigation.css';
-@import './components/online-users-widget.css';
-@import './components/c-chat-widget.css';
-@import './components/c-messenger-widget.css';
-@import './components/online-status.css';
-@import './components/snippets.css';
-@import './components/user-modal.css';
-@import './components/stat-cards.css';
-@import './components/c-card.css';
-@import './components/link-list.css';
-@import './components/c-table.css';
-@import './components/c-tabs.css';
-@import './components/c-btn.css';
-@import './components/profile-components.css';
-@import './components/dropdown-fixes.css';
-@import './components/player-table.css';
-@import './components/wizard-components.css';
-@import './components/calendar-components.css';
-@import './components/auth-components.css';
-@import './components/list-components.css';
-@import './components/card-modern-additions.css';
-@import './components/form-modern-additions.css';
-@import './components/notification-components.css';
-@import './components/c-toggle.css';
-@import './components/player-header.css';
-@import './components/misc-components.css';
-@import './components/remaining-components.css';
-@import './components/ui-fixes.css';
-
-/* Consolidated BEM Components (canonical locations) */
-@import './components/c-stat.css';
-@import './components/c-team-avatar.css';
-@import './components/c-status-indicator.css';
-@import './components/c-page-header.css';
-@import './components/c-admin-shared.css';
-
-@import './components/c-schedule.css';
-/* NOTE: chat-widget.css removed - use c-chat-widget.css (canonical) */
-@import './components/progressive-disclosure.css';
-@import './components/mobile-data-cards.css';
+@import './bootstrap-minimal.css' layer(bootstrap);
 
 /* ============================================================================
-   4. LAYOUT
+   3. CORE - Foundation Styles
    ============================================================================ */
-@import './layout/base-layout.css';
-@import './layout/sidebar-modern.css';
-@import './layout/navbar.css';
-/* Note: layout/navbar-modern.css removed - conflicts with components/navbar-modern.css */
-@import './layout/auth-layout.css';
-@import './layout/mobile.css';
-@import './layout/mobile-navigation.css';
-@import './layout/mobile-forms.css';
-@import './layout/mobile-tables.css';
+@import './core/variables.css' layer(core);
+@import './core/z-index.css' layer(core);
+@import './core/component-aliases.css' layer(core);
+@import './core/bootstrap-theming.css' layer(core);
+@import './core/admin-utilities.css' layer(core);
+@import './components.css' layer(core);
 
 /* ============================================================================
-   5. FEATURES
+   5. COMPONENTS - BEM Component Styles (Override Layout)
    ============================================================================ */
-@import './features/draft.css';
-@import './features/pitch-view.css';
-@import './features/player-profile.css';
-@import './features/playoff-bracket.css';
-@import './features/schedule-manager.css';
-@import './features/settings.css';
-@import './features/live-reporting.css';
-@import './features/store.css';
-@import './features/wallet.css';
-@import './features/profile-success-animations.css';
-@import './features/coach-dashboard.css';
+/* Base components - kept for non-modern styles */
+@import './components/modals.css' layer(components);
+@import './components/c-modal.css' layer(components);
+@import './components/c-dropdown.css' layer(components);
+@import './components/dropdowns.css' layer(components);
+@import './components/badges.css' layer(components);
+@import './components/alerts.css' layer(components);
+@import './components/tabs-modern.css' layer(components);
+@import './components/settings-components.css' layer(components);
+@import './components/headers-modern.css' layer(components);
+@import './components/admin-components.css' layer(components);
+
+/* Modern component variants - consolidated (redundant base files removed) */
+@import './components/forms-modern.css' layer(components);
+@import './components/tables-modern.css' layer(components);
+@import './components/navigation-modern.css' layer(components);
+@import './components/toasts-modern.css' layer(components);
+@import './components/tooltips-modern.css' layer(components);
+@import './components/loaders-modern.css' layer(components);
+@import './components/empty-states.css' layer(components);
+@import './components/macros-modern.css' layer(components);
+@import './components/navbar-modern.css' layer(components);
+@import './components/sweetalert-modern.css' layer(components);
+@import './components/admin-navigation.css' layer(components);
+@import './components/online-users-widget.css' layer(components);
+@import './components/c-chat-widget.css' layer(components);
+@import './components/c-messenger-widget.css' layer(components);
+@import './components/online-status.css' layer(components);
+@import './components/snippets.css' layer(components);
+@import './components/user-modal.css' layer(components);
+@import './components/stat-cards.css' layer(components);
+@import './components/c-card.css' layer(components);
+@import './components/link-list.css' layer(components);
+@import './components/c-table.css' layer(components);
+@import './components/c-tabs.css' layer(components);
+@import './components/c-btn.css' layer(components);
+@import './components/profile-components.css' layer(components);
+@import './components/dropdown-fixes.css' layer(components);
+@import './components/player-table.css' layer(components);
+@import './components/wizard-components.css' layer(components);
+@import './components/calendar-components.css' layer(components);
+@import './components/auth-components.css' layer(components);
+@import './components/list-components.css' layer(components);
+@import './components/card-modern-additions.css' layer(components);
+@import './components/form-modern-additions.css' layer(components);
+@import './components/notification-components.css' layer(components);
+@import './components/c-toggle.css' layer(components);
+@import './components/player-header.css' layer(components);
+@import './components/misc-components.css' layer(components);
+@import './components/remaining-components.css' layer(components);
+@import './components/ui-fixes.css' layer(components);
+@import './components/c-stat.css' layer(components);
+@import './components/c-team-avatar.css' layer(components);
+@import './components/c-status-indicator.css' layer(components);
+@import './components/c-icon-badge.css' layer(components);
+@import './components/c-page-header.css' layer(components);
+@import './components/c-admin-shared.css' layer(components);
+@import './components/c-schedule.css' layer(components);
+@import './components/progressive-disclosure.css' layer(components);
+@import './components/mobile-data-cards.css' layer(components);
 
 /* ============================================================================
-   6. PAGES
+   4. LAYOUT - Page Structure (Base Layer)
    ============================================================================ */
-@import './pages/match-view.css';
-@import './pages/profile-wizard.css';
-@import './pages/authentication.css';
-@import './pages/waitlist-registration.css';
-@import './pages/waitlist-confirmation.css';
-@import './pages/admin.css';
-@import './pages/calendar.css';
-@import './pages/home.css';
-@import './pages/home-modern.css';
-@import './pages/teams-overview.css';
-@import './pages/seasons.css';
-@import './pages/standings.css';
-@import './pages/seasonal-schedule.css';
-@import './pages/verify-2fa.css';
-@import './pages/settings.css';
-@import './pages/user-management.css';
-@import './pages/players.css';
-@import './pages/players-list.css';
-@import './pages/team-details.css';
-@import './pages/team-detail.css';
-@import './pages/teams.css';
-@import './pages/error-pages.css';
-@import './pages/feedback.css';
-@import './pages/matches-list.css';
-@import './pages/messages-inbox.css';
-@import './pages/mobile-wizard.css';
-@import './pages/notifications.css';
-@import './pages/onboarding.css';
-@import './pages/privacy-policy.css';
-@import './pages/profile-verify.css';
-@import './pages/roles.css';
-@import './pages/rsvp-pages.css';
-@import './pages/schedule-wizard.css';
-@import './pages/scheduled-messages.css';
-@import './pages/store.css';
-@import './pages/utilities.css';
-@import './pages/draft-predictions.css';
+@import './layout/base-layout.css' layer(layout);
+@import './layout/sidebar-modern.css' layer(layout);
+@import './layout/navbar.css' layer(layout);
+@import './layout/auth-layout.css' layer(layout);
+@import './mobile/index.css' layer(layout);
+
+/* ============================================================================
+   6. FEATURES - Feature-Specific Styles
+   ============================================================================ */
+@import './features/draft.css' layer(features);
+@import './features/pitch-view.css' layer(features);
+@import './features/player-profile.css' layer(features);
+@import './features/playoff-bracket.css' layer(features);
+@import './features/schedule-manager.css' layer(features);
+@import './features/settings.css' layer(features);
+@import './features/live-reporting.css' layer(features);
+@import './features/store.css' layer(features);
+@import './features/wallet.css' layer(features);
+@import './features/wallet-config.css' layer(features);
+@import './features/profile-success-animations.css' layer(features);
+@import './features/coach-dashboard.css' layer(features);
+@import './features/admin-monitoring.css' layer(features);
+@import './features/ai-prompts.css' layer(features);
+@import './features/help-pages.css' layer(features);
+
+/* ============================================================================
+   7. PAGES - Page-Specific Styles
+   ============================================================================ */
+@import './pages/match-view.css' layer(pages);
+@import './pages/profile-wizard.css' layer(pages);
+@import './pages/authentication.css' layer(pages);
+@import './pages/waitlist-registration.css' layer(pages);
+@import './pages/waitlist-confirmation.css' layer(pages);
+@import './pages/admin.css' layer(pages);
+@import './pages/calendar.css' layer(pages);
+@import './pages/home.css' layer(pages);
+@import './pages/home-modern.css' layer(pages);
+@import './pages/teams-overview.css' layer(pages);
+@import './pages/seasons.css' layer(pages);
+@import './pages/standings.css' layer(pages);
+@import './pages/seasonal-schedule.css' layer(pages);
+@import './pages/verify-2fa.css' layer(pages);
+@import './pages/settings.css' layer(pages);
+@import './pages/user-management.css' layer(pages);
+@import './pages/players.css' layer(pages);
+@import './pages/players-list.css' layer(pages);
+/* team-details.css removed - legacy selectors not used, BEM version in team-detail.css */
+@import './pages/team-detail.css' layer(pages);
+@import './pages/teams.css' layer(pages);
+@import './pages/error-pages.css' layer(pages);
+@import './pages/feedback.css' layer(pages);
+@import './pages/matches-list.css' layer(pages);
+@import './pages/messages-inbox.css' layer(pages);
+@import './pages/mobile-wizard.css' layer(pages);
+@import './pages/notifications.css' layer(pages);
+@import './pages/onboarding.css' layer(pages);
+@import './pages/privacy-policy.css' layer(pages);
+@import './pages/profile-verify.css' layer(pages);
+@import './pages/roles.css' layer(pages);
+@import './pages/rsvp-pages.css' layer(pages);
+@import './pages/schedule-wizard.css' layer(pages);
+@import './pages/scheduled-messages.css' layer(pages);
+@import './pages/store.css' layer(pages);
+@import './pages/utilities.css' layer(pages);
+@import './pages/draft-predictions.css' layer(pages);
 
 /* Admin pages */
-@import './pages/admin/admin-dashboard.css';
-@import './pages/admin/discord-management.css';
-@import './pages/admin/draft-history.css';
-@import './pages/admin/league-management.css';
-@import './pages/admin/league-substitute-pool.css';
-@import './pages/admin/live-reporting-dashboard.css';
-@import './pages/admin/manage-polls.css';
-@import './pages/admin/manage-subs.css';
-@import './pages/admin/match-detail.css';
-@import './pages/admin/match-management.css';
-@import './pages/admin/match-verification.css';
-@import './pages/admin/mobile-analytics.css';
-@import './pages/admin/pass-studio.css';
-@import './pages/admin/playoff-generator.css';
-@import './pages/admin/redis-stats.css';
-@import './pages/admin/rsvp-status.css';
-@import './pages/admin/season-wizard.css';
-@import './pages/admin/security-dashboard.css';
-@import './pages/admin/substitute-pool.css';
-@import './pages/admin/sync-review.css';
-@import './pages/admin/user-approvals.css';
-@import './pages/admin/user-waitlist.css';
+@import './pages/admin/admin-dashboard.css' layer(pages);
+@import './pages/admin/discord-management.css' layer(pages);
+@import './pages/admin/draft-history.css' layer(pages);
+@import './pages/admin/league-management.css' layer(pages);
+@import './pages/admin/league-substitute-pool.css' layer(pages);
+@import './pages/admin/live-reporting-dashboard.css' layer(pages);
+@import './pages/admin/manage-polls.css' layer(pages);
+@import './pages/admin/manage-subs.css' layer(pages);
+@import './pages/admin/match-detail.css' layer(pages);
+@import './pages/admin/match-management.css' layer(pages);
+@import './pages/admin/match-verification.css' layer(pages);
+@import './pages/admin/mobile-analytics.css' layer(pages);
+@import './pages/admin/pass-studio.css' layer(pages);
+@import './pages/admin/playoff-generator.css' layer(pages);
+@import './pages/admin/redis-stats.css' layer(pages);
+@import './pages/admin/rsvp-status.css' layer(pages);
+@import './pages/admin/season-wizard.css' layer(pages);
+@import './pages/admin/security-dashboard.css' layer(pages);
+@import './pages/admin/substitute-pool.css' layer(pages);
+@import './pages/admin/sync-review.css' layer(pages);
+@import './pages/admin/user-approvals.css' layer(pages);
+@import './pages/admin/user-waitlist.css' layer(pages);
 
 /* Admin panel pages */
-@import './pages/admin-panel/appearance.css';
-@import './pages/admin-panel/base.css';
-@import './pages/admin-panel/communication.css';
-@import './pages/admin-panel/dashboard.css';
-@import './pages/admin-panel/discord-bot-management.css';
-@import './pages/admin-panel/feature-toggles.css';
-@import './pages/admin-panel/match-operations.css';
-@import './pages/admin-panel/message-template-management.css';
-@import './pages/admin-panel/mobile-features.css';
-@import './pages/admin-panel/performance.css';
-@import './pages/admin-panel/quick-actions.css';
-@import './pages/admin-panel/store-management.css';
-@import './pages/admin-panel/substitute-management.css';
+@import './pages/admin-panel/appearance.css' layer(pages);
+@import './pages/admin-panel/base.css' layer(pages);
+@import './pages/admin-panel/communication.css' layer(pages);
+@import './pages/admin-panel/dashboard.css' layer(pages);
+@import './pages/admin-panel/discord-bot-management.css' layer(pages);
+@import './pages/admin-panel/feature-toggles.css' layer(pages);
+@import './pages/admin-panel/match-operations.css' layer(pages);
+@import './pages/admin-panel/message-template-management.css' layer(pages);
+@import './pages/admin-panel/mobile-features.css' layer(pages);
+@import './pages/admin-panel/performance.css' layer(pages);
+@import './pages/admin-panel/quick-actions.css' layer(pages);
+@import './pages/admin-panel/store-management.css' layer(pages);
+@import './pages/admin-panel/substitute-management.css' layer(pages);
 
 /* Match operations pages */
-@import './pages/match-operations/edit-match.css';
-@import './pages/match-operations/live-matches.css';
-@import './pages/match-operations/manage-teams.css';
-@import './pages/match-operations/match-reports.css';
-@import './pages/match-operations/seasons.css';
+@import './pages/match-operations/edit-match.css' layer(pages);
+@import './pages/match-operations/live-matches.css' layer(pages);
+@import './pages/match-operations/manage-teams.css' layer(pages);
+@import './pages/match-operations/match-reports.css' layer(pages);
+@import './pages/match-operations/seasons.css' layer(pages);
 
 /* ============================================================================
-   7. THEMES
+   8. THEMES - Light/Dark Mode
    ============================================================================ */
-@import './themes/modern/modern-light.css';
-@import './themes/modern/modern-dark.css';
-@import './themes/modern/modern-components.css';
+@import './themes/modern/modern-light.css' layer(themes);
+@import './themes/modern/modern-dark.css' layer(themes);
+@import './themes/modern/modern-components.css' layer(themes);
+@import './template-styles.css' layer(themes);
 
 /* ============================================================================
-   8. UTILITIES (Highest Specificity)
+   9. UTILITIES - Highest Priority
    ============================================================================ */
-@import './core/admin-utilities.css';
-@import './utilities/bootstrap-color-overrides.css';
-@import './utilities/display-utils.css';
-@import './utilities/transform-utils.css';
-@import './utilities/layout-utils.css';
-@import './utilities/mobile-utils.css';
-@import './utilities/state-utils.css';
-@import './utilities/interaction-utils.css';
-@import './utilities/component-states.css';
-@import './utilities/sizing-utils.css';
-@import './utilities/event-indicator-utils.css';
-@import './utilities/match-report-utils.css';
-@import './utilities/drag-drop-utils.css';
-@import './utilities/datatable-utils.css';
-@import './utilities/canvas-utils.css';
-@import './utilities/draft-system-utils.css';
-@import './utilities/responsive-utilities.css';
-@import './utilities/waves-effects.css';
-@import './utilities/menu-animation-utils.css';
-@import './utilities/wizard-utils.css';
-@import './utilities/card-utils.css';
-
-/* Template styles */
-@import './template-styles.css';
-
-/* Custom CSS overrides */
-@import '../custom_css/paginate-dark-fix.css';
-@import '../custom_css/modal-helpers.css';
+@import './utilities/bootstrap-color-overrides.css' layer(utilities);
+@import './utilities/display-utils.css' layer(utilities);
+@import './utilities/transform-utils.css' layer(utilities);
+@import './utilities/layout-utils.css' layer(utilities);
+@import './utilities/mobile-utils.css' layer(utilities);
+@import './utilities/state-utils.css' layer(utilities);
+@import './utilities/interaction-utils.css' layer(utilities);
+@import './utilities/component-states.css' layer(utilities);
+@import './utilities/sizing-utils.css' layer(utilities);
+@import './utilities/event-indicator-utils.css' layer(utilities);
+@import './utilities/match-report-utils.css' layer(utilities);
+@import './utilities/drag-drop-utils.css' layer(utilities);
+@import './utilities/datatable-utils.css' layer(utilities);
+@import './utilities/canvas-utils.css' layer(utilities);
+@import './utilities/draft-system-utils.css' layer(utilities);
+@import './utilities/responsive-utilities.css' layer(utilities);
+@import './utilities/waves-effects.css' layer(utilities);
+@import './utilities/menu-animation-utils.css' layer(utilities);
+@import './utilities/wizard-utils.css' layer(utilities);
+@import './utilities/card-utils.css' layer(utilities);
+@import '../custom_css/paginate-dark-fix.css' layer(utilities);
+@import '../custom_css/modal-helpers.css' layer(utilities);

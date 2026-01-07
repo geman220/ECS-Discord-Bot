@@ -75,8 +75,8 @@
         </div>
         <div class="c-card__body">
             {% if leagues %}
-            <div class="c-table-responsive" data-table-container>
-                <table class="c-table" data-table data-mobile-table data-table-type="leagues">
+            <div class="c-c-table-wrapper" data-table-container>
+                <table class="c-c-table" data-table data-mobile-table data-table-type="leagues">
                     <thead class="c-table__head">
                         <tr class="c-table__row">
                             <th class="c-table__header" scope="col">League Name</th>
@@ -90,22 +90,22 @@
                     <tbody class="c-table__body">
                         {% for league in leagues %}
                         <tr class="c-table__row" data-league-id="{{ league.id }}">
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="League Name">
                                 <strong>{{ league.name }}</strong>
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Season">
                                 <span class="c-text-muted">{{ league.season.name if league.season else 'No Season' }}</span>
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Teams">
                                 <span class="c-badge c-badge--primary" data-badge data-badge-type="count">{{ league.team_count or 0 }}</span>
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Matches">
                                 <span class="c-badge c-badge--info" data-badge data-badge-type="count">{{ league.match_count or 0 }}</span>
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Status">
                                 <span class="c-badge c-badge--success" data-badge data-status="active">{{ league.status or 'Active' }}</span>
                             </td>
-                            <td class="c-table__cell">
+                            <td class="c-table__cell" data-label="Actions">
                                 <div class="c-btn-group" data-btn-group>
                                     <button class="c-btn c-btn--icon c-btn--outline-info" data-action="view-league" data-league-id="{{ league.id }}" aria-label="View league">
                                         <i class="ti ti-eye"></i>

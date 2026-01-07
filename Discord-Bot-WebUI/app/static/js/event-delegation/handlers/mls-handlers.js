@@ -51,32 +51,43 @@ window.EventDelegation.register('fetch-espn', function(element, e) {
 window.EventDelegation.register('mls-schedule-all-matches', function(element, e) {
     e.preventDefault();
 
-    if (!confirm('Schedule tasks for all upcoming matches?')) return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Schedule All Matches?',
+            text: 'Schedule tasks for all upcoming matches?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Schedule',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const originalText = element.innerHTML;
+                element.innerHTML = '<i class="ti ti-loader spin me-2"></i>Scheduling...';
+                element.disabled = true;
 
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader spin me-2"></i>Scheduling...';
-    element.disabled = true;
-
-    fetch('/admin-panel/mls/schedule-all', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (typeof window.AdminPanel !== 'undefined') {
-                    window.AdminPanel.showMobileToast(data.message, 'success');
-                }
-            } else {
-                throw new Error(data.error || 'Failed to schedule matches');
+                fetch('/admin-panel/mls/schedule-all', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (typeof window.AdminPanel !== 'undefined') {
+                                window.AdminPanel.showMobileToast(data.message, 'success');
+                            }
+                        } else {
+                            throw new Error(data.error || 'Failed to schedule matches');
+                        }
+                    })
+                    .catch(error => {
+                        if (typeof window.AdminPanel !== 'undefined') {
+                            window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+                        }
+                    })
+                    .finally(() => {
+                        element.innerHTML = '<i class="ti ti-calendar-event me-2"></i>Schedule All';
+                        element.disabled = false;
+                    });
             }
-        })
-        .catch(error => {
-            if (typeof window.AdminPanel !== 'undefined') {
-                window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
-            }
-        })
-        .finally(() => {
-            element.innerHTML = '<i class="ti ti-calendar-event me-2"></i>Schedule All';
-            element.disabled = false;
         });
+    }
 });
 
 /**
@@ -216,33 +227,44 @@ window.EventDelegation.register('stop-reporting', function(element, e) {
         return;
     }
 
-    if (!confirm('Stop live reporting for this match?')) return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Stop Reporting?',
+            text: 'Stop live reporting for this match?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Stop',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const originalText = element.innerHTML;
+                element.innerHTML = '<i class="ti ti-loader spin"></i>';
+                element.disabled = true;
 
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader spin"></i>';
-    element.disabled = true;
-
-    fetch(`/admin-panel/mls/stop-reporting/${matchId}`, { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (typeof window.AdminPanel !== 'undefined') {
-                    window.AdminPanel.showMobileToast(data.message, 'success');
-                }
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                throw new Error(data.error || 'Failed to stop reporting');
+                fetch(`/admin-panel/mls/stop-reporting/${matchId}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (typeof window.AdminPanel !== 'undefined') {
+                                window.AdminPanel.showMobileToast(data.message, 'success');
+                            }
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            throw new Error(data.error || 'Failed to stop reporting');
+                        }
+                    })
+                    .catch(error => {
+                        if (typeof window.AdminPanel !== 'undefined') {
+                            window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+                        }
+                    })
+                    .finally(() => {
+                        element.innerHTML = originalText;
+                        element.disabled = false;
+                    });
             }
-        })
-        .catch(error => {
-            if (typeof window.AdminPanel !== 'undefined') {
-                window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
-            }
-        })
-        .finally(() => {
-            element.innerHTML = originalText;
-            element.disabled = false;
         });
+    }
 });
 
 /**
@@ -259,37 +281,48 @@ window.EventDelegation.register('resync-match', function(element, e) {
         return;
     }
 
-    if (!confirm('Resync this match? This will check and fix any missing threads or tasks.')) return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Resync Match?',
+            text: 'Resync this match? This will check and fix any missing threads or tasks.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Resync',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const originalText = element.innerHTML;
+                element.innerHTML = '<i class="ti ti-loader spin"></i>';
+                element.disabled = true;
 
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader spin"></i>';
-    element.disabled = true;
-
-    fetch(`/admin-panel/mls/resync-match/${matchId}`, { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                let message = data.message;
-                if (data.actions && data.actions.length > 0) {
-                    message += '\n\nActions:\n' + data.actions.join('\n');
-                }
-                if (typeof window.AdminPanel !== 'undefined') {
-                    window.AdminPanel.showMobileToast(message, 'success');
-                }
-                setTimeout(() => location.reload(), 2000);
-            } else {
-                throw new Error(data.error || 'Failed to resync match');
+                fetch(`/admin-panel/mls/resync-match/${matchId}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            let message = data.message;
+                            if (data.actions && data.actions.length > 0) {
+                                message += '\n\nActions:\n' + data.actions.join('\n');
+                            }
+                            if (typeof window.AdminPanel !== 'undefined') {
+                                window.AdminPanel.showMobileToast(message, 'success');
+                            }
+                            setTimeout(() => location.reload(), 2000);
+                        } else {
+                            throw new Error(data.error || 'Failed to resync match');
+                        }
+                    })
+                    .catch(error => {
+                        if (typeof window.AdminPanel !== 'undefined') {
+                            window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+                        }
+                    })
+                    .finally(() => {
+                        element.innerHTML = originalText;
+                        element.disabled = false;
+                    });
             }
-        })
-        .catch(error => {
-            if (typeof window.AdminPanel !== 'undefined') {
-                window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
-            }
-        })
-        .finally(() => {
-            element.innerHTML = originalText;
-            element.disabled = false;
         });
+    }
 });
 
 /**
@@ -306,34 +339,46 @@ window.EventDelegation.register('remove-match', function(element, e) {
         return;
     }
 
-    if (!confirm('Are you sure you want to remove this match? This will also revoke any scheduled tasks.')) return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Remove Match?',
+            text: 'Are you sure you want to remove this match? This will also revoke any scheduled tasks.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Remove',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const originalText = element.innerHTML;
+                element.innerHTML = '<i class="ti ti-loader spin"></i>';
+                element.disabled = true;
 
-    const originalText = element.innerHTML;
-    element.innerHTML = '<i class="ti ti-loader spin"></i>';
-    element.disabled = true;
-
-    fetch(`/admin-panel/mls/remove-match/${matchId}`, { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (typeof window.AdminPanel !== 'undefined') {
-                    window.AdminPanel.showMobileToast(data.message, 'success');
-                }
-                const row = document.getElementById(`match-row-${matchId}`);
-                if (row) row.remove();
-            } else {
-                throw new Error(data.error || 'Failed to remove match');
+                fetch(`/admin-panel/mls/remove-match/${matchId}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (typeof window.AdminPanel !== 'undefined') {
+                                window.AdminPanel.showMobileToast(data.message, 'success');
+                            }
+                            const row = document.getElementById(`match-row-${matchId}`);
+                            if (row) row.remove();
+                        } else {
+                            throw new Error(data.error || 'Failed to remove match');
+                        }
+                    })
+                    .catch(error => {
+                        if (typeof window.AdminPanel !== 'undefined') {
+                            window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+                        }
+                    })
+                    .finally(() => {
+                        element.innerHTML = originalText;
+                        element.disabled = false;
+                    });
             }
-        })
-        .catch(error => {
-            if (typeof window.AdminPanel !== 'undefined') {
-                window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
-            }
-        })
-        .finally(() => {
-            element.innerHTML = originalText;
-            element.disabled = false;
         });
+    }
 });
 
 /**
@@ -478,38 +523,49 @@ window.EventDelegation.register('expire-task', function(element, e) {
         return;
     }
 
-    if (!confirm('Mark this task as expired?')) return;
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Expire Task?',
+            text: 'Mark this task as expired?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Expire',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const originalText = element.innerHTML;
+                element.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                element.disabled = true;
 
-    const originalText = element.innerHTML;
-    element.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-    element.disabled = true;
-
-    fetch(`/admin-panel/mls/task/${taskId}/expire`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            if (typeof window.AdminPanel !== 'undefined') {
-                window.AdminPanel.showMobileToast(data.message || 'Task expired', 'success');
+                fetch(`/admin-panel/mls/task/${taskId}/expire`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (typeof window.AdminPanel !== 'undefined') {
+                            window.AdminPanel.showMobileToast(data.message || 'Task expired', 'success');
+                        }
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        throw new Error(data.error || 'Failed to expire task');
+                    }
+                })
+                .catch(error => {
+                    if (typeof window.AdminPanel !== 'undefined') {
+                        window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+                    }
+                })
+                .finally(() => {
+                    element.innerHTML = originalText;
+                    element.disabled = false;
+                });
             }
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            throw new Error(data.error || 'Failed to expire task');
-        }
-    })
-    .catch(error => {
-        if (typeof window.AdminPanel !== 'undefined') {
-            window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
-        }
-    })
-    .finally(() => {
-        element.innerHTML = originalText;
-        element.disabled = false;
-    });
+        });
+    }
 });
 
 /**
@@ -560,7 +616,7 @@ window.EventDelegation.register('mls-view-task-logs', function(element, e) {
                 if (typeof window.Swal !== 'undefined') {
                     window.Swal.fire({
                         title: 'Task Logs',
-                        html: `<pre class="text-start" style="max-height: 400px; overflow-y: auto;">${data.logs || 'No logs available'}</pre>`,
+                        html: `<pre class="text-start scroll-container-md">${data.logs || 'No logs available'}</pre>`,
                         width: '800px'
                     });
                 }

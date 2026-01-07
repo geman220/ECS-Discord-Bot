@@ -81,7 +81,7 @@
             <div class="c-card__body p-0">
                 {% if feedbacks %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="feedback">
+                    <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="feedback">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">ID</th>
@@ -96,14 +96,14 @@
                         <tbody>
                             {% for feedback in feedbacks %}
                             <tr>
-                                <td>#{{ feedback.id }}</td>
-                                <td>
+                                <td data-label="ID">#{{ feedback.id }}</td>
+                                <td data-label="Subject">
                                     <a href="{{ url_for('admin_panel.view_feedback', feedback_id=feedback.id) }}">
                                         {{ feedback.subject|truncate(50) }}
                                     </a>
                                 </td>
-                                <td>{{ feedback.user.username if feedback.user else 'Anonymous' }}</td>
-                                <td>
+                                <td data-label="User">{{ feedback.user.username if feedback.user else 'Anonymous' }}</td>
+                                <td data-label="Status">
                                     {% if feedback.status == 'Open' %}
                                     <span class="badge bg-warning" data-badge>Open</span>
                                     {% elif feedback.status == 'In Progress' %}
@@ -114,7 +114,7 @@
                                     <span class="badge bg-secondary" data-badge>{{ feedback.status }}</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Priority">
                                     {% if feedback.priority == 'High' %}
                                     <span class="badge bg-danger" data-badge>High</span>
                                     {% elif feedback.priority == 'Medium' %}
@@ -123,8 +123,8 @@
                                     <span class="badge bg-secondary" data-badge>Low</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ feedback.created_at.strftime('%b %d, %Y') if feedback.created_at else 'N/A' }}</td>
-                                <td>
+                                <td data-label="Created">{{ feedback.created_at.strftime('%b %d, %Y') if feedback.created_at else 'N/A' }}</td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         <a href="{{ url_for('admin_panel.view_feedback', feedback_id=feedback.id) }}" class="c-btn c-btn--outline-primary" title="View">
                                             <i class="ti ti-eye"></i>

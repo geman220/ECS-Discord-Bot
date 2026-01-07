@@ -15,7 +15,7 @@
     <!-- Campaigns Overview -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="c-card campaign-stat-card bg-primary text-white">
+            <div class="c-card campaign-stat-c-card bg-primary text-white">
                 <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
@@ -30,7 +30,7 @@
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="c-card campaign-stat-card bg-warning text-white">
+            <div class="c-card campaign-stat-c-card bg-warning text-white">
                 <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
@@ -45,7 +45,7 @@
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="c-card campaign-stat-card bg-success text-white">
+            <div class="c-card campaign-stat-c-card bg-success text-white">
                 <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
@@ -60,7 +60,7 @@
             </div>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="c-card campaign-stat-card bg-secondary text-white">
+            <div class="c-card campaign-stat-c-card bg-secondary text-white">
                 <div class="c-card__body">
                     <div class="d-flex justify-content-between">
                         <div>
@@ -112,7 +112,7 @@
                 <div class="c-card__body p-0">
                     {% if campaigns.items %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="campaigns">
+                        <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="campaigns">
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">Campaign</th>
@@ -126,7 +126,7 @@
                             <tbody>
                                 {% for campaign in campaigns.items %}
                                 <tr>
-                                    <td>
+                                    <td data-label="Campaign">
                                         <div>
                                             <strong>{{ campaign.name }}</strong>
                                             <br><small class="text-muted">{{ campaign.title }}</small>
@@ -137,17 +137,17 @@
                                             {% endif %}
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Target">
                                         <span class="badge campaign-target-badge" data-badge>{{ campaign.target_type|title }}</span>
                                         <br><small class="text-muted">{{ campaign.target_count or 0 }} recipients</small>
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         {% set status = campaign.status %}
                                         <span class="badge campaign-status-badge status-{{ status }}" data-badge>
                                             {{ status|title }}
                                         </span>
                                     </td>
-                                    <td>
+                                    <td data-label="Schedule">
                                         {% if campaign.scheduled_send_time %}
                                         <small>{{ campaign.scheduled_send_time.strftime('%Y-%m-%d %H:%M') }}</small>
                                         {% elif campaign.actual_send_time %}
@@ -156,7 +156,7 @@
                                         <small class="text-muted">Not scheduled</small>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td data-label="Analytics">
                                         <div class="campaign-analytics">
                                             <div class="campaign-analytics-item" title="Sent">
                                                 <i class="ti ti-send icon-sent"></i>
@@ -172,7 +172,7 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Actions">
                                         <div class="btn-group btn-group-sm">
                                             <button class="c-btn c-btn--outline-info js-view-campaign" data-action="view-campaign" data-campaign-id="{{ campaign.id }}" title="View Details">
                                                 <i class="ti ti-eye"></i>
@@ -256,15 +256,15 @@
 <!-- Create Campaign Modal -->
 <div class="modal c-modal fade" id="createCampaignModal" tabindex="-1" data-modal aria-labelledby="createCampaignModalLabel">
     <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
-            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
                 <h5 class="modal-title c-modal__title" id="createCampaignModalLabel">
                     <i class="ti ti-plus me-2"></i>Create Push Campaign
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
             <form id="createCampaignForm">
-                <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+                <div class="modal-body c-modal__body" data-modal-body>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <!-- Campaign Details -->
@@ -403,7 +403,7 @@
                         <small class="form-text text-muted">URL to open when notification is clicked</small>
                     </div>
                 </div>
-                <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+                <div class="modal-footer c-modal__footer" data-modal-footer>
                     <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
                     <button type="submit" class="c-btn c-btn--primary">
                         <i class="ti ti-plus me-1"></i>Create Campaign
@@ -417,17 +417,17 @@
 <!-- View Campaign Modal -->
 <div class="modal c-modal fade" id="viewCampaignModal" tabindex="-1" data-modal aria-labelledby="viewCampaignTitle">
     <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
-            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
                 <h5 class="modal-title c-modal__title" id="viewCampaignTitle">Campaign Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body c-modal__body" id="viewCampaignContent" data-modal-body data-modal-body aria-labelledby="viewCampaignContentLabel">
+            <div class="modal-body c-modal__body" id="viewCampaignContent" data-modal-body aria-labelledby="viewCampaignContentLabel">
                 <div class="text-center py-4">
                     <div class="spinner-border" role="status" data-spinner></div>
                 </div>
             </div>
-            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
                 <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Close</button>
             </div>
         </div>
@@ -435,16 +435,16 @@
 </div>
 
 <!-- Schedule Campaign Modal -->
-<div class="modal c-modal fade" id="scheduleCampaignModal" tabindex="-1" data-modal aria-labelledby="viewCampaignContentLabel">
+<div class="modal c-modal fade" id="scheduleCampaignModal" tabindex="-1" data-modal aria-labelledby="scheduleCampaignModalLabel">
     <div class="modal-dialog c-modal__dialog" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
-            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
-                <h5 class="modal-title c-modal__title" id="viewCampaignContentLabel">
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="scheduleCampaignModalLabel">
                     <i class="ti ti-clock me-2"></i>Schedule Campaign
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
             </div>
-            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
+            <div class="modal-body c-modal__body" data-modal-body>
                 <input type="hidden" id="schedule_campaign_id">
                 <p>Schedule <strong id="schedule_campaign_name"></strong> for delivery:</p>
                 <div class="mb-3">
@@ -452,7 +452,7 @@
                     <input type="datetime-local" class="form-control" id="schedule_send_time" required data-form-control>
                 </div>
             </div>
-            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
                 <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
                 <button type="button" class="c-btn c-btn--primary js-confirm-schedule" data-action="confirm-schedule">
                     <i class="ti ti-clock me-1"></i>Schedule
@@ -466,28 +466,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.badge-sm {
-    font-size: 0.65rem;
-}
-
-@media (max-width: 768px) {
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.75rem;
-    }
-
-    .table-responsive {
-        font-size: 0.875rem;
-    }
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

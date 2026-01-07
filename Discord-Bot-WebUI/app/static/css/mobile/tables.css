@@ -101,7 +101,7 @@
     content: attr(data-label) ": ";
     font-weight: 600;
     display: inline-block;
-    color: var(--bs-secondary, #64748b);
+    color: var(--bs-secondary, var(--color-secondary-600));
     margin-right: var(--mobile-space-sm);
     font-size: var(--mobile-text-xs);
     text-transform: uppercase;
@@ -343,5 +343,62 @@
 
   .table-responsive td[data-label]:before {
     display: none;
+  }
+}
+
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .table {
+  color: var(--color-text-primary, var(--color-secondary-100));
+}
+
+[data-style="dark"] .table > thead {
+  background: var(--color-bg-tertiary, var(--color-secondary-800));
+  color: var(--color-text-primary, var(--color-secondary-50));
+}
+
+[data-style="dark"] .table > thead th {
+  border-color: var(--color-border-primary, var(--color-secondary-700));
+}
+
+[data-style="dark"] .table > tbody > tr {
+  border-color: var(--color-border-primary, var(--color-secondary-700));
+}
+
+[data-style="dark"] .table > tbody > tr:nth-of-type(odd) {
+  background: var(--color-bg-elevated, var(--color-secondary-900));
+}
+
+[data-style="dark"] .table > tbody > tr:nth-of-type(even) {
+  background: var(--color-bg-primary, var(--color-secondary-950));
+}
+
+[data-style="dark"] .table > tbody td {
+  border-color: var(--color-border-primary, var(--color-secondary-700));
+}
+
+[data-style="dark"] .table-hover > tbody > tr:hover {
+  background: var(--color-bg-tertiary, var(--color-secondary-800));
+}
+
+[data-style="dark"] .table-responsive {
+  background: var(--color-bg-elevated, var(--color-secondary-900));
+}
+
+@media (max-width: 991.98px) {
+  [data-style="dark"] .table-responsive td {
+    background: var(--color-bg-elevated, var(--color-secondary-900));
+    border-color: var(--color-border-primary, var(--color-secondary-700));
+  }
+
+  [data-style="dark"] .table-responsive td[data-label]:before {
+    color: var(--color-text-muted, var(--color-secondary-400));
+  }
+
+  [data-style="dark"] .table-responsive.table-horizontal-mobile::after {
+    background: rgba(255, 255, 255, 0.2);
   }
 }

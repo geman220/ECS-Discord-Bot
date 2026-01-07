@@ -113,7 +113,7 @@
                         <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}" data-form-control>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">&nbsp;</label>
+                        <span class="u-form-label-spacer" aria-hidden="true"></span>
                         <div class="d-grid">
                             <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search me-1"></i>Filter
@@ -158,7 +158,7 @@
             <div class="c-card__body">
                 {% if history_data.tasks %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="logs">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="logs">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Task ID</th>
@@ -173,13 +173,13 @@
                         <tbody>
                             {% for task in history_data.tasks %}
                             <tr>
-                                <td>
+                                <td data-label="Task ID">
                                     <code>{{ task.id[:8] }}</code>
                                 </td>
-                                <td>
+                                <td data-label="Type">
                                     <span class="badge bg-primary" data-badge>{{ task.type or 'Unknown' }}</span>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     {% if task.status == 'completed' %}
                                         <span class="badge bg-success" data-badge>Completed</span>
                                     {% elif task.status == 'failed' %}
@@ -190,35 +190,35 @@
                                         <span class="badge bg-secondary" data-badge>{{ task.status|title }}</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Started">
                                     {% if task.started_at %}
                                         {{ task.started_at.strftime('%Y-%m-%d %H:%M:%S') }}
                                     {% else %}
                                         <span class="text-muted">Unknown</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Duration">
                                     {% if task.duration %}
                                         {{ task.duration }}s
                                     {% else %}
                                         <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Result">
                                     {% if task.result %}
                                         <small class="text-muted">{{ task.result[:50] }}...</small>
                                     {% else %}
                                         <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         <button class="c-btn c-btn--outline-info" data-action="view-task" data-task-id="{{ task.id }}" data-task-details-url="{{ url_for('admin_panel.get_task_details') }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                         {% if task.status == 'failed' %}
                                         <button class="c-btn c-btn--outline-warning" data-action="retry-task" data-task-id="{{ task.id }}" aria-label="Refresh"><i class="ti ti-refresh"></i></button>
                                         {% endif %}
                                         {% if task.status == 'zombie' %}
-                                        <button class="c-btn c-btn--outline-danger" data-action="kill-task" data-task-id="{{ task.id }}" aria-label="Button"><i class="ti ti-x"></i></button>
+                                        <button class="c-btn c-btn--outline-danger" data-action="kill-task" data-task-id="{{ task.id }}" aria-label="Kill task"><i class="ti ti-x"></i></button>
                                         {% endif %}
                                     </div>
                                 </td>
@@ -243,13 +243,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

@@ -52,7 +52,7 @@ TODO: Remove this template after new system is verified in production
                 </div>
             </div>
             <div class="c-card__body p-0">
-                <table class="c-match-table" data-component="match-table" data-mobile-table data-table-type="matches">
+                <table class="c-match-c-table" data-component="match-table" data-mobile-table data-table-type="matches">
                     <thead>
                         <tr>
                             <th>Opponent</th>
@@ -80,14 +80,14 @@ TODO: Remove this template after new system is verified in production
                                     {{ match.live_reporting_status|capitalize }}
                                 </span>
                             </td>
-                            <td class="text-center" id="actions-{{ match.id }}">
+                            <td data-label="Actions" class="text-center" id="actions-{{ match.id }}">
                                 <div class="c-match-actions" data-component="match-actions">
                                     <div class="c-match-actions__dropdown dropdown d-inline-block me-2">
                                         <button class="c-btn c-btn--link text-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle aria-label="More options"><i class="fas fa-ellipsis-v"></i></button>
                                         <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
                                             <li>
-                                                <a class="dropdown-item" href="#" data-action="edit-match" data-match-id="{{ match.id }}">
-                                                    <i class="fas fa-edit me-1"></i> Edit
+                                                <a class="dropdown-item" href="#" data-action="edit-match-schedule" data-match-id="{{ match.id }}">
+                                                    <i class="fas fa-edit me-1"></i> Edit Schedule
                                                 </a>
                                             </li>
                                             <li>
@@ -161,7 +161,7 @@ TODO: Remove this template after new system is verified in production
 {{ super() }}
 
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script src="{{ url_for('static', filename='custom_js/matches-management.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/matches-deprecated.js') }}"></script>
 
 {% endif %}
 {% endblock %}

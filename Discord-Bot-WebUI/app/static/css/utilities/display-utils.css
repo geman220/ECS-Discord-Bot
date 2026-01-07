@@ -10,7 +10,7 @@
  * - Responsive display utilities
  *
  * Usage:
- * - Use !important to ensure utilities override component styles
+ * - Use to ensure utilities override component styles
  * - Support dark mode via [data-style="dark"]
  * - Follow Bootstrap naming conventions
  */
@@ -20,43 +20,43 @@
    ============================================ */
 
 .d-none {
-    display: none !important;
+    display: none;
 }
 
 .d-block {
-    display: block !important;
+    display: block;
 }
 
 .d-inline {
-    display: inline !important;
+    display: inline;
 }
 
 .d-inline-block {
-    display: inline-block !important;
+    display: inline-block;
 }
 
 .d-flex {
-    display: flex !important;
+    display: flex;
 }
 
 .d-inline-flex {
-    display: inline-flex !important;
+    display: inline-flex;
 }
 
 .d-grid {
-    display: grid !important;
+    display: grid;
 }
 
 .d-table {
-    display: table !important;
+    display: table;
 }
 
 .d-table-row {
-    display: table-row !important;
+    display: table-row;
 }
 
 .d-table-cell {
-    display: table-cell !important;
+    display: table-cell;
 }
 
 /* ============================================
@@ -64,41 +64,41 @@
    ============================================ */
 
 .visible {
-    visibility: visible !important;
+    visibility: visible;
 }
 
 .invisible {
-    visibility: hidden !important;
+    visibility: hidden;
 }
 
 /* Hidden but accessible for screen readers */
 .sr-only,
 .visually-hidden,
 .u-visually-hidden {
-    position: absolute !important;
-    width: 1px !important;
-    height: 1px !important;
-    padding: 0 !important;
-    margin: -1px !important;
-    overflow: hidden !important;
-    clip: rect(0, 0, 0, 0) !important;
-    white-space: nowrap !important;
-    border: 0 !important;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .sr-only-focusable:focus,
 .visually-hidden-focusable:focus {
-    position: static !important;
-    width: auto !important;
-    height: auto !important;
-    overflow: visible !important;
-    clip: auto !important;
-    white-space: normal !important;
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
 }
 
 /* Hidden state for JS interactions */
 .is-hidden {
-    display: none !important;
+    display: none;
 }
 
 /* ============================================
@@ -106,127 +106,87 @@
    ============================================ */
 
 .opacity-0 {
-    opacity: 0 !important;
+    opacity: 0;
 }
 
 .opacity-10 {
-    opacity: 0.1 !important;
+    opacity: 0.1;
 }
 
 .opacity-20 {
-    opacity: 0.2 !important;
+    opacity: 0.2;
 }
 
 .opacity-25 {
-    opacity: 0.25 !important;
+    opacity: 0.25;
 }
 
 .opacity-30 {
-    opacity: 0.3 !important;
+    opacity: 0.3;
 }
 
 .opacity-40 {
-    opacity: 0.4 !important;
+    opacity: 0.4;
 }
 
 .opacity-50 {
-    opacity: 0.5 !important;
+    opacity: 0.5;
 }
 
 .opacity-60 {
-    opacity: 0.6 !important;
+    opacity: 0.6;
 }
 
 .opacity-70 {
-    opacity: 0.7 !important;
+    opacity: 0.7;
 }
 
 .opacity-75 {
-    opacity: 0.75 !important;
+    opacity: 0.75;
 }
 
 .opacity-80 {
-    opacity: 0.8 !important;
+    opacity: 0.8;
 }
 
 .opacity-90 {
-    opacity: 0.9 !important;
+    opacity: 0.9;
 }
 
 .opacity-100 {
-    opacity: 1 !important;
+    opacity: 1;
 }
 
 /* Hover opacity variations */
 .opacity-hover-50:hover {
-    opacity: 0.5 !important;
+    opacity: 0.5;
 }
 
 .opacity-hover-75:hover {
-    opacity: 0.75 !important;
+    opacity: 0.75;
 }
 
 .opacity-hover-100:hover {
-    opacity: 1 !important;
+    opacity: 1;
 }
 
 /* ============================================
    RESPONSIVE DISPLAY UTILITIES
    ============================================ */
 
-/* Small devices (landscape phones, 576px and up) */
-@media (min-width: 576px) {
-    .d-sm-none { display: none !important; }
-    .d-sm-block { display: block !important; }
-    .d-sm-inline { display: inline !important; }
-    .d-sm-inline-block { display: inline-block !important; }
-    .d-sm-flex { display: flex !important; }
-    .d-sm-inline-flex { display: inline-flex !important; }
-    .d-sm-grid { display: grid !important; }
-}
-
-/* Medium devices (tablets, 768px and up) */
-@media (min-width: 768px) {
-    .d-md-none { display: none !important; }
-    .d-md-block { display: block !important; }
-    .d-md-inline { display: inline !important; }
-    .d-md-inline-block { display: inline-block !important; }
-    .d-md-flex { display: flex !important; }
-    .d-md-inline-flex { display: inline-flex !important; }
-    .d-md-grid { display: grid !important; }
-}
-
-/* Large devices (desktops, 992px and up) */
-@media (min-width: 992px) {
-    .d-lg-none { display: none !important; }
-    .d-lg-block { display: block !important; }
-    .d-lg-inline { display: inline !important; }
-    .d-lg-inline-block { display: inline-block !important; }
-    .d-lg-flex { display: flex !important; }
-    .d-lg-inline-flex { display: inline-flex !important; }
-    .d-lg-grid { display: grid !important; }
-}
-
-/* Extra large devices (large desktops, 1200px and up) */
-@media (min-width: 1200px) {
-    .d-xl-none { display: none !important; }
-    .d-xl-block { display: block !important; }
-    .d-xl-inline { display: inline !important; }
-    .d-xl-inline-block { display: inline-block !important; }
-    .d-xl-flex { display: flex !important; }
-    .d-xl-inline-flex { display: inline-flex !important; }
-    .d-xl-grid { display: grid !important; }
-}
+/* NOTE: Responsive display utilities (.d-sm-*, .d-md-*, .d-lg-*, .d-xl-*)
+   are defined in bootstrap-minimal.css (source of truth).
+   Do not duplicate here to prevent conflicts. */
 
 /* ============================================
    PRINT UTILITIES
    ============================================ */
 
 @media print {
-    .d-print-none { display: none !important; }
-    .d-print-block { display: block !important; }
-    .d-print-inline { display: inline !important; }
-    .d-print-inline-block { display: inline-block !important; }
+    .d-print-none { display: none; }
+    .d-print-block { display: block; }
+    .d-print-inline { display: inline; }
+    .d-print-inline-block { display: inline-block; }
 }
 
 /* ============================================
@@ -234,11 +194,11 @@
    ============================================ */
 
 [data-style="dark"] .opacity-hover-50:hover {
-    opacity: 0.6 !important;
+    opacity: 0.6;
 }
 
 [data-style="dark"] .opacity-hover-75:hover {
-    opacity: 0.85 !important;
+    opacity: 0.85;
 }
 
 /* ============================================
@@ -250,15 +210,15 @@
  * Used for fade in/out effects when toggling visibility
  */
 .transition-opacity {
-    transition: opacity 0.3s ease !important;
+    transition: opacity 0.3s ease;
 }
 
 .transition-opacity-fast {
-    transition: opacity 0.15s ease !important;
+    transition: opacity 0.15s ease;
 }
 
 .transition-opacity-slow {
-    transition: opacity 0.5s ease !important;
+    transition: opacity 0.5s ease;
 }
 
 /**
@@ -266,14 +226,14 @@
  * Combine with display utilities for animated show/hide
  */
 .transition-all {
-    transition: all 0.3s ease !important;
+    transition: all 0.3s ease;
 }
 
 /**
  * Width transition
  */
 .transition-width {
-    transition: width 0.3s ease !important;
+    transition: width 0.3s ease;
 }
 
 /* ============================================
@@ -285,9 +245,9 @@
  * Used when SMS toggle is enabled
  */
 .sms-section-show {
-    display: block !important;
-    opacity: 1 !important;
-    transition: opacity 0.3s ease !important;
+    display: block;
+    opacity: 1;
+    transition: opacity 0.3s ease;
 }
 
 /**
@@ -295,7 +255,7 @@
  * Used when SMS toggle is disabled
  */
 .sms-section-hide {
-    display: none !important;
+    display: none;
 }
 
 /**
@@ -303,8 +263,8 @@
  * Applied during the show transition
  */
 .sms-section-entering {
-    display: block !important;
-    opacity: 0 !important;
+    display: block;
+    opacity: 0;
 }
 
 /**
@@ -312,6 +272,6 @@
  * Applied during the hide transition
  */
 .sms-section-exiting {
-    opacity: 0 !important;
-    transition: opacity 0.3s ease !important;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }

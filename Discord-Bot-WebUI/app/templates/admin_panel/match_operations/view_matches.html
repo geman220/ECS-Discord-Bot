@@ -70,12 +70,12 @@
                         <input type="date" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}" data-form-control>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">&nbsp;</label>
+                        <span class="u-form-label-spacer" aria-hidden="true"></span>
                         <div class="d-flex gap-2">
                             <button type="submit" class="c-btn c-btn--primary flex-grow-1">
                                 <i class="ti ti-search me-1"></i>Filter
                             </button>
-                            <a href="{{ url_for('admin_panel.view_matches') }}" class="c-btn c-btn--outline-secondary" aria-label="Button"><i class="ti ti-x"></i></a>
+                            <a href="{{ url_for('admin_panel.view_matches') }}" class="c-btn c-btn--outline-secondary" aria-label="Clear filters"><i class="ti ti-x"></i></a>
                         </div>
                     </div>
                 </form>
@@ -96,7 +96,7 @@
             <div class="c-card__body">
                 {% if matches.items %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="matches">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="matches">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Date</th>
@@ -111,34 +111,34 @@
                         <tbody>
                             {% for match in matches.items %}
                             <tr>
-                                <td>
+                                <td data-label="Date">
                                     {% if match.date %}
                                         {{ match.date.strftime('%Y-%m-%d') }}
                                     {% else %}
                                         <span class="text-muted">TBD</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Time">
                                     {% if match.time %}
                                         {{ match.time.strftime('%H:%M') }}
                                     {% else %}
                                         <span class="text-muted">TBD</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Home Team">
                                     <strong>{{ match.home_team.name if match.home_team else 'TBD' }}</strong>
                                 </td>
-                                <td>
+                                <td data-label="Away Team">
                                     {{ match.away_team.name if match.away_team else 'TBD' }}
                                 </td>
-                                <td>
+                                <td data-label="Score">
                                     {% if match.home_team_score is not none and match.away_team_score is not none %}
                                         <span class="badge bg-success" data-badge>{{ match.home_team_score }} - {{ match.away_team_score }}</span>
                                     {% else %}
                                         <span class="badge bg-secondary" data-badge>-</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     {% if match.date %}
                                         {% if match.home_team_score is not none and match.away_team_score is not none %}
                                             <span class="badge bg-success" data-badge>Completed</span>
@@ -151,7 +151,7 @@
                                         <span class="badge bg-secondary" data-badge>Unscheduled</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         <button class="c-btn c-btn--outline-info" data-action="view-match-details" data-match-id="{{ match.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                         <button class="c-btn c-btn--outline-warning" data-action="edit-match" data-match-id="{{ match.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>

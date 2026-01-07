@@ -29,7 +29,7 @@ import { InitSystem } from '../js/init-system.js';
 import { ModalManager } from '../js/modal-manager.js';
 let _initialized = false;
 
-export function init() {
+export function initOnboarding() {
     if (_initialized) return;
     _initialized = true;
     // Core elements
@@ -146,17 +146,28 @@ export function init() {
             keyboard: false
         });
 
-        carouselElement.addEventListener('slide.bs.carousel', function (e) {
-            if (isCropping) {
-                e.preventDefault();
-                return false;
-            }
-        });
+        // Carousel events - using document-level delegation
+        // Note: These are Bootstrap events that only fire on the carousel element itself
+        // Using capture phase to ensure we can prevent default
+        if (!window._onboardingCarouselDelegationSetup) {
+            window._onboardingCarouselDelegationSetup = true;
 
-        carouselElement.addEventListener('slid.bs.carousel', function () {
-            updateNavButtons();
-            updateProgress();
-        });
+            // Delegated slide.bs.carousel listener
+            document.addEventListener('slide.bs.carousel', function(e) {
+                if (e.target.id !== 'modalCarouselControls') return;
+                if (isCropping) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // Delegated slid.bs.carousel listener
+            document.addEventListener('slid.bs.carousel', function(e) {
+                if (e.target.id !== 'modalCarouselControls') return;
+                updateNavButtons();
+                updateProgress();
+            });
+        }
     }
 
     // ======================
@@ -372,7 +383,7 @@ export function init() {
 
 // Register with window.InitSystem (primary)
 if (true && window.InitSystem.register) {
-    window.InitSystem.register('onboarding', init, {
+    window.InitSystem.register('onboarding', initOnboarding, {
         priority: 45,
         reinitializable: false,
         description: 'Onboarding wizard carousel'
@@ -383,7 +394,7 @@ if (true && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.init = init;
+window.initOnboarding = initOnboarding;
 
 // Backward compatibility - getCurrentStep is exposed via window.OnboardingWizard.getCurrentStep
 // window.getCurrentStep = getCurrentStep; // Removed - getCurrentStep is inside init() scope

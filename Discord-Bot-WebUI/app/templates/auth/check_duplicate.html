@@ -33,8 +33,8 @@
                     <!-- Potential Duplicates -->
                     {% if duplicates %}
                         {% for dup in duplicates %}
-                        <div class="c-card-modern c-card-modern--selectable" data-player-id="{{ dup.id }}">
-                            <div class="c-card-modern__body">
+                        <div class="c-card c-card--selectable" data-player-id="{{ dup.id }}">
+                            <div class="c-card__body">
                                 <div class="c-duplicate-profile">
                                     <div class="c-duplicate-profile__info">
                                         <h6 class="c-duplicate-profile__name">{{ dup.name }}</h6>
@@ -55,7 +55,7 @@
                                     </div>
                                     <div class="c-duplicate-profile__action">
                                         <button type="button"
-                                                class="c-btn-modern c-btn-modern--primary c-btn-modern--sm js-claim-account"
+                                                class="c-btn c-btn--primary c-btn--sm js-claim-account"
                                                 data-action="claim-account"
                                                 data-player-id="{{ dup.id }}"
                                                 data-player-name="{{ dup.name }}"
@@ -71,8 +71,8 @@
                     {% endif %}
 
                     <!-- None of these options -->
-                    <div class="c-card-modern c-card-modern--alternative">
-                        <div class="c-card-modern__body">
+                    <div class="c-card c-card--alternative">
+                        <div class="c-card__body">
                             <div class="c-auth-alternative">
                                 <h6 class="c-auth-alternative__title">
                                     <i class="ti ti-user-plus"></i>
@@ -80,7 +80,7 @@
                                 </h6>
                                 <p class="c-auth-alternative__description">Create a brand new account instead.</p>
                                 <button type="button"
-                                        class="c-btn-modern c-btn-modern--secondary js-create-new"
+                                        class="c-btn c-btn--secondary js-create-new"
                                         id="create-new-btn"
                                         data-action="create-new-account">
                                     <i class="ti ti-plus"></i>

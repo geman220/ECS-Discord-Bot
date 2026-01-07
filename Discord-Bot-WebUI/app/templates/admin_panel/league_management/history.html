@@ -9,51 +9,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    /* Player search autocomplete styling */
-    .player-search-container {
-        position: relative;
-    }
-    .player-search-results {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        z-index: 1000;
-        max-height: 300px;
-        overflow-y: auto;
-        background: var(--bs-body-bg);
-        border: 1px solid var(--bs-border-color);
-        border-radius: 0 0 0.375rem 0.375rem;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        display: none;
-    }
-    .player-search-results.show {
-        display: block;
-    }
-    .player-search-item {
-        padding: 0.5rem 1rem;
-        cursor: pointer;
-        border-bottom: 1px solid var(--bs-border-color);
-    }
-    .player-search-item:last-child {
-        border-bottom: none;
-    }
-    .player-search-item:hover {
-        background-color: var(--bs-tertiary-bg);
-    }
-    .player-search-item.selected {
-        background-color: var(--bs-primary);
-        color: #fff;
-    }
-    .player-search-item .player-name {
-        font-weight: 500;
-    }
-    .player-search-item .player-id {
-        font-size: 0.85em;
-        opacity: 0.7;
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block panel_content %}
@@ -68,7 +24,7 @@
             <div class="c-card__body">
                 {% if history %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="seasons">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="seasons">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">Season</th>
@@ -82,24 +38,24 @@
                         <tbody>
                             {% for season in history %}
                             <tr>
-                                <td>
+                                <td data-label="Season">
                                     <a href="{{ url_for('admin_panel.league_management_season_detail', season_id=season.id) }}">
                                         {{ season.name }}
                                     </a>
                                 </td>
-                                <td>
+                                <td data-label="League Type">
                                     <span class="badge bg-label-primary" data-badge>{{ season.league_type }}</span>
                                 </td>
-                                <td>{{ season.league_count }}</td>
-                                <td>{{ season.team_count }}</td>
-                                <td>
+                                <td data-label="Leagues">{{ season.league_count }}</td>
+                                <td data-label="Teams">{{ season.team_count }}</td>
+                                <td data-label="Created">
                                     {% if season.created_at %}
                                     <small>{{ season.created_at[:10] }}</small>
                                     {% else %}
                                     <small class="text-muted">-</small>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     {% if season.is_current %}
                                     <span class="badge bg-success" data-badge>Current</span>
                                     {% else %}

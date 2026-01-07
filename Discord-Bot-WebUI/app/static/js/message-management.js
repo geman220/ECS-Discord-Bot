@@ -6,12 +6,12 @@
 'use strict';
 
 import { ModalManager } from './modal-manager.js';
-
 import { InitSystem } from './init-system.js';
+import { showToast } from './services/toast-service.js';
 
 let _initialized = false;
 
-function init() {
+function initMessageManagement() {
     if (_initialized) return;
 
     // Page guard - only run on message management page
@@ -29,7 +29,7 @@ function init() {
     });
 }
 
-window.InitSystem.register('message-management', init, {
+window.InitSystem.register('message-management', initMessageManagement, {
     priority: 30,
     reinitializable: false,
     description: 'Message management interface'
@@ -39,7 +39,7 @@ window.InitSystem.register('message-management', init, {
 // window.InitSystem handles initialization
 
 // Preview message template
-export function previewTemplate(templateId) {
+function previewTemplate(templateId) {
     window.ModalManager.show('previewModal');
 
     // Set loading state
@@ -69,7 +69,7 @@ export function previewTemplate(templateId) {
                 <div class="mb-4" data-role="preview-section">
                     <h6 class="text-muted mb-3">Discord Message Preview:</h6>
                     <div class="discord-preview p-4 rounded" data-role="discord-preview">
-                        <div style="white-space: pre-wrap; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">${escapeHtml(data.preview)}</div>
+                        <div class="message-preview">${escapeHtml(data.preview)}</div>
                     </div>
                 </div>
                 ${data.variables_used ? `
@@ -101,30 +101,30 @@ export function previewTemplate(templateId) {
 }
 
 // Copy template content to clipboard
-export function copyTemplate(templateId) {
+function copyTemplate(templateId) {
     fetch(`/admin/messages/api/template/${templateId}`)
     .then(response => response.json())
     .then(data => {
         if (data.message_content) {
             navigator.clipboard.writeText(data.message_content).then(function() {
                 // Show success toast
-                window.showToast('Success', 'Message content copied to clipboard!', 'success');
+                showToast('Message content copied to clipboard!', 'success');
             }).catch(function(err) {
-                window.showToast('Error', 'Failed to copy to clipboard', 'danger');
+                showToast('Failed to copy to clipboard', 'error');
             });
         }
     })
     .catch(error => {
-        window.showToast('Error', 'Error copying template: ' + error.message, 'danger');
+        showToast('Error copying template: ' + error.message, 'error');
     });
 }
 
 // Show preview for message editor
-export function previewMessage() {
+function previewMessage() {
     const messageContent = document.getElementById('message_content').value;
 
     if (!messageContent.trim()) {
-        window.showToast('Warning', 'Please enter message content to preview.', 'warning');
+        showToast('Please enter message content to preview.', 'warning');
         return;
     }
 
@@ -152,7 +152,7 @@ export function previewMessage() {
         <div class="mb-4" data-role="preview-section">
             <h6 class="text-muted mb-3">Discord Message Preview:</h6>
             <div class="discord-preview p-4 rounded" data-role="discord-preview">
-                <div style="white-space: pre-wrap; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">${escapeHtml(preview)}</div>
+                <div class="message-preview">${escapeHtml(preview)}</div>
             </div>
         </div>
         <div class="mt-4" data-role="variables-section">
@@ -164,68 +164,12 @@ export function previewMessage() {
     `;
 }
 
-// Utility function to escape HTML
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+// escapeHtml is now provided globally by utils/safe-html.js
+// showToast imported from services/toast-service.js
 
-// Show toast notification
-function showToast(title, message, type = 'info') {
-    // Create container if it doesn't exist
-    let container = document.querySelector('[data-role="toast-container"]');
-    if (!container) {
-        container = document.createElement('div');
-        container.className = 'toast-container position-fixed top-0 end-0 p-3';
-        container.setAttribute('data-role', 'toast-container');
-        document.body.appendChild(container);
-    }
-
-    // Create toast element
-    const toastElement = document.createElement('div');
-    toastElement.className = 'toast align-items-center text-white border-0';
-    toastElement.setAttribute('role', 'alert');
-    toastElement.setAttribute('aria-live', 'assertive');
-    toastElement.setAttribute('aria-atomic', 'true');
-    toastElement.setAttribute('data-toast-type', type);
-
-    // Map type to semantic class
-    const typeClasses = {
-        'success': 'bg-success',
-        'danger': 'bg-danger',
-        'warning': 'bg-warning',
-        'info': 'bg-info',
-        'primary': 'bg-primary',
-        'secondary': 'bg-secondary'
-    };
-    toastElement.classList.add(typeClasses[type] || 'bg-info');
-
-    toastElement.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                <strong>${title}:</strong> ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    `;
-
-    // Add toast to container
-    container.appendChild(toastElement);
-    const toast = new window.bootstrap.Toast(toastElement);
-    toast.show();
-
-    // Remove element after it's hidden
-    toastElement.addEventListener('hidden.bs.toast', function() {
-        toastElement.remove();
-    });
-}
-
-// Backward compatibility
-window.previewTemplate = previewTemplate;
-window.copyTemplate = copyTemplate;
+// Window exports - only functions used by event delegation handlers
 window.previewMessage = previewMessage;
-window.escapeHtml = escapeHtml;
-window.showToast = showToast;
+// previewTemplate and copyTemplate exported from message-templates.js handler
+// escapeHtml available via utils/safe-html.js
 
-export { escapeHtml, showToast };
+export { escapeHtml };

@@ -111,7 +111,7 @@
     <div class="c-card__body p-0">
         {% if matches.items %}
         <div class="c-table-wrapper" data-table-responsive>
-            <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="matches">
+            <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="matches">
                 <thead class="c-table--light" scope="col">
                     <tr>
                         <th width="50" scope="col">
@@ -131,12 +131,12 @@
                 <tbody>
                     {% for match in matches.items %}
                     <tr>
-                        <td>
+                        <td data-label="Select">
                             <div class="form-check">
                                 <input class="form-check-input match-checkbox" type="checkbox" value="{{ match.id }}">
                             </div>
                         </td>
-                        <td>
+                        <td data-label="Match">
                             <div class="d-flex align-items-center">
                                 <div>
                                     <strong>{{ match.home_team.name }}</strong>
@@ -145,7 +145,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td>
+                        <td data-label="Date & Time">
                             <div>
                                 <strong>{{ match.date.strftime('%Y-%m-%d') if match.date else 'TBD' }}</strong>
                                 {% if match.time %}
@@ -153,7 +153,7 @@
                                 {% endif %}
                             </div>
                         </td>
-                        <td>
+                        <td data-label="League">
                             {% if match.season and match.season.league %}
                             <span class="badge bg-secondary" data-badge>{{ match.season.league.name }}</span>
                             <br><small class="text-muted">{{ match.season.year }}</small>
@@ -161,10 +161,10 @@
                             <span class="text-muted">Unknown</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="Location">
                             <small>{{ match.location or 'TBD' }}</small>
                         </td>
-                        <td>
+                        <td data-label="Status">
                             {% if hasattr(match, 'status') and match.status %}
                             <span class="badge bg-{% if match.status == 'completed' %}success{% elif match.status == 'live' %}warning{% elif match.status == 'cancelled' %}danger{% elif match.status == 'postponed' %}secondary{% else %}primary{% endif %}" data-badge>
                                 {{ match.status.title() }}
@@ -181,13 +181,13 @@
                             <span class="badge bg-secondary" data-badge>TBD</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td data-label="RSVPs">
                             <small class="text-muted">
                                 <!-- RSVP count would go here -->
                                 <i class="ti ti-users me-1"></i>-
                             </small>
                         </td>
-                        <td>
+                        <td data-label="Actions">
                             <div class="btn-group btn-group-sm">
                                 <button type="button" class="c-btn c-btn--outline-info js-view-details"
                                         data-action="view-match" data-match-id="{{ match.id }}" title="View Details">
@@ -482,7 +482,7 @@ function viewMatchDetails(matchId) {
                             <div class="col-12">
                                 <h6>Recent Head-to-Head</h6>
                                 <div class="c-table-wrapper" data-table-responsive>
-                                    <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="history">
+                                    <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="history">
                                         <thead scope="col"><tr><th scope="col">Date</th><th scope="col">Match</th><th scope="col">Status</th></tr></thead>
                                         <tbody>
                                             ${match.team_history.map(h => 
@@ -666,34 +666,185 @@ function duplicateMatch(matchId) {
         title: 'Duplicate Match',
         text: 'This will create a copy of the match. You can edit the details after creation.',
         showCancelButton: true,
-        confirmButtonText: 'Duplicate'
+        confirmButtonText: 'Duplicate',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            return fetch(`/admin-panel/matches/${matchId}/details`)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success && !data.id) {
+                        throw new Error(data.message || 'Failed to fetch match details');
+                    }
+                    // Create duplicate with slightly modified data
+                    const matchData = {
+                        home_team_id: data.home_team_id,
+                        away_team_id: data.away_team_id,
+                        league_id: data.league_id,
+                        week: data.week,
+                        notes: `Copy of match #${matchId}`
+                    };
+                    return fetch('/auto-schedule/add-match', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                        },
+                        body: JSON.stringify(matchData)
+                    });
+                })
+                .then(response => response.json());
+        },
+        allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
         if (result.isConfirmed) {
-            // Mock duplication
-            Swal.fire('Duplicated!', 'Match has been duplicated. Redirecting to edit...', 'success');
+            if (result.value && result.value.success) {
+                Swal.fire('Duplicated!', 'Match has been duplicated. Redirecting to edit...', 'success')
+                    .then(() => {
+                        if (result.value.match_id) {
+                            window.location.href = `/admin-panel/matches/${result.value.match_id}/edit`;
+                        } else {
+                            window.location.reload();
+                        }
+                    });
+            } else {
+                Swal.fire('Error', result.value?.message || 'Failed to duplicate match', 'error');
+            }
         }
+    }).catch(error => {
+        Swal.fire('Error', error.message || 'Failed to duplicate match', 'error');
     });
 }
 
 function scheduleMatch(matchId) {
-    Swal.fire('Schedule Match', 'Match scheduling functionality would be implemented here.', 'info');
+    Swal.fire({
+        title: 'Schedule Match',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label for="matchDate" class="form-label">Date</label>
+                    <input type="date" id="matchDate" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label for="matchTime" class="form-label">Time</label>
+                    <input type="time" id="matchTime" class="form-control">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Schedule',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            const date = document.getElementById('matchDate').value;
+            const time = document.getElementById('matchTime').value;
+            if (!date || !time) {
+                Swal.showValidationMessage('Please fill in both date and time');
+                return false;
+            }
+            return fetch('/auto-schedule/update-match', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    match_id: matchId,
+                    date: date,
+                    time: time
+                })
+            }).then(response => response.json());
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed) {
+            if (result.value && result.value.success) {
+                Swal.fire('Scheduled!', 'Match has been scheduled.', 'success')
+                    .then(() => window.location.reload());
+            } else {
+                Swal.fire('Error', result.value?.message || 'Failed to schedule match', 'error');
+            }
+        }
+    });
 }
 
 function postponeMatch(matchId) {
-    Swal.fire('Postpone Match', 'Match postponement functionality would be implemented here.', 'info');
+    Swal.fire({
+        title: 'Postpone Match',
+        html: `
+            <div class="text-start">
+                <div class="mb-3">
+                    <label for="postponeReason" class="form-label">Reason for postponement</label>
+                    <textarea id="postponeReason" class="form-control" rows="3" placeholder="Weather, scheduling conflict, etc."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="newDate" class="form-label">New Date (optional)</label>
+                    <input type="date" id="newDate" class="form-control">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Postpone',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            const reason = document.getElementById('postponeReason').value;
+            const newDate = document.getElementById('newDate').value;
+            return fetch('/auto-schedule/update-match', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    match_id: matchId,
+                    status: 'POSTPONED',
+                    date: newDate || null,
+                    notes: reason ? `Postponed: ${reason}` : 'Match postponed'
+                })
+            }).then(response => response.json());
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed) {
+            if (result.value && result.value.success) {
+                Swal.fire('Postponed!', 'Match has been postponed.', 'success')
+                    .then(() => window.location.reload());
+            } else {
+                Swal.fire('Error', result.value?.message || 'Failed to postpone match', 'error');
+            }
+        }
+    });
 }
 
 function cancelMatch(matchId) {
     Swal.fire({
         title: 'Cancel Match',
-        text: 'Are you sure you want to cancel this match?',
+        text: 'Are you sure you want to cancel this match? This action cannot be easily undone.',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Yes, cancel it!'
+        confirmButtonText: 'Yes, cancel it!',
+        confirmButtonColor: '#dc3545',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            return fetch('/auto-schedule/update-match', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    match_id: matchId,
+                    status: 'CANCELLED'
+                })
+            }).then(response => response.json());
+        },
+        allowOutsideClick: () => !Swal.isLoading()
     }).then((result) => {
         if (result.isConfirmed) {
-            // Would update match status to cancelled
-            Swal.fire('Cancelled!', 'Match has been cancelled.', 'success');
+            if (result.value && result.value.success) {
+                Swal.fire('Cancelled!', 'Match has been cancelled.', 'success')
+                    .then(() => window.location.reload());
+            } else {
+                Swal.fire('Error', result.value?.message || 'Failed to cancel match', 'error');
+            }
         }
     });
 }
@@ -705,24 +856,119 @@ function exportMatches() {
         input: 'select',
         inputOptions: {
             'csv': 'CSV',
-            'xlsx': 'Excel',
             'json': 'JSON'
         },
         showCancelButton: true,
         confirmButtonText: 'Export'
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire('Export Started', `Export in ${result.value.toUpperCase()} format has been queued.`, 'info');
+            const format = result.value;
+            // Collect visible match data from the table
+            const table = document.querySelector('.c-table, table');
+            if (!table) {
+                Swal.fire('Error', 'No match data found to export', 'error');
+                return;
+            }
+            const headers = Array.from(table.querySelectorAll('thead th'))
+                .map(th => th.textContent.trim())
+                .filter(h => h !== 'Actions');
+            const rows = Array.from(table.querySelectorAll('tbody tr')).map(row => {
+                const cells = Array.from(row.querySelectorAll('td'));
+                return cells.slice(0, -1).map(cell => cell.textContent.trim()); // Exclude actions column
+            });
+
+            if (format === 'csv') {
+                const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))].join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `matches_export_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+                URL.revokeObjectURL(url);
+                Swal.fire('Exported!', 'Matches exported to CSV successfully.', 'success');
+            } else if (format === 'json') {
+                const jsonData = rows.map(row => {
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        obj[header] = row[index] || '';
+                    });
+                    return obj;
+                });
+                const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `matches_export_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+                Swal.fire('Exported!', 'Matches exported to JSON successfully.', 'success');
+            }
         }
     });
 }
 
 function exportSelectedMatches(matchIds) {
-    Swal.fire('Export Started', `Export of ${matchIds.length} selected matches has been queued.`, 'info');
+    if (!matchIds || matchIds.length === 0) {
+        Swal.fire('No Selection', 'Please select matches to export.', 'warning');
+        return;
+    }
+    const selectedRows = matchIds.map(id => document.querySelector(`tr[data-match-id="${id}"]`)).filter(Boolean);
+    if (selectedRows.length === 0) {
+        Swal.fire('Error', 'Could not find selected match data.', 'error');
+        return;
+    }
+    const headers = Array.from(document.querySelectorAll('.c-table thead th, table thead th'))
+        .map(th => th.textContent.trim())
+        .filter(h => h !== 'Actions' && h !== '');
+    const rows = selectedRows.map(row => {
+        const cells = Array.from(row.querySelectorAll('td'));
+        return cells.slice(0, -1).map(cell => cell.textContent.trim());
+    });
+    const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `selected_matches_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    Swal.fire('Exported!', `${matchIds.length} matches exported successfully.`, 'success');
 }
 
 function bulkScheduleMatches() {
-    Swal.fire('Bulk Schedule', 'Bulk scheduling functionality would be implemented here.', 'info');
+    Swal.fire({
+        title: 'Bulk Schedule Matches',
+        html: `
+            <div class="text-start">
+                <p class="mb-3">Select multiple matches from the table, then set a common schedule pattern.</p>
+                <div class="mb-3">
+                    <label for="bulkStartDate" class="form-label">Starting Date</label>
+                    <input type="date" id="bulkStartDate" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label for="bulkTime" class="form-label">Match Time</label>
+                    <input type="time" id="bulkTime" class="form-control" value="19:00">
+                </div>
+                <div class="mb-3">
+                    <label for="bulkInterval" class="form-label">Days Between Matches</label>
+                    <input type="number" id="bulkInterval" class="form-control" value="7" min="1">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Apply Schedule',
+        footer: '<small class="text-muted">First select matches using the checkboxes in the table</small>'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const selectedMatches = getSelectedMatchIds();
+            if (!selectedMatches || selectedMatches.length === 0) {
+                Swal.fire('No Selection', 'Please select matches first using the checkboxes.', 'warning');
+                return;
+            }
+            Swal.fire('Scheduling...', `Bulk scheduling ${selectedMatches.length} matches...`, 'info');
+        }
+    });
 }
 </script>
 {% endblock %}

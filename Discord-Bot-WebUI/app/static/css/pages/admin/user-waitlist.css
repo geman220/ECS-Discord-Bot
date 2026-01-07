@@ -11,7 +11,7 @@
  * - Full dark mode support with [data-style="dark"] selectors
  * - Semantic class names following BEM-like conventions
  * - Mobile-first responsive approach
- * - NO !important declarations (proper specificity via .waitlist-page wrapper)
+ * - NO declarations (proper specificity via .waitlist-page wrapper)
  *
  * Components:
  * 1. Card Hover Effects
@@ -398,7 +398,7 @@
    Mobile and tablet optimizations
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .waitlist-page .waitlist-stats-card {
         padding: var(--space-4, 1rem);
     }
@@ -467,7 +467,7 @@
     white-space: nowrap;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
     .waitlist-page .waitlist-btn-group {
         flex-direction: column;
         gap: var(--space-2, 0.5rem);
@@ -535,7 +535,7 @@
     gap: var(--space-2, 0.5rem);
 }
 
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
     .waitlist-page .waitlist-card-header {
         flex-direction: column;
         gap: var(--space-3, 0.75rem);

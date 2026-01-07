@@ -9,7 +9,7 @@
  * Architecture:
  * - BEM naming convention (.c-component__element--modifier)
  * - Design tokens only (no hardcoded values)
- * - Zero !important declarations (except accessibility)
+ * - Zero declarations (except accessibility)
  * - Full dark mode support
  * - Mobile-first responsive design
  * - WCAG AA accessibility compliant
@@ -268,17 +268,7 @@
   border-width: 0.15em;
 }
 
-.empty-state {
-  text-align: center;
-  padding: var(--space-12) var(--space-4);
-  color: var(--color-text-muted);
-}
-
-.empty-state i {
-  font-size: 3rem;
-  margin-bottom: var(--space-4);
-  opacity: 0.5;
-}
+/* NOTE: .empty-state base styles in components/empty-states.css (source of truth) */
 
 /* ============================================================================
    8. ANIMATIONS
@@ -367,7 +357,7 @@
    10. RESPONSIVE DESIGN - Mobile Optimizations
    ============================================================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .match-card .row {
     margin: 0;
   }
@@ -376,12 +366,14 @@
     padding: 0 var(--space-2);
   }
 
-  /* Increased specificity to override Bootstrap gap utilities without !important */
+  /* Increased specificity to override Bootstrap gap utilities without */
   .match-management-container .d-flex.flex-wrap.gap-2 {
     gap: var(--space-2);
   }
 
-  .btn-sm {
+  /* NOTE: .btn-sm base mobile sizing in mobile/buttons.css (source of truth) */
+  /* Match management page-specific adjustments */
+  .match-management-container .btn-sm {
     font-size: 0.75rem;
     padding: var(--space-1) var(--space-2);
   }
@@ -399,7 +391,7 @@
   }
 }
 
-@media (max-width: 576px) {
+@media (max-width: 575.98px) {
   .match-card {
     border-radius: var(--radius-lg);
   }
@@ -531,11 +523,11 @@
 }
 
 /* Badge enhancements for match cards */
-.badge {
+.match-management-container .badge {
   transition: all 0.2s ease;
 }
 
-.badge:hover {
+.match-management-container .badge:hover {
   transform: scale(1.05);
 }
 
@@ -549,27 +541,27 @@
 }
 
 /* Dropdown enhancements */
-.dropdown-menu {
+.match-management-container .dropdown-menu {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--color-border-primary);
 }
 
-.dropdown-item {
+.match-management-container .dropdown-item {
   transition: all 0.15s ease;
 }
 
-.dropdown-item:hover {
+.match-management-container .dropdown-item:hover {
   background-color: var(--color-hover-bg);
   color: var(--color-primary-600);
 }
 
-[data-style="dark"] .dropdown-menu {
+[data-style="dark"] .match-management-container .dropdown-menu {
   background-color: var(--color-bg-card);
   border-color: var(--color-border-primary);
 }
 
-[data-style="dark"] .dropdown-item:hover {
+[data-style="dark"] .match-management-container .dropdown-item:hover {
   background-color: var(--color-hover-bg);
   color: var(--color-primary-500);
 }
@@ -578,28 +570,29 @@
    13. MODAL ENHANCEMENTS
    ============================================================================ */
 
-.modal-content {
+/* NOTE: Modal base styles in components/modals.css - these are page enhancements */
+.match-management-container .modal-content {
   border-radius: var(--radius-xl);
   border: 1px solid var(--color-border-primary);
 }
 
-.modal-header {
+.match-management-container .modal-header {
   border-bottom: 1px solid var(--color-border-primary);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
-.modal-footer {
+.match-management-container .modal-footer {
   border-top: 1px solid var(--color-border-primary);
   border-radius: 0 0 var(--radius-xl) var(--radius-xl);
 }
 
-[data-style="dark"] .modal-content {
+[data-style="dark"] .match-management-container .modal-content {
   background-color: var(--color-bg-card);
   border-color: var(--color-border-primary);
 }
 
-[data-style="dark"] .modal-header,
-[data-style="dark"] .modal-footer {
+[data-style="dark"] .match-management-container .modal-header,
+[data-style="dark"] .match-management-container .modal-footer {
   border-color: var(--color-border-primary);
 }
 
@@ -607,18 +600,18 @@
    14. ALERT & INFO BOXES
    ============================================================================ */
 
-.alert {
+.match-management-container .alert {
   border-radius: var(--radius-lg);
   border-width: 1px;
 }
 
-.alert-info {
+.match-management-container .alert-info {
   background-color: var(--color-info-subtle);
   border-color: var(--color-info-600);
   color: var(--color-info-800);
 }
 
-[data-style="dark"] .alert-info {
+[data-style="dark"] .match-management-container .alert-info {
   background-color: rgba(var(--color-info-rgb), 0.15);
   border-color: var(--color-info-600);
   color: var(--color-info-300);
@@ -722,7 +715,7 @@
  * ============================================================================
  *
  * JUSTIFIED !important declarations:
- * These !important flags are required to override ALL animation and transition
+ * These flags are required to override ALL animation and transition
  * properties throughout the entire page when a user has indicated they prefer
  * reduced motion via system settings (prefers-reduced-motion: reduce).
  *
@@ -730,7 +723,7 @@
  * all other animation/transition rules to prevent motion-triggered issues for
  * users with vestibular disorders, seizure disorders, or motion sensitivity.
  *
- * Without !important, these rules would be overridden by more specific selectors
+ * Without, these rules would be overridden by more specific selectors
  * elsewhere in the stylesheet, defeating the accessibility purpose.
  *
  * Reference: WCAG 2.1 Success Criterion 2.3.3 (Animation from Interactions)
@@ -740,9 +733,9 @@
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
   }
 
   .match-card:hover {

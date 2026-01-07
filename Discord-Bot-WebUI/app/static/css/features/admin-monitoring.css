@@ -19,22 +19,22 @@
 }
 
 .status-indicator.active {
-  background-color: var(--ecs-success, #28a745);
+  background-color: var(--ecs-success, var(--color-success-500));
   box-shadow: 0 0 0 2px rgba(var(--ecs-success-rgb, 40, 167, 69), 0.2);
 }
 
 .status-indicator.inactive {
-  background-color: var(--ecs-danger, #dc3545);
+  background-color: var(--ecs-danger, var(--color-danger-600));
   box-shadow: 0 0 0 2px rgba(var(--ecs-danger-rgb, 220, 53, 69), 0.2);
 }
 
 .status-indicator.status-secondary {
-  background-color: var(--ecs-secondary, #6c757d);
+  background-color: var(--ecs-secondary, var(--color-secondary-600));
 }
 
 .progress {
-  background-color: var(--ecs-neutral-10, #e9ecef);
-  background-color: #e9ecef;
+  background-color: var(--ecs-neutral-10, var(--color-neutral-200));
+  background-color: var(--color-neutral-200);
 }
 
 @media (max-width: 768px) {
@@ -114,7 +114,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--ecs-neutral-20, #e9ecef);
+  background: var(--ecs-neutral-20, var(--color-neutral-200));
 }
 
 .u-progress-circle .progress-bar {
@@ -170,8 +170,8 @@ pre {
 /* Dark mode support */
 
 [data-style="dark"] pre {
-  background-color: var(--ecs-dark-bg-elevated, #1e293b);
-  color: var(--ecs-dark-text-primary, #f1f5f9);
+  background-color: var(--ecs-dark-bg-elevated, var(--color-secondary-900));
+  color: var(--ecs-dark-text-primary, var(--color-secondary-100));
 }
 
 @media (max-width: 768px) {
@@ -211,7 +211,7 @@ pre {
 /* Primary gradient background */
 
 .bg-gradient-primary {
-  background: linear-gradient(135deg, var(--ecs-primary, #666CFF) 0%, var(--ecs-primary-dark, #4C63D2) 100%);
+  background: linear-gradient(135deg, var(--ecs-primary, var(--color-neutral-600)CFF) 0%, var(--ecs-primary-dark, #4C63D2) 100%);
 }
 
 /* Avatar styling for stat cards */
@@ -246,15 +246,15 @@ pre {
 /* Status indicator with pulse animation */
 
 .status-indicator.healthy {
-  background-color: var(--ecs-success, #28c76f);
+  background-color: var(--ecs-success, var(--color-success-500));
 }
 
 .status-indicator.warning {
-  background-color: var(--ecs-warning, #ff9f43);
+  background-color: var(--ecs-warning, var(--color-accent-500));
 }
 
 .status-indicator.critical {
-  background-color: var(--ecs-danger, #ea5455);
+  background-color: var(--ecs-danger, var(--color-danger-500));
 }
 
 @keyframes pulse {
@@ -279,15 +279,15 @@ pre {
 }
 
 .queue-item.healthy {
-  border-left-color: var(--ecs-success, #28c76f);
+  border-left-color: var(--ecs-success, var(--color-success-500));
 }
 
 .queue-item.warning {
-  border-left-color: var(--ecs-warning, #ff9f43);
+  border-left-color: var(--ecs-warning, var(--color-accent-500));
 }
 
 .queue-item.critical {
-  border-left-color: var(--ecs-danger, #ea5455);
+  border-left-color: var(--ecs-danger, var(--color-danger-500));
 }
 
 /* Task item styling */
@@ -335,12 +335,12 @@ pre {
 [data-style="dark"] .monitoring-page .card,
 [data-theme="dark"] .monitoring-page .card {
   border-color: rgba(255, 255, 255, 0.1);
-  background-color: var(--ecs-dark-bg-card, #2b2c40);
+  background-color: var(--ecs-dark-bg-card, var(--color-secondary-900));
 }
 
 [data-style="dark"] .bg-gradient-primary,
 [data-theme="dark"] .bg-gradient-primary {
-  background: linear-gradient(135deg, var(--ecs-primary, #666CFF) 0%, var(--ecs-primary-dark, #4C63D2) 100%);
+  background: linear-gradient(135deg, var(--ecs-primary, var(--color-neutral-600)CFF) 0%, var(--ecs-primary-dark, #4C63D2) 100%);
 }
 
 [data-style="dark"] .task-item:hover,
@@ -352,7 +352,7 @@ pre {
 
 .skeleton {
   animation: skeleton-loading 1s linear infinite alternate;
-  background: linear-gradient(90deg, var(--ecs-neutral-10, #f0f0f0) 25%, var(--ecs-neutral-20, #e0e0e0) 50%, var(--ecs-neutral-10, #f0f0f0) 75%);
+  background: linear-gradient(90deg, var(--ecs-neutral-10, var(--color-neutral-100)) 25%, var(--ecs-neutral-20, var(--color-neutral-200)) 50%, var(--ecs-neutral-10, var(--color-neutral-100)) 75%);
   background-size: 200% 100%;
 }
 

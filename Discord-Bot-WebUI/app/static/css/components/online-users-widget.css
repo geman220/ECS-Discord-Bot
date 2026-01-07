@@ -58,7 +58,7 @@
 }
 
 .c-online-widget__title-icon {
-  color: var(--color-success, #22c55e);
+  color: var(--color-success, var(--color-success-500));
   font-size: 0.875rem;
 }
 
@@ -71,8 +71,8 @@
   padding: 0 0.375rem;
   font-size: 0.6875rem;
   font-weight: 700;
-  color: var(--color-white, #fff);
-  background-color: var(--color-success, #22c55e);
+  color: var(--color-white, var(--color-white));
+  background-color: var(--color-success, var(--color-success-500));
   border-radius: 9999px;
 }
 
@@ -274,20 +274,20 @@
 }
 
 [data-style="dark"] .c-online-widget__title {
-  color: var(--color-text-primary, #F8FAFC);
+  color: var(--color-text-primary, var(--color-secondary-50));
 }
 
 [data-style="dark"] .c-online-widget__count {
-  background-color: var(--color-success-400, #4ade80);
-  color: var(--color-black, #000);
+  background-color: var(--color-success-400, var(--color-success-400));
+  color: var(--color-black, var(--color-black));
 }
 
 [data-style="dark"] .c-online-widget__user {
-  color: var(--color-text-primary, #F8FAFC);
+  color: var(--color-text-primary, var(--color-secondary-50));
 }
 
 [data-style="dark"] .c-online-widget__user:hover {
-  color: var(--color-text-primary, #F8FAFC);
+  color: var(--color-text-primary, var(--color-secondary-50));
 }
 
 /* -----------------------------------------------------------------------------

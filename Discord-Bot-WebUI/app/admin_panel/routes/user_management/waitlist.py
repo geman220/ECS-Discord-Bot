@@ -230,6 +230,70 @@ def contact_waitlist_user(user_id: int):
         return jsonify({'success': False, 'message': 'Failed to contact user'}), 500
 
 
+@admin_panel_bp.route('/users/waitlist/priority/<int:user_id>', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def update_waitlist_priority(user_id: int):
+    """
+    Update the priority of a user on the waitlist.
+
+    Expected JSON body:
+    {
+        "priority": "high" | "medium" | "normal" | "auto"
+    }
+    """
+    try:
+        current_user_safe = safe_current_user
+
+        # Get the user
+        user = db.session.query(User).filter_by(id=user_id).first()
+
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+
+        # Get priority from request
+        priority = request.json.get('priority', 'auto')
+
+        # Validate priority value
+        valid_priorities = ['high', 'medium', 'normal', 'auto']
+        if priority not in valid_priorities:
+            return jsonify({
+                'success': False,
+                'message': f'Invalid priority. Must be one of: {", ".join(valid_priorities)}'
+            }), 400
+
+        # Set priority (None means auto-calculated)
+        old_priority = user.waitlist_priority
+        user.waitlist_priority = None if priority == 'auto' else priority
+        user.updated_at = datetime.utcnow()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user_safe.id,
+            action='update_waitlist_priority',
+            resource_type='user_waitlist',
+            resource_id=str(user_id),
+            old_value=old_priority or 'auto',
+            new_value=priority,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        logger.info(f"Waitlist priority updated for user {user.id} ({user.username}) from {old_priority or 'auto'} to {priority} by {current_user_safe.id} ({current_user_safe.username})")
+
+        return jsonify({
+            'success': True,
+            'message': f'Priority updated to {priority}',
+            'user_id': user.id,
+            'priority': priority
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating waitlist priority for user {user_id}: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Failed to update priority'}), 500
+
+
 def _send_waitlist_contact(user, contact_method: str, message: str, subject: str) -> dict:
     """
     Helper function to send contact message via the specified method.

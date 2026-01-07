@@ -27,44 +27,25 @@ class AdminTeamsManager {
     }
 
     /**
-     * Setup filter change handlers
+     * Setup filter change handlers using event delegation
      */
     setupFilterHandlers() {
-        const seasonFilter = document.getElementById('seasonFilter');
-        const leagueTypeFilter = document.getElementById('leagueTypeFilter');
+        const self = this;
 
-        if (seasonFilter) {
-            seasonFilter.addEventListener('change', () => this.applyFilters());
-        }
-
-        if (leagueTypeFilter) {
-            leagueTypeFilter.addEventListener('change', () => this.applyFilters());
-        }
+        // Delegated change handler for filters
+        document.addEventListener('change', (e) => {
+            if (e.target.id === 'seasonFilter' || e.target.id === 'leagueTypeFilter') {
+                self.applyFilters();
+            }
+        });
     }
 
     /**
      * Setup direct button handlers
+     * Note: Button handlers are now consolidated in setupEventDelegation
      */
     setupButtonHandlers() {
-        // Create team button (direct binding)
-        const createTeamBtn = document.querySelector('.js-create-team');
-        if (createTeamBtn) {
-            createTeamBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.createTeam();
-            });
-        }
-
-        // Save edit button (direct binding)
-        const saveEditBtn = document.querySelector('.js-save-team-edit');
-        if (saveEditBtn) {
-            saveEditBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.saveTeamEdit();
-            });
-        }
+        // Button handlers are handled by setupEventDelegation for consistency
     }
 
     /**
@@ -275,8 +256,20 @@ class AdminTeamsManager {
 
         if (typeof AdminPanel !== 'undefined' && AdminPanel.confirmAction) {
             AdminPanel.confirmAction('This will sync Discord resources for this team. Continue?', doSync);
-        } else if (confirm('This will sync Discord resources for this team. Continue?')) {
-            doSync();
+        } else {
+            Swal.fire({
+                title: 'Sync Discord Resources',
+                text: 'This will sync Discord resources for this team. Continue?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, sync it'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    doSync();
+                }
+            });
         }
     }
 
@@ -318,8 +311,20 @@ class AdminTeamsManager {
 
         if (typeof AdminPanel !== 'undefined' && AdminPanel.confirmAction) {
             AdminPanel.confirmAction(confirmMessage, doDelete);
-        } else if (confirm(confirmMessage)) {
-            doDelete();
+        } else {
+            Swal.fire({
+                title: 'Delete Team',
+                text: confirmMessage,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    doDelete();
+                }
+            });
         }
     }
 }
@@ -340,7 +345,7 @@ function getManager() {
 /**
  * Initialize function
  */
-function init() {
+function initAdminTeamsManagement() {
     if (_initialized) return;
     _initialized = true;
 
@@ -357,7 +362,7 @@ function init() {
 
 // Register with window.InitSystem
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('admin-teams-management', init, {
+    window.InitSystem.register('admin-teams-management', initAdminTeamsManagement, {
         priority: 40,
         reinitializable: false,
         description: 'Admin teams management'
@@ -368,4 +373,4 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Export for ES modules
-export { AdminTeamsManager, getManager, init };
+export { AdminTeamsManager, getManager, initAdminTeamsManagement };

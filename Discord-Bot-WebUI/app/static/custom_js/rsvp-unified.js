@@ -13,10 +13,10 @@
 import { InitSystem } from '../js/init-system.js';
 let _initialized = false;
 
-  function init() {
+  function initRsvpUnified() {
     if (_initialized) return;
     _initialized = true;
-  
+
   // Hide page loader
   setTimeout(function() {
     var loader = document.getElementById('page-loader');
@@ -81,7 +81,7 @@ let _initialized = false;
               showConfirmButton: false
             });
           } else {
-            alert('RSVP synchronization with Discord has been triggered.');
+            if (typeof window.Swal !== 'undefined') { window.Swal.fire('Sync Started', 'RSVP synchronization with Discord has been triggered.', 'success'); }
           }
         } else {
           if (window.toastr) {
@@ -93,7 +93,7 @@ let _initialized = false;
               icon: 'error'
             });
           } else {
-            alert('Sync Failed: ' + (data.message || 'An error occurred syncing with Discord.'));
+            if (typeof window.Swal !== 'undefined') { window.Swal.fire('Sync Failed', data.message || 'An error occurred syncing with Discord.', 'error'); }
           }
         }
       })
@@ -114,7 +114,7 @@ let _initialized = false;
             icon: 'error'
           });
         } else {
-          alert('Connection Error: Could not connect to the Discord sync service.');
+          if (typeof window.Swal !== 'undefined') { window.Swal.fire('Connection Error', 'Could not connect to the Discord sync service.', 'error'); }
         }
       });
     });
@@ -603,7 +603,7 @@ export function loadAvailableSubs() {
               window.toastr.success(data.message || 'Substitute assigned successfully.');
               setTimeout(() => window.location.reload(), 1500);
             } else {
-              alert('Substitute assigned successfully.');
+              if (typeof window.Swal !== 'undefined') { window.Swal.fire('Success', 'Substitute assigned successfully.', 'success'); }
               window.location.reload();
             }
             
@@ -624,7 +624,7 @@ export function loadAvailableSubs() {
             } else if (window.toastr) {
               window.toastr.error(data.message || 'Failed to assign substitute.');
             } else {
-              alert('Error: ' + (data.message || 'Failed to assign substitute.'));
+              if (typeof window.Swal !== 'undefined') { window.Swal.fire('Error', data.message || 'Failed to assign substitute.', 'error'); }
             }
           }
         })
@@ -633,7 +633,7 @@ export function loadAvailableSubs() {
           if (window.toastr) {
             window.toastr.error('An error occurred while assigning the substitute.');
           } else {
-            alert('An error occurred while assigning the substitute.');
+            if (typeof window.Swal !== 'undefined') { window.Swal.fire('Error', 'An error occurred while assigning the substitute.', 'error'); }
           }
         })
         .finally(() => {
@@ -860,7 +860,7 @@ export function removeDataTablesArrows() {
 
   // Register with window.InitSystem (primary)
   if (true && window.InitSystem.register) {
-    window.InitSystem.register('rsvp-unified', init, {
+    window.InitSystem.register('rsvp-unified', initRsvpUnified, {
       priority: 50,
       reinitializable: false,
       description: 'RSVP unified page functionality'
@@ -870,26 +870,5 @@ export function removeDataTablesArrows() {
   // Fallback
   // window.InitSystem handles initialization
 
-// Backward compatibility
-window.init = init;
-
-// Backward compatibility
-window.fixDropdownsAndOverflow = fixDropdownsAndOverflow;
-
-// Backward compatibility
-window.formatPhoneNumber = formatPhoneNumber;
-
-// Backward compatibility
-window.bindEventHandlers = bindEventHandlers;
-
-// Backward compatibility
-window.bindTabHandlers = bindTabHandlers;
-
-// Backward compatibility
-window.loadAvailableSubs = loadAvailableSubs;
-
-// Backward compatibility
-window.fixTeamOptions = fixTeamOptions;
-
-// Backward compatibility
-window.removeDataTablesArrows = removeDataTablesArrows;
+// No window exports needed - InitSystem handles initialization
+// All functions are used internally or via ES module exports

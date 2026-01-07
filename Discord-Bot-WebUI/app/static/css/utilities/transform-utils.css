@@ -22,16 +22,16 @@
    ============================================ */
 
 .transform-none {
-    transform: none !important;
+    transform: none;
 }
 
 .no-transform {
-    transform: none !important;
+    transform: none;
 }
 
 /* Hardware acceleration */
 .transform-gpu {
-    transform: translateZ(0) !important;
+    transform: translateZ(0);
     will-change: transform;
 }
 
@@ -41,89 +41,89 @@
 
 /* Translate X */
 .translate-x-0 {
-    transform: translateX(0) !important;
+    transform: translateX(0);
 }
 
 .translate-x-25 {
-    transform: translateX(25%) !important;
+    transform: translateX(25%);
 }
 
 .translate-x-50 {
-    transform: translateX(50%) !important;
+    transform: translateX(50%);
 }
 
 .translate-x-75 {
-    transform: translateX(75%) !important;
+    transform: translateX(75%);
 }
 
 .translate-x-100 {
-    transform: translateX(100%) !important;
+    transform: translateX(100%);
 }
 
 .translate-x-n25 {
-    transform: translateX(-25%) !important;
+    transform: translateX(-25%);
 }
 
 .translate-x-n50 {
-    transform: translateX(-50%) !important;
+    transform: translateX(-50%);
 }
 
 .translate-x-n75 {
-    transform: translateX(-75%) !important;
+    transform: translateX(-75%);
 }
 
 .translate-x-n100 {
-    transform: translateX(-100%) !important;
+    transform: translateX(-100%);
 }
 
 /* Translate Y */
 .translate-y-0 {
-    transform: translateY(0) !important;
+    transform: translateY(0);
 }
 
 .translate-y-25 {
-    transform: translateY(25%) !important;
+    transform: translateY(25%);
 }
 
 .translate-y-50 {
-    transform: translateY(50%) !important;
+    transform: translateY(50%);
 }
 
 .translate-y-75 {
-    transform: translateY(75%) !important;
+    transform: translateY(75%);
 }
 
 .translate-y-100 {
-    transform: translateY(100%) !important;
+    transform: translateY(100%);
 }
 
 .translate-y-n25 {
-    transform: translateY(-25%) !important;
+    transform: translateY(-25%);
 }
 
 .translate-y-n50 {
-    transform: translateY(-50%) !important;
+    transform: translateY(-50%);
 }
 
 .translate-y-n75 {
-    transform: translateY(-75%) !important;
+    transform: translateY(-75%);
 }
 
 .translate-y-n100 {
-    transform: translateY(-100%) !important;
+    transform: translateY(-100%);
 }
 
 /* Translate middle (common centering) */
 .translate-middle {
-    transform: translate(-50%, -50%) !important;
+    transform: translate(-50%, -50%);
 }
 
 .translate-middle-x {
-    transform: translateX(-50%) !important;
+    transform: translateX(-50%);
 }
 
 .translate-middle-y {
-    transform: translateY(-50%) !important;
+    transform: translateY(-50%);
 }
 
 /* ============================================
@@ -131,53 +131,53 @@
    ============================================ */
 
 .scale-0 {
-    transform: scale(0) !important;
+    transform: scale(0);
 }
 
 .scale-50 {
-    transform: scale(0.5) !important;
+    transform: scale(0.5);
 }
 
 .scale-75 {
-    transform: scale(0.75) !important;
+    transform: scale(0.75);
 }
 
 .scale-90 {
-    transform: scale(0.9) !important;
+    transform: scale(0.9);
 }
 
 .scale-95 {
-    transform: scale(0.95) !important;
+    transform: scale(0.95);
 }
 
 .scale-100,
 .scale-1 {
-    transform: scale(1) !important;
+    transform: scale(1);
 }
 
 .scale-105 {
-    transform: scale(1.05) !important;
+    transform: scale(1.05);
 }
 
 .scale-110 {
-    transform: scale(1.1) !important;
+    transform: scale(1.1);
 }
 
 .scale-125 {
-    transform: scale(1.25) !important;
+    transform: scale(1.25);
 }
 
 .scale-150 {
-    transform: scale(1.5) !important;
+    transform: scale(1.5);
 }
 
 /* Hover scale effects */
 .scale-hover-105:hover {
-    transform: scale(1.05) !important;
+    transform: scale(1.05);
 }
 
 .scale-hover-110:hover {
-    transform: scale(1.1) !important;
+    transform: scale(1.1);
 }
 
 /* ============================================
@@ -185,35 +185,35 @@
    ============================================ */
 
 .rotate-0 {
-    transform: rotate(0deg) !important;
+    transform: rotate(0deg);
 }
 
 .rotate-45 {
-    transform: rotate(45deg) !important;
+    transform: rotate(45deg);
 }
 
 .rotate-90 {
-    transform: rotate(90deg) !important;
+    transform: rotate(90deg);
 }
 
 .rotate-180 {
-    transform: rotate(180deg) !important;
+    transform: rotate(180deg);
 }
 
 .rotate-270 {
-    transform: rotate(270deg) !important;
+    transform: rotate(270deg);
 }
 
 .rotate-n45 {
-    transform: rotate(-45deg) !important;
+    transform: rotate(-45deg);
 }
 
 .rotate-n90 {
-    transform: rotate(-90deg) !important;
+    transform: rotate(-90deg);
 }
 
 .rotate-n180 {
-    transform: rotate(-180deg) !important;
+    transform: rotate(-180deg);
 }
 
 /* ============================================
@@ -221,37 +221,37 @@
    ============================================ */
 
 .transition-none {
-    transition: none !important;
+    transition: none;
 }
 
 .transition-all {
-    transition: all 0.3s ease-in-out !important;
+    transition: all 0.3s ease-in-out;
 }
 
 .transition-all-fast {
-    transition: all 0.15s ease-in-out !important;
+    transition: all 0.15s ease-in-out;
 }
 
 .transition-all-slow {
-    transition: all 0.5s ease-in-out !important;
+    transition: all 0.5s ease-in-out;
 }
 
 .transition-smooth {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .transition-colors {
     transition: color 0.15s ease-in-out,
                 background-color 0.15s ease-in-out,
-                border-color 0.15s ease-in-out !important;
+                border-color 0.15s ease-in-out;
 }
 
 .transition-opacity {
-    transition: opacity 0.3s ease-in-out !important;
+    transition: opacity 0.3s ease-in-out;
 }
 
 .transition-transform {
-    transition: transform 0.3s ease-in-out !important;
+    transition: transform 0.3s ease-in-out;
 }
 
 /* ============================================
@@ -260,11 +260,11 @@
 
 /* Fade animations */
 .fade-in {
-    animation: fadeIn 0.3s ease-in-out !important;
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 .fade-out {
-    animation: fadeOut 0.3s ease-in-out !important;
+    animation: fadeOut 0.3s ease-in-out;
 }
 
 @keyframes fadeIn {
@@ -287,19 +287,19 @@
 
 /* Slide animations */
 .slide-up {
-    animation: slideUp 0.3s ease-out !important;
+    animation: slideUp 0.3s ease-out;
 }
 
 .slide-down {
-    animation: slideDown 0.3s ease-out !important;
+    animation: slideDown 0.3s ease-out;
 }
 
 .slide-left {
-    animation: slideLeft 0.3s ease-out !important;
+    animation: slideLeft 0.3s ease-out;
 }
 
 .slide-right {
-    animation: slideRight 0.3s ease-out !important;
+    animation: slideRight 0.3s ease-out;
 }
 
 @keyframes slideUp {
@@ -348,11 +348,11 @@
 
 /* Zoom animations */
 .zoom-in {
-    animation: zoomIn 0.3s ease-out !important;
+    animation: zoomIn 0.3s ease-out;
 }
 
 .zoom-out {
-    animation: zoomOut 0.3s ease-out !important;
+    animation: zoomOut 0.3s ease-out;
 }
 
 @keyframes zoomIn {
@@ -379,7 +379,7 @@
 
 /* Spin animation */
 .spin {
-    animation: spin 1s linear infinite !important;
+    animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
@@ -393,7 +393,7 @@
 
 /* Pulse animation */
 .pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes pulse {
@@ -407,7 +407,7 @@
 
 /* Bounce animation */
 .bounce {
-    animation: bounce 1s infinite !important;
+    animation: bounce 1s infinite;
 }
 
 @keyframes bounce {
@@ -426,19 +426,19 @@
    ============================================ */
 
 .will-change-transform {
-    will-change: transform !important;
+    will-change: transform;
 }
 
 .will-change-opacity {
-    will-change: opacity !important;
+    will-change: opacity;
 }
 
 .will-change-contents {
-    will-change: contents !important;
+    will-change: contents;
 }
 
 .will-change-auto {
-    will-change: auto !important;
+    will-change: auto;
 }
 
 /* ============================================
@@ -453,7 +453,7 @@
     .transition-colors,
     .transition-opacity,
     .transition-transform {
-        transition-duration: 0.01ms !important;
+        transition-duration: 0.01ms;
     }
 
     .fade-in,
@@ -467,8 +467,8 @@
     .spin,
     .pulse,
     .bounce {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
+        animation-duration: 0.01ms;
+        animation-iteration-count: 1;
     }
 }
 
@@ -477,9 +477,9 @@
    ============================================ */
 
 .backface-visible {
-    backface-visibility: visible !important;
+    backface-visibility: visible;
 }
 
 .backface-hidden {
-    backface-visibility: hidden !important;
+    backface-visibility: hidden;
 }

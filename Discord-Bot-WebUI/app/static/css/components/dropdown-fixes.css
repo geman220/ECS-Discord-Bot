@@ -23,17 +23,17 @@
 .table-responsive:has(.dropdown.show),
 .c-table-wrapper:has(.dropdown-menu.show),
 .table-responsive:has(.dropdown-menu.show) {
-  overflow: visible !important;
-  overflow-x: visible !important;
-  overflow-y: visible !important;
+  overflow: visible ;
+  overflow-x: visible;
+  overflow-y: visible;
 }
 
 /* JavaScript fallback class for older browsers */
 .c-table-wrapper.dropdown-open,
 .table-responsive.dropdown-open {
-  overflow: visible !important;
-  overflow-x: visible !important;
-  overflow-y: visible !important;
+  overflow: visible ;
+  overflow-x: visible;
+  overflow-y: visible;
 }
 
 /* Card body containing table with open dropdown */
@@ -41,13 +41,13 @@
 .card-body:has(.dropdown.show),
 .c-card__body:has(.dropdown-menu.show),
 .card-body:has(.dropdown-menu.show) {
-  overflow: visible !important;
+  overflow: visible ;
 }
 
 /* JavaScript fallback class for card bodies */
 .c-card__body.dropdown-open,
 .card-body.dropdown-open {
-  overflow: visible !important;
+  overflow: visible ;
 }
 
 /* Allow dropdowns to escape table scroll containers */
@@ -60,7 +60,7 @@
 td .dropdown-menu.show,
 .c-table__cell .dropdown-menu.show,
 .user-actions-cell .dropdown-menu.show {
-  z-index: var(--z-modal-dropdown, 1055) !important;
+  z-index: var(--z-modal-dropdown, 1055) ;
 }
 
 /* Action dropdowns in table cells need higher z-index */
@@ -73,7 +73,7 @@ td .dropdown-menu,
 td:has(.dropdown),
 .c-table__cell:has(.dropdown),
 .user-actions-cell {
-  overflow: visible !important;
+  overflow: visible ;
   position: static;
 }
 

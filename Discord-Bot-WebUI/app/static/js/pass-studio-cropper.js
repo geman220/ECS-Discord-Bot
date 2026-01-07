@@ -7,7 +7,7 @@ import { ModalManager } from './modal-manager.js';
  * Crops images to exact dimensions required for Apple/Google Wallet passes.
  */
 
-export const AssetCropper = {
+const AssetCropper = {
     canvas: null,
     ctx: null,
     image: null,

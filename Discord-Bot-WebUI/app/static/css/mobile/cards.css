@@ -168,3 +168,68 @@
     padding: var(--mobile-space-lg);
   }
 }
+
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .card {
+  background: var(--color-bg-elevated, var(--color-secondary-900));
+  border-color: var(--color-border-primary, var(--color-secondary-700));
+  color: var(--color-text-primary, var(--color-secondary-50));
+}
+
+[data-style="dark"] .card-header {
+  background: var(--color-bg-tertiary, var(--color-secondary-800));
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700));
+  color: var(--color-text-primary, var(--color-secondary-50));
+}
+
+[data-style="dark"] .card-footer {
+  background: var(--color-bg-tertiary, var(--color-secondary-800));
+  border-top-color: var(--color-border-primary, var(--color-secondary-700));
+}
+
+[data-style="dark"] .card-title {
+  color: var(--color-text-primary, var(--color-secondary-50));
+}
+
+[data-style="dark"] .card-subtitle {
+  color: var(--color-text-secondary, var(--color-secondary-300));
+}
+
+[data-style="dark"] .card-text {
+  color: var(--color-text-primary, var(--color-secondary-100));
+}
+
+[data-style="dark"] .accordion-item {
+  background: var(--color-bg-elevated, var(--color-secondary-900));
+  border-color: var(--color-border-primary, var(--color-secondary-700));
+}
+
+[data-style="dark"] .accordion-button {
+  background: var(--color-bg-tertiary, var(--color-secondary-800));
+  color: var(--color-text-primary, var(--color-secondary-50));
+}
+
+[data-style="dark"] .accordion-button:not(.collapsed) {
+  background: var(--color-bg-elevated, var(--color-secondary-900));
+  color: var(--color-primary-400);
+}
+
+[data-style="dark"] .accordion-body {
+  background: var(--color-bg-elevated, var(--color-secondary-900));
+  color: var(--color-text-primary, var(--color-secondary-100));
+}
+
+[data-style="dark"] .stat-card,
+[data-style="dark"] .dashboard-card {
+  background: var(--color-bg-elevated, var(--color-secondary-900));
+  border-color: var(--color-border-primary, var(--color-secondary-700));
+}
+
+[data-style="dark"] .stat-card .stat-label,
+[data-style="dark"] .dashboard-card .stat-label {
+  color: var(--color-text-muted, var(--color-secondary-400));
+}

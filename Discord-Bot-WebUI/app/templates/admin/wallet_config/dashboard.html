@@ -3,75 +3,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-    /* Wallet Configuration Dashboard - Theme-aware styling */
-    .progress {
-        height: 10px;
-        margin-bottom: 10px;
-    }
-    .progress-bar {
-        transition: width 0.5s;
-    }
-    .status-card {
-        border-radius: 8px;
-        transition: all 0.2s;
-        height: 100%;
-    }
-    .status-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--bs-box-shadow);
-    }
-    .wizard-btn {
-        padding: 20px;
-        border-radius: 8px;
-        transition: all 0.2s;
-        height: 100%;
-        text-align: center;
-    }
-    .wizard-btn:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--bs-box-shadow);
-    }
-    .wizard-btn i {
-        font-size: 2rem;
-        margin-bottom: 15px;
-    }
-    .config-step {
-        position: relative;
-        padding: 12px 12px 12px 40px;
-        border-radius: 0.375rem;
-        margin-bottom: 15px;
-        background-color: var(--bs-tertiary-bg);
-    }
-    .config-step::before {
-        content: "";
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-    }
-    .config-step.completed::before {
-        background-color: var(--ecs-success, #28c76f);
-    }
-    .config-step.pending::before {
-        background-color: var(--ecs-warning, #ff9f43);
-    }
-    .config-step.error::before {
-        background-color: var(--ecs-danger, #ea5455);
-    }
-    .quick-action-card {
-        border-radius: 8px;
-        transition: all 0.2s;
-        height: 100%;
-    }
-    .quick-action-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--bs-box-shadow-sm);
-    }
-</style>
+{# Styles moved to external CSS #}
 {% endblock custom_css %}
 
 {% block content %}
@@ -354,7 +286,7 @@
             
             <div class="row">
                 <div class="col-sm-6 col-lg-4 mb-3">
-                    <div class="c-card quick-action-card h-100">
+                    <div class="c-card quick-action-c-card h-100">
                         <div class="c-card__body d-flex flex-column">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="badge bg-primary bg-opacity-10 p-2 rounded me-3">
@@ -374,7 +306,7 @@
                 </div>
                 
                 <div class="col-sm-6 col-lg-4 mb-3">
-                    <div class="c-card quick-action-card h-100">
+                    <div class="c-card quick-action-c-card h-100">
                         <div class="c-card__body d-flex flex-column">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="badge bg-success bg-opacity-10 p-2 rounded me-3">
@@ -394,7 +326,7 @@
                 </div>
                 
                 <div class="col-sm-6 col-lg-4 mb-3">
-                    <div class="c-card quick-action-card h-100">
+                    <div class="c-card quick-action-c-card h-100">
                         <div class="c-card__body d-flex flex-column">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="badge bg-info bg-opacity-10 p-2 rounded me-3">
@@ -414,7 +346,7 @@
                 </div>
                 
                 <div class="col-sm-6 col-lg-4 mb-3">
-                    <div class="c-card quick-action-card h-100">
+                    <div class="c-card quick-action-c-card h-100">
                         <div class="c-card__body d-flex flex-column">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="badge bg-warning bg-opacity-10 p-2 rounded me-3">
@@ -431,7 +363,7 @@
                 </div>
                 
                 <div class="col-sm-6 col-lg-4 mb-3">
-                    <div class="c-card quick-action-card h-100">
+                    <div class="c-card quick-action-c-card h-100">
                         <div class="c-card__body d-flex flex-column">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="badge bg-danger bg-opacity-10 p-2 rounded me-3">
@@ -448,7 +380,7 @@
                 </div>
                 
                 <div class="col-sm-6 col-lg-4 mb-3">
-                    <div class="c-card quick-action-card h-100">
+                    <div class="c-card quick-action-c-card h-100">
                         <div class="c-card__body d-flex flex-column">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="badge bg-secondary bg-opacity-10 p-2 rounded me-3">

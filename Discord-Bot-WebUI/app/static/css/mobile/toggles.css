@@ -171,23 +171,23 @@
    ============================================================================ */
 
 [data-style="dark"] .form-check-input {
-  background-color: var(--color-bg-elevated, #334155);
-  border-color: var(--color-border-primary, #475569);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800));
+  border-color: var(--color-border-primary, var(--color-secondary-700));
 }
 
 [data-style="dark"] .form-check-input:checked {
-  background-color: var(--color-primary-500, #8b5cf6);
-  border-color: var(--color-primary-500, #8b5cf6);
+  background-color: var(--color-primary-500, var(--color-primary-500));
+  border-color: var(--color-primary-500, var(--color-primary-500));
 }
 
 [data-style="dark"] .form-switch .form-check-input {
-  background-color: var(--color-bg-elevated, #334155);
+  background-color: var(--color-bg-elevated, var(--color-secondary-800));
 }
 
 [data-style="dark"] .form-switch .form-check-input:checked {
-  background-color: var(--color-primary-500, #8b5cf6);
+  background-color: var(--color-primary-500, var(--color-primary-500));
 }
 
 [data-style="dark"] .form-check-label {
-  color: var(--color-text-primary, #F8FAFC);
+  color: var(--color-text-primary, var(--color-secondary-50));
 }

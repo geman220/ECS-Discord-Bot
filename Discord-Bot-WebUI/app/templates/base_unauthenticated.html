@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="light-style c-auth-layout" dir="ltr" data-theme="theme-default" data-assets-path="{{ url_for('static', filename='assets/') }}" data-component="auth-layout">
+<html lang="en" class="dark-style c-auth-layout" dir="ltr" data-theme="theme-default" data-style="dark" data-assets-path="{{ url_for('static', filename='assets/') }}" data-component="auth-layout">
 <head>
     <!-- Meta Tags -->
     <meta charset="utf-8" />
@@ -21,6 +21,17 @@
          5. Components bundle (forms, buttons, cards)
          ============================================ -->
 
+    {% if vite_production_mode is defined and vite_production_mode() %}
+    <!-- VITE PRODUCTION MODE: Bundled assets include all core tokens/variables -->
+    {{ vite_asset('css/main-entry.css') }}
+
+    {% elif vite_dev_mode is defined and vite_dev_mode() %}
+    <!-- VITE DEV MODE: CSS served by Vite dev server -->
+    {{ vite_asset('css/main-entry.css') }}
+
+    {% else %}
+    <!-- FLASK-ASSETS DEVELOPMENT MODE: Modular Bundles (legacy fallback) -->
+
     <!-- 1. Core Tokens -->
     {% assets "core_tokens" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
@@ -34,10 +45,6 @@
     <!-- 3. Template Styles (legacy support) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/template-styles.css') }}" />
 
-    <!-- 4. Auth Layout CSS (BEM) -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/auth-layout.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/authentication.css') }}" />
-
     <!-- 5. Components CSS Bundle (forms, buttons, cards for login/register) -->
     {% assets "components_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
@@ -47,6 +54,11 @@
     {% assets "mobile_css" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
+    {% endif %}
+
+    <!-- 4. Auth Layout CSS (BEM) - Always load separately for auth pages -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/auth-layout.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/authentication.css') }}" />
 
     <!-- Icons (deferred to not block render) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" />

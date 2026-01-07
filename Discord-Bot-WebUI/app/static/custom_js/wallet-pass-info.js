@@ -15,7 +15,7 @@ import { InitSystem } from '../js/init-system.js';
 /**
  * Initialize the wallet pass info module
  */
-function init() {
+function initWalletPassInfo() {
     // Only run on pass info pages
     const safariWarning = document.getElementById('safari-warning');
     if (!safariWarning) return;
@@ -86,17 +86,17 @@ function showCopyFeedback(feedbackEl) {
 // This file exposes copyPageLink globally for that handler to use
 
 // Register with window.InitSystem
-window.InitSystem.register('wallet-pass-info', init, {
+window.InitSystem.register('wallet-pass-info', initWalletPassInfo, {
     priority: 30,
     description: 'Wallet pass info module'
 });
 
 // Fallback for non-module usage
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', initWalletPassInfo);
 
 // Export for use in templates
 window.WalletPassInfo = {
-    init,
+    init: initWalletPassInfo,
     copyPageLink,
     detectIOSNonSafari
 };

@@ -17,7 +17,7 @@
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="c-card pitch-header-card">
+            <div class="c-card pitch-header-c-card">
                 <div class="c-card__body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -114,7 +114,7 @@
                     <!-- Players List -->
                     <div id="availablePlayersList" class="pitch-players-list">
                         {% for player in available_players %}
-                        <div class="pitch-player-card js-draggable-player"
+                        <div class="pitch-player-c-card js-draggable-player"
                              data-player-id="{{ player.id }}"
                              data-player-name="{{ player.name|lower }}"
                              data-position="{{ (player.favorite_position or '')|lower }}"
@@ -354,26 +354,7 @@
 <!-- Mobile Draft Enhancements -->
 <script src="{{ url_for('static', filename='js/mobile-draft.js') }}"></script>
 
-<!--
 {% endif %}
-MIGRATION NOTE: Inline JavaScript has been extracted to /app/static/js/pitch-view.js
-All event handlers now use data-* attributes and .js-* classes for binding
-Functions migrated:
-- initializePitchView()
-- handlePlayerDragStart()
-- handlePlayerDragEnd()
-- handlePositionDrop()
-- handlePositionDragOver()
-- handlePositionDragLeave()
-- switchTeamView()
-- updateFormationStats()
-
-Event delegation replaces inline handlers:
-- → .js-switch-team-view with data-team-id
-- ondragstart/ondragend → .js-draggable-player event listeners
-- ondrop/ondragover/ondragleave → .js-position-drop-zone event listeners
-- onerror on images → .js-player-image error event listeners
--->
 
 <script data-league-name="{{ league_name }}"
         data-teams='{{ teams_json|tojson }}'

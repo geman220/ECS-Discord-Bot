@@ -21,7 +21,7 @@ let _initialized = false;
   /**
    * Initialize on DOM ready
    */
-  function init() {
+  function initPlayersList() {
     if (_initialized) return;
     _initialized = true;
 
@@ -93,30 +93,24 @@ let _initialized = false;
     }
 
     // Check if SweetAlert is available
-    if (typeof window.Swal === 'undefined') {
-      // Fallback to native confirm
-      if (confirm(`Are you sure you want to delete ${playerName}? This will delete the player and associated user account.`)) {
-        submitDeleteForm(playerId);
-      }
-      return;
+    if (typeof window.Swal !== 'undefined') {
+      // Show SweetAlert confirmation
+      window.Swal.fire({
+        title: 'Are you sure?',
+        html: `This will delete <strong>${playerName}</strong> and their associated user account.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: getThemeColor('danger', '#dc3545'),
+        cancelButtonColor: getThemeColor('secondary', '#6c757d'),
+        confirmButtonText: 'Yes, delete them!',
+        cancelButtonText: 'Cancel',
+        focusCancel: true
+      }).then((result) => {
+        if (result.isConfirmed) {
+          submitDeleteForm(playerId);
+        }
+      });
     }
-
-    // Show SweetAlert confirmation
-    window.Swal.fire({
-      title: 'Are you sure?',
-      html: `This will delete <strong>${playerName}</strong> and their associated user account.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: getThemeColor('danger', '#dc3545'),
-      cancelButtonColor: getThemeColor('secondary', '#6c757d'),
-      confirmButtonText: 'Yes, delete them!',
-      cancelButtonText: 'Cancel',
-      focusCancel: true
-    }).then((result) => {
-      if (result.isConfirmed) {
-        submitDeleteForm(playerId);
-      }
-    });
   }
 
   /**
@@ -389,30 +383,9 @@ let _initialized = false;
     };
   }
 
-  /**
-   * Add live search functionality (optional enhancement)
-   */
-  function initializeLiveSearch() {
-    const searchInput = document.querySelector('[data-input="search"]');
-    if (!searchInput) return;
-
-    const debouncedSearch = debounce(function() {
-      const form = searchInput.closest('form');
-      if (form && searchInput.value.length >= 3) {
-        // Auto-submit after 3 characters
-        form.submit();
-      }
-    }, 500);
-
-    searchInput.addEventListener('input', debouncedSearch);
-  }
-
-  // Uncomment to enable live search
-  // initializeLiveSearch();
-
   // Register with window.InitSystem (primary)
   if (true && window.InitSystem.register) {
-    window.InitSystem.register('players-list', init, {
+    window.InitSystem.register('players-list', initPlayersList, {
       priority: 35,
       reinitializable: true,
       description: 'Players list page functionality'
@@ -422,41 +395,5 @@ let _initialized = false;
   // Fallback
   // window.InitSystem handles initialization
 
-// Backward compatibility
-window.init = init;
-
-// Backward compatibility
-window.initializeEventDelegation = initializeEventDelegation;
-
-// Backward compatibility
-window.handleClearSearch = handleClearSearch;
-
-// Backward compatibility
-window.handleDeletePlayer = handleDeletePlayer;
-
-// Backward compatibility
-window.submitDeleteForm = submitDeleteForm;
-
-// Backward compatibility
-window.initializeSyncHandler = initializeSyncHandler;
-
-// Backward compatibility
-window.startSyncProcess = startSyncProcess;
-
-// Backward compatibility
-window.showSyncResults = showSyncResults;
-
-// Backward compatibility
-window.confirmSync = confirmSync;
-
-// Backward compatibility
-window.getThemeColor = getThemeColor;
-
-// Backward compatibility
-window.initializeFeatherIcons = initializeFeatherIcons;
-
-// Backward compatibility
-window.debounce = debounce;
-
-// Backward compatibility
-window.initializeLiveSearch = initializeLiveSearch;
+// No window exports needed - InitSystem handles initialization
+// All functions use event delegation internally

@@ -15,7 +15,7 @@
  * - Design tokens only
  * - State classes: is-visible, is-dismissing
  * - Event delegation: data-action="dismiss-toast", data-toast-id="..."
- * - Zero !important
+ * - Zero
  *
  * Features:
  * - Slide-in from top-right (desktop)
@@ -46,7 +46,7 @@
   pointer-events: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-toast-modern__container {
     top: auto;
     bottom: var(--space-4);
@@ -115,7 +115,7 @@
     0 10px 15px rgba(0, 0, 0, 0.25);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .c-toast-modern {
     transform: translateY(calc(100% + var(--space-4)));
   }

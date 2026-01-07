@@ -132,7 +132,7 @@ function handleDeleteCategory(e) {
 /**
  * Initialize all message category functionality
  */
-function init() {
+function initMessageCategories() {
     // Page guard: only run on message categories page
     if (!document.getElementById('editCategoryModal')) {
         return;
@@ -161,7 +161,7 @@ let _initialized = false;
 function initWithGuard() {
     if (_initialized) return;
     _initialized = true;
-    init();
+    initMessageCategories();
 }
 
 window.InitSystem.register('message-categories', initWithGuard, {
@@ -181,7 +181,7 @@ const MessageCategories = {
     version: '1.0.0',
     editCategory,
     deleteCategory,
-    init
+    init: initMessageCategories
 };
 
 // Expose public API
@@ -193,4 +193,4 @@ window.deleteCategory = deleteCategory;
 window.handleEditCategory = handleEditCategory;
 window.handleDeleteCategory = handleDeleteCategory;
 
-export { MessageCategories, editCategory, deleteCategory, handleEditCategory, handleDeleteCategory, init };
+export { MessageCategories, editCategory, deleteCategory, handleEditCategory, handleDeleteCategory, initMessageCategories };

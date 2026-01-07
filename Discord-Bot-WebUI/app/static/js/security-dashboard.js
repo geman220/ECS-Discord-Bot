@@ -11,7 +11,7 @@
  * @date 2025-12-16
  */
 
-export class SecurityDashboard {
+class SecurityDashboard {
     constructor() {
         this.refreshInterval = null;
         this.countdownInterval = null;
@@ -393,8 +393,19 @@ export class SecurityDashboard {
     }
 
     async clearAllBans() {
-        if (!confirm('Are you sure you want to clear ALL IP bans? This action cannot be undone.')) {
-            return;
+        if (typeof window.Swal !== 'undefined') {
+            const result = await window.Swal.fire({
+                title: 'Clear All Bans',
+                text: 'Are you sure you want to clear ALL IP bans? This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, clear all!'
+            });
+            if (!result.isConfirmed) {
+                return;
+            }
         }
 
         const clearAllBansBtn = document.getElementById('clearAllBansBtn');
@@ -498,8 +509,19 @@ export class SecurityDashboard {
     }
 
     async clearAllRateLimits() {
-        if (!confirm('Are you sure you want to clear ALL rate limits? This will reset request counters for all IPs.')) {
-            return;
+        if (typeof window.Swal !== 'undefined') {
+            const result = await window.Swal.fire({
+                title: 'Clear All Rate Limits',
+                text: 'Are you sure you want to clear ALL rate limits? This will reset request counters for all IPs.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, clear all!'
+            });
+            if (!result.isConfirmed) {
+                return;
+            }
         }
 
         const clearAllRateLimitsBtn = document.getElementById('clearAllRateLimitsBtn');
@@ -654,8 +676,18 @@ export class SecurityDashboard {
         if (!ip) return;
 
         // Show confirmation dialog
-        const confirmed = confirm(`Ban IP address ${ip}?\nReason: ${reason}`);
-        if (!confirmed) return;
+        if (typeof window.Swal !== 'undefined') {
+            const result = await window.Swal.fire({
+                title: 'Ban IP Address',
+                text: `Ban IP address ${ip}?\nReason: ${reason}`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, ban it!'
+            });
+            if (!result.isConfirmed) return;
+        }
 
         try {
             const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
@@ -701,7 +733,7 @@ export class SecurityDashboard {
     }
 
     showAlert(message, type = 'info') {
-        // Use SweetAlert2 if available, otherwise fallback to browser alert
+        // Use SweetAlert2 if available
         if (typeof window.Swal !== 'undefined') {
             window.Swal.fire({
                 title: type === 'error' ? 'Error' : 'Success',
@@ -709,8 +741,6 @@ export class SecurityDashboard {
                 icon: type === 'error' ? 'error' : 'success',
                 confirmButtonText: 'OK'
             });
-        } else {
-            alert(message);
         }
     }
 

@@ -56,7 +56,7 @@
                 <div class="c-card__body">
                     {% if player_data %}
                         <div class="c-table-wrapper" data-table-responsive>
-                            <table class="c-table c-table--hoverable" id="predictionsTable" data-table data-mobile-table data-table-type="predictions">
+                            <table class="c-c-table c-table--hoverable" id="predictionsTable" data-table data-mobile-table data-table-type="predictions">
                                 <thead>
                                     <tr>
                                         <th class="dp-col-rank-lg">Rank</th>
@@ -71,7 +71,7 @@
                                 <tbody>
                                     {% for item in player_data %}
                                     <tr data-player-name="{{ item.player.name|lower }}">
-                                        <td>
+                                        <td data-label="Rank">
                                             {% if item.avg_round %}
                                                 <span class="badge bg-{{ 'success' if loop.index <= 3 else 'secondary' }}" data-badge>
                                                     {{ loop.index }}
@@ -80,7 +80,7 @@
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td data-label="Player">
                                             <div class="d-flex align-items-center">
                                                 <div class="avatar avatar-xs me-2">
                                                     {% if item.player.profile_picture_url or (item.player.image_cache and item.player.image_cache.thumbnail_url) %}
@@ -100,14 +100,14 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td>
+                                        <td data-label="Position">
                                             {% if item.player.favorite_position %}
                                                 <span class="badge bg-label-secondary" data-badge>{{ item.player.favorite_position }}</span>
                                             {% else %}
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td data-label="Avg Round">
                                             {% if item.avg_round %}
                                                 <strong class="text-{{ 'success' if item.avg_round <= 5 else 'primary' if item.avg_round <= 10 else 'warning' }}">
                                                     {{ "%.1f"|format(item.avg_round) }}
@@ -116,7 +116,7 @@
                                                 <span class="text-muted">No predictions</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td data-label="Range">
                                             {% if item.min_round and item.max_round %}
                                                 <span class="text-muted">
                                                     {{ item.min_round }} - {{ item.max_round }}
@@ -125,14 +125,14 @@
                                                 <span class="text-muted">-</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td data-label="Votes">
                                             {% if item.prediction_count > 0 %}
                                                 <span class="badge bg-label-info" data-badge>{{ item.prediction_count }}</span>
                                             {% else %}
                                                 <span class="text-muted">0</span>
                                             {% endif %}
                                         </td>
-                                        <td>
+                                        <td data-label="Actions">
                                             {% if item.prediction_count > 0 %}
                                                 <a href="{{ url_for('draft_predictions.admin_player_detail', player_id=item.player.id, season_id=season.id, league_type=league_type) }}"
                                                    class="c-btn c-btn--sm c-btn--outline-primary" aria-label="View"><i class="ti ti-eye"></i></a>

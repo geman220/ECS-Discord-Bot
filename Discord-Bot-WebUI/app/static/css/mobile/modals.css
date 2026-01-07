@@ -325,3 +325,50 @@
     transition: none;
   }
 }
+
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .modal-content {
+  background: var(--color-bg-elevated, var(--color-secondary-900));
+  border-color: var(--color-border-primary, var(--color-secondary-700));
+  color: var(--color-text-primary, var(--color-secondary-50));
+}
+
+[data-style="dark"] .modal-header {
+  background: var(--color-bg-tertiary, var(--color-secondary-800));
+  border-bottom-color: var(--color-border-primary, var(--color-secondary-700));
+  color: var(--color-text-primary, var(--color-secondary-50));
+}
+
+[data-style="dark"] .modal-footer {
+  background: var(--color-bg-tertiary, var(--color-secondary-800));
+  border-top-color: var(--color-border-primary, var(--color-secondary-700));
+}
+
+[data-style="dark"] .modal-body {
+  background: var(--color-bg-elevated, var(--color-secondary-900));
+  color: var(--color-text-primary, var(--color-secondary-100));
+}
+
+[data-style="dark"] .modal-title {
+  color: var(--color-text-primary, var(--color-secondary-50));
+}
+
+[data-style="dark"] .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Dark mode drag handle */
+@media (max-width: 767.98px) {
+  [data-style="dark"] .modal-dialog:not(.modal-keep-centered) .modal-header::before {
+    background: var(--color-border-secondary, var(--color-secondary-600));
+  }
+}
+
+/* Dark mode backdrop */
+[data-style="dark"] .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.75);
+}

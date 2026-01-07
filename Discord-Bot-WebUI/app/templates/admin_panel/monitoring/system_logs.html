@@ -119,7 +119,7 @@
                         <input type="datetime-local" name="date_to" class="form-control" value="{{ request.args.get('date_to', '') }}" data-form-control>
                     </div>
                     <div class="col-md-1">
-                        <label class="form-label">&nbsp;</label>
+                        <span class="u-form-label-spacer" aria-hidden="true"></span>
                         <div class="d-grid">
                             <button type="submit" class="c-btn c-btn--primary" aria-label="Search"><i class="ti ti-search"></i></button>
                         </div>
@@ -172,7 +172,7 @@
             <div class="c-card__body p-0">
                 {% if logs %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="logs">
+                    <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="logs">
                         <thead class="c-table--light" scope="col">
                             <tr>
                                 <th width="140" scope="col">Timestamp</th>
@@ -185,10 +185,10 @@
                         <tbody>
                             {% for log in logs %}
                             <tr class="log-entry-{{ log.level.lower() }}">
-                                <td>
+                                <td data-label="Timestamp">
                                     <small class="font-monospace">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Level">
                                     {% if log.level == 'ERROR' %}
                                         <span class="badge bg-danger" data-badge>ERROR</span>
                                     {% elif log.level == 'WARNING' %}
@@ -201,10 +201,10 @@
                                         <span class="badge bg-light text-dark" data-badge>{{ log.level }}</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Component">
                                     <small class="text-muted">{{ log.component or 'app' }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Message">
                                     <div class="log-message">
                                         {{ log.message[:100] }}{% if log.message|length > 100 %}...{% endif %}
                                         {% if log.stack_trace %}
@@ -212,7 +212,7 @@
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <button class="c-btn c-btn--sm c-btn--outline-info" data-action="view-log-details" data-log-id="{{ log.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                 </td>
                             </tr>
@@ -249,31 +249,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-.log-entry-error {
-    background-color: rgba(220, 53, 69, 0.05);
-}
-.log-entry-warning {
-    background-color: rgba(255, 193, 7, 0.05);
-}
-.log-entry-info {
-    background-color: rgba(13, 202, 240, 0.05);
-}
-.log-entry-debug {
-    background-color: rgba(108, 117, 125, 0.05);
-}
-
-.log-message {
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 0.875rem;
-    line-height: 1.4;
-}
-
-#liveTailContent {
-    white-space: pre-wrap;
-    word-break: break-all;
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

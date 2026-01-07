@@ -15,7 +15,7 @@
 
 .c-league-hero {
   position: relative;
-  background: linear-gradient(135deg, var(--color-primary, var(--color-primary-600, #2563eb)) 0%, var(--color-primary-600, #1d4ed8) 100%);
+  background: linear-gradient(135deg, var(--color-primary, var(--color-primary-600, var(--color-primary-600))) 0%, var(--color-primary-600, var(--color-primary-700)) 100%);
   border-radius: var(--radius-lg, 12px);
   overflow: hidden;
 }
@@ -35,7 +35,7 @@
 }
 
 .c-league-hero__title {
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
   font-size: var(--text-xl, 1.25rem);
   font-weight: 600;
   margin: 0 0 var(--space-2, 8px);
@@ -56,8 +56,8 @@
   align-items: center;
   gap: var(--space-2, 8px);
   padding: var(--space-2, 8px) var(--space-4, 16px);
-  background: var(--color-white, #fff);
-  color: var(--color-primary, var(--color-primary-600, #2563eb));
+  background: var(--color-white, var(--color-white));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   border: none;
   border-radius: var(--radius-md, 8px);
   font-weight: 600;
@@ -86,13 +86,13 @@
   gap: var(--space-3, 12px);
 }
 
-@media (max-width: 991px) {
+@media (max-width: 991.98px) {
   .c-quick-actions {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 575px) {
+@media (max-width: 575.98px) {
   .c-quick-actions {
     grid-template-columns: 1fr;
   }
@@ -106,8 +106,8 @@
   justify-content: center;
   gap: var(--space-2, 8px);
   padding: var(--space-4, 16px) var(--space-3, 12px);
-  background: var(--color-primary, var(--color-primary-600, #2563eb));
-  color: var(--color-white, #fff);
+  background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
+  color: var(--color-white, var(--color-white));
   border: none;
   border-radius: var(--radius-md, 8px);
   font-weight: 600;
@@ -119,21 +119,21 @@
 }
 
 .c-quick-action:hover {
-  background: var(--color-primary-hover, #1d4ed8);
+  background: var(--color-primary-hover, var(--color-primary-700));
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
 }
 
 .c-quick-action--outline {
   background: transparent;
-  color: var(--color-primary, var(--color-primary-600, #2563eb));
-  border: 1px solid var(--color-primary, var(--color-primary-600, #2563eb));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
+  border: 1px solid var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 .c-quick-action--outline:hover {
-  background: var(--color-primary, var(--color-primary-600, #2563eb));
-  color: var(--color-white, #fff);
+  background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
+  color: var(--color-white, var(--color-white));
 }
 
 .c-quick-action__icon {
@@ -143,12 +143,12 @@
 
 /* Dark mode quick actions */
 [data-style="dark"] .c-quick-action--outline {
-  color: var(--color-primary-light, #60a5fa);
-  border-color: var(--color-primary, var(--color-primary-600, #2563eb));
+  color: var(--color-primary-light, var(--color-primary-400));
+  border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 [data-style="dark"] .c-quick-action--outline:hover {
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
 }
 
 /* ============================================================================
@@ -176,32 +176,32 @@
 
 /* Division stats boxes */
 .c-division-stat {
-  background: var(--color-bg-secondary, var(--color-secondary-50, #f8fafc));
-  border: 1px solid var(--color-border-light, var(--color-secondary-200, #e2e8f0));
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50)));
+  border: 1px solid var(--color-border-light, var(--color-secondary-200, var(--color-secondary-200)));
   border-radius: var(--radius-md, 8px);
   padding: var(--space-2, 8px);
   text-align: center;
 }
 
 [data-style="dark"] .c-division-stat {
-  background: var(--color-bg-elevated, var(--color-secondary-700, #334155));
-  border-color: var(--color-border-primary, var(--color-secondary-600, #475569));
+  background: var(--color-bg-elevated, var(--color-secondary-700, var(--color-secondary-800)));
+  border-color: var(--color-border-primary, var(--color-secondary-600, var(--color-secondary-700)));
 }
 
 .c-division-stat__label {
   display: block;
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, var(--color-secondary-500, #64748b));
+  color: var(--color-text-muted, var(--color-secondary-500, var(--color-secondary-600)));
   margin-bottom: var(--space-1, 4px);
 }
 
 .c-division-stat__value {
   font-weight: 600;
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
 }
 
 [data-style="dark"] .c-division-stat__value {
-  color: var(--color-text-primary, var(--color-secondary-50, #f8fafc));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50)));
 }
 
 /* ============================================================================
@@ -215,7 +215,7 @@
   gap: var(--space-4, 16px);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .c-league-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -238,20 +238,20 @@
    ============================================================================ */
 
 .c-legacy-card {
-  background: var(--color-bg-secondary, var(--color-secondary-50, #f8fafc));
-  border: 1px solid var(--color-border-light, var(--color-secondary-200, #e2e8f0));
+  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50)));
+  border: 1px solid var(--color-border-light, var(--color-secondary-200, var(--color-secondary-200)));
 }
 
 [data-style="dark"] .c-legacy-card {
-  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
-  border-color: var(--color-border-primary, var(--color-secondary-700, #334155));
+  background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
+  border-color: var(--color-border-primary, var(--color-secondary-700, var(--color-secondary-800)));
 }
 
 .c-legacy-card__title {
   display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
-  color: var(--color-text-muted, var(--color-secondary-500, #64748b));
+  color: var(--color-text-muted, var(--color-secondary-500, var(--color-secondary-600)));
   font-size: var(--text-sm, 0.875rem);
   font-weight: 600;
   margin-bottom: var(--space-3, 12px);
@@ -265,7 +265,7 @@
 
 .c-legacy-card__help {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, var(--color-secondary-500, #64748b));
+  color: var(--color-text-muted, var(--color-secondary-500, var(--color-secondary-600)));
   margin-top: var(--space-2, 8px);
   margin-bottom: 0;
 }
@@ -276,31 +276,31 @@
 
 /* Override Bootstrap gradient classes to work in dark mode */
 .bg-gradient-primary {
-  background: linear-gradient(135deg, var(--color-primary, var(--color-primary-600, #2563eb)) 0%, var(--color-primary-600, #1d4ed8) 100%);
+  background: linear-gradient(135deg, var(--color-primary, var(--color-primary-600, var(--color-primary-600))) 0%, var(--color-primary-600, var(--color-primary-700)) 100%);
 }
 
 /* Ensure text is white on gradient backgrounds */
 .bg-gradient-primary,
 .bg-gradient-primary .c-card__body {
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
 }
 
 .bg-gradient-primary .text-white {
-  color: var(--color-white, #fff);
+  color: var(--color-white, var(--color-white));
 }
 
 /* Fix c-btn--light visibility on gradient backgrounds */
 .bg-gradient-primary .c-btn--light,
 [data-style="dark"] .bg-gradient-primary .c-btn--light {
-  background: var(--color-white, #fff);
-  color: var(--color-primary, var(--color-primary-600, #2563eb));
-  border-color: var(--color-white, #fff);
+  background: var(--color-white, var(--color-white));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
+  border-color: var(--color-white, var(--color-white));
 }
 
 .bg-gradient-primary .c-btn--light:hover,
 [data-style="dark"] .bg-gradient-primary .c-btn--light:hover {
   background: rgba(255, 255, 255, 0.9);
-  color: var(--color-primary, var(--color-primary-600, #2563eb));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* ============================================================================
@@ -309,20 +309,20 @@
 
 /* Force primary button colors to ensure visibility */
 .c-card .c-btn--primary {
-  background: var(--color-primary, var(--color-primary-600, #2563eb));
-  color: var(--color-white, #fff);
-  border-color: var(--color-primary, var(--color-primary-600, #2563eb));
+  background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
+  color: var(--color-white, var(--color-white));
+  border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 [data-style="dark"] .c-card .c-btn--primary {
-  background: var(--color-primary, var(--color-primary-600, #2563eb));
-  color: var(--color-white, #fff);
-  border-color: var(--color-primary, var(--color-primary-600, #2563eb));
+  background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
+  color: var(--color-white, var(--color-white));
+  border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 .c-card .c-btn--primary:hover {
-  background: var(--color-primary-hover, #1d4ed8);
-  border-color: var(--color-primary-hover, #1d4ed8);
+  background: var(--color-primary-hover, var(--color-primary-700));
+  border-color: var(--color-primary-hover, var(--color-primary-700));
 }
 
 /* ============================================================================
@@ -330,7 +330,7 @@
    ============================================================================ */
 
 [data-style="dark"] .bg-body-tertiary {
-  background-color: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
+  background-color: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
 }
 
 /* ============================================================================
@@ -348,12 +348,12 @@
 
 .c-league-empty__icon {
   font-size: 3rem;
-  color: var(--color-text-muted, var(--color-secondary-500, #64748b));
+  color: var(--color-text-muted, var(--color-secondary-500, var(--color-secondary-600)));
   margin-bottom: var(--space-2, 8px);
 }
 
 .c-league-empty__text {
-  color: var(--color-text-muted, var(--color-secondary-500, #64748b));
+  color: var(--color-text-muted, var(--color-secondary-500, var(--color-secondary-600)));
   margin: 0;
 }
 
@@ -377,31 +377,31 @@
   display: block;
   font-size: var(--text-2xl, 1.5rem);
   font-weight: 700;
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, #1e293b)));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
 }
 
 [data-style="dark"] .c-match-stat__value {
-  color: var(--color-text-primary, var(--color-secondary-50, #f8fafc));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50)));
 }
 
 .c-league-mgmt-page .c-match-stat__value--success {
-  color: var(--color-success, var(--color-success-500, #10b981));
+  color: var(--color-success, var(--color-success-500, var(--color-success-500)));
 }
 
 .c-league-mgmt-page .c-match-stat__value--primary {
-  color: var(--color-primary, var(--color-primary-600, #2563eb));
+  color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 .c-league-mgmt-page .c-match-stat__label {
   font-size: var(--text-xs, 0.75rem);
-  color: var(--color-text-muted, var(--color-secondary-500, #64748b));
+  color: var(--color-text-muted, var(--color-secondary-500, var(--color-secondary-600)));
 }
 
 /* ============================================================================
    RESPONSIVE ADJUSTMENTS
    ============================================================================ */
 
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .c-league-hero__content {
     flex-direction: column;
     text-align: center;
@@ -419,17 +419,17 @@
    ============================================================================ */
 
 [data-style="dark"] .form-check-label {
-  color: var(--color-text-primary, var(--color-secondary-50, #f8fafc));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50)));
 }
 
 [data-style="dark"] .form-switch .form-check-input {
-  background-color: var(--color-neutral-600, var(--color-secondary-600, #475569));
-  border-color: var(--color-neutral-500, var(--color-secondary-500, #64748b));
+  background-color: var(--color-neutral-600, var(--color-secondary-600, var(--color-secondary-700)));
+  border-color: var(--color-neutral-500, var(--color-secondary-500, var(--color-secondary-600)));
 }
 
 [data-style="dark"] .form-switch .form-check-input:checked {
-  background-color: var(--color-primary, var(--color-primary-600, #2563eb));
-  border-color: var(--color-primary, var(--color-primary-600, #2563eb));
+  background-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
+  border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* ============================================================================
@@ -438,43 +438,43 @@
    ============================================================================ */
 
 .c-card.border-primary {
-  border-color: var(--color-primary, var(--color-primary-600, #2563eb)) !important;
+  border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   border-width: 2px;
 }
 
 [data-style="dark"] .c-card.border-primary {
-  border-color: var(--color-primary-400, #60a5fa) !important;
+  border-color: var(--color-primary-400, var(--color-primary-400));
 }
 
 /* Season card footer buttons */
 .c-card__footer .c-btn--outline-success {
-  color: var(--color-success, var(--color-success-500, #10b981));
-  border-color: var(--color-success, var(--color-success-500, #10b981));
+  color: var(--color-success, var(--color-success-500, var(--color-success-500)));
+  border-color: var(--color-success, var(--color-success-500, var(--color-success-500)));
 }
 
 .c-card__footer .c-btn--outline-success:hover {
-  background-color: var(--color-success, var(--color-success-500, #10b981));
+  background-color: var(--color-success, var(--color-success-500, var(--color-success-500)));
   color: white;
 }
 
 .c-card__footer .c-btn--outline-danger {
-  color: var(--color-danger, var(--color-danger-500, #ef4444));
-  border-color: var(--color-danger, var(--color-danger-500, #ef4444));
+  color: var(--color-danger, var(--color-danger-500, var(--color-danger-600)));
+  border-color: var(--color-danger, var(--color-danger-500, var(--color-danger-600)));
 }
 
 .c-card__footer .c-btn--outline-danger:hover {
-  background-color: var(--color-danger, var(--color-danger-500, #ef4444));
+  background-color: var(--color-danger, var(--color-danger-500, var(--color-danger-600)));
   color: white;
 }
 
 [data-style="dark"] .c-card__footer .c-btn--outline-success {
-  color: var(--color-success-400, #34d399);
-  border-color: var(--color-success-400, #34d399);
+  color: var(--color-success-400, var(--color-success-400));
+  border-color: var(--color-success-400, var(--color-success-400));
 }
 
 [data-style="dark"] .c-card__footer .c-btn--outline-danger {
-  color: var(--color-danger-400, #f87171);
-  border-color: var(--color-danger-400, #f87171);
+  color: var(--color-danger-400, var(--color-danger-400));
+  border-color: var(--color-danger-400, var(--color-danger-400));
 }
 
 /* ============================================================================

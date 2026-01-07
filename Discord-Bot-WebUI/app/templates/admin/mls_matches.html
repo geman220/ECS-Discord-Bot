@@ -29,7 +29,7 @@ TODO: Remove this template after new system is verified in production
 
         <div class="c-card__body">
             <div class="c-table-wrapper" data-table-responsive>
-                <table class="c-table" data-table data-mobile-table data-table-type="matches">
+                <table class="c-c-table" data-table data-mobile-table data-table-type="matches">
                     <thead scope="col">
                         <tr>
                             <th scope="col">Match</th>
@@ -43,16 +43,16 @@ TODO: Remove this template after new system is verified in production
                     <tbody>
                         {% for match in matches %}
                         <tr>
-                            <td>
+                            <td data-label="Match">
                                 {% if match.is_home_game %}
                                 Sounders vs {{ match.opponent }}
                                 {% else %}
                                 {{ match.opponent }} vs Sounders
                                 {% endif %}
                             </td>
-                            <td>{{ match.date_time.strftime('%m/%d/%Y %I:%M %p') }}</td>
-                            <td>{{ match.competition }}</td>
-                            <td>
+                            <td data-label="Date & Time">{{ match.date_time.strftime('%m/%d/%Y %I:%M %p') }}</td>
+                            <td data-label="Competition">{{ match.competition }}</td>
+                            <td data-label="Thread Status">
                                 <div class="d-flex flex-column">
                                     <span class="badge bg-{{ 'success' if match.thread_created else 'warning' }}" data-badge>
                                         {{ 'Thread Created' if match.thread_created else 'Pending' }}
@@ -64,7 +64,7 @@ TODO: Remove this template after new system is verified in production
                                     {% endif %}
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="Live Reporting">
                                 <div class="d-flex flex-column">
                                     <span class="badge bg-{{ 'success' if match.live_reporting_started else 'warning' }}" data-badge>
                                         {{ match.live_reporting_status|title }}
@@ -76,7 +76,7 @@ TODO: Remove this template after new system is verified in production
                                     {% endif %}
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="Actions">
                                 <div class="btn-group">
                                     {% if not match.thread_created %}
                                     {% if match.live_reporting_scheduled %}
@@ -156,6 +156,8 @@ TODO: Remove this template after new system is verified in production
             toastContainer = document.createElement('div');
             toastContainer.id = 'toastContainer';
             toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            toastContainer.setAttribute('aria-live', 'polite');
+            toastContainer.setAttribute('aria-atomic', 'true');
             document.body.appendChild(toastContainer);
         }
 

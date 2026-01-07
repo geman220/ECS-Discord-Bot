@@ -23,7 +23,7 @@ let _initialized = false;
 /**
    * Mobile Keyboard Controller
    */
-export const MobileKeyboard = {
+const MobileKeyboard = {
     /**
      * Current keyboard state
      */

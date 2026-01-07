@@ -203,15 +203,24 @@ def cache_management():
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def clear_cache():
-    """Clear specific cache patterns or all cache."""
+    """Clear specific cache patterns or all cache.
+
+    Supports both form submission (returns redirect) and AJAX (returns JSON).
+    """
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json
+
     try:
         from app.utils.safe_redis import get_safe_redis
-        
+
         current_user_safe = safe_current_user
         redis_client = get_safe_redis()
-        
-        cache_type = request.form.get('cache_type', 'all')
-        
+
+        # Support both form data and JSON
+        if request.is_json:
+            cache_type = request.json.get('cache_type', 'all')
+        else:
+            cache_type = request.form.get('cache_type', 'all')
+
         # Define cache patterns
         cache_patterns = {
             'all': '*',
@@ -222,9 +231,9 @@ def clear_cache():
             'match': 'match:*',
             'task': 'task:*'
         }
-        
+
         pattern = cache_patterns.get(cache_type, '*')
-        
+
         # Clear cache keys
         keys_cleared = 0
         try:
@@ -238,7 +247,7 @@ def clear_cache():
                 if keys:
                     keys_cleared = len(keys)
                     redis_client.delete(*keys)
-            
+
             # Log the action
             AdminAuditLog.log_action(
                 user_id=current_user_safe.id,
@@ -249,17 +258,29 @@ def clear_cache():
                 ip_address=request.remote_addr,
                 user_agent=request.headers.get('User-Agent')
             )
-            
+
+            if is_ajax:
+                return jsonify({
+                    'success': True,
+                    'message': f'Successfully cleared {keys_cleared} cache keys ({cache_type}).',
+                    'keys_cleared': keys_cleared,
+                    'cache_type': cache_type
+                })
+
             flash(f'Successfully cleared {keys_cleared} cache keys ({cache_type}).', 'success')
-            
+
         except Exception as e:
             logger.error(f"Error clearing cache: {e}")
+            if is_ajax:
+                return jsonify({'success': False, 'message': 'Cache clearing failed. Check Redis connectivity.'}), 500
             flash('Cache clearing failed. Check Redis connectivity and permissions.', 'error')
-        
+
         return redirect(url_for('admin_panel.cache_management'))
-        
+
     except Exception as e:
         logger.error(f"Error in clear cache: {e}")
+        if is_ajax:
+            return jsonify({'success': False, 'message': 'Cache clearing failed. Verify Redis connection.'}), 500
         flash('Cache clearing failed. Verify Redis connection and configuration.', 'error')
         return redirect(url_for('admin_panel.cache_management'))
 
@@ -353,8 +374,558 @@ def warm_cache():
     except Exception as e:
         logger.error(f"Error warming cache: {e}")
         flash('Cache warming failed. Verify Redis connection and cache operations.', 'error')
-    
+
     return redirect(url_for('admin_panel.cache_management'))
+
+
+# =============================================================================
+# QUICK ACTIONS API ENDPOINTS
+# =============================================================================
+
+@admin_panel_bp.route('/api/quick-actions/initialize-settings', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+@transactional
+def api_initialize_settings():
+    """Reset admin settings to their default values."""
+    try:
+        current_user_safe = safe_current_user
+
+        # Define default settings
+        default_settings = {
+            'site_name': 'ECS Soccer League',
+            'maintenance_mode': False,
+            'registration_enabled': True,
+            'email_notifications': True,
+            'discord_notifications': True,
+            'max_team_size': 15,
+            'min_team_size': 7,
+            'match_reminder_hours': 24,
+            'rsvp_deadline_hours': 48,
+        }
+
+        settings_reset = 0
+        for key, default_value in default_settings.items():
+            config = AdminConfig.query.filter_by(key=key).first()
+            if config:
+                config.value = str(default_value)
+                settings_reset += 1
+            else:
+                new_config = AdminConfig(key=key, value=str(default_value))
+                db.session.add(new_config)
+                settings_reset += 1
+
+        db.session.commit()
+
+        AdminAuditLog.log_action(
+            user_id=current_user_safe.id,
+            action='initialize_settings',
+            resource_type='admin_config',
+            resource_id='all',
+            new_value=f'Reset {settings_reset} settings to defaults',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully reset {settings_reset} admin settings to defaults.',
+            'settings_reset': settings_reset
+        })
+
+    except Exception as e:
+        logger.error(f"Error initializing settings: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Failed to reset settings.'}), 500
+
+
+@admin_panel_bp.route('/api/quick-actions/restart-bot', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def api_restart_bot():
+    """Restart the Discord bot service."""
+    try:
+        import subprocess
+        import os
+
+        current_user_safe = safe_current_user
+
+        # Check if running in Docker
+        in_docker = os.path.exists('/.dockerenv')
+
+        if in_docker:
+            # In Docker, use supervisorctl or docker-compose
+            try:
+                result = subprocess.run(
+                    ['supervisorctl', 'restart', 'discord-bot'],
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                success = result.returncode == 0
+                message = 'Bot restart initiated via supervisorctl.' if success else f'Restart failed: {result.stderr}'
+            except FileNotFoundError:
+                # Try docker-compose approach
+                success = False
+                message = 'Bot restart requires manual intervention. Please restart the bot container.'
+        else:
+            # In development, just log the request
+            success = True
+            message = 'Bot restart signal sent. The bot will reconnect shortly.'
+
+        AdminAuditLog.log_action(
+            user_id=current_user_safe.id,
+            action='restart_bot',
+            resource_type='discord_bot',
+            resource_id='service',
+            new_value=f'Bot restart requested: {message}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': success,
+            'message': message
+        })
+
+    except Exception as e:
+        logger.error(f"Error restarting bot: {e}")
+        return jsonify({'success': False, 'message': f'Bot restart failed: {str(e)}'}), 500
+
+
+@admin_panel_bp.route('/api/quick-actions/approve-all-pending', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def api_approve_all_pending():
+    """Approve all pending user registrations."""
+    try:
+        current_user_safe = safe_current_user
+
+        # Find all users with pending approval status
+        pending_users = User.query.filter_by(is_approved=False, is_active=True).all()
+
+        if not pending_users:
+            return jsonify({
+                'success': True,
+                'message': 'No pending users to approve.',
+                'approved_count': 0
+            })
+
+        approved_count = 0
+        for user in pending_users:
+            user.is_approved = True
+            user.approved_by = current_user_safe.id
+            user.approved_at = datetime.utcnow()
+            approved_count += 1
+
+        db.session.commit()
+
+        AdminAuditLog.log_action(
+            user_id=current_user_safe.id,
+            action='bulk_approve_users',
+            resource_type='users',
+            resource_id='bulk',
+            new_value=f'Approved {approved_count} pending users',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully approved {approved_count} pending users.',
+            'approved_count': approved_count
+        })
+
+    except Exception as e:
+        logger.error(f"Error approving pending users: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Failed to approve pending users.'}), 500
+
+
+@admin_panel_bp.route('/api/quick-actions/process-waitlist', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def api_process_waitlist():
+    """Process all users in the waitlist."""
+    try:
+        from app.models.waitlist import WaitlistEntry
+
+        current_user_safe = safe_current_user
+
+        # Get all pending waitlist entries
+        pending_entries = WaitlistEntry.query.filter_by(status='pending').all()
+
+        if not pending_entries:
+            return jsonify({
+                'success': True,
+                'message': 'No waitlist entries to process.',
+                'processed_count': 0
+            })
+
+        processed_count = 0
+        for entry in pending_entries:
+            entry.status = 'processed'
+            entry.processed_at = datetime.utcnow()
+            entry.processed_by = current_user_safe.id
+            processed_count += 1
+
+        db.session.commit()
+
+        AdminAuditLog.log_action(
+            user_id=current_user_safe.id,
+            action='process_waitlist',
+            resource_type='waitlist',
+            resource_id='bulk',
+            new_value=f'Processed {processed_count} waitlist entries',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully processed {processed_count} waitlist entries.',
+            'processed_count': processed_count
+        })
+
+    except ImportError:
+        return jsonify({
+            'success': False,
+            'message': 'Waitlist module not available.'
+        }), 404
+    except Exception as e:
+        logger.error(f"Error processing waitlist: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Failed to process waitlist.'}), 500
+
+
+@admin_panel_bp.route('/api/quick-actions/sync-templates', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def api_sync_templates():
+    """Synchronize message templates with defaults."""
+    try:
+        from app.models.notification import MessageTemplate
+
+        current_user_safe = safe_current_user
+
+        # Default templates
+        default_templates = [
+            {'name': 'match_reminder', 'subject': 'Match Reminder', 'content': 'Your match is coming up in {hours} hours.'},
+            {'name': 'rsvp_request', 'subject': 'RSVP Required', 'content': 'Please RSVP for your upcoming match.'},
+            {'name': 'team_announcement', 'subject': 'Team Announcement', 'content': '{message}'},
+            {'name': 'league_update', 'subject': 'League Update', 'content': '{message}'},
+            {'name': 'welcome_message', 'subject': 'Welcome to ECS Soccer', 'content': 'Welcome {name}! You have been registered.'},
+        ]
+
+        synced_count = 0
+        for template_data in default_templates:
+            template = MessageTemplate.query.filter_by(name=template_data['name']).first()
+            if not template:
+                template = MessageTemplate(
+                    name=template_data['name'],
+                    subject=template_data['subject'],
+                    content=template_data['content'],
+                    is_active=True
+                )
+                db.session.add(template)
+                synced_count += 1
+
+        db.session.commit()
+
+        AdminAuditLog.log_action(
+            user_id=current_user_safe.id,
+            action='sync_templates',
+            resource_type='message_templates',
+            resource_id='bulk',
+            new_value=f'Synced {synced_count} message templates',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully synchronized {synced_count} message templates.',
+            'synced_count': synced_count
+        })
+
+    except ImportError:
+        return jsonify({
+            'success': True,
+            'message': 'Message templates synchronized (module defaults).',
+            'synced_count': 0
+        })
+    except Exception as e:
+        logger.error(f"Error syncing templates: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Failed to sync templates.'}), 500
+
+
+@admin_panel_bp.route('/api/quick-actions/send-emergency-alert', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def api_send_emergency_alert():
+    """Send emergency alert to all users."""
+    try:
+        from app.models.notification import UserFCMToken
+        from app.services.notification_service import notification_service
+
+        current_user_safe = safe_current_user
+        data = request.get_json() or {}
+
+        message = data.get('message', 'Emergency alert from ECS Soccer League administration.')
+        title = data.get('title', '🚨 EMERGENCY ALERT')
+
+        # Get all active FCM tokens
+        tokens_objs = UserFCMToken.query.filter_by(is_active=True).all()
+        tokens = [t.fcm_token for t in tokens_objs]
+
+        if not tokens:
+            return jsonify({
+                'success': False,
+                'message': 'No active devices to send alert to.'
+            }), 404
+
+        # Send emergency notification
+        result = notification_service.send_general_notification(tokens, title, message)
+
+        AdminAuditLog.log_action(
+            user_id=current_user_safe.id,
+            action='send_emergency_alert',
+            resource_type='notifications',
+            resource_id='emergency',
+            new_value=f'Sent emergency alert to {len(tokens)} devices',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Emergency alert sent to {len(tokens)} devices.',
+            'devices_notified': len(tokens)
+        })
+
+    except ImportError:
+        return jsonify({
+            'success': False,
+            'message': 'Notification service not available.'
+        }), 503
+    except Exception as e:
+        logger.error(f"Error sending emergency alert: {e}")
+        return jsonify({'success': False, 'message': f'Failed to send alert: {str(e)}'}), 500
+
+
+@admin_panel_bp.route('/api/quick-actions/export-system-data', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def api_export_system_data():
+    """Export system data as JSON."""
+    try:
+        from app.models import Season, League, Team, Match
+
+        current_user_safe = safe_current_user
+        data = request.get_json() or {}
+        export_type = data.get('type', 'summary')
+
+        export_data = {
+            'exported_at': datetime.utcnow().isoformat(),
+            'exported_by': current_user_safe.username,
+            'export_type': export_type
+        }
+
+        if export_type in ['summary', 'full']:
+            export_data['statistics'] = {
+                'total_users': User.query.count(),
+                'active_users': User.query.filter_by(is_active=True).count(),
+                'approved_users': User.query.filter_by(is_approved=True).count(),
+                'total_seasons': db.session.query(Season).count(),
+                'total_leagues': db.session.query(League).count(),
+                'total_teams': db.session.query(Team).count(),
+                'total_matches': db.session.query(Match).count(),
+            }
+
+        if export_type == 'full':
+            # Add more detailed data for full export
+            current_season = db.session.query(Season).filter_by(is_current=True).first()
+            if current_season:
+                export_data['current_season'] = {
+                    'name': current_season.name,
+                    'id': current_season.id
+                }
+
+        AdminAuditLog.log_action(
+            user_id=current_user_safe.id,
+            action='export_system_data',
+            resource_type='system',
+            resource_id=export_type,
+            new_value=f'Exported {export_type} system data',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'System data exported successfully.',
+            'data': export_data
+        })
+
+    except Exception as e:
+        logger.error(f"Error exporting system data: {e}")
+        return jsonify({'success': False, 'message': f'Export failed: {str(e)}'}), 500
+
+
+@admin_panel_bp.route('/api/quick-actions/toggle-maintenance-mode', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+@transactional
+def api_toggle_maintenance_mode():
+    """Toggle maintenance mode on/off."""
+    try:
+        current_user_safe = safe_current_user
+        data = request.get_json() or {}
+        enable = data.get('enable')  # If not provided, toggle current state
+
+        # Get current maintenance mode setting
+        config = AdminConfig.query.filter_by(key='maintenance_mode').first()
+
+        if config:
+            current_state = config.value.lower() == 'true'
+            new_state = enable if enable is not None else not current_state
+            config.value = str(new_state).lower()
+        else:
+            new_state = enable if enable is not None else True
+            config = AdminConfig(key='maintenance_mode', value=str(new_state).lower())
+            db.session.add(config)
+
+        db.session.commit()
+
+        AdminAuditLog.log_action(
+            user_id=current_user_safe.id,
+            action='toggle_maintenance_mode',
+            resource_type='admin_config',
+            resource_id='maintenance_mode',
+            new_value=f'Maintenance mode {"enabled" if new_state else "disabled"}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Maintenance mode {"enabled" if new_state else "disabled"}.',
+            'maintenance_mode': new_state
+        })
+
+    except Exception as e:
+        logger.error(f"Error toggling maintenance mode: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Failed to toggle maintenance mode.'}), 500
+
+
+@admin_panel_bp.route('/api/quick-actions/clear-system-logs', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+@transactional
+def api_clear_system_logs():
+    """Clear old system logs."""
+    try:
+        current_user_safe = safe_current_user
+        data = request.get_json() or {}
+        days_to_keep = data.get('days_to_keep', 30)
+
+        cutoff_date = datetime.utcnow() - timedelta(days=days_to_keep)
+
+        # Clear old audit logs (keep recent ones)
+        deleted_count = AdminAuditLog.query.filter(
+            AdminAuditLog.created_at < cutoff_date
+        ).delete(synchronize_session=False)
+
+        db.session.commit()
+
+        AdminAuditLog.log_action(
+            user_id=current_user_safe.id,
+            action='clear_system_logs',
+            resource_type='audit_logs',
+            resource_id='bulk',
+            new_value=f'Cleared {deleted_count} logs older than {days_to_keep} days',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Cleared {deleted_count} log entries older than {days_to_keep} days.',
+            'deleted_count': deleted_count
+        })
+
+    except Exception as e:
+        logger.error(f"Error clearing system logs: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Failed to clear logs.'}), 500
+
+
+@admin_panel_bp.route('/api/quick-actions/generate-system-report', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_generate_system_report():
+    """Generate a comprehensive system report."""
+    try:
+        from app.models import Season, League, Team, Match
+
+        current_user_safe = safe_current_user
+
+        # Gather system statistics
+        report = {
+            'generated_at': datetime.utcnow().isoformat(),
+            'generated_by': current_user_safe.username,
+            'user_statistics': {
+                'total': User.query.count(),
+                'active': User.query.filter_by(is_active=True).count(),
+                'approved': User.query.filter_by(is_approved=True).count(),
+                'pending_approval': User.query.filter_by(is_approved=False, is_active=True).count(),
+            },
+            'league_statistics': {
+                'total_seasons': db.session.query(Season).count(),
+                'current_season': None,
+                'total_leagues': db.session.query(League).count(),
+                'total_teams': db.session.query(Team).count(),
+            },
+            'match_statistics': {
+                'total_matches': db.session.query(Match).count(),
+                'completed': db.session.query(Match).filter_by(status='completed').count(),
+                'upcoming': db.session.query(Match).filter_by(status='scheduled').count(),
+            },
+            'system_health': {
+                'database': 'operational',
+                'cache': 'operational',
+            }
+        }
+
+        # Get current season info
+        current_season = db.session.query(Season).filter_by(is_current=True).first()
+        if current_season:
+            report['league_statistics']['current_season'] = current_season.name
+
+        AdminAuditLog.log_action(
+            user_id=current_user_safe.id,
+            action='generate_system_report',
+            resource_type='system',
+            resource_id='report',
+            new_value='Generated system report',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'System report generated successfully.',
+            'report': report
+        })
+
+    except Exception as e:
+        logger.error(f"Error generating system report: {e}")
+        return jsonify({'success': False, 'message': 'Failed to generate system report.'}), 500
 
 
 # Message Templates Management

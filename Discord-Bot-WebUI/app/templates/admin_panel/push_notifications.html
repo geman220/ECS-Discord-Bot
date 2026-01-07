@@ -22,8 +22,8 @@
                             <h5 class="c-card__title text-white mb-1">{{ total_subscribers or 0 }}</h5>
                             <p class="c-card__description small opacity-75 mb-0">Total Subscribers</p>
                         </div>
-                        <div class="card-icon">
-                            <i class="ti ti-users card-icon-stat"></i>
+                        <div class="c-icon-badge c-icon-badge--stat">
+                            <i class="ti ti-users"></i>
                         </div>
                     </div>
                 </div>
@@ -37,8 +37,8 @@
                             <h5 class="c-card__title text-white mb-1">{{ notifications_sent_today or 0 }}</h5>
                             <p class="c-card__description small opacity-75 mb-0">Sent Today</p>
                         </div>
-                        <div class="card-icon">
-                            <i class="ti ti-send" class="card-icon-stat"></i>
+                        <div class="c-icon-badge c-icon-badge--stat">
+                            <i class="ti ti-send"></i>
                         </div>
                     </div>
                 </div>
@@ -52,8 +52,8 @@
                             <h5 class="c-card__title text-white mb-1">{{ delivery_rate or '95%' }}</h5>
                             <p class="c-card__description small opacity-75 mb-0">Delivery Rate</p>
                         </div>
-                        <div class="card-icon">
-                            <i class="ti ti-chart-line" class="card-icon-stat"></i>
+                        <div class="c-icon-badge c-icon-badge--stat">
+                            <i class="ti ti-chart-line"></i>
                         </div>
                     </div>
                 </div>
@@ -67,8 +67,8 @@
                             <h5 class="c-card__title text-white mb-1">{{ click_rate or '12%' }}</h5>
                             <p class="c-card__description small opacity-75 mb-0">Click Rate</p>
                         </div>
-                        <div class="card-icon">
-                            <i class="ti ti-click" class="card-icon-stat"></i>
+                        <div class="c-icon-badge c-icon-badge--stat">
+                            <i class="ti ti-click"></i>
                         </div>
                     </div>
                 </div>
@@ -288,7 +288,7 @@
                 <div class="c-card__body p-0">
                     {% if notification_history %}
                     <div class="c-table-wrapper" data-table-responsive>
-                        <table class="c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="messages">
+                        <table class="c-c-table c-table--hoverable mb-0" data-table data-mobile-table data-table-type="messages">
                             <thead class="c-table--light" scope="col">
                                 <tr>
                                     <th scope="col">Notification</th>
@@ -550,30 +550,7 @@
 
 {% block custom_css %}
 {{ super() }}
-<style>
-{# Shared component styles (card-icon) are in foundation-overrides.css #}
-
-/* Page-specific: Notification row filtering animation */
-.notification-row {
-    transition: opacity 0.3s ease;
-}
-
-.notification-row.filtered-out {
-    display: none;
-}
-
-/* Page-specific: Mobile responsive table adjustments */
-@media (max-width: 768px) {
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.75rem;
-    }
-
-    .table-responsive {
-        font-size: 0.875rem;
-    }
-}
-</style>
+{# Styles moved to external CSS #}
 {% endblock %}
 
 {% block custom_js %}

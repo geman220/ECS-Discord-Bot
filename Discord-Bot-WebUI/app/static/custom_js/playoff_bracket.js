@@ -47,10 +47,27 @@ export class PlayoffBracket {
             await this.fetchBracketData();
             this.renderBracket();
             this.startAutoRefresh();
+            this.setupEventDelegation();
         } catch (error) {
             console.error('Failed to initialize playoff bracket:', error);
             this.showError('Failed to load playoff bracket. Please refresh the page.');
         }
+    }
+
+    /**
+     * Setup event delegation for dynamically created elements
+     */
+    setupEventDelegation() {
+        const container = document.getElementById('playoff-bracket-container') || document.body;
+        container.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action="playoff-match-report"]');
+            if (btn) {
+                const matchId = btn.dataset.matchId;
+                if (matchId) {
+                    this.handleMatchReport(parseInt(matchId, 10));
+                }
+            }
+        });
     }
 
     /**
@@ -281,11 +298,11 @@ export class PlayoffBracket {
             </div>
         `;
 
-        // Build report button HTML
+        // Build report button HTML - uses data-action for event delegation
         const buttonHTML = `
             <button class="btn btn-sm btn-primary match-report-btn"
                     data-match-id="${match.id}"
-                    onclick="window.playoffBracket.handleMatchReport(${match.id})">
+                    data-action="playoff-match-report">
                 <i class="ti ti-pencil"></i>
                 <span class="d-none d-md-inline">${isReported ? 'Edit' : 'Report'}</span>
             </button>
@@ -410,7 +427,9 @@ export class PlayoffBracket {
         } else {
             // If modal doesn't exist, redirect to a page where it does or show a message
             console.warn('Match report modal not found on page. You may need to load it first.');
-            alert('Please navigate to the team page to report this match.');
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Navigation Required', 'Please navigate to the team page to report this match.', 'info');
+            }
         }
     }
 
@@ -487,7 +506,7 @@ export class PlayoffBracket {
     window.PlayoffBracket = PlayoffBracket;
 
     // Initialize function for pages with playoff brackets
-    function init() {
+    function initPlayoffBracket() {
         if (_initialized) return;
         _initialized = true;
 
@@ -505,7 +524,7 @@ export class PlayoffBracket {
 
     // Register with window.InitSystem (primary)
     if (true && window.InitSystem.register) {
-        window.InitSystem.register('playoff-bracket', init, {
+        window.InitSystem.register('playoff-bracket', initPlayoffBracket, {
             priority: 40,
             reinitializable: false,
             description: 'Playoff bracket manager'
@@ -516,4 +535,4 @@ export class PlayoffBracket {
     // window.InitSystem handles initialization
 
 // Backward compatibility
-window.init = init;
+window.initPlayoffBracket = initPlayoffBracket;

@@ -67,7 +67,7 @@
   width: 44px;
   height: 24px;
   border-radius: 12px;
-  background: var(--color-neutral-300, #cbd5e1);
+  background: var(--color-neutral-300, var(--color-secondary-300));
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -81,7 +81,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--color-white, #fff);
+  background: var(--color-white, var(--color-white));
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s ease, left 0.2s ease;
 }
@@ -90,7 +90,7 @@
 .c-toggle__text {
   font-size: var(--text-sm, 0.875rem);
   font-weight: var(--font-medium, 500);
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, #1e293b))));
+  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   line-height: 1.4;
 }
 
@@ -99,7 +99,7 @@
    ============================================================================ */
 
 .c-toggle__input:checked + .c-toggle__label::before {
-  background: var(--color-success, var(--color-success-500, #10b981));
+  background: var(--color-success, var(--color-success-500, var(--color-success-500)));
 }
 
 .c-toggle__input:checked + .c-toggle__label::after {
@@ -111,7 +111,7 @@
    ============================================================================ */
 
 .c-toggle__input:focus-visible + .c-toggle__label::before {
-  outline: 2px solid var(--color-focus-ring, var(--color-primary-400, #60a5fa));
+  outline: 2px solid var(--color-focus-ring, var(--color-primary-400, var(--color-primary-400)));
   outline-offset: 2px;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
 }
@@ -126,7 +126,7 @@
 }
 
 .c-toggle__input:disabled + .c-toggle__label::before {
-  background: var(--color-neutral-200, var(--color-secondary-200, var(--color-secondary-200, #e2e8f0)));
+  background: var(--color-neutral-200, var(--color-secondary-200, var(--color-secondary-200, var(--color-secondary-200))));
 }
 
 /* ============================================================================
@@ -171,12 +171,12 @@
 
 /* Primary color instead of success green */
 .c-toggle--primary .c-toggle__input:checked + .c-toggle__label::before {
-  background: var(--color-primary, var(--color-primary-600, #2563eb));
+  background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 /* Danger/warning for destructive toggles */
 .c-toggle--danger .c-toggle__input:checked + .c-toggle__label::before {
-  background: var(--color-danger, var(--color-danger-500, #ef4444));
+  background: var(--color-danger, var(--color-danger-500, var(--color-danger-500)));
 }
 
 /* ============================================================================
@@ -203,19 +203,19 @@
    ============================================================================ */
 
 [data-style="dark"] .c-toggle__label::before {
-  background: var(--color-neutral-600, var(--color-secondary-700, var(--color-secondary-700, #475569)));
+  background: var(--color-neutral-600, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
 }
 
 [data-style="dark"] .c-toggle__text {
-  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, #f8fafc)));
+  color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 [data-style="dark"] .c-toggle__input:checked + .c-toggle__label::before {
-  background: var(--color-success, var(--color-success-500, #10b981));
+  background: var(--color-success, var(--color-success-500, var(--color-success-500)));
 }
 
 [data-style="dark"] .c-toggle__input:disabled + .c-toggle__label::before {
-  background: var(--color-neutral-700, var(--color-secondary-800, var(--color-secondary-800, #334155)));
+  background: var(--color-neutral-700, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
 }
 
 /* ============================================================================

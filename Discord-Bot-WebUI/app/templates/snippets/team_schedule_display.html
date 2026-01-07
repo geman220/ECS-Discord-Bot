@@ -8,7 +8,7 @@
 
         {% if display_info.type == 'playoff' %}
             <!-- Playoff Week Display -->
-            <div class="c-match-card c-match-card--playoff {{ display_info.css_class }}"
+            <div class="c-match-c-card c-match-card--playoff {{ display_info.css_class }}"
                  data-component="match-card"
                  data-match-type="playoff">
                 <div class="c-match-card__header">
@@ -29,7 +29,7 @@
 
         {% elif display_info.type == 'fun' %}
             <!-- Fun Week Display -->
-            <div class="c-match-card c-match-card--fun {{ display_info.css_class }}"
+            <div class="c-match-c-card c-match-card--fun {{ display_info.css_class }}"
                  data-component="match-card"
                  data-match-type="fun">
                 <div class="c-match-card__header">
@@ -51,7 +51,7 @@
 
         {% elif display_info.type == 'tst' %}
             <!-- TST Week Display -->
-            <div class="c-match-card c-match-card--tst {{ display_info.css_class }}"
+            <div class="c-match-c-card c-match-card--tst {{ display_info.css_class }}"
                  data-component="match-card"
                  data-match-type="tst">
                 <div class="c-match-card__header">
@@ -73,7 +73,7 @@
 
         {% elif display_info.type == 'bye' %}
             <!-- BYE Week Display -->
-            <div class="c-match-card c-match-card--bye {{ display_info.css_class }}"
+            <div class="c-match-c-card c-match-card--bye {{ display_info.css_class }}"
                  data-component="match-card"
                  data-match-type="bye">
                 <div class="c-match-card__header">
@@ -93,7 +93,7 @@
 
         {% elif display_info.type == 'bonus' %}
             <!-- Bonus Week Display -->
-            <div class="c-match-card c-match-card--bonus {{ display_info.css_class }}"
+            <div class="c-match-c-card c-match-card--bonus {{ display_info.css_class }}"
                  data-component="match-card"
                  data-match-type="bonus">
                 <div class="c-match-card__header">
@@ -115,7 +115,7 @@
 
         {% elif display_info.type == 'practice' %}
             <!-- Practice Match Display -->
-            <div class="c-match-card c-match-card--practice {{ display_info.css_class }}"
+            <div class="c-match-c-card c-match-card--practice {{ display_info.css_class }}"
                  data-component="match-card"
                  data-match-type="practice">
                 <div class="c-match-card__header">
@@ -136,7 +136,7 @@
 
         {% else %}
             <!-- Regular Match Display -->
-            <div class="c-match-card c-match-card--regular {{ display_info.css_class }}"
+            <div class="c-match-c-card c-match-card--regular {{ display_info.css_class }}"
                  data-component="match-card"
                  data-match-type="regular">
                 <div class="c-match-card__header">
@@ -198,7 +198,7 @@
             <div class="row">
                 {% for match in matches %}
                     <div class="col-md-6 mb-2">
-                        <div class="c-week-summary__match-card">
+                        <div class="c-week-summary__match-c-card">
                             <strong class="c-week-summary__match-teams">{{ match.home_team.name }} vs {{ match.away_team.name }}</strong>
                             <br>
                             <small class="c-week-summary__match-info">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</small>

@@ -24,7 +24,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--ecs-neutral-20, #dee2e6);
+    border-bottom: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
 }
 
 .c-user-modal__title {
@@ -47,7 +47,7 @@
     justify-content: flex-end;
     gap: 0.75rem;
     padding: 1rem 1.5rem;
-    border-top: 1px solid var(--ecs-neutral-20, #dee2e6);
+    border-top: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
 }
 
 .c-user-modal__button {
@@ -77,7 +77,7 @@
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
-    color: var(--ecs-neutral-90, #212529);
+    color: var(--ecs-neutral-90, var(--color-secondary-900));
 }
 
 .c-user-form__input,
@@ -109,7 +109,7 @@
    ============================================ */
 .c-user-form__input:focus,
 .c-user-form__select:focus {
-    border-color: var(--ecs-primary, #007bff);
+    border-color: var(--ecs-primary, var(--color-primary));
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
@@ -118,12 +118,12 @@
    ============================================ */
 .c-user-form__input:invalid,
 .c-user-form__select:invalid {
-    border-color: var(--ecs-danger, var(--color-danger, #dc3545));
+    border-color: var(--ecs-danger, var(--color-danger, var(--color-danger-600)));
 }
 
 .c-user-form__input:valid,
 .c-user-form__select:valid {
-    border-color: var(--ecs-success, #28a745);
+    border-color: var(--ecs-success, var(--color-success-500));
 }
 
 /* ============================================

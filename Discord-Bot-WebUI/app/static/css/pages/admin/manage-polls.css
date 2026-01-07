@@ -10,5 +10,5 @@
 
 .empty-state-icon {
     font-size: 48px;
-    color: var(--ecs-muted, #ccc);
+    color: var(--ecs-muted, var(--color-neutral-400));
 }

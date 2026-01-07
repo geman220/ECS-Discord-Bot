@@ -31,7 +31,7 @@
                                 </div>
                                 <div class="c-card__body">
                                     <div class="c-table-wrapper" data-table-responsive>
-                                        <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="matches">
+                                        <table class="c-c-table c-table--compact" data-table data-mobile-table data-table-type="matches">
                                             <thead scope="col">
                                                 <tr>
                                                     <th scope="col">Rank</th>
@@ -43,10 +43,10 @@
                                             <tbody>
                                                 {% for team in standings %}
                                                 <tr class="{% if loop.index <= 4 %}table-success{% endif %}">
-                                                    <td>{{ loop.index }}</td>
-                                                    <td>{{ team.name }}</td>
-                                                    <td>{{ team.points|default(0) }}</td>
-                                                    <td>{{ team.wins|default(0) }}-{{ team.losses|default(0) }}-{{ team.draws|default(0) }}</td>
+                                                    <td data-label="Rank">{{ loop.index }}</td>
+                                                    <td data-label="Team">{{ team.name }}</td>
+                                                    <td data-label="Points">{{ team.points|default(0) }}</td>
+                                                    <td data-label="Record">{{ team.wins|default(0) }}-{{ team.losses|default(0) }}-{{ team.draws|default(0) }}</td>
                                                 </tr>
                                                 {% endfor %}
                                             </tbody>

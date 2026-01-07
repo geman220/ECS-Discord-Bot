@@ -749,7 +749,7 @@
      * JUSTIFIED !important declarations for print media
      *
      * Rationale: Print styles must override all interactive and visual effects
-     * to ensure clean, readable printouts. These !important declarations are
+     * to ensure clean, readable printouts. These declarations are
      * necessary because:
      * 1. Print styles need to override runtime JavaScript-added inline styles
      * 2. Must ensure no interactive elements appear in printed documents
@@ -761,19 +761,19 @@
     .playoff-bracket-container .bracket-loading,
     .playoff-bracket-container .bracket-error {
         /* Hide interactive elements in print - prevents user confusion */
-        display: none !important;
+        display: none;
     }
 
     .playoff-bracket-container .bracket-match-card {
         page-break-inside: avoid;
         border-color: var(--color-neutral-900);
         /* Remove shadows for clean print output */
-        box-shadow: none !important;
+        box-shadow: none;
     }
 
     .playoff-bracket-container .bracket-match-card:hover {
         /* Disable hover transforms in print */
-        transform: none !important;
+        transform: none;
     }
 
     .playoff-bracket-container {
@@ -783,13 +783,13 @@
     .playoff-bracket-container .standings-row {
         border-color: var(--color-neutral-900);
         /* Remove shadows for clean print output */
-        box-shadow: none !important;
+        box-shadow: none;
     }
 
     .playoff-bracket-container .placement-match {
         border-color: var(--color-neutral-900);
         /* Remove shadows for clean print output */
-        box-shadow: none !important;
+        box-shadow: none;
     }
 }
 
@@ -809,11 +809,11 @@
     /**
      * JUSTIFIED !important declarations for accessibility
      *
-     * Rationale: These !important declarations are critical for accessibility:
+     * Rationale: These declarations are critical for accessibility:
      * 1. Must respect user's prefers-reduced-motion system preference
      * 2. Required to override all animations/transitions throughout the cascade
      * 3. Protects users with vestibular disorders from motion-triggered symptoms
-     * 4. Cannot be reliably achieved without !important due to specificity wars
+     * 4. Cannot be reliably achieved without due to specificity wars
      *    with component-level animations
      */
 
@@ -824,15 +824,15 @@
     .playoff-bracket-container .standings-row.just-updated,
     .playoff-bracket-container .bracket-match-skeleton {
         /* Disable all animations for users sensitive to motion */
-        animation: none !important;
+        animation: none;
         /* Disable all transitions for users sensitive to motion */
-        transition: none !important;
+        transition: none;
     }
 
     .playoff-bracket-container .bracket-match-card:hover,
     .playoff-bracket-container .standings-row:hover {
         /* Disable transform effects for users sensitive to motion */
-        transform: none !important;
+        transform: none;
     }
 }
 
@@ -854,7 +854,7 @@
    UTILITY CLASSES
    ============================================================================ */
 
-/* Scoped utility class with proper specificity - no !important needed */
+/* Scoped utility class with proper specificity - no needed */
 .playoff-bracket-container .bracket-hidden {
     display: none;
 }
@@ -867,4 +867,55 @@
     border-right-color: transparent;
     border-radius: 50%;
     animation: loading 0.75s linear infinite;
+}
+
+/* ============================================================================
+   PLAYOFF BRACKET VIEW PAGE STYLES
+   Extracted from playoff_bracket_view.html inline styles
+   ============================================================================ */
+
+/* Mobile-specific optimizations for bracket view */
+@media (max-width: 767px) {
+    .playoff-bracket-view .playoff-bracket-container {
+        padding: 0;
+    }
+
+    .playoff-bracket-view .bracket-match-card {
+        margin-bottom: 0.5rem;
+    }
+
+    .playoff-bracket-view .bracket-match-card .match-report-btn {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        width: 100%;
+    }
+
+    .playoff-bracket-view .group-standings {
+        font-size: 0.9rem;
+    }
+
+    /* Make modal full screen on mobile */
+    .playoff-bracket-view .ecs-modal .modal-dialog {
+        margin: 0;
+        max-width: 100%;
+        height: 100%;
+    }
+
+    .playoff-bracket-view .ecs-modal .modal-content {
+        height: 100%;
+        border-radius: 0;
+    }
+}
+
+/* Touch-friendly buttons for mobile/touch devices */
+@media (hover: none) and (pointer: coarse) {
+    .playoff-bracket-view .bracket-match-card {
+        cursor: pointer;
+        -webkit-tap-highlight-color: rgba(105, 108, 255, 0.2);
+    }
+
+    .playoff-bracket-view .match-report-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
 }

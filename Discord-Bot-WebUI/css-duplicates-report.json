@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-12-30T08:01:07.984Z",
+  "timestamp": "2026-01-04T03:39:55.877Z",
   "summary": {
-    "total": 541,
+    "total": 475,
     "bem": 0,
-    "bootstrap": 146,
-    "other": 395
+    "bootstrap": 107,
+    "other": 368
   },
   "bemDuplicates": [],
   "bootstrapOverrides": [
@@ -15,68 +15,12 @@
         "bootstrap-minimal.css",
         "utilities/mobile-utils.css",
         "pages/admin/match-verification.css",
-        "pages/admin/match-management.css",
         "pages/admin/manage-subs.css",
-        "layout/mobile-navigation.css",
         "core/component-aliases.css",
         "core/bootstrap-theming.css",
         "components/dropdowns.css"
       ],
-      "count": 10
-    },
-    {
-      "selector": ".modal-footer",
-      "files": [
-        "components.css",
-        "bootstrap-minimal.css",
-        "pages/admin.css",
-        "pages/admin/match-management.css",
-        "layout/mobile.css",
-        "layout/mobile-forms.css",
-        "core/component-aliases.css",
-        "components/modals.css"
-      ],
       "count": 8
-    },
-    {
-      "selector": ".badge",
-      "files": [
-        "components.css",
-        "pages/seasonal-schedule.css",
-        "pages/match-view.css",
-        "pages/admin.css",
-        "pages/admin/match-management.css",
-        "layout/mobile.css",
-        "core/component-aliases.css",
-        "components/badges.css"
-      ],
-      "count": 8
-    },
-    {
-      "selector": ".modal-content",
-      "files": [
-        "components.css",
-        "bootstrap-minimal.css",
-        "pages/admin.css",
-        "pages/admin/match-management.css",
-        "layout/mobile.css",
-        "layout/mobile-forms.css",
-        "components/modals.css"
-      ],
-      "count": 7
-    },
-    {
-      "selector": ".modal-header",
-      "files": [
-        "components.css",
-        "bootstrap-minimal.css",
-        "pages/admin.css",
-        "pages/admin/match-management.css",
-        "layout/mobile-forms.css",
-        "core/component-aliases.css",
-        "components/modals.css"
-      ],
-      "count": 7
     },
     {
       "selector": ".modal-backdrop",
@@ -84,12 +28,11 @@
         "components.css",
         "bootstrap-minimal.css",
         "pages/team-details.css",
-        "layout/mobile.css",
-        "layout/mobile-navigation.css",
+        "mobile/modals.css",
         "components/modals.css",
         "components/c-modal.css"
       ],
-      "count": 7
+      "count": 6
     },
     {
       "selector": ".btn-primary",
@@ -98,79 +41,40 @@
         "utilities/bootstrap-color-overrides.css",
         "pages/admin.css",
         "core/component-aliases.css",
-        "core/bootstrap-theming.css",
-        "components/buttons.css"
+        "core/bootstrap-theming.css"
       ],
-      "count": 6
+      "count": 5
+    },
+    {
+      "selector": ".modal-content",
+      "files": [
+        "components.css",
+        "bootstrap-minimal.css",
+        "pages/admin.css",
+        "mobile/modals.css",
+        "components/modals.css"
+      ],
+      "count": 5
     },
     {
       "selector": ".modal-body",
       "files": [
         "components.css",
         "bootstrap-minimal.css",
-        "layout/mobile.css",
-        "layout/mobile-forms.css",
+        "mobile/modals.css",
         "core/component-aliases.css",
         "components/modals.css"
       ],
-      "count": 6
+      "count": 5
     },
     {
-      "selector": ".modal-title",
+      "selector": ".modal-footer",
       "files": [
         "components.css",
         "bootstrap-minimal.css",
-        "layout/mobile.css",
-        "layout/mobile-forms.css",
+        "mobile/modals.css",
         "core/component-aliases.css",
         "components/modals.css"
-      ],
-      "count": 6
-    },
-    {
-      "selector": ".modal",
-      "files": [
-        "bootstrap-minimal.css",
-        "pages/team-details.css",
-        "layout/mobile.css",
-        "layout/mobile-navigation.css",
-        "components/modals.css",
-        "components/c-modal.css"
-      ],
-      "count": 6
-    },
-    {
-      "selector": ".table-responsive",
-      "files": [
-        "pages/user-management.css",
-        "pages/admin/manage-subs.css",
-        "layout/mobile-tables.css",
-        "core/component-aliases.css",
-        "components/tables.css",
-        "components/dropdown-fixes.css"
-      ],
-      "count": 6
-    },
-    {
-      "selector": ".btn",
-      "files": [
-        "pages/match-view.css",
-        "layout/mobile-navigation.css",
-        "layout/mobile-forms.css",
-        "core/component-aliases.css",
-        "core/bootstrap-theming.css",
-        "components/buttons.css"
-      ],
-      "count": 6
-    },
-    {
-      "selector": ".btn-outline-primary",
-      "files": [
-        "components.css",
-        "utilities/bootstrap-color-overrides.css",
-        "core/component-aliases.css",
-        "core/bootstrap-theming.css",
-        "components/buttons.css"
       ],
       "count": 5
     },
@@ -197,46 +101,13 @@
       "count": 5
     },
     {
-      "selector": ".alert-info",
+      "selector": ".table-responsive",
       "files": [
-        "components.css",
-        "utilities/bootstrap-color-overrides.css",
-        "pages/admin/match-management.css",
+        "pages/user-management.css",
+        "pages/admin/manage-subs.css",
+        "mobile/tables.css",
         "core/component-aliases.css",
-        "components/alerts.css"
-      ],
-      "count": 5
-    },
-    {
-      "selector": ".modal-dialog",
-      "files": [
-        "bootstrap-minimal.css",
-        "layout/mobile.css",
-        "layout/mobile-forms.css",
-        "components/modals.css",
-        "components/c-modal.css"
-      ],
-      "count": 5
-    },
-    {
-      "selector": ".toast-container",
-      "files": [
-        "bootstrap-minimal.css",
-        "pages/admin/admin-dashboard.css",
-        "layout/navbar.css",
-        "layout/mobile.css",
-        "components/toasts.css"
-      ],
-      "count": 5
-    },
-    {
-      "selector": ".alert",
-      "files": [
-        "pages/admin/match-management.css",
-        "layout/mobile.css",
-        "layout/mobile-forms.css",
-        "core/component-aliases.css",
-        "components/alerts.css"
+        "components/dropdown-fixes.css"
       ],
       "count": 5
     },
@@ -244,30 +115,113 @@
       "selector": ".form-select:focus",
       "files": [
         "components.css",
-        "layout/mobile-forms.css",
+        "mobile/forms.css",
         "core/component-aliases.css",
         "core/bootstrap-theming.css"
       ],
       "count": 4
+    },
+    {
+      "selector": ".btn-outline-primary",
+      "files": [
+        "components.css",
+        "utilities/bootstrap-color-overrides.css",
+        "core/component-aliases.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".modal-header",
+      "files": [
+        "components.css",
+        "bootstrap-minimal.css",
+        "core/component-aliases.css",
+        "components/modals.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".modal-title",
+      "files": [
+        "components.css",
+        "bootstrap-minimal.css",
+        "core/component-aliases.css",
+        "components/modals.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".alert-success",
+      "files": [
+        "components.css",
+        "utilities/bootstrap-color-overrides.css",
+        "core/component-aliases.css",
+        "components/alerts.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".alert-warning",
+      "files": [
+        "components.css",
+        "utilities/bootstrap-color-overrides.css",
+        "core/component-aliases.css",
+        "components/alerts.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".alert-info",
+      "files": [
+        "components.css",
+        "utilities/bootstrap-color-overrides.css",
+        "core/component-aliases.css",
+        "components/alerts.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".modal",
+      "files": [
+        "bootstrap-minimal.css",
+        "pages/team-details.css",
+        "components/modals.css",
+        "components/c-modal.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".modal-dialog",
+      "files": [
+        "bootstrap-minimal.css",
+        "mobile/modals.css",
+        "components/modals.css",
+        "components/c-modal.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".btn:focus-visible",
+      "files": [
+        "mobile/accessibility.css",
+        "layout/base-layout.css",
+        "core/component-aliases.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 4
+    },
+    {
+      "selector": ".form-check-input:checked",
+      "files": [
+        "components.css",
+        "core/component-aliases.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 3
     }
   ],
   "otherDuplicates": [
-    {
-      "selector": ".empty-state-icon",
-      "files": [
-        "pages/teams.css",
-        "pages/standings.css",
-        "pages/feedback.css",
-        "pages/admin.css",
-        "pages/admin/user-approvals.css",
-        "pages/admin/sync-review.css",
-        "pages/admin/substitute-pool.css",
-        "pages/admin/match-verification.css",
-        "pages/admin/manage-polls.css",
-        "core/bootstrap-theming.css"
-      ],
-      "count": 10
-    },
     {
       "selector": ".avatar",
       "files": [
@@ -275,34 +229,8 @@
         "pages/match-view.css",
         "pages/feedback.css",
         "pages/admin/match-management.css",
-        "layout/mobile.css",
         "core/component-aliases.css",
         "core/bootstrap-theming.css"
-      ],
-      "count": 7
-    },
-    {
-      "selector": ".empty-state",
-      "files": [
-        "pages/teams.css",
-        "pages/standings.css",
-        "pages/feedback.css",
-        "pages/admin/substitute-pool.css",
-        "pages/admin/match-verification.css",
-        "pages/admin/match-management.css",
-        "core/bootstrap-theming.css"
-      ],
-      "count": 7
-    },
-    {
-      "selector": ".ui-autocomplete",
-      "files": [
-        "template-styles.css",
-        "components.css",
-        "layout/navbar.css",
-        "layout/mobile-navigation.css",
-        "layout/base-layout.css",
-        "components/navbar-modern.css"
       ],
       "count": 6
     },
@@ -319,24 +247,13 @@
       "count": 6
     },
     {
-      "selector": ".layout-navbar",
+      "selector": ".ui-autocomplete",
       "files": [
+        "template-styles.css",
         "components.css",
         "layout/navbar.css",
-        "layout/mobile-navigation.css",
-        "core/component-aliases.css",
-        "core/bootstrap-theming.css"
-      ],
-      "count": 5
-    },
-    {
-      "selector": ".select2-dropdown",
-      "files": [
-        "components.css",
-        "pages/user-management.css",
-        "layout/mobile-navigation.css",
-        "layout/mobile-forms.css",
-        "components/dropdown-fixes.css"
+        "layout/base-layout.css",
+        "components/navbar-modern.css"
       ],
       "count": 5
     },
@@ -363,6 +280,16 @@
       "count": 5
     },
     {
+      "selector": ".skip-link:focus",
+      "files": [
+        "template-styles.css",
+        "pages/profile-verify.css",
+        "mobile/accessibility.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 4
+    },
+    {
       "selector": ".text-primary",
       "files": [
         "components.css",
@@ -373,12 +300,12 @@
       "count": 4
     },
     {
-      "selector": ".content-wrapper",
+      "selector": ".layout-navbar",
       "files": [
         "components.css",
+        "layout/navbar.css",
         "core/component-aliases.css",
-        "core/bootstrap-theming.css",
-        "components/navbar-modern.css"
+        "core/bootstrap-theming.css"
       ],
       "count": 4
     },
@@ -453,20 +380,47 @@
       "count": 4
     },
     {
-      "selector": ".empty-state-message",
+      "selector": ".empty-state-icon",
       "files": [
-        "pages/teams.css",
-        "pages/standings.css",
-        "pages/feedback.css",
-        "core/bootstrap-theming.css"
+        "pages/admin.css",
+        "pages/admin/user-approvals.css",
+        "pages/admin/manage-polls.css",
+        "components/empty-states.css"
       ],
       "count": 4
     },
     {
-      "selector": ".skip-link:focus",
+      "selector": ".skip-link",
       "files": [
         "template-styles.css",
         "pages/profile-verify.css",
+        "mobile/accessibility.css"
+      ],
+      "count": 3
+    },
+    {
+      "selector": ".autocomplete-profile-img",
+      "files": [
+        "template-styles.css",
+        "layout/base-layout.css",
+        "components/navbar-modern.css"
+      ],
+      "count": 3
+    },
+    {
+      "selector": ".bg-primary",
+      "files": [
+        "components.css",
+        "utilities/bootstrap-color-overrides.css",
+        "core/bootstrap-theming.css"
+      ],
+      "count": 3
+    },
+    {
+      "selector": ".layout-page",
+      "files": [
+        "components.css",
+        "core/component-aliases.css",
         "core/bootstrap-theming.css"
       ],
       "count": 3

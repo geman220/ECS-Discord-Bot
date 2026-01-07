@@ -69,9 +69,9 @@
     </div>
 
     <!-- Players Table -->
-    <div class="c-players-table" data-component="players-table">
+    <div class="c-players-c-table" data-component="players-table">
         <div class="c-table-wrapper">
-            <table class="c-table c-players-table__table" data-mobile-table data-table-type="players">
+            <table class="c-c-table c-players-table__table" data-mobile-table data-table-type="players">
                 <thead class="c-players-table__head">
                     <tr>
                         <th scope="col" class="c-players-table__header">Name</th>
@@ -254,6 +254,8 @@
                            id="playerEmail"
                            name="email"
                            required
+                           inputmode="email"
+                           autocomplete="email"
                            data-input="email">
                 </div>
 
@@ -265,6 +267,8 @@
                            id="playerPhone"
                            name="phone"
                            required
+                           inputmode="tel"
+                           autocomplete="tel"
                            data-input="phone">
                 </div>
 

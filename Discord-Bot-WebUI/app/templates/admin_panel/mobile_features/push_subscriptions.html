@@ -112,7 +112,7 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">&nbsp;</label>
+                        <span class="u-form-label-spacer" aria-hidden="true"></span>
                         <div class="d-grid">
                             <button type="submit" class="c-btn c-btn--primary">
                                 <i class="ti ti-search me-1"></i>Filter
@@ -167,7 +167,7 @@
             <div class="c-card__body">
                 {% if device_tokens %}
                 <div class="c-table-wrapper" data-table-responsive>
-                    <table class="c-table c-table--hoverable" data-table data-mobile-table data-table-type="subscriptions">
+                    <table class="c-c-table c-table--hoverable" data-table data-mobile-table data-table-type="subscriptions">
                         <thead scope="col">
                             <tr>
                                 <th scope="col">
@@ -187,12 +187,12 @@
                         <tbody>
                             {% for token in device_tokens %}
                             <tr>
-                                <td>
+                                <td data-label="Select">
                                     <div class="form-check">
                                         <input class="form-check-input token-checkbox" type="checkbox" value="{{ token.id }}">
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="User">
                                     {% if token.user %}
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-sm rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2">
@@ -207,18 +207,18 @@
                                     <span class="text-muted">No associated user</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Device Token">
                                     <code class="small">{{ token.token[:20] }}...{{ token.token[-10:] if token.token|length > 30 else token.token }}</code>
                                     <button class="c-btn c-btn--sm c-btn--outline-secondary ms-1" data-action="copy-token" data-token="{{ token.token }}" aria-label="Copy"><i class="ti ti-copy"></i></button>
                                 </td>
-                                <td>
+                                <td data-label="Platform">
                                     {% set platform = 'iOS' if 'iOS' in token.token or token.platform == 'iOS' else 'Android' %}
                                     <span class="badge bg-{{ 'primary' if platform == 'iOS' else 'success' }}" data-badge>
                                         <i class="ti ti-{{ 'brand-apple' if platform == 'iOS' else 'brand-android' }} me-1"></i>
                                         {{ platform }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     {% if token.is_active %}
                                         <span class="badge bg-success" data-badge>
                                             <i class="ti ti-check me-1"></i>Active
@@ -229,13 +229,13 @@
                                         </span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td data-label="Created">
                                     <small>{{ token.created_at.strftime('%Y-%m-%d %H:%M') if token.created_at else 'Unknown' }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Last Updated">
                                     <small>{{ token.updated_at.strftime('%Y-%m-%d %H:%M') if token.updated_at else 'Unknown' }}</small>
                                 </td>
-                                <td>
+                                <td data-label="Actions">
                                     <div class="btn-group btn-group-sm">
                                         <button class="c-btn c-btn--outline-info" data-action="view-token" data-token-id="{{ token.id }}" aria-label="View"><i class="ti ti-eye"></i></button>
                                         <button class="c-btn c-btn--outline-primary" data-action="test-notification" data-token-id="{{ token.id }}" aria-label="Send"><i class="ti ti-send"></i></button>

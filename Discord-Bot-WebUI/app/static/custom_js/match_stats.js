@@ -6,7 +6,7 @@ import { InitSystem } from '../js/init-system.js';
 
 let _initialized = false;
 
-function init() {
+function initMatchStats() {
     if (_initialized) return;
     _initialized = true;
 
@@ -16,136 +16,158 @@ function init() {
     }
 
     // Event delegation for Edit buttons
-    window.$(document).on('click', '.edit-match-stat-btn', function () {
-        var statId = window.$(this).data('stat-id');
-        matchStatsEditMatch(statId);
-    });
+    document.addEventListener('click', function(e) {
+        const editBtn = e.target.closest('.edit-match-stat-btn');
+        if (editBtn) {
+            const statId = editBtn.dataset.statId;
+            matchStatsEditMatch(statId);
+        }
 
-    // Event delegation for Remove buttons
-    window.$(document).on('click', '.remove-match-stat-btn', function () {
-        var statId = window.$(this).data('stat-id');
-        removeMatchStat(statId);
+        const removeBtn = e.target.closest('.remove-match-stat-btn');
+        if (removeBtn) {
+            const statId = removeBtn.dataset.statId;
+            removeMatchStat(statId);
+        }
     });
 
     // Initialize filter on page load
     filterMatchStats();
 
     // Bind filter change
-    window.$('#matchFilter').on('change', function () {
-        filterMatchStats();
-    });
+    const matchFilter = document.getElementById('matchFilter');
+    if (matchFilter) {
+        matchFilter.addEventListener('change', filterMatchStats);
+    }
 
     // Handle form submission for editing match stats with SA2 confirmation
-    window.$('#editMatchStatForm').submit(function (e) {
-        e.preventDefault();  // Prevent default form submission
+    const editForm = document.getElementById('editMatchStatForm');
+    if (editForm) {
+        editForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
 
-        var statId = window.$('#editStatId').val();  // Get the stat ID
-        var formData = window.$(this).serialize();  // Serialize the form data
-        var csrfToken = window.$('input[name="csrf_token"]').val();  // Get CSRF token
+            const statId = document.getElementById('editStatId').value;
+            const formData = new FormData(editForm);
+            const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
 
-        window.Swal.fire({
-            title: 'Confirm Changes',
-            text: "Are you sure you want to save these changes?",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
-            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
-            confirmButtonText: 'Yes, save it!'
-        }).then((result) => {
+            const result = await window.Swal.fire({
+                title: 'Confirm Changes',
+                text: "Are you sure you want to save these changes?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
+                cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
+                confirmButtonText: 'Yes, save it!'
+            });
+
             if (result.isConfirmed) {
-                // Proceed with AJAX submission
-                window.$.ajax({
-                    url: '/edit_match_stat/' + statId,
-                    method: 'POST',
-                    data: formData,
-                    headers: {
-                        'X-CSRFToken': csrfToken,
-                    },
-                    beforeSend: function () {
-                        window.Swal.fire({
-                            title: 'Saving...',
-                            text: 'Please wait while your changes are being saved.',
-                            allowOutsideClick: false,
-                            didOpen: () => {
-                                window.Swal.showLoading()
+                window.Swal.fire({
+                    title: 'Saving...',
+                    text: 'Please wait while your changes are being saved.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        window.Swal.showLoading();
+                    }
+                });
+
+                try {
+                    const response = await fetch('/edit_match_stat/' + statId, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        window.Swal.fire(
+                            'Success!',
+                            'Match stat has been updated successfully.',
+                            'success'
+                        ).then(() => {
+                            const modal = document.getElementById('editMatchStatModal');
+                            if (modal && window.bootstrap) {
+                                const bsModal = window.bootstrap.Modal.getInstance(modal);
+                                if (bsModal) bsModal.hide();
                             }
+                            location.reload();
                         });
-                    },
-                    success: function (response) {
-                        if (response.success) {
-                            window.Swal.fire(
-                                'Success!',
-                                'Match stat has been updated successfully.',
-                                'success'
-                            ).then(() => {
-                                window.$('#editMatchStatModal').modal('hide');
-                                location.reload();
-                            });
-                        } else {
-                            window.Swal.fire(
-                                'Error!',
-                                response.message || 'Failed to update match stat.',
-                                'error'
-                            );
-                        }
-                    },
-                    error: function () {
+                    } else {
                         window.Swal.fire(
                             'Error!',
-                            'Failed to update match stat. Please try again.',
+                            data.message || 'Failed to update match stat.',
                             'error'
                         );
                     }
-                });
+                } catch (error) {
+                    console.error('[match_stats] Error updating stat:', error);
+                    window.Swal.fire(
+                        'Error!',
+                        'Failed to update match stat. Please try again.',
+                        'error'
+                    );
+                }
             }
         });
-    });
+    }
 }
 
 // Function to filter match stats based on selected match
 function filterMatchStats() {
-    var selectedMatchId = window.$('#matchFilter').val();
-    window.$('#matchStatsContainer .card').each(function () {
-        var matchId = window.$(this).data('match-id');
+    const matchFilter = document.getElementById('matchFilter');
+    const selectedMatchId = matchFilter ? matchFilter.value : '';
+    const cards = document.querySelectorAll('#matchStatsContainer .card');
+
+    cards.forEach(card => {
+        const matchId = card.dataset.matchId;
         if (selectedMatchId === '' || matchId == selectedMatchId) {
-            window.$(this).show();
+            card.style.display = '';
         } else {
-            window.$(this).hide();
+            card.style.display = 'none';
         }
     });
 }
 
 // Function to open Edit Match Stat Modal with data populated
-function matchStatsEditMatch(statId) {
-    var csrfToken = window.$('input[name="csrf_token"]').val();
+async function matchStatsEditMatch(statId) {
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
 
-    window.$.ajax({
-        url: '/edit_match_stat/' + statId,
-        method: 'GET',
-        headers: {
-            'X-CSRFToken': csrfToken,
-        },
-        success: function (data) {
-            window.$('#editGoalsInput').val(data.goals);
-            window.$('#editAssistsInput').val(data.assists);
-            window.$('#editYellowCardsInput').val(data.yellow_cards);
-            window.$('#editRedCardsInput').val(data.red_cards);
-            window.$('#editStatId').val(statId);
-            window.$('#editMatchStatModal').modal('show');
-        },
-        error: function () {
-            window.Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to load match stats. Please try again.',
-            });
+    try {
+        const response = await fetch('/edit_match_stat/' + statId, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        const data = await response.json();
+
+        document.getElementById('editGoalsInput').value = data.goals;
+        document.getElementById('editAssistsInput').value = data.assists;
+        document.getElementById('editYellowCardsInput').value = data.yellow_cards;
+        document.getElementById('editRedCardsInput').value = data.red_cards;
+        document.getElementById('editStatId').value = statId;
+
+        const modal = document.getElementById('editMatchStatModal');
+        if (modal && window.bootstrap) {
+            const bsModal = new window.bootstrap.Modal(modal);
+            bsModal.show();
         }
-    });
+    } catch (error) {
+        console.error('[match_stats] Error loading stat:', error);
+        window.Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load match stats. Please try again.',
+        });
+    }
 }
 
 // Function to remove a match stat with SA2 confirmation
-function removeMatchStat(statId) {
-    window.Swal.fire({
+async function removeMatchStat(statId) {
+    const result = await window.Swal.fire({
         title: 'Are you sure?',
         text: "Do you want to remove this stat?",
         icon: 'warning',
@@ -153,67 +175,66 @@ function removeMatchStat(statId) {
         confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
         cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
         confirmButtonText: 'Yes, remove it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            var csrfToken = window.$('input[name="csrf_token"]').val();
-            window.$.ajax({
-                url: '/remove_match_stat/' + statId,
+    });
+
+    if (result.isConfirmed) {
+        const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
+
+        window.Swal.fire({
+            title: 'Removing...',
+            text: 'Please wait while the stat is being removed.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                window.Swal.showLoading();
+            }
+        });
+
+        try {
+            const response = await fetch('/remove_match_stat/' + statId, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': csrfToken
-                },
-                beforeSend: function () {
-                    window.Swal.fire({
-                        title: 'Removing...',
-                        text: 'Please wait while the stat is being removed.',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            window.Swal.showLoading()
-                        }
-                    });
-                },
-                success: function (response) {
-                    if (response.success) {
-                        window.Swal.fire(
-                            'Removed!',
-                            'The stat has been removed successfully.',
-                            'success'
-                        ).then(() => {
-                            location.reload();
-                        });
-                    } else {
-                        window.Swal.fire(
-                            'Error!',
-                            response.message || 'Failed to remove the stat.',
-                            'error'
-                        );
-                    }
-                },
-                error: function () {
-                    window.Swal.fire(
-                        'Error!',
-                        'Failed to remove match stat. Please try again.',
-                        'error'
-                    );
                 }
             });
+
+            const data = await response.json();
+
+            if (data.success) {
+                window.Swal.fire(
+                    'Removed!',
+                    'The stat has been removed successfully.',
+                    'success'
+                ).then(() => {
+                    location.reload();
+                });
+            } else {
+                window.Swal.fire(
+                    'Error!',
+                    data.message || 'Failed to remove the stat.',
+                    'error'
+                );
+            }
+        } catch (error) {
+            console.error('[match_stats] Error removing stat:', error);
+            window.Swal.fire(
+                'Error!',
+                'Failed to remove match stat. Please try again.',
+                'error'
+            );
         }
-    });
+    }
 }
 
-// Export functions for template compatibility
-window.filterMatchStats = filterMatchStats;
-window.matchStatsEditMatch = matchStatsEditMatch;
-window.removeMatchStat = removeMatchStat;
+// No window exports needed - uses event delegation internally
 
 // Register with window.InitSystem (primary)
 if (window.InitSystem && window.InitSystem.register) {
-    window.InitSystem.register('match-stats', init, {
+    window.InitSystem.register('match-stats', initMatchStats, {
         priority: 40,
         reinitializable: false,
         description: 'Match stats management'
     });
 }
 
-// Fallback
-// window.InitSystem handles initialization
+// Export for ES modules
+export { initMatchStats };
