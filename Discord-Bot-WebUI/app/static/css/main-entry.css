@@ -41,6 +41,7 @@
    2. BOOTSTRAP - Third-Party (Lowest Priority)
    ============================================================================ */
 @import './bootstrap-minimal.css' layer(bootstrap);
+@import './vendor-styles.css' layer(bootstrap);
 
 /* ============================================================================
    3. CORE - Foundation Styles

@@ -100,15 +100,15 @@ import 'datatables.net-responsive-bs5';
 // ============================================================================
 // 9. SELECT2 - Enhanced select dropdowns
 // jQuery must be on window BEFORE this import (done above)
+// CSS moved to vendor-styles.css (must be in @layer to not override layered CSS)
 // ============================================================================
-import 'select2/dist/css/select2.min.css';
 import 'select2'; // Attaches window.$.fn.select2 to jQuery
 
 // ============================================================================
 // 10. SWEETALERT2 - Beautiful alerts and dialogs
+// CSS moved to vendor-styles.css (must be in @layer to not override layered CSS)
 // ============================================================================
 import Swal from 'sweetalert2';
-import 'sweetalert2/dist/sweetalert2.min.css';
 window.Swal = Swal;
 
 // ============================================================================
@@ -119,16 +119,16 @@ window.io = io;
 
 // ============================================================================
 // 12. FLATPICKR - Date/time picker
+// CSS moved to vendor-styles.css (must be in @layer to not override layered CSS)
 // ============================================================================
 import flatpickr from 'flatpickr';
-import 'flatpickr/dist/flatpickr.min.css';
 window.flatpickr = flatpickr;
 
 // ============================================================================
 // 13. CROPPER.JS - Image cropping
+// CSS moved to vendor-styles.css (must be in @layer to not override layered CSS)
 // ============================================================================
 import Cropper from 'cropperjs';
-import 'cropperjs/dist/cropper.min.css';
 window.Cropper = Cropper;
 
 // ============================================================================

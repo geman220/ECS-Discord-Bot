@@ -1,0 +1,19 @@
+/**
+ * ============================================================================
+ * VENDOR CSS - Third-Party Library Styles
+ * ============================================================================
+ *
+ * CRITICAL: This file imports vendor CSS and wraps it in @layer bootstrap.
+ * This ensures vendor CSS has LOWER priority than our layered components.
+ *
+ * Without @layer, vendor CSS would beat ALL our layered CSS because
+ * unlayered CSS always has higher priority than layered CSS.
+ *
+ * ============================================================================
+ */
+
+/* Import vendor CSS from npm packages */
+@import 'select2/dist/css/select2.min.css';
+@import 'sweetalert2/dist/sweetalert2.min.css';
+@import 'flatpickr/dist/flatpickr.min.css';
+@import 'cropperjs/dist/cropper.min.css';
