@@ -238,7 +238,7 @@ class WalletPass(db.Model):
     apple_pass_generated_at = db.Column(db.DateTime, nullable=True)
     google_pass_generated = db.Column(db.Boolean, default=False)
     google_pass_generated_at = db.Column(db.DateTime, nullable=True)
-    google_pass_url = db.Column(db.String(500), nullable=True)
+    google_pass_url = db.Column(db.Text, nullable=True)  # JWT URLs can be 1000+ chars
 
     # Download tracking
     download_count = db.Column(db.Integer, default=0)
