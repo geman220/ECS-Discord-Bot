@@ -16,9 +16,10 @@ fi
 
 # Patch app.js to use publicUrl from config instead of request headers
 # This fixes the issue where internal Docker URLs are used for Google Wallet images
+# Note: pass-converter serves images at /image/:name, so we use publicUrl + '/' (not /convert/)
 if [ -n "$PUBLIC_URL" ]; then
     echo "Patching app.js to use PUBLIC_URL=${PUBLIC_URL}"
-    sed -i "s|req.fullUrl = \`\${req.protocol}://\${req.get('host')}\${req.originalUrl}\`;|req.fullUrl = config.publicUrl ? \`\${config.publicUrl}/convert/\` : \`\${req.protocol}://\${req.get('host')}\${req.originalUrl}\`;|g" /app/app.js
+    sed -i "s|req.fullUrl = \`\${req.protocol}://\${req.get('host')}\${req.originalUrl}\`;|req.fullUrl = config.publicUrl ? \`\${config.publicUrl}/\` : \`\${req.protocol}://\${req.get('host')}\${req.originalUrl}\`;|g" /app/app.js
 fi
 
 # Start the application
