@@ -1,0 +1,88 @@
+/**
+ * ============================================================================
+ * MOBILE CSS VARIABLES - Single Source of Truth
+ * ============================================================================
+ *
+ * All mobile-specific CSS custom properties are defined here.
+ * This prevents duplicate variable declarations across files.
+ *
+ * Design Tokens:
+ * - Typography: Based on 16px base for iOS zoom prevention
+ * - Spacing: Based on 4px grid system
+ * - Touch Targets: WCAG 2.1 AA compliant (44px minimum)
+ *
+ * ============================================================================
+ */
+
+:root {
+  /* ─────────────────────────────────────────────────────────────────────────
+     TYPOGRAPHY SCALE
+     Base: 16px (required for iOS zoom prevention on inputs)
+     ───────────────────────────────────────────────────────────────────────── */
+  --mobile-text-xs: 12px;
+  --mobile-text-sm: 14px;
+  --mobile-text-base: 16px;  /* iOS zoom prevention requires 16px minimum */
+  --mobile-text-lg: 18px;
+  --mobile-text-xl: 20px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     SPACING SCALE
+     Based on 4px grid for consistent visual rhythm
+     ───────────────────────────────────────────────────────────────────────── */
+  --mobile-space-xs: 4px;    /* Tight spacing */
+  --mobile-space-sm: 8px;    /* Small gaps */
+  --mobile-space-base: 12px; /* Standard spacing */
+  --mobile-space-lg: 16px;   /* Generous spacing */
+  --mobile-space-xl: 24px;   /* Large gaps */
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     TOUCH TARGET SIZES
+     WCAG 2.1 AA requires minimum 44x44px touch targets
+     ───────────────────────────────────────────────────────────────────────── */
+  --mobile-touch-sm: 40px;   /* Minimum acceptable (use sparingly) */
+  --mobile-touch-base: 44px; /* WCAG 2.1 AA recommended */
+  --mobile-touch-lg: 48px;   /* Comfortable touch target */
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     CONTAINER & LAYOUT
+     ───────────────────────────────────────────────────────────────────────── */
+  --mobile-container-padding: 12px;
+  --mobile-modal-margin: 8px;
+  --mobile-card-padding: 12px;
+  --mobile-gutter: 8px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     BORDER RADIUS
+     Slightly smaller on mobile for space efficiency
+     ───────────────────────────────────────────────────────────────────────── */
+  --mobile-radius-sm: 4px;
+  --mobile-radius-base: 6px;
+  --mobile-radius-lg: 8px;
+  --mobile-radius-xl: 12px;
+}
+
+
+/* ============================================================================
+   TABLET ADJUSTMENTS (768px+)
+   ============================================================================ */
+@media (min-width: 768px) {
+  :root {
+    --mobile-container-padding: 20px;
+    --mobile-space-base: 16px;
+    --mobile-space-lg: 24px;
+    --mobile-modal-margin: 16px;
+    --mobile-card-padding: 16px;
+  }
+}
+
+
+/* ============================================================================
+   DESKTOP ADJUSTMENTS (992px+)
+   ============================================================================ */
+@media (min-width: 992px) {
+  :root {
+    --mobile-container-padding: 24px;
+    --mobile-space-base: 20px;
+    --mobile-card-padding: 20px;
+  }
+}

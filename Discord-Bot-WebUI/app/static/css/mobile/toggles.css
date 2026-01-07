@@ -1,0 +1,193 @@
+/**
+ * ============================================================================
+ * MOBILE TOGGLES - Checkboxes, Radios, and Switches
+ * ============================================================================
+ *
+ * Touch-optimized toggle controls with proper touch targets.
+ * Includes form switches, checkboxes, radios, and range sliders.
+ *
+ * Touch Target Requirements (WCAG 2.1 AA):
+ * - Minimum 44x44px touch targets
+ * - Visual size can be smaller, but tappable area must be 44px+
+ *
+ * ============================================================================
+ */
+
+
+/* ============================================================================
+   CHECKBOXES AND RADIOS
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Regular checkboxes/radios - visually reasonable size */
+  .form-check-input:not([type="checkbox"]):not([type="radio"]),
+  .form-check:not(.form-switch) .form-check-input[type="checkbox"],
+  .form-check:not(.form-switch) .form-check-input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    margin-top: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Form check label - entire row is tappable */
+  .form-check-label {
+    font-size: 15px;
+    padding-left: 12px;
+    padding: var(--mobile-space-sm) 0 var(--mobile-space-sm) 12px;
+    cursor: pointer;
+    flex: 1;
+  }
+
+  /* Form check container - 44px touch target */
+  .form-check:not(.form-switch) {
+    padding-left: 0;
+    min-height: var(--mobile-touch-base);
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Inline form checks */
+  .form-check-inline {
+    margin-right: var(--mobile-space-lg);
+  }
+
+  /* Stack inline form checks on very small screens */
+  @media (max-width: 575.98px) {
+    .form-check-inline {
+      display: flex;
+      width: 100%;
+      margin-right: 0;
+      margin-bottom: var(--mobile-space-sm);
+    }
+  }
+}
+
+
+/* ============================================================================
+   FORM SWITCHES (Toggle Buttons)
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Switch container */
+  .form-switch {
+    min-height: var(--mobile-touch-base);
+    display: flex;
+    align-items: center;
+    padding-left: 3.5em;
+  }
+
+  /* Switch track */
+  .form-switch .form-check-input {
+    width: 3em;
+    height: 1.5em;
+    margin-left: -3.5em;
+    margin-top: 0;
+    cursor: pointer;
+    border-radius: 2em;
+  }
+
+  /* Switch thumb (focus state) */
+  .form-switch .form-check-input:focus {
+    outline: 2px solid var(--bs-primary, var(--ecs-primary));
+    outline-offset: 2px;
+  }
+
+  /* Switch label */
+  .form-switch .form-check-label {
+    padding: var(--mobile-space-sm) 0;
+    cursor: pointer;
+  }
+}
+
+
+/* ============================================================================
+   RANGE SLIDERS
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  .form-range {
+    height: var(--mobile-touch-base);
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .form-range::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+    margin-top: -10px;
+  }
+
+  .form-range::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Focus state */
+  .form-range:focus {
+    outline: none;
+  }
+
+  .form-range:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px var(--bs-primary, var(--ecs-primary));
+  }
+
+  .form-range:focus::-moz-range-thumb {
+    box-shadow: 0 0 0 3px var(--bs-primary, var(--ecs-primary));
+  }
+}
+
+
+/* ============================================================================
+   CUSTOM TOGGLE BUTTONS (Button-style toggles)
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Toggle button group */
+  .btn-group-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mobile-space-sm);
+  }
+
+  .btn-group-toggle .btn {
+    flex: 1 1 auto;
+    min-height: var(--mobile-touch-base);
+  }
+
+  /* Toggle button states */
+  .btn-group-toggle .btn.active,
+  .btn-group-toggle .btn:checked + .btn {
+    background: var(--bs-primary, var(--ecs-primary));
+    color: white;
+    border-color: var(--bs-primary, var(--ecs-primary));
+  }
+}
+
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .form-check-input {
+  background-color: var(--color-bg-elevated, #334155);
+  border-color: var(--color-border-primary, #475569);
+}
+
+[data-style="dark"] .form-check-input:checked {
+  background-color: var(--color-primary-500, #8b5cf6);
+  border-color: var(--color-primary-500, #8b5cf6);
+}
+
+[data-style="dark"] .form-switch .form-check-input {
+  background-color: var(--color-bg-elevated, #334155);
+}
+
+[data-style="dark"] .form-switch .form-check-input:checked {
+  background-color: var(--color-primary-500, #8b5cf6);
+}
+
+[data-style="dark"] .form-check-label {
+  color: var(--color-text-primary, #F8FAFC);
+}

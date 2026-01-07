@@ -1,0 +1,347 @@
+/**
+ * ============================================================================
+ * MOBILE TABLES - Table-to-Card Transformation
+ * ============================================================================
+ *
+ * Mobile-optimized responsive tables with card-style layouts.
+ * Transforms traditional tables into touch-friendly card stacks on mobile.
+ *
+ * Features:
+ * - Table-to-card transformation (< 992px)
+ * - data-label attributes for cell labels
+ * - Touch-friendly action buttons
+ * - Grid layout for complex tables (6+ columns)
+ *
+ * ============================================================================
+ */
+
+
+/* ============================================================================
+   BASE TABLE RESPONSIVE CONTAINER
+   ============================================================================ */
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--mobile-radius-base);
+  margin-bottom: var(--mobile-space-base);
+}
+
+
+/* ============================================================================
+   MOBILE TABLE-TO-CARD TRANSFORMATION
+   ============================================================================ */
+
+@media (max-width: 991.98px) {
+  /* JUSTIFIED !important: Override Bootstrap's default overflow for card layout */
+  .table-responsive {
+    overflow: visible;
+  }
+
+  /* Hide table header on mobile (data shown via data-label) */
+  .table-responsive thead {
+    display: none;
+  }
+
+  /* Convert table to block layout */
+  .table-responsive table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .table-responsive tbody {
+    display: block;
+  }
+
+  /* JUSTIFIED !important: Override Bootstrap utilities for card layout */
+  .table-responsive tr {
+    display: block;
+    background: var(--color-bg-card, var(--bs-body-bg));
+    border: 1px solid var(--border-color-primary, var(--bs-border-color));
+    border-radius: var(--mobile-radius-lg);
+    margin-bottom: var(--mobile-space-base);
+    padding: var(--mobile-card-padding);
+    box-shadow: var(--shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.08));
+    transition: all 150ms ease;
+    position: relative;
+    z-index: 1;
+  }
+
+  .table-responsive tr:hover {
+    box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.12));
+    transform: translateY(-2px);
+    z-index: 10;
+  }
+
+  /* JUSTIFIED !important: Dropdown z-index for proper stacking */
+  .table-responsive tr:has(.dropdown.show),
+  .table-responsive tr:has(.dropdown-menu.show) {
+    z-index: 1050;
+  }
+
+  /* When modal is open, table dropdowns stay below modal */
+  body.modal-open .table-responsive tr:has(.dropdown.show),
+  body.modal-open .table-responsive tr:has(.dropdown-menu.show) {
+    z-index: var(--z-dropdown, 1000);
+  }
+
+  /* JUSTIFIED !important: Override Bootstrap utilities for card cells */
+  .table-responsive td {
+    display: block;
+    text-align: left;
+    padding: 6px 0;
+    border: none;
+    position: relative;
+  }
+
+  /* Data labels for mobile cards */
+  .table-responsive td[data-label]:before {
+    content: attr(data-label) ": ";
+    font-weight: 600;
+    display: inline-block;
+    color: var(--bs-secondary, #64748b);
+    margin-right: var(--mobile-space-sm);
+    font-size: var(--mobile-text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 80px;
+  }
+
+  /* Special styling for cells without labels (action buttons) */
+  .table-responsive td:not([data-label]) {
+    padding-top: var(--mobile-space-base);
+    margin-top: var(--mobile-space-sm);
+    border-top: 1px solid var(--bs-border-color);
+  }
+
+  /* Action buttons at bottom of card */
+  .table-responsive td:last-child {
+    margin-top: var(--mobile-space-base);
+    padding-top: var(--mobile-space-base);
+    border-top: 1px solid var(--bs-border-color);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mobile-space-sm);
+    justify-content: flex-start;
+  }
+
+  /* Button groups in table cards */
+  .table-responsive .btn-group {
+    display: flex;
+    gap: var(--mobile-space-sm);
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .table-responsive .btn-group .btn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Touch-friendly buttons */
+  .table-responsive .btn {
+    min-height: var(--mobile-touch-base);
+    font-size: var(--mobile-text-sm);
+    padding: var(--mobile-space-sm) var(--mobile-space-base);
+    white-space: nowrap;
+  }
+
+  .table-responsive .btn-sm {
+    min-height: var(--mobile-touch-base);
+    font-size: 13px;
+    padding: var(--mobile-space-xs) var(--mobile-space-sm);
+  }
+
+  .table-responsive .btn-icon {
+    min-width: var(--mobile-touch-base);
+    min-height: var(--mobile-touch-base);
+    padding: var(--mobile-space-sm);
+  }
+
+  /* Badge optimization */
+  .table-responsive .badge {
+    font-size: 11px;
+    padding: var(--mobile-space-xs) var(--mobile-space-sm);
+    display: inline-block;
+  }
+
+  /* Checkbox/radio touch targets */
+  .table-responsive input[type="checkbox"],
+  .table-responsive input[type="radio"] {
+    min-width: var(--mobile-touch-base);
+    min-height: var(--mobile-touch-base);
+    cursor: pointer;
+  }
+
+  /* Remove table striping on mobile (cards have borders) */
+  .table-responsive .table-striped tbody tr:nth-of-type(odd) {
+    background-color: var(--color-bg-card, var(--bs-body-bg));
+  }
+
+  .table-responsive .table-hover tbody tr:hover {
+    background-color: var(--color-bg-card, var(--bs-body-bg));
+  }
+}
+
+
+/* ============================================================================
+   COMPACT GRID LAYOUT FOR COMPLEX TABLES
+   Tables with 6+ columns use 2-column grid for better space utilization
+   ============================================================================ */
+
+@media (max-width: 991.98px) {
+  /* JUSTIFIED !important: Grid layout for complex tables */
+  .table-responsive tr:has(td:nth-child(6)) {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--mobile-space-sm) var(--mobile-space-lg);
+    padding: var(--mobile-space-lg);
+  }
+
+  /* First cell (rank/ID) spans full width */
+  .table-responsive tr:has(td:nth-child(6)) td:first-child {
+    grid-column: 1 / -1;
+    font-size: var(--mobile-text-sm);
+    font-weight: 700;
+    padding-bottom: var(--mobile-space-sm);
+    border-bottom: 2px solid var(--bs-border-color);
+    margin-bottom: var(--mobile-space-sm);
+  }
+
+  /* Second cell (team name) spans full width */
+  .table-responsive tr:has(td:nth-child(6)) td:nth-child(2) {
+    grid-column: 1 / -1;
+    padding: var(--mobile-space-sm) 0 var(--mobile-space-base) 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: var(--mobile-space-xs);
+  }
+
+  /* Grid cells use flex for label + value layout */
+  .table-responsive tr:has(td:nth-child(6)) td {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mobile-space-xs);
+    align-items: center;
+    padding: var(--mobile-space-xs) 0;
+  }
+
+  /* Compact labels in grid layout */
+  .table-responsive tr:has(td:nth-child(6)) td[data-label]:before {
+    min-width: auto;
+    font-size: 11px;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+
+  /* Last cell (key stats) emphasized */
+  .table-responsive tr:has(td:nth-child(6)) td:last-child:not(:has(.dropdown)) {
+    grid-column: 1 / -1;
+    margin-top: var(--mobile-space-sm);
+    padding-top: var(--mobile-space-base);
+    border-top: 2px solid var(--bs-border-color);
+    font-size: var(--mobile-text-base);
+    font-weight: 700;
+    text-align: center;
+  }
+
+  /* Actions column styling */
+  .table-responsive tr:has(td:nth-child(6)) td:last-child:has(.dropdown),
+  .table-responsive tr:has(td:nth-child(6)) td.table-actions {
+    grid-column: 1 / -1;
+    margin-top: var(--mobile-space-sm);
+    padding-top: var(--mobile-space-sm);
+    border-top: 1px solid var(--bs-border-color);
+    font-size: inherit;
+    font-weight: normal;
+    text-align: left;
+  }
+
+  /* Hide checkbox column on mobile */
+  .table-responsive tr:has(td:nth-child(6)) td:first-child:has(input[type="checkbox"]) {
+    display: none;
+  }
+
+  /* Badges in grid layout */
+  .table-responsive tr:has(td:nth-child(6)) td .badge {
+    display: inline-flex;
+    white-space: nowrap;
+  }
+}
+
+
+/* ============================================================================
+   HORIZONTAL SCROLLING TABLES (Optional)
+   For tables that should keep traditional horizontal scroll
+   ============================================================================ */
+
+@media (max-width: 991.98px) {
+  /* JUSTIFIED !important: Override card layout for horizontal tables */
+  .table-responsive.table-horizontal-mobile {
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+  .table-responsive.table-horizontal-mobile thead {
+    display: table-header-group;
+  }
+
+  .table-responsive.table-horizontal-mobile tr {
+    display: table-row;
+    border: none;
+    border-radius: 0;
+    margin-bottom: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .table-responsive.table-horizontal-mobile td {
+    display: table-cell;
+    border: 1px solid var(--bs-border-color);
+  }
+
+  .table-responsive.table-horizontal-mobile td:before {
+    content: none;
+  }
+
+  /* Scroll hint */
+  .table-responsive.table-horizontal-mobile::after {
+    content: 'Swipe to see more';
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .table-responsive.table-horizontal-mobile:hover::after {
+    opacity: 1;
+  }
+}
+
+
+/* ============================================================================
+   DESKTOP RESTORATION (992px+)
+   ============================================================================ */
+
+@media (min-width: 992px) {
+  /* Restore table layout for desktop */
+  .table-responsive table,
+  .table-responsive thead,
+  .table-responsive tbody,
+  .table-responsive tr,
+  .table-responsive td {
+    display: revert;
+  }
+
+  .table-responsive td[data-label]:before {
+    display: none;
+  }
+}

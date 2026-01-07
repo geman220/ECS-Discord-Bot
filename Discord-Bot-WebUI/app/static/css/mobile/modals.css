@@ -1,0 +1,327 @@
+/**
+ * ============================================================================
+ * MOBILE MODALS - Bottom Sheet & Dialog Optimization
+ * ============================================================================
+ *
+ * Mobile-optimized modal dialogs with bottom sheet patterns.
+ * Converts standard modals to slide-up bottom sheets on mobile.
+ *
+ * Features:
+ * - Bottom sheet transformation on mobile
+ * - Touch-friendly button stacking
+ * - Swipe-to-dismiss support
+ * - Full-screen variant
+ * - Safe area inset support
+ *
+ * ============================================================================
+ */
+
+
+/* ============================================================================
+   BASE MODAL STYLES
+   ============================================================================ */
+
+.modal-dialog {
+  margin: 0.5rem;
+  max-width: calc(100% - 1rem);
+}
+
+.modal-content {
+  border-radius: var(--mobile-radius-xl);
+}
+
+.modal-header,
+.modal-footer {
+  padding: var(--mobile-space-base);
+}
+
+.modal-body {
+  padding: var(--mobile-space-base);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+
+/* ============================================================================
+   MOBILE BOTTOM SHEET TRANSFORMATION
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Darker backdrop on mobile */
+  .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  /* Modal sizing */
+  .modal-dialog:not(.auth-page .modal-dialog) {
+    margin: var(--mobile-modal-margin);
+    max-width: calc(100% - calc(var(--mobile-modal-margin) * 2));
+  }
+
+  /* Bottom sheet transformation (unless opted out) */
+  .modal-dialog:not(.modal-keep-centered) {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    max-width: 100%;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .modal.show .modal-dialog:not(.modal-keep-centered) {
+    transform: translateY(0);
+  }
+
+  /* Bottom sheet content styling */
+  .modal-dialog:not(.modal-keep-centered) .modal-content {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--mobile-radius-xl) var(--mobile-radius-xl) 0 0;
+    max-height: calc(90vh - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
+    overflow: hidden;
+    border-bottom: none;
+  }
+
+  /* Drag handle at top of bottom sheet */
+  .modal-dialog:not(.modal-keep-centered) .modal-header::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: var(--bs-border-color, var(--ecs-neutral-20));
+    border-radius: 2px;
+    margin: 0 auto var(--mobile-space-sm);
+    opacity: 0.6;
+  }
+
+  /* Modal header spacing */
+  .modal-dialog:not(.modal-keep-centered) .modal-header {
+    flex-shrink: 0;
+    padding-top: var(--mobile-space-lg);
+  }
+
+  /* Modal body - scrollable area */
+  .modal-body {
+    flex: 1 1 auto;
+    padding: var(--mobile-space-lg);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Modal footer - sticky at bottom */
+  .modal-footer {
+    flex-shrink: 0;
+    flex-direction: column;  /* JUSTIFIED: Stack buttons vertically */
+    gap: var(--mobile-space-base);
+    padding: var(--mobile-space-lg);
+    padding-bottom: calc(var(--mobile-space-lg) + env(safe-area-inset-bottom, 0px));
+    background: var(--bs-modal-bg, var(--ecs-neutral-0));
+    border-top: 1px solid var(--bs-border-color);
+  }
+
+  /* Footer buttons - full width, touch friendly */
+  .modal-footer .btn {
+    width: 100%;           /* JUSTIFIED: Full-width touch targets */
+    flex: none;             /* JUSTIFIED: Consistent sizing */
+    min-height: var(--mobile-touch-lg);  /* JUSTIFIED: WCAG touch target */
+    margin: 0;              /* JUSTIFIED: Use gap instead */
+    font-size: var(--mobile-text-base);  /* JUSTIFIED: iOS zoom prevention */
+    font-weight: 600;
+    border-radius: var(--mobile-radius-lg);
+    padding: var(--mobile-space-base) var(--mobile-space-xl);
+  }
+
+  /* Button stacking order */
+  .modal-footer .btn-primary {
+    order: -1 !important;  /* JUSTIFIED: Primary action first */
+  }
+
+  .modal-footer .btn-secondary {
+    order: 1 !important;   /* JUSTIFIED: Secondary action last */
+  }
+
+  /* Hide duplicate mobile quick submit buttons */
+  .modal-footer .mobile-quick-submit,
+  .modal-footer .btn-success.mobile-quick-submit {
+    display: none;  /* JUSTIFIED: Remove duplicate buttons */
+  }
+
+  /* Close button optimization */
+  .modal-header .btn-close {
+    min-width: var(--mobile-touch-base);
+    min-height: var(--mobile-touch-base);
+    width: var(--mobile-touch-base);
+    height: var(--mobile-touch-base);
+    padding: var(--mobile-space-base);
+    margin-left: auto;
+  }
+
+  /* Form inputs in modals */
+  .modal-body .form-control,
+  .modal-body .form-select {
+    min-height: var(--mobile-touch-base);
+    font-size: 16px; /* Prevent iOS zoom */
+  }
+
+  .modal-body textarea.form-control {
+    min-height: 100px;
+  }
+
+  /* Input groups in modals */
+  .modal-body .input-group {
+    flex-wrap: wrap;
+    gap: var(--mobile-space-sm);
+  }
+
+  .modal-body .input-group > * {
+    flex: 1 1 100%;
+  }
+
+  .modal-body .input-group .btn-sm,
+  .modal-body .input-group .btn-close {
+    flex: 0 0 var(--mobile-touch-base);
+    min-width: var(--mobile-touch-base);
+    min-height: var(--mobile-touch-base);
+  }
+}
+
+
+/* ============================================================================
+   FULL SCREEN MODAL VARIANT
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  .modal-fullscreen-mobile .modal-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+
+  .modal-fullscreen-mobile .modal-content {
+    height: 100vh;
+    border-radius: 0;
+    max-height: none;
+  }
+
+  .modal-fullscreen-mobile .modal-body {
+    max-height: calc(100vh - 120px);
+  }
+}
+
+
+/* ============================================================================
+   SWIPE-TO-DISMISS SUPPORT
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  .modal-dialog[data-dismiss-on-swipe="true"] .modal-header {
+    cursor: grab;
+  }
+
+  .modal-dialog[data-dismiss-on-swipe="true"] .modal-header:active {
+    cursor: grabbing;
+  }
+
+  /* Visual feedback during swipe */
+  .modal-dialog.swiping {
+    transition: none;
+  }
+}
+
+
+/* ============================================================================
+   MODAL ANIMATIONS
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  @keyframes slideDown {
+    from { transform: translateY(0); }
+    to { transform: translateY(100%); }
+  }
+
+  .modal.show .modal-dialog:not(.modal-keep-centered) {
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .modal.hide .modal-dialog:not(.modal-keep-centered) {
+    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+
+/* ============================================================================
+   DESKTOP MODAL RESTORATION (768px+)
+   ============================================================================ */
+
+@media (min-width: 768px) {
+  .modal-dialog {
+    margin: 1.75rem auto;
+    max-width: 700px;
+  }
+
+  .modal-dialog.modal-sm {
+    max-width: 400px;
+  }
+
+  .modal-dialog.modal-lg {
+    max-width: 900px;
+  }
+
+  .modal-dialog.modal-xl {
+    max-width: 1140px;
+  }
+
+  .modal-dialog.modal-fullscreen {
+    max-width: none;
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  /* Report match modals - extra wide */
+  [id^="reportMatchModal"] .modal-dialog {
+    max-width: 850px;
+  }
+}
+
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+/* Focus visible on modal content */
+.modal-content:focus {
+  outline: 2px solid var(--ecs-primary);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .modal-dialog {
+    transition: none;
+    animation: none;
+  }
+
+  .modal.fade .modal-dialog {
+    transform: none;
+    transition: none;
+  }
+}

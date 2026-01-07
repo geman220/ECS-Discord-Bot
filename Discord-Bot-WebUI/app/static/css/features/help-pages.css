@@ -1,0 +1,119 @@
+/**
+ * Consolidated inline styles
+ */
+
+/* From: help/view_topic.html */
+/* Help content styling */
+.help-content {
+    line-height: 1.6;
+}
+
+/* Table styling */
+.help-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    border: 1px solid var(--ecs-neutral-20, #dee2e6);
+}
+
+.help-content th,
+.help-content td {
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid var(--ecs-neutral-20, #dee2e6);
+}
+
+.help-content th {
+    background-color: var(--ecs-neutral-5, #f8f9fa);
+    font-weight: 600;
+}
+
+.help-content tbody tr:nth-child(even) {
+    background-color: var(--ecs-neutral-5, #f8f9fa);
+}
+
+/* Anchor link styling */
+.help-content .headerlink {
+    opacity: 0;
+    color: var(--ecs-secondary, #6c757d);
+    text-decoration: none;
+    margin-left: 0.5rem;
+    font-size: 0.8em;
+    transition: opacity 0.2s ease;
+}
+
+.help-content h1:hover .headerlink,
+.help-content h2:hover .headerlink,
+.help-content h3:hover .headerlink,
+.help-content h4:hover .headerlink,
+.help-content h5:hover .headerlink,
+.help-content h6:hover .headerlink {
+    opacity: 1;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Highlight target when jumping to anchor */
+:target {
+    animation: highlight 2s ease-in-out;
+}
+
+@keyframes highlight {
+    0% { background-color: var(--ecs-warning-subtle, #fff3cd); }
+    100% { background-color: transparent; }
+}
+
+/* Table of contents styling */
+.help-content ol, .help-content ul {
+    margin: 1rem 0;
+}
+
+.help-content blockquote {
+    border-left: 4px solid var(--ecs-primary, #007bff);
+    margin: 1rem 0;
+    padding: 0.5rem 1rem;
+    background-color: var(--ecs-neutral-5, #f8f9fa);
+    font-style: italic;
+}
+
+/* Code styling */
+.help-content code {
+    background-color: var(--ecs-neutral-5, #f8f9fa);
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.9em;
+}
+
+.help-content pre {
+    background-color: var(--ecs-neutral-5, #f8f9fa);
+    padding: 1rem;
+    border-radius: 0.25rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+/* Details/summary styling for FAQ */
+.help-content details {
+    border: 1px solid var(--ecs-neutral-20, #dee2e6);
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+    margin: 0.5rem 0;
+}
+
+.help-content summary {
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.5rem;
+    background-color: var(--ecs-neutral-5, #f8f9fa);
+    border-radius: 0.25rem;
+    margin: -0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.help-content details[open] summary {
+    margin-bottom: 0.5rem;
+}
+

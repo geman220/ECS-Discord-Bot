@@ -1,0 +1,383 @@
+/**
+ * Consolidated inline styles
+ */
+
+/* From: admin_panel/monitoring/database_monitor.html */
+
+.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.active {
+  background-color: var(--ecs-success, #28a745);
+  box-shadow: 0 0 0 2px rgba(var(--ecs-success-rgb, 40, 167, 69), 0.2);
+}
+
+.status-indicator.inactive {
+  background-color: var(--ecs-danger, #dc3545);
+  box-shadow: 0 0 0 2px rgba(var(--ecs-danger-rgb, 220, 53, 69), 0.2);
+}
+
+.status-indicator.status-secondary {
+  background-color: var(--ecs-secondary, #6c757d);
+}
+
+.progress {
+  background-color: var(--ecs-neutral-10, #e9ecef);
+  background-color: #e9ecef;
+}
+
+@media (max-width: 768px) {
+  .border-end {
+    border-right: none !important;
+    border-bottom: 1px solid var(--bs-border-color) !important;
+  }
+
+  .btn-group {
+    flex-wrap: wrap;
+  }
+
+  .btn-group .btn {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* From: admin_panel/monitoring/system_logs.html */
+
+.log-entry-error {
+  background-color: rgba(220, 53, 69, 0.05);
+}
+
+.log-entry-warning {
+  background-color: rgba(255, 193, 7, 0.05);
+}
+
+.log-entry-info {
+  background-color: rgba(13, 202, 240, 0.05);
+}
+
+.log-entry-debug {
+  background-color: rgba(108, 117, 125, 0.05);
+}
+
+.log-message {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+#liveTailContent {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* From: admin_panel/monitoring/system_performance.html */
+
+.icon-overlay i {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+/* Utility classes for chart heights */
+
+.u-h-300 {
+  height: 300px;
+}
+
+.u-h-400 {
+  height: 400px;
+}
+
+/* Progress bar utilities */
+
+.u-progress-sm {
+  height: 6px;
+}
+
+/* Circular progress indicators */
+
+.u-progress-circle {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ecs-neutral-20, #e9ecef);
+}
+
+.u-progress-circle .progress-bar {
+  position: absolute;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50%;
+}
+
+.u-progress-circle--info .progress-bar {
+  /* Info color will be applied via bg-info class */
+}
+
+/* From: admin_panel/monitoring/task_history.html */
+
+/* From: admin_panel/monitoring/task_monitor.html */
+
+/* ============================================================================
+   DB MONITORING PAGE STYLES
+   Extracted from db_monitoring.html inline styles
+   ============================================================================ */
+
+/* Progress bar animation */
+
+.progress-bar {
+  transition: width 0.6s ease;
+}
+
+/* Pre formatting for code/stack traces */
+
+pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 500px;
+  overflow-y: auto;
+  margin-bottom: 0;
+}
+
+/* Status badges */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 0.25rem);
+}
+
+/* Icon sizing utility for empty states */
+
+.icon-empty-state {
+  font-size: 3rem;
+}
+
+/* Dark mode support */
+
+[data-style="dark"] pre {
+  background-color: var(--ecs-dark-bg-elevated, #1e293b);
+  color: var(--ecs-dark-text-primary, #f1f5f9);
+}
+
+@media (max-width: 768px) {
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+
+  .border-end {
+    border-right: none !important;
+    border-bottom: 1px solid var(--bs-border-color) !important;
+  }
+}
+
+/* ============================================================================
+   SYSTEM MONITORING PAGE STYLES
+   Extracted from monitoring.html inline styles
+   ============================================================================ */
+
+/* Modern Dashboard Card Enhancements */
+
+.monitoring-page .card {
+  border: 1px solid rgba(67, 89, 113, 0.1);
+  border-radius: 0.75rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.monitoring-page .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 25px 0 rgba(67, 89, 113, 0.1);
+}
+
+/* Primary gradient background */
+
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--ecs-primary, #666CFF) 0%, var(--ecs-primary-dark, #4C63D2) 100%);
+}
+
+/* Avatar styling for stat cards */
+
+.avatar {
+  width: 2.375rem;
+  height: 2.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  width: 100%;
+  height: 100%;
+}
+
+/* Metric card hover effect */
+
+.metric-card {
+  transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+  transform: scale(1.02);
+}
+
+/* Status indicator with pulse animation */
+
+.status-indicator.healthy {
+  background-color: var(--ecs-success, #28c76f);
+}
+
+.status-indicator.warning {
+  background-color: var(--ecs-warning, #ff9f43);
+}
+
+.status-indicator.critical {
+  background-color: var(--ecs-danger, #ea5455);
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Queue item styling */
+
+.queue-item {
+  border-left: 4px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.queue-item.healthy {
+  border-left-color: var(--ecs-success, #28c76f);
+}
+
+.queue-item.warning {
+  border-left-color: var(--ecs-warning, #ff9f43);
+}
+
+.queue-item.critical {
+  border-left-color: var(--ecs-danger, #ea5455);
+}
+
+/* Task item styling */
+
+.task-item {
+  transition: all 0.2s ease;
+  border-radius: 0.5rem;
+}
+
+.task-item:hover {
+  background-color: rgba(67, 89, 113, 0.05);
+}
+
+/* Smaller progress bar */
+
+.progress-sm {
+  height: 4px;
+}
+
+/* Icon size for empty states */
+
+.card-icon-stat {
+  font-size: 2.5rem;
+}
+
+/* Responsive adjustments */
+
+@media (max-width: 991.98px) {
+  .monitoring-page .card-body h3 {
+    font-size: 1.5rem;
+  }
+
+  .avatar {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .avatar-initial {
+    font-size: 1rem;
+  }
+}
+
+/* Dark mode support */
+
+[data-style="dark"] .monitoring-page .card,
+[data-theme="dark"] .monitoring-page .card {
+  border-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--ecs-dark-bg-card, #2b2c40);
+}
+
+[data-style="dark"] .bg-gradient-primary,
+[data-theme="dark"] .bg-gradient-primary {
+  background: linear-gradient(135deg, var(--ecs-primary, #666CFF) 0%, var(--ecs-primary-dark, #4C63D2) 100%);
+}
+
+[data-style="dark"] .task-item:hover,
+[data-theme="dark"] .task-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Loading skeleton animation */
+
+.skeleton {
+  animation: skeleton-loading 1s linear infinite alternate;
+  background: linear-gradient(90deg, var(--ecs-neutral-10, #f0f0f0) 25%, var(--ecs-neutral-20, #e0e0e0) 50%, var(--ecs-neutral-10, #f0f0f0) 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Real-time update indicators */
+
+.update-flash {
+  animation: flashUpdate 0.5s ease-in-out;
+}
+
+@keyframes flashUpdate {
+  0% {
+    background-color: rgba(102, 108, 255, 0.1);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}

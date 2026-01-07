@@ -1,0 +1,163 @@
+/**
+ * ============================================================================
+ * MOBILE BUTTONS - Touch-Optimized Button Styles
+ * ============================================================================
+ *
+ * All mobile button optimizations in one place.
+ * Uses CSS variables from _variables.css for consistent sizing.
+ *
+ * Touch Target Requirements (WCAG 2.1 AA):
+ * - Minimum 44x44px touch targets
+ * - Recommended 48px for primary actions
+ *
+ * ============================================================================
+ */
+
+
+/* ============================================================================
+   CRITICAL BUTTON SIZING (All Viewports)
+   Uses CSS variables for scalable, maintainable sizing
+   ============================================================================ */
+
+/* Standard button - excludes auth pages */
+body:not(.auth-page) .btn {
+  min-height: var(--mobile-touch-base);
+  font-size: var(--mobile-text-base);
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  border-radius: var(--mobile-radius-base);
+}
+
+/* Small button variant */
+body:not(.auth-page) .btn-sm {
+  min-height: var(--mobile-touch-sm);
+  font-size: var(--mobile-text-sm);
+  padding: var(--mobile-space-xs) var(--mobile-space-sm);
+}
+
+/* Large button variant */
+body:not(.auth-page) .btn-lg {
+  min-height: var(--mobile-touch-lg);
+  font-size: var(--mobile-text-lg);
+  padding: var(--mobile-space-base) var(--mobile-space-lg);
+}
+
+
+/* ============================================================================
+   MOBILE-SPECIFIC BUTTON OPTIMIZATIONS
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Touch action for better responsiveness */
+  .btn {
+    touch-action: manipulation;
+  }
+
+  /* Full-width buttons on mobile (except small/icon buttons) */
+  .btn:not(.btn-sm):not(.btn-close):not(.btn-icon) {
+    width: 100%;
+    min-height: var(--mobile-touch-lg);
+    font-size: var(--mobile-text-base);
+    padding: var(--mobile-space-base) var(--mobile-space-lg);
+    border-radius: var(--mobile-radius-lg);
+  }
+
+  /* Small buttons maintain compact size */
+  .btn-sm {
+    font-size: var(--mobile-text-sm);
+    padding: var(--mobile-space-sm) var(--mobile-space-base);
+    min-height: var(--mobile-touch-base);
+    margin: 2px;
+  }
+
+  /* Button groups stack vertically */
+  .btn-group:not(.btn-group-horizontal) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mobile-space-sm);
+  }
+
+  .btn-group .btn {
+    border-radius: var(--mobile-radius-lg);
+    margin: 0;
+  }
+
+  /* Horizontal button groups (explicitly marked) */
+  .btn-group.btn-group-horizontal {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .btn-group.btn-group-horizontal .btn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Button groups in table action cells */
+  .table-responsive .btn-group-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: stretch;
+  }
+
+  .table-responsive .btn-group-vertical .btn-group {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1px;
+  }
+
+  .table-responsive .btn-group-vertical .btn {
+    font-size: var(--mobile-text-xs);
+    padding: var(--mobile-space-sm) var(--mobile-space-base);
+    min-height: var(--mobile-touch-base);
+    margin: 2px;
+  }
+
+  /* Close button (X) optimization */
+  .btn-close {
+    min-width: var(--mobile-touch-base);
+    min-height: var(--mobile-touch-base);
+    width: var(--mobile-touch-base);
+    height: var(--mobile-touch-base);
+    padding: var(--mobile-space-base);
+  }
+
+  /* Icon-only buttons */
+  .btn-icon,
+  .btn[class*="btn-icon"] {
+    min-width: var(--mobile-touch-base);
+    min-height: var(--mobile-touch-base);
+    padding: var(--mobile-space-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+
+/* ============================================================================
+   TABLET ADJUSTMENTS (768px+)
+   ============================================================================ */
+
+@media (min-width: 768px) {
+  .btn {
+    font-size: var(--mobile-text-sm);
+    border-radius: var(--mobile-radius-lg);
+  }
+}
+
+
+/* ============================================================================
+   PERFORMANCE OPTIMIZATIONS
+   ============================================================================ */
+
+.btn {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+.btn:active {
+  will-change: transform, box-shadow;
+}

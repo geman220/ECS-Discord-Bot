@@ -1,0 +1,137 @@
+/**
+ * ============================================================================
+ * EMPTY STATES COMPONENT
+ * ============================================================================
+ *
+ * Consolidated empty state styling for consistent messaging when content
+ * is unavailable. Used across admin panels, lists, and data tables.
+ *
+ * Structure:
+ * - .empty-state (container)
+ *   - .empty-state-icon (optional illustration/icon)
+ *   - .empty-state-title (optional heading)
+ *   - .empty-state-message / .empty-state-description (explanatory text)
+ *   - .empty-state-action (optional CTA button)
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   BASE CONTAINER
+   ============================================================================ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+  color: var(--color-text-muted);
+}
+
+/* Larger variant for full-page empty states */
+.empty-state--large {
+  padding: var(--space-12) var(--space-6);
+  min-height: 300px;
+}
+
+/* Compact variant for inline/card empty states */
+.empty-state--compact {
+  padding: var(--space-6) var(--space-3);
+}
+
+/* ============================================================================
+   ICON / ILLUSTRATION
+   ============================================================================ */
+
+.empty-state-icon {
+  font-size: 3rem;
+  color: var(--color-neutral-400);
+  margin-bottom: var(--space-4);
+  opacity: 0.6;
+  line-height: 1;
+  display: block;
+}
+
+/* Smaller icon variant */
+.empty-state--compact .empty-state-icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-3);
+}
+
+/* ============================================================================
+   TITLE
+   ============================================================================ */
+
+.empty-state-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+/* ============================================================================
+   MESSAGE / DESCRIPTION
+   ============================================================================ */
+
+.empty-state-message,
+.empty-state-description {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  max-width: 400px;
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-4);
+}
+
+/* ============================================================================
+   ACTION BUTTON
+   ============================================================================ */
+
+.empty-state-action {
+  margin-top: var(--space-2);
+}
+
+/* ============================================================================
+   DARK MODE
+   ============================================================================ */
+
+[data-style="dark"] .empty-state-icon {
+  color: var(--color-neutral-500);
+}
+
+[data-style="dark"] .empty-state-title,
+[data-style="dark"] .empty-state-description {
+  color: var(--color-text-muted-dark, var(--color-neutral-400));
+}
+
+/* ============================================================================
+   MOBILE RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  .empty-state {
+    padding: var(--space-6) var(--space-3);
+  }
+
+  .empty-state-icon {
+    font-size: 2.5rem;
+    margin-bottom: var(--space-3);
+  }
+
+  .empty-state-title {
+    font-size: var(--text-base);
+  }
+
+  .empty-state-message,
+  .empty-state-description {
+    font-size: var(--text-xs);
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .empty-state-icon {
+    font-size: 2rem;
+  }
+}

@@ -1,0 +1,136 @@
+/**
+ * ============================================================================
+ * Z-INDEX HIERARCHY - Single Source of Truth
+ * ============================================================================
+ *
+ * Centralized z-index management to prevent stacking conflicts.
+ * All z-index values should reference these CSS custom properties.
+ *
+ * Hierarchy (highest to lowest):
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Level 10: Template Customizer (99999999) - Theme system, rarely visible
+ * Level 9:  SweetAlert2 (10000+) - Critical alerts, must be above all
+ * Level 8:  Mobile Modal Content (9999) - MOBILE ONLY, force above theme
+ * Level 7:  Mobile Modal Backdrop (9998) - MOBILE ONLY, behind modal content
+ * Level 6:  Toast/Notifications (1070) - Important messages
+ * Level 5:  Modal Content (1060) - Desktop modal interactions
+ * Level 4:  Modal Dropdown (1055) - Select2 in modals
+ * Level 3:  Navbar/Header (1055) - Bootstrap default
+ * Level 2:  Sidebar (1050) - Bootstrap default
+ * Level 1:  Modal Backdrop (1040) - Behind modals, above page
+ * Level 0:  Content (1-999) - Page content
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * ============================================================================
+ */
+
+:root {
+  /* ─────────────────────────────────────────────────────────────────────────
+     CRITICAL OVERLAYS (10000+)
+     These must always be on top of everything
+     ───────────────────────────────────────────────────────────────────────── */
+  --z-template-customizer: 99999999;
+  --z-swal-container: 10500;
+  --z-swal-backdrop: 10000;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     MOBILE-SPECIFIC (9000-9999)
+     Higher than desktop to ensure proper stacking on mobile devices
+     ───────────────────────────────────────────────────────────────────────── */
+  --z-mobile-modal: 9999;
+  --z-mobile-modal-backdrop: 9998;
+  --z-mobile-sidebar-expanded: 1056;
+  --z-mobile-menu-overlay: 1054;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     UI OVERLAYS (1050-1100)
+     Standard Bootstrap-compatible z-index values
+     ───────────────────────────────────────────────────────────────────────── */
+  --z-toast: 1070;
+  --z-notification: 1070;
+  --z-modal: 1060;
+  --z-modal-dropdown: 1055;
+  --z-search-autocomplete: 1058;
+  --z-navbar: 1055;
+  --z-sidebar: 1050;
+  --z-modal-backdrop: 1040;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     DROPDOWNS & POPOVERS (1000-1040)
+     ───────────────────────────────────────────────────────────────────────── */
+  --z-select2-dropdown: 1030;
+  --z-select2-container: 1020;
+  --z-dropdown: 1000;
+  --z-popover: 1010;
+  --z-tooltip: 1080;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     CONTENT LAYERS (1-999)
+     ───────────────────────────────────────────────────────────────────────── */
+  --z-sticky: 100;
+  --z-floating: 50;
+  --z-elevated: 10;
+  --z-base: 1;
+  --z-below: -1;
+}
+
+
+/* ============================================================================
+   MOBILE MODAL Z-INDEX OVERRIDES
+   On mobile, modals must appear above the sidebar/navbar
+   ============================================================================ */
+@media (max-width: 767.98px) {
+  .modal {
+    z-index: var(--z-mobile-modal);
+  }
+
+  .modal-backdrop {
+    z-index: var(--z-mobile-modal-backdrop);
+  }
+
+  /* Expanded sidebar on mobile */
+  .layout-menu.menu-open,
+  .layout-menu[data-menu-open="true"] {
+    z-index: var(--z-mobile-sidebar-expanded);
+  }
+
+  /* Menu overlay/backdrop */
+  .layout-overlay,
+  .menu-overlay {
+    z-index: var(--z-mobile-menu-overlay);
+  }
+}
+
+
+/* ============================================================================
+   THIRD-PARTY COMPONENT OVERRIDES
+   ============================================================================ */
+
+/* Match report modals - use attribute selector for dynamic IDs */
+[id^="reportMatchModal-"] {
+  z-index: var(--z-modal);
+}
+
+/* Modal backdrops - all variations */
+.modal-backdrop,
+.modal-backdrop.show,
+.modal-backdrop.fade,
+.modal-backdrop.fade.show,
+div.modal-backdrop,
+div.modal-backdrop.show {
+  z-index: var(--z-modal-backdrop);
+}
+
+/* Select2 containers when opened - needs to be above modals */
+.select2-container--open {
+  z-index: var(--z-modal-dropdown);
+}
+
+/* SweetAlert2 */
+.swal2-container {
+  z-index: var(--z-swal-container); /* JUSTIFIED: Must override library defaults */
+}
+
+.swal2-backdrop-show {
+  z-index: var(--z-swal-backdrop); /* JUSTIFIED: Must override library defaults */
+}

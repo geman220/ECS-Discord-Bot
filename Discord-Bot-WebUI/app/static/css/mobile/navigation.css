@@ -1,0 +1,345 @@
+/**
+ * ============================================================================
+ * MOBILE NAVIGATION - Touch-Optimized Navigation Components
+ * ============================================================================
+ *
+ * Mobile-optimized navigation, menus, dropdowns, tabs, and breadcrumbs.
+ * Includes off-canvas sidebar, bottom navigation, and touch-friendly patterns.
+ *
+ * Components:
+ * - Sidebar/off-canvas menu
+ * - Dropdown menus
+ * - Tab navigation
+ * - Breadcrumbs
+ * - Nav pills (horizontal scroll)
+ *
+ * ============================================================================
+ */
+
+
+/* ============================================================================
+   NAVIGATION TOUCH TARGETS
+   ============================================================================ */
+
+@media (max-width: 991.98px) {
+  /* Navigation links with proper touch targets */
+  .navbar-nav .nav-link,
+  .c-nav__link {
+    min-height: var(--mobile-touch-base);
+    padding: var(--mobile-space-base);
+    font-size: var(--mobile-text-base);
+    display: flex;
+    align-items: center;
+  }
+
+  .navbar-nav .nav-item .nav-link,
+  .c-nav__item .c-nav__link {
+    padding: var(--mobile-space-base) var(--mobile-space-lg);
+    min-height: var(--mobile-touch-base);
+  }
+
+  .layout-menu .menu-item .menu-link,
+  .c-sidebar__menu-link {
+    padding: var(--mobile-space-base) 20px;
+    font-size: var(--mobile-text-sm);
+  }
+}
+
+
+/* ============================================================================
+   MOBILE SIDEBAR BEHAVIOR
+   Off-canvas sidebar with smooth slide animation
+   ============================================================================ */
+
+@media (max-width: 991.98px) {
+  /* JUSTIFIED !important: Mobile sidebar must be fixed positioned */
+  .layout-menu,
+  .c-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for iOS */
+    width: 260px;
+    max-width: calc(100vw - 56px); /* Leave room for close gesture */
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+    -webkit-overflow-scrolling: touch;
+    z-index: var(--z-sidebar, 1035);
+  }
+
+  /* Expanded state */
+  .layout-menu-expanded .layout-menu,
+  .layout-menu-expanded .c-sidebar,
+  .c-sidebar--expanded {
+    transform: translateX(0);
+  }
+
+  /* Overlay */
+  .layout-overlay,
+  .c-sidebar__overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--color-bg-overlay, rgba(0, 0, 0, 0.5));
+    z-index: calc(var(--z-sidebar, 1035) - 1);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  .layout-menu-expanded .layout-overlay,
+  .c-sidebar--expanded .c-sidebar__overlay {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Prevent body scroll when menu is open */
+  body.layout-menu-expanded {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+}
+
+
+/* ============================================================================
+   DROPDOWN COMPONENTS
+   Touch-optimized dropdown menus
+   ============================================================================ */
+
+@media (max-width: 991.98px) {
+  .dropdown-menu,
+  .c-dropdown__menu {
+    padding: var(--mobile-space-sm);
+    border-radius: var(--mobile-radius-base);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .dropdown-item,
+  .c-dropdown__item {
+    padding: var(--mobile-space-sm) var(--mobile-space-base);
+    font-size: var(--mobile-text-sm);
+    border-radius: var(--mobile-radius-sm);
+    margin-bottom: 2px;
+    min-height: var(--mobile-touch-base);
+    display: flex;
+    align-items: center;
+  }
+
+  .dropdown-divider,
+  .c-dropdown__divider {
+    margin: var(--mobile-space-xs) 0;
+  }
+}
+
+
+/* ============================================================================
+   TAB NAVIGATION
+   Touch-friendly tabs with horizontal scroll
+   ============================================================================ */
+
+@media (max-width: 991.98px) {
+  /* Tab links */
+  .nav-tabs .nav-link,
+  .c-nav-tabs__link {
+    padding: var(--mobile-space-sm) var(--mobile-space-base);
+    font-size: var(--mobile-text-sm);
+    border-radius: var(--mobile-radius-sm) var(--mobile-radius-sm) 0 0;
+  }
+
+  /* Pill links */
+  .nav-pills .nav-link,
+  .c-nav-pills__link {
+    padding: 10px var(--mobile-space-lg);
+    font-size: var(--mobile-text-sm);
+    border-radius: var(--mobile-radius-base);
+    /* JUSTIFIED !important: No-wrap for horizontal scroll UX */
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Horizontal scrollable nav pills */
+  .nav.nav-pills.overflow-auto.flex-nowrap,
+  .c-nav-pills--scrollable {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .nav.nav-pills.overflow-auto.flex-nowrap::-webkit-scrollbar,
+  .c-nav-pills--scrollable::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Remove fade-out gradients */
+  .nav.nav-pills.small-tabs.overflow-auto.flex-nowrap::before,
+  .nav.nav-pills.small-tabs.overflow-auto.flex-nowrap::after,
+  .c-nav-pills--small.c-nav-pills--scrollable::before,
+  .c-nav-pills--small.c-nav-pills--scrollable::after {
+    display: none;
+  }
+
+
+  /* ============================================================================
+     BREADCRUMB NAVIGATION
+     ============================================================================ */
+
+  .breadcrumb,
+  .c-breadcrumb {
+    padding: var(--mobile-space-sm) 0;
+    margin-bottom: var(--mobile-space-lg);
+    font-size: var(--mobile-text-sm);
+  }
+
+  .breadcrumb-item + .breadcrumb-item::before,
+  .c-breadcrumb__item + .c-breadcrumb__item::before {
+    font-size: var(--mobile-text-xs);
+  }
+}
+
+
+/* ============================================================================
+   NAVBAR SEARCH
+   ============================================================================ */
+
+.navbar-search input,
+.c-navbar__search input {
+  font-size: 16px; /* Prevents zoom on iOS */
+}
+
+
+/* ============================================================================
+   OFFCANVAS OPTIMIZATION
+   ============================================================================ */
+
+.offcanvas,
+.c-offcanvas {
+  max-width: 85vw;
+}
+
+.offcanvas-header,
+.c-offcanvas__header {
+  padding: var(--mobile-space-lg);
+}
+
+.offcanvas-body,
+.c-offcanvas__body {
+  padding: var(--mobile-space-lg);
+}
+
+
+/* ============================================================================
+   GLOBAL OVERFLOW PREVENTION
+   ============================================================================ */
+
+@media (max-width: 991.98px) {
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  .container-xxl,
+  .container-fluid,
+  .container {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Prevent any element from causing horizontal scroll */
+  main,
+  .content-wrapper,
+  .layout-page {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* Exception for positioned elements */
+  .modal,
+  .offcanvas,
+  .layout-menu,
+  .c-modal,
+  .c-offcanvas,
+  .c-sidebar {
+    max-width: none;
+  }
+}
+
+
+/* ============================================================================
+   ADMIN NAVIGATION ENHANCEMENTS
+   ============================================================================ */
+
+@media (max-width: 991.98px) {
+  /* Admin sidebar nav container */
+  .layout-menu .navbar-nav,
+  .sidebar .navbar-nav,
+  .c-sidebar__nav {
+    background: var(--color-primary-subtle);
+    border-radius: var(--mobile-radius-lg);
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+
+  /* Sidebar nav items */
+  .layout-menu .nav-item,
+  .sidebar .nav-item,
+  .c-sidebar__nav-item {
+    width: 100%;
+  }
+
+  /* JUSTIFIED !important: Sidebar nav link touch targets */
+  .layout-menu .nav-link,
+  .sidebar .nav-link,
+  .c-sidebar__nav-link {
+    padding: 0.75rem 1rem;
+    border-radius: var(--mobile-radius-lg);
+    margin-bottom: 0.5rem;
+    background: var(--color-neutral-100);
+    border: 1px solid var(--color-border-primary);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: var(--mobile-touch-base);
+  }
+
+  /* Sidebar nav icons */
+  .layout-menu .nav-link i,
+  .sidebar .nav-link i,
+  .c-sidebar__nav-link i {
+    margin-right: 0.75rem;
+    font-size: 1.25rem;
+    width: 1.5rem;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  /* Sidebar nav text */
+  .layout-menu .nav-link span,
+  .sidebar .nav-link span,
+  .c-sidebar__nav-link span {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  /* Active state */
+  .layout-menu .nav-link.active,
+  .sidebar .nav-link.active,
+  .c-sidebar__nav-link--active {
+    background: var(--bs-primary, var(--ecs-primary));
+    color: white;
+    border-color: var(--bs-primary, var(--ecs-primary));
+  }
+
+  /* Hover state */
+  .layout-menu .nav-link:hover:not(.active),
+  .sidebar .nav-link:hover:not(.active),
+  .c-sidebar__nav-link:hover:not(.c-sidebar__nav-link--active) {
+    background: var(--color-primary-subtle);
+    border-color: var(--bs-primary, var(--ecs-primary));
+  }
+}

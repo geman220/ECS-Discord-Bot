@@ -1,0 +1,546 @@
+/**
+ * ============================================================================
+ * MOBILE FORMS - Touch-Optimized Form Controls
+ * ============================================================================
+ *
+ * Form inputs, selects, textareas, and related controls.
+ * iOS zoom prevention via 16px font-size is enforced throughout.
+ *
+ * Touch Target Requirements (WCAG 2.1 AA):
+ * - Minimum 44x44px touch targets
+ * - 16px font-size prevents iOS zoom on focus
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   CRITICAL FORM SIZING (All Viewports)
+   iOS Zoom Prevention: All inputs MUST have 16px font-size minimum
+   ============================================================================ */
+
+/* Prevent iOS zoom on focus - CRITICAL */
+
+.form-control,
+.form-select,
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Form controls with CSS variables */
+
+body:not(.auth-page) .form-control,
+body:not(.auth-page) .form-select {
+  min-height: var(--mobile-touch-base);
+  font-size: var(--mobile-text-base);
+  padding: var(--mobile-space-sm) var(--mobile-space-base);
+  border-radius: var(--mobile-radius-base);
+}
+
+/* Touch action for form elements */
+
+.form-control,
+.form-select {
+  touch-action: manipulation;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* ============================================================================
+   MOBILE-SPECIFIC FORM OPTIMIZATIONS
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Touch-friendly input heights */
+
+  .form-control,
+  .form-select {
+    min-height: var(--mobile-touch-base);
+    font-size: 16px;
+    /* Prevent iOS zoom */
+    padding: var(--mobile-space-sm) var(--mobile-space-base);
+    border-radius: var(--mobile-radius-lg);
+  }
+
+  /* Textarea optimization */
+
+  textarea.form-control {
+    min-height: 100px;
+    resize: vertical;
+    white-space: normal;
+  }
+
+  /* File input optimization */
+
+  .form-control[type="file"] {
+    padding: var(--mobile-space-sm) var(--mobile-space-base);
+  }
+
+  /* Form labels */
+
+  .form-label {
+    font-size: var(--mobile-text-sm);
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--bs-body-color, var(--ecs-neutral-90));
+  }
+
+  /* Small form text */
+
+  .form-text {
+    font-size: 13px;
+    margin-top: var(--mobile-space-xs);
+  }
+
+  /* Floating labels optimization */
+
+  .form-floating > label {
+    padding: var(--mobile-space-base);
+    font-size: var(--mobile-text-sm);
+  }
+
+  .form-floating > .form-control {
+    padding-top: 1.625rem;
+    padding-bottom: 0.625rem;
+  }
+
+  /* Input group stacking */
+
+  .input-group {
+    flex-wrap: wrap;
+    gap: var(--mobile-space-sm);
+  }
+
+  .input-group > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  /* Keep small buttons at natural size in input groups */
+
+  .input-group .btn-close,
+  .input-group button[onclick*="remove"],
+  .input-group .btn-sm {
+    flex: 0 0 var(--mobile-touch-base);
+    min-width: var(--mobile-touch-base);
+    min-height: var(--mobile-touch-base);
+  }
+
+  /* Input group text (prepend/append) */
+
+  .input-group-text {
+    min-height: var(--mobile-touch-base);
+    padding: var(--mobile-space-sm) var(--mobile-space-base);
+    font-size: 16px;
+    flex: 0 1 auto;
+    min-width: var(--mobile-touch-base);
+  }
+
+  /* Stack prepended/appended text on very small screens */
+
+@media (max-width: 575.98px) {
+    .input-group > .input-group-text:first-child {
+      flex: 1 1 100%;
+      border-radius: var(--mobile-radius-lg);
+      text-align: center;
+    }
+}
+
+  /* Prevent text overflow */
+
+  .form-control,
+  .form-select {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  textarea.form-control {
+    white-space: normal;
+  }
+}
+
+/* ============================================================================
+   FORM VALIDATION STATES
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Validation feedback */
+
+  .valid-feedback,
+  .invalid-feedback {
+    font-size: var(--mobile-text-sm);
+    margin-top: 6px;
+    display: block;
+  }
+
+  /* Invalid input styling */
+
+  .form-control.is-invalid,
+  .form-select.is-invalid {
+    border-color: var(--ecs-danger);
+    border-width: 2px;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+  }
+
+  /* Valid input styling */
+
+  .form-control.is-valid,
+  .form-select.is-valid {
+    border-color: var(--ecs-success);
+    border-width: 2px;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+  }
+
+  /* Shake animation for validation errors */
+
+@keyframes shake {
+    0%, 100% {
+      transform: translateX(0);
+    }
+
+    10%, 30%, 50%, 70%, 90% {
+      transform: translateX(-10px);
+    }
+
+    20%, 40%, 60%, 80% {
+      transform: translateX(10px);
+    }
+}
+
+  .form-control.shake,
+  .form-select.shake {
+    animation: shake 0.5s;
+  }
+}
+
+/* ============================================================================
+   SELECT2 MOBILE OPTIMIZATION
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Select2 container */
+
+  .select2-container {
+    /* JUSTIFIED !important: Overrides Select2 inline styles for responsive layout */
+    width: 100%;
+  }
+
+  .select2-container .select2-selection {
+    min-height: var(--mobile-touch-base);
+    font-size: 16px;
+    border-radius: var(--mobile-radius-lg);
+  }
+
+  .select2-container .select2-selection__rendered {
+    line-height: var(--mobile-touch-base);
+    padding-left: var(--mobile-space-base);
+  }
+
+  .select2-container .select2-selection__arrow {
+    height: 42px;
+  }
+
+  /* Select2 dropdown */
+
+  .select2-dropdown {
+    font-size: 16px;
+    border-radius: var(--mobile-radius-lg);
+  }
+
+  .select2-results__option {
+    min-height: var(--mobile-touch-base);
+    padding: var(--mobile-space-base) var(--mobile-space-lg);
+    line-height: 1.5;
+  }
+
+  /* Select2 search */
+
+  .select2-search__field {
+    min-height: var(--mobile-touch-base);
+    font-size: 16px;
+    padding: var(--mobile-space-sm) var(--mobile-space-base);
+  }
+}
+
+/* ============================================================================
+   DATE AND TIME PICKERS
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Native date/time inputs */
+
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"] {
+    min-height: var(--mobile-touch-base);
+    font-size: 16px;
+    padding: var(--mobile-space-sm) var(--mobile-space-base);
+  }
+
+  /* iOS date picker optimization */
+
+@supports (-webkit-touch-callout: none) {
+    input[type="date"],
+    input[type="time"],
+    input[type="datetime-local"] {
+      min-height: var(--mobile-touch-base);
+      padding-right: var(--mobile-space-base);
+    }
+}
+}
+
+/* ============================================================================
+   MULTI-STEP FORMS
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Form steps indicator */
+
+  .form-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--mobile-space-xl);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .form-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    min-width: 80px;
+  }
+
+  .form-step::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    right: -50%;
+    height: 2px;
+    background: var(--ecs-neutral-20);
+    z-index: -1;
+  }
+
+  .form-step:last-child::after {
+    display: none;
+  }
+
+  .form-step.active .step-number {
+    background: var(--bs-primary, var(--ecs-primary));
+    color: white;
+  }
+
+  .form-step.completed .step-number {
+    background: var(--ecs-success);
+    color: white;
+  }
+
+  .step-number {
+    width: var(--mobile-touch-sm);
+    height: var(--mobile-touch-sm);
+    border-radius: 50%;
+    background: var(--ecs-neutral-20);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--mobile-space-sm);
+    font-weight: 600;
+  }
+
+  .step-label {
+    font-size: var(--mobile-text-xs);
+    display: block;
+  }
+}
+
+/* ============================================================================
+   STICKY FORM ACTIONS
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Sticky submit button at bottom */
+
+  .form-actions-sticky {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bs-body-bg, var(--ecs-neutral-0));
+    border-top: 1px solid var(--bs-border-color, var(--ecs-neutral-20));
+    padding: var(--mobile-space-base) var(--mobile-space-lg);
+    padding-bottom: calc(var(--mobile-space-base) + env(safe-area-inset-bottom, 0px));
+    z-index: var(--z-sticky);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .form-actions-sticky .btn {
+    width: 100%;
+    min-height: var(--mobile-touch-lg);
+  }
+}
+
+/* ============================================================================
+   DATATABLES MOBILE OPTIMIZATION
+   ============================================================================ */
+
+@media (max-width: 991.98px) {
+  /* DataTables wrapper optimization */
+
+  .dataTables_wrapper {
+    width: 100%;
+  }
+
+  /* DataTables info and pagination stacking */
+
+  .dataTables_wrapper .dataTables_info,
+  .dataTables_wrapper .dataTables_paginate {
+    text-align: center;
+    margin-top: var(--mobile-space-base);
+  }
+
+  /* DataTables length select optimization */
+
+  .dataTables_wrapper .dataTables_length select {
+    min-height: var(--mobile-touch-base);
+    font-size: 16px;
+    padding: var(--mobile-space-sm);
+  }
+
+  /* DataTables filter input optimization */
+
+  .dataTables_wrapper .dataTables_filter input {
+    min-height: var(--mobile-touch-base);
+    font-size: 16px;
+    width: 100%;
+    margin-left: 0;
+    margin-top: var(--mobile-space-sm);
+  }
+
+  /* DataTables pagination buttons */
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button {
+    min-height: var(--mobile-touch-base);
+    min-width: var(--mobile-touch-base);
+    padding: var(--mobile-space-sm);
+    margin: 2px;
+  }
+}
+
+/* ============================================================================
+   IOS-SPECIFIC FIXES
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* iOS zoom prevention - must be exactly 16px */
+
+@supports (-webkit-touch-callout: none) {
+    select,
+    textarea,
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="url"] {
+      font-size: 16px;
+    }
+}
+}
+
+/* Android autofill background fix */
+
+input:-webkit-autofill,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:hover {
+  -webkit-box-shadow: 0 0 0px 1000px var(--bs-body-bg, var(--ecs-neutral-0)) inset;
+  -webkit-text-fill-color: var(--bs-body-color, var(--ecs-neutral-90));
+}
+
+[data-style="dark"] input:-webkit-autofill,
+[data-style="dark"] input:-webkit-autofill:focus,
+[data-style="dark"] input:-webkit-autofill:hover {
+  -webkit-box-shadow: 0 0 0px 1000px var(--color-bg-elevated, #27272a) inset;
+  -webkit-text-fill-color: var(--color-text-primary, #fafafa);
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-style="dark"] .form-control,
+[data-style="dark"] .form-select {
+  background: var(--color-bg-elevated, #334155);
+  border-color: var(--color-border-primary, #475569);
+  color: var(--color-text-primary, #F8FAFC);
+}
+
+[data-style="dark"] .form-control:focus,
+[data-style="dark"] .form-select:focus {
+  background: var(--color-bg-elevated, #334155);
+  border-color: var(--color-primary-500, #8b5cf6);
+  color: var(--color-text-primary, #F8FAFC);
+}
+
+[data-style="dark"] .form-control::placeholder {
+  color: var(--color-text-muted, #94A3B8);
+}
+
+[data-style="dark"] .form-label {
+  color: var(--color-text-primary, #F8FAFC);
+}
+
+[data-style="dark"] .form-text {
+  color: var(--color-text-muted, #94A3B8);
+}
+
+[data-style="dark"] .input-group-text {
+  background: var(--color-bg-elevated, #334155);
+  border-color: var(--color-border-primary, #475569);
+  color: var(--color-text-primary, #F8FAFC);
+}
+
+[data-style="dark"] .form-actions-sticky {
+  background: var(--color-bg-primary, #0F172A);
+  border-top-color: var(--color-border-primary, #475569);
+}
+
+[data-style="dark"] .select2-container .select2-selection {
+  background: var(--color-bg-elevated, #334155);
+  border-color: var(--color-border-primary, #475569);
+  color: var(--color-text-primary, #F8FAFC);
+}
+
+[data-style="dark"] .select2-dropdown {
+  background: var(--color-bg-elevated, #334155);
+  border-color: var(--color-border-primary, #475569);
+}
+
+[data-style="dark"] .select2-results__option {
+  color: var(--color-text-primary, #F8FAFC);
+}
+
+[data-style="dark"] .select2-results__option--highlighted {
+  background: var(--color-bg-tertiary, #475569);
+}
+
+/* ============================================================================
+   PERFORMANCE OPTIMIZATIONS
+   ============================================================================ */
+
+.form-control:focus,
+.form-select:focus {
+  will-change: transform, box-shadow;
+}

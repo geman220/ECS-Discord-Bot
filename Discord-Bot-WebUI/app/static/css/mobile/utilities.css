@@ -1,0 +1,286 @@
+/**
+ * ============================================================================
+ * MOBILE UTILITIES - Helper Classes for Quick Fixes
+ * ============================================================================
+ *
+ * Utility classes for common mobile adjustments.
+ * All utilities use !important as they are intentional overrides.
+ *
+ * Usage:
+ * - .mobile-hide: Hide on mobile, show on desktop
+ * - .desktop-hide: Hide on desktop, show on mobile
+ * - .mobile-full-width: Force full width on mobile
+ * - .mobile-stack: Stack flex children vertically on mobile
+ *
+ * ============================================================================
+ */
+
+
+/* ============================================================================
+   VISIBILITY UTILITIES
+   ============================================================================ */
+
+/* Hide on mobile (< 768px) */
+@media (max-width: 767.98px) {
+  .mobile-hide {
+    /* JUSTIFIED !important: Utility class for explicit mobile hiding */
+    display: none !important;
+  }
+
+  .mobile-show {
+    /* JUSTIFIED !important: Utility class for explicit mobile showing */
+    display: block !important;
+  }
+
+  .mobile-show-flex {
+    /* JUSTIFIED !important: Utility class for explicit mobile flex showing */
+    display: flex !important;
+  }
+
+  .mobile-show-inline {
+    /* JUSTIFIED !important: Utility class for explicit mobile inline showing */
+    display: inline !important;
+  }
+
+  .mobile-show-inline-block {
+    /* JUSTIFIED !important: Utility class for explicit mobile inline-block showing */
+    display: inline-block !important;
+  }
+}
+
+/* Hide on desktop (>= 768px) */
+@media (min-width: 768px) {
+  .mobile-hide {
+    /* JUSTIFIED !important: Utility class - restore display on desktop */
+    display: revert !important;
+  }
+
+  .desktop-hide {
+    /* JUSTIFIED !important: Utility class for explicit desktop hiding */
+    display: none !important;
+  }
+
+  .mobile-show,
+  .mobile-show-flex,
+  .mobile-show-inline,
+  .mobile-show-inline-block {
+    /* JUSTIFIED !important: Utility class - restore display on desktop */
+    display: none !important;
+  }
+}
+
+
+/* ============================================================================
+   TYPOGRAPHY UTILITIES
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  .mobile-text-xs {
+    /* JUSTIFIED !important: Utility class for mobile text sizing */
+    font-size: var(--mobile-text-xs) !important;
+  }
+
+  .mobile-text-sm {
+    /* JUSTIFIED !important: Utility class for mobile text sizing */
+    font-size: var(--mobile-text-sm) !important;
+  }
+
+  .mobile-text-base {
+    /* JUSTIFIED !important: Utility class for mobile text sizing */
+    font-size: var(--mobile-text-base) !important;
+  }
+
+  .mobile-text-lg {
+    /* JUSTIFIED !important: Utility class for mobile text sizing */
+    font-size: var(--mobile-text-lg) !important;
+  }
+
+  .mobile-text-center {
+    /* JUSTIFIED !important: Utility class for mobile text alignment */
+    text-align: center !important;
+  }
+
+  .mobile-text-left {
+    /* JUSTIFIED !important: Utility class for mobile text alignment */
+    text-align: left !important;
+  }
+
+  .mobile-truncate {
+    /* JUSTIFIED !important: Utility class for mobile text truncation */
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+}
+
+
+/* ============================================================================
+   SPACING UTILITIES
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  .mobile-padding {
+    /* JUSTIFIED !important: Utility class for mobile spacing */
+    padding: var(--mobile-space-base) !important;
+  }
+
+  .mobile-padding-sm {
+    /* JUSTIFIED !important: Utility class for mobile spacing */
+    padding: var(--mobile-space-sm) !important;
+  }
+
+  .mobile-padding-lg {
+    /* JUSTIFIED !important: Utility class for mobile spacing */
+    padding: var(--mobile-space-lg) !important;
+  }
+
+  .mobile-margin {
+    /* JUSTIFIED !important: Utility class for mobile spacing */
+    margin: var(--mobile-space-base) !important;
+  }
+
+  .mobile-margin-sm {
+    /* JUSTIFIED !important: Utility class for mobile spacing */
+    margin: var(--mobile-space-sm) !important;
+  }
+
+  .mobile-no-margin {
+    /* JUSTIFIED !important: Utility class for mobile spacing reset */
+    margin: 0 !important;
+  }
+
+  .mobile-no-padding {
+    /* JUSTIFIED !important: Utility class for mobile spacing reset */
+    padding: 0 !important;
+  }
+
+  .mobile-gap {
+    /* JUSTIFIED !important: Utility class for mobile gap */
+    gap: var(--mobile-space-base) !important;
+  }
+
+  .mobile-gap-sm {
+    /* JUSTIFIED !important: Utility class for mobile gap */
+    gap: var(--mobile-space-sm) !important;
+  }
+}
+
+
+/* ============================================================================
+   LAYOUT UTILITIES
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  .mobile-full-width {
+    /* JUSTIFIED !important: Utility class for mobile full width */
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .mobile-stack {
+    /* JUSTIFIED !important: Utility class for mobile flex stacking */
+    flex-direction: column !important;
+  }
+
+  .mobile-stack-reverse {
+    /* JUSTIFIED !important: Utility class for mobile flex stacking */
+    flex-direction: column-reverse !important;
+  }
+
+  .mobile-wrap {
+    /* JUSTIFIED !important: Utility class for mobile flex wrapping */
+    flex-wrap: wrap !important;
+  }
+
+  .mobile-center {
+    /* JUSTIFIED !important: Utility class for mobile centering */
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .mobile-stretch {
+    /* JUSTIFIED !important: Utility class for mobile stretching */
+    align-items: stretch !important;
+  }
+
+  .mobile-order-first {
+    /* JUSTIFIED !important: Utility class for mobile ordering */
+    order: -1 !important;
+  }
+
+  .mobile-order-last {
+    /* JUSTIFIED !important: Utility class for mobile ordering */
+    order: 999 !important;
+  }
+}
+
+
+/* ============================================================================
+   TOUCH TARGET UTILITIES
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  .mobile-touch {
+    /* JUSTIFIED !important: Utility class for WCAG touch targets */
+    min-height: var(--mobile-touch-base) !important;
+    min-width: var(--mobile-touch-base) !important;
+  }
+
+  .mobile-touch-sm {
+    /* JUSTIFIED !important: Utility class for touch targets */
+    min-height: var(--mobile-touch-sm) !important;
+    min-width: var(--mobile-touch-sm) !important;
+  }
+
+  .mobile-touch-lg {
+    /* JUSTIFIED !important: Utility class for touch targets */
+    min-height: var(--mobile-touch-lg) !important;
+    min-width: var(--mobile-touch-lg) !important;
+  }
+}
+
+
+/* ============================================================================
+   OVERFLOW UTILITIES
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  .mobile-scroll-x {
+    /* JUSTIFIED !important: Utility class for mobile overflow */
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-scroll-y {
+    /* JUSTIFIED !important: Utility class for mobile overflow */
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-no-scroll {
+    /* JUSTIFIED !important: Utility class for mobile overflow */
+    overflow: hidden !important;
+  }
+}
+
+
+/* ============================================================================
+   BORDER UTILITIES
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  .mobile-no-border {
+    /* JUSTIFIED !important: Utility class for mobile border removal */
+    border: none !important;
+  }
+
+  .mobile-rounded {
+    /* JUSTIFIED !important: Utility class for mobile border radius */
+    border-radius: var(--mobile-radius-base) !important;
+  }
+
+  .mobile-rounded-lg {
+    /* JUSTIFIED !important: Utility class for mobile border radius */
+    border-radius: var(--mobile-radius-lg) !important;
+  }
+}

@@ -1,0 +1,259 @@
+/**
+ * ============================================================================
+ * MOBILE ACCESSIBILITY - A11y Enhancements for Mobile
+ * ============================================================================
+ *
+ * Accessibility enhancements for mobile devices including:
+ * - Focus indicators
+ * - Reduced motion support
+ * - High contrast support
+ * - Touch target enforcement
+ * - Screen reader helpers
+ *
+ * Standards:
+ * - WCAG 2.1 AA compliance
+ * - 44x44px minimum touch targets
+ * - Visible focus indicators
+ *
+ * ============================================================================
+ */
+
+
+/* ============================================================================
+   FOCUS INDICATORS
+   ============================================================================ */
+
+/* Enhanced focus ring for all interactive elements */
+.form-control:focus,
+.form-select:focus,
+.btn:focus,
+a:focus {
+  outline: 2px solid var(--bs-primary, var(--ecs-primary));
+  outline-offset: 2px;
+}
+
+/* Focus visible only on keyboard navigation */
+.form-control:focus:not(:focus-visible),
+.form-select:focus:not(:focus-visible),
+.btn:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.form-control:focus-visible,
+.form-select:focus-visible,
+.btn:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--bs-primary, var(--ecs-primary));
+  outline-offset: 2px;
+}
+
+/* High visibility focus for dark backgrounds */
+[data-style="dark"] .form-control:focus-visible,
+[data-style="dark"] .form-select:focus-visible,
+[data-style="dark"] .btn:focus-visible,
+[data-style="dark"] a:focus-visible {
+  outline-color: var(--color-primary-400, #a78bfa);
+}
+
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
+  }
+
+  /* Disable specific animations */
+  .form-control.shake {
+    animation: none;
+  }
+
+  .modal.fade .modal-dialog {
+    transform: none;
+    transition: none;
+  }
+
+  .modal.fade {
+    transition: none;
+  }
+
+  /* Disable sidebar/menu animations */
+  .layout-menu,
+  .menu,
+  .sidebar {
+    transition: none;
+  }
+}
+
+
+/* ============================================================================
+   HIGH CONTRAST SUPPORT
+   ============================================================================ */
+
+@media (prefers-contrast: more) {
+  /* Increase border visibility */
+  .form-control,
+  .form-select,
+  .btn,
+  .card {
+    border-width: 2px;
+  }
+
+  /* Increase text contrast */
+  .text-muted,
+  .form-text {
+    color: var(--bs-body-color);
+  }
+
+  /* Stronger focus indicators */
+  :focus-visible {
+    outline-width: 3px;
+  }
+
+  /* Higher contrast for validation states */
+  .is-invalid {
+    border-color: #ff0000;
+  }
+
+  .is-valid {
+    border-color: #008000;
+  }
+}
+
+
+/* ============================================================================
+   TOUCH TARGET ENFORCEMENT
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Ensure minimum touch targets for interactive elements */
+  button,
+  [role="button"],
+  a[href],
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"],
+  .nav-link,
+  .dropdown-item,
+  .list-group-item-action {
+    min-height: var(--mobile-touch-base);
+    min-width: var(--mobile-touch-base);
+  }
+
+  /* Touch target padding for inline links */
+  p a,
+  li a,
+  span a {
+    padding: var(--mobile-space-xs) 2px;
+    margin: calc(-1 * var(--mobile-space-xs)) -2px;
+  }
+}
+
+
+/* ============================================================================
+   SCREEN READER UTILITIES
+   ============================================================================ */
+
+/* Visually hidden but accessible to screen readers */
+.sr-only,
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Show on focus (for skip links) */
+.sr-only-focusable:focus,
+.visually-hidden-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Skip to main content link */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  background: var(--bs-primary, var(--ecs-primary));
+  color: white;
+  padding: var(--mobile-space-base);
+  z-index: 10000;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+
+/* ============================================================================
+   SAFE AREA INSETS (Notch/Home Indicator)
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Respect safe area for bottom-positioned elements */
+  .fixed-bottom,
+  .sticky-bottom,
+  .form-actions-sticky,
+  .modal-footer {
+    padding-bottom: calc(var(--mobile-space-base) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Safe area for top-positioned elements */
+  .fixed-top,
+  .sticky-top {
+    padding-top: calc(var(--mobile-space-base) + env(safe-area-inset-top, 0px));
+  }
+
+  /* Full-width elements respect side safe areas */
+  .container-fluid,
+  .container-xxl {
+    padding-left: max(var(--mobile-container-padding), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--mobile-container-padding), env(safe-area-inset-right, 0px));
+  }
+}
+
+
+/* ============================================================================
+   FORCED COLORS MODE (Windows High Contrast)
+   ============================================================================ */
+
+@media (forced-colors: active) {
+  /* Ensure buttons are visible */
+  .btn {
+    border: 2px solid currentColor;
+  }
+
+  /* Ensure form controls are visible */
+  .form-control,
+  .form-select {
+    border: 2px solid currentColor;
+  }
+
+  /* Ensure focus is visible */
+  :focus {
+    outline: 3px solid Highlight;
+  }
+
+  /* Ensure links are underlined */
+  a {
+    text-decoration: underline;
+  }
+}

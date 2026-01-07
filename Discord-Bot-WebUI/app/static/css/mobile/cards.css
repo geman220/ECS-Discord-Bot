@@ -1,0 +1,170 @@
+/**
+ * ============================================================================
+ * MOBILE CARDS - Card Component Mobile Optimizations
+ * ============================================================================
+ *
+ * Mobile-optimized card layouts, padding, and spacing.
+ * Works with Bootstrap card components.
+ *
+ * ============================================================================
+ */
+
+
+/* ============================================================================
+   BASE CARD OPTIMIZATIONS
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Card body padding reduction */
+  .card-body {
+    padding: var(--mobile-card-padding);
+  }
+
+  /* Card header/footer */
+  .card-header,
+  .card-footer {
+    padding: var(--mobile-space-base) var(--mobile-card-padding);
+  }
+
+  /* Card title sizing */
+  .card-title {
+    font-size: var(--mobile-text-lg);
+    margin-bottom: var(--mobile-space-sm);
+  }
+
+  /* Card subtitle */
+  .card-subtitle {
+    font-size: var(--mobile-text-sm);
+    margin-bottom: var(--mobile-space-base);
+  }
+
+  /* Card text */
+  .card-text {
+    font-size: var(--mobile-text-base);
+  }
+
+  /* Card images */
+  .card-img,
+  .card-img-top,
+  .card-img-bottom {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+
+/* ============================================================================
+   CARD GRID LAYOUTS
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Stack cards vertically */
+  .row > [class*="col-"] > .card {
+    margin-bottom: var(--mobile-space-lg);
+  }
+
+  /* Card deck/group stacking */
+  .card-deck,
+  .card-group {
+    flex-direction: column;
+  }
+
+  .card-deck > .card,
+  .card-group > .card {
+    margin-bottom: var(--mobile-space-lg);
+    flex: none;
+  }
+}
+
+
+/* ============================================================================
+   ADMIN CARD STYLES
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Dashboard stat cards */
+  .stat-card,
+  .dashboard-card {
+    padding: var(--mobile-card-padding);
+    margin-bottom: var(--mobile-space-base);
+  }
+
+  .stat-card .stat-value,
+  .dashboard-card .stat-value {
+    font-size: var(--mobile-text-xl);
+  }
+
+  .stat-card .stat-label,
+  .dashboard-card .stat-label {
+    font-size: var(--mobile-text-sm);
+  }
+
+  /* Info cards */
+  .info-card {
+    padding: var(--mobile-card-padding);
+  }
+
+  .info-card .info-icon {
+    width: 40px;
+    height: 40px;
+    font-size: var(--mobile-text-lg);
+  }
+}
+
+
+/* ============================================================================
+   COLLAPSIBLE CARD SECTIONS
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Accordion-style cards */
+  .accordion-item {
+    margin-bottom: var(--mobile-space-sm);
+  }
+
+  .accordion-button {
+    min-height: var(--mobile-touch-base);
+    padding: var(--mobile-space-base) var(--mobile-card-padding);
+    font-size: var(--mobile-text-base);
+  }
+
+  .accordion-body {
+    padding: var(--mobile-card-padding);
+  }
+}
+
+
+/* ============================================================================
+   CARD ACTION BUTTONS
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  /* Card footer buttons */
+  .card-footer .btn-group,
+  .card-footer .d-flex {
+    flex-direction: column;
+    gap: var(--mobile-space-sm);
+  }
+
+  .card-footer .btn {
+    width: 100%;
+    min-height: var(--mobile-touch-base);
+  }
+
+  /* Card header actions */
+  .card-header .btn-sm {
+    min-height: var(--mobile-touch-sm);
+    min-width: var(--mobile-touch-sm);
+  }
+}
+
+
+/* ============================================================================
+   TABLET ADJUSTMENTS (768px+)
+   ============================================================================ */
+
+@media (min-width: 768px) {
+  .card-body {
+    padding: var(--mobile-space-lg);
+  }
+}

@@ -1,0 +1,1340 @@
+/**
+ * ============================================================================
+ * WALLET CONFIGURATION STYLES - Consolidated from template files
+ * ============================================================================
+ *
+ * Extracted from inline styles in wallet config templates:
+ * - admin/wallet_config/dashboard.html
+ * - admin/wallet_config/diagnostics.html
+ * - admin/wallet_config/help.html
+ * - admin/wallet_config/locations.html
+ * - admin/wallet_config/pass_design.html
+ * - admin/wallet_config/pass_fields.html
+ * - admin/wallet_config/sponsors.html
+ * - admin/wallet_config/templates.html
+ * - admin/wallet_config/test_results.html
+ * - admin/wallet_management.html
+ * - admin/wallet_passes.html
+ * - admin/wallet_scanner.html
+ *
+ * ============================================================================
+ */
+
+/* ============================================================================
+   DASHBOARD STYLES
+   ============================================================================ */
+
+.wallet-progress {
+  height: 10px;
+  margin-bottom: 10px;
+}
+
+.wallet-progress .progress-bar {
+  transition: width 0.5s;
+}
+
+.status-card {
+  border-radius: var(--radius-lg, 8px);
+  transition: all 0.2s;
+  height: 100%;
+  border-radius: 8px;
+}
+
+.status-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--bs-box-shadow);
+}
+
+.wizard-btn {
+  padding: var(--space-5, 20px);
+  border-radius: var(--radius-lg, 8px);
+  transition: all 0.2s;
+  height: 100%;
+  text-align: center;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.wizard-btn:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--bs-box-shadow);
+}
+
+.wizard-btn i {
+  font-size: 2rem;
+  margin-bottom: var(--space-4, 15px);
+  margin-bottom: 15px;
+}
+
+.config-step {
+  position: relative;
+  padding: 12px 12px 12px 40px;
+  border-radius: var(--radius-sm, 0.375rem);
+  margin-bottom: var(--space-4, 15px);
+  background-color: var(--bs-tertiary-bg);
+  border-radius: 0.375rem;
+  margin-bottom: 15px;
+}
+
+.config-step::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+}
+
+.config-step.completed::before {
+  background-color: var(--color-success, #28c76f);
+  background-color: var(--ecs-success, #28c76f);
+}
+
+.config-step.pending::before {
+  background-color: var(--color-warning, #ff9f43);
+  background-color: var(--ecs-warning, #ff9f43);
+}
+
+.config-step.error::before {
+  background-color: var(--color-danger, #ea5455);
+  background-color: var(--ecs-danger, #ea5455);
+}
+
+.quick-action-card {
+  border-radius: var(--radius-lg, 8px);
+  transition: all 0.2s;
+  height: 100%;
+  border-radius: 8px;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--bs-box-shadow-sm);
+}
+
+/* ============================================================================
+   DIAGNOSTICS STYLES
+   ============================================================================ */
+
+.code-block {
+  background-color: var(--bs-tertiary-bg, #f8f9fa);
+  border-radius: var(--radius-sm, 4px);
+  padding: var(--space-4, 15px);
+  margin: var(--space-4, 15px) 0;
+  font-family: var(--font-mono, monospace);
+  overflow-x: auto;
+  white-space: pre;
+  background-color: var(--ecs-dark-bg-card, #2d2d2d);
+  color: var(--ecs-dark-text-primary, #f8f8f2);
+  border-radius: 5px;
+  padding: 15px;
+  margin: 15px 0;
+  font-family: monospace;
+  border-radius: 4px;
+}
+
+.status-good {
+  color: var(--color-success, #28a745);
+  color: var(--bs-success, #28a745);
+}
+
+.status-warning {
+  color: var(--color-warning, #ffc107);
+  color: var(--bs-warning, #ffc107);
+}
+
+.status-error {
+  color: var(--color-danger, #dc3545);
+  color: var(--bs-danger, #dc3545);
+}
+
+.detail-toggle {
+  cursor: pointer;
+  color: var(--color-primary);
+  color: var(--bs-primary);
+}
+
+.detail-content {
+  background-color: var(--bs-tertiary-bg, #f8f9fa);
+  border-radius: var(--radius-sm, 4px);
+  padding: var(--space-3, 10px);
+  margin: var(--space-3, 10px) 0;
+  border-radius: 4px;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+.directory-item {
+  padding: var(--space-3, 10px);
+  border-radius: var(--radius-sm, 4px);
+  margin-bottom: var(--space-2, 8px);
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.directory-item:nth-child(odd) {
+  background-color: var(--bs-tertiary-bg, rgba(0, 0, 0, 0.03));
+}
+
+/* ============================================================================
+   HELP DOCUMENTATION STYLES
+   ============================================================================ */
+
+.help-card {
+  margin-bottom: var(--space-6, 25px);
+  border-radius: var(--radius-lg, 8px);
+  transition: all 0.2s;
+  height: 100%;
+  margin-bottom: 25px;
+  border-radius: 8px;
+}
+
+.help-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--bs-box-shadow);
+}
+
+.help-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-4, 15px);
+  color: var(--color-primary, #696cff);
+  margin-bottom: 15px;
+  color: var(--bs-primary, #696cff);
+}
+
+.topic-section {
+  border-left: 3px solid var(--color-primary, #696cff);
+  padding-left: var(--space-5, 20px);
+  margin-bottom: var(--space-7, 30px);
+  border-left: 3px solid var(--bs-primary, #696cff);
+  padding-left: 20px;
+  margin-bottom: 30px;
+}
+
+.faq-item {
+  margin-bottom: var(--space-5, 20px);
+  margin-bottom: 20px;
+}
+
+.faq-question {
+  font-weight: var(--font-bold, bold);
+  margin-bottom: var(--space-2, 8px);
+  color: var(--color-primary, #696cff);
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: var(--bs-primary, #696cff);
+}
+
+/* ============================================================================
+   LOCATIONS STYLES
+   ============================================================================ */
+
+.location-card {
+  transition: all 0.2s;
+}
+
+.location-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--bs-box-shadow);
+}
+
+.location-inactive {
+  opacity: 0.6;
+}
+
+.location-badge {
+  font-size: 0.7rem;
+}
+
+.coordinates {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-sm, 0.85rem);
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+/* ============================================================================
+   PASS DESIGN STYLES
+   ============================================================================ */
+
+.pass-preview-card {
+  width: 320px;
+  min-height: 400px;
+  border-radius: var(--radius-xl, 12px);
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  margin: 0 auto;
+  transition: all 0.3s;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+
+.pass-preview-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 15px 50px rgba(0,0,0,0.25);
+}
+
+.pass-header {
+  padding: var(--space-5, 20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.pass-logo-area {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  gap: 12px;
+}
+
+.pass-logo-img {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-lg, 8px);
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.1);
+}
+
+.pass-logo-img img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.pass-logo-text {
+  font-size: 1.4rem;
+  font-weight: var(--font-bold, bold);
+  font-weight: bold;
+}
+
+.pass-content {
+  padding: var(--space-5, 20px);
+  padding: 20px;
+}
+
+.pass-field {
+  margin-bottom: var(--space-4, 16px);
+  margin-bottom: 16px;
+}
+
+.pass-field-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+}
+
+.pass-field-value {
+  font-size: 18px;
+  font-weight: var(--font-semibold, 600);
+  font-weight: 600;
+}
+
+.pass-barcode-area {
+  background: #fff;
+  padding: var(--space-5, 20px);
+  text-align: center;
+  margin: var(--space-4, 15px);
+  border-radius: var(--radius-lg, 8px);
+  padding: 20px;
+  margin: 15px;
+  border-radius: 8px;
+}
+
+.pass-barcode-area img {
+  max-width: 150px;
+}
+
+.color-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 10px);
+  gap: 10px;
+}
+
+.color-swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg, 8px);
+  border: 2px solid var(--bs-border-color);
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 8px;
+}
+
+.color-swatch:hover {
+  transform: scale(1.05);
+}
+
+.settings-card {
+  height: 100%;
+}
+
+.settings-section {
+  padding: var(--space-5, 20px);
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: 20px;
+}
+
+.settings-section:last-child {
+  border-bottom: none;
+}
+
+.variable-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--bs-primary-bg-subtle);
+  color: var(--color-primary);
+  border-radius: var(--radius-sm, 4px);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-sm, 0.85rem);
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--bs-primary);
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.variable-tag:hover {
+  background: var(--color-primary);
+  color: #fff;
+  background: var(--bs-primary);
+}
+
+.quick-tip {
+  background: var(--bs-warning-bg-subtle);
+  border-left: 4px solid var(--color-warning);
+  padding: 12px 15px;
+  border-radius: 0 var(--radius-lg, 8px) var(--radius-lg, 8px) 0;
+  margin-bottom: var(--space-4, 15px);
+  border-left: 4px solid var(--bs-warning);
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 15px;
+}
+
+.location-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bs-tertiary-bg);
+  border-radius: var(--radius-full, 20px);
+  margin: 4px;
+  font-size: var(--text-sm, 0.85rem);
+  border-radius: 20px;
+  font-size: 0.85rem;
+}
+
+.location-pill.active {
+  background: var(--bs-success-bg-subtle);
+  color: var(--color-success);
+  color: var(--bs-success);
+}
+
+.location-pill.inactive {
+  opacity: 0.5;
+}
+
+/* ============================================================================
+   PASS FIELDS STYLES
+   ============================================================================ */
+
+.field-card {
+  transition: all 0.2s;
+  cursor: grab;
+}
+
+.field-card:hover {
+  box-shadow: var(--bs-box-shadow);
+}
+
+.field-inactive {
+  opacity: 0.5;
+}
+
+.field-location-badge {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.template-variable {
+  font-family: var(--font-mono, monospace);
+  background: var(--bs-light);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs, 3px);
+  font-size: var(--text-sm, 0.85rem);
+  font-family: monospace;
+  border-radius: 3px;
+  font-size: 0.85rem;
+}
+
+/* ============================================================================
+   SPONSORS STYLES
+   ============================================================================ */
+
+.sponsor-card {
+  transition: all 0.2s;
+}
+
+.sponsor-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--bs-box-shadow);
+}
+
+.sponsor-inactive {
+  opacity: 0.6;
+}
+
+/* ============================================================================
+   TEMPLATES STYLES (CodeMirror)
+   ============================================================================ */
+
+.wallet-config-editor .CodeMirror {
+  height: 400px;
+  border: 1px solid var(--bs-border-color, #ddd);
+  border-radius: var(--radius-sm, 4px);
+}
+
+/* ============================================================================
+   TEST RESULTS STYLES
+   ============================================================================ */
+
+.test-result {
+  padding: var(--space-4, 15px);
+  border-radius: var(--radius-lg, 8px);
+  margin-bottom: var(--space-4, 15px);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  background-color: var(--bs-tertiary-bg);
+  padding: 1rem;
+  border-radius: 0.375rem;
+  margin-bottom: 0.75rem;
+}
+
+.test-result.passed {
+  background-color: var(--bs-success-bg-subtle, rgba(40, 199, 111, 0.1));
+  border-left: 4px solid var(--color-success, #28c76f);
+  background-color: var(--ecs-success-subtle, rgba(40, 199, 111, 0.1));
+  border-left: 4px solid var(--ecs-success, #28c76f);
+  background-color: var(--bs-success-bg-subtle);
+  border-left: 4px solid var(--bs-success);
+  border-left: 3px solid var(--ecs-success, #28c76f);
+}
+
+.test-result.failed {
+  background-color: var(--bs-danger-bg-subtle, rgba(234, 84, 85, 0.1));
+  border-left: 4px solid var(--color-danger, #ea5455);
+  background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.1));
+  border-left: 4px solid var(--ecs-danger, #ea5455);
+  background-color: var(--bs-danger-bg-subtle);
+  border-left: 4px solid var(--bs-danger);
+  border-left: 3px solid var(--ecs-danger, #ea5455);
+}
+
+.test-result.skipped {
+  background-color: var(--bs-warning-bg-subtle, rgba(255, 159, 67, 0.1));
+  border-left: 4px solid var(--color-warning, #ff9f43);
+  background-color: var(--ecs-warning-subtle, rgba(255, 159, 67, 0.1));
+  border-left: 4px solid var(--ecs-warning, #ff9f43);
+  background-color: var(--bs-warning-bg-subtle);
+  border-left: 4px solid var(--bs-warning);
+  border-left: 3px solid var(--ecs-warning, #ff9f43);
+}
+
+.issue-item {
+  padding: 10px 15px;
+  border-left: 3px solid var(--color-danger, #ea5455);
+  background-color: var(--bs-danger-bg-subtle, rgba(234, 84, 85, 0.1));
+  margin-bottom: var(--space-3, 10px);
+  border-radius: var(--radius-sm, 4px);
+  border-left: 3px solid var(--ecs-danger, #ea5455);
+  background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.1));
+  margin-bottom: 10px;
+  border-radius: 4px;
+}
+
+.next-steps {
+  border: 1px solid var(--bs-border-color, #ddd);
+  border-radius: var(--radius-lg, 8px);
+  padding: var(--space-4, 15px);
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.next-steps ul {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   WALLET MANAGEMENT STYLES
+   ============================================================================ */
+
+.stat-card {
+  border-radius: var(--radius-lg, 8px);
+  transition: all 0.2s;
+  border-radius: 8px;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--bs-box-shadow);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg, 8px);
+  border-radius: 8px;
+}
+
+.quick-action-btn {
+  transition: all 0.2s;
+}
+
+.quick-action-btn:hover {
+  transform: translateY(-2px);
+}
+
+.setup-required-banner {
+  background: linear-gradient(135deg, var(--bs-warning-bg-subtle) 0%, var(--color-warning) 100%);
+  border-radius: var(--radius-xl, 12px);
+  padding: var(--space-6, 24px);
+  background: linear-gradient(135deg, var(--bs-warning-bg-subtle) 0%, var(--bs-warning) 100%);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+/* ============================================================================
+   WALLET PASSES STYLES
+   ============================================================================ */
+
+.pass-stat-card {
+  border-radius: var(--radius-lg, 8px);
+  transition: all 0.2s;
+  border-radius: 8px;
+}
+
+.pass-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--bs-box-shadow-sm);
+}
+
+.filter-row {
+  background-color: var(--bs-tertiary-bg);
+  border-radius: var(--radius-lg, 8px);
+  padding: var(--space-4, 16px);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+/* ============================================================================
+   WALLET SCANNER STYLES
+   ============================================================================ */
+
+.scanner-container {
+  max-width: 100%;
+}
+
+#scanner-video {
+  width: 100%;
+  max-height: 350px;
+  border-radius: var(--radius-lg, 8px);
+  background: var(--bs-dark);
+  border-radius: 8px;
+}
+
+.scanner-overlay {
+  position: relative;
+}
+
+.scanner-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px;
+  height: 200px;
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  border-radius: var(--radius-lg, 8px);
+  pointer-events: none;
+  border: 3px solid rgba(255,255,255,0.8);
+  border-radius: 8px;
+}
+
+.scanner-frame::after,
+.scanner-frame::before {
+  content: '';
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  border-color: var(--color-success);
+  border-style: solid;
+  border-color: var(--bs-success);
+}
+
+.scanner-frame::before {
+  top: -3px;
+  left: -3px;
+  border-width: 4px 0 0 4px;
+  border-radius: var(--radius-lg, 8px) 0 0 0;
+  border-radius: 8px 0 0 0;
+}
+
+.scanner-frame::after {
+  bottom: -3px;
+  right: -3px;
+  border-width: 0 4px 4px 0;
+  border-radius: 0 0 var(--radius-lg, 8px) 0;
+  border-radius: 0 0 8px 0;
+}
+
+.result-card.valid {
+  border-color: var(--color-success);
+  background: var(--bs-success-bg-subtle);
+  border-color: var(--bs-success) !important;
+}
+
+.result-card.invalid {
+  border-color: var(--color-danger);
+  background: var(--bs-danger-bg-subtle);
+  border-color: var(--bs-danger) !important;
+}
+
+.scan-history-item {
+  padding: var(--space-3, 12px);
+  border-left: 4px solid;
+  margin-bottom: var(--space-2, 8px);
+  border-radius: 0 var(--radius-lg, 8px) var(--radius-lg, 8px) 0;
+  background: var(--bs-tertiary-bg);
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 0 8px 8px 0;
+}
+
+.scan-history-item.valid {
+  border-left-color: var(--color-success);
+  border-left-color: var(--bs-success);
+}
+
+.scan-history-item.invalid {
+  border-left-color: var(--color-danger);
+  border-left-color: var(--bs-danger);
+}
+
+.beep-success {
+  animation: pulse-green 0.5s ease;
+}
+
+.beep-error {
+  animation: pulse-red 0.5s ease;
+}
+
+@keyframes pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(var(--bs-success-rgb), 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 15px rgba(var(--bs-success-rgb), 0.3);
+  }
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(var(--bs-danger-rgb), 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 15px rgba(var(--bs-danger-rgb), 0.3);
+  }
+}
+
+.stat-box {
+  padding: var(--space-4, 16px);
+  border-radius: var(--radius-lg, 8px);
+  text-align: center;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.stat-box.valid {
+  background: var(--bs-success-bg-subtle);
+}
+
+.stat-box.invalid {
+  background: var(--bs-danger-bg-subtle);
+}
+
+.stat-box.total {
+  background: var(--bs-tertiary-bg);
+}
+
+/* ============================================================================
+   EXTRACTED INLINE STYLES
+   ============================================================================ */
+
+/* From: admin/wallet_checkins.html */
+
+/* Check-ins - Theme-aware styling */
+
+.checkin-row {
+  transition: background-color 0.2s;
+}
+
+.filter-card {
+  background-color: var(--bs-tertiary-bg);
+  border: 1px solid var(--bs-border-color);
+}
+
+/* From: admin/wallet_getting_started.html */
+
+/* Getting Started - Theme-aware styling */
+
+.hero-section {
+  background: linear-gradient(135deg, var(--bs-primary) 0%, #1a472a 100%);
+  color: var(--bs-white, #fff);
+  border-radius: 16px;
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 400px;
+  height: 400px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 50%;
+}
+
+.progress-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(
+            var(--bs-success) calc(var(--progress) * 1%),
+            rgba(255,255,255,0.2) calc(var(--progress) * 1%)
+        );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.progress-circle-inner {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.step-card {
+  border-left: 4px solid transparent;
+  transition: all 0.3s;
+}
+
+.step-card:hover {
+  transform: translateX(5px);
+}
+
+.step-card.completed {
+  border-left-color: var(--bs-success);
+  background: var(--bs-success-bg-subtle);
+}
+
+.step-card.in-progress {
+  border-left-color: var(--bs-warning);
+  background: var(--bs-warning-bg-subtle);
+}
+
+.step-card.pending {
+  border-left-color: var(--bs-secondary);
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.prereq-item {
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--bs-tertiary-bg);
+  margin-bottom: 12px;
+}
+
+.prereq-item i {
+  font-size: 1.5rem;
+}
+
+.quick-link-card {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+}
+
+.quick-link-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--bs-box-shadow);
+}
+
+.time-estimate {
+  background: rgba(255,255,255,0.15);
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+/* From: admin/wallet_management.html */
+
+/* Dashboard Cards - Theme-aware styling */
+
+/* From: admin/wallet_passes.html */
+
+/* Passes list - Theme-aware styling */
+
+/* From: admin/wallet_pass_detail.html */
+
+/* Pass detail - Theme-aware styling */
+
+.detail-table td {
+  padding: 0.5rem 0;
+  border: none;
+}
+
+.detail-table td:first-child {
+  width: 40%;
+  color: var(--bs-secondary-color);
+}
+
+.qr-container {
+  background: var(--bs-tertiary-bg);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.qr-container svg {
+  max-width: 150px;
+}
+
+.status-banner {
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.status-banner.active {
+  background: var(--bs-success-bg-subtle);
+  border-left: 4px solid var(--bs-success);
+}
+
+.status-banner.voided {
+  background: var(--bs-danger-bg-subtle);
+  border-left: 4px solid var(--bs-danger);
+}
+
+.status-banner.expired {
+  background: var(--bs-secondary-bg);
+  border-left: 4px solid var(--bs-secondary);
+}
+
+/* From: admin/wallet_players.html */
+
+/* Filter row - Theme-aware styling */
+
+.eligibility-badge {
+  font-size: 0.75rem;
+}
+
+/* From: admin/wallet_scanner.html */
+
+/* Scanner - Theme-aware styling */
+
+@keyframes pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(var(--bs-success-rgb), 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 15px rgba(var(--bs-success-rgb), 0.3);
+  }
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(var(--bs-danger-rgb), 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 15px rgba(var(--bs-danger-rgb), 0.3);
+  }
+}
+
+/* From: admin/wallet_config/certificate_help.html */
+
+/* Certificate Help - Theme-aware styling */
+
+.step-container {
+  border-left: 3px solid var(--bs-primary, #696cff);
+  padding-left: 20px;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.step-container::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--bs-primary, #696cff);
+}
+
+.screenshot-container {
+  border: 1px solid var(--bs-border-color, #ddd);
+  border-radius: 8px;
+  padding: 10px;
+  margin: 15px 0;
+}
+
+.screenshot-container img {
+  max-width: 100%;
+  height: auto;
+}
+
+.note-box {
+  background-color: var(--bs-warning-bg-subtle, #fff3cd);
+  border-left: 4px solid var(--bs-warning, #ffc107);
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 5px;
+}
+
+.tip-box {
+  background-color: var(--bs-info-bg-subtle, #d1ecf1);
+  border-left: 4px solid var(--bs-info, #17a2b8);
+  padding: 15px;
+  margin: 15px 0;
+  border-radius: 5px;
+}
+
+/* From: admin/wallet_config/dashboard.html */
+
+/* Wallet Configuration Dashboard - Theme-aware styling */
+
+.progress {
+  height: 10px;
+  margin-bottom: 10px;
+}
+
+.progress-bar {
+  transition: width 0.5s;
+}
+
+/* From: admin/wallet_config/diagnostics.html */
+
+/* Diagnostics - Theme-aware styling */
+
+/* From: admin/wallet_config/help.html */
+
+/* Help Documentation - Theme-aware styling */
+
+/* From: admin/wallet_config/locations.html */
+
+/* From: admin/wallet_config/pass_design.html */
+
+/* Pass Preview Card */
+
+/* Color Picker Styling */
+
+/* Settings Cards */
+
+/* Variable Tags */
+
+/* Quick Tips */
+
+/* Location Pills */
+
+/* From: admin/wallet_config/pass_fields.html */
+
+/* From: admin/wallet_config/sponsors.html */
+
+/* From: admin/wallet_config/templates.html */
+
+/* Pass Templates - Theme-aware styling */
+
+.CodeMirror {
+  height: 400px;
+  border: 1px solid var(--bs-border-color, #ddd);
+  border-radius: 4px;
+}
+
+/* From: admin/wallet_config/test_results.html */
+
+/* Test Results - Theme-aware styling */
+
+/* From: admin/wallet_config/wizard.html */
+
+/* Wallet Setup Wizard - Theme-aware styling using Bootstrap CSS variables */
+
+.wizard-container {
+  position: relative;
+}
+
+.wizard-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.wizard-steps::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--bs-border-color);
+  z-index: 1;
+}
+
+.wizard-step {
+  z-index: 2;
+  position: relative;
+  background-color: inherit;
+  padding: 0 15px;
+}
+
+.wizard-step-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+  color: #fff;
+  position: relative;
+}
+
+.step-active .wizard-step-circle {
+  background-color: var(--bs-primary);
+}
+
+.step-done .wizard-step-circle {
+  background-color: var(--bs-success);
+}
+
+.step-pending .wizard-step-circle {
+  background-color: var(--bs-secondary);
+}
+
+.wizard-step-text {
+  text-align: center;
+  color: var(--bs-body-color);
+}
+
+.step-active .wizard-step-text {
+  color: var(--bs-primary);
+  font-weight: bold;
+}
+
+.step-done .wizard-step-text {
+  color: var(--bs-success);
+}
+
+.wizard-content {
+  padding: 20px;
+  min-height: 400px;
+}
+
+/* Ensure nested cards in wizard inherit theme properly */
+
+.wizard-content .card {
+  background-color: inherit;
+}
+
+.wizard-content .list-group-item {
+  background-color: transparent;
+}
+
+.wizard-navigation {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.tooltip-container {
+  position: relative;
+}
+
+.tooltip-container:hover .custom-tooltip {
+  display: block;
+}
+
+.custom-tooltip {
+  display: none;
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  background-color: var(--bs-emphasis-color);
+  color: var(--bs-body-bg);
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.custom-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--bs-emphasis-color) transparent transparent transparent;
+}
+
+.cert-card {
+  border-radius: 8px;
+  transition: all 0.2s;
+  height: 100%;
+}
+
+.cert-card .cert-icon {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  color: var(--bs-primary);
+}
+
+.asset-preview {
+  height: 120px;
+  width: 120px;
+  border: 1px dashed var(--bs-border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bs-tertiary-bg);
+  border-radius: 8px;
+}
+
+.asset-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.asset-preview .upload-icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bs-body-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.asset-preview:hover .upload-icon {
+  opacity: 0.9;
+}
+
+.template-preview {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  background-color: var(--bs-tertiary-bg);
+}
+
+.test-result.info {
+  background-color: var(--bs-info-bg-subtle);
+  border-left: 4px solid var(--bs-info);
+  background-color: var(--ecs-info-subtle, rgba(0, 207, 232, 0.1));
+  border-left: 3px solid var(--ecs-info, #00cfe8);
+}
+
+/* Ensure pre elements in modals don't cause layout issues */
+
+.wizard-content pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Ensure modals don't affect parent layout when hidden */
+
+.wizard-content .modal {
+  display: none;
+}
+
+.wizard-content .modal.show {
+  display: block;
+}
+
+/* From: admin/wallet_config/wizard_testing.html */
+
+/* Test result styling for dark mode visibility */
+
+.badge.bg-label-primary {
+  background-color: var(--ecs-primary-subtle, rgba(105, 108, 255, 0.16)) !important;
+  color: var(--ecs-primary, #696cff) !important;
+}
+
+.badge.bg-label-success {
+  background-color: var(--ecs-success-subtle, rgba(40, 199, 111, 0.16)) !important;
+  color: var(--ecs-success, #28c76f) !important;
+}
+
+.badge.bg-label-warning {
+  background-color: var(--ecs-warning-subtle, rgba(255, 159, 67, 0.16)) !important;
+  color: var(--ecs-warning, #ff9f43) !important;
+}
+
+.badge.bg-label-danger {
+  background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.16)) !important;
+  color: var(--ecs-danger, #ea5455) !important;
+}
+
+.badge.bg-label-info {
+  background-color: var(--ecs-info-subtle, rgba(0, 207, 232, 0.16)) !important;
+  color: var(--ecs-info, #00cfe8) !important;
+}

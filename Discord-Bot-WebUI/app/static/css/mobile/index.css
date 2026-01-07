@@ -1,0 +1,64 @@
+/**
+ * ============================================================================
+ * MOBILE CSS MODULE INDEX
+ * ============================================================================
+ *
+ * Single entry point for all mobile styles.
+ * Import this file in main-entry.css to load all mobile optimizations.
+ *
+ * Architecture:
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 1. Foundation (must load first)
+ *    - _variables.css: CSS custom properties
+ *    - _z-index.css: Stacking hierarchy
+ *
+ * 2. Components (alphabetical for maintainability)
+ *    - buttons.css: Touch-optimized buttons
+ *    - cards.css: Card components
+ *    - forms.css: Form inputs, selects
+ *    - modals.css: Bottom sheets, dialogs
+ *    - navigation.css: Sidebar, tabs, nav
+ *    - tables.css: Card transformation
+ *    - toggles.css: Switches, checkboxes
+ *
+ * 3. Utilities (load last for override capability)
+ *    - utilities.css: Helper classes
+ *    - accessibility.css: A11y enhancements
+ *
+ * Design Principles:
+ * - One @media block per file (max-width: 767.98px)
+ * - Each component type in exactly one file
+ * - No duplicate selectors across files
+ * - Single source of truth for variables
+ *
+ * ============================================================================
+ */
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   FOUNDATION
+   Must load first - defines all CSS variables and z-index hierarchy
+   ───────────────────────────────────────────────────────────────────────────── */
+@import './_variables.css';
+@import './_z-index.css';
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   COMPONENTS
+   Each file handles one component type with mobile optimizations
+   ───────────────────────────────────────────────────────────────────────────── */
+@import './buttons.css';
+@import './forms.css';
+@import './toggles.css';
+@import './cards.css';
+@import './tables.css';
+@import './modals.css';
+@import './navigation.css';
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   UTILITIES
+   Load last to ensure override capability for quick fixes
+   ───────────────────────────────────────────────────────────────────────────── */
+@import './utilities.css';
+@import './accessibility.css';
