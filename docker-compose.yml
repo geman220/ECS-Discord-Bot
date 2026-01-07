@@ -306,7 +306,8 @@ services:
       - "traefik.http.routers.pass-converter-images.entrypoints=websecure"
       - "traefik.http.routers.pass-converter-images.tls=true"
       - "traefik.http.routers.pass-converter-images.tls.certresolver=myresolver"
-      - "traefik.http.routers.pass-converter-images.priority=30"
+      - "traefik.http.routers.pass-converter-images.priority=100"
+      - "traefik.http.routers.pass-converter-images.service=pass-converter"
       # Strip the /pass-converter prefix before forwarding
       - "traefik.http.middlewares.pass-converter-strip.stripprefix.prefixes=/pass-converter"
       - "traefik.http.routers.pass-converter-images.middlewares=pass-converter-strip"
