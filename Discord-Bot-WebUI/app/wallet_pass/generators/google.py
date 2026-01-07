@@ -109,14 +109,14 @@ class GooglePassConfig:
         return AuthorizedSession(credentials)
 
 
-def _get_class_id(issuer_id: str, pass_type_identifier: str) -> str:
+def _get_class_id(issuer_id: str, apple_pass_type_id: str) -> str:
     """
-    Generate the Google Wallet class ID from issuer ID and pass type.
+    Generate the Google Wallet class ID from issuer ID and Apple pass type ID.
 
-    Format: {issuer_id}.{pass_type_identifier}
+    Format: {issuer_id}.{apple_pass_type_id}
     Example: 3388000000022958274.pass.com.ecsfc.membership
     """
-    return f"{issuer_id}.{pass_type_identifier}"
+    return f"{issuer_id}.{apple_pass_type_id}"
 
 
 def ensure_google_wallet_class_exists(
@@ -139,7 +139,7 @@ def ensure_google_wallet_class_exists(
     Returns:
         The class ID
     """
-    class_id = _get_class_id(config.issuer_id, pass_type.pass_type_identifier)
+    class_id = _get_class_id(config.issuer_id, pass_type.apple_pass_type_id)
 
     session = config.get_authorized_session()
 
@@ -191,7 +191,7 @@ def _build_class_definition(issuer_id: str, pass_type) -> dict:
     Returns:
         Dict suitable for Google Wallet API
     """
-    class_id = _get_class_id(issuer_id, pass_type.pass_type_identifier)
+    class_id = _get_class_id(issuer_id, pass_type.apple_pass_type_id)
 
     # Get colors from pass type config
     config = pass_type.get_config() or {}

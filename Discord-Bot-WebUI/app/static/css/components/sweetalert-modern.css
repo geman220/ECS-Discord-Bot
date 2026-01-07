@@ -23,6 +23,20 @@
  */
 
 /* ============================================================================
+   DARK MODE CSS VARIABLE OVERRIDES
+   SweetAlert2 uses prefers-color-scheme, but our app uses [data-style="dark"]
+   ============================================================================ */
+
+[data-style="dark"] {
+  --swal2-background: rgba(30, 30, 35, 0.98);
+  --swal2-timer-progress-bar-background: rgba(255, 255, 255, 0.3);
+  --swal2-html-container-color: #e2e8f0;
+  --swal2-title-color: #f1f5f9;
+  --swal2-backdrop: rgba(0, 0, 0, 0.6);
+  --swal2-toast-background: rgba(30, 30, 35, 0.98);
+}
+
+/* ============================================================================
    CONTAINER & BACKDROP
    ============================================================================ */
 
@@ -502,10 +516,26 @@
 [data-style="dark"] .swal2-toast {
   background: linear-gradient(
     135deg,
-    rgba(30, 30, 35, 0.98) 0%,
-    rgba(30, 30, 35, 0.95) 100%
+    rgba(30, 41, 59, 0.98) 0%,
+    rgba(30, 41, 59, 0.95) 100%
   ) !important;
   border-color: rgba(255, 255, 255, 0.1);
+  /* Override SweetAlert2 CSS variables for dark mode */
+  --swal2-timer-progress-bar-background: rgba(255, 255, 255, 0.3) !important;
+  --swal2-background: rgba(30, 41, 59, 0.98) !important;
+}
+
+/* Ensure no black background shows through toast elements */
+[data-style="dark"] .swal2-toast * {
+  background-color: transparent;
+}
+
+[data-style="dark"] .swal2-toast .swal2-timer-progress-bar-container {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-style="dark"] .swal2-toast .swal2-timer-progress-bar {
+  background: var(--color-primary, #0EA5E9) !important;
 }
 
 .swal2-toast .swal2-title {
