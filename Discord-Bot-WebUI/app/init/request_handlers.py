@@ -69,6 +69,10 @@ def _init_before_request(app):
 
     @app.before_request
     def before_request():
+        # Sync theme preset from cookie to session (for anti-flash support)
+        # This must happen before any template rendering
+        _sync_theme_preset_from_cookie()
+
         # Check for CSRF exemption first
         path = request.path
         exempt_routes = [
@@ -202,6 +206,29 @@ def _cache_user_roles():
                     g.db_session.rollback()
                 except Exception:
                     pass
+
+
+def _sync_theme_preset_from_cookie():
+    """
+    Sync theme preset preference from cookie to session.
+
+    This ensures the server knows the user's preset preference on the first request,
+    which is critical for injecting the correct colors in the blocking script
+    to prevent theme flash.
+    """
+    try:
+        # Get preset from cookie
+        preset_cookie = request.cookies.get('theme_preset')
+
+        if preset_cookie:
+            # Only update session if cookie value differs
+            current_session_preset = flask_session.get('theme_preset', 'default')
+            if preset_cookie != current_session_preset:
+                flask_session['theme_preset'] = preset_cookie
+                logger.debug(f"Synced theme preset from cookie: {preset_cookie}")
+    except Exception as e:
+        # Don't let theme sync errors break the request
+        logger.debug(f"Could not sync theme preset from cookie: {e}")
 
 
 def _init_teardown_handlers(app):

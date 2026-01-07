@@ -1,7 +1,7 @@
 {# ============================================================================
-   ADMIN PANEL NAVIGATION - CONSOLIDATED (7 items)
+   ADMIN PANEL NAVIGATION - CONSOLIDATED (8 items)
    ============================================================================
-   Reorganized navigation: Dashboard | League Ops | MLS | Members | Comms | Users | Admin
+   Reorganized navigation: Dashboard | League Ops | MLS | ECS FC | Discord | Members | Comms | Users | Admin
    ============================================================================ #}
 
 <nav class="c-admin-nav" data-controller="admin-nav" aria-label="Admin Panel Navigation">
@@ -218,7 +218,68 @@
             </ul>
         </li>
 
-        {# Members (Discord + Mobile + Store) #}
+        {# Discord (Dedicated Section) #}
+        <li class="c-admin-nav__item" data-dropdown role="none">
+            <button class="c-admin-nav__link c-admin-nav__dropdown-toggle"
+                    data-action="toggle-admin-dropdown"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                    role="menuitem">
+                <i class="c-admin-nav__icon ti ti-brand-discord" aria-hidden="true"></i>
+                <span class="c-admin-nav__text">Discord</span>
+            </button>
+            <ul class="c-admin-nav__dropdown c-admin-nav__dropdown--wide" role="menu" aria-hidden="true">
+                {# Overview Section #}
+                <li class="c-admin-nav__dropdown-header">Overview</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.discord_overview') }}" class="c-admin-nav__dropdown-item" data-action="admin-navigate" role="menuitem">
+                        <i class="ti ti-dashboard" aria-hidden="true"></i>
+                        <span>Discord Hub</span>
+                    </a>
+                </li>
+
+                {# Members Section #}
+                <li class="c-admin-nav__dropdown-header">Members</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.discord_players') }}" class="c-admin-nav__dropdown-item" data-action="admin-navigate" role="menuitem">
+                        <i class="ti ti-users" aria-hidden="true"></i>
+                        <span>Discord Players</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.discord_onboarding') }}" class="c-admin-nav__dropdown-item" data-action="admin-navigate" role="menuitem">
+                        <i class="ti ti-user-plus" aria-hidden="true"></i>
+                        <span>Onboarding</span>
+                    </a>
+                </li>
+
+                {# Roles & Sync Section #}
+                <li class="c-admin-nav__dropdown-header">Roles & Sync</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.discord_roles') }}" class="c-admin-nav__dropdown-item" data-action="admin-navigate" role="menuitem">
+                        <i class="ti ti-refresh" aria-hidden="true"></i>
+                        <span>Role Sync</span>
+                    </a>
+                </li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.discord_role_mapping') }}" class="c-admin-nav__dropdown-item" data-action="admin-navigate" role="menuitem">
+                        <i class="ti ti-link" aria-hidden="true"></i>
+                        <span>Role Mapping</span>
+                    </a>
+                </li>
+
+                {# Bot Section #}
+                <li class="c-admin-nav__dropdown-header">Bot</li>
+                <li role="none">
+                    <a href="{{ url_for('admin_panel.discord_bot_management') }}" class="c-admin-nav__dropdown-item" data-action="admin-navigate" role="menuitem">
+                        <i class="ti ti-robot" aria-hidden="true"></i>
+                        <span>Bot Management</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        {# Members (Mobile + Store) #}
         <li class="c-admin-nav__item" data-dropdown role="none">
             <button class="c-admin-nav__link c-admin-nav__dropdown-toggle"
                     data-action="toggle-admin-dropdown"
@@ -229,33 +290,6 @@
                 <span class="c-admin-nav__text">Members</span>
             </button>
             <ul class="c-admin-nav__dropdown c-admin-nav__dropdown--wide" role="menu" aria-hidden="true">
-                {# Discord Section #}
-                <li class="c-admin-nav__dropdown-header">Discord</li>
-                <li role="none">
-                    <a href="{{ url_for('admin_panel.discord_overview') }}" class="c-admin-nav__dropdown-item" data-action="admin-navigate" role="menuitem">
-                        <i class="ti ti-brand-discord" aria-hidden="true"></i>
-                        <span>Discord Overview</span>
-                    </a>
-                </li>
-                <li role="none">
-                    <a href="{{ url_for('admin_panel.discord_players') }}" class="c-admin-nav__dropdown-item" data-action="admin-navigate" role="menuitem">
-                        <i class="ti ti-users" aria-hidden="true"></i>
-                        <span>Discord Players</span>
-                    </a>
-                </li>
-                <li role="none">
-                    <a href="{{ url_for('admin_panel.discord_roles') }}" class="c-admin-nav__dropdown-item" data-action="admin-navigate" role="menuitem">
-                        <i class="ti ti-shield" aria-hidden="true"></i>
-                        <span>Discord Roles</span>
-                    </a>
-                </li>
-                <li role="none">
-                    <a href="{{ url_for('admin_panel.discord_onboarding') }}" class="c-admin-nav__dropdown-item" data-action="admin-navigate" role="menuitem">
-                        <i class="ti ti-user-plus" aria-hidden="true"></i>
-                        <span>Onboarding</span>
-                    </a>
-                </li>
-
                 {# Mobile Section #}
                 <li class="c-admin-nav__dropdown-header">Mobile App</li>
                 <li role="none">

@@ -47,8 +47,9 @@ function getUrl(key, userId = null) {
     let url = config[key] || '';
 
     // If userId provided, replace placeholder
+    // Only replace '/0' pattern to avoid corrupting IDs that contain '0'
     if (userId && url) {
-        url = url.replace('/0', '/' + userId).replace('0', userId);
+        url = url.replace('/0', '/' + userId);
     }
 
     return url;

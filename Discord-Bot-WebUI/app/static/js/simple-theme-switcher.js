@@ -20,6 +20,8 @@ class SimpleThemeSwitcher {
     this.variants = ['modern'];
     this.currentTheme = 'light';
     this.currentVariant = 'modern';
+    this.currentPreset = null;
+    this.presetStyleElement = null;
     this.init();
   }
 
@@ -28,6 +30,8 @@ class SimpleThemeSwitcher {
     this.setupEventListeners();
     this.setupSystemThemeDetection();
     this.loadSavedVariant();
+    this.loadSavedPreset();
+    this.loadPresetsIntoDropdown();
   }
 
   /**
@@ -346,6 +350,294 @@ class SimpleThemeSwitcher {
     // Only modern variant is available
     this.setVariant('modern');
   }
+
+  // ========================================================================
+  // COLOR PRESET METHODS
+  // ========================================================================
+
+  /**
+   * Load saved preset preference from localStorage
+   */
+  loadSavedPreset() {
+    const savedPreset = localStorage.getItem('theme-preset');
+    if (savedPreset && savedPreset !== 'default') {
+      this.currentPreset = savedPreset;
+      // Apply the preset colors
+      this.applyPreset(savedPreset, false);
+    }
+  }
+
+  /**
+   * Load presets from API and populate navbar dropdown
+   */
+  loadPresetsIntoDropdown() {
+    const presetsList = document.querySelector('[data-presets-list]');
+    if (!presetsList) return;
+
+    fetch('/admin-panel/api/presets')
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.presets) {
+          // Clear existing items
+          presetsList.innerHTML = '';
+
+          // Add preset items (skip default, it's hardcoded)
+          data.presets.filter(p => p.slug !== 'default' && p.is_enabled).forEach(preset => {
+            const button = document.createElement('button');
+            button.className = 'c-navbar-modern__dropdown-item';
+            button.setAttribute('data-action', 'select-preset');
+            button.setAttribute('data-preset', preset.slug);
+            button.setAttribute('role', 'menuitem');
+
+            // Add check icon if active
+            const isActive = this.currentPreset === preset.slug;
+            button.innerHTML = `
+              <i class="ti ${isActive ? 'ti-check' : 'ti-palette'}" aria-hidden="true"></i>
+              <span>${this.escapeHtml(preset.name)}</span>
+            `;
+
+            if (isActive) {
+              button.classList.add('is-active');
+            }
+
+            presetsList.appendChild(button);
+          });
+        }
+      })
+      .catch(error => {
+        console.error('[ThemeSwitcher] Failed to load presets:', error);
+      });
+  }
+
+  /**
+   * Apply a color preset
+   * @param {string} slug - Preset slug ('default' to reset)
+   * @param {boolean} save - Whether to save preference
+   */
+  applyPreset(slug, save = true) {
+    if (slug === 'default') {
+      this.clearPreset(save);
+      return;
+    }
+
+    fetch(`/admin-panel/api/presets/${slug}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.preset) {
+          this.currentPreset = slug;
+          this.injectPresetColors(data.preset.colors);
+          this.updatePresetMenuItem(slug);
+
+          if (save) {
+            localStorage.setItem('theme-preset', slug);
+            // Set cookie for server-side access (prevents flash on page load)
+            this.setPresetCookie(slug);
+            this.savePresetToServer(slug);
+          }
+
+          // Dispatch event
+          document.dispatchEvent(new CustomEvent('presetChanged', {
+            detail: { preset: slug, colors: data.preset.colors }
+          }));
+        }
+      })
+      .catch(error => {
+        console.error('[ThemeSwitcher] Failed to apply preset:', error);
+      });
+  }
+
+  /**
+   * Set preset cookie for server-side access
+   * @param {string} slug - Preset slug
+   */
+  setPresetCookie(slug) {
+    const maxAge = 365 * 24 * 60 * 60; // 1 year
+    document.cookie = `theme_preset=${encodeURIComponent(slug)};path=/;max-age=${maxAge};SameSite=Lax`;
+  }
+
+  /**
+   * Clear preset and revert to default colors
+   * @param {boolean} save - Whether to save preference
+   */
+  clearPreset(save = true) {
+    this.currentPreset = null;
+
+    // Remove injected style
+    if (this.presetStyleElement) {
+      this.presetStyleElement.remove();
+      this.presetStyleElement = null;
+    }
+
+    this.updatePresetMenuItem('default');
+
+    if (save) {
+      localStorage.removeItem('theme-preset');
+      // Clear the cookie by setting it to 'default' with same path
+      this.setPresetCookie('default');
+      this.savePresetToServer('default');
+    }
+
+    // Dispatch event
+    document.dispatchEvent(new CustomEvent('presetChanged', {
+      detail: { preset: 'default', colors: null }
+    }));
+  }
+
+  /**
+   * Inject preset colors as CSS custom properties
+   * @param {Object} colors - { light: {...}, dark: {...} }
+   */
+  injectPresetColors(colors) {
+    // Remove existing preset styles
+    if (this.presetStyleElement) {
+      this.presetStyleElement.remove();
+    }
+
+    // Create style element
+    const style = document.createElement('style');
+    style.id = 'theme-preset-colors';
+    style.setAttribute('data-preset-styles', '');
+
+    let css = '';
+
+    // Generate light mode CSS
+    if (colors.light) {
+      css += ':root, [data-style="light"] {\n';
+      css += this.generateColorVariables(colors.light);
+      css += '}\n\n';
+    }
+
+    // Generate dark mode CSS
+    if (colors.dark) {
+      css += '[data-style="dark"] {\n';
+      css += this.generateColorVariables(colors.dark);
+      css += '}\n';
+    }
+
+    style.textContent = css;
+    document.head.appendChild(style);
+    this.presetStyleElement = style;
+  }
+
+  /**
+   * Generate CSS variable declarations from color object
+   * @param {Object} colors - Color object
+   * @returns {string} CSS declarations
+   */
+  generateColorVariables(colors) {
+    const mapping = {
+      // Brand colors
+      'primary': '--color-primary',
+      'primary_light': '--color-primary-light',
+      'primary_dark': '--color-primary-dark',
+      'secondary': '--color-secondary',
+      'accent': '--color-accent',
+      // Status colors
+      'success': '--color-success',
+      'warning': '--color-warning',
+      'danger': '--color-danger',
+      'info': '--color-info',
+      // Text colors
+      'text_heading': '--color-text-primary',
+      'text_body': '--color-text-secondary',
+      'text_muted': '--color-text-muted',
+      'text_link': '--color-text-link',
+      // Background colors
+      'bg_body': '--color-bg-body',
+      'bg_card': '--color-bg-card',
+      'bg_input': '--color-bg-input',
+      'bg_sidebar': '--color-bg-sidebar',
+      // Border colors
+      'border': '--color-border-primary',
+      'border_input': '--color-border-input'
+    };
+
+    let css = '';
+    Object.entries(colors).forEach(([key, value]) => {
+      const cssVar = mapping[key];
+      if (cssVar && value) {
+        css += `  ${cssVar}: ${value} !important;\n`;
+      }
+    });
+
+    return css;
+  }
+
+  /**
+   * Update active preset menu item
+   * @param {string} slug - Active preset slug
+   */
+  updatePresetMenuItem(slug) {
+    // Remove active state from all preset items
+    document.querySelectorAll('[data-action="select-preset"]').forEach(item => {
+      item.classList.remove('is-active');
+      const icon = item.querySelector('i');
+      if (icon) {
+        icon.className = 'ti ti-palette';
+      }
+    });
+
+    // Add active state to current preset
+    const activeItem = document.querySelector(`[data-action="select-preset"][data-preset="${slug}"]`);
+    if (activeItem) {
+      activeItem.classList.add('is-active');
+      const icon = activeItem.querySelector('i');
+      if (icon) {
+        icon.className = 'ti ti-check';
+      }
+    }
+  }
+
+  /**
+   * Save preset preference to server
+   * @param {string} slug - Preset slug
+   */
+  savePresetToServer(slug) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (!csrfToken) {
+      console.warn('CSRF token not found, preset not saved to server');
+      return;
+    }
+
+    fetch('/set-theme-preset', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Csrftoken': csrfToken.getAttribute('content')
+      },
+      body: JSON.stringify({ preset: slug })
+    }).then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    }).then(data => {
+      if (!data.success) {
+        console.error('Preset save failed:', data.message);
+      }
+    }).catch(error => {
+      console.error('Failed to save preset to server:', error);
+    });
+  }
+
+  /**
+   * Get current preset
+   * @returns {string|null} Current preset slug or null
+   */
+  getCurrentPreset() {
+    return this.currentPreset;
+  }
+
+  /**
+   * Escape HTML for safe insertion
+   * @param {string} text
+   * @returns {string}
+   */
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text || '';
+    return div.innerHTML;
+  }
 }
 
 // Initialize theme switcher
@@ -370,15 +662,35 @@ function initThemeSwitcher() {
     delete window._variantNeedsSync; // Clean up
   }
 
+  // Check if preset sync is needed (set by early script)
+  if (window._presetNeedsSync) {
+    window.themeSwitcher.currentPreset = window._presetNeedsSync.preset;
+    // Set cookie and sync to server
+    window.themeSwitcher.setPresetCookie(window._presetNeedsSync.preset);
+    window.themeSwitcher.savePresetToServer(window._presetNeedsSync.preset);
+    // Apply preset colors if not already loaded from server
+    if (!window._serverPresetColors && window._presetNeedsSync.preset !== 'default') {
+      window.themeSwitcher.applyPreset(window._presetNeedsSync.preset, false);
+    }
+    delete window._presetNeedsSync; // Clean up
+  }
+
   // Get current theme (already set by early script)
   const currentTheme = document.documentElement.getAttribute('data-style') || 'light';
   const currentVariant = document.documentElement.getAttribute('data-theme-variant') || 'modern';
+  const currentPreset = document.documentElement.getAttribute('data-theme-preset') || 'default';
 
   // Just update the UI to match what's already applied
   window.themeSwitcher.currentTheme = currentTheme;
   window.themeSwitcher.currentVariant = currentVariant;
+  window.themeSwitcher.currentPreset = currentPreset !== 'default' ? currentPreset : null;
   window.themeSwitcher.updateThemeIcon(currentTheme);
   window.themeSwitcher.updateActiveMenuItem(currentTheme);
+
+  // If server provided preset colors, inject them (they're already in critical CSS, but this ensures CSS vars are set)
+  if (window._serverPresetColors && currentPreset !== 'default') {
+    window.themeSwitcher.injectPresetColors(window._serverPresetColors);
+  }
 
   // No need to call setTheme() - theme is already applied correctly
 }
@@ -431,6 +743,29 @@ window.EventDelegation.register('select-theme', (element, e) => {
   if (theme) {
     console.log('Theme switching to:', theme);
     window.themeSwitcher.setTheme(theme);
+
+    // Close dropdown manually if needed
+    const dropdown = element.closest('[data-role="theme-dropdown-menu"]');
+    if (dropdown) {
+      const toggle = document.querySelector('[data-role="theme-dropdown-toggle"]');
+      if (toggle && window.bootstrap) {
+        const dropdownInstance = window.bootstrap.Dropdown.getInstance(toggle);
+        if (dropdownInstance) {
+          dropdownInstance.hide();
+        }
+      }
+    }
+  }
+}, { preventDefault: true });
+
+// Handle navbar dropdown preset selection (data-action="select-preset")
+window.EventDelegation.register('select-preset', (element, e) => {
+  if (!window.themeSwitcher) return;
+
+  const preset = element.getAttribute('data-preset');
+  if (preset) {
+    console.log('Preset switching to:', preset);
+    window.themeSwitcher.applyPreset(preset);
 
     // Close dropdown manually if needed
     const dropdown = element.closest('[data-role="theme-dropdown-menu"]');

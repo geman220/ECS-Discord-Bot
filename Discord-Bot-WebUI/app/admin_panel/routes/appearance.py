@@ -755,3 +755,262 @@ def get_site_design_tokens():
     Returns custom tokens if set, otherwise returns None.
     """
     return load_design_tokens()
+
+
+# ============================================================================
+# Theme Preset Routes
+# ============================================================================
+
+@admin_panel_bp.route('/api/presets')
+@login_required
+def list_presets():
+    """
+    List all enabled theme presets for navbar dropdown.
+    This is a public endpoint (any logged-in user can see presets).
+    """
+    try:
+        from app.models import ThemePreset
+
+        presets = ThemePreset.get_enabled_presets()
+        preset_list = [preset.to_summary_dict() for preset in presets]
+
+        return jsonify({
+            "success": True,
+            "presets": preset_list
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error listing presets: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@admin_panel_bp.route('/api/presets/<slug>')
+@login_required
+def get_preset(slug):
+    """
+    Get a single preset's full data including colors.
+    """
+    try:
+        from app.models import ThemePreset
+
+        preset = ThemePreset.get_by_slug(slug)
+        if not preset:
+            return jsonify({"success": False, "message": "Preset not found"}), 404
+
+        return jsonify({
+            "success": True,
+            "preset": preset.to_dict()
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error getting preset: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@admin_panel_bp.route('/appearance/presets/create', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def create_preset():
+    """
+    Create a new theme preset.
+    """
+    try:
+        from app.models import ThemePreset
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "No data provided"}), 400
+
+        name = data.get('name')
+        colors = data.get('colors')
+        description = data.get('description')
+
+        if not name or not colors:
+            return jsonify({"success": False, "message": "Name and colors are required"}), 400
+
+        # Validate colors structure
+        if 'light' not in colors or 'dark' not in colors:
+            return jsonify({"success": False, "message": "Invalid color structure"}), 400
+
+        preset = ThemePreset.create_preset(
+            name=name,
+            colors=colors,
+            description=description,
+            user_id=current_user.id
+        )
+
+        return jsonify({
+            "success": True,
+            "message": f"Preset '{name}' created successfully.",
+            "preset": preset.to_dict()
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error creating preset: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@admin_panel_bp.route('/appearance/presets/save-current', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def save_current_as_preset():
+    """
+    Save the current appearance settings as a new named preset.
+    """
+    try:
+        from app.models import ThemePreset
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "No data provided"}), 400
+
+        name = data.get('name')
+        description = data.get('description')
+
+        if not name:
+            return jsonify({"success": False, "message": "Name is required"}), 400
+
+        # Get current colors
+        colors = load_custom_colors()
+        if not colors:
+            colors = DEFAULT_COLORS
+
+        preset = ThemePreset.create_preset(
+            name=name,
+            colors=colors,
+            description=description,
+            user_id=current_user.id
+        )
+
+        return jsonify({
+            "success": True,
+            "message": f"Current colors saved as preset '{name}'.",
+            "preset": preset.to_dict()
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error saving current as preset: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@admin_panel_bp.route('/appearance/presets/<int:preset_id>/update', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def update_preset(preset_id):
+    """
+    Update an existing preset's name, description, or colors.
+    """
+    try:
+        from app.models import ThemePreset, db
+
+        preset = ThemePreset.query.get(preset_id)
+        if not preset:
+            return jsonify({"success": False, "message": "Preset not found"}), 404
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "No data provided"}), 400
+
+        # Update fields if provided
+        if 'name' in data:
+            preset.name = data['name']
+        if 'description' in data:
+            preset.description = data['description']
+        if 'colors' in data:
+            colors = data['colors']
+            if 'light' not in colors or 'dark' not in colors:
+                return jsonify({"success": False, "message": "Invalid color structure"}), 400
+            preset.colors = colors
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f"Preset '{preset.name}' updated successfully.",
+            "preset": preset.to_dict()
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error updating preset: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@admin_panel_bp.route('/appearance/presets/<int:preset_id>/delete', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def delete_preset(preset_id):
+    """
+    Delete a theme preset (cannot delete system presets).
+    """
+    try:
+        from app.models import ThemePreset, db
+
+        preset = ThemePreset.query.get(preset_id)
+        if not preset:
+            return jsonify({"success": False, "message": "Preset not found"}), 404
+
+        if preset.is_system:
+            return jsonify({"success": False, "message": "Cannot delete system presets"}), 400
+
+        name = preset.name
+        db.session.delete(preset)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f"Preset '{name}' deleted successfully."
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error deleting preset: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@admin_panel_bp.route('/appearance/presets/<int:preset_id>/set-default', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def set_default_preset(preset_id):
+    """
+    Set a preset as the default for new users.
+    """
+    try:
+        from app.models import ThemePreset
+
+        preset = ThemePreset.set_default(preset_id)
+        if not preset:
+            return jsonify({"success": False, "message": "Preset not found"}), 404
+
+        return jsonify({
+            "success": True,
+            "message": f"'{preset.name}' is now the default preset."
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error setting default preset: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@admin_panel_bp.route('/appearance/presets/<int:preset_id>/apply', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def apply_preset_colors(preset_id):
+    """
+    Apply a preset's colors to the current appearance settings.
+    """
+    try:
+        from app.models import ThemePreset
+
+        preset = ThemePreset.query.get(preset_id)
+        if not preset:
+            return jsonify({"success": False, "message": "Preset not found"}), 404
+
+        # Save preset colors as current colors
+        if save_custom_colors(preset.colors):
+            return jsonify({
+                "success": True,
+                "message": f"Applied colors from '{preset.name}'. Refresh to see changes."
+            })
+        else:
+            return jsonify({"success": False, "message": "Failed to apply preset colors"}), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Error applying preset: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500

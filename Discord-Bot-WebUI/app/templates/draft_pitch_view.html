@@ -347,31 +347,21 @@
 <!-- Socket.IO -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 
+<!-- Pitch View Configuration - MUST be before module scripts -->
+<script>
+  window.PitchViewConfig = {
+    leagueName: {{ league_name | tojson | safe }},
+    teams: {{ teams_json | tojson | safe }},
+    draftedPlayers: {{ drafted_players_by_team | tojson | safe }}
+  };
+</script>
+
 <!-- Pitch View JavaScript -->
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script src="{{ url_for('static', filename='js/pitch-view.js') }}?v={{ range(1, 1000000) | random }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/pitch-view.js') }}?v={{ range(1, 1000000) | random }}"></script>
 
 <!-- Mobile Draft Enhancements -->
-<script src="{{ url_for('static', filename='js/mobile-draft.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/mobile-draft.js') }}"></script>
 
 {% endif %}
-
-<script data-league-name="{{ league_name }}"
-        data-teams='{{ teams_json|tojson }}'
-        data-drafted-players='{{ drafted_players_by_team|tojson }}'>
-// Initialize pitch view with league data from data attributes
-// NOTE: Capture scriptTag at top level - document.currentScript is null inside event listeners
-(function() {
-    const scriptTag = document.currentScript;
-    const leagueName = scriptTag.getAttribute('data-league-name');
-    const teamsData = JSON.parse(scriptTag.getAttribute('data-teams'));
-    const draftedPlayers = JSON.parse(scriptTag.getAttribute('data-drafted-players'));
-
-    document.addEventListener('DOMContentLoaded', function() {
-        if (typeof initializePitchView === 'function') {
-            initializePitchView(leagueName, teamsData, draftedPlayers);
-        }
-    });
-})();
-</script>
 {% endblock %}

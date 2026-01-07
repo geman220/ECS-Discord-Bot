@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" class="layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-content="wide">
+<html lang="en" class="layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-content="wide" data-style="{{ session.get('theme', 'light') }}" data-theme-variant="{{ session.get('theme_variant', 'modern') }}" style="background-color: {% if session.get('theme', 'light') == 'dark' %}#0f172a{% else %}#f8fafc{% endif %}; color: {% if session.get('theme', 'light') == 'dark' %}#f8fafc{% else %}#1e293b{% endif %};">
 
 <head>
     <meta charset="utf-8" />
 
-    <!-- CRITICAL: Theme detection script MUST run BEFORE any CSS loads to prevent flash -->
-    <!-- The script sets data-style attribute which controls all theme CSS -->
+    <!-- CRITICAL: Theme detection script - enhances server-set theme with localStorage preferences -->
+    <!-- Server already sets data-style on <html>, this script handles localStorage overrides -->
     <script>
         (function() {
             // Resolve 'system' theme to actual light/dark based on OS preference
@@ -16,61 +16,209 @@
                 return theme;
             }
 
-            // Get theme from localStorage or use server-provided theme as fallback
+            // Server already set these on <html> tag - read current values
+            const serverTheme = document.documentElement.getAttribute('data-style') || '{{ session.get('theme', 'light') }}';
+            const serverVariant = document.documentElement.getAttribute('data-theme-variant') || '{{ session.get('theme_variant', 'modern') }}';
+            const serverPreset = '{{ session.get('theme_preset', 'default') }}';
+
+            // Check localStorage for user preferences that may override server
             const storedTheme = localStorage.getItem('template-style');
-            const serverTheme = '{{ session.get('theme', 'light') }}';
+            const storedVariant = localStorage.getItem('theme-variant');
+            const storedPreset = localStorage.getItem('theme-preset');
+
+            // Determine final values (localStorage takes precedence)
             const rawTheme = storedTheme || serverTheme;
             const finalTheme = resolveTheme(rawTheme);
-
-            // Get theme variant (modern only) from localStorage or server
-            const storedVariant = localStorage.getItem('theme-variant');
-            const serverVariant = '{{ session.get('theme_variant', 'modern') }}';
             const finalVariant = storedVariant || serverVariant;
+            const finalPreset = storedPreset || serverPreset;
 
-            // Apply theme immediately BEFORE any CSS loads - this prevents flash
-            document.documentElement.setAttribute('data-style', finalTheme);
-            document.documentElement.setAttribute('data-theme-variant', finalVariant);
+            // Server-injected preset colors (loaded at render time for anti-flash)
+            const presetColors = {{ preset_colors_json | safe }};
 
-            // Also set the class for CSS selectors that use class
+            // Only update DOM if localStorage differs from server (prevents unnecessary reflow)
+            const currentTheme = document.documentElement.getAttribute('data-style');
+            if (currentTheme !== finalTheme) {
+                document.documentElement.setAttribute('data-style', finalTheme);
+
+                // Update inline styles to match new theme
+                const bgColor = finalTheme === 'dark' ? '#0f172a' : '#f8fafc';
+                const textColor = finalTheme === 'dark' ? '#f8fafc' : '#1e293b';
+                document.documentElement.style.backgroundColor = bgColor;
+                document.documentElement.style.color = textColor;
+            }
+
+            // Update variant and preset if needed
+            if (document.documentElement.getAttribute('data-theme-variant') !== finalVariant) {
+                document.documentElement.setAttribute('data-theme-variant', finalVariant);
+            }
+            document.documentElement.setAttribute('data-theme-preset', finalPreset);
+
+            // Set helper classes
+            document.documentElement.classList.remove('light-style', 'dark-style');
             document.documentElement.classList.add(finalTheme + '-style');
-
-            // Add variant class for CSS selectors (modern only)
             document.documentElement.classList.add('theme-modern');
 
-            // Sync server session if needed (will be handled by simple-theme-switcher.js)
-            if (storedTheme && storedTheme !== serverTheme) {
+            // Mark if server session needs sync with localStorage preference
+            if (storedTheme && resolveTheme(storedTheme) !== resolveTheme(serverTheme)) {
                 window._themeNeedsSync = { theme: storedTheme };
             }
             if (storedVariant && storedVariant !== serverVariant) {
                 window._variantNeedsSync = { variant: storedVariant };
             }
+            if (storedPreset && storedPreset !== serverPreset) {
+                window._presetNeedsSync = { preset: storedPreset };
+            }
+
+            // Store preset colors globally for theme switcher to use
+            window._serverPresetColors = presetColors;
         })();
     </script>
 
     <!-- Anti-flash CSS - now loads AFTER script has set the correct data-style -->
     <style id="theme-flash-prevention">
+        /* CRITICAL: Use system preference as CSS default to prevent flash */
+        /* This ensures CSS matches user's OS before JavaScript even runs */
+
+        /* Default to light mode */
+        html, body {
+            {% if preset_colors and preset_colors.light %}
+            background-color: {{ preset_colors.light.bg_body or preset_colors.light.bg_base or '#f8fafc' }};
+            color: {{ preset_colors.light.text_body or preset_colors.light.text_primary or '#1e293b' }};
+            {% else %}
+            background-color: #f8fafc;
+            color: #1e293b;
+            {% endif %}
+        }
+
+        /* If user's OS prefers dark mode, start with dark colors BEFORE JS runs */
+        @media (prefers-color-scheme: dark) {
+            html, body {
+                {% if preset_colors and preset_colors.dark %}
+                background-color: {{ preset_colors.dark.bg_body or preset_colors.dark.bg_base or '#0f172a' }};
+                color: {{ preset_colors.dark.text_body or preset_colors.dark.text_primary or '#f8fafc' }};
+                {% else %}
+                background-color: #0f172a;
+                color: #f8fafc;
+                {% endif %}
+            }
+        }
+
+        /* Once JS sets data-style, these take over with higher specificity */
+        html[data-style="light"], html[data-style="light"] body {
+            {% if preset_colors and preset_colors.light %}
+            background-color: {{ preset_colors.light.bg_body or preset_colors.light.bg_base or '#f8fafc' }} !important;
+            color: {{ preset_colors.light.text_body or preset_colors.light.text_primary or '#1e293b' }} !important;
+            {% else %}
+            background-color: #f8fafc !important;
+            color: #1e293b !important;
+            {% endif %}
+        }
+
+        html[data-style="dark"], html[data-style="dark"] body {
+            {% if preset_colors and preset_colors.dark %}
+            background-color: {{ preset_colors.dark.bg_body or preset_colors.dark.bg_base or '#0f172a' }} !important;
+            color: {{ preset_colors.dark.text_body or preset_colors.dark.text_primary or '#f8fafc' }} !important;
+            {% else %}
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            {% endif %}
+        }
+
+        /* AGGRESSIVE anti-flash: hide everything until CSS loads */
+        /* Use opacity instead of visibility for smoother transition */
+        html {
+            opacity: 1;
+            transition: opacity 0s;
+        }
+
+        /* When JS hasn't set data-style yet (shouldn't happen with server-side), hide briefly */
+        html:not([data-style]) {
+            opacity: 0;
+        }
+
+        /* Ensure body inherits the background */
+        body {
+            background-color: inherit;
+            color: inherit;
+            min-height: 100vh;
+        }
+
+        /* Cards and modals also need immediate background in dark mode */
+        html[data-style="dark"] .c-card,
+        html[data-style="dark"] .card,
+        html[data-style="dark"] .modal-content {
+            {% if preset_colors and preset_colors.dark %}
+            background-color: {{ preset_colors.dark.bg_card or '#1e293b' }};
+            {% else %}
+            background-color: #1e293b;
+            {% endif %}
+        }
+
         /* Prevent flash of wrong theme - comprehensive coverage before main CSS loads */
         /* Dark mode base colors - applied when data-style="dark" is set */
         html[data-style="dark"],
         html[data-style="dark"] body,
         html[data-style="dark"] .layout-wrapper,
         html[data-style="dark"] .layout-page,
+        html[data-style="dark"] .layout-container,
         html[data-style="dark"] .content-wrapper,
         html[data-style="dark"] .layout-content-wrapper,
         html[data-style="dark"] .container-xxl,
-        html[data-style="dark"] .container-fluid {
+        html[data-style="dark"] .container-fluid,
+        html[data-style="dark"] main,
+        html[data-style="dark"] .c-base-layout,
+        html[data-style="dark"] .c-base-layout__wrapper,
+        html[data-style="dark"] .c-base-layout__page,
+        html[data-style="dark"] .c-base-layout__content {
+            {% if preset_colors and preset_colors.dark %}
+            background-color: {{ preset_colors.dark.bg_body or preset_colors.dark.bg_base or '#0f172a' }} !important;
+            color: {{ preset_colors.dark.text_body or preset_colors.dark.text_primary or '#f8fafc' }} !important;
+            {% else %}
             background-color: #0f172a !important;
             color: #f8fafc !important;
+            {% endif %}
         }
+
+        /* Dark mode cards need slightly different background */
+        html[data-style="dark"] .card,
+        html[data-style="dark"] .modal-content {
+            {% if preset_colors and preset_colors.dark %}
+            background-color: {{ preset_colors.dark.bg_card or '#1e293b' }} !important;
+            {% else %}
+            background-color: #1e293b !important;
+            {% endif %}
+        }
+
         /* Light mode base colors - applied when data-style="light" is set */
         html[data-style="light"],
         html[data-style="light"] body,
         html[data-style="light"] .layout-wrapper,
         html[data-style="light"] .layout-page,
+        html[data-style="light"] .layout-container,
         html[data-style="light"] .content-wrapper,
-        html[data-style="light"] .layout-content-wrapper {
+        html[data-style="light"] .layout-content-wrapper,
+        html[data-style="light"] main,
+        html[data-style="light"] .c-base-layout,
+        html[data-style="light"] .c-base-layout__wrapper,
+        html[data-style="light"] .c-base-layout__page,
+        html[data-style="light"] .c-base-layout__content {
+            {% if preset_colors and preset_colors.light %}
+            background-color: {{ preset_colors.light.bg_body or preset_colors.light.bg_base or '#f8fafc' }} !important;
+            color: {{ preset_colors.light.text_body or preset_colors.light.text_primary or '#1e293b' }} !important;
+            {% else %}
             background-color: #f8fafc !important;
             color: #1e293b !important;
+            {% endif %}
+        }
+
+        /* Light mode cards */
+        html[data-style="light"] .card,
+        html[data-style="light"] .modal-content {
+            {% if preset_colors and preset_colors.light %}
+            background-color: {{ preset_colors.light.bg_card or '#ffffff' }} !important;
+            {% else %}
+            background-color: #ffffff !important;
+            {% endif %}
         }
     </style>
     
@@ -404,10 +552,10 @@
     <!-- Minimal Helpers (replaces Sneat helpers.js - NO layout manipulation) -->
     <script src="{{ url_for('static', filename='js/helpers-minimal.js') }}"></script>
     <!-- Simple theme switcher (replaces TemplateCustomizer) -->
-    <script src="{{ asset_version('js/simple-theme-switcher.js') }}" defer></script>
+    <script type="module" src="{{ asset_version('js/simple-theme-switcher.js') }}"></script>
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
     <!-- Theme Colors Utility - provides ECSTheme.getColor() for JS -->
-    <script src="{{ url_for('static', filename='js/theme-colors.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/theme-colors.js') }}"></script>
     {% endif %}
 
     <!-- CSRF Token for Forms -->
@@ -549,31 +697,31 @@
     <script src="{{ url_for('static', filename='vendor/js/bootstrap.bundle.js') }}"></script>
 
     <!-- Event Delegation System - MUST load early (many scripts depend on it) -->
-    <script src="{{ url_for('static', filename='js/event-delegation/core.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/core.js') }}"></script>
 
     <!-- Event Delegation Handlers - MUST load after core, before init() -->
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/calendar-actions.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/discord-management.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/draft-system.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/ecs-fc-management.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/match-management.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/match-reporting.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/onboarding-wizard.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/pass-studio.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/profile-verification.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/referee-management.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/rsvp-actions.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/season-wizard.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/security-actions.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/substitute-pool.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/user-approval.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/user-management-comprehensive.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/push-notifications.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/event-delegation/handlers/message-templates.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/calendar-actions.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/discord-management.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/draft-system.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/ecs-fc-management.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/match-management.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/match-reporting.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/onboarding-wizard.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/pass-studio.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/profile-verification.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/referee-management.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/rsvp-actions.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/season-wizard.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/security-actions.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/substitute-pool.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/user-approval.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/user-management-comprehensive.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/push-notifications.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/event-delegation/handlers/message-templates.js') }}"></script>
 
     <!-- ModalManager - Centralized modal management (Best Practice 2025) -->
     <!-- MUST load after Bootstrap and EventDelegation, before any code that uses modals -->
-    <script src="{{ url_for('static', filename='js/modal-manager.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/modal-manager.js') }}"></script>
 
     <!-- Waves library for ripple effects (logic only, styling via CSS) -->
     <script src="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.js') }}"></script>
@@ -601,14 +749,14 @@
     <script src="{{ url_for('static', filename='custom_js/discord-membership-check.js') }}"></script>
 
     <!-- Sidebar Interactions (replaces Sneat menu.js - no layout manipulation) -->
-    <script src="{{ url_for('static', filename='js/sidebar-interactions.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/sidebar-interactions.js') }}"></script>
 
     <!-- Mobile Enhancement System (Phase 2) -->
-    <script src="{{ url_for('static', filename='js/mobile-haptics.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/mobile-gestures.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/mobile-keyboard.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/mobile-forms.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/profile-verification.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/mobile-haptics.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/mobile-gestures.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/mobile-keyboard.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/mobile-forms.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/profile-verification.js') }}"></script>
     {% endif %}
 
     {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
@@ -661,36 +809,36 @@
 
     {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- Unified Responsive System JS - replacing all previous mobile helpers -->
-    <script src="{{ url_for('static', filename='js/responsive-system.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/responsive-system.js') }}"></script>
 
     <!-- Responsive Tables JS - for mobile card views -->
-    <script src="{{ url_for('static', filename='js/responsive-tables.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/responsive-tables.js') }}"></script>
 
     <!-- ECS Design System JS -->
-    <script src="{{ url_for('static', filename='js/design-system.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/design-system.js') }}"></script>
 
     <!-- BEM Tabs Controller - Pure JS tab system without Bootstrap dependency -->
-    <script src="{{ url_for('static', filename='js/components/tabs-controller.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/components/tabs-controller.js') }}"></script>
 
     <!-- Socket Manager - Unified WebSocket connection management (MUST load before other socket-dependent scripts) -->
-    <script src="{{ url_for('static', filename='js/socket-manager.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/socket-manager.js') }}"></script>
 
     <!-- Modern Navbar Controller - Event delegation and smooth interactions -->
-    <script src="{{ url_for('static', filename='js/navbar-modern.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/navbar-modern.js') }}"></script>
 
     <!-- Online Status Manager - Real-time user presence indicators -->
-    <script src="{{ url_for('static', filename='js/online-status.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/online-status.js') }}"></script>
 
     <!-- Chat Widget - Floating direct messaging interface -->
-    <script src="{{ url_for('static', filename='js/chat-widget.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/chat-widget.js') }}"></script>
 
     <!-- Messenger Widget - Sidebar integrated messaging (replaces floating chat) -->
-    <script src="{{ url_for('static', filename='js/messenger-widget.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/messenger-widget.js') }}"></script>
 
     <!-- Modern Components Controller - Unified controller for all modern UI components
          Handles modals, toasts, tooltips, dropdowns, tables, forms with event delegation
          Phase 2-4 complete implementation -->
-    <script src="{{ url_for('static', filename='js/components-modern.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/components-modern.js') }}"></script>
 
     <!-- Report Match JS - Consolidated functionality -->
     <script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
@@ -699,7 +847,7 @@
     <script src="{{ url_for('static', filename='custom_js/modal-helpers.js') }}"></script>
 
     <!-- UI Enhancements - Feather icons, collapsible sections, dropdown fixes -->
-    <script src="{{ url_for('static', filename='js/ui-enhancements.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/ui-enhancements.js') }}"></script>
 
     <!-- DISABLED: These scripts inject inline styles that conflict with CSS refactoring -->
     {# <script src="{{ url_for('static', filename='custom_js/modal-repair.js') }}"></script> #}
@@ -711,10 +859,13 @@
 
     <!-- Initialize EventDelegation after all handlers are loaded (DEV MODE) -->
     <script>
-        if (typeof EventDelegation !== 'undefined' && typeof EventDelegation.init === 'function') {
-            EventDelegation.init();
-            console.log('[DEV MODE] EventDelegation initialized with ' + EventDelegation.handlers.size + ' handlers');
-        }
+        // Wait for DOMContentLoaded since ES modules load asynchronously
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof window.EventDelegation !== 'undefined' && typeof window.EventDelegation.init === 'function') {
+                window.EventDelegation.init();
+                console.log('[DEV MODE] EventDelegation initialized with ' + window.EventDelegation.handlers.size + ' handlers');
+            }
+        });
     </script>
     {% endif %}
 

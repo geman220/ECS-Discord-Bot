@@ -46,19 +46,19 @@
   background-color: var(--color-info);
 }
 
-/* Light */
+/* Light - uses explicit variable that flips in dark mode */
 .bg-light {
-  background-color: var(--color-neutral-100);
+  background-color: var(--color-bg-light-utility);
 }
 
-/* Dark */
+/* Dark - uses explicit variable that flips in dark mode */
 .bg-dark {
-  background-color: var(--color-neutral-900);
+  background-color: var(--color-bg-dark-utility);
 }
 
-/* White */
+/* White - uses explicit variable that flips in dark mode */
 .bg-white {
-  background-color: var(--color-neutral-0);
+  background-color: var(--color-bg-white-utility);
 }
 
 /* Body */
@@ -458,28 +458,13 @@
    Ensure colors work correctly in dark mode
    ============================================================================ */
 
+/*
+ * NOTE: .bg-light, .bg-dark, .bg-white now use --color-bg-*-utility variables
+ * that automatically flip in dark mode (defined in tokens/colors.css)
+ * No !important overrides needed - the CSS cascade handles it naturally
+ */
+
 [data-style="dark"] {
-  /* Background utilities in dark mode */
-  .bg-light {
-    background-color: var(--color-neutral-800);
-  }
-
-  .bg-dark {
-    background-color: var(--color-neutral-100);
-  }
-
-  .bg-white {
-    background-color: var(--color-neutral-0);
-  }
-
-  .bg-body {
-    background-color: var(--color-bg-primary);
-  }
-
-  .bg-body-secondary {
-    background-color: var(--color-bg-secondary);
-  }
-
   .bg-body-tertiary {
     background-color: var(--color-bg-tertiary);
   }

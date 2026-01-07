@@ -635,7 +635,7 @@
 {{ super() }}
 
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script src="{{ url_for('static', filename='js/message-management.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/message-management.js') }}"></script>
 <script>
 {% endif %}
 // Add CSRF token to meta tag for AJAX requests

@@ -247,6 +247,6 @@
 {{ super() }}
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ url_for('static', filename='js/admin-panel-performance.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/admin-panel-performance.js') }}"></script>
 {% endif %}
 {% endblock %}

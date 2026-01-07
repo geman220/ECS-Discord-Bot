@@ -918,7 +918,35 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = PitchViewSystem;
 }
 
-// No window exports needed - InitSystem and EventDelegation handle everything
+// Window exports for template compatibility
+window.initializePitchView = initializePitchView;
+
+// ===== InitSystem Registration (proper pattern for ES modules) =====
+
+let _moduleInitialized = false;
+
+function initWithGuard() {
+    if (_moduleInitialized) return;
+    _moduleInitialized = true;
+
+    // Read config from window global (set by template before module loads)
+    const config = window.PitchViewConfig || {};
+    const { leagueName, teams, draftedPlayers } = config;
+
+    if (leagueName && teams) {
+        console.log('🏟️ [InitSystem] Initializing pitch view for league:', leagueName);
+        initializePitchView(leagueName, teams, draftedPlayers || {});
+    } else {
+        // Pitch view not needed on this page (no config provided)
+        console.log('🏟️ [InitSystem] Pitch view skipped - no PitchViewConfig');
+    }
+}
+
+window.InitSystem.register('pitch-view', initWithGuard, {
+    priority: 40,
+    reinitializable: false,
+    description: 'Pitch view system for visual team formation'
+});
 
 // ============================================================================
 // EVENT DELEGATION REGISTRATIONS

@@ -549,5 +549,908 @@
 }
 
 /* ============================================================================
+   PREVIEW TABS NAVIGATION
+   Tabbed navigation within preview panels
+   ============================================================================ */
+
+.preview-tabs {
+  display: flex;
+  gap: var(--space-1, 0.25rem);
+  padding: var(--space-2, 0.5rem);
+  background: var(--color-translucent-light, rgba(0, 0, 0, 0.05));
+  border-radius: var(--radius-md, 0.5rem);
+  margin-bottom: var(--space-3, 0.75rem);
+  flex-wrap: wrap;
+}
+
+.preview-tabs__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 0.25rem);
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm, 0.25rem);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-medium, 500);
+  color: var(--color-text-muted, #6b7280);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preview-tabs__btn:hover {
+  background: var(--color-translucent-medium, rgba(0, 0, 0, 0.1));
+  color: var(--color-text-primary, #1f2937);
+}
+
+.preview-tabs__btn.is-active {
+  background: var(--color-bg-card, #ffffff);
+  color: var(--color-primary, #7c3aed);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.preview-tabs__btn i {
+  font-size: 0.875rem;
+}
+
+/* Preview Sections */
+.preview-section {
+  min-height: 180px;
+}
+
+.preview-section[hidden] {
+  display: none;
+}
+
+/* ============================================================================
+   BASIC PREVIEW ELEMENTS
+   Navbar, card, buttons and badges for the basic preview
+   ============================================================================ */
+
+/* Preview Area Container */
+.light-preview-area,
+.dark-preview-area {
+  padding: var(--space-3, 0.75rem);
+  border-radius: var(--radius-md, 0.5rem);
+  min-height: 200px;
+}
+
+/* Preview Navbar */
+.preview-navbar,
+.preview-navbar-dark {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3, 0.75rem);
+  border-radius: var(--radius-md, 0.5rem);
+  border: 1px solid;
+  margin-bottom: var(--space-3, 0.75rem);
+}
+
+.preview-navbar .preview-input,
+.preview-navbar-dark .preview-input-dark {
+  max-width: 140px;
+}
+
+/* Preview Card */
+.preview-c-card,
+.preview-c-card-dark {
+  padding: var(--space-4, 1rem);
+  border-radius: var(--radius-md, 0.5rem);
+  border: 1px solid;
+  border-left-width: 4px;
+  margin-bottom: var(--space-3, 0.75rem);
+}
+
+.preview-card-content h6 {
+  margin: 0 0 var(--space-2, 0.5rem) 0;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: var(--font-semibold, 600);
+}
+
+.preview-card-content p {
+  margin: 0 0 var(--space-2, 0.5rem) 0;
+  font-size: var(--text-sm, 0.875rem);
+  line-height: var(--leading-relaxed, 1.625);
+}
+
+.preview-card-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Preview Text Elements */
+.preview-heading,
+.preview-heading-dark {
+  font-weight: var(--font-semibold, 600);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.preview-body,
+.preview-body-dark {
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.preview-muted,
+.preview-muted-dark {
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.preview-link,
+.preview-link-dark {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* Preview Input */
+.preview-input,
+.preview-input-dark {
+  padding: var(--space-2, 0.5rem);
+  border: 1px solid;
+  border-radius: var(--radius-sm, 0.25rem);
+  font-size: var(--text-xs, 0.75rem);
+  width: 100%;
+  transition: border-color 0.15s ease;
+}
+
+.preview-input:focus,
+.preview-input-dark:focus {
+  outline: none;
+}
+
+/* Preview Buttons */
+.preview-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
+  margin-bottom: var(--space-3, 0.75rem);
+}
+
+.preview-btn-primary,
+.preview-btn-secondary,
+.preview-btn-accent,
+.preview-btn-primary-dark,
+.preview-btn-secondary-dark,
+.preview-btn-accent-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
+  border: 1px solid;
+  border-radius: var(--radius-md, 0.5rem);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-medium, 500);
+  cursor: pointer;
+  color: #ffffff;
+  transition: opacity 0.15s ease;
+}
+
+.preview-btn-primary:hover,
+.preview-btn-secondary:hover,
+.preview-btn-accent:hover,
+.preview-btn-primary-dark:hover,
+.preview-btn-secondary-dark:hover,
+.preview-btn-accent-dark:hover {
+  opacity: 0.9;
+}
+
+/* Preview Badges */
+.preview-badge-success,
+.preview-badge-warning,
+.preview-badge-danger,
+.preview-badge-info,
+.preview-badge-success-dark,
+.preview-badge-warning-dark,
+.preview-badge-danger-dark,
+.preview-badge-info-dark {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  border-radius: var(--radius-full, 9999px);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-medium, 500);
+  color: #ffffff;
+}
+
+/* ============================================================================
+   MODAL PREVIEW COMPONENT
+   Mini modal preview for appearance settings
+   ============================================================================ */
+
+.preview-modal {
+  border-radius: var(--radius-lg, 0.75rem);
+  border: 1px solid;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+  max-width: 280px;
+}
+
+.preview-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3, 0.75rem);
+  border-bottom: 1px solid;
+}
+
+.preview-modal__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: var(--font-semibold, 600);
+}
+
+.preview-modal__title i {
+  font-size: 1rem;
+}
+
+.preview-modal__close {
+  background: transparent;
+  border: none;
+  padding: var(--space-1, 0.25rem);
+  cursor: pointer;
+  border-radius: var(--radius-sm, 0.25rem);
+  line-height: 1;
+}
+
+.preview-modal__close:hover {
+  background: var(--color-translucent-light, rgba(0, 0, 0, 0.05));
+}
+
+.preview-modal__body {
+  padding: var(--space-3, 0.75rem);
+}
+
+.preview-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-3, 0.75rem);
+  border-top: 1px solid;
+}
+
+/* Form elements within modal preview */
+.preview-form-group {
+  margin-bottom: var(--space-3, 0.75rem);
+}
+
+.preview-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.preview-form-group label {
+  display: block;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-medium, 500);
+  margin-bottom: var(--space-1, 0.25rem);
+}
+
+.preview-form-input {
+  width: 100%;
+  padding: var(--space-2, 0.5rem);
+  border: 1px solid;
+  border-radius: var(--radius-md, 0.5rem);
+  font-size: var(--text-sm, 0.875rem);
+  transition: border-color 0.15s ease;
+}
+
+.preview-form-input:focus {
+  outline: none;
+}
+
+/* Modal preview buttons */
+.preview-btn-primary,
+.preview-btn-secondary {
+  padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
+  border: 1px solid;
+  border-radius: var(--radius-md, 0.5rem);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-medium, 500);
+  cursor: pointer;
+  color: #ffffff;
+}
+
+/* ============================================================================
+   TABLE PREVIEW COMPONENT
+   Mini table preview for appearance settings
+   ============================================================================ */
+
+.preview-table-wrapper {
+  border-radius: var(--radius-md, 0.5rem);
+  border: 1px solid;
+  overflow: hidden;
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.preview-table__head {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.preview-table__header {
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  text-align: left;
+  font-size: 0.65rem;
+  font-weight: var(--font-semibold, 600);
+  border-bottom: 1px solid;
+}
+
+.preview-table__row {
+  transition: background-color 0.15s ease;
+}
+
+.preview-table__cell {
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  border-bottom: 1px solid;
+  vertical-align: middle;
+}
+
+.preview-table__row:last-child .preview-table__cell {
+  border-bottom: none;
+}
+
+/* Preview badges for table status */
+.preview-badge-success,
+.preview-badge-warning,
+.preview-badge-danger {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 0.65rem;
+  font-weight: var(--font-medium, 500);
+  color: #ffffff;
+}
+
+/* ============================================================================
+   NAVIGATION PREVIEW COMPONENTS
+   Mini sidebar, breadcrumb, and tabs preview
+   ============================================================================ */
+
+/* Mini Sidebar */
+.preview-sidebar {
+  width: 140px;
+  border-radius: var(--radius-md, 0.5rem);
+  border: 1px solid;
+  overflow: hidden;
+  margin-bottom: var(--space-3, 0.75rem);
+}
+
+.preview-sidebar__header {
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  border-bottom: 1px solid;
+  font-weight: var(--font-bold, 700);
+}
+
+.preview-sidebar__nav {
+  padding: var(--space-2, 0.5rem);
+}
+
+.preview-sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-2, 0.5rem);
+  border-radius: var(--radius-sm, 0.25rem);
+  font-size: var(--text-xs, 0.75rem);
+  text-decoration: none;
+  margin-bottom: var(--space-1, 0.25rem);
+  transition: all 0.15s ease;
+}
+
+.preview-sidebar__link:last-child {
+  margin-bottom: 0;
+}
+
+.preview-sidebar__link.is-active {
+  color: var(--color-white, #ffffff);
+}
+
+.preview-sidebar__link i {
+  font-size: 0.875rem;
+}
+
+/* Breadcrumb Preview */
+.preview-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  border-radius: var(--radius-md, 0.5rem);
+  font-size: var(--text-xs, 0.75rem);
+  margin-bottom: var(--space-3, 0.75rem);
+}
+
+/* Tab Navigation Preview */
+.preview-nav-tabs {
+  display: flex;
+  border-bottom: 1px solid;
+  margin-bottom: var(--space-3, 0.75rem);
+}
+
+.preview-nav-tab {
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-medium, 500);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preview-nav-tab.is-active {
+  border-bottom-width: 2px;
+  border-bottom-style: solid;
+}
+
+/* ============================================================================
+   PREVIEW MOBILE RESPONSIVENESS
+   ============================================================================ */
+
+@media (max-width: 767.98px) {
+  .preview-tabs {
+    justify-content: center;
+  }
+
+  .preview-tabs__btn span {
+    display: none;
+  }
+
+  .preview-modal {
+    max-width: 100%;
+  }
+
+  .preview-sidebar {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+   PREVIEW LINK FOCUS OVERRIDES
+   Prevent global focus styles from showing purple outline on preview links
+   ============================================================================ */
+
+.preview-link,
+.preview-link-dark,
+.preview-link:focus,
+.preview-link-dark:focus,
+.preview-link:focus-visible,
+.preview-link-dark:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  text-decoration: none;
+}
+
+.preview-link:hover,
+.preview-link-dark:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Ensure preview links inherit their dynamic color without global override */
+[data-preview-color].preview-link,
+[data-preview-color].preview-link-dark {
+  text-decoration-color: currentColor;
+}
+
+/* ============================================================================
+   THEME PRESETS SECTION
+   Admin preset management interface
+   ============================================================================ */
+
+.c-theme-presets {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  margin-bottom: var(--space-6);
+  box-shadow: var(--shadow-lg);
+}
+
+.c-theme-presets__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--color-border-primary);
+  background: var(--color-bg-subtle);
+}
+
+.c-theme-presets__title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.c-theme-presets__subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.c-theme-presets__actions {
+  flex-shrink: 0;
+}
+
+.c-theme-presets__body {
+  padding: var(--space-5);
+}
+
+.c-theme-presets__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+
+.c-theme-presets__empty {
+  text-align: center;
+  padding: var(--space-8);
+  color: var(--color-text-muted);
+}
+
+.c-theme-presets__empty i {
+  font-size: var(--text-4xl);
+  margin-bottom: var(--space-3);
+  opacity: 0.5;
+}
+
+.c-theme-presets__empty p {
+  margin: 0;
+  max-width: 300px;
+  margin-inline: auto;
+}
+
+/* Preset Card */
+.c-preset-card {
+  position: relative;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: var(--transition-all);
+}
+
+.c-preset-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.c-preset-card--system {
+  border-color: var(--color-info);
+}
+
+.c-preset-card--default {
+  border-color: var(--color-success);
+}
+
+.c-preset-card__swatches {
+  display: flex;
+  height: 48px;
+}
+
+.c-preset-card__swatch {
+  flex: 1;
+  transition: transform 0.2s ease;
+}
+
+/* Swatch color modifiers - using design tokens */
+.c-preset-card__swatch--primary {
+  background-color: var(--color-primary, #7C3AED);
+}
+
+.c-preset-card__swatch--accent {
+  background-color: var(--color-accent, #F59E0B);
+}
+
+.c-preset-card__swatch--success {
+  background-color: var(--color-success, #10B981);
+}
+
+.c-preset-card__swatch--info {
+  background-color: var(--color-info, #3B82F6);
+}
+
+.c-preset-card__swatch--secondary {
+  background-color: var(--color-secondary, #64748B);
+}
+
+.c-preset-card__swatch--warning {
+  background-color: var(--color-warning, #F59E0B);
+}
+
+.c-preset-card__swatch--danger {
+  background-color: var(--color-danger, #EF4444);
+}
+
+.c-preset-card:hover .c-preset-card__swatch {
+  transform: scaleY(1.1);
+}
+
+.c-preset-card__content {
+  padding: var(--space-3);
+}
+
+.c-preset-card__name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.c-preset-card__description {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: var(--leading-relaxed);
+}
+
+.c-preset-card__actions {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  padding-top: 0;
+}
+
+.c-preset-card__actions .c-btn {
+  flex: 1;
+}
+
+.c-preset-card__badge {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-info);
+  color: var(--color-neutral-0);
+  font-size: 0.625rem;
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: var(--radius-sm);
+}
+
+.c-preset-card--default .c-preset-card__badge {
+  background: var(--color-success);
+}
+
+/* Mobile adjustments */
+@media (max-width: 767.98px) {
+  .c-theme-presets__header {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .c-theme-presets__actions {
+    width: 100%;
+  }
+
+  .c-theme-presets__actions .c-btn {
+    width: 100%;
+  }
+
+  .c-theme-presets__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark mode adjustments */
+[data-style="dark"] .c-theme-presets {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .c-preset-card {
+  background: var(--color-bg-subtle);
+  border-color: var(--color-border-primary);
+}
+
+[data-style="dark"] .c-preset-card:hover {
+  border-color: var(--color-primary);
+}
+
+/* ============================================================================
+   REALISTIC MODAL PREVIEW COMPONENTS
+   Enhanced modal preview matching production modals
+   ============================================================================ */
+
+/* Realistic Modal Variant */
+.preview-modal--realistic {
+  max-width: 320px;
+  width: 100%;
+}
+
+.preview-modal__footer--realistic {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-3, 0.75rem);
+}
+
+/* Elevated Section - Distinct background area within modal */
+.preview-section-elevated {
+  padding: var(--space-3, 0.75rem);
+  border-radius: var(--radius-md, 0.5rem);
+  border: 1px solid;
+  margin-bottom: var(--space-3, 0.75rem);
+}
+
+.preview-section-elevated:last-child {
+  margin-bottom: 0;
+}
+
+/* Form Row - Horizontal layout for form groups */
+.preview-form-row {
+  display: flex;
+  gap: var(--space-3, 0.75rem);
+  margin-bottom: var(--space-3, 0.75rem);
+}
+
+.preview-form-row:last-child {
+  margin-bottom: 0;
+}
+
+/* Half-width form group modifier */
+.preview-form-group--half {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Input Group - Input with icon prefix */
+.preview-input-group {
+  display: flex;
+  align-items: center;
+  border: 1px solid;
+  border-radius: var(--radius-md, 0.5rem);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.preview-input-group__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2, 0.5rem);
+  padding-right: 0;
+}
+
+.preview-input-group__icon i {
+  font-size: 0.875rem;
+}
+
+.preview-input-group__input {
+  flex: 1;
+  padding: var(--space-2, 0.5rem);
+  border: none;
+  background: transparent;
+  font-size: var(--text-xs, 0.75rem);
+  min-width: 0;
+}
+
+.preview-input-group__input:focus {
+  outline: none;
+}
+
+/* Toggle Switch - Row container */
+.preview-toggle-row {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+}
+
+/* Toggle Switch Component */
+.preview-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  cursor: pointer;
+}
+
+.preview-toggle__track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radius-full, 9999px);
+  transition: background-color 0.2s ease;
+}
+
+.preview-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.preview-toggle__label {
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-medium, 500);
+}
+
+/* Roles Container */
+.preview-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
+}
+
+/* Role Badge */
+.preview-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 0.25rem);
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  border: 1px solid;
+  border-radius: var(--radius-md, 0.5rem);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-medium, 500);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preview-role-badge i {
+  font-size: 0.75rem;
+}
+
+/* Active role badge - primary colored */
+.preview-role-badge--active {
+  color: white;
+}
+
+/* Ghost Button - Transparent with border on hover */
+.preview-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 0.25rem);
+  padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md, 0.5rem);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-medium, 500);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preview-btn-ghost:hover {
+  background: var(--color-translucent-light, rgba(0, 0, 0, 0.05));
+}
+
+.preview-btn-ghost i {
+  font-size: 0.75rem;
+}
+
+/* Mobile adjustments for realistic modal */
+@media (max-width: 767.98px) {
+  .preview-modal--realistic {
+    max-width: 100%;
+  }
+
+  .preview-form-row {
+    flex-direction: column;
+    gap: var(--space-2, 0.5rem);
+  }
+
+  .preview-form-group--half {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
    END OF APPEARANCE CUSTOMIZATION COMPONENTS
    ============================================================================ */

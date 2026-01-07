@@ -700,6 +700,34 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = DraftSystemV2;
 }
 
-// Window exports - only functions used by event delegation handlers
+// Window exports - functions needed for template compatibility and event delegation
+window.initializeDraftSystem = initializeDraftSystem;
 window.confirmDraftPlayer = confirmDraftPlayer;
 window.confirmRemovePlayer = confirmRemovePlayer;
+
+// ===== InitSystem Registration (proper pattern for ES modules) =====
+
+let _moduleInitialized = false;
+
+function initWithGuard() {
+    if (_moduleInitialized) return;
+    _moduleInitialized = true;
+
+    // Read config from window global (set by template before module loads)
+    const config = window.DraftConfig || {};
+    const leagueName = config.leagueName;
+
+    if (leagueName) {
+        console.log('🎯 [InitSystem] Initializing draft system for league:', leagueName);
+        initializeDraftSystem(leagueName);
+    } else {
+        // Draft system not needed on this page (no config provided)
+        console.log('🎯 [InitSystem] Draft system skipped - no DraftConfig.leagueName');
+    }
+}
+
+window.InitSystem.register('draft-system', initWithGuard, {
+    priority: 40,
+    reinitializable: false,
+    description: 'Draft system for player team assignments'
+});

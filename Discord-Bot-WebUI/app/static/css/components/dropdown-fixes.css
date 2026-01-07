@@ -56,17 +56,17 @@
   overflow-y: visible;
 }
 
-/* Action dropdowns in table cells need proper z-index */
+/* Action dropdowns in table cells - use standard dropdown z-index */
 td .dropdown-menu.show,
 .c-table__cell .dropdown-menu.show,
 .user-actions-cell .dropdown-menu.show {
-  z-index: var(--z-modal-dropdown, 1055) ;
+  z-index: var(--z-dropdown, 1000) ;
 }
 
-/* Action dropdowns in table cells need higher z-index */
+/* Action dropdowns in table cells - standard z-index (modal dropdowns handled separately) */
 td .dropdown-menu,
 .c-table__cell .dropdown-menu {
-  z-index: var(--z-modal-dropdown, 1055);
+  z-index: var(--z-dropdown, 1000);
 }
 
 /* Ensure dropdown parent cells allow overflow */
@@ -87,7 +87,8 @@ td:has(.dropdown),
 }
 
 .c-card__header .dropdown-menu {
-  z-index: var(--z-modal-dropdown, 1055);
+  /* Use standard dropdown z-index, not modal-level - modal dropdowns are handled separately */
+  z-index: var(--z-dropdown, 1000);
 }
 
 /* ============================================================================

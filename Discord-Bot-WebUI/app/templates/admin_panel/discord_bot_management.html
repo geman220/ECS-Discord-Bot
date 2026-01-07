@@ -3,7 +3,8 @@
 {% block title %}Discord Bot Management - Admin Panel{% endblock %}
 
 {% block breadcrumb_items %}
-<li class="breadcrumb-item active">Discord Bot Management</li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin_panel.discord_overview') }}">Discord</a></li>
+<li class="breadcrumb-item active">Bot Management</li>
 {% endblock %}
 
 {% block panel_content %}
@@ -475,6 +476,6 @@
 {% block custom_js %}
 {{ super() }}
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script src="{{ url_for('static', filename='js/admin-panel-discord-bot.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/admin-panel-discord-bot.js') }}"></script>
 {% endif %}
 {% endblock %}

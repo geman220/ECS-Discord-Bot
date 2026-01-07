@@ -1605,10 +1605,15 @@ progress {
   width: max-content;
   max-width: 100%;
   pointer-events: none;
+  /* Ensure no background on container */
+  background: transparent;
 }
 
 .toast {
   pointer-events: auto;
+  /* Ensure toast sizes to content */
+  width: auto;
+  max-width: 350px;
 }
 
 .toast:not(.show) {

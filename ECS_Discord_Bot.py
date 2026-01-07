@@ -2313,6 +2313,66 @@ async def on_raw_reaction_add(payload):
         process_reaction_with_rate_limit(message_id, emoji, user_id, channel_id, payload)
     )
 
+
+@bot.event
+async def on_member_update(before: discord.Member, after: discord.Member):
+    """
+    Event handler for member updates, specifically for role changes.
+    Enables bidirectional role sync: when a Discord role is added/removed,
+    sync the change back to Flask.
+
+    This works with the existing Flask role mappings:
+    - If Discord role X is mapped to Flask role Y (via Role.discord_role_id)
+    - When someone gets/loses role X in Discord, this updates their Flask role Y
+    """
+    # Only process role changes
+    if before.roles == after.roles:
+        return
+
+    # Get the role differences
+    before_role_ids = {str(role.id) for role in before.roles}
+    after_role_ids = {str(role.id) for role in after.roles}
+
+    added_role_ids = list(after_role_ids - before_role_ids)
+    removed_role_ids = list(before_role_ids - after_role_ids)
+
+    if not added_role_ids and not removed_role_ids:
+        return
+
+    logger.info(f"Role change detected for member {after.id} ({after.name}): "
+                f"added={added_role_ids}, removed={removed_role_ids}")
+
+    # Call Flask API to sync the role changes
+    try:
+        async with aiohttp.ClientSession() as http_session:
+            payload = {
+                'discord_id': str(after.id),
+                'added_role_ids': added_role_ids,
+                'removed_role_ids': removed_role_ids,
+                'current_role_ids': list(after_role_ids)
+            }
+
+            async with http_session.post(
+                f"{WEBUI_API_URL}/api/discord/role-sync",
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    if data.get('synced'):
+                        logger.info(f"Role sync successful for {after.name}: {data.get('results', {})}")
+                    else:
+                        logger.debug(f"Role sync skipped for {after.name}: {data.get('message', 'No changes needed')}")
+                else:
+                    error_text = await resp.text()
+                    logger.warning(f"Role sync API returned {resp.status} for {after.name}: {error_text}")
+
+    except asyncio.TimeoutError:
+        logger.warning(f"Timeout syncing roles to Flask for member {after.id}")
+    except Exception as e:
+        logger.error(f"Error syncing roles to Flask for member {after.id}: {e}")
+
+
 @bot.event
 async def on_member_join(member: discord.Member):
     """

@@ -56,7 +56,8 @@
    TABLE BASE
    ============================================================================ */
 
-.c-table {
+.c-table,
+.c-c-table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--text-sm, 0.875rem);
@@ -66,11 +67,15 @@
    TABLE HEADER
    ============================================================================ */
 
-.c-table__head {
+.c-table__head,
+.c-table thead,
+.c-c-table thead {
   background: var(--color-translucent-heavy);
 }
 
-.c-table__header {
+.c-table__header,
+.c-table th,
+.c-c-table th {
   padding: var(--space-3, 12px) var(--space-4, 16px);
   font-family: var(--font-body, 'Barlow', sans-serif);
   font-size: var(--text-xs, 0.75rem);
@@ -95,16 +100,22 @@
    TABLE BODY
    ============================================================================ */
 
-.c-table__body {
+.c-table__body,
+.c-table tbody,
+.c-c-table tbody {
   /* Body styles */
 }
 
-.c-table__row {
+.c-table__row,
+.c-table tbody tr,
+.c-c-table tbody tr {
   border-bottom: 1px solid var(--color-border-translucent-light);
   transition: background-color var(--duration-fast, 150ms) ease;
 }
 
-.c-table__row:last-child {
+.c-table__row:last-child,
+.c-table tbody tr:last-child,
+.c-c-table tbody tr:last-child {
   border-bottom: none;
 }
 
@@ -112,7 +123,9 @@
    TABLE CELL
    ============================================================================ */
 
-.c-table__cell {
+.c-table__cell,
+.c-table td,
+.c-c-table td {
   padding: var(--space-3, 12px) var(--space-4, 16px);
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   vertical-align: middle;
@@ -131,7 +144,9 @@
 }
 
 /* Cell with small text */
-.c-table__cell small {
+.c-table__cell small,
+.c-table td small,
+.c-c-table td small {
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -139,7 +154,9 @@
    HOVERABLE VARIANT
    ============================================================================ */
 
-.c-table--hoverable .c-table__row:hover {
+.c-table--hoverable .c-table__row:hover,
+.c-table--hoverable tbody tr:hover,
+.c-c-table--hoverable tbody tr:hover {
   background: var(--color-translucent-light);
 }
 
@@ -147,11 +164,15 @@
    COMPACT VARIANT
    ============================================================================ */
 
-.c-table--compact .c-table__header {
+.c-table--compact .c-table__header,
+.c-table--compact th,
+.c-c-table--compact th {
   padding: var(--space-2, 8px) var(--space-3, 12px);
 }
 
-.c-table--compact .c-table__cell {
+.c-table--compact .c-table__cell,
+.c-table--compact td,
+.c-c-table--compact td {
   padding: var(--space-2, 8px) var(--space-3, 12px);
 }
 
@@ -159,7 +180,9 @@
    STRIPED VARIANT
    ============================================================================ */
 
-.c-table--striped .c-table__row:nth-child(even) {
+.c-table--striped .c-table__row:nth-child(even),
+.c-table--striped tbody tr:nth-child(even),
+.c-c-table--striped tbody tr:nth-child(even) {
   background: var(--color-translucent-strong);
 }
 
@@ -169,19 +192,26 @@
 
 @media (max-width: 767.98px) {
   /* Stack cells vertically on mobile */
-  .c-table--responsive {
+  .c-table--responsive,
+  .c-c-table--responsive {
     display: block;
   }
 
-  .c-table--responsive .c-table__head {
+  .c-table--responsive .c-table__head,
+  .c-table--responsive thead,
+  .c-c-table--responsive thead {
     display: none;
   }
 
-  .c-table--responsive .c-table__body {
+  .c-table--responsive .c-table__body,
+  .c-table--responsive tbody,
+  .c-c-table--responsive tbody {
     display: block;
   }
 
-  .c-table--responsive .c-table__row {
+  .c-table--responsive .c-table__row,
+  .c-table--responsive tbody tr,
+  .c-c-table--responsive tbody tr {
     display: block;
     padding: var(--space-3, 12px);
     margin-bottom: var(--space-2, 8px);
@@ -190,7 +220,9 @@
     border: none;
   }
 
-  .c-table--responsive .c-table__cell {
+  .c-table--responsive .c-table__cell,
+  .c-table--responsive td,
+  .c-c-table--responsive td {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -198,11 +230,15 @@
     border-bottom: 1px solid var(--color-border-translucent-light);
   }
 
-  .c-table--responsive .c-table__cell:last-child {
+  .c-table--responsive .c-table__cell:last-child,
+  .c-table--responsive td:last-child,
+  .c-c-table--responsive td:last-child {
     border-bottom: none;
   }
 
-  .c-table--responsive .c-table__cell::before {
+  .c-table--responsive .c-table__cell::before,
+  .c-table--responsive td::before,
+  .c-c-table--responsive td::before {
     content: attr(data-label);
     font-weight: 600;
     color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));

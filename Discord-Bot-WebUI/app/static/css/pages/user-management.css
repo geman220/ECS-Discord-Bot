@@ -160,6 +160,13 @@
 
 .user-actions-cell .dropdown-menu {
     position: absolute;
+    z-index: var(--z-dropdown, 1000);
+}
+
+/* Ensure dropdown appears above table rows */
+.user-actions-cell .dropdown.show .dropdown-menu,
+.user-actions-cell .dropdown-menu.show {
+    z-index: var(--z-dropdown, 1000);
 }
 
 /* ============================================================================

@@ -111,6 +111,10 @@ from .admin_config import (
     AdminConfig, AdminAuditLog
 )
 
+from .theme_preset import (
+    ThemePreset
+)
+
 from .api_logs import (
     APIRequestLog
 )
@@ -217,6 +221,9 @@ __all__ = [
     
     # Admin configuration models
     'AdminConfig', 'AdminAuditLog',
+
+    # Theme preset models
+    'ThemePreset',
 
     # API logging models
     'APIRequestLog',

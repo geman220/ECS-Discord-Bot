@@ -73,37 +73,189 @@
                                 <i class="ti ti-sun"></i>
                                 <span>Light Mode</span>
                             </span>
-                            <div id="light-preview-area" class="light-preview-area" data-preview-bg="{{ colors.light.bg_body }}">
-                                <!-- Simulated Navbar -->
-                                <div class="preview-navbar" data-preview-bg="{{ colors.light.bg_card }}" data-preview-border="{{ colors.light.border }}">
-                                    <span class="preview-heading" data-preview-color="{{ colors.light.text_heading }}">ECS Dashboard</span>
-                                    <input type="text" class="form-control form-control-sm preview-input" data-preview-bg="{{ colors.light.bg_input }}" data-preview-border="{{ colors.light.border_input }}" data-preview-color="{{ colors.light.text_body }}" placeholder="Search..." data-form-control aria-label="Search...">
-                                </div>
 
-                                <!-- Simulated Card -->
-                                <div class="preview-c-card" data-preview-bg="{{ colors.light.bg_card }}" data-preview-border="{{ colors.light.border }}" data-preview-border-left="{{ colors.light.primary }}">
-                                    <div class="preview-card-content">
-                                        <h6 class="preview-heading" data-preview-color="{{ colors.light.text_heading }}">Card Title</h6>
-                                        <p class="preview-body" data-preview-color="{{ colors.light.text_body }}">
-                                            This is body text showing <a href="#" class="preview-link" data-preview-color="{{ colors.light.text_link }}">a sample link</a>.
-                                        </p>
-                                        <p class="preview-muted" data-preview-color="{{ colors.light.text_muted }}">Muted caption text</p>
+                            <!-- Preview Tabs -->
+                            <div class="preview-tabs">
+                                <button type="button" class="preview-tabs__btn is-active" data-action="preview-tab" data-tab="basic" data-panel="light">
+                                    <i class="ti ti-layout-cards"></i><span>Basic</span>
+                                </button>
+                                <button type="button" class="preview-tabs__btn" data-action="preview-tab" data-tab="modal" data-panel="light">
+                                    <i class="ti ti-window"></i><span>Modal</span>
+                                </button>
+                                <button type="button" class="preview-tabs__btn" data-action="preview-tab" data-tab="table" data-panel="light">
+                                    <i class="ti ti-table"></i><span>Table</span>
+                                </button>
+                                <button type="button" class="preview-tabs__btn" data-action="preview-tab" data-tab="nav" data-panel="light">
+                                    <i class="ti ti-navigation"></i><span>Nav</span>
+                                </button>
+                            </div>
+
+                            <div id="light-preview-area" class="light-preview-area" data-preview-bg="{{ colors.light.bg_body }}">
+                                <!-- Basic Preview Section -->
+                                <div class="preview-section" data-preview-section="basic" data-panel="light">
+                                    <!-- Simulated Navbar -->
+                                    <div class="preview-navbar" data-preview-bg="{{ colors.light.bg_card }}" data-preview-border="{{ colors.light.border }}">
+                                        <span class="preview-heading" data-preview-color="{{ colors.light.text_heading }}">ECS Dashboard</span>
+                                        <input type="text" class="form-control form-control-sm preview-input" data-preview-bg="{{ colors.light.bg_input }}" data-preview-border="{{ colors.light.border_input }}" data-preview-color="{{ colors.light.text_body }}" placeholder="Search..." data-form-control aria-label="Search...">
+                                    </div>
+
+                                    <!-- Simulated Card -->
+                                    <div class="preview-c-card" data-preview-bg="{{ colors.light.bg_card }}" data-preview-border="{{ colors.light.border }}" data-preview-border-left="{{ colors.light.primary }}">
+                                        <div class="preview-card-content">
+                                            <h6 class="preview-heading" data-preview-color="{{ colors.light.text_heading }}">Card Title</h6>
+                                            <p class="preview-body" data-preview-color="{{ colors.light.text_body }}">
+                                                This is body text showing <a href="#" class="preview-link" data-preview-color="{{ colors.light.text_link }}">a sample link</a>.
+                                            </p>
+                                            <p class="preview-muted" data-preview-color="{{ colors.light.text_muted }}">Muted caption text</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Buttons -->
+                                    <div class="preview-buttons">
+                                        <button class="c-btn c-btn--sm me-1 preview-btn-primary" data-preview-bg="{{ colors.light.primary }}" data-preview-border="{{ colors.light.primary }}">Primary</button>
+                                        <button class="c-btn c-btn--sm me-1 preview-btn-secondary" data-preview-bg="{{ colors.light.secondary }}" data-preview-border="{{ colors.light.secondary }}">Secondary</button>
+                                        <button class="c-btn c-btn--sm preview-btn-accent" data-preview-bg="{{ colors.light.accent }}" data-preview-border="{{ colors.light.accent }}">Accent</button>
+                                    </div>
+
+                                    <!-- Status Badges -->
+                                    <div>
+                                        <span class="badge me-1 preview-badge-success" data-preview-bg="{{ colors.light.success }}" data-badge>Success</span>
+                                        <span class="badge me-1 preview-badge-warning" data-preview-bg="{{ colors.light.warning }}" data-badge>Warning</span>
+                                        <span class="badge me-1 preview-badge-danger" data-preview-bg="{{ colors.light.danger }}" data-badge>Danger</span>
+                                        <span class="badge preview-badge-info" data-preview-bg="{{ colors.light.info }}" data-badge>Info</span>
                                     </div>
                                 </div>
 
-                                <!-- Buttons -->
-                                <div class="preview-buttons">
-                                    <button class="c-btn c-btn--sm me-1 preview-btn-primary" data-preview-bg="{{ colors.light.primary }}" data-preview-border="{{ colors.light.primary }}">Primary</button>
-                                    <button class="c-btn c-btn--sm me-1 preview-btn-secondary" data-preview-bg="{{ colors.light.secondary }}" data-preview-border="{{ colors.light.secondary }}">Secondary</button>
-                                    <button class="c-btn c-btn--sm preview-btn-accent" data-preview-bg="{{ colors.light.accent }}" data-preview-border="{{ colors.light.accent }}">Accent</button>
+                                <!-- Modal Preview Section -->
+                                <div class="preview-section" data-preview-section="modal" data-panel="light" hidden>
+                                    <div class="preview-modal preview-modal--realistic" data-preview-bg="{{ colors.light.bg_card }}" data-preview-border="{{ colors.light.border }}">
+                                        <div class="preview-modal__header" data-preview-bg="{{ colors.light.bg_card }}" data-preview-border="{{ colors.light.border }}">
+                                            <span class="preview-modal__title preview-heading" data-preview-color="{{ colors.light.text_heading }}">
+                                                <i class="ti ti-edit"></i> Edit User
+                                            </span>
+                                            <button class="preview-modal__close" data-preview-color="{{ colors.light.text_muted }}">
+                                                <i class="ti ti-x"></i>
+                                            </button>
+                                        </div>
+                                        <div class="preview-modal__body" data-preview-bg="{{ colors.light.bg_card }}">
+                                            {# Elevated Section - User Info #}
+                                            <div class="preview-section-elevated" data-preview-bg="{{ colors.light.bg_body }}" data-preview-border="{{ colors.light.border }}">
+                                                <div class="preview-form-row">
+                                                    <div class="preview-form-group preview-form-group--half">
+                                                        <label class="preview-muted" data-preview-color="{{ colors.light.text_muted }}">Username</label>
+                                                        <div class="preview-input-group" data-preview-bg="{{ colors.light.bg_input }}" data-preview-border="{{ colors.light.border_input }}">
+                                                            <span class="preview-input-group__icon" data-preview-color="{{ colors.light.text_muted }}"><i class="ti ti-user"></i></span>
+                                                            <input type="text" class="preview-input-group__input" data-preview-color="{{ colors.light.text_body }}" value="johndoe">
+                                                        </div>
+                                                    </div>
+                                                    <div class="preview-form-group preview-form-group--half">
+                                                        <label class="preview-muted" data-preview-color="{{ colors.light.text_muted }}">Email</label>
+                                                        <div class="preview-input-group" data-preview-bg="{{ colors.light.bg_input }}" data-preview-border="{{ colors.light.border_input }}">
+                                                            <span class="preview-input-group__icon" data-preview-color="{{ colors.light.text_muted }}"><i class="ti ti-mail"></i></span>
+                                                            <input type="text" class="preview-input-group__input" data-preview-color="{{ colors.light.text_body }}" value="john@example.com">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="preview-form-row">
+                                                    <div class="preview-form-group preview-form-group--half">
+                                                        <label class="preview-muted" data-preview-color="{{ colors.light.text_muted }}">Account Status</label>
+                                                        <div class="preview-toggle-row">
+                                                            <label class="preview-toggle">
+                                                                <span class="preview-toggle__track" data-preview-bg="{{ colors.light.primary }}">
+                                                                    <span class="preview-toggle__thumb"></span>
+                                                                </span>
+                                                                <span class="preview-toggle__label preview-body" data-preview-color="{{ colors.light.text_body }}">Active</span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {# Roles Section #}
+                                            <div class="preview-section-elevated" data-preview-bg="{{ colors.light.bg_body }}" data-preview-border="{{ colors.light.border }}">
+                                                <div class="preview-roles">
+                                                    <span class="preview-role-badge" data-preview-bg="{{ colors.light.bg_input }}" data-preview-border="{{ colors.light.border_input }}" data-preview-color="{{ colors.light.text_body }}">
+                                                        <i class="ti ti-user"></i> Player
+                                                    </span>
+                                                    <span class="preview-role-badge preview-role-badge--active" data-preview-bg="{{ colors.light.primary }}" data-preview-border="{{ colors.light.primary }}">
+                                                        <i class="ti ti-shield"></i> Admin
+                                                    </span>
+                                                    <span class="preview-role-badge" data-preview-bg="{{ colors.light.bg_input }}" data-preview-border="{{ colors.light.border_input }}" data-preview-color="{{ colors.light.text_body }}">
+                                                        <i class="ti ti-trophy"></i> Coach
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="preview-modal__footer preview-modal__footer--realistic" data-preview-bg="{{ colors.light.bg_card }}" data-preview-border="{{ colors.light.border }}">
+                                            <button class="preview-btn-ghost" data-preview-color="{{ colors.light.text_muted }}">
+                                                <i class="ti ti-x"></i> Cancel
+                                            </button>
+                                            <button class="preview-btn-primary" data-preview-bg="{{ colors.light.primary }}" data-preview-border="{{ colors.light.primary }}">
+                                                <i class="ti ti-device-floppy"></i> Save Changes
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <!-- Status Badges -->
-                                <div>
-                                    <span class="badge me-1 preview-badge-success" data-preview-bg="{{ colors.light.success }}" data-badge>Success</span>
-                                    <span class="badge me-1 preview-badge-warning" data-preview-bg="{{ colors.light.warning }}" data-badge>Warning</span>
-                                    <span class="badge me-1 preview-badge-danger" data-preview-bg="{{ colors.light.danger }}" data-badge>Danger</span>
-                                    <span class="badge preview-badge-info" data-preview-bg="{{ colors.light.info }}" data-badge>Info</span>
+                                <!-- Table Preview Section -->
+                                <div class="preview-section" data-preview-section="table" data-panel="light" hidden>
+                                    <div class="preview-table-wrapper" data-preview-border="{{ colors.light.border }}">
+                                        <table class="preview-table">
+                                            <thead class="preview-table__head" data-preview-bg="{{ colors.light.bg_body }}">
+                                                <tr>
+                                                    <th class="preview-table__header" data-preview-color="{{ colors.light.text_muted }}" data-preview-border="{{ colors.light.border }}">Player</th>
+                                                    <th class="preview-table__header" data-preview-color="{{ colors.light.text_muted }}" data-preview-border="{{ colors.light.border }}">Team</th>
+                                                    <th class="preview-table__header" data-preview-color="{{ colors.light.text_muted }}" data-preview-border="{{ colors.light.border }}">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="preview-table__row" data-preview-bg="{{ colors.light.bg_card }}">
+                                                    <td class="preview-table__cell preview-heading" data-preview-color="{{ colors.light.text_heading }}" data-preview-border="{{ colors.light.border }}">John Smith</td>
+                                                    <td class="preview-table__cell" data-preview-color="{{ colors.light.text_body }}" data-preview-border="{{ colors.light.border }}">Team Alpha</td>
+                                                    <td class="preview-table__cell" data-preview-border="{{ colors.light.border }}"><span class="preview-badge-success" data-preview-bg="{{ colors.light.success }}">Active</span></td>
+                                                </tr>
+                                                <tr class="preview-table__row" data-preview-bg="{{ colors.light.bg_body }}">
+                                                    <td class="preview-table__cell preview-heading" data-preview-color="{{ colors.light.text_heading }}" data-preview-border="{{ colors.light.border }}">Jane Doe</td>
+                                                    <td class="preview-table__cell" data-preview-color="{{ colors.light.text_body }}" data-preview-border="{{ colors.light.border }}">Team Beta</td>
+                                                    <td class="preview-table__cell" data-preview-border="{{ colors.light.border }}"><span class="preview-badge-warning" data-preview-bg="{{ colors.light.warning }}">Pending</span></td>
+                                                </tr>
+                                                <tr class="preview-table__row" data-preview-bg="{{ colors.light.bg_card }}">
+                                                    <td class="preview-table__cell preview-heading" data-preview-color="{{ colors.light.text_heading }}" data-preview-border="{{ colors.light.border }}">Bob Wilson</td>
+                                                    <td class="preview-table__cell" data-preview-color="{{ colors.light.text_body }}" data-preview-border="{{ colors.light.border }}">Team Gamma</td>
+                                                    <td class="preview-table__cell" data-preview-border="{{ colors.light.border }}"><span class="preview-badge-danger" data-preview-bg="{{ colors.light.danger }}">Inactive</span></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Navigation Preview Section -->
+                                <div class="preview-section" data-preview-section="nav" data-panel="light" hidden>
+                                    <div class="preview-sidebar" data-preview-bg="{{ colors.light.bg_card }}" data-preview-border="{{ colors.light.border }}">
+                                        <div class="preview-sidebar__header preview-heading" data-preview-color="{{ colors.light.text_heading }}" data-preview-border="{{ colors.light.border }}">ECS</div>
+                                        <nav class="preview-sidebar__nav">
+                                            <a href="#" class="preview-sidebar__link is-active" data-preview-bg="{{ colors.light.primary }}">
+                                                <i class="ti ti-dashboard"></i>Dashboard
+                                            </a>
+                                            <a href="#" class="preview-sidebar__link" data-preview-color="{{ colors.light.text_body }}">
+                                                <i class="ti ti-users"></i>Players
+                                            </a>
+                                            <a href="#" class="preview-sidebar__link" data-preview-color="{{ colors.light.text_muted }}">
+                                                <i class="ti ti-calendar"></i>Schedule
+                                            </a>
+                                        </nav>
+                                    </div>
+                                    <nav class="preview-breadcrumb" data-preview-bg="{{ colors.light.bg_body }}">
+                                        <a href="#" class="preview-link" data-preview-color="{{ colors.light.text_link }}">Home</a>
+                                        <span class="preview-muted" data-preview-color="{{ colors.light.text_muted }}">/</span>
+                                        <a href="#" class="preview-link" data-preview-color="{{ colors.light.text_link }}">Admin</a>
+                                        <span class="preview-muted" data-preview-color="{{ colors.light.text_muted }}">/</span>
+                                        <span class="preview-body" data-preview-color="{{ colors.light.text_body }}">Settings</span>
+                                    </nav>
+                                    <div class="preview-nav-tabs" data-preview-border="{{ colors.light.border }}">
+                                        <button class="preview-nav-tab is-active" data-preview-color="{{ colors.light.primary }}" data-preview-border="{{ colors.light.primary }}">Overview</button>
+                                        <button class="preview-nav-tab" data-preview-color="{{ colors.light.text_muted }}">Details</button>
+                                        <button class="preview-nav-tab" data-preview-color="{{ colors.light.text_muted }}">Settings</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -116,41 +268,239 @@
                                 <i class="ti ti-moon"></i>
                                 <span>Dark Mode</span>
                             </span>
-                            <div id="dark-preview-area" class="dark-preview-area" data-preview-bg="{{ colors.dark.bg_body }}">
-                                <!-- Simulated Navbar -->
-                                <div class="preview-navbar-dark" data-preview-bg="{{ colors.dark.bg_card }}" data-preview-border="{{ colors.dark.border }}">
-                                    <span class="preview-heading-dark" data-preview-color="{{ colors.dark.text_heading }}">ECS Dashboard</span>
-                                    <input type="text" class="form-control form-control-sm preview-input-dark" data-preview-bg="{{ colors.dark.bg_input }}" data-preview-border="{{ colors.dark.border_input }}" data-preview-color="{{ colors.dark.text_body }}" placeholder="Search..." data-form-control aria-label="Search...">
-                                </div>
 
-                                <!-- Simulated Card -->
-                                <div class="preview-card-dark" data-preview-bg="{{ colors.dark.bg_card }}" data-preview-border="{{ colors.dark.border }}" data-preview-border-left="{{ colors.dark.primary }}">
-                                    <div class="preview-card-content">
-                                        <h6 class="preview-heading-dark" data-preview-color="{{ colors.dark.text_heading }}">Card Title</h6>
-                                        <p class="preview-body-dark" data-preview-color="{{ colors.dark.text_body }}">
-                                            This is body text showing <a href="#" class="preview-link-dark" data-preview-color="{{ colors.dark.text_link }}">a sample link</a>.
-                                        </p>
-                                        <p class="preview-muted-dark" data-preview-color="{{ colors.dark.text_muted }}">Muted caption text</p>
+                            <!-- Preview Tabs -->
+                            <div class="preview-tabs">
+                                <button type="button" class="preview-tabs__btn is-active" data-action="preview-tab" data-tab="basic" data-panel="dark">
+                                    <i class="ti ti-layout-cards"></i><span>Basic</span>
+                                </button>
+                                <button type="button" class="preview-tabs__btn" data-action="preview-tab" data-tab="modal" data-panel="dark">
+                                    <i class="ti ti-window"></i><span>Modal</span>
+                                </button>
+                                <button type="button" class="preview-tabs__btn" data-action="preview-tab" data-tab="table" data-panel="dark">
+                                    <i class="ti ti-table"></i><span>Table</span>
+                                </button>
+                                <button type="button" class="preview-tabs__btn" data-action="preview-tab" data-tab="nav" data-panel="dark">
+                                    <i class="ti ti-navigation"></i><span>Nav</span>
+                                </button>
+                            </div>
+
+                            <div id="dark-preview-area" class="dark-preview-area" data-preview-bg="{{ colors.dark.bg_body }}">
+                                <!-- Basic Preview Section -->
+                                <div class="preview-section" data-preview-section="basic" data-panel="dark">
+                                    <!-- Simulated Navbar -->
+                                    <div class="preview-navbar-dark" data-preview-bg="{{ colors.dark.bg_card }}" data-preview-border="{{ colors.dark.border }}">
+                                        <span class="preview-heading-dark" data-preview-color="{{ colors.dark.text_heading }}">ECS Dashboard</span>
+                                        <input type="text" class="form-control form-control-sm preview-input-dark" data-preview-bg="{{ colors.dark.bg_input }}" data-preview-border="{{ colors.dark.border_input }}" data-preview-color="{{ colors.dark.text_body }}" placeholder="Search..." data-form-control aria-label="Search...">
+                                    </div>
+
+                                    <!-- Simulated Card -->
+                                    <div class="preview-c-card-dark" data-preview-bg="{{ colors.dark.bg_card }}" data-preview-border="{{ colors.dark.border }}" data-preview-border-left="{{ colors.dark.primary }}">
+                                        <div class="preview-card-content">
+                                            <h6 class="preview-heading-dark" data-preview-color="{{ colors.dark.text_heading }}">Card Title</h6>
+                                            <p class="preview-body-dark" data-preview-color="{{ colors.dark.text_body }}">
+                                                This is body text showing <a href="#" class="preview-link-dark" data-preview-color="{{ colors.dark.text_link }}">a sample link</a>.
+                                            </p>
+                                            <p class="preview-muted-dark" data-preview-color="{{ colors.dark.text_muted }}">Muted caption text</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Buttons -->
+                                    <div class="preview-buttons">
+                                        <button class="c-btn c-btn--sm me-1 preview-btn-primary-dark" data-preview-bg="{{ colors.dark.primary }}" data-preview-border="{{ colors.dark.primary }}">Primary</button>
+                                        <button class="c-btn c-btn--sm me-1 preview-btn-secondary-dark" data-preview-bg="{{ colors.dark.secondary }}" data-preview-border="{{ colors.dark.secondary }}">Secondary</button>
+                                        <button class="c-btn c-btn--sm preview-btn-accent-dark" data-preview-bg="{{ colors.dark.accent }}" data-preview-border="{{ colors.dark.accent }}">Accent</button>
+                                    </div>
+
+                                    <!-- Status Badges -->
+                                    <div>
+                                        <span class="badge me-1 preview-badge-success-dark" data-preview-bg="{{ colors.dark.success }}" data-badge>Success</span>
+                                        <span class="badge me-1 preview-badge-warning-dark" data-preview-bg="{{ colors.dark.warning }}" data-badge>Warning</span>
+                                        <span class="badge me-1 preview-badge-danger-dark" data-preview-bg="{{ colors.dark.danger }}" data-badge>Danger</span>
+                                        <span class="badge preview-badge-info-dark" data-preview-bg="{{ colors.dark.info }}" data-badge>Info</span>
                                     </div>
                                 </div>
 
-                                <!-- Buttons -->
-                                <div class="preview-buttons">
-                                    <button class="c-btn c-btn--sm me-1 preview-btn-primary-dark" data-preview-bg="{{ colors.dark.primary }}" data-preview-border="{{ colors.dark.primary }}">Primary</button>
-                                    <button class="c-btn c-btn--sm me-1 preview-btn-secondary-dark" data-preview-bg="{{ colors.dark.secondary }}" data-preview-border="{{ colors.dark.secondary }}">Secondary</button>
-                                    <button class="c-btn c-btn--sm preview-btn-accent-dark" data-preview-bg="{{ colors.dark.accent }}" data-preview-border="{{ colors.dark.accent }}">Accent</button>
+                                <!-- Modal Preview Section -->
+                                <div class="preview-section" data-preview-section="modal" data-panel="dark" hidden>
+                                    <div class="preview-modal preview-modal--realistic" data-preview-bg="{{ colors.dark.bg_card }}" data-preview-border="{{ colors.dark.border }}">
+                                        <div class="preview-modal__header" data-preview-bg="{{ colors.dark.bg_card }}" data-preview-border="{{ colors.dark.border }}">
+                                            <span class="preview-modal__title preview-heading-dark" data-preview-color="{{ colors.dark.text_heading }}">
+                                                <i class="ti ti-edit"></i> Edit User
+                                            </span>
+                                            <button class="preview-modal__close" data-preview-color="{{ colors.dark.text_muted }}">
+                                                <i class="ti ti-x"></i>
+                                            </button>
+                                        </div>
+                                        <div class="preview-modal__body" data-preview-bg="{{ colors.dark.bg_card }}">
+                                            {# Elevated Section - User Info #}
+                                            <div class="preview-section-elevated" data-preview-bg="{{ colors.dark.bg_body }}" data-preview-border="{{ colors.dark.border }}">
+                                                <div class="preview-form-row">
+                                                    <div class="preview-form-group preview-form-group--half">
+                                                        <label class="preview-muted-dark" data-preview-color="{{ colors.dark.text_muted }}">Username</label>
+                                                        <div class="preview-input-group" data-preview-bg="{{ colors.dark.bg_input }}" data-preview-border="{{ colors.dark.border_input }}">
+                                                            <span class="preview-input-group__icon" data-preview-color="{{ colors.dark.text_muted }}"><i class="ti ti-user"></i></span>
+                                                            <input type="text" class="preview-input-group__input" data-preview-color="{{ colors.dark.text_body }}" value="johndoe">
+                                                        </div>
+                                                    </div>
+                                                    <div class="preview-form-group preview-form-group--half">
+                                                        <label class="preview-muted-dark" data-preview-color="{{ colors.dark.text_muted }}">Email</label>
+                                                        <div class="preview-input-group" data-preview-bg="{{ colors.dark.bg_input }}" data-preview-border="{{ colors.dark.border_input }}">
+                                                            <span class="preview-input-group__icon" data-preview-color="{{ colors.dark.text_muted }}"><i class="ti ti-mail"></i></span>
+                                                            <input type="text" class="preview-input-group__input" data-preview-color="{{ colors.dark.text_body }}" value="john@example.com">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="preview-form-row">
+                                                    <div class="preview-form-group preview-form-group--half">
+                                                        <label class="preview-muted-dark" data-preview-color="{{ colors.dark.text_muted }}">Account Status</label>
+                                                        <div class="preview-toggle-row">
+                                                            <label class="preview-toggle">
+                                                                <span class="preview-toggle__track" data-preview-bg="{{ colors.dark.primary }}">
+                                                                    <span class="preview-toggle__thumb"></span>
+                                                                </span>
+                                                                <span class="preview-toggle__label preview-body-dark" data-preview-color="{{ colors.dark.text_body }}">Active</span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {# Roles Section #}
+                                            <div class="preview-section-elevated" data-preview-bg="{{ colors.dark.bg_body }}" data-preview-border="{{ colors.dark.border }}">
+                                                <div class="preview-roles">
+                                                    <span class="preview-role-badge" data-preview-bg="{{ colors.dark.bg_input }}" data-preview-border="{{ colors.dark.border_input }}" data-preview-color="{{ colors.dark.text_body }}">
+                                                        <i class="ti ti-user"></i> Player
+                                                    </span>
+                                                    <span class="preview-role-badge preview-role-badge--active" data-preview-bg="{{ colors.dark.primary }}" data-preview-border="{{ colors.dark.primary }}">
+                                                        <i class="ti ti-shield"></i> Admin
+                                                    </span>
+                                                    <span class="preview-role-badge" data-preview-bg="{{ colors.dark.bg_input }}" data-preview-border="{{ colors.dark.border_input }}" data-preview-color="{{ colors.dark.text_body }}">
+                                                        <i class="ti ti-trophy"></i> Coach
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="preview-modal__footer preview-modal__footer--realistic" data-preview-bg="{{ colors.dark.bg_card }}" data-preview-border="{{ colors.dark.border }}">
+                                            <button class="preview-btn-ghost" data-preview-color="{{ colors.dark.text_muted }}">
+                                                <i class="ti ti-x"></i> Cancel
+                                            </button>
+                                            <button class="preview-btn-primary-dark" data-preview-bg="{{ colors.dark.primary }}" data-preview-border="{{ colors.dark.primary }}">
+                                                <i class="ti ti-device-floppy"></i> Save Changes
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <!-- Status Badges -->
-                                <div>
-                                    <span class="badge me-1 preview-badge-success-dark" data-preview-bg="{{ colors.dark.success }}" data-badge>Success</span>
-                                    <span class="badge me-1 preview-badge-warning-dark" data-preview-bg="{{ colors.dark.warning }}" data-badge>Warning</span>
-                                    <span class="badge me-1 preview-badge-danger-dark" data-preview-bg="{{ colors.dark.danger }}" data-badge>Danger</span>
-                                    <span class="badge preview-badge-info-dark" data-preview-bg="{{ colors.dark.info }}" data-badge>Info</span>
+                                <!-- Table Preview Section -->
+                                <div class="preview-section" data-preview-section="table" data-panel="dark" hidden>
+                                    <div class="preview-table-wrapper" data-preview-border="{{ colors.dark.border }}">
+                                        <table class="preview-table">
+                                            <thead class="preview-table__head" data-preview-bg="{{ colors.dark.bg_body }}">
+                                                <tr>
+                                                    <th class="preview-table__header" data-preview-color="{{ colors.dark.text_muted }}" data-preview-border="{{ colors.dark.border }}">Player</th>
+                                                    <th class="preview-table__header" data-preview-color="{{ colors.dark.text_muted }}" data-preview-border="{{ colors.dark.border }}">Team</th>
+                                                    <th class="preview-table__header" data-preview-color="{{ colors.dark.text_muted }}" data-preview-border="{{ colors.dark.border }}">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="preview-table__row" data-preview-bg="{{ colors.dark.bg_card }}">
+                                                    <td class="preview-table__cell preview-heading-dark" data-preview-color="{{ colors.dark.text_heading }}" data-preview-border="{{ colors.dark.border }}">John Smith</td>
+                                                    <td class="preview-table__cell" data-preview-color="{{ colors.dark.text_body }}" data-preview-border="{{ colors.dark.border }}">Team Alpha</td>
+                                                    <td class="preview-table__cell" data-preview-border="{{ colors.dark.border }}"><span class="preview-badge-success-dark" data-preview-bg="{{ colors.dark.success }}">Active</span></td>
+                                                </tr>
+                                                <tr class="preview-table__row" data-preview-bg="{{ colors.dark.bg_body }}">
+                                                    <td class="preview-table__cell preview-heading-dark" data-preview-color="{{ colors.dark.text_heading }}" data-preview-border="{{ colors.dark.border }}">Jane Doe</td>
+                                                    <td class="preview-table__cell" data-preview-color="{{ colors.dark.text_body }}" data-preview-border="{{ colors.dark.border }}">Team Beta</td>
+                                                    <td class="preview-table__cell" data-preview-border="{{ colors.dark.border }}"><span class="preview-badge-warning-dark" data-preview-bg="{{ colors.dark.warning }}">Pending</span></td>
+                                                </tr>
+                                                <tr class="preview-table__row" data-preview-bg="{{ colors.dark.bg_card }}">
+                                                    <td class="preview-table__cell preview-heading-dark" data-preview-color="{{ colors.dark.text_heading }}" data-preview-border="{{ colors.dark.border }}">Bob Wilson</td>
+                                                    <td class="preview-table__cell" data-preview-color="{{ colors.dark.text_body }}" data-preview-border="{{ colors.dark.border }}">Team Gamma</td>
+                                                    <td class="preview-table__cell" data-preview-border="{{ colors.dark.border }}"><span class="preview-badge-danger-dark" data-preview-bg="{{ colors.dark.danger }}">Inactive</span></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Navigation Preview Section -->
+                                <div class="preview-section" data-preview-section="nav" data-panel="dark" hidden>
+                                    <div class="preview-sidebar" data-preview-bg="{{ colors.dark.bg_card }}" data-preview-border="{{ colors.dark.border }}">
+                                        <div class="preview-sidebar__header preview-heading-dark" data-preview-color="{{ colors.dark.text_heading }}" data-preview-border="{{ colors.dark.border }}">ECS</div>
+                                        <nav class="preview-sidebar__nav">
+                                            <a href="#" class="preview-sidebar__link is-active" data-preview-bg="{{ colors.dark.primary }}">
+                                                <i class="ti ti-dashboard"></i>Dashboard
+                                            </a>
+                                            <a href="#" class="preview-sidebar__link" data-preview-color="{{ colors.dark.text_body }}">
+                                                <i class="ti ti-users"></i>Players
+                                            </a>
+                                            <a href="#" class="preview-sidebar__link" data-preview-color="{{ colors.dark.text_muted }}">
+                                                <i class="ti ti-calendar"></i>Schedule
+                                            </a>
+                                        </nav>
+                                    </div>
+                                    <nav class="preview-breadcrumb" data-preview-bg="{{ colors.dark.bg_body }}">
+                                        <a href="#" class="preview-link-dark" data-preview-color="{{ colors.dark.text_link }}">Home</a>
+                                        <span class="preview-muted-dark" data-preview-color="{{ colors.dark.text_muted }}">/</span>
+                                        <a href="#" class="preview-link-dark" data-preview-color="{{ colors.dark.text_link }}">Admin</a>
+                                        <span class="preview-muted-dark" data-preview-color="{{ colors.dark.text_muted }}">/</span>
+                                        <span class="preview-body-dark" data-preview-color="{{ colors.dark.text_body }}">Settings</span>
+                                    </nav>
+                                    <div class="preview-nav-tabs" data-preview-border="{{ colors.dark.border }}">
+                                        <button class="preview-nav-tab is-active" data-preview-color="{{ colors.dark.primary }}" data-preview-border="{{ colors.dark.primary }}">Overview</button>
+                                        <button class="preview-nav-tab" data-preview-color="{{ colors.dark.text_muted }}">Details</button>
+                                        <button class="preview-nav-tab" data-preview-color="{{ colors.dark.text_muted }}">Settings</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Theme Presets Section -->
+        <div class="c-theme-presets" data-component="theme-presets">
+            <div class="c-theme-presets__header">
+                <div>
+                    <h5 class="c-theme-presets__title">
+                        <i class="ti ti-stack-2"></i>
+                        <span>Theme Presets</span>
+                    </h5>
+                    <p class="c-theme-presets__subtitle">Save and manage reusable color schemes for users to select</p>
+                </div>
+                <div class="c-theme-presets__actions">
+                    <button type="button" class="c-btn c-btn--primary" data-action="save-as-preset">
+                        <i class="ti ti-plus"></i>Save Current as Preset
+                    </button>
+                </div>
+            </div>
+            <div class="c-theme-presets__body">
+                <div class="c-theme-presets__grid" data-presets-grid>
+                    <!-- Default Preset (always present) -->
+                    <div class="c-preset-card c-preset-card--system" data-preset-card data-preset-slug="default">
+                        <div class="c-preset-card__swatches">
+                            <span class="c-preset-card__swatch c-preset-card__swatch--primary"></span>
+                            <span class="c-preset-card__swatch c-preset-card__swatch--accent"></span>
+                            <span class="c-preset-card__swatch c-preset-card__swatch--success"></span>
+                            <span class="c-preset-card__swatch c-preset-card__swatch--info"></span>
+                        </div>
+                        <div class="c-preset-card__content">
+                            <h6 class="c-preset-card__name">Default</h6>
+                            <p class="c-preset-card__description">System default color scheme</p>
+                        </div>
+                        <div class="c-preset-card__actions">
+                            <button type="button" class="c-btn c-btn--sm c-btn--primary" data-action="apply-preset" data-preset-slug="default">
+                                <i class="ti ti-check"></i>Apply
+                            </button>
+                        </div>
+                        <span class="c-preset-card__badge">System</span>
+                    </div>
+                    <!-- Dynamic presets loaded via JavaScript -->
+                </div>
+                <div class="c-theme-presets__empty" data-presets-empty hidden>
+                    <i class="ti ti-palette-off"></i>
+                    <p>No custom presets yet. Save your current colors as a preset to get started.</p>
                 </div>
             </div>
         </div>
@@ -687,6 +1037,50 @@
 
 {% block modals %}
 {{ super() }}
+<!-- Save Preset Modal -->
+<div class="modal c-modal fade" data-modal id="savePresetModal" tabindex="-1" aria-labelledby="savePresetModalLabel">
+    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
+        <div class="modal-content c-modal__content" data-modal-content>
+            <div class="modal-header c-modal__header" data-modal-header>
+                <h5 class="modal-title c-modal__title" id="savePresetModalLabel"><i class="ti ti-palette me-2"></i>Save as Preset</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
+            </div>
+            <div class="modal-body c-modal__body" data-modal-body>
+                <input type="hidden" id="editPresetId" value="">
+                <div class="mb-3">
+                    <label class="form-label" for="presetName">Preset Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="presetName" placeholder="e.g., Ocean Blue" required data-form-control>
+                    <small class="text-muted">A unique, descriptive name for this color scheme</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="presetDescription">Description</label>
+                    <textarea class="form-control" id="presetDescription" rows="2" placeholder="Optional description..." data-form-control></textarea>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="presetEnabled" checked>
+                    <label class="form-check-label" for="presetEnabled">
+                        Enable for user selection
+                    </label>
+                    <small class="d-block text-muted">When enabled, users can select this preset from the navbar</small>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="presetDefault">
+                    <label class="form-check-label" for="presetDefault">
+                        Set as default preset
+                    </label>
+                    <small class="d-block text-muted">New users will use this preset automatically</small>
+                </div>
+            </div>
+            <div class="modal-footer c-modal__footer" data-modal-footer>
+                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
+                <button type="button" class="c-btn c-btn--primary" data-action="confirm-save-preset">
+                    <i class="ti ti-device-floppy"></i>Save Preset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Import Modal -->
 <div class="modal c-modal fade" data-modal id="importModal" tabindex="-1" aria-labelledby="importModalLabel">
     <div class="modal-dialog c-modal__dialog" data-modal-dialog>
@@ -946,7 +1340,7 @@ function updateDarkPreview() {
     }
 
     // Card
-    const card = area.querySelector('.preview-card-dark');
+    const card = area.querySelector('.preview-c-card-dark');
     if (card) {
         card.style.background = getValue('dark-bg_card') || '#18181B';
         card.style.borderColor = getValue('dark-border') || '#3F3F46';

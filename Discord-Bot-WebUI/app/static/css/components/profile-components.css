@@ -695,18 +695,27 @@ input.c-toggle-field__input:focus-visible {
 
 .c-admin-actions {
   display: flex;
-  align-items: center;
-  gap: var(--space-2, 8px);
-  padding: var(--space-4, 16px);
-  background: rgba(0, 0, 0, 0.1);
-  border-top: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
-  margin-top: auto;
+  flex-wrap: wrap;
+  gap: var(--space-3, 12px);
+}
+
+.c-admin-actions__item {
+  flex: 1;
+  min-width: 200px;
+}
+
+.c-admin-actions__item .c-toggle-field {
+  margin-bottom: 0;
 }
 
 .c-admin-actions--sticky {
   position: sticky;
   bottom: 0;
+  padding: var(--space-4, 16px);
+  background: rgba(0, 0, 0, 0.1);
+  border-top: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
   backdrop-filter: blur(8px);
+  margin-top: auto;
 }
 
 /* ============================================================================

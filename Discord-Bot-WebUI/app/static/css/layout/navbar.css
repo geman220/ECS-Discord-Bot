@@ -529,6 +529,11 @@
   padding: var(--space-3);
   z-index: var(--z-toast);
   pointer-events: none;
+  /* Prevent container from having visible background */
+  background: transparent !important;
+  /* Size to content only */
+  width: auto;
+  max-width: 400px;
 }
 
 .toast {

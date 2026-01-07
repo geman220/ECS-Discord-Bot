@@ -213,11 +213,37 @@ def _register_theme_colors_processor(app):
 
     @app.context_processor
     def inject_theme_colors():
-        """Inject custom theme colors into templates if configured."""
+        """Inject custom theme colors and preset colors into templates."""
+        from flask import session, request
+
+        result = {
+            'site_settings': None,
+            'preset_colors': None,
+            'preset_colors_json': 'null'
+        }
+
         try:
             from app.admin_panel.routes.appearance import load_custom_colors
             custom_colors = load_custom_colors()
-            return {'site_settings': {'custom_colors': custom_colors} if custom_colors else None}
+            if custom_colors:
+                result['site_settings'] = {'custom_colors': custom_colors}
         except Exception as e:
             logger.debug(f"Theme colors not loaded: {e}")
-            return {'site_settings': None}
+
+        # Load user's selected preset colors for anti-flash script
+        try:
+            import json
+            # Check cookie first (for initial page load), then session
+            preset_slug = request.cookies.get('theme_preset') or session.get('theme_preset', 'default')
+
+            if preset_slug and preset_slug != 'default':
+                from app.models import ThemePreset
+                preset = ThemePreset.query.filter_by(slug=preset_slug, is_enabled=True).first()
+                if preset and preset.colors:
+                    result['preset_colors'] = preset.colors
+                    # JSON for injection into blocking script
+                    result['preset_colors_json'] = json.dumps(preset.colors)
+        except Exception as e:
+            logger.debug(f"Preset colors not loaded: {e}")
+
+        return result

@@ -810,3 +810,79 @@ def preview_role_sync(role_id):
     except Exception as e:
         logger.error(f"Error previewing role sync: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/discord/role-mapping/create-role', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def create_discord_role():
+    """
+    Create a new Discord role on the server via the bot API.
+
+    This allows admins to create Discord roles directly from the admin panel
+    without having to go to Discord's server settings.
+    """
+    import os
+    import requests
+
+    try:
+        data = request.get_json()
+        role_name = data.get('name', '').strip()
+        role_color = data.get('color', '#7C3AED')
+        mentionable = data.get('mentionable', False)
+
+        if not role_name:
+            return jsonify({'success': False, 'error': 'Role name is required'}), 400
+
+        # Get bot API URL and guild ID
+        bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
+        guild_id = os.getenv('SERVER_ID')
+
+        if not guild_id:
+            return jsonify({'success': False, 'error': 'SERVER_ID not configured'}), 500
+
+        # Convert hex color to Discord color integer (remove # and convert to int)
+        color_int = 0
+        if role_color and role_color.startswith('#'):
+            try:
+                color_int = int(role_color[1:], 16)
+            except ValueError:
+                color_int = 0
+
+        # Call bot API to create the role
+        response = requests.post(
+            f"{bot_api_url}/api/server/guilds/{guild_id}/roles",
+            json={
+                'name': role_name,
+                'color': color_int,
+                'mentionable': mentionable
+            },
+            timeout=15
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+            logger.info(f"Created Discord role '{role_name}' with ID {result.get('id')}")
+            return jsonify({
+                'success': True,
+                'role_id': result.get('id'),
+                'role_name': role_name,
+                'message': f"Discord role '{role_name}' created successfully"
+            })
+        else:
+            error_msg = response.text
+            logger.error(f"Bot API error creating role: {response.status_code} - {error_msg}")
+            return jsonify({
+                'success': False,
+                'error': f"Bot API error: {error_msg}"
+            }), response.status_code
+
+    except requests.exceptions.Timeout:
+        logger.error("Timeout connecting to bot API")
+        return jsonify({'success': False, 'error': 'Bot API timeout - is the bot running?'}), 504
+    except requests.exceptions.ConnectionError:
+        logger.error("Connection error to bot API")
+        return jsonify({'success': False, 'error': 'Cannot connect to bot - is it running?'}), 503
+    except Exception as e:
+        logger.error(f"Error creating Discord role: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500

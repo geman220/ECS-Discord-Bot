@@ -193,6 +193,10 @@
   --color-bg-card: var(--color-neutral-0);
   --color-bg-elevated: var(--color-neutral-0);
   --color-bg-overlay: rgba(0, 0, 0, 0.5);
+  /* Bootstrap utility overrides - explicit values that flip in dark mode */
+  --color-bg-light-utility: #F1F5F9;  /* Light gray for .bg-light in light mode */
+  --color-bg-dark-utility: #1E293B;   /* Dark slate for .bg-dark in light mode */
+  --color-bg-white-utility: #FFFFFF;  /* White for .bg-white in light mode */
   /* Border Colors */
   --color-border-primary: var(--color-neutral-200);
   --color-border-secondary: var(--color-neutral-300);
@@ -453,6 +457,10 @@
   --color-bg-card: var(--color-neutral-50);
   --color-bg-elevated: var(--color-neutral-100);
   --color-bg-overlay: rgba(0, 0, 0, 0.7);
+  /* Bootstrap utility overrides - FLIPPED for dark mode */
+  --color-bg-light-utility: #334155;  /* Dark slate for .bg-light in dark mode */
+  --color-bg-dark-utility: #F1F5F9;   /* Light gray for .bg-dark in dark mode */
+  --color-bg-white-utility: #1E293B;  /* Dark slate for .bg-white in dark mode */
   /* Border Colors */
   --color-border-primary: var(--color-neutral-200);
   --color-border-secondary: var(--color-neutral-300);

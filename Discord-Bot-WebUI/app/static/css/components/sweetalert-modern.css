@@ -45,6 +45,26 @@
   padding: var(--space-4);
 }
 
+/* Toast container should be transparent with no backdrop */
+.swal2-container.swal2-toast-shown {
+  background: transparent !important;
+  padding: var(--space-4);
+}
+
+/* Ensure toast container doesn't create visual artifacts */
+.swal2-container.swal2-toast-shown .swal2-popup.swal2-toast {
+  /* Ensure toast is properly sized to content */
+  width: auto !important;
+  max-width: 400px !important;
+  min-width: auto !important;
+}
+
+/* Hide any backdrop for toast notifications */
+.swal2-container.swal2-toast-shown::before,
+.swal2-container.swal2-toast-shown::after {
+  display: none !important;
+}
+
 .swal2-backdrop-show {
   background: rgba(0, 0, 0, 0.4) !important;
   backdrop-filter: blur(8px);

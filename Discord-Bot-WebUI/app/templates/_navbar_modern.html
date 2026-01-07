@@ -72,27 +72,45 @@
                         <h6 class="c-navbar-modern__dropdown-title">Theme</h6>
                     </div>
                     <div class="c-navbar-modern__dropdown-content">
-                        <button class="c-navbar-modern__dropdown-item"
-                                data-action="switch-theme"
-                                data-theme="light"
-                                role="menuitem">
-                            <i class="ti ti-sun" aria-hidden="true"></i>
-                            <span>Light</span>
-                        </button>
-                        <button class="c-navbar-modern__dropdown-item is-active"
-                                data-action="switch-theme"
-                                data-theme="dark"
-                                role="menuitem">
-                            <i class="ti ti-moon-stars" aria-hidden="true"></i>
-                            <span>Dark</span>
-                        </button>
-                        <button class="c-navbar-modern__dropdown-item"
-                                data-action="switch-theme"
-                                data-theme="system"
-                                role="menuitem">
-                            <i class="ti ti-device-desktop" aria-hidden="true"></i>
-                            <span>System</span>
-                        </button>
+                        {# Color Mode Section #}
+                        <div class="c-navbar-modern__dropdown-section">
+                            <span class="c-navbar-modern__dropdown-section-title">Color Mode</span>
+                            <button class="c-navbar-modern__dropdown-item"
+                                    data-action="switch-theme"
+                                    data-theme="light"
+                                    role="menuitem">
+                                <i class="ti ti-sun" aria-hidden="true"></i>
+                                <span>Light</span>
+                            </button>
+                            <button class="c-navbar-modern__dropdown-item is-active"
+                                    data-action="switch-theme"
+                                    data-theme="dark"
+                                    role="menuitem">
+                                <i class="ti ti-moon-stars" aria-hidden="true"></i>
+                                <span>Dark</span>
+                            </button>
+                            <button class="c-navbar-modern__dropdown-item"
+                                    data-action="switch-theme"
+                                    data-theme="system"
+                                    role="menuitem">
+                                <i class="ti ti-device-desktop" aria-hidden="true"></i>
+                                <span>System</span>
+                            </button>
+                        </div>
+
+                        {# Color Presets Section #}
+                        <div class="c-navbar-modern__dropdown-section" data-presets-section>
+                            <span class="c-navbar-modern__dropdown-section-title">Color Preset</span>
+                            <button class="c-navbar-modern__dropdown-item"
+                                    data-action="select-preset"
+                                    data-preset="default"
+                                    role="menuitem">
+                                <i class="ti ti-palette" aria-hidden="true"></i>
+                                <span>Default</span>
+                            </button>
+                            {# Additional presets loaded dynamically via JavaScript #}
+                            <div data-presets-list></div>
+                        </div>
                     </div>
                 </div>
             </li>

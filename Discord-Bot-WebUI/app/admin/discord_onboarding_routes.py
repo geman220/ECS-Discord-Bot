@@ -787,3 +787,184 @@ def get_all_league_settings():
     except Exception as e:
         logger.error(f"Error fetching all league settings: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+# =======================================================================
+# Discord → Flask Role Sync Endpoint
+# =======================================================================
+
+@discord_onboarding.route('/role-sync', methods=['POST'])
+@csrf.exempt
+@transactional
+def sync_roles_from_discord():
+    """
+    Called by Discord bot when a member's roles change in Discord.
+    Syncs the role changes back to Flask using the existing role mappings.
+
+    This enables bidirectional role sync:
+    - Flask → Discord: Handled by discord_role_sync_service.py
+    - Discord → Flask: Handled by this endpoint
+
+    Expected payload:
+    {
+        "discord_id": "123456789",
+        "added_role_ids": ["role_id_1", "role_id_2"],
+        "removed_role_ids": ["role_id_3"],
+        "current_role_ids": ["role_id_1", "role_id_2", "role_id_4"]  # All current Discord roles
+    }
+    """
+    from app.models.core import Role
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No JSON data provided'}), 400
+
+        discord_id = data.get('discord_id')
+        added_role_ids = data.get('added_role_ids', [])
+        removed_role_ids = data.get('removed_role_ids', [])
+
+        if not discord_id:
+            return jsonify({'success': False, 'error': 'discord_id is required'}), 400
+
+        # Find user by Discord ID
+        player = g.db_session.query(Player).filter_by(discord_id=str(discord_id)).first()
+        if not player or not player.user:
+            logger.debug(f"No user found for Discord ID: {discord_id} - skipping role sync")
+            return jsonify({
+                'success': True,
+                'message': 'User not found in database - no sync needed',
+                'synced': False
+            }), 200
+
+        user = player.user
+        results = {
+            'added': [],
+            'removed': [],
+            'skipped': [],
+            'errors': []
+        }
+
+        # Get all Flask roles that have Discord mappings
+        mapped_roles = g.db_session.query(Role).filter(
+            Role.discord_role_id.isnot(None),
+            Role.sync_enabled == True
+        ).all()
+
+        # Create a lookup dict: discord_role_id -> Flask Role
+        discord_to_flask = {role.discord_role_id: role for role in mapped_roles}
+
+        # Process added Discord roles -> add Flask roles
+        for discord_role_id in added_role_ids:
+            flask_role = discord_to_flask.get(str(discord_role_id))
+            if flask_role:
+                if flask_role not in user.roles:
+                    user.roles.append(flask_role)
+                    results['added'].append({
+                        'discord_role_id': discord_role_id,
+                        'flask_role': flask_role.name
+                    })
+                    logger.info(f"Added Flask role '{flask_role.name}' to user {user.username} (Discord role: {discord_role_id})")
+                else:
+                    results['skipped'].append({
+                        'discord_role_id': discord_role_id,
+                        'flask_role': flask_role.name,
+                        'reason': 'User already has this role'
+                    })
+            # If no mapping exists, just skip silently
+
+        # Process removed Discord roles -> remove Flask roles
+        for discord_role_id in removed_role_ids:
+            flask_role = discord_to_flask.get(str(discord_role_id))
+            if flask_role:
+                if flask_role in user.roles:
+                    user.roles.remove(flask_role)
+                    results['removed'].append({
+                        'discord_role_id': discord_role_id,
+                        'flask_role': flask_role.name
+                    })
+                    logger.info(f"Removed Flask role '{flask_role.name}' from user {user.username} (Discord role: {discord_role_id})")
+                else:
+                    results['skipped'].append({
+                        'discord_role_id': discord_role_id,
+                        'flask_role': flask_role.name,
+                        'reason': 'User did not have this role'
+                    })
+            # If no mapping exists, just skip silently
+
+        # Commit changes
+        g.db_session.add(user)
+
+        # Log the sync interaction
+        if results['added'] or results['removed']:
+            log_discord_interaction(
+                user.id, discord_id, 'role_sync_from_discord',
+                success=True,
+                metadata={
+                    'added': results['added'],
+                    'removed': results['removed'],
+                    'skipped_count': len(results['skipped'])
+                }
+            )
+
+        return jsonify({
+            'success': True,
+            'user_id': user.id,
+            'username': user.username,
+            'results': results,
+            'synced': bool(results['added'] or results['removed'])
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error syncing roles from Discord: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@discord_onboarding.route('/role-mappings', methods=['GET'])
+@csrf.exempt
+def get_role_mappings():
+    """
+    Get all Flask-to-Discord role mappings.
+    Used by Discord bot to know which Discord roles should trigger Flask role sync.
+
+    Returns:
+        JSON object with mappings in both directions
+    """
+    from app.models.core import Role
+
+    try:
+        # Get all roles with Discord mappings that have sync enabled
+        mapped_roles = Role.query.filter(
+            Role.discord_role_id.isnot(None),
+            Role.sync_enabled == True
+        ).all()
+
+        mappings = {
+            'flask_to_discord': {},  # flask_role_name -> discord_role_id
+            'discord_to_flask': {},  # discord_role_id -> flask_role_name
+            'roles': []
+        }
+
+        for role in mapped_roles:
+            mappings['flask_to_discord'][role.name] = role.discord_role_id
+            mappings['discord_to_flask'][role.discord_role_id] = role.name
+            mappings['roles'].append({
+                'flask_role_id': role.id,
+                'flask_role_name': role.name,
+                'discord_role_id': role.discord_role_id,
+                'discord_role_name': role.discord_role_name,
+                'sync_enabled': role.sync_enabled
+            })
+
+        return jsonify({
+            'success': True,
+            'mappings': mappings,
+            'count': len(mapped_roles)
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching role mappings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500

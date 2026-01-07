@@ -854,16 +854,39 @@ html[data-style="dark"] .modal-dialog .modal-footer {
 
 /* Override Bootstrap utility classes in dark mode (slate palette) */
 
-[data-style="dark"] .modal-footer.bg-light {
-  background-color: var(--color-secondary-900, var(--color-secondary-900));
+/* Modal footer bg-light overrides - covers all class combinations */
+[data-style="dark"] .modal-footer.bg-light,
+[data-style="dark"] .modal .modal-footer.bg-light,
+[data-style="dark"] .c-modal .modal-footer.bg-light,
+[data-style="dark"] .c-modal__footer.bg-light,
+[data-style="dark"] .modal-footer.c-modal__footer.bg-light,
+[data-style="dark"] .modal .c-modal__footer.bg-light,
+html[data-style="dark"] .modal-footer.bg-light,
+html[data-style="dark"] .c-modal__footer.bg-light {
+  background-color: var(--color-secondary-900, #0f172a) !important;
   /* Slate-900 */
-  background: var(--color-secondary-900, var(--color-secondary-900));
+  background: var(--color-secondary-900, #0f172a) !important;
 }
 
-[data-style="dark"] .modal-header.bg-light {
-  background-color: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+/* Modal header bg-light overrides - covers all class combinations */
+[data-style="dark"] .modal-header.bg-light,
+[data-style="dark"] .modal .modal-header.bg-light,
+[data-style="dark"] .c-modal .modal-header.bg-light,
+[data-style="dark"] .c-modal__header.bg-light,
+[data-style="dark"] .modal-header.c-modal__header.bg-light,
+[data-style="dark"] .modal .c-modal__header.bg-light,
+html[data-style="dark"] .modal-header.bg-light,
+html[data-style="dark"] .c-modal__header.bg-light {
+  background-color: var(--color-secondary-800, #1e293b) !important;
   /* Slate-800 */
-  background: var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800)));
+  background: var(--color-secondary-800, #1e293b) !important;
+}
+
+/* Generic bg-light override for any element inside modals in dark mode */
+[data-style="dark"] .modal .bg-light,
+[data-style="dark"] .c-modal .bg-light {
+  background-color: var(--color-secondary-800, #1e293b) !important;
+  background: var(--color-secondary-800, #1e293b) !important;
 }
 
 /* Card headers inside modals in dark mode (slate palette) */

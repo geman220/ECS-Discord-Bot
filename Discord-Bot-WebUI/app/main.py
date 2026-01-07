@@ -1221,6 +1221,47 @@ def set_theme_variant():
     return jsonify({"success": True, "message": f"Theme variant set to {variant}"})
 
 
+@main.route('/set-theme-preset', methods=['POST'])
+def set_theme_preset():
+    """
+    Set the user's theme preset preference.
+
+    This endpoint allows users to select a color preset for the theme.
+    The preference is stored in the session and persists between page loads.
+
+    Returns:
+        JSON: A JSON response indicating success or failure of the operation.
+    """
+    data = request.get_json()
+    if not data or 'preset' not in data:
+        return jsonify({"success": False, "message": "Preset not provided"}), 400
+
+    preset = data['preset']
+
+    # Store preset in session
+    session['theme_preset'] = preset
+
+    # If user is logged in, store preference in their profile
+    if current_user.is_authenticated:
+        try:
+            user = Player.query.get(current_user.id)
+            if user and hasattr(user, 'preferences'):
+                # Use preferences JSON field if it exists
+                preferences = user.preferences or {}
+                preferences['theme_preset'] = preset
+                user.preferences = preferences
+                g.db_session.add(user)
+                try:
+                    g.db_session.commit()
+                except Exception as e:
+                    g.db_session.rollback()
+                    logger.exception(f"Error saving theme preset preference for user {current_user.id}: {e}")
+        except Exception as e:
+            logger.error(f"Error saving theme preset preference for user {current_user.id}: {e}")
+
+    return jsonify({"success": True, "message": f"Theme preset set to {preset}"})
+
+
 @csrf.exempt
 @main.route('/clear_sweet_alert', methods=['POST'])
 def clear_sweet_alert():

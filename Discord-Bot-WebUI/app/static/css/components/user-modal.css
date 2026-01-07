@@ -148,3 +148,143 @@
         width: 100%;
     }
 }
+
+/* ============================================
+   Dark Mode Support
+   ============================================ */
+
+/* Modal Container Dark Mode */
+[data-style="dark"] .c-user-modal .modal-content,
+[data-style="dark"] .c-user-modal__content {
+    background-color: var(--color-secondary-800, #1e293b);
+    border-color: var(--color-secondary-700, #334155);
+}
+
+[data-style="dark"] .c-user-modal__header {
+    background-color: var(--color-secondary-800, #1e293b);
+    border-color: var(--color-secondary-700, #334155);
+}
+
+[data-style="dark"] .c-user-modal__body {
+    background-color: var(--color-secondary-800, #1e293b);
+}
+
+[data-style="dark"] .c-user-modal__footer {
+    background-color: var(--color-secondary-900, #0f172a);
+    border-color: var(--color-secondary-700, #334155);
+}
+
+[data-style="dark"] .c-user-modal__title {
+    color: var(--color-secondary-50, #f8fafc);
+}
+
+/* Form Elements in User Modal - Dark Mode */
+[data-style="dark"] .c-user-form__label {
+    color: var(--color-secondary-200, #e2e8f0);
+}
+
+[data-style="dark"] .c-user-form__input,
+[data-style="dark"] .c-user-form__select,
+[data-style="dark"] .c-user-modal .form-control,
+[data-style="dark"] .c-user-modal .form-select,
+[data-style="dark"] #editUserModal .form-control,
+[data-style="dark"] #editUserModal .form-select {
+    background-color: var(--color-secondary-900, #0f172a);
+    border-color: var(--color-secondary-600, #475569);
+    color: var(--color-secondary-50, #f8fafc);
+}
+
+[data-style="dark"] .c-user-form__input::placeholder,
+[data-style="dark"] .c-user-modal .form-control::placeholder,
+[data-style="dark"] #editUserModal .form-control::placeholder {
+    color: var(--color-secondary-400, #94a3b8);
+}
+
+[data-style="dark"] .c-user-form__input:focus,
+[data-style="dark"] .c-user-form__select:focus,
+[data-style="dark"] .c-user-modal .form-control:focus,
+[data-style="dark"] .c-user-modal .form-select:focus,
+[data-style="dark"] #editUserModal .form-control:focus,
+[data-style="dark"] #editUserModal .form-select:focus {
+    background-color: var(--color-secondary-900, #0f172a);
+    border-color: var(--color-primary-400, #60a5fa);
+    box-shadow: 0 0 0 0.2rem rgba(96, 165, 250, 0.25);
+    color: var(--color-secondary-50, #f8fafc);
+}
+
+/* Switch/Toggle in Dark Mode */
+[data-style="dark"] .c-user-form__switch-label {
+    color: var(--color-secondary-200, #e2e8f0);
+}
+
+/* Form Labels in Edit User Modal */
+[data-style="dark"] #editUserModal .form-label,
+[data-style="dark"] #editUserModal label {
+    color: var(--color-secondary-200, #e2e8f0);
+}
+
+/* Form Sections/Cards inside Modal */
+[data-style="dark"] .c-user-modal .card,
+[data-style="dark"] #editUserModal .card {
+    background-color: var(--color-secondary-700, #334155);
+    border-color: var(--color-secondary-600, #475569);
+}
+
+/* Input Groups */
+[data-style="dark"] .c-user-modal .input-group-text,
+[data-style="dark"] #editUserModal .input-group-text {
+    background-color: var(--color-secondary-700, #334155);
+    border-color: var(--color-secondary-600, #475569);
+    color: var(--color-secondary-200, #e2e8f0);
+}
+
+/* Checkbox/Toggle Badges */
+[data-style="dark"] .c-user-modal .badge,
+[data-style="dark"] #editUserModal .badge {
+    background-color: var(--color-secondary-600, #475569);
+    color: var(--color-secondary-100, #f1f5f9);
+}
+
+/* Role Selection Buttons */
+[data-style="dark"] .c-user-modal [data-action="toggle-role"],
+[data-style="dark"] #editUserModal [data-action="toggle-role"] {
+    background-color: var(--color-secondary-700, #334155);
+    border-color: var(--color-secondary-600, #475569);
+    color: var(--color-secondary-200, #e2e8f0);
+}
+
+[data-style="dark"] .c-user-modal [data-action="toggle-role"]:hover,
+[data-style="dark"] #editUserModal [data-action="toggle-role"]:hover {
+    background-color: var(--color-secondary-600, #475569);
+}
+
+[data-style="dark"] .c-user-modal [data-action="toggle-role"].active,
+[data-style="dark"] #editUserModal [data-action="toggle-role"].active {
+    background-color: var(--color-primary-600, #2563eb);
+    border-color: var(--color-primary-500, #3b82f6);
+    color: var(--color-white, #ffffff);
+}
+
+/* Validation States - Dark Mode */
+[data-style="dark"] .c-user-form__input:invalid,
+[data-style="dark"] .c-user-form__select:invalid {
+    border-color: var(--color-danger-400, #f87171);
+}
+
+[data-style="dark"] .c-user-form__input:valid,
+[data-style="dark"] .c-user-form__select:valid {
+    border-color: var(--color-success-400, #4ade80);
+}
+
+/* Select2 in Dark Mode Modal */
+[data-style="dark"] .c-user-modal .select2-container--bootstrap-5 .select2-selection,
+[data-style="dark"] #editUserModal .select2-container--bootstrap-5 .select2-selection {
+    background-color: var(--color-secondary-900, #0f172a);
+    border-color: var(--color-secondary-600, #475569);
+    color: var(--color-secondary-50, #f8fafc);
+}
+
+[data-style="dark"] .c-user-modal .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
+[data-style="dark"] #editUserModal .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    color: var(--color-secondary-50, #f8fafc);
+}

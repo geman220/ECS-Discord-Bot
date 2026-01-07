@@ -480,6 +480,6 @@ window.CAMPAIGNS_CSRF_TOKEN = '{{ csrf_token() }}';
 </script>
 
 <!-- Campaign Management JavaScript -->
-<script src="{{ url_for('static', filename='js/admin/push-campaigns.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/admin/push-campaigns.js') }}"></script>
 {% endif %}
 {% endblock %}
