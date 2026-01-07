@@ -10,7 +10,7 @@
  * 1. tokens     - CSS custom properties
  * 2. bootstrap  - Third-party Bootstrap CSS (always loses)
  * 3. core       - Foundation, variables, z-index
- * 4. layout     - Page structure, sidebar containers
+ * 4. layout     - Page structure, sidebar containers (base layer)
  * 5. components - BEM component styles (override layout)
  * 6. features   - Feature-specific styles
  * 7. pages      - Page-specific styles
@@ -25,7 +25,7 @@
 /* ============================================================================
    LAYER ORDER DECLARATION - Establishes priority
    ============================================================================ */
-@layer tokens, bootstrap, core, components, layout, features, pages, themes, utilities;
+@layer tokens, bootstrap, core, layout, components, features, pages, themes, utilities;
 
 /* ============================================================================
    1. TOKENS - CSS Custom Properties
@@ -52,6 +52,19 @@
 @import './core/bootstrap-theming.css' layer(core);
 @import './core/admin-utilities.css' layer(core);
 @import './components.css' layer(core);
+
+/* ============================================================================
+   4. LAYOUT - Page Structure (Base Layer)
+   ============================================================================
+   IMPORTANT: Layout imports MUST come BEFORE components in physical order
+   to match the @layer declaration: tokens, bootstrap, core, layout, components...
+   This ensures Vite/PostCSS processes them in the correct order.
+   ============================================================================ */
+@import './layout/base-layout.css' layer(layout);
+@import './layout/sidebar-modern.css' layer(layout);
+@import './layout/navbar.css' layer(layout);
+@import './layout/auth-layout.css' layer(layout);
+@import './mobile/index.css' layer(layout);
 
 /* ============================================================================
    5. COMPONENTS - BEM Component Styles (Override Layout)
@@ -116,15 +129,6 @@
 @import './components/c-schedule.css' layer(components);
 @import './components/progressive-disclosure.css' layer(components);
 @import './components/mobile-data-cards.css' layer(components);
-
-/* ============================================================================
-   4. LAYOUT - Page Structure (Base Layer)
-   ============================================================================ */
-@import './layout/base-layout.css' layer(layout);
-@import './layout/sidebar-modern.css' layer(layout);
-@import './layout/navbar.css' layer(layout);
-@import './layout/auth-layout.css' layer(layout);
-@import './mobile/index.css' layer(layout);
 
 /* ============================================================================
    6. FEATURES - Feature-Specific Styles
