@@ -533,7 +533,7 @@ html:not(.layout-menu-collapsed) .bg-menu-theme .menu-inner .menu-item:not(.acti
 }
 
 [data-style="dark"] .bg-footer-theme {
-  background-color: var(--color-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
+  background-color: var(--color-bg-primary, var(--color-secondary-950, var(--color-secondary-950)));
   border-top-color: var(--color-border-primary, var(--color-secondary-700));
   color: var(--color-text-secondary, var(--color-secondary-400));
 }

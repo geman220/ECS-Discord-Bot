@@ -288,6 +288,7 @@ services:
     restart: unless-stopped
     environment:
       - GOOGLE_WALLET_ISSUER_ID=${GOOGLE_WALLET_ISSUER_ID}
+      - GOOGLE_STORAGE_BUCKET=${GOOGLE_STORAGE_BUCKET}
       - PASS_CONVERTER_AUTH_SECRET=${PASS_CONVERTER_AUTH_SECRET:-ecs-pass-converter-internal-secret}
       - PUBLIC_URL=https://portal.ecsfc.com/pass-converter
     volumes:

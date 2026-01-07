@@ -369,17 +369,17 @@ html[data-theme-variant="modern"][data-style="dark"] {
    BEM: theme-modern__navbar
    ============================================================================ */
 
-/* Navbar container */
+/* Navbar container - matches sidebar/body background */
 [data-theme-variant="modern"][data-style="dark"] .layout-navbar,
 [data-theme-variant="modern"][data-style="dark"] .navbar,
 [data-theme-variant="modern"][data-style="dark"] nav.navbar {
-  background-color: var(--ecs-dark-bg-card);
+  background-color: var(--ecs-dark-bg-body);
   border-bottom: 1px solid var(--ecs-dark-border);
 }
 
 /* Navbar variants */
 [data-theme-variant="modern"][data-style="dark"] .navbar-light {
-  background-color: var(--ecs-dark-bg-card);
+  background-color: var(--ecs-dark-bg-body);
 }
 
 [data-theme-variant="modern"][data-style="dark"] .bg-body-tertiary {
@@ -662,10 +662,10 @@ html[data-theme-variant="modern"][data-style="dark"] .dropdown-menu {
    BEM: theme-modern__footer
    ============================================================================ */
 
-/* Footer container */
+/* Footer container - matches sidebar/body background */
 [data-theme-variant="modern"][data-style="dark"] .content-footer,
 [data-theme-variant="modern"][data-style="dark"] footer.footer {
-  background-color: var(--ecs-dark-bg-card);
+  background-color: var(--ecs-dark-bg-body);
   border-top: 1px solid var(--ecs-dark-border);
   color: var(--ecs-neutral-50);
 }

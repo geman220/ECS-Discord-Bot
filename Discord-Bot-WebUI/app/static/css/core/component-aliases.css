@@ -1663,7 +1663,7 @@ html[data-style="dark"] input[type="radio"]:hover {
 }
 
 [data-style="dark"] .content-footer {
-  background: var(--ecs-dark-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
+  background: var(--ecs-dark-bg, var(--color-secondary-950, var(--color-secondary-950, var(--color-secondary-950))));
   border-top-color: var(--ecs-dark-border, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
 }
 

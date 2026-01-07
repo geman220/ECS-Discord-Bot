@@ -9,19 +9,27 @@ pass designs across both platforms from a single source of truth.
 
 Architecture:
   1. Generate Apple .pkpass file (using existing ApplePassGenerator)
-  2. POST the .pkpass to pass-converter service
-  3. pass-converter returns a Google Wallet "Add to Wallet" URL
+  2. Ensure Google Wallet Class exists (create if needed)
+  3. POST the .pkpass to pass-converter service
+  4. pass-converter returns a Google Wallet "Add to Wallet" URL
 """
 
 import os
+import json
 import logging
 import requests
 from io import BytesIO
 from typing import Optional, Tuple
 
+from google.oauth2 import service_account
+from google.auth.transport.requests import AuthorizedSession
+
 from .base import BasePassGenerator
 
 logger = logging.getLogger(__name__)
+
+# Google Wallet API base URL
+WALLET_API_BASE = "https://walletobjects.googleapis.com/walletobjects/v1"
 
 
 def _check_google_wallet_config() -> Tuple[bool, str]:
@@ -92,6 +100,142 @@ class GooglePassConfig:
 
         return True
 
+    def get_authorized_session(self) -> AuthorizedSession:
+        """Get an authorized session for Google Wallet API calls."""
+        credentials = service_account.Credentials.from_service_account_file(
+            self.service_account_path,
+            scopes=['https://www.googleapis.com/auth/wallet_object.issuer']
+        )
+        return AuthorizedSession(credentials)
+
+
+def _get_class_id(issuer_id: str, pass_type_identifier: str) -> str:
+    """
+    Generate the Google Wallet class ID from issuer ID and pass type.
+
+    Format: {issuer_id}.{pass_type_identifier}
+    Example: 3388000000022958274.pass.com.ecsfc.membership
+    """
+    return f"{issuer_id}.{pass_type_identifier}"
+
+
+def ensure_google_wallet_class_exists(
+    config: 'GooglePassConfig',
+    pass_type,
+    force_update: bool = False
+) -> str:
+    """
+    Ensure the Google Wallet class exists, creating it if needed.
+
+    Google Wallet requires a "class" to be created before objects (passes)
+    can be created. This function checks if the class exists and creates
+    it if not.
+
+    Args:
+        config: GooglePassConfig instance
+        pass_type: WalletPassType model instance
+        force_update: If True, update the class even if it exists
+
+    Returns:
+        The class ID
+    """
+    class_id = _get_class_id(config.issuer_id, pass_type.pass_type_identifier)
+
+    session = config.get_authorized_session()
+
+    # Check if class exists
+    check_url = f"{WALLET_API_BASE}/eventTicketClass/{class_id}"
+    response = session.get(check_url)
+
+    if response.status_code == 200 and not force_update:
+        logger.debug(f"Google Wallet class {class_id} already exists")
+        return class_id
+
+    # Class doesn't exist (404) or we're forcing update - create/update it
+    class_definition = _build_class_definition(config.issuer_id, pass_type)
+
+    if response.status_code == 200:
+        # Update existing class
+        update_url = f"{WALLET_API_BASE}/eventTicketClass/{class_id}"
+        response = session.put(update_url, json=class_definition)
+        action = "updated"
+    else:
+        # Create new class
+        create_url = f"{WALLET_API_BASE}/eventTicketClass"
+        response = session.post(create_url, json=class_definition)
+        action = "created"
+
+    if response.status_code in (200, 201):
+        logger.info(f"Google Wallet class {class_id} {action} successfully")
+        return class_id
+    elif response.status_code == 409:
+        # Class already exists (race condition) - that's fine
+        logger.debug(f"Google Wallet class {class_id} already exists (409)")
+        return class_id
+    else:
+        error_detail = response.text[:500] if response.text else "No details"
+        raise ValueError(
+            f"Failed to create Google Wallet class {class_id}: "
+            f"{response.status_code} - {error_detail}"
+        )
+
+
+def _build_class_definition(issuer_id: str, pass_type) -> dict:
+    """
+    Build the Google Wallet eventTicketClass definition from pass type config.
+
+    Args:
+        issuer_id: Google Wallet Issuer ID
+        pass_type: WalletPassType model instance
+
+    Returns:
+        Dict suitable for Google Wallet API
+    """
+    class_id = _get_class_id(issuer_id, pass_type.pass_type_identifier)
+
+    # Get colors from pass type config
+    config = pass_type.get_config() or {}
+    background_color = config.get('background_color', '#000000')
+
+    # Build the class definition
+    class_def = {
+        "id": class_id,
+        "issuerName": pass_type.organization_name or "ECS FC",
+        "eventName": {
+            "defaultValue": {
+                "language": "en",
+                "value": pass_type.name or "Membership"
+            }
+        },
+        "reviewStatus": "UNDER_REVIEW",  # Required for new classes
+        "hexBackgroundColor": background_color,
+        # Allow multiple users to save the same object
+        "multipleDevicesAndHoldersAllowedStatus": "ONE_USER_ALL_DEVICES",
+    }
+
+    # Add logo if configured (prefer google_logo_url, fall back to config)
+    # This must be a publicly accessible URL that Google's servers can fetch
+    logo_url = getattr(pass_type, 'google_logo_url', None) or config.get('logo_url')
+    if logo_url:
+        class_def["logo"] = {
+            "sourceUri": {
+                "uri": logo_url
+            }
+        }
+        logger.debug(f"Using logo URL for class: {logo_url}")
+
+    # Add hero/wide image if configured (maps to strip image in Apple)
+    hero_url = config.get('hero_url') or config.get('strip_url')
+    if hero_url:
+        class_def["heroImage"] = {
+            "sourceUri": {
+                "uri": hero_url
+            }
+        }
+
+    logger.debug(f"Built class definition for {class_id}: {json.dumps(class_def, indent=2)}")
+    return class_def
+
 
 class GooglePassGenerator(BasePassGenerator):
     """
@@ -131,6 +275,11 @@ class GooglePassGenerator(BasePassGenerator):
         try:
             # Validate configuration
             self.config.validate()
+
+            # Ensure Google Wallet class exists before creating objects
+            # This is required by Google - classes must exist before objects
+            class_id = ensure_google_wallet_class_exists(self.config, self.pass_type)
+            logger.debug(f"Google Wallet class ready: {class_id}")
 
             # Generate Apple pass if not provided
             if apple_pass_bytes is None:

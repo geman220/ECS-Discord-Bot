@@ -259,7 +259,7 @@ main,
 
 [data-style="dark"] .content-footer,
 [data-style="dark"] .c-base-layout__footer {
-  background: var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
+  background: var(--color-secondary-950, var(--color-secondary-950, #0f172a));
   border-top-color: var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700)));
 }
 
