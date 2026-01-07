@@ -378,9 +378,14 @@
     {# 9. PAGE-SPECIFIC CSS (Template Block)
          Child templates can inject page-specific styles here
          Example: {% block page_css %}<link rel="stylesheet" href="...">{% endblock %}
-         Use for CSS that's only needed on specific pages #}
+
+         NOTE: In Vite mode, page CSS is already bundled in main-entry.css
+         We only load individual page CSS files in Flask-Assets fallback mode
+         This prevents double-loading (87 files were being loaded twice!) #}
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     {% block page_css %}
     {% endblock %}
+    {% endif %}
 
     <!-- 10. CUSTOM CSS (Template Override Block)
          Final cascade layer for template-specific custom styles

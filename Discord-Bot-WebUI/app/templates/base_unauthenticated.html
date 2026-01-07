@@ -56,16 +56,20 @@
     {% endassets %}
     {% endif %}
 
-    <!-- 4. Auth Layout CSS (BEM) - Always load separately for auth pages -->
+    <!-- 4. Auth Layout CSS (BEM) - Only load separately in Flask-Assets fallback mode -->
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/layout/auth-layout.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/authentication.css') }}" />
+    {% endif %}
 
     <!-- Icons (deferred to not block render) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" />
 
-    <!-- Page-specific CSS (conditional loading) -->
+    <!-- Page-specific CSS (conditional loading - only in Flask-Assets fallback mode) -->
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     {% block page_css %}
     {% endblock %}
+    {% endif %}
 
     <!-- Config (theme settings, no Sneat helpers) -->
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
