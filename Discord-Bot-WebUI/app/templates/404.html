@@ -1,30 +1,47 @@
 {% extends "base_unauthenticated.html" %}
 
 {% block page_css %}
-
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/error-pages.css') }}">
-{% endif %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/error-public.css') }}" />
 {% endblock %}
 
 {% block main_content %}
-<div class="c-error-page">
-    <div class="c-error-container">
-        <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}"
-             alt="404 Illustration"
-             class="c-error-illustration">
+<div class="c-auth-wrapper c-error-wrapper">
+    <!-- Logo Section -->
+    <div class="c-auth-logo">
+        <img src="{{ url_for('static', filename='assets/img/logos/logo.png') }}"
+             alt="ECS"
+             class="c-auth-logo__image">
+    </div>
 
-        <h1 class="c-error-code c-error-code--404">404</h1>
-        <h2 class="c-error-title">Page Not Found</h2>
-        <p class="c-error-message">The page you were looking for doesn't exist or has been moved.</p>
-
-        <div class="c-error-joke c-error-joke--404" id="jokeContainer" data-role="joke-container">
-            <span id="jokeText">Why did the soccer player bring string to the game? To tie the score!</span>
+    <!-- Header -->
+    <div class="c-auth-form__header">
+        <div class="c-error-icon c-error-icon--404">
+            <i class="ti ti-error-404"></i>
         </div>
+        <h1 class="c-error-code c-error-code--404">404</h1>
+        <h2 class="c-auth-form__title">Page Not Found</h2>
+        <p class="c-auth-form__subtitle">The page you were looking for doesn't exist or has been moved.</p>
+    </div>
 
-        <a href="{{ url_for('main.index') }}" class="c-error-button c-error-button--404" data-action="go-home">
-            <i class="ti ti-home me-2"></i> Back to Home
+    <!-- Soccer Joke -->
+    <div class="c-error-joke" id="jokeContainer">
+        <i class="ti ti-quote"></i>
+        <span id="jokeText">Why did the soccer player bring string to the game? To tie the score!</span>
+    </div>
+
+    <!-- Action Button -->
+    <div class="c-auth-form__body">
+        <a href="{{ url_for('main.index') }}" class="c-auth-btn c-auth-btn--primary">
+            <i class="ti ti-home c-auth-btn__icon"></i>
+            <span>Back to Home</span>
         </a>
+    </div>
+
+    <!-- Footer -->
+    <div class="c-auth-form__footer">
+        <p class="c-auth-form__footer-text">
+            Emerald City Supporters
+        </p>
     </div>
 </div>
 
@@ -45,7 +62,7 @@
         "404: The page you're looking for has been transferred to another server for an undisclosed fee!",
         "This content is as hard to find as parking near Lumen Field on match day!"
     ];
-    
+
     // Choose a random joke
     document.addEventListener('DOMContentLoaded', function() {
         const jokeText = document.getElementById('jokeText');

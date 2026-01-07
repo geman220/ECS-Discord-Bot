@@ -1,0 +1,256 @@
+/**
+ * ============================================================================
+ * ERROR PUBLIC PAGES (404, 500, etc.)
+ * ============================================================================
+ *
+ * BEM Component: c-error-*
+ * Purpose: Public error pages with consistent auth theming
+ *
+ * Design: Extends auth theme styling for consistent look
+ *
+ * Used on:
+ *   - 404.html
+ *   - 500.html
+ *
+ * ============================================================================
+ */
+
+/* =============================================================================
+   Design Tokens (inherit from auth)
+   ============================================================================ */
+
+[data-component="auth-layout"] {
+  --error-primary: var(--color-primary-500, #3B82F6);
+  --error-primary-bg: rgba(59, 130, 246, 0.12);
+  --error-danger: var(--color-danger-500, #EF4444);
+  --error-danger-bg: rgba(239, 68, 68, 0.12);
+  --error-warning: var(--color-warning-500, #F59E0B);
+  --error-warning-bg: rgba(245, 158, 11, 0.12);
+}
+
+/* =============================================================================
+   Hide Auth Body Ambient Glows
+   These cause blue square artifacts on error pages
+   ============================================================================ */
+
+[data-component="auth-body"]:has(.c-error-wrapper)::before,
+[data-component="auth-body"]:has(.c-error-wrapper)::after {
+  display: none;
+}
+
+/* Fallback for browsers without :has() support */
+.c-error-page-body::before,
+.c-error-page-body::after {
+  display: none !important;
+}
+
+/* =============================================================================
+   Error Wrapper (extends c-auth-wrapper)
+   ============================================================================ */
+
+.c-error-wrapper {
+  max-width: 480px;
+}
+
+/* Remove the accent line from error pages - we use the icon instead */
+.c-error-wrapper::before {
+  display: none;
+}
+
+/* =============================================================================
+   Error Icon
+   Large centered icon for header
+   ============================================================================ */
+
+.c-error-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin-bottom: var(--auth-space, 1rem);
+  font-size: 2.5rem;
+  animation: error-icon-float 4s ease-in-out infinite;
+}
+
+@keyframes error-icon-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.c-error-icon--404 {
+  background: var(--error-primary-bg);
+  color: var(--error-primary);
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.25);
+}
+
+.c-error-icon--500 {
+  background: var(--error-danger-bg);
+  color: var(--error-danger);
+  box-shadow: 0 0 40px rgba(239, 68, 68, 0.25);
+}
+
+.c-error-icon--503 {
+  background: var(--error-warning-bg);
+  color: var(--error-warning);
+  box-shadow: 0 0 40px rgba(245, 158, 11, 0.25);
+}
+
+/* =============================================================================
+   Error Code (Large Number)
+   ============================================================================ */
+
+.c-error-code {
+  font-size: clamp(64px, 15vw, 96px);
+  font-weight: 800;
+  line-height: 1;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.03em;
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: error-gradient 6s ease-in-out infinite;
+}
+
+.c-error-code--404 {
+  background-image: linear-gradient(135deg, #3B82F6 0%, #06B6D4 50%, #10B981 100%);
+}
+
+.c-error-code--500 {
+  background-image: linear-gradient(135deg, #EF4444 0%, #F59E0B 50%, #F97316 100%);
+}
+
+.c-error-code--503 {
+  background-image: linear-gradient(135deg, #F59E0B 0%, #D97706 50%, #F97316 100%);
+}
+
+@keyframes error-gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* =============================================================================
+   Error Joke Box
+   ============================================================================ */
+
+.c-error-joke {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-left: 4px solid var(--error-primary);
+  padding: var(--auth-space, 1rem);
+  border-radius: var(--auth-radius, 12px);
+  margin-bottom: var(--auth-space-lg, 1.5rem);
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--auth-text-secondary, #CBD5E1);
+  line-height: 1.6;
+  text-align: left;
+}
+
+.c-error-joke i {
+  font-size: 1.25rem;
+  color: var(--error-primary);
+  opacity: 0.6;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.c-error-joke--danger {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.15);
+  border-left-color: var(--error-danger);
+}
+
+.c-error-joke--danger i {
+  color: var(--error-danger);
+}
+
+.c-error-joke--warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.15);
+  border-left-color: var(--error-warning);
+}
+
+.c-error-joke--warning i {
+  color: var(--error-warning);
+}
+
+/* =============================================================================
+   Danger Button Variant
+   ============================================================================ */
+
+.c-auth-btn--danger {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35);
+}
+
+.c-auth-btn--danger:hover {
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+  color: white;
+}
+
+/* =============================================================================
+   Warning Button Variant
+   ============================================================================ */
+
+.c-auth-btn--warning-solid {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
+}
+
+.c-auth-btn--warning-solid:hover {
+  background: linear-gradient(135deg, #D97706 0%, #B45309 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+  color: white;
+}
+
+/* =============================================================================
+   Responsive
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  .c-error-wrapper {
+    margin: 0 0.5rem;
+  }
+
+  .c-error-icon {
+    width: 64px;
+    height: 64px;
+    font-size: 2rem;
+  }
+
+  .c-error-code {
+    font-size: clamp(48px, 18vw, 72px);
+  }
+
+  .c-error-joke {
+    padding: 0.875rem;
+    font-size: 0.8125rem;
+  }
+}
+
+/* =============================================================================
+   Reduced Motion
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .c-error-icon,
+  .c-error-code {
+    animation: none;
+  }
+
+  .c-auth-btn--danger:hover,
+  .c-auth-btn--warning-solid:hover {
+    transform: none;
+  }
+}

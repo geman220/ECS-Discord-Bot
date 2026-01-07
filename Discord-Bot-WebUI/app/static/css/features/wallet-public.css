@@ -29,11 +29,26 @@
 }
 
 /* =============================================================================
+   Hide Auth Body Ambient Glows
+   These can cause visual artifacts on wallet pages
+   ============================================================================ */
+
+[data-component="auth-body"]:has(.c-wallet-wrapper)::before,
+[data-component="auth-body"]:has(.c-wallet-wrapper)::after {
+  display: none;
+}
+
+/* =============================================================================
    Wallet Wrapper (extends c-auth-wrapper)
    ============================================================================ */
 
 .c-wallet-wrapper {
   max-width: 480px;
+}
+
+/* Remove the accent line from wallet pages - we use the icon instead */
+.c-wallet-wrapper::before {
+  display: none;
 }
 
 /* =============================================================================
