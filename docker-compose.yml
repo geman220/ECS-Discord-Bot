@@ -302,7 +302,8 @@ services:
     labels:
       - "traefik.enable=true"
       # Only expose the image endpoint publicly (read-only, for Google to fetch images)
-      - "traefik.http.routers.pass-converter-images.rule=Host(`portal.ecsfc.com`) && PathPrefix(`/pass-converter/image`)"
+      # pass-converter serves images at /convert/image/, so we match /pass-converter/convert/image
+      - "traefik.http.routers.pass-converter-images.rule=Host(`portal.ecsfc.com`) && PathPrefix(`/pass-converter/convert/image`)"
       - "traefik.http.routers.pass-converter-images.entrypoints=websecure"
       - "traefik.http.routers.pass-converter-images.tls=true"
       - "traefik.http.routers.pass-converter-images.tls.certresolver=myresolver"
@@ -405,7 +406,7 @@ services:
       - "traefik.http.routers.webui.entrypoints=web"
       # Main webui secure router (HTTPS, rate limited)
       - "traefik.http.routers.webui-secure.entrypoints=websecure"
-      - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`) && !PathPrefix(`/socket.io`) && !PathPrefix(`/pass-converter`)"
+      - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`) && !PathPrefix(`/socket.io`) && !PathPrefix(`/pass-converter/convert/image`)"
       - "traefik.http.routers.webui-secure.tls=true"
       - "traefik.http.routers.webui-secure.tls.certresolver=myresolver"
       - "traefik.http.routers.webui-secure.priority=10"
