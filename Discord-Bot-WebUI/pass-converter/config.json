@@ -17,12 +17,10 @@
     "synchronize": true
   },
 
-  "fieldHints": {
-    "eventName": ["event", "show", "concert", "game"],
-    "confirmationCode": ["confirmation", "booking", "reference", "order"],
-    "memberName": ["member", "name", "holder", "player"],
-    "memberNumber": ["member_id", "membership_number", "id"],
-    "validFrom": ["valid_from", "start_date", "issue_date"],
-    "validThrough": ["valid_until", "expiry", "end_date", "expires"]
+  "hints": {
+    "event.name": ["event", "show", "concert", "game", "member", "name"],
+    "event.confirmationCode": ["confirmation", "booking", "reference", "order", "member_id", "membership"],
+    "event.startDateTime": ["valid_from", "start_date", "issue_date", "date"],
+    "event.endDateTime": ["valid_until", "expiry", "end_date", "expires"]
   }
 }
