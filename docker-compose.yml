@@ -289,6 +289,7 @@ services:
     environment:
       - GOOGLE_WALLET_ISSUER_ID=${GOOGLE_WALLET_ISSUER_ID}
       - PASS_CONVERTER_AUTH_SECRET=${PASS_CONVERTER_AUTH_SECRET:-ecs-pass-converter-internal-secret}
+      - PUBLIC_URL=https://pass-converter.ecsfc.com
     volumes:
       - ./Discord-Bot-WebUI/app/wallet_pass/certs/google-service-account.json:/app/credentials/google-service-account.json:ro
       - pass_converter_data:/app/data
@@ -298,6 +299,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pass-converter.rule=Host(`pass-converter.ecsfc.com`)"
+      - "traefik.http.routers.pass-converter.entrypoints=websecure"
+      - "traefik.http.routers.pass-converter.tls=true"
+      - "traefik.http.routers.pass-converter.tls.certresolver=myresolver"
+      - "traefik.http.services.pass-converter.loadbalancer.server.port=3000"
     networks:
       - web
     deploy:

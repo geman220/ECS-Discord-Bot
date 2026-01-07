@@ -3,6 +3,7 @@
   "googleIssuerId": "${GOOGLE_WALLET_ISSUER_ID}",
 
   "authHeader": "x-converter-auth",
+  "publicUrl": "${PUBLIC_URL}",
 
   "defaultPlaceholder": "N/A",
   "defaultOrganization": "ECS FC",

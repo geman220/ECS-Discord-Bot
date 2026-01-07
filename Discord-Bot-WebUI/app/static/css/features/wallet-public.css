@@ -1,0 +1,349 @@
+/**
+ * ============================================================================
+ * WALLET PUBLIC PAGES
+ * ============================================================================
+ *
+ * BEM Component: c-wallet-*
+ * Purpose: Public wallet pass download and info pages
+ *
+ * Design: Extends auth theme styling for consistent look
+ *
+ * Used on:
+ *   - /membership/wallet/pass/info
+ *   - /membership/wallet/pass/download (error pages)
+ *
+ * ============================================================================
+ */
+
+/* =============================================================================
+   Design Tokens (inherit from auth)
+   ============================================================================ */
+
+[data-component="auth-layout"] {
+  --wallet-success: var(--color-success-500, #10B981);
+  --wallet-success-bg: rgba(16, 185, 129, 0.12);
+  --wallet-error: var(--color-danger-500, #EF4444);
+  --wallet-error-bg: rgba(239, 68, 68, 0.12);
+  --wallet-apple: #000000;
+  --wallet-google: #4285F4;
+}
+
+/* =============================================================================
+   Wallet Wrapper (extends c-auth-wrapper)
+   ============================================================================ */
+
+.c-wallet-wrapper {
+  max-width: 480px;
+}
+
+/* =============================================================================
+   Wallet Icon
+   Large centered icon for header
+   ============================================================================ */
+
+.c-wallet-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  margin-bottom: var(--auth-space-lg, 1.5rem);
+  font-size: 2rem;
+}
+
+.c-wallet-icon--success {
+  background: var(--wallet-success-bg);
+  color: var(--wallet-success);
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
+}
+
+.c-wallet-icon--error {
+  background: var(--wallet-error-bg);
+  color: var(--wallet-error);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.2);
+}
+
+/* =============================================================================
+   Pass Card
+   Displays membership details
+   ============================================================================ */
+
+.c-wallet-pass-card {
+  background: rgba(88, 101, 242, 0.08);
+  border: 1px solid rgba(88, 101, 242, 0.15);
+  border-radius: var(--auth-radius, 12px);
+  overflow: hidden;
+  margin-bottom: var(--auth-space-lg, 1.5rem);
+}
+
+.c-wallet-pass-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: var(--auth-space, 1rem);
+  background: rgba(88, 101, 242, 0.06);
+  border-bottom: 1px solid rgba(88, 101, 242, 0.1);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--auth-text-primary, #F1F5F9);
+}
+
+.c-wallet-pass-card__header i {
+  color: var(--auth-discord, #5865F2);
+  font-size: 1.125rem;
+}
+
+.c-wallet-pass-card__body {
+  padding: var(--auth-space, 1rem);
+}
+
+.c-wallet-pass-card__row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0;
+}
+
+.c-wallet-pass-card__row:not(:last-child) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.c-wallet-pass-card__row--split {
+  flex-direction: row;
+  gap: var(--auth-space, 1rem);
+}
+
+.c-wallet-pass-card__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.c-wallet-pass-card__label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--auth-text-muted, #94A3B8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.c-wallet-pass-card__value {
+  font-size: 0.9375rem;
+  color: var(--auth-text-secondary, #CBD5E1);
+}
+
+.c-wallet-pass-card__value--highlight {
+  font-weight: 600;
+  color: var(--auth-text-primary, #F1F5F9);
+}
+
+/* =============================================================================
+   Wallet Badges
+   ============================================================================ */
+
+.c-wallet-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+.c-wallet-badge--primary {
+  background: rgba(88, 101, 242, 0.15);
+  color: #818CF8;
+}
+
+.c-wallet-badge--success {
+  background: var(--wallet-success-bg);
+  color: var(--wallet-success);
+}
+
+/* =============================================================================
+   Auth Alert Extensions for Wallet
+   ============================================================================ */
+
+.c-auth-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: var(--auth-space, 1rem);
+  border-radius: var(--auth-radius, 12px);
+  margin-bottom: var(--auth-space-lg, 1.5rem);
+  font-size: 0.875rem;
+}
+
+.c-auth-alert--success {
+  background: var(--wallet-success-bg);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: var(--wallet-success);
+}
+
+.c-auth-alert--danger {
+  background: var(--wallet-error-bg);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--wallet-error);
+}
+
+.c-auth-alert--warning {
+  background: var(--auth-warning-bg, rgba(245, 158, 11, 0.12));
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: var(--auth-warning, #F59E0B);
+}
+
+.c-auth-alert i {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+/* =============================================================================
+   Safari Warning
+   ============================================================================ */
+
+.c-wallet-safari-warning {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.c-wallet-safari-warning__content {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.c-wallet-safari-warning__content > i {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.c-wallet-safari-warning__text {
+  flex: 1;
+}
+
+.c-wallet-safari-warning__text strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--auth-text-primary, #F1F5F9);
+}
+
+.c-wallet-safari-warning__text p {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--auth-text-secondary, #CBD5E1);
+}
+
+.c-wallet-copy-feedback {
+  color: var(--wallet-success);
+  font-size: 0.8125rem;
+  margin-left: 0.5rem;
+}
+
+/* =============================================================================
+   Apple Wallet Button
+   ============================================================================ */
+
+.c-auth-btn--apple {
+  background: var(--wallet-apple);
+  color: white;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.c-auth-btn--apple:hover {
+  background: #1a1a1a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* =============================================================================
+   Button Size Modifier
+   ============================================================================ */
+
+.c-auth-btn--sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+}
+
+/* =============================================================================
+   Download Count
+   ============================================================================ */
+
+.c-wallet-download-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: var(--auth-space, 1rem) 0;
+  font-size: 0.8125rem;
+  color: var(--auth-text-muted, #94A3B8);
+}
+
+.c-wallet-download-count i {
+  font-size: 1rem;
+}
+
+/* =============================================================================
+   Instructions List
+   ============================================================================ */
+
+.c-wallet-instructions {
+  margin: 0;
+  padding-left: 1.5rem;
+  font-size: 0.875rem;
+  color: var(--auth-text-secondary, #CBD5E1);
+  line-height: 1.8;
+}
+
+.c-wallet-instructions li {
+  margin-bottom: 0.5rem;
+}
+
+.c-wallet-instructions li:last-child {
+  margin-bottom: 0;
+}
+
+/* =============================================================================
+   Error Title
+   ============================================================================ */
+
+.c-wallet-error-title {
+  color: var(--wallet-error) !important;
+}
+
+/* =============================================================================
+   Responsive
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  .c-wallet-wrapper {
+    margin: 0 0.5rem;
+  }
+
+  .c-wallet-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 1.75rem;
+  }
+
+  .c-wallet-pass-card__row--split {
+    flex-direction: column;
+  }
+
+  .c-auth-btn--sm {
+    width: 100%;
+  }
+}
+
+/* =============================================================================
+   Utility
+   ============================================================================ */
+
+.is-hidden {
+  display: none !important;
+}
+
+.text-muted {
+  color: var(--auth-text-muted, #94A3B8);
+}

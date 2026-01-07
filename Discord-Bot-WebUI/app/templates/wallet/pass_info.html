@@ -1,179 +1,195 @@
 {% extends "base_unauthenticated.html" %}
 
 {% block page_css %}
-
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/features/wallet.css') }}" />
-{% endif %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/wallet-public.css') }}" />
 {% endblock %}
 
 {% block main_content %}
-<div class="container-xxl">
-    <div class="authentication-wrapper authentication-basic container-p-y">
-        <div class="authentication-inner py-4">
-            <div class="c-card">
-                <div class="c-card__body text-center py-4">
-                    <!-- Success Icon -->
-                    <div class="mb-4">
-                        <span class="avatar-initial rounded-circle bg-label-success wallet-success-icon">
-                            <i class="ti ti-wallet"></i>
-                        </span>
-                    </div>
+<div class="c-auth-wrapper c-wallet-wrapper">
+    <!-- Logo Section -->
+    <div class="c-auth-logo">
+        <img src="{{ url_for('static', filename='assets/img/logos/logo.png') }}"
+             alt="ECS"
+             class="c-auth-logo__image">
+        <div class="c-auth-logo__divider"></div>
+        <img src="{{ url_for('static', filename='assets/img/logos/sounders-logo.png') }}"
+             alt="Sounders"
+             class="c-auth-logo__image"
+             onerror="this.style.display='none'">
+    </div>
 
-                    <!-- Title -->
-                    <h4 class="mb-2">Your Digital Membership Card</h4>
-                    <p class="text-muted mb-4">Add your card to Apple Wallet or Google Wallet</p>
+    <!-- Header -->
+    <div class="c-auth-form__header">
+        <div class="c-wallet-icon c-wallet-icon--success">
+            <i class="ti ti-wallet"></i>
+        </div>
+        <h1 class="c-auth-form__title">Your Digital Membership Card</h1>
+        <p class="c-auth-form__subtitle">Add your card to Apple Wallet or Google Wallet for easy access at events</p>
+    </div>
 
-                    <!-- Pass Details Card -->
-                    <div class="c-card bg-label-primary mb-4">
-                        <div class="c-card__body py-3">
-                            <div class="row text-start">
-                                <div class="col-12 mb-2">
-                                    <small class="text-muted d-block">Member Name</small>
-                                    <strong>{{ wallet_pass.member_name }}</strong>
-                                </div>
-                                <div class="col-6">
-                                    <small class="text-muted d-block">Type</small>
-                                    <span class="badge bg-primary" data-badge>
-                                        {{ wallet_pass.pass_type.name if wallet_pass.pass_type else 'Membership' }}
-                                    </span>
-                                </div>
-                                <div class="col-6">
-                                    <small class="text-muted d-block">Validity</small>
-                                    <span class="badge bg-success" data-badge>{{ wallet_pass.display_validity }}</span>
-                                </div>
-                                {% if wallet_pass.team_name %}
-                                <div class="col-12 mt-2">
-                                    <small class="text-muted d-block">Team</small>
-                                    <strong>{{ wallet_pass.team_name }}</strong>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Status Badge -->
-                    {% if wallet_pass.is_valid %}
-                    <div class="alert alert-success d-flex align-items-center mb-4" role="alert" data-alert>
-                        <i class="ti ti-circle-check me-2"></i>
-                        <span>Your membership card is <strong>active</strong></span>
-                    </div>
-                    {% elif wallet_pass.status == 'voided' %}
-                    <div class="alert alert-danger d-flex align-items-center mb-4" role="alert" data-alert>
-                        <i class="ti ti-ban me-2"></i>
-                        <span>This membership card has been <strong>voided</strong></span>
-                    </div>
-                    {% elif wallet_pass.is_expired %}
-                    <div class="alert alert-warning d-flex align-items-center mb-4" role="alert" data-alert>
-                        <i class="ti ti-clock me-2"></i>
-                        <span>This membership card has <strong>expired</strong></span>
-                    </div>
-                    {% endif %}
-
-                    <!-- iOS Non-Safari Warning (hidden by default, shown via JS) -->
-                    <div id="safari-warning" class="alert alert-warning d-none mb-4" role="alert" data-alert>
-                        <div class="d-flex align-items-start">
-                            <i class="ti ti-alert-triangle me-2 mt-1"></i>
-                            <div class="flex-grow-1">
-                                <strong>Safari Required for Apple Wallet</strong>
-                                <p class="mb-2 small">Apple Wallet passes can only be added from Safari on iOS. Please copy this link and open it in Safari.</p>
-                                <button type="button" class="c-btn c-btn--sm c-btn--warning js-copy-link" data-action="copy-link">
-                                    <i class="ti ti-copy me-1"></i>Copy Link for Safari
-                                </button>
-                                <span id="copy-feedback" class="ms-2 text-success d-none">
-                                    <i class="ti ti-check"></i> Copied!
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Download Buttons -->
-                    {% if wallet_pass.is_valid %}
-                    <div class="d-grid gap-3">
-                        <a href="{{ url_for('public_wallet.download_pass_by_token', token=download_token, platform='apple') }}"
-                           class="c-btn c-btn--dark c-btn--lg">
-                            <i class="ti ti-brand-apple me-2"></i>
-                            Add to Apple Wallet
-                        </a>
-                        <a href="{{ url_for('public_wallet.download_pass_by_token', token=download_token, platform='google') }}"
-                           class="c-btn c-btn--outline-primary c-btn--lg">
-                            <i class="ti ti-brand-google me-2"></i>
-                            Add to Google Wallet
-                        </a>
-                    </div>
-
-                    <div class="mt-4">
-                        <small class="text-muted">
-                            <i class="ti ti-download me-1"></i>
-                            Downloaded {{ wallet_pass.download_count }} time{{ 's' if wallet_pass.download_count != 1 else '' }}
-                        </small>
-                    </div>
-                    {% endif %}
-
-                    <!-- Instructions -->
-                    <div class="accordion mt-4" id="walletInstructions" data-accordion>
-                        <div class="accordion-item" data-accordion>
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button"
-                                        data-bs-toggle="collapse" data-bs-target="#appleInstructions" data-collapse-toggle>
-                                    <i class="ti ti-brand-apple me-2"></i>
-                                    Apple Wallet Instructions
-                                </button>
-                            </h2>
-                            <div id="appleInstructions" class="accordion-collapse collapse"
-                                 data-bs-parent="#walletInstructions" data-accordion>
-                                <div class="accordion-body text-start small" data-accordion>
-                                    <ol class="mb-0">
-                                        <li>Tap "Add to Apple Wallet" button above</li>
-                                        <li>Your iPhone will download the pass file</li>
-                                        <li>Tap "Add" when prompted</li>
-                                        <li>Your card will appear in the Wallet app</li>
-                                    </ol>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="accordion-item" data-accordion>
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button"
-                                        data-bs-toggle="collapse" data-bs-target="#googleInstructions" data-collapse-toggle>
-                                    <i class="ti ti-brand-google me-2"></i>
-                                    Google Wallet Instructions
-                                </button>
-                            </h2>
-                            <div id="googleInstructions" class="accordion-collapse collapse"
-                                 data-bs-parent="#walletInstructions" data-accordion>
-                                <div class="accordion-body text-start small" data-accordion>
-                                    <ol class="mb-0">
-                                        <li>Tap "Add to Google Wallet" button above</li>
-                                        <li>Sign in to your Google account if prompted</li>
-                                        <li>Review the pass details</li>
-                                        <li>Tap "Save" to add to your wallet</li>
-                                    </ol>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Pass Details Card -->
+    <div class="c-wallet-pass-card">
+        <div class="c-wallet-pass-card__header">
+            <i class="ti ti-id-badge"></i>
+            <span>Membership Details</span>
+        </div>
+        <div class="c-wallet-pass-card__body">
+            <div class="c-wallet-pass-card__row">
+                <span class="c-wallet-pass-card__label">Member Name</span>
+                <span class="c-wallet-pass-card__value c-wallet-pass-card__value--highlight">{{ wallet_pass.member_name }}</span>
+            </div>
+            <div class="c-wallet-pass-card__row c-wallet-pass-card__row--split">
+                <div class="c-wallet-pass-card__col">
+                    <span class="c-wallet-pass-card__label">Type</span>
+                    <span class="c-wallet-badge c-wallet-badge--primary">
+                        {{ wallet_pass.pass_type.name if wallet_pass.pass_type else 'Membership' }}
+                    </span>
+                </div>
+                <div class="c-wallet-pass-card__col">
+                    <span class="c-wallet-pass-card__label">Validity</span>
+                    <span class="c-wallet-badge c-wallet-badge--success">{{ wallet_pass.display_validity }}</span>
                 </div>
             </div>
+            {% if wallet_pass.team_name %}
+            <div class="c-wallet-pass-card__row">
+                <span class="c-wallet-pass-card__label">Team</span>
+                <span class="c-wallet-pass-card__value">{{ wallet_pass.team_name }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 
-            <!-- ECS Branding -->
-            <div class="text-center mt-4">
-                <img src="{{ url_for('static', filename='assets/img/logos/logo.png') }}"
-                     alt="ECS"
-                     class="wallet-branding-logo">
-                <p class="text-muted small mt-2">
-                    Emerald City Supporters<br>
-                    Digital Membership Cards
-                </p>
+    <!-- Status Alert -->
+    {% if wallet_pass.is_valid %}
+    <div class="c-auth-alert c-auth-alert--success">
+        <i class="ti ti-circle-check"></i>
+        <span>Your membership card is <strong>active</strong> and ready to use</span>
+    </div>
+    {% elif wallet_pass.status == 'voided' %}
+    <div class="c-auth-alert c-auth-alert--danger">
+        <i class="ti ti-ban"></i>
+        <span>This membership card has been <strong>voided</strong></span>
+    </div>
+    {% elif wallet_pass.is_expired %}
+    <div class="c-auth-alert c-auth-alert--warning">
+        <i class="ti ti-clock"></i>
+        <span>This membership card has <strong>expired</strong></span>
+    </div>
+    {% endif %}
+
+    <!-- iOS Non-Safari Warning (hidden by default, shown via JS) -->
+    <div id="safari-warning" class="c-auth-alert c-auth-alert--warning c-wallet-safari-warning is-hidden">
+        <div class="c-wallet-safari-warning__content">
+            <i class="ti ti-alert-triangle"></i>
+            <div class="c-wallet-safari-warning__text">
+                <strong>Safari Required for Apple Wallet</strong>
+                <p>Apple Wallet passes can only be added from Safari on iOS. Please copy this link and open it in Safari.</p>
+                <button type="button" class="c-auth-btn c-auth-btn--warning c-auth-btn--sm" data-action="copy-link">
+                    <i class="ti ti-copy"></i>
+                    <span>Copy Link for Safari</span>
+                </button>
+                <span id="copy-feedback" class="c-wallet-copy-feedback is-hidden">
+                    <i class="ti ti-check"></i> Copied!
+                </span>
             </div>
         </div>
+    </div>
+
+    <!-- Download Buttons -->
+    {% if wallet_pass.is_valid %}
+    <div class="c-auth-form__body">
+        <a href="{{ url_for('public_wallet.download_pass_by_token', token=download_token, platform='apple') }}"
+           class="c-auth-btn c-auth-btn--apple">
+            <i class="ti ti-brand-apple c-auth-btn__icon"></i>
+            <span>Add to Apple Wallet</span>
+        </a>
+        <a href="{{ url_for('public_wallet.download_pass_by_token', token=download_token, platform='google') }}"
+           class="c-auth-btn c-auth-btn--outline">
+            <i class="ti ti-brand-google c-auth-btn__icon"></i>
+            <span>Add to Google Wallet</span>
+        </a>
+    </div>
+
+    <div class="c-wallet-download-count">
+        <i class="ti ti-download"></i>
+        <span>Downloaded {{ wallet_pass.download_count }} time{{ 's' if wallet_pass.download_count != 1 else '' }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Instructions Accordion -->
+    <details class="c-auth-details">
+        <summary class="c-auth-details__summary">
+            <i class="ti ti-brand-apple"></i>
+            <span>Apple Wallet Instructions</span>
+            <i class="ti ti-chevron-down c-auth-details__chevron"></i>
+        </summary>
+        <div class="c-auth-details__content">
+            <ol class="c-wallet-instructions">
+                <li>Tap "Add to Apple Wallet" button above</li>
+                <li>Your iPhone will download the pass file</li>
+                <li>Tap "Add" when prompted</li>
+                <li>Your card will appear in the Wallet app</li>
+            </ol>
+        </div>
+    </details>
+
+    <details class="c-auth-details">
+        <summary class="c-auth-details__summary">
+            <i class="ti ti-brand-google"></i>
+            <span>Google Wallet Instructions</span>
+            <i class="ti ti-chevron-down c-auth-details__chevron"></i>
+        </summary>
+        <div class="c-auth-details__content">
+            <ol class="c-wallet-instructions">
+                <li>Tap "Add to Google Wallet" button above</li>
+                <li>Sign in to your Google account if prompted</li>
+                <li>Review the pass details</li>
+                <li>Tap "Save" to add to your wallet</li>
+            </ol>
+        </div>
+    </details>
+
+    <!-- Footer -->
+    <div class="c-auth-form__footer">
+        <p class="c-auth-form__footer-text">
+            Emerald City Supporters<br>
+            <span class="text-muted">Digital Membership Cards</span>
+        </p>
     </div>
 </div>
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script src="{{ url_for('static', filename='custom_js/wallet-pass-info.js') }}"></script>
-{% endif %}
+<script>
+(function() {
+    // Detect iOS non-Safari browsers
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+
+    if (isIOS && !isSafari) {
+        const warning = document.getElementById('safari-warning');
+        if (warning) {
+            warning.classList.remove('is-hidden');
+        }
+    }
+
+    // Copy link functionality
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-action="copy-link"]');
+        if (btn) {
+            e.preventDefault();
+            navigator.clipboard.writeText(window.location.href).then(function() {
+                const feedback = document.getElementById('copy-feedback');
+                if (feedback) {
+                    feedback.classList.remove('is-hidden');
+                    setTimeout(function() {
+                        feedback.classList.add('is-hidden');
+                    }, 2000);
+                }
+            });
+        }
+    });
+})();
+</script>
 {% endblock %}
 {% endblock %}

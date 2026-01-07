@@ -1,60 +1,65 @@
 {% extends "base_unauthenticated.html" %}
 
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/wallet-public.css') }}" />
+{% endblock %}
+
 {% block main_content %}
-<div class="container-xxl">
-    <div class="authentication-wrapper authentication-basic container-p-y">
-        <div class="authentication-inner py-4">
-            <div class="c-card">
-                <div class="c-card__body text-center py-5">
-                    <!-- Error Icon -->
-                    <div class="mb-4">
-                        <span class="avatar-initial rounded-circle bg-label-danger u-w-h-80 d-inline-flex align-items-center justify-content-center">
-                            <i class="ti ti-alert-triangle u-icon-2xl"></i>
-                        </span>
-                    </div>
+<div class="c-auth-wrapper c-wallet-wrapper">
+    <!-- Logo Section -->
+    <div class="c-auth-logo">
+        <img src="{{ url_for('static', filename='assets/img/logos/logo.png') }}"
+             alt="ECS"
+             class="c-auth-logo__image">
+        <div class="c-auth-logo__divider"></div>
+        <img src="{{ url_for('static', filename='assets/img/logos/sounders-logo.png') }}"
+             alt="Sounders"
+             class="c-auth-logo__image"
+             onerror="this.style.display='none'">
+    </div>
 
-                    <!-- Error Message -->
-                    <h4 class="mb-2 text-danger">{{ error or 'Error' }}</h4>
-                    <p class="text-muted mb-4">{{ message or 'An error occurred while processing your request.' }}</p>
-
-                    <!-- Help Text -->
-                    <div class="alert alert-secondary mb-4" role="alert" data-alert>
-                        <div class="d-flex">
-                            <i class="ti ti-info-circle me-2"></i>
-                            <div class="text-start">
-                                <strong>Need help?</strong>
-                                <p class="mb-0 mt-1 small">
-                                    If you believe this is an error, please contact us at
-                                    <a href="mailto:info@weareecs.com">info@weareecs.com</a>
-                                    with your order number.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="d-flex flex-column gap-2">
-                        <a href="https://weareecs.com/my-account/orders/" class="c-btn c-btn--primary">
-                            <i class="ti ti-shopping-cart me-1"></i>View My Orders
-                        </a>
-                        <a href="https://weareecs.com" class="c-btn c-btn--outline-secondary">
-                            <i class="ti ti-home me-1"></i>Return to ECS Website
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ECS Branding -->
-            <div class="text-center mt-4">
-                <img src="{{ url_for('static', filename='assets/img/logos/logo.png') }}"
-                     alt="ECS"
-                     class="u-h-40 u-opacity-75">
-                <p class="text-muted small mt-2">
-                    Emerald City Supporters<br>
-                    Digital Membership Cards
-                </p>
-            </div>
+    <!-- Header -->
+    <div class="c-auth-form__header">
+        <div class="c-wallet-icon c-wallet-icon--error">
+            <i class="ti ti-alert-triangle"></i>
         </div>
+        <h1 class="c-auth-form__title c-wallet-error-title">{{ error or 'Error' }}</h1>
+        <p class="c-auth-form__subtitle">{{ message or 'An error occurred while processing your request.' }}</p>
+    </div>
+
+    <!-- Help Card -->
+    <div class="c-auth-help-card c-auth-help-card--mb-lg">
+        <h4 class="c-auth-help-card__title">
+            <i class="ti ti-help-circle"></i>
+            Need help?
+        </h4>
+        <div class="c-auth-help-card__list">
+            <p class="c-auth-help-card__item">
+                If you believe this is an error, please contact us at
+                <a href="mailto:info@weareecs.com" class="c-auth-link">info@weareecs.com</a>
+                with your order number.
+            </p>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="c-auth-form__body">
+        <a href="https://weareecs.com/my-account/orders/" class="c-auth-btn c-auth-btn--primary">
+            <i class="ti ti-shopping-cart c-auth-btn__icon"></i>
+            <span>View My Orders</span>
+        </a>
+        <a href="https://weareecs.com" class="c-auth-btn c-auth-btn--outline">
+            <i class="ti ti-home c-auth-btn__icon"></i>
+            <span>Return to ECS Website</span>
+        </a>
+    </div>
+
+    <!-- Footer -->
+    <div class="c-auth-form__footer">
+        <p class="c-auth-form__footer-text">
+            Emerald City Supporters<br>
+            <span class="text-muted">Digital Membership Cards</span>
+        </p>
     </div>
 </div>
 {% endblock %}

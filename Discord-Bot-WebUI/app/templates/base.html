@@ -1,13 +1,56 @@
 <!DOCTYPE html>
-<html lang="en" class="{{ session.get('theme', 'light') }}-style layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-style="{{ session.get('theme', 'light') }}" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-theme-variant="{{ session.get('theme_variant', 'modern') }}" data-content="wide">
+<html lang="en" class="layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-content="wide">
 
 <head>
     <meta charset="utf-8" />
-    
-    <!-- CRITICAL: Theme detection and anti-flash CSS MUST happen before any other CSS loads -->
+
+    <!-- CRITICAL: Theme detection script MUST run BEFORE any CSS loads to prevent flash -->
+    <!-- The script sets data-style attribute which controls all theme CSS -->
+    <script>
+        (function() {
+            // Resolve 'system' theme to actual light/dark based on OS preference
+            function resolveTheme(theme) {
+                if (theme === 'system') {
+                    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                return theme;
+            }
+
+            // Get theme from localStorage or use server-provided theme as fallback
+            const storedTheme = localStorage.getItem('template-style');
+            const serverTheme = '{{ session.get('theme', 'light') }}';
+            const rawTheme = storedTheme || serverTheme;
+            const finalTheme = resolveTheme(rawTheme);
+
+            // Get theme variant (modern only) from localStorage or server
+            const storedVariant = localStorage.getItem('theme-variant');
+            const serverVariant = '{{ session.get('theme_variant', 'modern') }}';
+            const finalVariant = storedVariant || serverVariant;
+
+            // Apply theme immediately BEFORE any CSS loads - this prevents flash
+            document.documentElement.setAttribute('data-style', finalTheme);
+            document.documentElement.setAttribute('data-theme-variant', finalVariant);
+
+            // Also set the class for CSS selectors that use class
+            document.documentElement.classList.add(finalTheme + '-style');
+
+            // Add variant class for CSS selectors (modern only)
+            document.documentElement.classList.add('theme-modern');
+
+            // Sync server session if needed (will be handled by simple-theme-switcher.js)
+            if (storedTheme && storedTheme !== serverTheme) {
+                window._themeNeedsSync = { theme: storedTheme };
+            }
+            if (storedVariant && storedVariant !== serverVariant) {
+                window._variantNeedsSync = { variant: storedVariant };
+            }
+        })();
+    </script>
+
+    <!-- Anti-flash CSS - now loads AFTER script has set the correct data-style -->
     <style id="theme-flash-prevention">
         /* Prevent flash of wrong theme - comprehensive coverage before main CSS loads */
-        /* Dark mode base colors */
+        /* Dark mode base colors - applied when data-style="dark" is set */
         html[data-style="dark"],
         html[data-style="dark"] body,
         html[data-style="dark"] .layout-wrapper,
@@ -19,7 +62,7 @@
             background-color: #0f172a !important;
             color: #f8fafc !important;
         }
-        /* Light mode base colors */
+        /* Light mode base colors - applied when data-style="light" is set */
         html[data-style="light"],
         html[data-style="light"] body,
         html[data-style="light"] .layout-wrapper,
@@ -29,44 +72,7 @@
             background-color: #f8fafc !important;
             color: #1e293b !important;
         }
-        /* Hide content briefly during initial load to prevent flash */
-        html:not([data-style]) body { visibility: hidden; }
-        html[data-style] body { visibility: visible; }
     </style>
-    <script>
-        (function() {
-            // Get theme from localStorage or use server-provided theme as fallback
-            const storedTheme = localStorage.getItem('template-style');
-            const serverTheme = '{{ session.get('theme', 'light') }}';
-            const finalTheme = storedTheme || serverTheme;
-
-            // Get theme variant (modern only) from localStorage or server
-            const storedVariant = localStorage.getItem('theme-variant');
-            const serverVariant = '{{ session.get('theme_variant', 'modern') }}';
-            const finalVariant = storedVariant || serverVariant;
-
-            // Apply theme immediately to prevent flash
-            document.documentElement.setAttribute('data-style', finalTheme);
-            document.documentElement.setAttribute('data-theme-variant', finalVariant);
-
-            // Also update the class (light-style or dark-style) for CSS selectors that use class
-            document.documentElement.classList.remove('light-style', 'dark-style');
-            document.documentElement.classList.add(finalTheme + '-style');
-
-            // Add variant class for CSS selectors (modern only)
-            document.documentElement.classList.remove('theme-modern');
-            document.documentElement.classList.add('theme-modern');
-
-            // Sync server session if needed
-            if (storedTheme && storedTheme !== serverTheme) {
-                // Theme differs from server, we'll sync it after page loads
-                window._themeNeedsSync = { theme: storedTheme };
-            }
-            if (storedVariant && storedVariant !== serverVariant) {
-                window._variantNeedsSync = { variant: storedVariant };
-            }
-        })();
-    </script>
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="ECS Soccer League Management Portal" />
