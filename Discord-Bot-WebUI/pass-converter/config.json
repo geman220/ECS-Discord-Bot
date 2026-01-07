@@ -2,8 +2,7 @@
   "googleServiceAccountJsonPath": "/app/credentials/google-service-account.json",
   "googleIssuerId": "${GOOGLE_WALLET_ISSUER_ID}",
 
-  "converterAuthHeader": "X-Converter-Auth",
-  "converterAuthValue": "${PASS_CONVERTER_AUTH_SECRET}",
+  "authHeader": "x-converter-auth",
 
   "defaultPlaceholder": "N/A",
   "defaultOrganization": "ECS FC",
