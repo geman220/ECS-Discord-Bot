@@ -33,23 +33,23 @@
   border-radius: var(--radius-lg, 12px);
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling - uses translucent variables that auto-switch */
 .c-table-wrapper::-webkit-scrollbar {
   height: 6px;
 }
 
 .c-table-wrapper::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-scrollbar-track);
   border-radius: 3px;
 }
 
 .c-table-wrapper::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--color-scrollbar-thumb);
   border-radius: 3px;
 }
 
 .c-table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--color-scrollbar-thumb-hover);
 }
 
 /* ============================================================================
@@ -67,7 +67,7 @@
    ============================================================================ */
 
 .c-table__head {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--color-translucent-heavy);
 }
 
 .c-table__header {
@@ -80,7 +80,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
-  border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+  border-bottom: 1px solid var(--color-border-translucent);
 }
 
 .c-table__header--center {
@@ -100,7 +100,7 @@
 }
 
 .c-table__row {
-  border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
+  border-bottom: 1px solid var(--color-border-translucent-light);
   transition: background-color var(--duration-fast, 150ms) ease;
 }
 
@@ -140,7 +140,7 @@
    ============================================================================ */
 
 .c-table--hoverable .c-table__row:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-translucent-light);
 }
 
 /* ============================================================================
@@ -160,7 +160,7 @@
    ============================================================================ */
 
 .c-table--striped .c-table__row:nth-child(even) {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--color-translucent-strong);
 }
 
 /* ============================================================================
@@ -185,7 +185,7 @@
     display: block;
     padding: var(--space-3, 12px);
     margin-bottom: var(--space-2, 8px);
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--color-translucent-strong);
     border-radius: var(--radius-md, 8px);
     border: none;
   }
@@ -195,7 +195,7 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--space-2, 8px) 0;
-    border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
+    border-bottom: 1px solid var(--color-border-translucent-light);
   }
 
   .c-table--responsive .c-table__cell:last-child {
@@ -213,55 +213,8 @@
 }
 
 /* ============================================================================
-   LIGHT MODE
+   LIGHT MODE - Variables auto-switch, these selectors ensure specificity
    ============================================================================ */
 
-[data-style="light"] .c-table-wrapper::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.03);
-}
-
-[data-style="light"] .c-table-wrapper::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-}
-
-[data-style="light"] .c-table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-[data-style="light"] .c-table__head {
-  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
-}
-
-[data-style="light"] .c-table__header {
-  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
-  border-bottom-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
-}
-
-[data-style="light"] .c-table__row {
-  border-bottom-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
-}
-
-[data-style="light"] .c-table__cell {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
-}
-
-[data-style="light"] .c-table__cell small {
-  color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
-}
-
-[data-style="light"] .c-table--hoverable .c-table__row:hover {
-  background: rgba(0, 0, 0, 0.02);
-}
-
-[data-style="light"] .c-table--striped .c-table__row:nth-child(even) {
-  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
-}
-
-[data-style="light"] .c-table--responsive .c-table__row {
-  background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
-  border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
-}
-
-[data-style="light"] .c-table--responsive .c-table__cell {
-  border-bottom-color: var(--color-border-light, rgba(0, 0, 0, 0.06));
-}
+/* Light mode uses semantic color variables that already have light mode values */
+/* No hardcoded overrides needed - the translucent variables handle this */

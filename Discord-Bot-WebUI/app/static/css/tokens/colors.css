@@ -236,6 +236,35 @@
   --color-warning-alpha: rgba(245, 158, 11, 0.2);
   --color-danger-alpha: rgba(239, 68, 68, 0.2);
   --color-info-alpha: rgba(59, 130, 246, 0.2);
+
+  /* ========================================================================
+     TRANSLUCENT COLOR SYSTEM
+     Theme-aware translucent values for overlays, borders, and hover states.
+     Light mode: uses black with alpha (rgba(0, 0, 0, X))
+     Dark mode: uses white with alpha (rgba(255, 255, 255, X))
+     ======================================================================== */
+
+  /* Translucent Backgrounds - for hover states, subtle highlights */
+  --color-translucent-light: rgba(0, 0, 0, 0.02);
+  --color-translucent: rgba(0, 0, 0, 0.04);
+  --color-translucent-medium: rgba(0, 0, 0, 0.06);
+  --color-translucent-strong: rgba(0, 0, 0, 0.1);
+  --color-translucent-heavy: rgba(0, 0, 0, 0.2);
+
+  /* Translucent Borders */
+  --color-border-translucent-light: rgba(0, 0, 0, 0.04);
+  --color-border-translucent: rgba(0, 0, 0, 0.06);
+  --color-border-translucent-medium: rgba(0, 0, 0, 0.08);
+  --color-border-translucent-strong: rgba(0, 0, 0, 0.1);
+
+  /* Semi-transparent Surfaces (for navbar, modals with transparency) */
+  --color-surface-translucent: rgba(255, 255, 255, 0.95);
+  --color-surface-translucent-medium: rgba(255, 255, 255, 0.98);
+
+  /* Scrollbar Colors */
+  --color-scrollbar-track: rgba(0, 0, 0, 0.03);
+  --color-scrollbar-thumb: rgba(0, 0, 0, 0.1);
+  --color-scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
   /* Status Text/Background (for season status, match status, etc.) */
   --color-success-bg: var(--color-success-subtle);
   --color-success-text: var(--color-success-700);
@@ -465,6 +494,28 @@
   --color-warning-alpha: rgba(251, 191, 36, 0.25);
   --color-danger-alpha: rgba(248, 113, 113, 0.25);
   --color-info-alpha: rgba(96, 165, 250, 0.25);
+
+  /* Translucent Backgrounds - Dark Mode (white with alpha instead of black) */
+  --color-translucent-light: rgba(255, 255, 255, 0.02);
+  --color-translucent: rgba(255, 255, 255, 0.04);
+  --color-translucent-medium: rgba(255, 255, 255, 0.06);
+  --color-translucent-strong: rgba(255, 255, 255, 0.1);
+  --color-translucent-heavy: rgba(255, 255, 255, 0.2);
+
+  /* Translucent Borders - Dark Mode */
+  --color-border-translucent-light: rgba(255, 255, 255, 0.04);
+  --color-border-translucent: rgba(255, 255, 255, 0.06);
+  --color-border-translucent-medium: rgba(255, 255, 255, 0.08);
+  --color-border-translucent-strong: rgba(255, 255, 255, 0.12);
+
+  /* Semi-transparent Surfaces - Dark Mode (Slate-950 base) */
+  --color-surface-translucent: rgba(15, 23, 42, 0.95);
+  --color-surface-translucent-medium: rgba(15, 23, 42, 0.98);
+
+  /* Scrollbar Colors - Dark Mode */
+  --color-scrollbar-track: rgba(255, 255, 255, 0.05);
+  --color-scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --color-scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
   /* Status Text/Background - Dark Mode */
   --color-success-bg: var(--color-success-subtle);
   --color-success-text: var(--color-success-500);

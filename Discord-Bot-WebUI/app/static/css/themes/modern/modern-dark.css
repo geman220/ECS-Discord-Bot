@@ -371,8 +371,11 @@ html[data-theme-variant="modern"][data-style="dark"] {
 
 /* Navbar container - matches sidebar/body background */
 [data-theme-variant="modern"][data-style="dark"] .layout-navbar,
+[data-theme-variant="modern"][data-style="dark"] .layout-navbar.c-navbar-modern,
 [data-theme-variant="modern"][data-style="dark"] .navbar,
-[data-theme-variant="modern"][data-style="dark"] nav.navbar {
+[data-theme-variant="modern"][data-style="dark"] nav.navbar,
+[data-theme-variant="modern"][data-style="dark"] .c-navbar-modern {
+  background: var(--ecs-dark-bg-body);
   background-color: var(--ecs-dark-bg-body);
   border-bottom: 1px solid var(--ecs-dark-border);
 }

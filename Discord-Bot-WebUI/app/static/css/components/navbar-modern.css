@@ -41,8 +41,8 @@
      DON'T set position here - layout-navbar-fixed uses position: fixed */
   /* z-index for proper stacking - sidebar (1035) should be above navbar (1025) */
   z-index: var(--z-navbar, 1025);
-  /* Visual - Solid semi-transparent background (no backdrop-filter to avoid edge artifact) */
-  background: rgba(255, 255, 255, 0.95);
+  /* Visual - Uses translucent color variable that auto-switches for dark mode */
+  background: var(--color-surface-translucent);
   /* No border or shadow - seamless blend with content */
   /* needed to override vendor CSS (layout/navbar.css, theme files) */
   border: none;
@@ -77,8 +77,8 @@ nav.layout-navbar.c-navbar-modern {
   left: 0;
   right: 0;
   z-index: var(--z-sticky, 1020);
-  /* Solid semi-transparent - no backdrop-filter to avoid edge artifact */
-  background: rgba(255, 255, 255, 0.95);
+  /* Uses translucent color variable that auto-switches for dark mode */
+  background: var(--color-surface-translucent);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border: none;
@@ -98,9 +98,9 @@ nav.layout-navbar.c-navbar-modern {
 
 .layout-navbar.c-navbar-modern,
 nav.layout-navbar.c-navbar-modern {
-  /* Solid semi-transparent - no backdrop-filter to avoid edge artifact */
-  background: rgba(255, 255, 255, 0.95);
-  background-color: rgba(255, 255, 255, 0.95);
+  /* Uses translucent color variable that auto-switches for dark mode */
+  background: var(--color-surface-translucent);
+  background-color: var(--color-surface-translucent);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
@@ -110,33 +110,13 @@ nav.layout-navbar.c-navbar-modern {
    Higher specificity to override layout-navbar defaults
    ============================================================================ */
 
-/* Modern theme light mode - solid semi-transparent white (no backdrop-filter) */
+/* Theme integration - variable-based backgrounds auto-switch for light/dark mode */
+/* These selectors ensure the variable wins any specificity battles */
 
-[data-theme-variant="modern"]:not([data-style="dark"]) .c-navbar-modern,
-[data-theme-variant="modern"]:not([data-style="dark"]) .layout-navbar.c-navbar-modern,
-html[data-theme-variant="modern"]:not([data-style="dark"]) .c-navbar-modern,
-html[data-theme-variant="modern"]:not([data-style="dark"]) .layout-navbar.c-navbar-modern {
-  background: rgba(255, 255, 255, 0.95);
-  border: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-/* Modern theme dark mode - solid semi-transparent dark (slate palette) */
-
-[data-theme-variant="modern"][data-style="dark"] .c-navbar-modern,
-[data-theme-variant="modern"][data-style="dark"] .layout-navbar.c-navbar-modern,
-html[data-theme-variant="modern"][data-style="dark"] .c-navbar-modern,
-html[data-theme-variant="modern"][data-style="dark"] .layout-navbar.c-navbar-modern {
-  background: rgba(15, 23, 42, 0.95);
-  /* Slate-950 var(--color-secondary-950) */
-  border: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-/* Dark mode fallback - generic dark theme support (slate palette) */
-
+[data-theme-variant="modern"] .c-navbar-modern,
+[data-theme-variant="modern"] .layout-navbar.c-navbar-modern,
+html[data-theme-variant="modern"] .c-navbar-modern,
+html[data-theme-variant="modern"] .layout-navbar.c-navbar-modern,
 [data-style="dark"] .c-navbar-modern,
 [data-style="dark"] .layout-navbar.c-navbar-modern,
 [data-theme="dark"] .c-navbar-modern,
@@ -145,8 +125,7 @@ body[data-style="dark"] .c-navbar-modern,
 body[data-style="dark"] .layout-navbar.c-navbar-modern,
 html.dark-style .c-navbar-modern,
 html.dark-style .layout-navbar.c-navbar-modern {
-  background: rgba(15, 23, 42, 0.95);
-  /* Slate-950 var(--color-secondary-950) */
+  background: var(--color-surface-translucent);
   border: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -156,21 +135,10 @@ html.dark-style .layout-navbar.c-navbar-modern {
 
 .c-navbar-modern.is-scrolled,
 .layout-navbar.c-navbar-modern.is-scrolled {
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: var(--color-surface-translucent-medium);
+  box-shadow: 0 1px 3px var(--color-translucent-medium);
   border: none;
   border-bottom: none;
-}
-
-[data-style="dark"] .c-navbar-modern.is-scrolled,
-[data-style="dark"] .layout-navbar.c-navbar-modern.is-scrolled,
-[data-theme-variant="modern"][data-style="dark"] .c-navbar-modern.is-scrolled,
-[data-theme-variant="modern"][data-style="dark"] .layout-navbar.c-navbar-modern.is-scrolled,
-html.dark-style .c-navbar-modern.is-scrolled,
-html.dark-style .layout-navbar.c-navbar-modern.is-scrolled {
-  background: rgba(15, 23, 42, 0.97);
-  /* Slate-950 slightly more opaque */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* ============================================================================
@@ -326,8 +294,8 @@ main.c-base-layout__main {
   /* Larger font */
   font-weight: var(--font-normal, 400);
   color: var(--color-text-primary);
-  /* Visual */
-  background: rgba(0, 0, 0, 0.04);
+  /* Visual - uses translucent variable */
+  background: var(--color-translucent);
   border: 2px solid transparent;
   border-radius: var(--radius-full, 9999px);
   /* Interaction */
@@ -343,10 +311,10 @@ main.c-base-layout__main {
 
 .c-navbar-modern__search-input:focus {
   outline: none;
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--color-translucent-medium);
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1),
-    0 4px 12px rgba(37, 99, 235, 0.08);
+  box-shadow: 0 0 0 4px var(--color-primary-alpha),
+    0 4px 12px var(--color-primary-alpha);
   transform: translateY(-1px);
 }
 
@@ -371,21 +339,21 @@ main.c-base-layout__main {
   color: var(--color-primary);
 }
 
-/* Dark mode */
+/* Dark mode search - variables auto-switch, selectors ensure specificity */
 
 [data-style="dark"] .c-navbar-modern__search-input,
 [data-theme="dark"] .c-navbar-modern__search-input,
 body[data-style="dark"] .c-navbar-modern__search-input {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-translucent);
   color: var(--color-neutral-200);
 }
 
 [data-style="dark"] .c-navbar-modern__search-input:focus,
 [data-theme="dark"] .c-navbar-modern__search-input:focus,
 body[data-style="dark"] .c-navbar-modern__search-input:focus {
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2),
-    0 4px 12px rgba(37, 99, 235, 0.15);
+  background: var(--color-translucent-medium);
+  box-shadow: 0 0 0 4px var(--color-primary-alpha),
+    0 4px 12px var(--color-primary-alpha);
 }
 
 /* Note: Tablet search styles consolidated into single tablet breakpoint below (768-991.98px) */
@@ -637,15 +605,15 @@ body[data-style="dark"] .c-navbar-modern__search-input:focus {
   right: 0;
   min-width: 280px;
   max-width: 400px;
-  /* Solid semi-transparent background (no backdrop-filter per file header comment) */
-  background: rgba(255, 255, 255, 0.98);
+  /* Uses translucent color variable that auto-switches for dark mode */
+  background: var(--color-surface-translucent-medium);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--color-border-translucent-medium);
   border-radius: var(--radius-xl);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05),
-    0 12px 24px rgba(0, 0, 0, 0.08),
-    0 24px 48px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 6px var(--color-translucent-medium),
+    0 12px 24px var(--color-translucent-strong),
+    0 24px 48px var(--color-translucent-strong);
   /* Hidden by default */
   opacity: 0;
   visibility: hidden;
@@ -669,16 +637,14 @@ body[data-style="dark"] .c-navbar-modern__search-input:focus {
   /* Ensure above everything */
 }
 
-/* Dark mode - solid opaque background using CSS variables with fallbacks */
+/* Dark mode dropdown - uses same variables which auto-switch */
+/* This selector ensures proper specificity in dark mode */
 
 [data-style="dark"] .c-navbar-modern__dropdown,
 [data-theme="dark"] .c-navbar-modern__dropdown,
 body[data-style="dark"] .c-navbar-modern__dropdown {
-  background: var(--color-bg-elevated, var(--color-neutral-800));
-  border-color: var(--color-border-primary, rgba(255, 255, 255, 0.1));
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3),
-    0 12px 24px rgba(0, 0, 0, 0.4),
-    0 24px 48px rgba(0, 0, 0, 0.5);
+  background: var(--color-surface-translucent-medium);
+  border-color: var(--color-border-translucent-medium);
 }
 
 /* Dropdown header */
@@ -688,11 +654,7 @@ body[data-style="dark"] .c-navbar-modern__dropdown {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-4);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-[data-style="dark"] .c-navbar-modern__dropdown-header {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--color-border-translucent);
 }
 
 .c-navbar-modern__dropdown-title {
@@ -721,12 +683,8 @@ body[data-style="dark"] .c-navbar-modern__dropdown {
 }
 
 .c-navbar-modern__dropdown-content::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--color-scrollbar-thumb);
   border-radius: var(--radius-full);
-}
-
-[data-style="dark"] .c-navbar-modern__dropdown-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Dropdown items */
@@ -762,11 +720,7 @@ body[data-style="dark"] .c-navbar-modern__dropdown {
 
 .c-navbar-modern__dropdown-footer {
   padding: var(--space-3);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-[data-style="dark"] .c-navbar-modern__dropdown-footer {
-  border-top-color: rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--color-border-translucent);
 }
 
 /* ============================================================================
@@ -1492,14 +1446,14 @@ body[data-style="dark"] .c-navbar-modern__dropdown {
   max-height: 400px;
   overflow-y: auto;
   overflow-x: hidden;
-  /* Visual - Light mode */
-  background: rgba(255, 255, 255, 0.98);
+  /* Visual - uses translucent variable that auto-switches */
+  background: var(--color-surface-translucent-medium);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--color-border-primary, var(--color-neutral-200));
+  border: 1px solid var(--color-border-translucent-medium);
   border-radius: var(--radius-lg, 0.5rem);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05),
-    0 10px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 6px var(--color-translucent-medium),
+    0 10px 20px var(--color-translucent-strong);
   /* Z-index to appear above other elements - must be above navbar (1025) and modals (1050) */
   z-index: var(--z-autocomplete, 1060);
   /* Reset list styles */
@@ -1545,78 +1499,30 @@ body[data-style="dark"] .c-navbar-modern__dropdown {
 }
 
 /* ============================================================================
-   AUTOCOMPLETE - Modern Theme Light Mode
+   AUTOCOMPLETE - Theme Integration
+   Variables auto-switch between light/dark mode, selectors ensure specificity
    ============================================================================ */
 
-[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete,
-html[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete {
-  background: rgba(255, 255, 255, 0.98);
-  border-color: var(--ecs-neutral-20, var(--color-neutral-200));
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete .ui-menu-item-wrapper,
-html[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete .ui-menu-item-wrapper {
-  color: var(--ecs-neutral-70, var(--color-neutral-700));
-}
-
-[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete .ui-menu-item-wrapper.ui-state-active,
-[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete .ui-menu-item-wrapper:hover,
-html[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete .ui-menu-item-wrapper.ui-state-active,
-html[data-theme-variant="modern"]:not([data-style="dark"]) .ui-autocomplete .ui-menu-item-wrapper:hover {
-  background: rgba(var(--ecs-primary-rgb, 37, 99, 235), 0.08);
-  color: var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
-}
-
-/* ============================================================================
-   AUTOCOMPLETE - Modern Theme Dark Mode
-   ============================================================================ */
-
-[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete,
-html[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete {
-  background: rgba(39, 39, 42, 0.98);
-  border-color: var(--ecs-dark-border, var(--color-neutral-600));
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2),
-    0 10px 20px rgba(0, 0, 0, 0.3);
-}
-
-[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper,
-html[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper {
-  color: var(--ecs-dark-text-muted, var(--color-neutral-300));
-}
-
-[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper.ui-state-active,
-[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper:hover,
-html[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper.ui-state-active,
-html[data-theme-variant="modern"][data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper:hover {
-  background: rgba(96, 165, 250, 0.2);
-  color: var(--ecs-primary-light, var(--color-primary-400, var(--color-primary-400)));
-}
-
-/* Generic dark mode fallback */
-
+/* Ensure autocomplete uses variable-based backgrounds in all themes */
+[data-theme-variant="modern"] .ui-autocomplete,
+html[data-theme-variant="modern"] .ui-autocomplete,
 [data-style="dark"] .ui-autocomplete,
 [data-theme="dark"] .ui-autocomplete,
 body[data-style="dark"] .ui-autocomplete {
-  background: rgba(39, 39, 42, 0.98);
-  border-color: var(--color-neutral-700, var(--color-neutral-700));
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2),
-    0 10px 20px rgba(0, 0, 0, 0.3);
+  background: var(--color-surface-translucent-medium);
+  border-color: var(--color-border-translucent-medium);
+  box-shadow: 0 4px 6px var(--color-translucent-medium),
+    0 10px 20px var(--color-translucent-strong);
 }
 
-[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper,
-[data-theme="dark"] .ui-autocomplete .ui-menu-item-wrapper,
-body[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper {
-  color: var(--color-neutral-200, var(--color-neutral-200));
+.ui-autocomplete .ui-menu-item-wrapper {
+  color: var(--color-text-primary);
 }
 
-[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper.ui-state-active,
-[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper:hover,
-[data-theme="dark"] .ui-autocomplete .ui-menu-item-wrapper.ui-state-active,
-[data-theme="dark"] .ui-autocomplete .ui-menu-item-wrapper:hover,
-body[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper.ui-state-active,
-body[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper:hover {
-  background: rgba(96, 165, 250, 0.2);
-  color: var(--color-primary-400, var(--color-primary-400, var(--color-primary-400)));
+.ui-autocomplete .ui-menu-item-wrapper.ui-state-active,
+.ui-autocomplete .ui-menu-item-wrapper:hover {
+  background: var(--color-primary-alpha);
+  color: var(--color-primary);
 }
 
 /* Scrollbar styling for autocomplete */
@@ -1630,12 +1536,8 @@ body[data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper:hover {
 }
 
 .ui-autocomplete::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--color-scrollbar-thumb);
   border-radius: var(--radius-full, 9999px);
-}
-
-[data-style="dark"] .ui-autocomplete::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
 }
 
 /* ============================================================================

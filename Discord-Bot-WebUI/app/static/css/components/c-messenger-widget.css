@@ -29,15 +29,16 @@
    ============================================================================ */
 
 .c-messenger {
-  --messenger-bg: var(--bs-body-bg, var(--color-white));
-  --messenger-border: var(--bs-border-color, rgba(0, 0, 0, 0.1));
+  /* Use global semantic variables that auto-switch for dark/light mode */
+  --messenger-bg: var(--color-bg-primary, var(--color-white));
+  --messenger-border: var(--color-border-translucent-strong);
   --messenger-radius: 0.5rem;
-  --messenger-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --messenger-header-bg: rgba(var(--bs-primary-rgb), 0.08);
-  --messenger-hover-bg: rgba(var(--bs-primary-rgb), 0.06);
-  --messenger-active-bg: rgba(var(--bs-primary-rgb), 0.12);
+  --messenger-shadow: 0 1px 3px var(--color-translucent-strong);
+  --messenger-header-bg: var(--color-primary-alpha);
+  --messenger-hover-bg: var(--color-translucent-medium);
+  --messenger-active-bg: var(--color-primary-alpha);
   --messenger-sent-bg: var(--bs-primary);
-  --messenger-received-bg: var(--bs-secondary-bg, var(--color-neutral-200));
+  --messenger-received-bg: var(--color-translucent-strong);
   display: flex;
   flex-direction: column;
   background: var(--messenger-bg);
@@ -701,37 +702,24 @@
 }
 
 /* ============================================================================
-   DARK MODE
+   DARK MODE - Variables auto-switch, minimal overrides needed
    ============================================================================ */
 
+/* Dark mode uses global semantic variables that already auto-switch */
+/* Only element-specific overrides that need different behavior */
+
 [data-style="dark"] .c-messenger {
-  --messenger-bg: rgba(255, 255, 255, 0.03);
-  --messenger-border: rgba(255, 255, 255, 0.08);
-  --messenger-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  --messenger-header-bg: rgba(59, 130, 246, 0.1);
-  --messenger-hover-bg: rgba(255, 255, 255, 0.06);
-  --messenger-active-bg: rgba(59, 130, 246, 0.15);
-  --messenger-received-bg: rgba(255, 255, 255, 0.1);
+  --messenger-bg: var(--color-bg-elevated);
 }
 
-[data-style="dark"] .c-messenger__search-input {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-[data-style="dark"] .c-messenger__search-input:focus {
-  background: rgba(255, 255, 255, 0.08);
-}
-
+[data-style="dark"] .c-messenger__search-input,
 [data-style="dark"] .c-messenger__input-field {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-translucent);
 }
 
+[data-style="dark"] .c-messenger__search-input:focus,
 [data-style="dark"] .c-messenger__input-field:focus {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-[data-style="dark"] .c-messenger__online-avatar-img {
-  border-color: var(--color-success-400, var(--color-success-400));
+  background: var(--color-translucent-medium);
 }
 
 /* ============================================================================

@@ -24,7 +24,7 @@
 
 /* Week group - native details element */
 .c-schedule__week {
-  border-bottom: 1px solid var(--border-color-primary, rgba(255, 255, 255, 0.08));
+  border-bottom: 1px solid var(--color-border-translucent-medium);
 }
 
 .c-schedule__week:last-child {
@@ -37,7 +37,7 @@
   align-items: center;
   gap: var(--space-2, 8px);
   padding: var(--space-3, 12px) var(--space-4, 16px);
-  background: var(--color-bg-secondary, rgba(255, 255, 255, 0.03));
+  background: var(--color-translucent-light);
   cursor: pointer;
   user-select: none;
   transition: background-color 150ms ease;
@@ -56,7 +56,7 @@
 }
 
 .c-schedule__header:hover {
-  background: var(--color-bg-hover, rgba(255, 255, 255, 0.06));
+  background: var(--color-translucent-medium);
 }
 
 /* Closed state styling - blue accent border */
@@ -67,7 +67,7 @@
 }
 
 .c-schedule__week:not([open]) .c-schedule__header:hover {
-  background: rgba(37, 99, 235, 0.1);
+  background: var(--color-primary-alpha);
 }
 
 /* Icon */
@@ -152,7 +152,7 @@
   align-items: center;
   gap: var(--space-3, 12px);
   padding: var(--space-3, 12px) var(--space-4, 16px);
-  border-bottom: 1px solid var(--border-color-primary, rgba(255, 255, 255, 0.06));
+  border-bottom: 1px solid var(--color-border-translucent);
   transition: background-color 150ms ease;
 }
 
@@ -161,7 +161,7 @@
 }
 
 .c-schedule__match:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-translucent-light);
 }
 
 /* Time */
@@ -226,67 +226,18 @@
 }
 
 /* ============================================================================
-   DARK MODE
+   THEME MODES - Variables auto-switch, no hardcoded overrides needed
    ============================================================================ */
 
-[data-style="dark"] .c-schedule__header {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-[data-style="dark"] .c-schedule__header:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
+/* The translucent variables automatically adjust for dark/light mode */
+/* Only closed state needs specific overrides for visual distinction */
 
 [data-style="dark"] .c-schedule__week:not([open]) .c-schedule__header {
-  background: rgba(30, 41, 59, 0.8);
-}
-
-[data-style="dark"] .c-schedule__week:not([open]) .c-schedule__header:hover {
-  background: rgba(37, 99, 235, 0.15);
-}
-
-[data-style="dark"] .c-schedule__match:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-/* ============================================================================
-   LIGHT MODE
-   ============================================================================ */
-
-[data-style="light"] .c-schedule__week {
-  border-bottom-color: rgba(0, 0, 0, 0.08);
-}
-
-[data-style="light"] .c-schedule__header {
-  background: rgba(0, 0, 0, 0.02);
-}
-
-[data-style="light"] .c-schedule__header:hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--color-bg-elevated);
 }
 
 [data-style="light"] .c-schedule__week:not([open]) .c-schedule__header {
-  background: var(--color-bg-primary, var(--color-white));
-}
-
-[data-style="light"] .c-schedule__week:not([open]) .c-schedule__header:hover {
-  background: rgba(37, 99, 235, 0.08);
-}
-
-[data-style="light"] .c-schedule__date {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
-}
-
-[data-style="light"] .c-schedule__teams {
-  color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
-}
-
-[data-style="light"] .c-schedule__match {
-  border-bottom-color: rgba(0, 0, 0, 0.06);
-}
-
-[data-style="light"] .c-schedule__match:hover {
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--color-bg-primary);
 }
 
 /* ============================================================================
@@ -309,7 +260,7 @@
     width: 100%;
     margin-top: var(--space-1, 4px);
     padding-top: var(--space-1, 4px);
-    border-top: 1px solid var(--border-color-primary, rgba(255, 255, 255, 0.06));
+    border-top: 1px solid var(--color-border-translucent);
   }
 
   .c-schedule__chevron {
