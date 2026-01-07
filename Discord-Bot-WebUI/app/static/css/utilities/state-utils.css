@@ -584,3 +584,34 @@
         transition: none;
     }
 }
+
+/* ============================================
+   DARK MODE FOOTER TEXT FIX
+   Ensures footer text is visible in dark mode
+   This is in utilities layer for highest priority
+   ============================================ */
+
+[data-style="dark"] .content-footer,
+[data-style="dark"] .c-base-layout__footer,
+[data-style="dark"] .bg-footer-theme {
+    color: #CBD5E1;
+}
+
+[data-style="dark"] .c-base-layout__footer-copyright,
+[data-style="dark"] .content-footer .c-base-layout__footer-copyright,
+[data-style="dark"] .footer-container .text-body {
+    color: #CBD5E1;
+}
+
+[data-style="dark"] .content-footer a,
+[data-style="dark"] .c-base-layout__footer a,
+[data-style="dark"] .c-base-layout__footer-link,
+[data-style="dark"] .bg-footer-theme a {
+    color: #60A5FA;
+}
+
+[data-style="dark"] .content-footer a:hover,
+[data-style="dark"] .c-base-layout__footer a:hover,
+[data-style="dark"] .c-base-layout__footer-link:hover {
+    color: #93C5FD;
+}

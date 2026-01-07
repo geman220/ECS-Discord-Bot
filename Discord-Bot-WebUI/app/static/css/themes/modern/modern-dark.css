@@ -675,14 +675,14 @@ html[data-theme-variant="modern"][data-style="dark"] .dropdown-menu {
 [data-theme-variant="modern"][data-style="dark"] .content-footer *,
 [data-theme-variant="modern"][data-style="dark"] .c-base-layout__footer-copyright,
 [data-theme-variant="modern"][data-style="dark"] .footer-container .text-body {
-  color: var(--color-secondary-300, #CBD5E1);
+  color: #CBD5E1;
 }
 
 /* Footer links */
 [data-theme-variant="modern"][data-style="dark"] .content-footer a,
 [data-theme-variant="modern"][data-style="dark"] footer.footer a,
 [data-theme-variant="modern"][data-style="dark"] .c-base-layout__footer-link {
-  color: var(--ecs-primary-light, var(--color-primary-400, #60A5FA));
+  color: #60A5FA;
 }
 
 /* ============================================================================

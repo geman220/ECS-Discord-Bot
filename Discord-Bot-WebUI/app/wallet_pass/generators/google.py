@@ -182,7 +182,7 @@ def ensure_google_wallet_class_exists(
 
 def _build_class_definition(issuer_id: str, pass_type) -> dict:
     """
-    Build the Google Wallet eventTicketClass definition from pass type config.
+    Build the Google Wallet eventTicketClass definition from pass type.
 
     Args:
         issuer_id: Google Wallet Issuer ID
@@ -190,17 +190,24 @@ def _build_class_definition(issuer_id: str, pass_type) -> dict:
 
     Returns:
         Dict suitable for Google Wallet API
+
+    WalletPassType attributes used:
+        - apple_pass_type_id: Used to generate class ID
+        - name: Pass type name (e.g., "ECS Membership")
+        - logo_text: Organization name (e.g., "ECS")
+        - background_color: Hex color (e.g., "#213e96")
+        - google_logo_url: Public URL to logo image
+        - google_hero_image_url: Public URL to hero/banner image
     """
     class_id = _get_class_id(issuer_id, pass_type.apple_pass_type_id)
 
-    # Get colors from pass type config
-    config = pass_type.get_config() or {}
-    background_color = config.get('background_color', '#000000')
+    # Get colors directly from pass_type model
+    background_color = pass_type.background_color or '#000000'
 
     # Build the class definition
     class_def = {
         "id": class_id,
-        "issuerName": pass_type.organization_name or "ECS FC",
+        "issuerName": pass_type.logo_text or "ECS FC",
         "eventName": {
             "defaultValue": {
                 "language": "en",
@@ -213,23 +220,21 @@ def _build_class_definition(issuer_id: str, pass_type) -> dict:
         "multipleDevicesAndHoldersAllowedStatus": "ONE_USER_ALL_DEVICES",
     }
 
-    # Add logo if configured (prefer google_logo_url, fall back to config)
+    # Add logo if configured
     # This must be a publicly accessible URL that Google's servers can fetch
-    logo_url = getattr(pass_type, 'google_logo_url', None) or config.get('logo_url')
-    if logo_url:
+    if pass_type.google_logo_url:
         class_def["logo"] = {
             "sourceUri": {
-                "uri": logo_url
+                "uri": pass_type.google_logo_url
             }
         }
-        logger.debug(f"Using logo URL for class: {logo_url}")
+        logger.debug(f"Using logo URL for class: {pass_type.google_logo_url}")
 
-    # Add hero/wide image if configured (maps to strip image in Apple)
-    hero_url = config.get('hero_url') or config.get('strip_url')
-    if hero_url:
+    # Add hero/wide image if configured
+    if pass_type.google_hero_image_url:
         class_def["heroImage"] = {
             "sourceUri": {
-                "uri": hero_url
+                "uri": pass_type.google_hero_image_url
             }
         }
 
