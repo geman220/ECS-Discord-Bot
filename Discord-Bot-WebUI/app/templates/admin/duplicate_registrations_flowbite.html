@@ -1,0 +1,166 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Duplicate Registration Management{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <span>Admin</span>
+                <span>/</span>
+                <span>Duplicate Registration Management</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Duplicate Registration Management</h1>
+            <p class="text-gray-500 dark:text-gray-400">Review and resolve potential duplicate player registrations</p>
+        </div>
+        <a href="{{ url_for('duplicate_management.duplicate_registration_stats') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+            <i class="ti ti-chart-bar mr-2"></i>View Statistics
+        </a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5 text-center">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 mb-3">
+                <i class="ti ti-alert-triangle text-xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <span class="block text-sm text-gray-500 dark:text-gray-400 mb-1">Pending Alerts</span>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ pending_alerts|length }}</h3>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5 text-center">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/30 mb-3">
+                <i class="ti ti-phone text-xl text-red-600 dark:text-red-400"></i>
+            </div>
+            <span class="block text-sm text-gray-500 dark:text-gray-400 mb-1">Phone Matches</span>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ pending_alerts|selectattr('match_type', 'equalto', 'phone')|list|length }}</h3>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5 text-center">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-amber-100 dark:bg-amber-900/30 mb-3">
+                <i class="ti ti-user text-xl text-amber-600 dark:text-amber-400"></i>
+            </div>
+            <span class="block text-sm text-gray-500 dark:text-gray-400 mb-1">Name Matches</span>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ pending_alerts|selectattr('match_type', 'equalto', 'name')|list|length }}</h3>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5 text-center">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 mb-3">
+                <i class="ti ti-mail text-xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <span class="block text-sm text-gray-500 dark:text-gray-400 mb-1">Email Domain</span>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ pending_alerts|selectattr('match_type', 'equalto', 'email_domain_name')|list|length }}</h3>
+        </div>
+    </div>
+
+    <!-- Pending Alerts -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Pending Duplicate Alerts</h5>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ pending_alerts|length }} alerts require review</span>
+        </div>
+        <div class="p-6">
+            {% if pending_alerts %}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {% for alert in pending_alerts %}
+                <div class="p-4 rounded-lg border-2 {% if alert.confidence_score >= 0.8 %}border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/10{% elif alert.confidence_score >= 0.6 %}border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/10{% else %}border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700{% endif %}">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h6 class="font-semibold text-gray-900 dark:text-white">Alert #{{ alert.id }}</h6>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-block px-2 py-0.5 text-xs font-medium rounded mb-1 {% if alert.match_type == 'phone' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif alert.match_type == 'name' %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300{% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% endif %}">{{ alert.match_type.replace('_', ' ').title() }}</span>
+                            <br>
+                            <span class="text-sm font-medium {% if alert.confidence_score >= 0.8 %}text-red-600 dark:text-red-400{% elif alert.confidence_score >= 0.6 %}text-yellow-600 dark:text-yellow-400{% else %}text-gray-600 dark:text-gray-400{% endif %}">
+                                {{ (alert.confidence_score * 100)|round|int }}% match
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <h6 class="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2">New Registration</h6>
+                            <p class="font-medium text-gray-900 dark:text-white mb-1">{{ alert.new_name or 'N/A' }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">{{ alert.new_discord_email }}</p>
+                            {% if alert.new_phone %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400">📞 {{ alert.new_phone }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h6 class="text-sm font-semibold text-green-600 dark:text-green-400 mb-2">Existing Player</h6>
+                            <p class="font-medium text-gray-900 dark:text-white mb-1">{{ alert.existing_player.name }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">{{ alert.existing_player.user.email if alert.existing_player.user else alert.existing_player.email }}</p>
+                            {% if alert.existing_player.phone %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400">📞 {{ alert.existing_player.phone }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <a href="{{ url_for('duplicate_management.duplicate_registration_detail', alert_id=alert.id) }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                        <i class="ti ti-eye mr-2"></i>Review & Resolve
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <i class="ti ti-circle-check text-6xl text-green-500 dark:text-green-400 mb-4"></i>
+                <h5 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Pending Alerts</h5>
+                <p class="text-gray-500 dark:text-gray-400">All duplicate registration alerts have been resolved.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recently Resolved -->
+    {% if resolved_alerts %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Recently Resolved</h5>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th class="px-4 py-3">Alert #</th>
+                        <th class="px-4 py-3">New User</th>
+                        <th class="px-4 py-3">Existing Player</th>
+                        <th class="px-4 py-3">Match Type</th>
+                        <th class="px-4 py-3">Resolution</th>
+                        <th class="px-4 py-3">Resolved By</th>
+                        <th class="px-4 py-3">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alert in resolved_alerts %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="px-4 py-3">
+                            <a href="{{ url_for('duplicate_management.duplicate_registration_detail', alert_id=alert.id) }}" class="text-blue-600 dark:text-blue-400 hover:underline">#{{ alert.id }}</a>
+                        </td>
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ alert.new_name or 'N/A' }}</td>
+                        <td class="px-4 py-3">{{ alert.existing_player.name }}</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 text-xs font-medium rounded {% if alert.match_type == 'phone' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif alert.match_type == 'name' %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300{% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% endif %}">{{ alert.match_type.replace('_', ' ').title() }}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if alert.resolution_action == 'merged' %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Merged</span>
+                            {% elif alert.resolution_action == 'allowed' %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">Allowed</span>
+                            {% elif alert.resolution_action == 'blocked' %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">Blocked</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ alert.resolution_action or 'N/A' }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">{{ alert.resolved_by.username if alert.resolved_by else 'System' }}</td>
+                        <td class="px-4 py-3">{{ alert.resolved_at.strftime('%m/%d %H:%M') if alert.resolved_at else 'N/A' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

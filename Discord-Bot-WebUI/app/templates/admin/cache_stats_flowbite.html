@@ -1,0 +1,216 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Cache Statistics{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Redis Cache Statistics</h5>
+            <div class="flex flex-wrap gap-2 mt-4 lg:mt-0">
+                <button id="refresh-stats" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" data-refresh-url="{{ url_for('cache_admin.cache_stats_api') }}">
+                    <i class="ti ti-refresh mr-2"></i>Refresh
+                </button>
+                <a href="{{ url_for('cache_admin.warm_cache') }}" class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                    <i class="ti ti-flame mr-2"></i>Warm Cache
+                </a>
+                <button type="button" class="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors" data-action="clear-all-cache" data-confirm-message="Are you sure you want to clear all cache? This will impact performance temporarily.">
+                    <i class="ti ti-trash mr-2"></i>Clear All
+                </button>
+            </div>
+        </div>
+        <div class="p-6">
+            {% if stats.error %}
+            <div class="flex items-center p-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50 dark:bg-gray-700 dark:text-red-400 dark:border-red-800">
+                <i class="ti ti-alert-triangle text-lg mr-3"></i>
+                Cache Error: {{ stats.error }}
+            </div>
+            {% else %}
+
+            <!-- Performance Metrics -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-blue-600 rounded-lg p-5 text-center">
+                    <h3 class="text-3xl font-bold text-white mb-1">{{ stats.cache_hit_ratio }}%</h3>
+                    <span class="text-sm text-blue-100">Cache Hit Ratio</span>
+                </div>
+                <div class="bg-cyan-600 rounded-lg p-5 text-center">
+                    <h3 class="text-3xl font-bold text-white mb-1">{{ stats.connected_clients }}</h3>
+                    <span class="text-sm text-cyan-100">Connected Clients</span>
+                </div>
+                <div class="bg-green-600 rounded-lg p-5 text-center">
+                    <h3 class="text-3xl font-bold text-white mb-1">{{ stats.keyspace_hits }}</h3>
+                    <span class="text-sm text-green-100">Cache Hits</span>
+                </div>
+                <div class="bg-amber-500 rounded-lg p-5 text-center">
+                    <h3 class="text-3xl font-bold text-white mb-1">{{ stats.used_memory_human }}</h3>
+                    <span class="text-sm text-amber-100">Memory Used</span>
+                </div>
+            </div>
+
+            <!-- Cache Key Distribution & Performance -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Cache Key Distribution -->
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-600">
+                        <h6 class="font-semibold text-gray-900 dark:text-white">Cache Key Distribution</h6>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-600 dark:text-gray-400">
+                                <tr>
+                                    <th class="px-4 py-3">Cache Type</th>
+                                    <th class="px-4 py-3">Key Count</th>
+                                    <th class="px-4 py-3">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cache_type, count in stats.key_counts.items() %}
+                                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-300 rounded">{{ cache_type }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ count }}</td>
+                                    <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+                                        {% if cache_type == 'team_stats' %}Team statistics cache
+                                        {% elif cache_type == 'standings' %}League standings cache
+                                        {% elif cache_type == 'player_stats' %}Player statistics cache
+                                        {% elif cache_type == 'matches' %}Match results cache
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Cache Performance -->
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-600">
+                        <h6 class="font-semibold text-gray-900 dark:text-white">Cache Performance</h6>
+                    </div>
+                    <div class="p-4">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hit/Miss Ratio</label>
+                            <div class="w-full bg-gray-200 rounded-full h-6 dark:bg-gray-600 overflow-hidden flex">
+                                <div class="bg-green-500 h-6 flex items-center justify-center text-xs font-medium text-white" style="width: {{ stats.cache_hit_ratio }}%">
+                                    Hits: {{ stats.cache_hit_ratio }}%
+                                </div>
+                                <div class="bg-red-500 h-6 flex items-center justify-center text-xs font-medium text-white" style="width: {{ 100 - stats.cache_hit_ratio }}%">
+                                    Misses: {{ 100 - stats.cache_hit_ratio }}%
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
+                                <span class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.keyspace_hits }}</span>
+                                <br><span class="text-xs text-gray-500 dark:text-gray-400">Total Hits</span>
+                            </div>
+                            <div class="text-center p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
+                                <span class="text-2xl font-bold text-red-600 dark:text-red-400">{{ stats.keyspace_misses }}</span>
+                                <br><span class="text-xs text-gray-500 dark:text-gray-400">Total Misses</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cache Testing -->
+            <div class="mt-6 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-600">
+                    <h6 class="font-semibold text-gray-900 dark:text-white">Cache Testing</h6>
+                </div>
+                <div class="p-4">
+                    <button id="test-cache" class="inline-flex items-center px-4 py-2 text-sm font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-300 dark:border-cyan-700 rounded-lg hover:bg-cyan-200 dark:hover:bg-cyan-900/50 transition-colors" data-test-url="{{ url_for('cache_admin.test_cache') }}">
+                        <i class="ti ti-flask mr-2"></i>Test Cache Connection
+                    </button>
+                    <div id="test-result" class="mt-3"></div>
+                </div>
+            </div>
+
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Refresh stats
+    document.getElementById('refresh-stats')?.addEventListener('click', function() {
+        const url = this.dataset.refreshUrl;
+        this.disabled = true;
+        this.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-2"></i>Refreshing...';
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                window.location.reload();
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to refresh stats',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="ti ti-refresh mr-2"></i>Refresh';
+            });
+    });
+
+    // Test cache
+    document.getElementById('test-cache')?.addEventListener('click', function() {
+        const url = this.dataset.testUrl;
+        const resultDiv = document.getElementById('test-result');
+
+        this.disabled = true;
+        this.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-2"></i>Testing...';
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.innerHTML = '<div class="flex items-center p-3 text-sm text-green-800 bg-green-100 dark:bg-green-900/30 dark:text-green-400 rounded-lg"><i class="ti ti-check mr-2"></i>Cache connection successful!</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="flex items-center p-3 text-sm text-red-800 bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-lg"><i class="ti ti-x mr-2"></i>Cache test failed: ' + data.message + '</div>';
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = '<div class="flex items-center p-3 text-sm text-red-800 bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-lg"><i class="ti ti-x mr-2"></i>Connection error</div>';
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="ti ti-flask mr-2"></i>Test Cache Connection';
+            });
+    });
+
+    // Clear all cache
+    document.querySelector('[data-action="clear-all-cache"]')?.addEventListener('click', function() {
+        Swal.fire({
+            title: 'Clear All Cache?',
+            text: this.dataset.confirmMessage,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            confirmButtonText: 'Yes, clear all',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = '{{ url_for("cache_admin.clear_all_cache") }}';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
