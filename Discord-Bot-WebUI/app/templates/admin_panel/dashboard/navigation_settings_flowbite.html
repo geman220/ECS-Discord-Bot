@@ -1,0 +1,280 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Navigation Settings{% endblock %}
+{% block panel_description %}Control sidebar navigation visibility{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Dashboard</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Navigation Settings</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Settings -->
+    <div class="lg:col-span-2">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-menu-2 mr-2"></i>Sidebar Navigation Settings
+                </h5>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Global Admin Only</span>
+            </div>
+            <div class="p-5">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                    Control which navigation items appear in the sidebar for non-admin users.
+                    Disabled items will be hidden from the sidebar but the routes will still be accessible if users know the URL.
+                </p>
+
+                <form id="navSettingsForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% for item in nav_items %}
+                        <div class="p-4 rounded-lg border {{ 'border-green-300 dark:border-green-600 bg-green-50/50 dark:bg-green-900/20' if item.enabled else 'border-gray-300 dark:border-gray-600' }}">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-start">
+                                    <i class="ti ti-{{ item.icon }} text-xl text-blue-500 mr-3 mt-1"></i>
+                                    <div>
+                                        <label class="font-medium text-gray-900 dark:text-white cursor-pointer" for="{{ item.key }}">
+                                            {{ item.label }}
+                                        </label>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ item.description }}</p>
+                                    </div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer nav-toggle"
+                                           id="{{ item.key }}"
+                                           name="{{ item.key }}"
+                                           {% if item.enabled %}checked{% endif %}
+                                           data-setting="{{ item.key }}">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-4 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                            <i class="ti ti-info-circle mr-1"></i>
+                            Changes are saved automatically
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button type="button" id="resetDefaults" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
+                                <i class="ti ti-restore mr-1"></i>Reset to Defaults
+                            </button>
+                            <button type="button" id="saveAll" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                                <i class="ti ti-device-floppy mr-1"></i>Save All
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Preview -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-eye mr-2"></i>Preview
+                </h6>
+            </div>
+            <div class="p-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    Non-admin users will see these navigation items:
+                </p>
+                <ul id="previewList" class="space-y-1">
+                    {% for item in nav_items %}
+                    <li class="preview-item flex items-center p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 {{ 'hidden' if not item.enabled }}" data-key="{{ item.key }}">
+                        <i class="ti ti-{{ item.icon }} text-blue-500 mr-2"></i>
+                        <span class="text-gray-900 dark:text-white">{{ item.label }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Recent Changes -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-history mr-2"></i>Recent Changes
+                </h6>
+            </div>
+            <div class="p-0">
+                {% if recent_changes %}
+                <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for change in recent_changes[:5] %}
+                    <li class="px-4 py-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-900 dark:text-white">{{ change.setting }}</span>
+                            {% if change.new_value == 'true' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Enabled</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Disabled</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {{ change.created_at.strftime('%Y-%m-%d %H:%M') if change.created_at else 'N/A' }}
+                        </p>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="p-4 text-center text-sm text-gray-500 dark:text-gray-400">No recent changes</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Auto-save on toggle change
+    document.querySelectorAll('.nav-toggle').forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const setting = this.dataset.setting;
+            const enabled = this.checked;
+
+            saveSetting(setting, enabled);
+            updatePreview(setting, enabled);
+            updateCardStyle(this);
+        });
+    });
+
+    // Reset to defaults
+    document.getElementById('resetDefaults').addEventListener('click', function() {
+        Swal.fire({
+            title: 'Reset to Defaults?',
+            text: 'This will enable all navigation items. Are you sure?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#1a472a',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, reset',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.querySelectorAll('.nav-toggle').forEach(toggle => {
+                    toggle.checked = true;
+                    updatePreview(toggle.dataset.setting, true);
+                    updateCardStyle(toggle);
+                });
+                saveAllSettings();
+            }
+        });
+    });
+
+    // Save all
+    document.getElementById('saveAll').addEventListener('click', saveAllSettings);
+
+    function saveSetting(setting, enabled) {
+        const data = {};
+        data[setting] = enabled;
+
+        fetch('{{ url_for("admin_panel.navigation_settings") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Setting saved', 'success');
+            } else {
+                showToast('Failed to save setting', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error saving setting', 'error');
+        });
+    }
+
+    function saveAllSettings() {
+        const data = {};
+        document.querySelectorAll('.nav-toggle').forEach(toggle => {
+            data[toggle.dataset.setting] = toggle.checked;
+        });
+
+        fetch('{{ url_for("admin_panel.navigation_settings") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('All settings saved successfully', 'success');
+            } else {
+                showToast('Failed to save settings', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error saving settings', 'error');
+        });
+    }
+
+    function updatePreview(setting, enabled) {
+        const previewItem = document.querySelector(`.preview-item[data-key="${setting}"]`);
+        if (previewItem) {
+            previewItem.classList.toggle('hidden', !enabled);
+        }
+    }
+
+    function updateCardStyle(toggle) {
+        const card = toggle.closest('.p-4.rounded-lg.border');
+        if (card) {
+            if (toggle.checked) {
+                card.classList.remove('border-gray-300', 'dark:border-gray-600');
+                card.classList.add('border-green-300', 'dark:border-green-600', 'bg-green-50/50', 'dark:bg-green-900/20');
+            } else {
+                card.classList.add('border-gray-300', 'dark:border-gray-600');
+                card.classList.remove('border-green-300', 'dark:border-green-600', 'bg-green-50/50', 'dark:bg-green-900/20');
+            }
+        }
+    }
+
+    function showToast(message, type) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: type === 'error' ? 'error' : 'success',
+                title: message,
+                showConfirmButton: false,
+                timer: 3000,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+    }
+});
+</script>
+{% endblock %}
