@@ -1,0 +1,237 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Match Results{% endblock %}
+{% block panel_description %}Enter and review match results{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.match_operations') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Match Operations</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Match Results</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Statistics Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.completed_matches }}</h3>
+                <span class="text-sm text-blue-700 dark:text-blue-300">Completed Matches</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                <i class="ti ti-check text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.pending_results }}</h3>
+                <span class="text-sm text-yellow-700 dark:text-yellow-300">Pending Results</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50">
+                <i class="ti ti-clock text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.recent_results|length }}</h3>
+                <span class="text-sm text-cyan-700 dark:text-cyan-300">Recent Results</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50">
+                <i class="ti ti-history text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Match Results Content -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Matches Awaiting Results -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-clock mr-2"></i>Matches Awaiting Results
+            </h5>
+        </div>
+        {% if pending_results %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Date</th>
+                        <th scope="col" class="px-4 py-3">Home Team</th>
+                        <th scope="col" class="px-4 py-3">Away Team</th>
+                        <th scope="col" class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in pending_results %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3">{{ match.date.strftime('%Y-%m-%d') if match.date else 'TBD' }}</td>
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</td>
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</td>
+                        <td class="px-4 py-3">
+                            <button type="button" class="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" data-action="enter-result" data-match-id="{{ match.id }}">
+                                Enter Result
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/50 mb-4">
+                <i class="ti ti-check-circle text-3xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <p class="text-gray-500 dark:text-gray-400">No matches awaiting results.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Results -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-history mr-2"></i>Recent Results
+            </h5>
+        </div>
+        {% if completed_matches %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Date</th>
+                        <th scope="col" class="px-4 py-3">Teams</th>
+                        <th scope="col" class="px-4 py-3">Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in completed_matches[:10] %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3">{{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}</td>
+                        <td class="px-4 py-3">
+                            <span class="font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
+                            <span class="text-gray-400 mx-1">vs</span>
+                            <span class="font-medium text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ match.home_team_score }}-{{ match.away_team_score }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+                <i class="ti ti-trophy text-3xl text-gray-400 dark:text-gray-500"></i>
+            </div>
+            <p class="text-gray-500 dark:text-gray-400">No completed matches found.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Enter Result Modal -->
+<div id="enterResultModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Enter Match Result</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="hideResultModal()">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <form id="enterResultForm" onsubmit="submitResult(event)">
+                <div class="p-4 md:p-5 space-y-4">
+                    <input type="hidden" id="result_match_id" name="match_id">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Home Score</label>
+                            <input type="number" min="0" name="home_score" id="home_score" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" required>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Away Score</label>
+                            <input type="number" min="0" name="away_score" id="away_score" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600 gap-3">
+                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" onclick="hideResultModal()">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Submit Result</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-action="enter-result"]');
+        if (btn) {
+            e.preventDefault();
+            document.getElementById('result_match_id').value = btn.dataset.matchId;
+            showResultModal();
+        }
+    });
+});
+
+function showResultModal() {
+    document.getElementById('enterResultModal').classList.remove('hidden');
+    document.getElementById('enterResultModal').classList.add('flex');
+}
+
+function hideResultModal() {
+    document.getElementById('enterResultModal').classList.add('hidden');
+    document.getElementById('enterResultModal').classList.remove('flex');
+}
+
+function submitResult(event) {
+    event.preventDefault();
+    const isDark = document.documentElement.classList.contains('dark');
+
+    Swal.fire({
+        title: 'Submit Result?',
+        text: 'This will record the match result.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Submit',
+        confirmButtonColor: '#1a472a',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            hideResultModal();
+            Swal.fire({
+                icon: 'success',
+                title: 'Result Submitted',
+                text: 'The match result has been recorded.',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then(() => location.reload());
+        }
+    });
+}
+</script>
+{% endblock %}
