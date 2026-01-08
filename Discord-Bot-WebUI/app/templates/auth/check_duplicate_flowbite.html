@@ -1,0 +1,109 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Duplicate Check - ECS{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <div class="w-full max-w-2xl">
+        <!-- ECS Branding -->
+        <div class="flex justify-center gap-6 mb-8">
+            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="h-16">
+            <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="h-16">
+        </div>
+
+        <!-- Duplicate Check Panel -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Is This You?</h1>
+                <p class="text-gray-600 dark:text-gray-400">We found existing profiles that might belong to you. Please review them carefully.</p>
+            </div>
+
+            <form method="POST" id="duplicate-check-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" id="player_id" name="player_id" value="">
+                <input type="hidden" id="action" name="action" value="">
+
+                <!-- Potential Duplicates -->
+                {% if duplicates %}
+                <div class="space-y-4 mb-6">
+                    {% for dup in duplicates %}
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 transition-colors cursor-pointer" data-player-id="{{ dup.id }}">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div class="flex-1">
+                                <h6 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{{ dup.name }}</h6>
+                                <div class="space-y-1 text-sm">
+                                    <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                        <i class="ti ti-mail"></i>
+                                        <span>{{ dup.email }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                        <i class="ti ti-target"></i>
+                                        <span>Match reason: {{ dup.reason.replace('_', ' ').title() }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                        <i class="ti ti-percentage"></i>
+                                        <span>Confidence: {{ (dup.confidence * 100)|round }}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button"
+                                    class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors js-claim-account"
+                                    data-action="claim-account"
+                                    data-player-id="{{ dup.id }}"
+                                    data-player-name="{{ dup.name }}"
+                                    data-player-email="{{ dup.email }}">
+                                <i class="ti ti-check mr-2"></i>
+                                <span>Yes, this is me</span>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- None of these option -->
+                <div class="p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                    <div class="text-center">
+                        <h6 class="text-lg font-semibold text-gray-900 dark:text-white mb-1 flex items-center justify-center gap-2">
+                            <i class="ti ti-user-plus"></i>
+                            <span>None of these are me</span>
+                        </h6>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Create a brand new account instead.</p>
+                        <button type="button"
+                                class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors js-create-new"
+                                id="create-new-btn"
+                                data-action="create-new-account">
+                            <i class="ti ti-plus mr-2"></i>
+                            <span>Create New Account</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Help Alert -->
+            <div class="mt-6 p-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 dark:border-blue-800">
+                <div class="flex">
+                    <i class="ti ti-info-circle text-lg mr-3 flex-shrink-0"></i>
+                    <div>
+                        <h6 class="font-semibold mb-1">Why are we asking?</h6>
+                        <p>We want to prevent duplicate accounts and ensure you don't lose your player history. If you claim an existing account, we'll send a verification email to the old address to confirm it's really you.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Back to login -->
+            <div class="mt-6 text-center">
+                <a href="{{ url_for('auth.login') }}" class="inline-flex items-center text-sm text-purple-600 dark:text-purple-400 hover:underline">
+                    <i class="ti ti-arrow-left mr-1"></i>
+                    <span>Back to Login</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='custom_js/check-duplicate.js') }}"></script>
+{% endblock %}

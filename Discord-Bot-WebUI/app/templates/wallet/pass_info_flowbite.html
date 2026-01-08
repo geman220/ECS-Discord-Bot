@@ -1,0 +1,189 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Digital Membership Card - ECS{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <div class="w-full max-w-md">
+        <!-- Logo -->
+        <div class="flex justify-center mb-6">
+            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS" class="h-16">
+        </div>
+
+        <!-- Main Panel -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
+            <!-- Success Icon -->
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
+                <i class="ti ti-wallet text-3xl text-green-600 dark:text-green-400"></i>
+            </div>
+
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Your Digital Membership Card</h1>
+            <p class="text-gray-600 dark:text-gray-400 mb-6">Add your card to Apple Wallet or Google Wallet for easy access at events</p>
+
+            <!-- Pass Details Card -->
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden mb-6 text-left">
+                <div class="flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-600 border-b border-gray-200 dark:border-gray-500">
+                    <i class="ti ti-id-badge text-green-600 dark:text-green-400"></i>
+                    <span class="font-semibold text-gray-900 dark:text-white">Membership Details</span>
+                </div>
+                <div class="p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Member Name</span>
+                        <span class="font-semibold text-gray-900 dark:text-white">{{ wallet_pass.member_name }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Type</span>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded">{{ wallet_pass.pass_type.name if wallet_pass.pass_type else 'Membership' }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Validity</span>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">{{ wallet_pass.display_validity }}</span>
+                    </div>
+                    {% if wallet_pass.team_name %}
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Team</span>
+                        <span class="text-gray-900 dark:text-white">{{ wallet_pass.team_name }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Status Alert -->
+            {% if wallet_pass.is_valid %}
+            <div class="flex items-center p-3 text-sm text-green-800 border border-green-300 rounded-lg bg-green-50 dark:bg-gray-700 dark:text-green-400 dark:border-green-800 mb-6">
+                <i class="ti ti-circle-check mr-2"></i>
+                <span>Your membership card is <strong>active</strong> and ready to use</span>
+            </div>
+            {% elif wallet_pass.status == 'voided' %}
+            <div class="flex items-center p-3 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50 dark:bg-gray-700 dark:text-red-400 dark:border-red-800 mb-6">
+                <i class="ti ti-ban mr-2"></i>
+                <span>This membership card has been <strong>voided</strong></span>
+            </div>
+            {% elif wallet_pass.is_expired %}
+            <div class="flex items-center p-3 text-sm text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50 dark:bg-gray-700 dark:text-yellow-400 dark:border-yellow-800 mb-6">
+                <i class="ti ti-clock mr-2"></i>
+                <span>This membership card has <strong>expired</strong></span>
+            </div>
+            {% endif %}
+
+            <!-- iOS Safari Warning (hidden by default) -->
+            <div id="safari-warning" class="hidden p-4 text-sm text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50 dark:bg-gray-700 dark:text-yellow-400 dark:border-yellow-800 text-left mb-6">
+                <div class="flex items-start">
+                    <i class="ti ti-alert-triangle mr-3 flex-shrink-0"></i>
+                    <div>
+                        <strong class="block mb-1">Safari Required for Apple Wallet</strong>
+                        <p class="mb-3">Apple Wallet passes can only be added from Safari on iOS. Please copy this link and open it in Safari.</p>
+                        <button type="button" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-yellow-800 bg-yellow-200 hover:bg-yellow-300 dark:bg-yellow-800 dark:text-yellow-300 dark:hover:bg-yellow-700 rounded-lg transition-colors" data-action="copy-link">
+                            <i class="ti ti-copy mr-1"></i>Copy Link for Safari
+                        </button>
+                        <span id="copy-feedback" class="hidden ml-2 text-xs text-green-600 dark:text-green-400">
+                            <i class="ti ti-check"></i> Copied!
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download Buttons -->
+            {% if wallet_pass.is_valid %}
+            <div class="space-y-3 mb-4">
+                <a href="{{ url_for('public_wallet.download_pass_by_token', token=download_token, platform='apple') }}"
+                   class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-black hover:bg-gray-800 rounded-lg transition-colors">
+                    <i class="ti ti-brand-apple mr-2"></i>Add to Apple Wallet
+                </a>
+                <a href="{{ url_for('public_wallet.download_pass_by_token', token=download_token, platform='google') }}"
+                   class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                    <i class="ti ti-brand-google mr-2"></i>Add to Google Wallet
+                </a>
+            </div>
+
+            <div class="flex items-center justify-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-6">
+                <i class="ti ti-download"></i>
+                <span>Downloaded {{ wallet_pass.download_count }} time{{ 's' if wallet_pass.download_count != 1 else '' }}</span>
+            </div>
+            {% endif %}
+
+            <!-- Instructions Accordion -->
+            <div class="space-y-2 text-left">
+                <details class="group bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <summary class="flex items-center justify-between cursor-pointer p-3 text-sm font-medium text-gray-900 dark:text-white">
+                        <span class="flex items-center gap-2">
+                            <i class="ti ti-brand-apple"></i>
+                            Apple Wallet Instructions
+                        </span>
+                        <i class="ti ti-chevron-down transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="px-3 pb-3">
+                        <ol class="text-sm text-gray-600 dark:text-gray-400 list-decimal list-inside space-y-1">
+                            <li>Tap "Add to Apple Wallet" button above</li>
+                            <li>Your iPhone will download the pass file</li>
+                            <li>Tap "Add" when prompted</li>
+                            <li>Your card will appear in the Wallet app</li>
+                        </ol>
+                    </div>
+                </details>
+
+                <details class="group bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <summary class="flex items-center justify-between cursor-pointer p-3 text-sm font-medium text-gray-900 dark:text-white">
+                        <span class="flex items-center gap-2">
+                            <i class="ti ti-brand-google"></i>
+                            Google Wallet Instructions
+                        </span>
+                        <i class="ti ti-chevron-down transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="px-3 pb-3">
+                        <ol class="text-sm text-gray-600 dark:text-gray-400 list-decimal list-inside space-y-1">
+                            <li>Tap "Add to Google Wallet" button above</li>
+                            <li>Sign in to your Google account if prompted</li>
+                            <li>Review the pass details</li>
+                            <li>Tap "Save" to add to your wallet</li>
+                        </ol>
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-6 text-center">
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Emerald City Supporters<br>
+                <span class="text-xs">Digital Membership Cards</span>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+(function() {
+    // Detect iOS non-Safari browsers
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+
+    if (isIOS && !isSafari) {
+        const warning = document.getElementById('safari-warning');
+        if (warning) {
+            warning.classList.remove('hidden');
+        }
+    }
+
+    // Copy link functionality
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-action="copy-link"]');
+        if (btn) {
+            e.preventDefault();
+            navigator.clipboard.writeText(window.location.href).then(function() {
+                const feedback = document.getElementById('copy-feedback');
+                if (feedback) {
+                    feedback.classList.remove('hidden');
+                    setTimeout(function() {
+                        feedback.classList.add('hidden');
+                    }, 2000);
+                }
+            });
+        }
+    });
+})();
+</script>
+{% endblock %}

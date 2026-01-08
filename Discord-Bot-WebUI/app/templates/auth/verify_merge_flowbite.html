@@ -1,0 +1,136 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Verify Account Merge - ECS{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <div class="w-full max-w-lg">
+        <!-- ECS Branding -->
+        <div class="flex justify-center gap-6 mb-8">
+            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="h-16">
+            <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="h-16">
+        </div>
+
+        <!-- Verification Panel -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+            {% if verification_sent %}
+            <!-- Verification Email Sent -->
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
+                    <i class="ti ti-mail-check text-3xl text-green-600 dark:text-green-400"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Verification Email Sent!</h1>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">
+                    We've sent a verification email to <strong class="text-gray-900 dark:text-white">{{ old_email }}</strong>.
+                    Please check your inbox and click the verification link to merge your accounts.
+                </p>
+
+                <div class="p-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-blue-400 dark:border-blue-800 text-left mb-6">
+                    <div class="flex">
+                        <i class="ti ti-info-circle text-lg mr-3 flex-shrink-0"></i>
+                        <div>
+                            <h6 class="font-semibold mb-2">What happens next?</h6>
+                            <ol class="list-decimal list-inside space-y-1">
+                                <li>Check your email inbox (and spam folder)</li>
+                                <li>Click the verification link in the email</li>
+                                <li>Your accounts will be automatically merged</li>
+                                <li>You'll be able to log in with your new Discord email</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <button type="button"
+                            class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors js-resend-email"
+                            id="resend-email-btn"
+                            data-action="resend-email">
+                        <i class="ti ti-mail mr-2"></i>
+                        <span>Resend Email</span>
+                    </button>
+                    <a href="{{ url_for('auth.login') }}"
+                       class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+                        <i class="ti ti-arrow-left mr-2"></i>
+                        <span>Back to Login</span>
+                    </a>
+                </div>
+            </div>
+
+            {% elif verification_token %}
+            <!-- Process Verification Token -->
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
+                    <i class="ti ti-loader-2 text-3xl text-purple-600 dark:text-purple-400 animate-spin"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Verifying Your Account...</h1>
+                <p class="text-gray-600 dark:text-gray-400">Please wait while we merge your accounts.</p>
+            </div>
+
+            <form method="POST" id="verify-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="token" value="{{ verification_token }}">
+            </form>
+
+            {% else %}
+            <!-- Invalid or Expired Link -->
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-900/30 mb-4">
+                    <i class="ti ti-alert-triangle text-3xl text-yellow-600 dark:text-yellow-400"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Invalid Verification Link</h1>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">
+                    This verification link is invalid or has expired. Verification links are only valid for 24 hours.
+                </p>
+
+                <div class="p-4 text-sm text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50 dark:bg-gray-700 dark:text-yellow-400 dark:border-yellow-800 text-left mb-6">
+                    <div class="flex">
+                        <i class="ti ti-clock text-lg mr-3 flex-shrink-0"></i>
+                        <div>
+                            <h6 class="font-semibold mb-1">What can you do?</h6>
+                            <p>Try logging in with Discord again. If you see the duplicate check screen, you can request a new verification email.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <a href="{{ url_for('auth.login') }}"
+                       class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors">
+                        <i class="ti ti-login mr-2"></i>
+                        <span>Try Logging In Again</span>
+                    </a>
+                    <a href="mailto:support@ecsfc.com"
+                       class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                        <i class="ti ti-mail mr-2"></i>
+                        <span>Contact Support</span>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if not verification_sent and not verification_token %}
+            <!-- Footer Help -->
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    Need help? <a href="mailto:support@ecsfc.com" class="text-purple-600 dark:text-purple-400 hover:underline">Contact Support</a>
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Pass data to JavaScript
+    window.verifyMergeData = {
+        hasToken: {{ 'true' if verification_token else 'false' }},
+        oldEmail: "{{ old_email if old_email else '' }}",
+        csrfToken: "{{ csrf_token() }}",
+        resendUrl: "{{ url_for('auth.resend_merge_verification') }}",
+        mergeData: {{ merge_data | tojson if merge_data else '{}' }}
+    };
+</script>
+<script src="{{ url_for('static', filename='custom_js/verify-merge.js') }}"></script>
+{% endblock %}

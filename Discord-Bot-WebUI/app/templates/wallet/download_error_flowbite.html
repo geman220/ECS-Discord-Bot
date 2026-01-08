@@ -1,0 +1,54 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Download Error - ECS{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <div class="w-full max-w-md text-center">
+        <!-- Logo -->
+        <div class="flex justify-center mb-6">
+            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS" class="h-16">
+        </div>
+
+        <!-- Error Panel -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+            <!-- Error Icon -->
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
+                <i class="ti ti-alert-triangle text-3xl text-red-600 dark:text-red-400"></i>
+            </div>
+
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{{ error or 'Error' }}</h1>
+            <p class="text-gray-600 dark:text-gray-400 mb-6">{{ message or 'An error occurred while processing your request.' }}</p>
+
+            <!-- Help Card -->
+            <div class="p-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-blue-400 dark:border-blue-800 text-left mb-6">
+                <div class="flex items-start">
+                    <i class="ti ti-help-circle text-lg mr-3 flex-shrink-0"></i>
+                    <div>
+                        <h6 class="font-semibold mb-1">Need help?</h6>
+                        <p>If you believe this is an error, please contact us at <a href="mailto:info@weareecs.com" class="text-blue-600 dark:text-blue-400 hover:underline">info@weareecs.com</a> with your order number.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-3">
+                <a href="https://weareecs.com/my-account/orders/" class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                    <i class="ti ti-shopping-cart mr-2"></i>View My Orders
+                </a>
+                <a href="https://weareecs.com" class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                    <i class="ti ti-home mr-2"></i>Return to ECS Website
+                </a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-6 text-center">
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Emerald City Supporters<br>
+                <span class="text-xs">Digital Membership Cards</span>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

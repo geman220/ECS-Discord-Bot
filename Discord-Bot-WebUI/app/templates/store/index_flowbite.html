@@ -1,0 +1,347 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}League Store{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-shopping-cart text-green-600"></i>
+                League Store
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">
+                Order league merchandise and equipment
+                {% if current_season %}
+                <br><span class="text-sm font-medium">Current Season: {{ current_season.name }}</span>
+                {% endif %}
+            </p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{{ url_for('store.my_orders') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-list mr-2"></i>My Orders
+            </a>
+            {% if user_roles and ('Pub League Admin' in user_roles or 'Global Admin' in user_roles) %}
+            <a href="{{ url_for('store.admin') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors">
+                <i class="ti ti-settings mr-2"></i>Store Administration
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Season Order Status -->
+    {% if has_ordered_this_season and current_season_order %}
+    <div class="flex items-center p-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 dark:border-blue-800">
+        <i class="ti ti-info-circle text-lg mr-3"></i>
+        <div>
+            <span class="font-semibold">You have already placed your order for {{ current_season.name }}!</span><br>
+            <span class="text-xs">You ordered: <strong>{{ current_season_order.item.name if current_season_order.item else 'Unknown Item' }}</strong>
+            {% if current_season_order.selected_color %} in {{ current_season_order.selected_color }}{% endif %}
+            {% if current_season_order.selected_size %} ({{ current_season_order.selected_size }}){% endif %}
+            - Status: {{ current_season_order.status }}</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Orders -->
+    {% if recent_orders %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Recent Orders</h5>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th class="px-4 py-3">Item</th>
+                        <th class="px-4 py-3">Quantity</th>
+                        <th class="px-4 py-3">Details</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3">Season</th>
+                        <th class="px-4 py-3">Order Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in recent_orders %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ order.item.name if order.item else 'Unknown Item' }}</td>
+                        <td class="px-4 py-3">{{ order.quantity }}</td>
+                        <td class="px-4 py-3">
+                            {% if order.selected_color %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ order.selected_color }}</span>
+                            {% endif %}
+                            {% if order.selected_size %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ order.selected_size }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if order.status == 'PENDING' %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">Pending</span>
+                            {% elif order.status == 'PROCESSING' %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">Processing</span>
+                            {% elif order.status == 'ORDERED' %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded">Ordered</span>
+                            {% elif order.status == 'DELIVERED' %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Delivered</span>
+                            {% elif order.status == 'CANCELLED' %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded">Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">{{ order.season.name if order.season else 'Unknown' }}</td>
+                        <td class="px-4 py-3">{{ format_pacific_time_short(order.order_date) if order.order_date else '' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Store Items -->
+    {% if items %}
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {% for item in items %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+            {% if item.image_url %}
+            <img src="{{ item.image_url }}" class="w-full h-48 object-cover" alt="{{ item.name }}">
+            {% else %}
+            <div class="w-full h-48 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                <i class="ti ti-photo text-4xl text-gray-400 dark:text-gray-500"></i>
+            </div>
+            {% endif %}
+
+            <div class="p-4 flex flex-col flex-1">
+                <div class="flex-1">
+                    <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{{ item.name }}</h5>
+                    {% if item.category %}
+                    <span class="inline-block px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded mb-2">{{ item.category }}</span>
+                    {% endif %}
+                    {% if item.description %}
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ item.description }}</p>
+                    {% endif %}
+
+                    <!-- Available Options -->
+                    {% if item.available_colors %}
+                    {% set colors = item.available_colors | replace("'", '"') | fromjson %}
+                    {% if colors %}
+                    <div class="mb-2">
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Available Colors:</span>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            {% for color in colors %}
+                            <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ color }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+
+                    {% if item.available_sizes %}
+                    {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
+                    {% if sizes %}
+                    <div class="mb-3">
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Available Sizes:</span>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            {% for size in sizes %}
+                            <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ size }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+
+                {% if has_ordered_this_season %}
+                <button type="button" class="w-full px-4 py-2 text-sm font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-not-allowed" disabled>
+                    <i class="ti ti-check mr-2"></i>Already Ordered This Season
+                </button>
+                {% else %}
+                <button type="button" class="w-full px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors" data-modal-target="orderModal{{ item.id }}" data-modal-toggle="orderModal{{ item.id }}">
+                    <i class="ti ti-shopping-cart mr-2"></i>Order Item
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- No Items -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-12 text-center">
+        <i class="ti ti-shopping-cart-off text-6xl text-gray-400 dark:text-gray-600 mb-4"></i>
+        <h4 class="text-xl font-semibold text-gray-500 dark:text-gray-400 mb-2">No Items Available</h4>
+        <p class="text-gray-400 dark:text-gray-500 mb-4">There are currently no items available in the store.</p>
+        {% if user_roles and ('Pub League Admin' in user_roles or 'Global Admin' in user_roles) %}
+        <a href="{{ url_for('store.admin') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+            <i class="ti ti-plus mr-2"></i>Add Items
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Order Modals -->
+{% for item in items %}
+<div id="orderModal{{ item.id }}" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <form class="order-form" data-item-id="{{ item.id }}">
+                <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-shopping-cart"></i>Order: {{ item.name }}
+                    </h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="orderModal{{ item.id }}">
+                        <i class="ti ti-x text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-4 md:p-5 space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="quantity" value="1">
+
+                    <div class="p-3 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 dark:border-blue-800">
+                        <i class="ti ti-info-circle mr-1"></i>
+                        <strong>Note:</strong> Both color and size selections are required for all orders.
+                    </div>
+
+                    {% if item.available_colors %}
+                    {% set colors = item.available_colors | replace("'", '"') | fromjson %}
+                    {% else %}
+                    {% set colors = [] %}
+                    {% endif %}
+
+                    <div>
+                        <label for="color{{ item.id }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Color *</label>
+                        <select id="color{{ item.id }}" name="color" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                            {% if colors|length == 0 %}
+                            <option value="N/A" selected>N/A (No color options)</option>
+                            {% elif colors|length == 1 %}
+                            <option value="{{ colors[0] }}" selected>{{ colors[0] }}</option>
+                            {% else %}
+                            <option value="">Select a color</option>
+                            {% for color in colors %}
+                            <option value="{{ color }}">{{ color }}</option>
+                            {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    {% if item.available_sizes %}
+                    {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
+                    {% else %}
+                    {% set sizes = [] %}
+                    {% endif %}
+
+                    <div>
+                        <label for="size{{ item.id }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Size *</label>
+                        <select id="size{{ item.id }}" name="size" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                            {% if sizes|length == 0 %}
+                            <option value="One Size" selected>One Size</option>
+                            {% elif sizes|length == 1 %}
+                            <option value="{{ sizes[0] }}" selected>{{ sizes[0] }}</option>
+                            {% else %}
+                            <option value="">Select a size</option>
+                            {% for size in sizes %}
+                            <option value="{{ size }}">{{ size }}</option>
+                            {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+                <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                    <button type="submit" class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">
+                        <i class="ti ti-shopping-cart mr-1"></i>Place Order
+                    </button>
+                    <button type="button" data-modal-hide="orderModal{{ item.id }}" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    document.querySelectorAll('.order-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const itemId = this.dataset.itemId;
+            const formData = new FormData(this);
+
+            const colorSelect = this.querySelector(`#color${itemId}`);
+            const sizeSelect = this.querySelector(`#size${itemId}`);
+
+            if (colorSelect && !colorSelect.value) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Color Required',
+                    text: 'Please select a color for this item.',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                return;
+            }
+
+            if (sizeSelect && !sizeSelect.value) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Size Required',
+                    text: 'Please select a size for this item.',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                return;
+            }
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-1"></i>Ordering...';
+
+            fetch(`{{ url_for('store.place_order', item_id=0) }}`.replace('0', itemId), {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Order Placed!',
+                        text: data.message,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(() => window.location.reload());
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Order Failed',
+                        text: data.message,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while placing your order.',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
