@@ -1,0 +1,383 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Docker Management{% endblock %}
+{% block panel_description %}Docker container monitoring and management{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">System</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Docker Management</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Header -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-box mr-2"></i>Docker Container Management
+        </h5>
+        <button id="docker-refresh-btn" type="button" class="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+            <i class="ti ti-refresh mr-1"></i>Refresh
+        </button>
+    </div>
+</div>
+
+<!-- Container Stats -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
+                <i class="ti ti-circle-check text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400" id="running-count">{{ containers|selectattr('status', 'startswith', 'running')|list|length }}</h3>
+            <span class="text-sm text-green-700 dark:text-green-300">Running</span>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
+                <i class="ti ti-circle-pause text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" id="stopped-count">{{ containers|rejectattr('status', 'startswith', 'running')|list|length }}</h3>
+            <span class="text-sm text-yellow-700 dark:text-yellow-300">Stopped</span>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
+                <i class="ti ti-box text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400" id="total-count">{{ containers|length }}</h3>
+            <span class="text-sm text-cyan-700 dark:text-cyan-300">Total Containers</span>
+        </div>
+    </div>
+</div>
+
+<!-- Container List -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-list mr-2"></i>Containers
+        </h5>
+    </div>
+    {% if containers %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Name</th>
+                    <th scope="col" class="px-4 py-3">Image</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">Ports</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="container-list">
+                {% for container in containers %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" data-container-id="{{ container.id }}">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <i class="ti ti-box mr-2 text-gray-400"></i>
+                            <span class="font-medium text-gray-900 dark:text-white">{{ container.name }}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ container.image }}</code>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if container.status.startswith('running') %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            <i class="ti ti-circle-check mr-1"></i>Running
+                        </span>
+                        {% elif container.status.startswith('exited') %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                            <i class="ti ti-circle-x mr-1"></i>Exited
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                            <i class="ti ti-circle-pause mr-1"></i>{{ container.status }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if container.ports %}
+                        <span class="text-sm">{{ container.ports }}</span>
+                        {% else %}
+                        <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            {% if container.status.startswith('running') %}
+                            <button type="button" class="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg js-manage-container" data-container-id="{{ container.id }}" data-container-action="stop" title="Stop">
+                                <i class="ti ti-player-stop"></i>
+                            </button>
+                            <button type="button" class="p-2 text-cyan-600 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg js-manage-container" data-container-id="{{ container.id }}" data-container-action="restart" title="Restart">
+                                <i class="ti ti-refresh"></i>
+                            </button>
+                            {% else %}
+                            <button type="button" class="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg js-manage-container" data-container-id="{{ container.id }}" data-container-action="start" title="Start">
+                                <i class="ti ti-player-play"></i>
+                            </button>
+                            {% endif %}
+                            <button type="button" class="p-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg js-view-logs" data-container-id="{{ container.id }}" data-container-name="{{ container.name }}" title="View Logs">
+                                <i class="ti ti-file-text"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-box-off text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Docker Containers Found</h5>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">No Docker containers found or Docker is not available.</p>
+        <a href="{{ url_for('admin_panel.health_dashboard') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+            <i class="ti ti-heartbeat mr-2"></i>Check System Health
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Quick Links -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-link mr-2"></i>Related Tools
+        </h5>
+    </div>
+    <div class="p-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <a href="{{ url_for('admin_panel.health_dashboard') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                <i class="ti ti-heartbeat mr-2"></i>Health Dashboard
+            </a>
+            <a href="{{ url_for('admin_panel.redis_management') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                <i class="ti ti-database mr-2"></i>Redis Management
+            </a>
+            <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                <i class="ti ti-activity mr-2"></i>System Monitoring
+            </a>
+            <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                <i class="ti ti-list-check mr-2"></i>Task Monitor
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Log Modal -->
+<div id="logModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80"></div>
+    <div class="relative p-4 w-full max-w-4xl max-h-full mx-auto mt-20">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white" id="logModalLabel">
+                    <i class="ti ti-file-text mr-2"></i>Container Logs
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="closeLogModal()">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4" style="max-height: 60vh; overflow-y: auto;">
+                <div id="log-content">
+                    <div class="text-center py-4">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+                        <p class="mt-2 text-gray-500 dark:text-gray-400">Loading logs...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
+                <button type="button" onclick="closeLogModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                    Close
+                </button>
+                <button type="button" onclick="refreshLogs()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <i class="ti ti-refresh mr-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentContainerId = null;
+
+function showLogModal() {
+    document.getElementById('logModal').classList.remove('hidden');
+    document.getElementById('logModal').classList.add('flex');
+}
+
+function closeLogModal() {
+    document.getElementById('logModal').classList.add('hidden');
+    document.getElementById('logModal').classList.remove('flex');
+}
+
+function viewContainerLogs(containerId, containerName) {
+    currentContainerId = containerId;
+
+    const logModalLabel = document.getElementById('logModalLabel');
+    if (logModalLabel) {
+        logModalLabel.innerHTML = `<i class="ti ti-file-text mr-2"></i>Logs: ${containerName}`;
+    }
+
+    const logContent = document.getElementById('log-content');
+    if (logContent) {
+        logContent.innerHTML = `
+            <div class="text-center py-4">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+                <p class="mt-2 text-gray-500 dark:text-gray-400">Loading logs...</p>
+            </div>
+        `;
+    }
+
+    showLogModal();
+    fetchLogs(containerId);
+}
+
+function fetchLogs(containerId) {
+    fetch('{{ url_for("admin_panel.docker_view_logs", container_id="CONTAINER_ID") }}'.replace('CONTAINER_ID', containerId))
+        .then(response => response.json())
+        .then(data => {
+            const logContent = document.getElementById('log-content');
+            if (!logContent) return;
+
+            if (data.error) {
+                logContent.innerHTML = `<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-red-900/50 dark:text-red-400">${data.error}</div>`;
+            } else {
+                const logs = data.logs || 'No logs available';
+                logContent.innerHTML = `<pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-xs" style="max-height: 400px;">${escapeHtml(logs)}</pre>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching logs:', error);
+            const logContent = document.getElementById('log-content');
+            if (logContent) {
+                logContent.innerHTML = `<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-red-900/50 dark:text-red-400">Error loading logs: ${error}</div>`;
+            }
+        });
+}
+
+function refreshLogs() {
+    if (currentContainerId) {
+        const logContent = document.getElementById('log-content');
+        if (logContent) {
+            logContent.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+                    <p class="mt-2 text-gray-500 dark:text-gray-400">Refreshing logs...</p>
+                </div>
+            `;
+        }
+        fetchLogs(currentContainerId);
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function manageContainer(containerId, action, button) {
+    const isDark = document.documentElement.classList.contains('dark');
+    const originalHtml = button.innerHTML;
+    button.innerHTML = '<i class="ti ti-loader animate-spin"></i>';
+    button.disabled = true;
+
+    fetch('{{ url_for("admin_panel.docker_manage_container", container_id="CONTAINER_ID", action="ACTION") }}'
+        .replace('CONTAINER_ID', containerId)
+        .replace('ACTION', action), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.error,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            } else {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: data.message || `Container ${action} completed`,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => {
+                    location.reload();
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error managing container: ' + error,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        })
+        .finally(() => {
+            button.innerHTML = originalHtml;
+            button.disabled = false;
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Refresh button
+    const refreshBtn = document.getElementById('docker-refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            location.reload();
+        });
+    }
+
+    // Container action buttons
+    document.querySelectorAll('.js-manage-container').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const containerId = this.dataset.containerId;
+            const action = this.dataset.containerAction;
+            if (containerId && action) {
+                manageContainer(containerId, action, this);
+            }
+        });
+    });
+
+    // View logs buttons
+    document.querySelectorAll('.js-view-logs').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const containerId = this.dataset.containerId;
+            const containerName = this.dataset.containerName;
+            if (containerId) {
+                viewContainerLogs(containerId, containerName);
+            }
+        });
+    });
+
+    // Close modal on backdrop click
+    document.getElementById('logModal').addEventListener('click', function(e) {
+        if (e.target === this || e.target.classList.contains('bg-gray-900')) {
+            closeLogModal();
+        }
+    });
+});
+</script>
+{% endblock %}

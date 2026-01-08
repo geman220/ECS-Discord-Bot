@@ -1,0 +1,337 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Draft Cache Statistics{% endblock %}
+{% block panel_description %}Draft cache performance and warmth monitoring{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">System</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.redis_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Redis</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Draft Cache</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Header -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-chart-bar mr-2"></i>Draft Cache Statistics
+        </h5>
+        <button id="draft-cache-stats-refresh-btn" type="button" class="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+            <i class="ti ti-refresh mr-1"></i>Refresh
+        </button>
+    </div>
+</div>
+
+<!-- Cache Overview Stats -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
+                <i class="ti ti-database text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="total-keys">{{ cache_stats.total_keys|default(0) }}</h3>
+            <span class="text-sm text-blue-700 dark:text-blue-300">Total Cache Keys</span>
+        </div>
+    </div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
+                <i class="ti ti-check text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400" id="hit-rate">{{ cache_stats.hit_rate|default(0) }}%</h3>
+            <span class="text-sm text-green-700 dark:text-green-300">Cache Hit Rate</span>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
+                <i class="ti ti-users text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400" id="player-keys">{{ cache_stats.player_keys|default(0) }}</h3>
+            <span class="text-sm text-cyan-700 dark:text-cyan-300">Player Data Keys</span>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
+                <i class="ti ti-shield text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" id="team-keys">{{ cache_stats.team_keys|default(0) }}</h3>
+            <span class="text-sm text-yellow-700 dark:text-yellow-300">Team Data Keys</span>
+        </div>
+    </div>
+</div>
+
+<!-- League Cache Status -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-trophy mr-2"></i>League Cache Status
+        </h5>
+    </div>
+    {% if leagues %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">League</th>
+                    <th scope="col" class="px-4 py-3">Cache Status</th>
+                    <th scope="col" class="px-4 py-3">Last Warmed</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for league in leagues %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <i class="ti ti-trophy mr-2 text-gray-400"></i>
+                            <span class="font-medium text-gray-900 dark:text-white">{{ league }}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if league_cache_status.get(league, {}).get('warmed', false) %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            <i class="ti ti-check mr-1"></i>Warmed
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                            <i class="ti ti-alert-triangle mr-1"></i>Cold
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">{{ league_cache_status.get(league, {}).get('last_warmed', 'Never') }}</td>
+                    <td class="px-4 py-3">
+                        <button type="button" class="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 js-warm-cache" data-league="{{ league }}">
+                            <i class="ti ti-flame mr-1"></i>Warm Cache
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-trophy-off text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Active Leagues Found</h5>
+        <p class="text-gray-500 dark:text-gray-400">No active leagues found to warm cache for.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- TTL Settings & Performance -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <!-- TTL Settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-clock mr-2"></i>TTL Settings
+            </h5>
+        </div>
+        <div class="p-5">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <tbody>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 font-medium text-gray-900 dark:text-white">Player Data TTL</td>
+                        <td class="py-3" id="player-ttl">Loading...</td>
+                    </tr>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 font-medium text-gray-900 dark:text-white">Analytics TTL</td>
+                        <td class="py-3" id="analytics-ttl">Loading...</td>
+                    </tr>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 font-medium text-gray-900 dark:text-white">Team Data TTL</td>
+                        <td class="py-3" id="team-ttl">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 font-medium text-gray-900 dark:text-white">Availability TTL</td>
+                        <td class="py-3" id="availability-ttl">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Cache Performance -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-chart-line mr-2"></i>Cache Performance
+            </h5>
+        </div>
+        <div class="p-5">
+            <div class="mb-4">
+                <div class="flex justify-between mb-1">
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Hit Rate</span>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300" id="hit-rate-percent">{{ cache_stats.hit_rate|default(0) }}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700">
+                    <div id="hit-rate-bar" class="bg-green-600 h-4 rounded-full" style="width: {{ cache_stats.hit_rate|default(0) }}%"></div>
+                </div>
+            </div>
+            <div>
+                <div class="flex justify-between mb-1">
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Memory Usage</span>
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300" id="memory-percent">{{ cache_stats.memory_usage_percent|default(0) }}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700">
+                    <div id="memory-bar" class="bg-cyan-600 h-4 rounded-full" style="width: {{ cache_stats.memory_usage_percent|default(0) }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-link mr-2"></i>Related Tools
+        </h5>
+    </div>
+    <div class="p-5">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <a href="{{ url_for('admin_panel.redis_management') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                <i class="ti ti-database mr-2"></i>Redis Management
+            </a>
+            <a href="{{ url_for('admin_panel.cache_management') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                <i class="ti ti-database mr-2"></i>Cache Management
+            </a>
+            <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                <i class="ti ti-activity mr-2"></i>System Monitoring
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadCacheStats();
+
+    // Refresh button
+    const refreshBtn = document.getElementById('draft-cache-stats-refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            location.reload();
+        });
+    }
+
+    // Warm cache buttons
+    document.querySelectorAll('.js-warm-cache').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const leagueName = this.dataset.league;
+            if (leagueName) {
+                warmCache(leagueName, this);
+            }
+        });
+    });
+});
+
+function loadCacheStats() {
+    fetch('{{ url_for("admin_panel.redis_draft_cache_api") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error loading cache stats:', data.error);
+                return;
+            }
+
+            // Update TTL settings
+            if (data.ttl_settings) {
+                const playerTtlEl = document.getElementById('player-ttl');
+                if (playerTtlEl) playerTtlEl.textContent = formatTTL(data.ttl_settings.player_data);
+
+                const analyticsTtlEl = document.getElementById('analytics-ttl');
+                if (analyticsTtlEl) analyticsTtlEl.textContent = formatTTL(data.ttl_settings.analytics);
+
+                const teamTtlEl = document.getElementById('team-ttl');
+                if (teamTtlEl) teamTtlEl.textContent = formatTTL(data.ttl_settings.team_data);
+
+                const availabilityTtlEl = document.getElementById('availability-ttl');
+                if (availabilityTtlEl) availabilityTtlEl.textContent = formatTTL(data.ttl_settings.availability);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading cache stats:', error);
+        });
+}
+
+function formatTTL(seconds) {
+    if (!seconds) return 'Not set';
+    if (seconds < 60) return seconds + ' seconds';
+    if (seconds < 3600) return Math.round(seconds / 60) + ' minutes';
+    if (seconds < 86400) return Math.round(seconds / 3600) + ' hours';
+    return Math.round(seconds / 86400) + ' days';
+}
+
+function warmCache(leagueName, button) {
+    const isDark = document.documentElement.classList.contains('dark');
+    const originalHtml = button.innerHTML;
+    button.innerHTML = '<i class="ti ti-loader spin mr-1"></i>Warming...';
+    button.disabled = true;
+
+    fetch('{{ url_for("admin_panel.redis_warm_draft_cache", league_name="LEAGUE_NAME") }}'.replace('LEAGUE_NAME', leagueName), { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.error,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            } else {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: data.message || 'Cache warmed successfully',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => {
+                    location.reload();
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error warming cache: ' + error,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        })
+        .finally(() => {
+            button.innerHTML = originalHtml;
+            button.disabled = false;
+        });
+}
+</script>
+{% endblock %}

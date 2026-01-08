@@ -1,0 +1,452 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Redis Management{% endblock %}
+{% block panel_description %}Redis connection pool monitoring and management{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">System</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Redis Management</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Header Actions -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-4 p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-database mr-2"></i>Redis Connection Statistics
+        </h5>
+        <div class="flex flex-wrap gap-2">
+            <button id="redis-mgmt-refresh-btn" type="button" class="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="ti ti-refresh mr-1"></i>Refresh
+            </button>
+            <button id="cleanup-btn" type="button" class="px-3 py-2 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600">
+                <i class="ti ti-trash mr-1"></i>Cleanup
+            </button>
+            <button id="test-btn" type="button" class="px-3 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600">
+                <i class="ti ti-plug mr-1"></i>Test Connection
+            </button>
+            <a href="{{ url_for('admin_panel.redis_draft_cache_stats') }}" class="px-3 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600">
+                <i class="ti ti-chart-bar mr-1"></i>Draft Cache
+            </a>
+        </div>
+    </div>
+    <div class="p-5">
+        <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="auto-refresh" class="sr-only peer" checked>
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Auto-refresh every 5 seconds</span>
+        </label>
+        <span id="last-updated" class="ml-3 text-sm text-gray-500 dark:text-gray-400"></span>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <!-- Connection Health -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-heart mr-2"></i>Connection Health
+            </h5>
+        </div>
+        <div class="p-5">
+            <div id="health-status" class="text-center py-3">
+                {% if connection_health.overall %}
+                <span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-2"></span>
+                <span class="text-green-600 dark:text-green-400">All connections healthy</span>
+                {% else %}
+                <span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-2"></span>
+                <span class="text-red-600 dark:text-red-400">Connection issues detected</span>
+                {% endif %}
+            </div>
+            <hr class="my-4 border-gray-200 dark:border-gray-700">
+            <div class="flex justify-around">
+                <div class="text-center">
+                    <span class="block text-sm text-gray-500 dark:text-gray-400">Decoded Client</span>
+                    <span id="decoded-status" class="text-2xl {% if connection_health.decoded_client %}text-green-500{% else %}text-red-500{% endif %}">
+                        {{ "&#10003;" if connection_health.decoded_client else "&#10007;" }}
+                    </span>
+                </div>
+                <div class="text-center">
+                    <span class="block text-sm text-gray-500 dark:text-gray-400">Raw Client</span>
+                    <span id="raw-status" class="text-2xl {% if connection_health.raw_client %}text-green-500{% else %}text-red-500{% endif %}">
+                        {{ "&#10003;" if connection_health.raw_client else "&#10007;" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Max Connections -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-chart-dots mr-2"></i>Max Connections
+            </h5>
+        </div>
+        <div class="p-5 flex items-center justify-center">
+            <div class="text-center">
+                <h2 class="text-4xl font-bold text-gray-900 dark:text-white" id="redis-mgmt-max-connections">{{ stats.pool_stats.max_connections|default(0) }}</h2>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Maximum pool size</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pool Utilization -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-percentage mr-2"></i>Pool Utilization
+            </h5>
+        </div>
+        <div class="p-5 flex items-center justify-center">
+            <div class="text-center">
+                <h2 class="text-4xl font-bold text-gray-900 dark:text-white" id="utilization">{{ stats.pool_stats.utilization_percent|default(0) }}%</h2>
+                <div class="w-48 bg-gray-200 rounded-full h-2.5 mt-2 dark:bg-gray-700">
+                    <div id="utilization-bar" class="h-2.5 rounded-full {% if stats.pool_stats.utilization_percent|default(0) > 90 %}bg-red-600{% elif stats.pool_stats.utilization_percent|default(0) > 75 %}bg-yellow-400{% else %}bg-green-600{% endif %}" style="width: {{ stats.pool_stats.utilization_percent|default(0) }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Connection Pool & Server Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <!-- Connection Pool Statistics -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-pool mr-2"></i>Connection Pool Statistics
+            </h5>
+        </div>
+        <div class="p-5">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <tbody>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 font-medium text-gray-900 dark:text-white">Pool Initialized</td>
+                        <td class="py-3">
+                            <span id="pool-initialized" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if stats.connection_pool_initialized %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% endif %}">
+                                {{ "Yes" if stats.connection_pool_initialized else "No" }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 font-medium text-gray-900 dark:text-white">Created Connections</td>
+                        <td class="py-3" id="created-connections">{{ stats.pool_stats.created_connections|default(0) }}</td>
+                    </tr>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 font-medium text-gray-900 dark:text-white">Available Connections</td>
+                        <td class="py-3 text-green-600 dark:text-green-400" id="available-connections">{{ stats.pool_stats.available_connections|default(0) }}</td>
+                    </tr>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 font-medium text-gray-900 dark:text-white">In-Use Connections</td>
+                        <td class="py-3 text-yellow-600 dark:text-yellow-400" id="in-use-connections">{{ stats.pool_stats.in_use_connections|default(0) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 font-medium text-gray-900 dark:text-white">Last Health Check</td>
+                        <td class="py-3" id="last-health-check">{{ stats.last_health_check|default("Never") }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Redis Server Metrics -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-server mr-2"></i>Redis Server Metrics
+            </h5>
+        </div>
+        <div class="p-5">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <tbody>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 font-medium text-gray-900 dark:text-white">Connected Clients</td>
+                        <td class="py-3" id="connected-clients">{{ server_info.connected_clients|default("N/A") }}</td>
+                    </tr>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 font-medium text-gray-900 dark:text-white">Memory Usage</td>
+                        <td class="py-3" id="memory-usage">{{ server_info.used_memory_human|default("N/A") }}</td>
+                    </tr>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 font-medium text-gray-900 dark:text-white">Commands Processed</td>
+                        <td class="py-3" id="commands-processed">{{ server_info.total_commands_processed|default("N/A") }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 font-medium text-gray-900 dark:text-white">Operations/sec</td>
+                        <td class="py-3" id="ops-per-sec">{{ server_info.instantaneous_ops_per_sec|default("N/A") }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Connection Test Results -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-test-pipe mr-2"></i>Connection Test Results
+        </h5>
+    </div>
+    <div class="p-5">
+        <div id="test-results">
+            <p class="text-gray-500 dark:text-gray-400"><i class="ti ti-info-circle mr-2"></i>Click "Test Connection" to run connection tests</p>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-link mr-2"></i>Related Tools
+        </h5>
+    </div>
+    <div class="p-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <a href="{{ url_for('admin_panel.health_dashboard') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                <i class="ti ti-heartbeat mr-2"></i>Health Dashboard
+            </a>
+            <a href="{{ url_for('admin_panel.cache_management') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                <i class="ti ti-database mr-2"></i>Cache Management
+            </a>
+            <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                <i class="ti ti-activity mr-2"></i>System Monitoring
+            </a>
+            <a href="{{ url_for('admin_panel.redis_draft_cache_stats') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
+                <i class="ti ti-chart-bar mr-2"></i>Draft Cache Stats
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+<script>
+let autoRefreshInterval;
+
+function updateStats() {
+    fetch('{{ url_for("admin_panel.redis_stats_api") }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error fetching stats:', data.error);
+                return;
+            }
+
+            // Update health status
+            const healthIndicator = data.health?.overall ? 'bg-green-500' : 'bg-red-500';
+            const healthText = data.health?.overall ? 'All connections healthy' : 'Connection issues detected';
+            const healthClass = data.health?.overall ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+            const healthStatusEl = document.getElementById('health-status');
+            if (healthStatusEl) {
+                healthStatusEl.innerHTML = `<span class="inline-block w-3 h-3 rounded-full ${healthIndicator} mr-2"></span><span class="${healthClass}">${healthText}</span>`;
+            }
+
+            // Update client status
+            const decodedStatusEl = document.getElementById('decoded-status');
+            if (decodedStatusEl) {
+                decodedStatusEl.innerHTML = data.health?.decoded_client ? "&#10003;" : "&#10007;";
+                decodedStatusEl.className = data.health?.decoded_client ? "text-2xl text-green-500" : "text-2xl text-red-500";
+            }
+
+            const rawStatusEl = document.getElementById('raw-status');
+            if (rawStatusEl) {
+                rawStatusEl.innerHTML = data.health?.raw_client ? "&#10003;" : "&#10007;";
+                rawStatusEl.className = data.health?.raw_client ? "text-2xl text-green-500" : "text-2xl text-red-500";
+            }
+
+            // Update pool stats
+            if (data.pool_stats) {
+                const maxConnEl = document.getElementById('redis-mgmt-max-connections');
+                if (maxConnEl) maxConnEl.textContent = data.pool_stats.max_connections || 0;
+
+                const utilization = data.pool_stats.utilization_percent || 0;
+                const utilizationEl = document.getElementById('utilization');
+                if (utilizationEl) utilizationEl.textContent = utilization + '%';
+
+                const utilizationBar = document.getElementById('utilization-bar');
+                if (utilizationBar) {
+                    utilizationBar.style.width = utilization + '%';
+                    utilizationBar.className = 'h-2.5 rounded-full ' +
+                        (utilization > 90 ? 'bg-red-600' : utilization > 75 ? 'bg-yellow-400' : 'bg-green-600');
+                }
+
+                const createdConnEl = document.getElementById('created-connections');
+                if (createdConnEl) createdConnEl.textContent = data.pool_stats.created_connections || 0;
+
+                const availableConnEl = document.getElementById('available-connections');
+                if (availableConnEl) availableConnEl.textContent = data.pool_stats.available_connections || 0;
+
+                const inUseConnEl = document.getElementById('in-use-connections');
+                if (inUseConnEl) inUseConnEl.textContent = data.pool_stats.in_use_connections || 0;
+            }
+
+            // Update server metrics
+            if (data.server_metrics) {
+                const connClientsEl = document.getElementById('connected-clients');
+                if (connClientsEl) connClientsEl.textContent = data.server_metrics.connected_clients || 'N/A';
+
+                const memUsageEl = document.getElementById('memory-usage');
+                if (memUsageEl) memUsageEl.textContent = data.server_metrics.used_memory_human || 'N/A';
+
+                const cmdsProcEl = document.getElementById('commands-processed');
+                if (cmdsProcEl) cmdsProcEl.textContent = data.server_metrics.total_commands_processed || 'N/A';
+
+                const opsSecEl = document.getElementById('ops-per-sec');
+                if (opsSecEl) opsSecEl.textContent = data.server_metrics.instantaneous_ops_per_sec || 'N/A';
+            }
+
+            // Update last updated time
+            const lastUpdatedEl = document.getElementById('last-updated');
+            if (lastUpdatedEl) lastUpdatedEl.textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+        })
+        .catch(error => {
+            console.error('Error updating stats:', error);
+        });
+}
+
+function testConnection() {
+    const testButton = document.getElementById('test-btn');
+    if (!testButton) return;
+
+    const originalText = testButton.innerHTML;
+    testButton.innerHTML = '<i class="ti ti-loader spin mr-1"></i>Testing...';
+    testButton.disabled = true;
+
+    fetch('{{ url_for("admin_panel.redis_test_connection") }}')
+        .then(response => response.json())
+        .then(data => {
+            const resultsDiv = document.getElementById('test-results');
+            if (!resultsDiv) return;
+
+            if (data.error) {
+                resultsDiv.innerHTML = `<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-red-900/50 dark:text-red-400">${data.error}</div>`;
+            } else {
+                let html = '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
+                for (const [testName, result] of Object.entries(data.tests)) {
+                    const badgeClass = result.status === 'success' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+                    const iconClass = result.status === 'success' ? 'ti-check text-green-500' : 'ti-x text-red-500';
+                    html += `
+                        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                            <div class="flex items-center mb-2">
+                                <i class="ti ${iconClass} mr-2"></i>
+                                <h6 class="font-medium text-gray-900 dark:text-white capitalize">${testName.replace(/_/g, ' ')}</h6>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}">${result.status}</span>
+                            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">${result.message}</p>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+                resultsDiv.innerHTML = html;
+            }
+        })
+        .catch(error => {
+            const resultsDiv = document.getElementById('test-results');
+            if (resultsDiv) {
+                resultsDiv.innerHTML = `<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-red-900/50 dark:text-red-400">Error running tests: ${error}</div>`;
+            }
+        })
+        .finally(() => {
+            testButton.innerHTML = originalText;
+            testButton.disabled = false;
+        });
+}
+
+function cleanupConnections() {
+    const cleanupButton = document.getElementById('cleanup-btn');
+    if (!cleanupButton) return;
+
+    const originalText = cleanupButton.innerHTML;
+    cleanupButton.innerHTML = '<i class="ti ti-loader spin mr-1"></i>Cleaning...';
+    cleanupButton.disabled = true;
+
+    const isDark = document.documentElement.classList.contains('dark');
+
+    fetch('{{ url_for("admin_panel.redis_cleanup_connections") }}', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error during cleanup: ' + data.error,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            } else {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Connection cleanup completed successfully',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                updateStats();
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error during cleanup: ' + error,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        })
+        .finally(() => {
+            cleanupButton.innerHTML = originalText;
+            cleanupButton.disabled = false;
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Event listeners
+    const refreshBtn = document.getElementById('redis-mgmt-refresh-btn');
+    if (refreshBtn) refreshBtn.addEventListener('click', updateStats);
+
+    const testBtn = document.getElementById('test-btn');
+    if (testBtn) testBtn.addEventListener('click', testConnection);
+
+    const cleanupBtn = document.getElementById('cleanup-btn');
+    if (cleanupBtn) cleanupBtn.addEventListener('click', cleanupConnections);
+
+    const autoRefreshToggle = document.getElementById('auto-refresh');
+    if (autoRefreshToggle) {
+        autoRefreshToggle.addEventListener('change', function() {
+            if (this.checked) {
+                autoRefreshInterval = setInterval(updateStats, 5000);
+            } else {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+
+        // Initialize auto-refresh
+        if (autoRefreshToggle.checked) {
+            autoRefreshInterval = setInterval(updateStats, 5000);
+        }
+    }
+
+    // Initial load
+    updateStats();
+});
+</script>
+{% endblock %}

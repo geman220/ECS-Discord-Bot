@@ -1,0 +1,337 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Task Monitor{% endblock %}
+{% block panel_description %}Background task monitoring and management{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">System Monitoring</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Task Monitor</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Task Monitor Overview -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
+                <i class="ti ti-player-play text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ running_tasks or 0 }}</h3>
+            <span class="text-sm text-green-700 dark:text-green-300">Running Tasks</span>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
+                <i class="ti ti-clock-pause text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ queued_tasks or 0 }}</h3>
+            <span class="text-sm text-yellow-700 dark:text-yellow-300">Queued Tasks</span>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
+                <i class="ti ti-check text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ completed_today or 0 }}</h3>
+            <span class="text-sm text-cyan-700 dark:text-cyan-300">Completed Today</span>
+        </div>
+    </div>
+    <div class="bg-red-50 dark:bg-red-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/50 mb-3">
+                <i class="ti ti-alert-circle text-2xl text-red-600 dark:text-red-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-red-600 dark:text-red-400">{{ failed_tasks or 0 }}</h3>
+            <span class="text-sm text-red-700 dark:text-red-300">Failed Tasks</span>
+        </div>
+    </div>
+</div>
+
+<!-- Active Tasks -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-activity mr-2"></i>Active Tasks
+        </h5>
+        <button type="button" class="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="refresh-tasks">
+            <i class="ti ti-refresh mr-1"></i>Refresh
+        </button>
+    </div>
+    {% if active_tasks %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Task ID</th>
+                    <th scope="col" class="px-4 py-3">Name</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">Started</th>
+                    <th scope="col" class="px-4 py-3">Duration</th>
+                    <th scope="col" class="px-4 py-3">Progress</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in active_tasks %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3">
+                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ task.id[:8] }}...</code>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="font-medium text-gray-900 dark:text-white">{{ task.name }}</span>
+                        {% if task.description %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ task.description }}</p>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if task.status == 'running' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% elif task.status == 'queued' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% elif task.status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                            {{ task.status|title }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">{{ task.started_at.strftime('%H:%M:%S') if task.started_at else 'Not started' }}</td>
+                    <td class="px-4 py-3 text-sm">
+                        {% if task.started_at %}
+                        {% set duration = (now - task.started_at).total_seconds() %}
+                        {{ (duration // 60)|int }}m {{ (duration % 60)|int }}s
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if task.progress is not none %}
+                        <div class="flex items-center">
+                            <div class="w-24 bg-gray-200 rounded-full h-2 dark:bg-gray-700 mr-2">
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: {{ task.progress }}%"></div>
+                            </div>
+                            <span class="text-xs">{{ task.progress }}%</span>
+                        </div>
+                        {% else %}
+                        <span class="text-gray-400 text-sm">Unknown</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            <button type="button" class="p-2 text-cyan-600 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg" data-action="view-task-details" data-task-id="{{ task.id }}" title="View Details">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            {% if task.status in ['running', 'queued'] %}
+                            <button type="button" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg" data-action="cancel-task" data-task-id="{{ task.id }}" title="Cancel">
+                                <i class="ti ti-x"></i>
+                            </button>
+                            {% endif %}
+                            <button type="button" class="p-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" data-action="view-task-logs" data-task-id="{{ task.id }}" title="View Logs">
+                                <i class="ti ti-file-text"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-clock-pause text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Active Tasks</h5>
+        <p class="text-gray-500 dark:text-gray-400">All background tasks are currently idle.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Task Queue & History -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <!-- Task Queue -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-list mr-2"></i>Task Queue
+            </h5>
+        </div>
+        {% if queued_tasks_list %}
+        <div class="p-5 space-y-3">
+            {% for task in queued_tasks_list[:5] %}
+            <div class="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div>
+                    <span class="font-medium text-gray-900 dark:text-white">{{ task.name }}</span>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Queued {{ task.queued_at.strftime('%H:%M:%S') if task.queued_at else 'Unknown' }}</p>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Queued</span>
+            </div>
+            {% endfor %}
+            {% if queued_tasks_list|length > 5 %}
+            <div class="text-center">
+                <span class="text-sm text-gray-500 dark:text-gray-400">{{ queued_tasks_list|length - 5 }} more tasks in queue...</span>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+                <i class="ti ti-list-x text-3xl text-gray-400 dark:text-gray-500"></i>
+            </div>
+            <p class="text-gray-500 dark:text-gray-400">No tasks in queue</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Completed -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-history mr-2"></i>Recent Completed
+            </h5>
+            <a href="{{ url_for('admin_panel.task_history') }}" class="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                View All
+            </a>
+        </div>
+        {% if recent_completed %}
+        <div class="p-5 space-y-3">
+            {% for task in recent_completed[:5] %}
+            <div class="flex items-start justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div>
+                    <span class="font-medium text-gray-900 dark:text-white">{{ task.name }}</span>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Completed {{ task.completed_at.strftime('%H:%M:%S') if task.completed_at else 'Unknown' }}
+                        {% if task.duration %}({{ task.duration }}s){% endif %}
+                    </p>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if task.status == 'completed' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% elif task.status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                    {{ task.status|title }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+                <i class="ti ti-history-off text-3xl text-gray-400 dark:text-gray-500"></i>
+            </div>
+            <p class="text-gray-500 dark:text-gray-400">No recent tasks</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Task Statistics -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-chart-bar mr-2"></i>Task Statistics (Last 24 Hours)
+        </h5>
+    </div>
+    <div class="p-5">
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div class="text-center p-4 border-r border-gray-200 dark:border-gray-700">
+                <h4 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ task_stats.completed or 0 }}</h4>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Completed</span>
+            </div>
+            <div class="text-center p-4 border-r border-gray-200 dark:border-gray-700">
+                <h4 class="text-2xl font-bold text-red-600 dark:text-red-400">{{ task_stats.failed or 0 }}</h4>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Failed</span>
+            </div>
+            <div class="text-center p-4 border-r border-gray-200 dark:border-gray-700">
+                <h4 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ task_stats.avg_duration or '0s' }}</h4>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Avg Duration</span>
+            </div>
+            <div class="text-center p-4 border-r border-gray-200 dark:border-gray-700">
+                <h4 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ task_stats.retries or 0 }}</h4>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Retries</span>
+            </div>
+            <div class="text-center p-4 border-r border-gray-200 dark:border-gray-700">
+                <h4 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ task_stats.success_rate or '100%' }}</h4>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Success Rate</span>
+            </div>
+            <div class="text-center p-4">
+                <h4 class="text-2xl font-bold text-gray-600 dark:text-gray-400">{{ task_stats.peak_concurrent or 0 }}</h4>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Peak Concurrent</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Details Modal -->
+<div id="taskDetailsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80"></div>
+    <div class="relative p-4 w-full max-w-4xl max-h-full mx-auto mt-20">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Task Details</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="closeTaskModal('taskDetailsModal')">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4" id="task_details_content">
+                <!-- Task details will be loaded here -->
+            </div>
+            <div class="flex items-center justify-end p-4 border-t dark:border-gray-700">
+                <button type="button" onclick="closeTaskModal('taskDetailsModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Logs Modal -->
+<div id="taskLogsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80"></div>
+    <div class="relative p-4 w-full max-w-6xl max-h-full mx-auto mt-20">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Task Logs</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="closeTaskModal('taskLogsModal')">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4" id="task_logs_content" style="max-height: 60vh; overflow-y: auto;">
+                <!-- Task logs will be loaded here -->
+            </div>
+            <div class="flex items-center justify-end p-4 border-t dark:border-gray-700">
+                <button type="button" onclick="closeTaskModal('taskLogsModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openTaskModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+    document.getElementById(modalId).classList.add('flex');
+}
+
+function closeTaskModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+    document.getElementById(modalId).classList.remove('flex');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Close modal on backdrop click
+    ['taskDetailsModal', 'taskLogsModal'].forEach(modalId => {
+        document.getElementById(modalId).addEventListener('click', function(e) {
+            if (e.target === this || e.target.classList.contains('bg-gray-900')) {
+                closeTaskModal(modalId);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
