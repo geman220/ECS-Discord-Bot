@@ -1,0 +1,225 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Announcements{% endblock %}
+{% block panel_description %}Manage system and league announcements{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Announcements</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Announcements Overview -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
+                <i class="ti ti-speakerphone text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ announcements|length }}</h3>
+            <span class="text-sm text-blue-700 dark:text-blue-300">Total Announcements</span>
+        </div>
+    </div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
+                <i class="ti ti-check-circle text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ active_announcements }}</h3>
+            <span class="text-sm text-green-700 dark:text-green-300">Active</span>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
+                <i class="ti ti-calendar-week text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ recent_announcements }}</h3>
+            <span class="text-sm text-cyan-700 dark:text-cyan-300">This Week</span>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
+                <i class="ti ti-tags text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ announcement_types|length }}</h3>
+            <span class="text-sm text-yellow-700 dark:text-yellow-300">Categories</span>
+        </div>
+    </div>
+</div>
+
+<!-- Announcements Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-speakerphone mr-2"></i>All Announcements
+            </h5>
+            <div class="flex gap-2">
+                <button type="button" onclick="history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                    <i class="ti ti-arrow-left mr-1"></i>Back
+                </button>
+                <a href="{{ url_for('admin_panel.create_announcement') }}" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <i class="ti ti-plus mr-1"></i>New Announcement
+                </a>
+            </div>
+        </div>
+    </div>
+    {% if announcements %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Announcement</th>
+                    <th scope="col" class="px-4 py-3">Type</th>
+                    <th scope="col" class="px-4 py-3">Priority</th>
+                    <th scope="col" class="px-4 py-3">Created</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for announcement in announcements %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3">
+                        <div class="font-medium text-gray-900 dark:text-white">{{ announcement.title }}</div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ announcement.content[:100] }}{% if announcement.content|length > 100 %}...{% endif %}</p>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ announcement.announcement_type or 'General' }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% set priority = announcement.priority or 'normal' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {% if priority == 'high' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif priority == 'medium' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300{% endif %}">{{ priority|title }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">{{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            <button type="button" class="p-2 text-cyan-600 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg" data-action="view-announcement" data-id="{{ announcement.id }}" data-title="{{ announcement.title }}" data-content="{{ announcement.content }}" title="View">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            <a href="{{ url_for('admin_panel.edit_announcement', announcement_id=announcement.id) }}" class="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg" title="Edit">
+                                <i class="ti ti-edit"></i>
+                            </a>
+                            <button type="button" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg" data-action="delete-announcement" data-id="{{ announcement.id }}" data-title="{{ announcement.title }}" title="Delete">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-speakerphone-off text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No announcements found</h5>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">Create your first announcement to get started.</p>
+        <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" onclick="showCreateModal()">
+            <i class="ti ti-plus mr-1"></i>Create Announcement
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- View Announcement Modal -->
+<div id="viewAnnouncementModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="view_announcement_title">Announcement Details</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="hideViewModal()">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-5">
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                    <pre id="view_announcement_content" class="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300"></pre>
+                </div>
+            </div>
+            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" onclick="hideViewModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    document.addEventListener('click', function(e) {
+        const viewBtn = e.target.closest('[data-action="view-announcement"]');
+        if (viewBtn) {
+            e.preventDefault();
+            document.getElementById('view_announcement_title').textContent = viewBtn.dataset.title;
+            document.getElementById('view_announcement_content').textContent = viewBtn.dataset.content;
+            showViewModal();
+        }
+
+        const deleteBtn = e.target.closest('[data-action="delete-announcement"]');
+        if (deleteBtn) {
+            e.preventDefault();
+            const id = deleteBtn.dataset.id;
+            const title = deleteBtn.dataset.title;
+
+            Swal.fire({
+                title: 'Delete Announcement?',
+                text: `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete it!',
+                confirmButtonColor: '#dc2626',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '{{ url_for("admin_panel.delete_announcement", announcement_id=0) }}'.replace('/0', '/' + id);
+
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrf_token';
+                    csrfInput.value = '{{ csrf_token() }}';
+                    form.appendChild(csrfInput);
+
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+    });
+});
+
+function showViewModal() {
+    document.getElementById('viewAnnouncementModal').classList.remove('hidden');
+    document.getElementById('viewAnnouncementModal').classList.add('flex');
+}
+
+function hideViewModal() {
+    document.getElementById('viewAnnouncementModal').classList.add('hidden');
+    document.getElementById('viewAnnouncementModal').classList.remove('flex');
+}
+</script>
+{% endblock %}

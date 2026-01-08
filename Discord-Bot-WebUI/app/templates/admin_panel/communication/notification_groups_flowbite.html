@@ -1,0 +1,715 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Notification Groups{% endblock %}
+{% block panel_description %}Manage notification target groups{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Notification Groups</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Notification Groups Overview -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
+                <i class="ti ti-users-group text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ groups|length }}</h3>
+            <span class="text-sm text-blue-700 dark:text-blue-300">Total Groups</span>
+        </div>
+    </div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
+                <i class="ti ti-adjustments text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ dynamic_groups }}</h3>
+            <span class="text-sm text-green-700 dark:text-green-300">Dynamic Groups</span>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
+                <i class="ti ti-list-check text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ static_groups }}</h3>
+            <span class="text-sm text-cyan-700 dark:text-cyan-300">Static Groups</span>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
+                <i class="ti ti-user-check text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ total_members }}</h3>
+            <span class="text-sm text-yellow-700 dark:text-yellow-300">Total Members</span>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Groups Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-users-group mr-2"></i>Notification Groups
+            </h5>
+            <div class="flex gap-2">
+                <button type="button" onclick="history.back()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                    <i class="ti ti-arrow-left mr-1"></i>Back
+                </button>
+                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" onclick="showCreateGroupModal()">
+                    <i class="ti ti-plus mr-1"></i>New Group
+                </button>
+            </div>
+        </div>
+    </div>
+    {% if groups %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Group Name</th>
+                    <th scope="col" class="px-4 py-3">Type</th>
+                    <th scope="col" class="px-4 py-3">Members/Reach</th>
+                    <th scope="col" class="px-4 py-3">Created</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for group in groups %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3">
+                        <div class="font-medium text-gray-900 dark:text-white">{{ group.name }}</div>
+                        {% if group.description %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ group.description[:60] }}{% if group.description|length > 60 %}...{% endif %}</p>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if group.group_type == 'dynamic' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300{% endif %}">
+                            <i class="ti ti-{% if group.group_type == 'dynamic' %}adjustments{% else %}list-check{% endif %} mr-1"></i>
+                            {{ group.group_type|title }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if group.group_type == 'static' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ group.members|length if group.members else 0 }} members</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300" title="Dynamic - based on criteria">Dynamic</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm">{{ group.created_at.strftime('%Y-%m-%d') if group.created_at else 'N/A' }}</td>
+                    <td class="px-4 py-3">
+                        {% if group.is_active %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            <button type="button" class="p-2 text-cyan-600 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg" onclick="viewGroup('{{ group.id }}')" title="View Details">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            <button type="button" class="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg" onclick="editGroup('{{ group.id }}')" title="Edit Group">
+                                <i class="ti ti-edit"></i>
+                            </button>
+                            {% if group.group_type == 'static' %}
+                            <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" onclick="manageMembers('{{ group.id }}', '{{ group.name }}')" title="Manage Members">
+                                <i class="ti ti-users"></i>
+                            </button>
+                            {% endif %}
+                            <button type="button" class="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg" onclick="sendToGroup('{{ group.id }}', '{{ group.name }}')" title="Send Notification">
+                                <i class="ti ti-send"></i>
+                            </button>
+                            <button type="button" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg" onclick="deleteGroup('{{ group.id }}', '{{ group.name }}')" title="Delete Group">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-users-group text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No notification groups found</h5>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">Create your first notification group to target specific audiences.</p>
+        <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" onclick="showCreateGroupModal()">
+            <i class="ti ti-plus mr-1"></i>Create Group
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Create Group Modal -->
+<div id="createGroupModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-plus mr-2"></i>Create Notification Group
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="hideCreateGroupModal()">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <form id="createGroupForm" onsubmit="submitCreateGroup(event)">
+                <div class="p-4 md:p-5 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Group Name <span class="text-red-500">*</span></label>
+                            <input type="text" name="name" id="group_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="e.g., Premium Members, Team Captains" required>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Group Type <span class="text-red-500">*</span></label>
+                            <select name="group_type" id="group_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white" onchange="toggleGroupTypeOptions()" required>
+                                <option value="dynamic">Dynamic (criteria-based)</option>
+                                <option value="static">Static (manual members)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                        <textarea name="description" id="group_description" rows="2" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Describe who belongs to this group..."></textarea>
+                    </div>
+
+                    <!-- Dynamic Group Options -->
+                    <div id="dynamicGroupOptions">
+                        <hr class="border-gray-200 dark:border-gray-600 my-4">
+                        <h6 class="text-md font-medium text-gray-900 dark:text-white mb-4"><i class="ti ti-adjustments mr-2"></i>Dynamic Targeting Criteria</h6>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Target Type</label>
+                                <select name="criteria_target_type" id="criteria_target_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white" onchange="toggleCriteriaOptions()">
+                                    <option value="all">All Users with Push Enabled</option>
+                                    <option value="team">By Team</option>
+                                    <option value="league">By League</option>
+                                    <option value="role">By Role</option>
+                                    <option value="pool">Substitute Pool</option>
+                                    <option value="platform">By Platform</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Platform Filter</label>
+                                <select name="criteria_platform" id="criteria_platform" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                    <option value="all">All Platforms</option>
+                                    <option value="ios">iOS Only</option>
+                                    <option value="android">Android Only</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Sub-criteria options -->
+                        <div id="criteriaTeamContainer" class="mt-4 hidden">
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Teams</label>
+                            <select name="criteria_teams" id="criteria_teams" multiple class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white h-32">
+                                {% for team in teams|default([]) %}
+                                <option value="{{ team.id }}">{{ team.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
+                        </div>
+
+                        <div id="criteriaLeagueContainer" class="mt-4 hidden">
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Leagues</label>
+                            <select name="criteria_leagues" id="criteria_leagues" multiple class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white h-32">
+                                {% for league in leagues|default([]) %}
+                                <option value="{{ league.id }}">{{ league.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
+                        </div>
+
+                        <div id="criteriaRoleContainer" class="mt-4 hidden">
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Roles</label>
+                            <select name="criteria_roles" id="criteria_roles" multiple class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white h-32">
+                                {% for role in roles|default([]) %}
+                                <option value="{{ role.name }}">{{ role.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
+                        </div>
+
+                        <div id="criteriaPoolContainer" class="mt-4 hidden">
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Pool</label>
+                            <select name="criteria_pool" id="criteria_pool" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                <option value="all">All Pools</option>
+                                <option value="pub_league">Pub League Sub Pool</option>
+                                <option value="ecs_fc">ECS FC Sub Pool</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Static Group Options -->
+                    <div id="staticGroupOptions" class="hidden">
+                        <hr class="border-gray-200 dark:border-gray-600 my-4">
+                        <div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
+                            <i class="ti ti-info-circle mr-2"></i>
+                            After creating the group, you can add members by clicking the "Manage Members" button.
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600 gap-3">
+                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" onclick="hideCreateGroupModal()">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                        <i class="ti ti-plus mr-1"></i>Create Group
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Group Modal -->
+<div id="viewGroupModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="viewGroupTitle">Group Details</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="hideViewGroupModal()">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-5" id="viewGroupContent">
+                <div class="flex justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+            </div>
+            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" onclick="hideViewGroupModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Members Modal -->
+<div id="manageMembersModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-4xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-users mr-2"></i>Manage Members - <span id="memberGroupName"></span>
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="hideMembersModal()">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-5">
+                <input type="hidden" id="manage_members_group_id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Add Members -->
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                        <h6 class="font-medium text-gray-900 dark:text-white mb-3"><i class="ti ti-user-plus mr-2"></i>Add Members</h6>
+                        <div class="mb-3">
+                            <input type="text" id="memberSearch" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Search by name or email..." onkeyup="searchUsers()">
+                        </div>
+                        <div id="searchResults" class="max-h-64 overflow-y-auto space-y-2">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Type to search users</p>
+                        </div>
+                    </div>
+
+                    <!-- Current Members -->
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <h6 class="font-medium text-gray-900 dark:text-white"><i class="ti ti-users mr-2"></i>Current Members</h6>
+                            <span id="memberCount" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">0</span>
+                        </div>
+                        <div id="currentMembers" class="max-h-64 overflow-y-auto space-y-2">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No members yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" onclick="hideMembersModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const isDark = document.documentElement.classList.contains('dark');
+const baseUrl = '/admin-panel';
+const csrfToken = '{{ csrf_token() }}';
+let currentMemberGroupId = null;
+
+// Modal functions
+function showCreateGroupModal() {
+    document.getElementById('createGroupModal').classList.remove('hidden');
+    document.getElementById('createGroupModal').classList.add('flex');
+}
+
+function hideCreateGroupModal() {
+    document.getElementById('createGroupModal').classList.add('hidden');
+    document.getElementById('createGroupModal').classList.remove('flex');
+}
+
+function hideViewGroupModal() {
+    document.getElementById('viewGroupModal').classList.add('hidden');
+    document.getElementById('viewGroupModal').classList.remove('flex');
+}
+
+function hideMembersModal() {
+    document.getElementById('manageMembersModal').classList.add('hidden');
+    document.getElementById('manageMembersModal').classList.remove('flex');
+}
+
+// Toggle group type options
+function toggleGroupTypeOptions() {
+    const groupType = document.getElementById('group_type').value;
+    const dynamicOptions = document.getElementById('dynamicGroupOptions');
+    const staticOptions = document.getElementById('staticGroupOptions');
+
+    if (groupType === 'dynamic') {
+        dynamicOptions.classList.remove('hidden');
+        staticOptions.classList.add('hidden');
+    } else {
+        dynamicOptions.classList.add('hidden');
+        staticOptions.classList.remove('hidden');
+    }
+}
+
+// Toggle criteria options
+function toggleCriteriaOptions() {
+    const targetType = document.getElementById('criteria_target_type').value;
+
+    document.getElementById('criteriaTeamContainer').classList.add('hidden');
+    document.getElementById('criteriaLeagueContainer').classList.add('hidden');
+    document.getElementById('criteriaRoleContainer').classList.add('hidden');
+    document.getElementById('criteriaPoolContainer').classList.add('hidden');
+
+    switch (targetType) {
+        case 'team':
+            document.getElementById('criteriaTeamContainer').classList.remove('hidden');
+            break;
+        case 'league':
+            document.getElementById('criteriaLeagueContainer').classList.remove('hidden');
+            break;
+        case 'role':
+            document.getElementById('criteriaRoleContainer').classList.remove('hidden');
+            break;
+        case 'pool':
+            document.getElementById('criteriaPoolContainer').classList.remove('hidden');
+            break;
+    }
+}
+
+// Submit create group
+async function submitCreateGroup(event) {
+    event.preventDefault();
+
+    const groupType = document.getElementById('group_type').value;
+    let criteria = null;
+
+    if (groupType === 'dynamic') {
+        criteria = {
+            target_type: document.getElementById('criteria_target_type').value,
+            platform: document.getElementById('criteria_platform').value
+        };
+
+        const targetType = criteria.target_type;
+        if (targetType === 'team') {
+            criteria.team_ids = Array.from(document.getElementById('criteria_teams').selectedOptions).map(opt => opt.value);
+        } else if (targetType === 'league') {
+            criteria.league_ids = Array.from(document.getElementById('criteria_leagues').selectedOptions).map(opt => opt.value);
+        } else if (targetType === 'role') {
+            criteria.role_names = Array.from(document.getElementById('criteria_roles').selectedOptions).map(opt => opt.value);
+        } else if (targetType === 'pool') {
+            criteria.pool_type = document.getElementById('criteria_pool').value;
+        }
+    }
+
+    const data = {
+        name: document.getElementById('group_name').value,
+        description: document.getElementById('group_description').value,
+        group_type: groupType,
+        criteria: criteria
+    };
+
+    try {
+        const response = await fetch(`${baseUrl}/communication/notification-groups`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: 'Notification group created successfully!',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then(() => location.reload());
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: result.error || 'Failed to create group',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to create group. Please try again.',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+    }
+}
+
+// View group
+async function viewGroup(groupId) {
+    document.getElementById('viewGroupModal').classList.remove('hidden');
+    document.getElementById('viewGroupModal').classList.add('flex');
+    document.getElementById('viewGroupContent').innerHTML = '<div class="flex justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>';
+
+    try {
+        const response = await fetch(`${baseUrl}/communication/notification-groups/${groupId}`);
+        const data = await response.json();
+
+        if (data.success) {
+            const group = data.group;
+            document.getElementById('viewGroupTitle').textContent = group.name;
+
+            let criteriaHtml = '';
+            if (group.group_type === 'dynamic' && group.criteria) {
+                criteriaHtml = `
+                    <h6 class="font-medium text-gray-900 dark:text-white mt-4 mb-2">Targeting Criteria</h6>
+                    <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                        <li><strong>Target Type:</strong> ${group.criteria.target_type || 'All'}</li>
+                        <li><strong>Platform:</strong> ${group.criteria.platform || 'All'}</li>
+                    </ul>
+                `;
+            }
+
+            document.getElementById('viewGroupContent').innerHTML = `
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400"><strong>Name:</strong> ${group.name}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400"><strong>Type:</strong> <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${group.group_type === 'dynamic' ? 'bg-green-100 text-green-800' : 'bg-cyan-100 text-cyan-800'}">${group.group_type}</span></p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400"><strong>Status:</strong> <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${group.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${group.is_active ? 'Active' : 'Inactive'}</span></p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400"><strong>Created:</strong> ${group.created_at || 'N/A'}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400"><strong>Updated:</strong> ${group.updated_at || 'N/A'}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400"><strong>Members:</strong> ${group.member_count || 0}</p>
+                    </div>
+                </div>
+                ${group.description ? `<p class="text-sm text-gray-600 dark:text-gray-400"><strong>Description:</strong> ${group.description}</p>` : ''}
+                ${criteriaHtml}
+            `;
+        }
+    } catch (error) {
+        document.getElementById('viewGroupContent').innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-red-900/50 dark:text-red-300">Failed to load group details</div>';
+    }
+}
+
+// Edit group - redirect to edit form
+function editGroup(groupId) {
+    Swal.fire({
+        title: 'Edit Group',
+        text: 'This will open the group editor.',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'Continue',
+        confirmButtonColor: '#1a472a',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // For now, show view modal - in production, open edit modal or redirect
+            viewGroup(groupId);
+        }
+    });
+}
+
+// Delete group
+function deleteGroup(groupId, groupName) {
+    Swal.fire({
+        title: 'Delete Group?',
+        text: `Are you sure you want to delete "${groupName}"? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it!',
+        confirmButtonColor: '#dc2626',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch(`${baseUrl}/communication/notification-groups/${groupId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': csrfToken }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Deleted!',
+                        text: 'The group has been deleted.',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(() => location.reload());
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to delete group.',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        }
+    });
+}
+
+// Send to group
+function sendToGroup(groupId, groupName) {
+    window.location.href = `{{ url_for('admin_panel.push_notifications') }}?target_type=group&group_id=${groupId}`;
+}
+
+// Manage members
+async function manageMembers(groupId, groupName) {
+    currentMemberGroupId = groupId;
+    document.getElementById('manage_members_group_id').value = groupId;
+    document.getElementById('memberGroupName').textContent = groupName;
+
+    document.getElementById('manageMembersModal').classList.remove('hidden');
+    document.getElementById('manageMembersModal').classList.add('flex');
+
+    await loadMembers();
+}
+
+async function loadMembers() {
+    try {
+        const response = await fetch(`${baseUrl}/communication/notification-groups/${currentMemberGroupId}/members`);
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('memberCount').textContent = data.members.length;
+            const container = document.getElementById('currentMembers');
+
+            if (data.members.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No members yet</p>';
+            } else {
+                container.innerHTML = data.members.map(member => `
+                    <div class="flex items-center justify-between p-2 bg-white dark:bg-gray-700 rounded-lg">
+                        <div>
+                            <p class="font-medium text-gray-900 dark:text-white text-sm">${member.name || 'Unknown'}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${member.email || ''}</p>
+                        </div>
+                        <button onclick="removeMember('${member.id}')" class="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"><i class="ti ti-x"></i></button>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (error) {
+        console.error('Error loading members:', error);
+    }
+}
+
+let searchTimeout = null;
+async function searchUsers() {
+    const query = document.getElementById('memberSearch').value;
+
+    if (query.length < 2) {
+        document.getElementById('searchResults').innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Type at least 2 characters</p>';
+        return;
+    }
+
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(async () => {
+        try {
+            const response = await fetch(`${baseUrl}/communication/notification-groups/${currentMemberGroupId}/members/search?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                const container = document.getElementById('searchResults');
+                if (data.users.length === 0) {
+                    container.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No users found</p>';
+                } else {
+                    container.innerHTML = data.users.map(user => `
+                        <button onclick="addMember('${user.id}')" class="w-full flex items-center justify-between p-2 bg-white dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 text-left">
+                            <div>
+                                <p class="font-medium text-gray-900 dark:text-white text-sm">${user.name || 'Unknown'}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">${user.email || ''}</p>
+                            </div>
+                            <i class="ti ti-plus text-green-600"></i>
+                        </button>
+                    `).join('');
+                }
+            }
+        } catch (error) {
+            console.error('Error searching users:', error);
+        }
+    }, 300);
+}
+
+async function addMember(userId) {
+    try {
+        const response = await fetch(`${baseUrl}/communication/notification-groups/${currentMemberGroupId}/members`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ user_id: userId })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            await loadMembers();
+            document.getElementById('memberSearch').value = '';
+            document.getElementById('searchResults').innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Type to search users</p>';
+        }
+    } catch (error) {
+        console.error('Error adding member:', error);
+    }
+}
+
+async function removeMember(userId) {
+    try {
+        const response = await fetch(`${baseUrl}/communication/notification-groups/${currentMemberGroupId}/members/${userId}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': csrfToken }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            await loadMembers();
+        }
+    } catch (error) {
+        console.error('Error removing member:', error);
+    }
+}
+</script>
+{% endblock %}

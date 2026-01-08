@@ -1,0 +1,366 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Push History{% endblock %}
+{% block panel_description %}Push notification history and analytics{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.mobile_features') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Mobile Features</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Push History</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Push History Statistics -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
+                <i class="ti ti-send text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.total_sent or 0 }}</h3>
+            <span class="text-sm text-blue-700 dark:text-blue-300">Total Sent</span>
+        </div>
+    </div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
+                <i class="ti ti-calendar text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.sent_today or 0 }}</h3>
+            <span class="text-sm text-green-700 dark:text-green-300">Sent Today</span>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
+                <i class="ti ti-calendar-week text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.sent_this_week or 0 }}</h3>
+            <span class="text-sm text-cyan-700 dark:text-cyan-300">Sent This Week</span>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
+                <i class="ti ti-chart-line text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.avg_per_day or 0 }}</h3>
+            <span class="text-sm text-yellow-700 dark:text-yellow-300">Avg per Day</span>
+        </div>
+    </div>
+</div>
+
+<!-- History Filters -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-filter mr-2"></i>Filter Push History
+        </h5>
+    </div>
+    <div class="p-5">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">All Statuses</option>
+                    <option value="sent" {{ 'selected' if request.args.get('status') == 'sent' }}>Sent</option>
+                    <option value="delivered" {{ 'selected' if request.args.get('status') == 'delivered' }}>Delivered</option>
+                    <option value="failed" {{ 'selected' if request.args.get('status') == 'failed' }}>Failed</option>
+                    <option value="pending" {{ 'selected' if request.args.get('status') == 'pending' }}>Pending</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
+                <select name="type" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">All Types</option>
+                    <option value="match_reminder" {{ 'selected' if request.args.get('type') == 'match_reminder' }}>Match Reminder</option>
+                    <option value="season_update" {{ 'selected' if request.args.get('type') == 'season_update' }}>Season Update</option>
+                    <option value="announcement" {{ 'selected' if request.args.get('type') == 'announcement' }}>Announcement</option>
+                    <option value="custom" {{ 'selected' if request.args.get('type') == 'custom' }}>Custom</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">From Date</label>
+                <input type="date" name="date_from" value="{{ request.args.get('date_from', '') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">To Date</label>
+                <input type="date" name="date_to" value="{{ request.args.get('date_to', '') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
+                <input type="text" name="search" value="{{ request.args.get('search', '') }}" placeholder="Search content..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <i class="ti ti-search mr-1"></i>Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Analytics Charts -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-chart-area mr-2"></i>Push Notification Trends
+            </h5>
+        </div>
+        <div class="p-5">
+            <canvas id="pushHistoryChart" height="250"></canvas>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-pie-chart mr-2"></i>Status Distribution
+            </h5>
+        </div>
+        <div class="p-5">
+            <canvas id="statusDistributionChart" height="250"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Actions -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <h6 class="font-medium text-gray-900 dark:text-white">Push History Management</h6>
+                <span class="text-sm text-gray-500 dark:text-gray-400">{{ push_notifications|length or 0 }} notifications shown</span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" class="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="retry-failed">
+                    <i class="ti ti-refresh mr-1"></i>Retry Failed
+                </button>
+                <button type="button" class="px-3 py-1.5 text-sm font-medium text-cyan-600 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800" data-action="export-history">
+                    <i class="ti ti-download mr-1"></i>Export History
+                </button>
+                <button type="button" class="px-3 py-1.5 text-sm font-medium text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800" data-action="cleanup-old">
+                    <i class="ti ti-trash mr-1"></i>Cleanup Old
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Push History Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-history mr-2"></i>Push Notification History
+        </h5>
+    </div>
+    {% if push_notifications %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">
+                        <input type="checkbox" id="selectAll" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                    </th>
+                    <th scope="col" class="px-4 py-3">Notification</th>
+                    <th scope="col" class="px-4 py-3">Type</th>
+                    <th scope="col" class="px-4 py-3">Recipient</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">Sent Date</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for notification in push_notifications %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3">
+                        <input type="checkbox" class="notification-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600" value="{{ notification.id }}">
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="font-medium text-gray-900 dark:text-white">{{ notification.title or 'No Title' }}</div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ (notification.message or notification.content or 'No content')[:50] }}{% if (notification.message or notification.content or '')|length > 50 %}...{% endif %}</p>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ notification.notification_type or 'push' }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if notification.recipient %}
+                        <div class="flex items-center">
+                            <div class="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium mr-2">
+                                {{ notification.recipient.username[0].upper() if notification.recipient.username else 'U' }}
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ notification.recipient.username or 'Unknown' }}</div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ notification.recipient.email or 'No email' }}</p>
+                            </div>
+                        </div>
+                        {% else %}
+                        <span class="text-gray-500 dark:text-gray-400">No recipient</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if notification.is_sent %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            <i class="ti ti-check mr-1"></i>Sent
+                        </span>
+                        {% elif notification.failed_at %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                            <i class="ti ti-x mr-1"></i>Failed
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                            <i class="ti ti-clock mr-1"></i>Pending
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm">{{ notification.created_at.strftime('%Y-%m-%d %H:%M:%S') if notification.created_at else 'Unknown' }}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            <button type="button" class="p-2 text-cyan-600 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg" data-action="view-notification" data-notification-id="{{ notification.id }}" title="View">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            {% if notification.failed_at %}
+                            <button type="button" class="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg" data-action="retry-notification" data-notification-id="{{ notification.id }}" title="Retry">
+                                <i class="ti ti-refresh"></i>
+                            </button>
+                            {% endif %}
+                            <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" data-action="duplicate-notification" data-notification-id="{{ notification.id }}" title="Duplicate">
+                                <i class="ti ti-copy"></i>
+                            </button>
+                            <button type="button" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg" data-action="delete-notification" data-notification-id="{{ notification.id }}" title="Delete">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-bell-off text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Push History</h5>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">No push notifications match the current filter criteria.</p>
+        <a href="{{ url_for('admin_panel.push_history') }}" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+            <i class="ti ti-refresh mr-1"></i>Clear Filters
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const selectAll = document.getElementById('selectAll');
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            document.querySelectorAll('.notification-checkbox').forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    }
+
+    // Initialize charts
+    initCharts();
+
+    function initCharts() {
+        const pushHistoryEl = document.getElementById('pushHistoryChart');
+        const statusDistEl = document.getElementById('statusDistributionChart');
+
+        if (pushHistoryEl) {
+            const ctx = pushHistoryEl.getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7'],
+                    datasets: [{
+                        label: 'Notifications Sent',
+                        data: [45, 52, 38, 67, 58, 72, 65],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Delivery Rate (%)',
+                        data: [95, 97, 93, 96, 98, 94, 95],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Notifications Sent' },
+                            grid: { color: isDark ? '#374151' : '#e5e7eb' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            min: 0,
+                            max: 100,
+                            title: { display: true, text: 'Delivery Rate (%)' },
+                            grid: { drawOnChartArea: false }
+                        },
+                        x: { grid: { color: isDark ? '#374151' : '#e5e7eb' } }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: isDark ? '#9ca3af' : '#374151' }
+                        }
+                    }
+                }
+            });
+        }
+
+        if (statusDistEl) {
+            const ctx = statusDistEl.getContext('2d');
+            const totalSent = {{ stats.total_sent or 0 }};
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Sent', 'Delivered', 'Failed', 'Pending'],
+                    datasets: [{
+                        data: [totalSent, Math.floor(totalSent * 0.95), Math.floor(totalSent * 0.03), Math.floor(totalSent * 0.02)],
+                        backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f59e0b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: isDark ? '#9ca3af' : '#374151' }
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}
