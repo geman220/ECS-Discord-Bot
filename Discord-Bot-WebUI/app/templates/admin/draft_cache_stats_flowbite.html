@@ -1,0 +1,292 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Draft Cache Statistics{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+                <span>/</span>
+                <span>Draft Cache Statistics</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Draft Cache Statistics</h1>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" id="refresh-btn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                <i class="ti ti-refresh mr-2"></i>Refresh
+            </button>
+            <a href="/admin/redis/stats" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                Redis Stats
+            </a>
+            <button type="button" id="invalidate-all-btn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
+                <i class="ti ti-trash mr-2"></i>Clear All Draft Cache
+            </button>
+        </div>
+    </div>
+
+    <!-- Auto-refresh Toggle -->
+    <div class="flex items-center gap-4">
+        <label class="inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="auto-refresh" checked class="sr-only peer">
+            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Auto-refresh every 10 seconds</span>
+        </label>
+        <span id="last-updated" class="text-sm text-gray-500 dark:text-gray-400"></span>
+    </div>
+
+    <!-- Cache TTL Settings -->
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-3">Cache TTL Settings (Optimized for Draft Performance)</h6>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-blue-700 dark:text-blue-400">
+            <div><strong>Player Data:</strong> 15 minutes</div>
+            <div><strong>Analytics:</strong> 10 minutes</div>
+            <div><strong>Team Data:</strong> 30 minutes</div>
+            <div><strong>Availability:</strong> 5 minutes</div>
+        </div>
+    </div>
+
+    <!-- Overall Cache Statistics -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 text-center">
+            <h3 class="text-3xl font-bold text-gray-900 dark:text-white mb-1" id="total-cache-keys">{{ cache_stats.draft_cache_keys.values() | sum if cache_stats.draft_cache_keys else 0 }}</h3>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Total Draft Cache Keys</span>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 text-center">
+            <h3 class="text-3xl font-bold text-gray-900 dark:text-white mb-1" id="redis-pool-utilization">{{ cache_stats.connection_pool.pool_stats.utilization_percent | default(0) }}%</h3>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Redis Pool Utilization</span>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 text-center">
+            <h3 class="text-3xl font-bold text-gray-900 dark:text-white mb-1" id="active-leagues">{{ leagues | length }}</h3>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Active Leagues</span>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 text-center">
+            <h3 class="text-3xl font-bold text-gray-900 dark:text-white mb-1" id="cache-hit-ratio">-</h3>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Est. Cache Hit Ratio</span>
+        </div>
+    </div>
+
+    <!-- Cache Type Breakdown -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="font-semibold text-gray-900 dark:text-white">Cache Type Breakdown</h5>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <tbody>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Player Cache Keys</td>
+                            <td class="px-6 py-3" id="player-cache-count">{{ cache_stats.draft_cache_keys.players | default(0) }}</td>
+                        </tr>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Analytics Cache Keys</td>
+                            <td class="px-6 py-3" id="analytics-cache-count">{{ cache_stats.draft_cache_keys.analytics | default(0) }}</td>
+                        </tr>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Team Cache Keys</td>
+                            <td class="px-6 py-3" id="team-cache-count">{{ cache_stats.draft_cache_keys.teams | default(0) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Availability Cache Keys</td>
+                            <td class="px-6 py-3" id="availability-cache-count">{{ cache_stats.draft_cache_keys.availability | default(0) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="font-semibold text-gray-900 dark:text-white">Connection Pool Health</h5>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <tbody>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Max Connections</td>
+                            <td class="px-6 py-3" id="max-connections">{{ cache_stats.connection_pool.pool_stats.max_connections | default("N/A") }}</td>
+                        </tr>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">In Use</td>
+                            <td class="px-6 py-3" id="connections-in-use">{{ cache_stats.connection_pool.pool_stats.in_use_connections | default("N/A") }}</td>
+                        </tr>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Available</td>
+                            <td class="px-6 py-3" id="connections-available">{{ cache_stats.connection_pool.pool_stats.available_connections | default("N/A") }}</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Created</td>
+                            <td class="px-6 py-3" id="connections-created">{{ cache_stats.connection_pool.pool_stats.created_connections | default("N/A") }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- League-Specific Cache Status -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">League-Specific Cache Status</h5>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="league-cache-status">
+                {% for league_name in leagues %}
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h6 class="font-semibold text-gray-900 dark:text-white mb-3">{{ league_name }}</h6>
+                    {% set league_status = league_cache_status.get(league_name, {}) %}
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Available Players:</span>
+                            <span class="flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full {{ 'bg-green-500' if league_status.get('players_available') else 'bg-red-500' }}"></span>
+                                {{ 'Cached' if league_status.get('players_available') else 'Missing' }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Drafted Players:</span>
+                            <span class="flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full {{ 'bg-green-500' if league_status.get('players_drafted') else 'bg-red-500' }}"></span>
+                                {{ 'Cached' if league_status.get('players_drafted') else 'Missing' }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Analytics:</span>
+                            <span class="flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full {{ 'bg-green-500' if league_status.get('analytics') else 'bg-red-500' }}"></span>
+                                {{ 'Cached' if league_status.get('analytics') else 'Missing' }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600 dark:text-gray-400">Teams:</span>
+                            <span class="flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full {{ 'bg-green-500' if league_status.get('teams') else 'bg-red-500' }}"></span>
+                                {{ 'Cached' if league_status.get('teams') else 'Missing' }}
+                            </span>
+                        </div>
+                    </div>
+                    <button type="button" class="mt-3 w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors warm-cache-btn" data-league="{{ league_name }}">
+                        <i class="ti ti-flame mr-1"></i>Warm Cache
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    let autoRefreshInterval = null;
+
+    // Update last updated time
+    function updateLastUpdated() {
+        document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+    }
+    updateLastUpdated();
+
+    // Refresh button
+    document.getElementById('refresh-btn').addEventListener('click', function() {
+        location.reload();
+    });
+
+    // Auto-refresh toggle
+    const autoRefreshCheckbox = document.getElementById('auto-refresh');
+    function startAutoRefresh() {
+        if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+        autoRefreshInterval = setInterval(function() {
+            location.reload();
+        }, 10000);
+    }
+    function stopAutoRefresh() {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+        }
+    }
+
+    autoRefreshCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            startAutoRefresh();
+        } else {
+            stopAutoRefresh();
+        }
+    });
+
+    if (autoRefreshCheckbox.checked) {
+        startAutoRefresh();
+    }
+
+    // Invalidate all cache
+    document.getElementById('invalidate-all-btn').addEventListener('click', function() {
+        Swal.fire({
+            title: 'Clear All Draft Cache?',
+            text: 'This will invalidate all cached draft data. Data will be reloaded on next access.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, clear all',
+            confirmButtonColor: '#dc2626',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/admin/redis/draft-cache-stats/invalidate-all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    Swal.fire({
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Cache Cleared' : 'Error',
+                        text: data.message || data.error,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(() => location.reload());
+                });
+            }
+        });
+    });
+
+    // Warm cache buttons
+    document.querySelectorAll('.warm-cache-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const league = this.dataset.league;
+            this.disabled = true;
+            this.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-1"></i>Warming...';
+
+            fetch('/admin/redis/draft-cache-stats/warm-cache', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ league: league })
+            })
+            .then(res => res.json())
+            .then(data => {
+                Swal.fire({
+                    icon: data.success ? 'success' : 'error',
+                    title: data.success ? 'Cache Warmed' : 'Error',
+                    text: data.message || data.error,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => location.reload());
+            })
+            .catch(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="ti ti-flame mr-1"></i>Warm Cache';
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

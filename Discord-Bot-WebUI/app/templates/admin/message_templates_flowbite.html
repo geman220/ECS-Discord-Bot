@@ -1,0 +1,195 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}{{ category.name }} Messages - ECS Portal{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+                <span>/</span>
+                <a href="{{ url_for('admin.message_config.list_categories') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Message Categories</a>
+                <span>/</span>
+                <span>{{ category.name }}</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ category.name }} Messages</h1>
+        </div>
+        <a href="{{ url_for('admin.message_config.list_categories') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+            <i class="ti ti-arrow-left mr-2"></i>Back to Categories
+        </a>
+    </div>
+
+    <!-- Category Info -->
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+        <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0">
+                <i class="ti ti-message-2 text-xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <div class="flex-1">
+                <h5 class="font-semibold text-blue-800 dark:text-blue-300 mb-1">{{ category.name }}</h5>
+                {% if category.description %}
+                <p class="text-blue-700 dark:text-blue-400 text-sm mb-2">{{ category.description }}</p>
+                {% endif %}
+                <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ templates|length }} templates</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Templates List -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-file-text"></i>Message Templates
+            </h5>
+        </div>
+        <div class="p-6">
+            {% if templates %}
+            <div class="space-y-4">
+                {% for template in templates %}
+                <div class="border rounded-lg {{ 'border-green-200 dark:border-green-800' if template.is_active else 'border-yellow-200 dark:border-yellow-800' }} overflow-hidden">
+                    <div class="p-4">
+                        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                            <div class="flex-1">
+                                <div class="flex flex-wrap items-center gap-2 mb-2">
+                                    <h6 class="font-semibold text-gray-900 dark:text-white">{{ template.name }}</h6>
+                                    {% if template.is_active %}
+                                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Active</span>
+                                    {% else %}
+                                    <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">Inactive</span>
+                                    {% endif %}
+                                </div>
+
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Key: <code class="bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-xs">{{ template.key }}</code></p>
+
+                                {% if template.description %}
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ template.description }}</p>
+                                {% endif %}
+
+                                <!-- Message Preview -->
+                                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 mb-3">
+                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Message Content:</span>
+                                    <p class="text-sm text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-wrap">{{ template.message_content[:200] }}{% if template.message_content|length > 200 %}...{% endif %}</p>
+                                </div>
+
+                                <!-- Variables -->
+                                {% if template.variables %}
+                                <div class="flex flex-wrap items-center gap-1">
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">Variables:</span>
+                                    {% for var in template.variables %}
+                                    <code class="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">{{{ var }}}</code>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="flex flex-col gap-2 flex-shrink-0 lg:w-40">
+                                <a href="{{ url_for('admin.message_config.edit_template', template_id=template.id) }}" class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                                    <i class="ti ti-edit mr-1"></i>Edit
+                                </a>
+                                <button type="button" class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 border border-cyan-200 dark:border-cyan-800 rounded-lg transition-colors" data-modal-target="previewModal" data-modal-toggle="previewModal" onclick="previewTemplate({{ template.id }})">
+                                    <i class="ti ti-eye mr-1"></i>Preview
+                                </button>
+                                <button type="button" class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" onclick="copyTemplate({{ template.id }})">
+                                    <i class="ti ti-copy mr-1"></i>Copy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">
+                            Last updated: {{ template.updated_at.strftime('%b %d, %Y at %I:%M %p') }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                    <i class="ti ti-file-text text-3xl text-gray-400 dark:text-gray-500"></i>
+                </div>
+                <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Templates Found</h5>
+                <p class="text-gray-500 dark:text-gray-400">No message templates exist in this category yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Message Preview</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="previewModal">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-5" id="previewContent">
+                <div class="flex justify-center">
+                    <i class="ti ti-loader-2 animate-spin text-2xl text-blue-600"></i>
+                </div>
+            </div>
+            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button type="button" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600" data-modal-hide="previewModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    window.previewTemplate = function(templateId) {
+        const previewContent = document.getElementById('previewContent');
+        previewContent.innerHTML = '<div class="flex justify-center"><i class="ti ti-loader-2 animate-spin text-2xl text-blue-600"></i></div>';
+
+        fetch('/admin/message-config/api/preview/' + templateId)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    previewContent.innerHTML = `
+                        <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
+                            <h6 class="font-semibold text-gray-900 dark:text-white mb-2">${data.name}</h6>
+                            <div class="whitespace-pre-wrap text-gray-700 dark:text-gray-300 text-sm">${data.preview}</div>
+                        </div>
+                    `;
+                } else {
+                    previewContent.innerHTML = `<p class="text-red-600 dark:text-red-400">${data.error}</p>`;
+                }
+            })
+            .catch(err => {
+                previewContent.innerHTML = '<p class="text-red-600 dark:text-red-400">Error loading preview</p>';
+            });
+    };
+
+    window.copyTemplate = function(templateId) {
+        fetch('/admin/message-config/api/content/' + templateId)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    navigator.clipboard.writeText(data.content).then(() => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Copied!',
+                            text: 'Message content copied to clipboard',
+                            timer: 1500,
+                            showConfirmButton: false,
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    });
+                }
+            });
+    };
+});
+</script>
+{% endblock %}

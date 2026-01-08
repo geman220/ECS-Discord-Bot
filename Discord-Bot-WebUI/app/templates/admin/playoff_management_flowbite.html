@@ -1,0 +1,227 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Playoff Management - {{ league.name }}{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+                <span>/</span>
+                <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Schedule Manager</a>
+                <span>/</span>
+                <span>Playoff Management</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Playoff Management - {{ league.name }}</h1>
+        </div>
+        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+            <i class="ti ti-arrow-left mr-2"></i>Back to Schedule Manager
+        </a>
+    </div>
+
+    {% if playoff_matches %}
+    <!-- Info Alert -->
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <h5 class="font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
+            <i class="ti ti-info-circle"></i>Playoff Setup
+        </h5>
+        <p class="text-sm text-blue-700 dark:text-blue-400">Assign teams to playoff matches based on regular season standings. Premier Division has 2 playoff weeks, Classic Division has 1 playoff week.</p>
+    </div>
+
+    <!-- Standings & Format -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="font-semibold text-gray-900 dark:text-white">Current Standings</h5>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-4 py-3">Rank</th>
+                                <th scope="col" class="px-4 py-3">Team</th>
+                                <th scope="col" class="px-4 py-3">Points</th>
+                                <th scope="col" class="px-4 py-3">Record</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team in standings %}
+                            <tr class="{{ 'bg-green-50 dark:bg-green-900/20' if loop.index <= 4 else 'bg-white dark:bg-gray-800' }} border-b dark:border-gray-700">
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ loop.index }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ team.name }}</td>
+                                <td class="px-4 py-3">{{ team.points|default(0) }}</td>
+                                <td class="px-4 py-3">{{ team.wins|default(0) }}-{{ team.losses|default(0) }}-{{ team.draws|default(0) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                    <span class="inline-block w-3 h-3 bg-green-500 rounded mr-1"></span>Green rows indicate playoff qualifying teams
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="font-semibold text-gray-900 dark:text-white">Playoff Format</h5>
+            </div>
+            <div class="p-6">
+                {% if league.name == 'Premier' %}
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Premier Division (2 Weeks)</h6>
+                <ul class="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                    <li>
+                        <strong>Week 1:</strong> Semifinals
+                        <ul class="ml-4 mt-1 space-y-1 text-gray-500 dark:text-gray-400">
+                            <li>Match 1: #1 vs #4</li>
+                            <li>Match 2: #2 vs #3</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong>Week 2:</strong> Final
+                        <ul class="ml-4 mt-1 space-y-1 text-gray-500 dark:text-gray-400">
+                            <li>Winner of Match 1 vs Winner of Match 2</li>
+                        </ul>
+                    </li>
+                </ul>
+                {% else %}
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Classic Division (1 Week)</h6>
+                <ul class="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                    <li>
+                        <strong>Week 1:</strong> Championship
+                        <ul class="ml-4 mt-1 space-y-1 text-gray-500 dark:text-gray-400">
+                            <li>Match 1: #1 vs #2</li>
+                            <li>Match 2: #3 vs #4</li>
+                        </ul>
+                    </li>
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Playoff Matches Assignment -->
+    <form method="POST" action="{{ url_for('admin.assign_playoff_matches', league_id=league.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {% for week_num, matches in playoff_matches.items() %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white">{{ week_num }} - {{ matches[0].date.strftime('%B %d, %Y') }}</h5>
+                </div>
+                <div class="p-6 space-y-4">
+                    {% for match in matches %}
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <h6 class="font-medium text-gray-900 dark:text-white mb-3">{{ match.time.strftime('%I:%M %p') }} - {{ match.location }}</h6>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Home Team</label>
+                                <select name="home_team_{{ match.id }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                    <option value="">Select Team</option>
+                                    {% for team in teams %}
+                                    <option value="{{ team.id }}" {% if match.home_team_id == team.id %}selected{% endif %}>{{ team.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Away Team</label>
+                                <select name="away_team_{{ match.id }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                    <option value="">Select Team</option>
+                                    {% for team in teams %}
+                                    <option value="{{ team.id }}" {% if match.away_team_id == team.id %}selected{% endif %}>{{ team.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Match Description</label>
+                            <input type="text" name="description_{{ match.id }}" value="{{ match.description|default('') }}"
+                                   placeholder="e.g., Semifinal #1, Championship Game"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="flex flex-wrap gap-2 mt-6">
+            <button type="submit" class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                <i class="ti ti-device-floppy mr-2"></i>Assign Playoff Teams
+            </button>
+            <button type="button" id="auto-assign-btn" class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                <i class="ti ti-wand mr-2"></i>Auto-Assign by Standings
+            </button>
+            <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-x mr-2"></i>Cancel
+            </a>
+        </div>
+    </form>
+    {% else %}
+    <!-- No Playoff Matches -->
+    <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
+        <h5 class="font-semibold text-yellow-800 dark:text-yellow-300 mb-2 flex items-center gap-2">
+            <i class="ti ti-alert-triangle"></i>No Playoff Matches Found
+        </h5>
+        <p class="text-sm text-yellow-700 dark:text-yellow-400">No playoff matches have been scheduled for this league yet. Please generate a schedule that includes playoff weeks.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    const autoAssignBtn = document.getElementById('auto-assign-btn');
+    if (autoAssignBtn) {
+        autoAssignBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Auto-Assign Teams?',
+                text: 'This will automatically assign teams based on current standings.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, auto-assign',
+                confirmButtonColor: '#22c55e',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/admin/playoffs/auto-assign/{{ league.id }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Teams Assigned',
+                                text: 'Playoff teams have been auto-assigned based on standings.',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.error || 'Failed to auto-assign teams.',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

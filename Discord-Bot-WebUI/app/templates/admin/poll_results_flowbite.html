@@ -1,0 +1,263 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Poll Results - {{ poll.title }}{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+                <span>/</span>
+                <a href="{{ url_for('admin.manage_polls') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Polls</a>
+                <span>/</span>
+                <span>Results</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ poll.title }} Results</h1>
+        </div>
+        <a href="{{ url_for('admin.manage_polls') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+            <i class="ti ti-arrow-left mr-2"></i>Back to Polls
+        </a>
+    </div>
+
+    <!-- Poll Info Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h5 class="font-semibold text-gray-900 dark:text-white mb-1">{{ poll.title }}</h5>
+                <p class="text-gray-500 dark:text-gray-400 mb-2">{{ poll.question }}</p>
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="px-2 py-1 text-xs font-medium rounded {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if poll.status == 'ACTIVE' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
+                        {{ poll.status }}
+                    </span>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">
+                        Created: {{ poll.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </span>
+                    {% if poll.closed_at %}
+                    <span class="text-sm text-gray-500 dark:text-gray-400">
+                        Closed: {{ poll.closed_at.strftime('%Y-%m-%d %H:%M') }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overall Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 text-center">
+            <div class="w-12 h-12 mx-auto rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-3">
+                <i class="ti ti-users text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <h3 class="text-3xl font-bold text-gray-900 dark:text-white">{{ total_responses }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Total Responses</p>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 text-center">
+            <div class="w-12 h-12 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-3">
+                <i class="ti ti-check text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <h3 class="text-3xl font-bold text-green-600 dark:text-green-400">{{ response_counts.yes }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Yes Responses</p>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 text-center">
+            <div class="w-12 h-12 mx-auto rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
+                <i class="ti ti-x text-2xl text-red-600 dark:text-red-400"></i>
+            </div>
+            <h3 class="text-3xl font-bold text-red-600 dark:text-red-400">{{ response_counts.no }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">No Responses</p>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 text-center">
+            <div class="w-12 h-12 mx-auto rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mb-3">
+                <i class="ti ti-alert-triangle text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <h3 class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{{ response_counts.maybe }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Maybe Responses</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Chart -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="font-semibold text-gray-900 dark:text-white">Overall Results</h5>
+            </div>
+            <div class="p-6">
+                {% if total_responses > 0 %}
+                <div class="h-64">
+                    <canvas id="overallChart"></canvas>
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="ti ti-chart-pie text-4xl text-gray-400 dark:text-gray-500 mb-2"></i>
+                    <p class="text-gray-500 dark:text-gray-400">No responses yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Team Breakdown -->
+        <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="font-semibold text-gray-900 dark:text-white">Team Breakdown</h5>
+            </div>
+            <div class="p-6">
+                {% if team_breakdown %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" id="teamBreakdownTable">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-4 py-3">Team</th>
+                                <th scope="col" class="px-4 py-3 text-center">Yes</th>
+                                <th scope="col" class="px-4 py-3 text-center">No</th>
+                                <th scope="col" class="px-4 py-3 text-center">Maybe</th>
+                                <th scope="col" class="px-4 py-3 text-center">Total</th>
+                                <th scope="col" class="px-4 py-3">Distribution</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team_name, data in team_breakdown.items() %}
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ team_name }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">{{ data.yes }}</span>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded">{{ data.no }}</span>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">{{ data.maybe }}</span>
+                                </td>
+                                <td class="px-4 py-3 text-center font-medium text-gray-900 dark:text-white">{{ data.total }}</td>
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center gap-2">
+                                        {% if data.total > 0 %}
+                                        <div class="w-24 h-2 flex rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+                                            <div class="bg-green-500" style="width: {{ (data.yes / data.total * 100)|round(1) }}%"></div>
+                                            <div class="bg-red-500" style="width: {{ (data.no / data.total * 100)|round(1) }}%"></div>
+                                            <div class="bg-yellow-500" style="width: {{ (data.maybe / data.total * 100)|round(1) }}%"></div>
+                                        </div>
+                                        {% endif %}
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ data.total }} players</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="ti ti-users text-4xl text-gray-400 dark:text-gray-500 mb-2"></i>
+                    <p class="text-gray-500 dark:text-gray-400">No team responses yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Individual Responses -->
+    {% if responses %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Individual Responses</h5>
+        </div>
+        <div class="p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" id="responsesTable">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Player</th>
+                            <th scope="col" class="px-6 py-3">Team</th>
+                            <th scope="col" class="px-6 py-3">Response</th>
+                            <th scope="col" class="px-6 py-3">Responded At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for response, player, team in responses %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ player.name }}</td>
+                            <td class="px-6 py-4">{{ team.name }}</td>
+                            <td class="px-6 py-4">
+                                {% if response.response == 'yes' %}
+                                <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">✅ Yes</span>
+                                {% elif response.response == 'no' %}
+                                <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded">❌ No</span>
+                                {% elif response.response == 'maybe' %}
+                                <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">⚠️ Maybe</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                {{ response.responded_at.strftime('%Y-%m-%d %H:%M') }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    {% if total_responses > 0 %}
+    // Overall results chart
+    const ctx = document.getElementById('overallChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Yes', 'No', 'Maybe'],
+            datasets: [{
+                data: [{{ response_counts.yes }}, {{ response_counts.no }}, {{ response_counts.maybe }}],
+                backgroundColor: [
+                    '#22c55e', // green-500
+                    '#ef4444', // red-500
+                    '#eab308'  // yellow-500
+                ],
+                borderWidth: 2,
+                borderColor: isDark ? '#1f2937' : '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+
+    // Initialize DataTables if available
+    if (typeof $ !== 'undefined' && $.fn.DataTable) {
+        $('#teamBreakdownTable').DataTable({
+            order: [[4, 'desc']],
+            pageLength: 25,
+            responsive: true
+        });
+
+        $('#responsesTable').DataTable({
+            order: [[3, 'desc']],
+            pageLength: 50,
+            responsive: true
+        });
+    }
+});
+</script>
+{% endblock %}

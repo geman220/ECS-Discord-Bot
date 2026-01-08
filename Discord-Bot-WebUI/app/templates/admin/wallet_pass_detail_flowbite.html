@@ -1,0 +1,404 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Pass Details - {{ wallet_pass.member_name }}{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+                <span>/</span>
+                <a href="{{ url_for('wallet_admin.passes_list') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Wallet Passes</a>
+                <span>/</span>
+                <span>Pass Details</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-id text-blue-600 dark:text-blue-400"></i>Pass Details
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Detailed information for {{ wallet_pass.member_name }}'s pass</p>
+        </div>
+        {% if wallet_pass.pass_type and wallet_pass.pass_type.code == 'ecs_membership' %}
+        <a href="{{ url_for('wallet_admin.passes_list', tab='ecs') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+            <i class="ti ti-arrow-left mr-2"></i>Back to ECS Passes
+        </a>
+        {% else %}
+        <a href="{{ url_for('wallet_admin.passes_list', tab='pub_league') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+            <i class="ti ti-arrow-left mr-2"></i>Back to Pub League Passes
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Status Banner -->
+    {% if wallet_pass.status == 'active' and wallet_pass.is_valid %}
+    <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3">
+        <i class="ti ti-circle-check text-2xl text-green-600 dark:text-green-400"></i>
+        <div>
+            <strong class="text-green-800 dark:text-green-300">Active Pass</strong>
+            <span class="text-green-700 dark:text-green-400 ml-2">This pass is valid and can be used for check-ins.</span>
+        </div>
+    </div>
+    {% elif wallet_pass.status == 'voided' %}
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
+        <i class="ti ti-ban text-2xl text-red-600 dark:text-red-400"></i>
+        <div>
+            <strong class="text-red-800 dark:text-red-300">Voided Pass</strong>
+            <span class="text-red-700 dark:text-red-400 ml-2">
+                {% if wallet_pass.void_reason %}{{ wallet_pass.void_reason }}{% else %}This pass has been voided and is no longer valid.{% endif %}
+            </span>
+        </div>
+    </div>
+    {% elif wallet_pass.is_expired %}
+    <div class="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex items-center gap-3">
+        <i class="ti ti-clock text-2xl text-gray-500 dark:text-gray-400"></i>
+        <div>
+            <strong class="text-gray-800 dark:text-gray-300">Expired Pass</strong>
+            <span class="text-gray-600 dark:text-gray-400 ml-2">This pass has expired and is no longer valid.</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Pass Details -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-user"></i>{{ wallet_pass.member_name }}
+                    </h5>
+                    <span class="px-2 py-1 text-xs font-medium rounded {{ 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if wallet_pass.pass_type and wallet_pass.pass_type.code == 'ecs_membership' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
+                        {{ wallet_pass.pass_type.name if wallet_pass.pass_type else 'Unknown Type' }}
+                    </span>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1">
+                                <i class="ti ti-user"></i>Member Information
+                            </h6>
+                            <dl class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Name</dt>
+                                    <dd class="font-medium text-gray-900 dark:text-white">{{ wallet_pass.member_name }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Email</dt>
+                                    <dd class="text-gray-900 dark:text-white">{{ wallet_pass.member_email or '-' }}</dd>
+                                </div>
+                                {% if wallet_pass.team_name %}
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Team</dt>
+                                    <dd><span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded">{{ wallet_pass.team_name }}</span></dd>
+                                </div>
+                                {% endif %}
+                                {% if wallet_pass.player_id %}
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Player ID</dt>
+                                    <dd class="text-gray-900 dark:text-white">{{ wallet_pass.player_id }}</dd>
+                                </div>
+                                {% endif %}
+                            </dl>
+                        </div>
+                        <div>
+                            <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1">
+                                <i class="ti ti-calendar"></i>Pass Validity
+                            </h6>
+                            <dl class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Validity Period</dt>
+                                    <dd class="font-medium text-gray-900 dark:text-white">{{ wallet_pass.display_validity }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Valid From</dt>
+                                    <dd class="text-gray-900 dark:text-white">{{ wallet_pass.valid_from.strftime('%b %d, %Y') if wallet_pass.valid_from else '-' }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Valid Until</dt>
+                                    <dd class="text-gray-900 dark:text-white">{{ wallet_pass.valid_until.strftime('%b %d, %Y') if wallet_pass.valid_until else '-' }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Downloads</dt>
+                                    <dd><span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded">{{ wallet_pass.download_count }}</span></dd>
+                                </div>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <hr class="my-6 border-gray-200 dark:border-gray-700">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1">
+                                <i class="ti ti-database"></i>System Information
+                            </h6>
+                            <dl class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Pass ID</dt>
+                                    <dd><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">{{ wallet_pass.id }}</code></dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Barcode</dt>
+                                    <dd><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">{{ wallet_pass.barcode_data }}</code></dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Serial Number</dt>
+                                    <dd><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">{{ wallet_pass.serial_number }}</code></dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Created</dt>
+                                    <dd class="text-gray-900 dark:text-white">{{ wallet_pass.created_at.strftime('%b %d, %Y %H:%M') }}</dd>
+                                </div>
+                            </dl>
+                        </div>
+                        <div>
+                            <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1">
+                                <i class="ti ti-shopping-cart"></i>WooCommerce
+                            </h6>
+                            <dl class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Order ID</dt>
+                                    <dd class="text-gray-900 dark:text-white">{{ wallet_pass.woo_order_id or '-' }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Download Token</dt>
+                                    <dd>
+                                        {% if wallet_pass.download_token %}
+                                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">{{ wallet_pass.download_token[:16] }}...</code>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </dd>
+                                </div>
+                            </dl>
+
+                            {% if wallet_pass.status == 'voided' and wallet_pass.voided_at %}
+                            <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 mt-4 flex items-center gap-1">
+                                <i class="ti ti-ban"></i>Void Information
+                            </h6>
+                            <dl class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Voided At</dt>
+                                    <dd class="text-gray-900 dark:text-white">{{ wallet_pass.voided_at.strftime('%b %d, %Y %H:%M') }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt class="text-gray-500 dark:text-gray-400">Reason</dt>
+                                    <dd class="text-gray-900 dark:text-white">{{ wallet_pass.void_reason or '-' }}</dd>
+                                </div>
+                            </dl>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Check-in History -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-history"></i>Check-in History
+                    </h5>
+                    {% if checkins %}
+                    <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ checkins|length }} check-ins</span>
+                    {% endif %}
+                </div>
+                <div class="p-6">
+                    {% if checkins %}
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3">Date/Time</th>
+                                    <th scope="col" class="px-4 py-3">Event</th>
+                                    <th scope="col" class="px-4 py-3">Location</th>
+                                    <th scope="col" class="px-4 py-3">Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for checkin in checkins %}
+                                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                    <td class="px-4 py-3 text-sm">{{ checkin.checked_in_at.strftime('%b %d, %Y %H:%M') }}</td>
+                                    <td class="px-4 py-3">{{ checkin.event_name or '-' }}</td>
+                                    <td class="px-4 py-3">{{ checkin.location or '-' }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded">
+                                            {{ checkin.check_in_type.value.replace('_', ' ').title() if checkin.check_in_type else 'Unknown' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <i class="ti ti-calendar-off text-4xl text-gray-400 dark:text-gray-500 mb-2"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No check-ins recorded for this pass</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-4">
+            <!-- Actions Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-settings"></i>Actions
+                    </h6>
+                </div>
+                <div class="p-4 space-y-2">
+                    <a href="{{ url_for('wallet_admin.download_pass', pass_id=wallet_pass.id, platform='apple') }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 dark:bg-gray-600 dark:hover:bg-gray-500 rounded-lg transition-colors">
+                        <i class="ti ti-brand-apple mr-2"></i>Download Apple Pass
+                    </a>
+
+                    {% if wallet_pass.status == 'active' %}
+                    <button type="button" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800 rounded-lg transition-colors" id="void-pass-btn">
+                        <i class="ti ti-ban mr-2"></i>Void Pass
+                    </button>
+                    {% else %}
+                    <button type="button" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40 border border-green-200 dark:border-green-800 rounded-lg transition-colors" id="reactivate-pass-btn">
+                        <i class="ti ti-refresh mr-2"></i>Reactivate Pass
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- QR Code Preview -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-qrcode"></i>Pass QR Code
+                    </h6>
+                </div>
+                <div class="p-4 text-center">
+                    <div id="qrcode" class="mb-3 inline-block"></div>
+                    <code class="block text-xs text-gray-500 dark:text-gray-400 break-all">{{ wallet_pass.barcode_data }}</code>
+                </div>
+            </div>
+
+            <!-- Download Link -->
+            {% if wallet_pass.download_token %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-link"></i>Public Download Link
+                    </h6>
+                </div>
+                <div class="p-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Share this link with the member to download their pass:</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="download-link" readonly
+                               value="{{ url_for('public_wallet.pass_info', token=wallet_pass.download_token, _external=True) }}"
+                               class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-xs rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <button type="button" class="px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg" id="copy-link-btn">
+                            <i class="ti ti-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    // Generate QR code
+    if (typeof qrcode !== 'undefined') {
+        var qr = qrcode(0, 'M');
+        qr.addData('{{ wallet_pass.barcode_data }}');
+        qr.make();
+        document.getElementById('qrcode').innerHTML = qr.createSvgTag(4, 0);
+    }
+
+    // Copy link
+    const copyBtn = document.getElementById('copy-link-btn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            const link = document.getElementById('download-link').value;
+            navigator.clipboard.writeText(link).then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Copied!',
+                    text: 'Download link copied to clipboard',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            });
+        });
+    }
+
+    // Void pass
+    const voidBtn = document.getElementById('void-pass-btn');
+    if (voidBtn) {
+        voidBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Void Pass?',
+                text: 'This will invalidate this pass. Are you sure?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, void it',
+                confirmButtonColor: '#dc2626',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/admin/wallet/api/void/{{ wallet_pass.id }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    // Reactivate pass
+    const reactivateBtn = document.getElementById('reactivate-pass-btn');
+    if (reactivateBtn) {
+        reactivateBtn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Reactivate Pass?',
+                text: 'This will make this pass valid again.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, reactivate',
+                confirmButtonColor: '#22c55e',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/admin/wallet/api/reactivate/{{ wallet_pass.id }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        }
+                    });
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

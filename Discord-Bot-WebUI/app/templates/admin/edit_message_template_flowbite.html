@@ -1,0 +1,265 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Edit {{ template.name }} - ECS Portal{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+                <span>/</span>
+                <a href="{{ url_for('admin.message_config.list_categories') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Message Config</a>
+                <span>/</span>
+                <span>Edit Template</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-edit"></i>Edit Message Template
+            </h1>
+        </div>
+        <a href="{{ url_for('admin.message_config.view_category', category_id=template.category_id) }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+            <i class="ti ti-arrow-left mr-2"></i>Back to Category
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Edit Form -->
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Edit: {{ template.name }}</h5>
+                </div>
+                <div class="p-6">
+                    <form method="POST" id="editTemplateForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                        <!-- Template Name -->
+                        <div class="mb-4">
+                            <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template Name</label>
+                            <input type="text" id="name" name="name" value="{{ template.name }}" required
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">A descriptive name for this message template.</p>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-4">
+                            <label for="description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                            <textarea id="description" name="description" rows="2"
+                                      class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">{{ template.description or '' }}</textarea>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Optional description of when this message is used.</p>
+                        </div>
+
+                        <!-- Message Content -->
+                        <div class="mb-4">
+                            <label for="message_content" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message Content</label>
+                            <textarea id="message_content" name="message_content" rows="10" required
+                                      placeholder="Enter your message content here..."
+                                      class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white font-mono">{{ template.message_content }}</textarea>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                The actual message content. You can use variables like <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{username}</code>, <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{league_display_name}</code>, etc.
+                            </p>
+                        </div>
+
+                        <!-- Active Status -->
+                        <div class="mb-6">
+                            <label class="inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="is_active" class="sr-only peer" {% if template.is_active %}checked{% endif %}>
+                                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Active</span>
+                            </label>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Only active templates are used by the Discord bot.</p>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="flex flex-col sm:flex-row justify-between gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <div class="flex gap-2">
+                                <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                                    <i class="ti ti-device-floppy mr-2"></i>Save Changes
+                                </button>
+                                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 border border-cyan-200 dark:border-cyan-800 rounded-lg transition-colors" data-modal-target="previewModal" data-modal-toggle="previewModal" onclick="previewMessage()">
+                                    <i class="ti ti-eye mr-2"></i>Preview
+                                </button>
+                            </div>
+                            <a href="{{ url_for('admin.message_config.view_category', category_id=template.category_id) }}" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+                                <i class="ti ti-x mr-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Sidebar -->
+        <div class="space-y-4">
+            <!-- Template Info -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-info-circle"></i>Template Information
+                    </h6>
+                </div>
+                <div class="p-4 text-sm space-y-2">
+                    <p><strong class="text-gray-900 dark:text-white">Key:</strong> <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{{ template.key }}</code></p>
+                    <p><strong class="text-gray-900 dark:text-white">Category:</strong> {{ template.category.name }}</p>
+                    <p><strong class="text-gray-900 dark:text-white">Created:</strong> {{ template.created_at.strftime('%b %d, %Y') }}</p>
+                    <p><strong class="text-gray-900 dark:text-white">Last Updated:</strong> {{ template.updated_at.strftime('%b %d, %Y at %I:%M %p') }}</p>
+                    {% if template.updated_by %}
+                    <p><strong class="text-gray-900 dark:text-white">Updated By:</strong> User ID {{ template.updated_by }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Available Variables -->
+            {% if template.variables %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-code"></i>Available Variables
+                    </h6>
+                </div>
+                <div class="p-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">You can use these variables in your message:</p>
+                    <div class="space-y-2">
+                        {% for variable in template.variables %}
+                        <code class="block bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-sm">{{ variable }}</code>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Common Variables -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-list"></i>Common Variables
+                    </h6>
+                </div>
+                <div class="p-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">These variables are commonly available:</p>
+                    <div class="space-y-2 text-sm">
+                        <div><code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{username}</code> - User's Discord name</div>
+                        <div><code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{league_display_name}</code> - League name</div>
+                        <div><code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{league_welcome_message}</code> - League welcome text</div>
+                        <div><code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{league_contact_info}</code> - League contact info</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Discord Formatting -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-brand-discord"></i>Discord Formatting
+                    </h6>
+                </div>
+                <div class="p-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Discord supports these formatting options:</p>
+                    <div class="space-y-1 text-sm font-mono">
+                        <div><code class="text-gray-700 dark:text-gray-300">**bold text**</code></div>
+                        <div><code class="text-gray-700 dark:text-gray-300">*italic text*</code></div>
+                        <div><code class="text-gray-700 dark:text-gray-300">`code text`</code></div>
+                        <div><code class="text-gray-700 dark:text-gray-300">~~strikethrough~~</code></div>
+                        <div><code class="text-gray-700 dark:text-gray-300">||spoiler||</code></div>
+                        <div><code class="text-gray-700 dark:text-gray-300">&gt; quote</code></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Message Preview</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="previewModal">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-5" id="previewContent">
+                <!-- Preview content will be loaded here -->
+            </div>
+            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button type="button" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600" data-modal-hide="previewModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    window.previewMessage = function() {
+        const messageContentEl = document.getElementById('message_content');
+        if (!messageContentEl) return;
+
+        const messageContent = messageContentEl.value;
+
+        if (!messageContent.trim()) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Warning',
+                text: 'Please enter message content to preview.',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            return;
+        }
+
+        const previewContent = document.getElementById('previewContent');
+
+        // Create a preview by simulating the template with sample data
+        const sampleData = {
+            username: 'SampleUser',
+            league_display_name: 'Pub League Premier',
+            league_welcome_message: 'Welcome to competitive soccer!',
+            league_contact_info: 'Contact us at admin@ecsfc.com'
+        };
+
+        let preview = messageContent;
+        for (const [key, value] of Object.entries(sampleData)) {
+            const regex = new RegExp(`{${key}}`, 'g');
+            preview = preview.replace(regex, value);
+        }
+
+        previewContent.innerHTML = `
+            <div class="mb-4">
+                <h6 class="font-medium text-gray-900 dark:text-white mb-2">Preview with sample data:</h6>
+                <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600 whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">${preview}</div>
+            </div>
+            <div>
+                <h6 class="font-medium text-gray-900 dark:text-white mb-2">Sample variables used:</h6>
+                <pre class="text-sm bg-gray-100 dark:bg-gray-800 p-3 rounded-lg overflow-x-auto">${JSON.stringify(sampleData, null, 2)}</pre>
+            </div>
+        `;
+    };
+
+    // Form validation
+    const editTemplateForm = document.getElementById('editTemplateForm');
+    if (editTemplateForm) {
+        editTemplateForm.addEventListener('submit', function(e) {
+            const messageContent = document.getElementById('message_content')?.value || '';
+            if (!messageContent.trim()) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Warning',
+                    text: 'Message content cannot be empty.',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                return false;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

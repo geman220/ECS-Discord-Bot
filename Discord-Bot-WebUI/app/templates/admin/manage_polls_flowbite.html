@@ -1,0 +1,193 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}League Poll Management{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+                <span>/</span>
+                <span>League Polls</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">League Poll Management</h1>
+            <p class="text-gray-500 dark:text-gray-400">Create and manage league-wide polls</p>
+        </div>
+        <a href="{{ url_for('admin.create_poll') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+            <i class="ti ti-plus mr-2"></i>Create New Poll
+        </a>
+    </div>
+
+    <!-- Polls List -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Active Polls</h5>
+        </div>
+        <div class="p-6">
+            {% if polls %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" id="pollsTable">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Title</th>
+                            <th scope="col" class="px-6 py-3">Question</th>
+                            <th scope="col" class="px-6 py-3">Status</th>
+                            <th scope="col" class="px-6 py-3">Created</th>
+                            <th scope="col" class="px-6 py-3">Responses</th>
+                            <th scope="col" class="px-6 py-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for poll in polls %}
+                        {% if poll.status != 'DELETED' %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                                {{ poll.title }}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="max-w-xs truncate" title="{{ poll.question }}">
+                                    {{ poll.question }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if poll.status == 'ACTIVE' %}
+                                <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Active</span>
+                                {% elif poll.status == 'CLOSED' %}
+                                <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">Closed</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                {{ poll.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium text-gray-900 dark:text-white">{{ poll.total_responses }}</span>
+                                    {% set total = poll.total_responses %}
+                                    {% if total > 0 %}
+                                    <div class="w-24 h-2 flex rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+                                        <div class="bg-green-500" style="width: {{ (poll.response_counts.yes / total * 100)|round(1) }}%"></div>
+                                        <div class="bg-red-500" style="width: {{ (poll.response_counts.no / total * 100)|round(1) }}%"></div>
+                                        <div class="bg-yellow-500" style="width: {{ (poll.response_counts.maybe / total * 100)|round(1) }}%"></div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Y: {{ poll.response_counts.yes }} | N: {{ poll.response_counts.no }} | M: {{ poll.response_counts.maybe }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <button type="button" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" data-dropdown-toggle="poll-dropdown-{{ poll.id }}">
+                                    <i class="ti ti-dots-vertical"></i>
+                                </button>
+                                <div id="poll-dropdown-{{ poll.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-lg w-44 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                                    <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                                        <li>
+                                            <a href="{{ url_for('admin.poll_results', poll_id=poll.id) }}" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                                <i class="ti ti-chart-bar mr-2"></i>View Results
+                                            </a>
+                                        </li>
+                                        {% if poll.status == 'ACTIVE' %}
+                                        <li>
+                                            <button type="button" class="w-full flex items-center px-4 py-2 text-yellow-600 dark:text-yellow-400 hover:bg-gray-100 dark:hover:bg-gray-600" onclick="closePoll({{ poll.id }})">
+                                                <i class="ti ti-lock mr-2"></i>Close Poll
+                                            </button>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                    <div class="py-2">
+                                        <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600" onclick="deletePoll({{ poll.id }})">
+                                            <i class="ti ti-trash mr-2"></i>Delete Poll
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                    <i class="ti ti-poll text-3xl text-gray-400 dark:text-gray-500"></i>
+                </div>
+                <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Polls Yet</h5>
+                <p class="text-gray-500 dark:text-gray-400 mb-4">Create your first league poll to get started!</p>
+                <a href="{{ url_for('admin.create_poll') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                    <i class="ti ti-plus mr-2"></i>Create Poll
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    window.closePoll = function(pollId) {
+        Swal.fire({
+            title: 'Close Poll?',
+            text: 'This will prevent any further responses to this poll.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, close it',
+            confirmButtonColor: '#eab308',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/ecs-fc/polls/' + pollId + '/close';
+
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = csrfToken;
+                form.appendChild(csrfInput);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    };
+
+    window.deletePoll = function(pollId) {
+        Swal.fire({
+            title: 'Delete Poll?',
+            text: 'This action cannot be undone. All responses will be permanently deleted.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it',
+            confirmButtonColor: '#dc2626',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/ecs-fc/polls/' + pollId + '/delete';
+
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = csrfToken;
+                form.appendChild(csrfInput);
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    };
+});
+</script>
+{% endblock %}

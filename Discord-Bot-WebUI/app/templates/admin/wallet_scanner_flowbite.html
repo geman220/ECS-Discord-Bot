@@ -1,0 +1,151 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Pass Scanner{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+                <span>/</span>
+                <a href="{{ url_for('wallet_admin.passes_list') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Wallet Passes</a>
+                <span>/</span>
+                <span>Scanner</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-qrcode text-blue-600 dark:text-blue-400"></i>Pass Scanner
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Scan digital wallet passes to validate membership and record check-ins</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{{ url_for('wallet_admin.checkins_list') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-list-check mr-2"></i>Check-in History
+            </a>
+            <a href="{{ url_for('wallet_admin.passes_list') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-arrow-left mr-2"></i>Back to Passes
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Scanner Column -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-scan"></i>Scan Pass
+                </h5>
+            </div>
+            <div class="p-6">
+                <!-- Scanner Video -->
+                <div class="relative bg-gray-900 rounded-lg overflow-hidden mb-4 aspect-[4/3]">
+                    <video id="scanner-video" class="w-full h-full object-cover" playsinline></video>
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div class="w-48 h-48 border-2 border-green-500 rounded-lg"></div>
+                    </div>
+                </div>
+
+                <!-- Scanner Controls -->
+                <div class="flex gap-2 mb-6">
+                    <button id="start-scanner" class="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                        <i class="ti ti-scan mr-2"></i>Start Camera
+                    </button>
+                    <button id="stop-scanner" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" disabled>
+                        <i class="ti ti-player-stop mr-2"></i>Stop
+                    </button>
+                </div>
+
+                <!-- Manual Entry -->
+                <div class="mb-6">
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                        <i class="ti ti-keyboard"></i>Manual Entry
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="text" id="manual-barcode" placeholder="Enter pass barcode (e.g., ECS-2025-ABC123)"
+                               class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                        <button id="manual-submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                            <i class="ti ti-check mr-2"></i>Validate
+                        </button>
+                    </div>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Type or paste the barcode if camera scanning isn't available</p>
+                </div>
+
+                <!-- Options -->
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Event Name (optional)</label>
+                        <input type="text" id="event-name" placeholder="e.g., Match vs Seattle Sounders"
+                               class="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                    </div>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="auto-checkin" checked class="sr-only peer">
+                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-blue-600"></div>
+                        <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Automatically record check-in for valid passes</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result & History Column -->
+        <div class="space-y-6">
+            <!-- Latest Scan Result -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700" id="result-card">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-user-check"></i>Scan Result
+                    </h5>
+                </div>
+                <div class="p-6" id="result-body">
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                            <i class="ti ti-qrcode text-3xl text-gray-400 dark:text-gray-500"></i>
+                        </div>
+                        <p class="text-gray-500 dark:text-gray-400">Scan a pass to see validation results</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Stats -->
+            <div class="grid grid-cols-3 gap-4">
+                <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
+                    <h3 class="text-2xl font-bold text-green-600 dark:text-green-400" id="stat-valid">0</h3>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Valid</span>
+                </div>
+                <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+                    <h3 class="text-2xl font-bold text-red-600 dark:text-red-400" id="stat-invalid">0</h3>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Invalid</span>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white" id="stat-total">0</h3>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Total</span>
+                </div>
+            </div>
+
+            <!-- Scan History -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-history"></i>Recent Scans
+                    </h5>
+                    <button id="clear-history" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                        <i class="ti ti-trash mr-1"></i>Clear
+                    </button>
+                </div>
+                <div class="p-6 max-h-80 overflow-y-auto" id="scan-history">
+                    <div class="text-center py-4">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">No scans in this session</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- QR Scanner Library -->
+<script src="https://unpkg.com/@AziDev/qrcodescanner/dist/qrCodeScanner.min.js"></script>
+<script src="{{ url_for('static', filename='custom_js/wallet-scanner.js') }}"></script>
+{% endblock %}

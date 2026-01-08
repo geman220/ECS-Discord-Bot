@@ -1,0 +1,177 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Create ECS Membership Pass{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+                <span>/</span>
+                <a href="{{ url_for('wallet_admin.passes_list', tab='ecs') }}" class="hover:text-blue-600 dark:hover:text-blue-400">ECS Passes</a>
+                <span>/</span>
+                <span>Create Pass</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-plus text-blue-600 dark:text-blue-400"></i>Create ECS Membership Pass
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Manually create a new ECS annual membership pass</p>
+        </div>
+        <a href="{{ url_for('wallet_admin.passes_list', tab='ecs') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+            <i class="ti ti-arrow-left mr-2"></i>Back to Passes
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Form -->
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-id-badge-2"></i>Member Information
+                    </h5>
+                </div>
+                <div class="p-6">
+                    <form method="POST" action="{{ url_for('wallet_admin.create_ecs_pass') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-4">
+                            <label for="member_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Member Name <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="member_name" name="member_name" required autocomplete="off"
+                                   placeholder="e.g., John Smith"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">This will be displayed prominently on the digital pass</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="member_email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Email Address
+                            </label>
+                            <input type="email" id="member_email" name="member_email" autocomplete="email"
+                                   placeholder="e.g., john@example.com"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">If provided, the member can receive their pass via email</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <label for="year" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Membership Year <span class="text-red-500">*</span>
+                                </label>
+                                <select id="year" name="year" required
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                    {% for y in range(current_year, current_year + 3) %}
+                                    <option value="{{ y }}" {{ 'selected' if y == current_year else '' }}>{{ y }}</option>
+                                    {% endfor %}
+                                </select>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Pass valid January 1 - December 31</p>
+                            </div>
+                            <div>
+                                <label for="woo_order_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    WooCommerce Order ID
+                                </label>
+                                <input type="number" id="woo_order_id" name="woo_order_id"
+                                       placeholder="e.g., 12345"
+                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Optional - for order tracking</p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <button type="submit" class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                                <i class="ti ti-plus mr-2"></i>Create Pass
+                            </button>
+                            <a href="{{ url_for('wallet_admin.passes_list', tab='ecs') }}" class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-4">
+            <!-- Live Preview -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-eye"></i>Live Preview
+                    </h6>
+                </div>
+                <div class="p-4">
+                    <div class="rounded-xl p-4 text-white" style="background: {{ ecs_type.background_color if ecs_type else 'linear-gradient(135deg, #1a472a 0%, #2d5a3f 100%)' }};">
+                        <div class="flex justify-between items-start border-b border-white/20 pb-3 mb-3">
+                            <div>
+                                <span class="text-xs uppercase opacity-75 tracking-wide">{{ ecs_type.organization_name if ecs_type else 'Emerald City Supporters' }}</span>
+                                <h5 class="font-semibold mt-1">{{ ecs_type.name if ecs_type else 'ECS Membership' }}</h5>
+                            </div>
+                            <div>
+                                {% if logo_asset %}
+                                <img src="{{ url_for('wallet_config.get_asset', asset_id=logo_asset.id) }}" alt="Logo" class="w-12 h-12 object-contain">
+                                {% else %}
+                                <i class="ti ti-id-badge-2 text-3xl opacity-80"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <span class="text-xs uppercase opacity-75 tracking-wide">Member</span>
+                            <p class="text-lg font-semibold" id="preview-name">John Smith</p>
+                        </div>
+                        <div class="mb-4">
+                            <span class="text-xs uppercase opacity-75 tracking-wide">Valid</span>
+                            <p id="preview-year">{{ current_year }}</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="inline-block bg-white rounded p-2">
+                                <i class="ti ti-qrcode text-gray-900"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Card -->
+            <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-lg p-4">
+                <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-3 flex items-center gap-2">
+                    <i class="ti ti-help-circle"></i>When to Create Manually
+                </h6>
+                <ul class="text-sm text-blue-700 dark:text-blue-400 space-y-2 list-disc list-inside">
+                    <li><strong>Offline purchases</strong> - Cash payments at events</li>
+                    <li><strong>Gift memberships</strong> - Someone purchased for another person</li>
+                    <li><strong>Webhook failures</strong> - WooCommerce order didn't trigger automatic creation</li>
+                    <li><strong>Replacement passes</strong> - Member lost access to original</li>
+                </ul>
+                <div class="mt-3 p-3 bg-blue-100 dark:bg-blue-900/40 rounded-lg text-sm text-blue-800 dark:text-blue-300">
+                    <i class="ti ti-info-circle mr-1"></i>
+                    <strong>Note:</strong> Passes purchased through the website are created automatically via webhook integration.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nameInput = document.getElementById('member_name');
+    const yearSelect = document.getElementById('year');
+    const previewName = document.getElementById('preview-name');
+    const previewYear = document.getElementById('preview-year');
+
+    nameInput.addEventListener('input', function() {
+        previewName.textContent = this.value || 'John Smith';
+    });
+
+    yearSelect.addEventListener('change', function() {
+        previewYear.textContent = this.value;
+    });
+});
+</script>
+{% endblock %}
