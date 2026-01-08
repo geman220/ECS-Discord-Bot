@@ -1,0 +1,470 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Match Reports{% endblock %}
+{% block panel_description %}Generate and view match reports{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.match_operations') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Match Operations</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Match Reports</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Statistics Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ reports_data.total_matches if reports_data else 0 }}</h3>
+                <span class="text-sm text-blue-700 dark:text-blue-300">Total Matches</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                <i class="ti ti-calendar text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ reports_data.completed_matches if reports_data else 0 }}</h3>
+                <span class="text-sm text-green-700 dark:text-green-300">Completed</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50">
+                <i class="ti ti-check text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ reports_data.pending_matches if reports_data else 0 }}</h3>
+                <span class="text-sm text-yellow-700 dark:text-yellow-300">Pending</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50">
+                <i class="ti ti-clock text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ reports_data.total_teams if reports_data else 0 }}</h3>
+                <span class="text-sm text-cyan-700 dark:text-cyan-300">Total Teams</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50">
+                <i class="ti ti-users text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Actions -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-report mr-2"></i>Generate Reports
+        </h5>
+    </div>
+    <div class="p-5">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button type="button" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" data-action="generate-match-report">
+                <i class="ti ti-file-text text-2xl text-blue-600 dark:text-blue-400 mb-2"></i>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">Match Summary</span>
+            </button>
+            <button type="button" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" data-action="generate-league-report">
+                <i class="ti ti-trophy text-2xl text-green-600 dark:text-green-400 mb-2"></i>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">League Statistics</span>
+            </button>
+            <button type="button" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" data-action="generate-team-report">
+                <i class="ti ti-users text-2xl text-yellow-600 dark:text-yellow-400 mb-2"></i>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">Team Performance</span>
+            </button>
+            <button type="button" class="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" data-action="generate-custom-report">
+                <i class="ti ti-chart-bar text-2xl text-cyan-600 dark:text-cyan-400 mb-2"></i>
+                <span class="text-sm font-medium text-gray-900 dark:text-white">Custom Report</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Reports and Export Options -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Quick Reports -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-clock-fast mr-2"></i>Quick Reports
+            </h5>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <button type="button" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="view-recent-matches">
+                <div class="flex items-center">
+                    <i class="ti ti-calendar-event text-xl text-blue-600 dark:text-blue-400 mr-3"></i>
+                    <div class="text-left">
+                        <div class="font-medium text-gray-900 dark:text-white">Recent Matches</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Last 7 days activity</div>
+                    </div>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ reports_data.recent_matches|length if reports_data and reports_data.recent_matches else 0 }}</span>
+            </button>
+            <button type="button" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="view-upcoming-matches">
+                <div class="flex items-center">
+                    <i class="ti ti-calendar-plus text-xl text-green-600 dark:text-green-400 mr-3"></i>
+                    <div class="text-left">
+                        <div class="font-medium text-gray-900 dark:text-white">Upcoming Matches</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Next 7 days schedule</div>
+                    </div>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ reports_data.upcoming_matches if reports_data else 0 }}</span>
+            </button>
+            <button type="button" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="view-top-scorers">
+                <div class="flex items-center">
+                    <i class="ti ti-trophy text-xl text-yellow-600 dark:text-yellow-400 mr-3"></i>
+                    <div class="text-left">
+                        <div class="font-medium text-gray-900 dark:text-white">Top Scorers</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Highest scoring teams</div>
+                    </div>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </button>
+            <button type="button" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="view-league-standings">
+                <div class="flex items-center">
+                    <i class="ti ti-list-numbers text-xl text-cyan-600 dark:text-cyan-400 mr-3"></i>
+                    <div class="text-left">
+                        <div class="font-medium text-gray-900 dark:text-white">League Standings</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Current league positions</div>
+                    </div>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Export Options -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-download mr-2"></i>Export Options
+            </h5>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <button type="button" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="export-pdf">
+                <div class="flex items-center">
+                    <i class="ti ti-file-type-pdf text-xl text-red-600 dark:text-red-400 mr-3"></i>
+                    <div class="text-left">
+                        <div class="font-medium text-gray-900 dark:text-white">PDF Report</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Formatted report document</div>
+                    </div>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </button>
+            <button type="button" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="export-excel">
+                <div class="flex items-center">
+                    <i class="ti ti-file-spreadsheet text-xl text-green-600 dark:text-green-400 mr-3"></i>
+                    <div class="text-left">
+                        <div class="font-medium text-gray-900 dark:text-white">Excel Spreadsheet</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Data for analysis</div>
+                    </div>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </button>
+            <button type="button" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="export-csv">
+                <div class="flex items-center">
+                    <i class="ti ti-file-text text-xl text-blue-600 dark:text-blue-400 mr-3"></i>
+                    <div class="text-left">
+                        <div class="font-medium text-gray-900 dark:text-white">CSV Export</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Raw data export</div>
+                    </div>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </button>
+            <button type="button" class="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="schedule-report">
+                <div class="flex items-center">
+                    <i class="ti ti-calendar-time text-xl text-purple-600 dark:text-purple-400 mr-3"></i>
+                    <div class="text-left">
+                        <div class="font-medium text-gray-900 dark:text-white">Schedule Report</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Automated reports</div>
+                    </div>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Match Results -->
+{% if reports_data and reports_data.recent_matches %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-history mr-2"></i>Recent Match Results
+        </h5>
+        <a href="{{ url_for('admin_panel.view_matches') }}" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+            <i class="ti ti-eye mr-1"></i>View All
+        </a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Date</th>
+                    <th scope="col" class="px-4 py-3">Home Team</th>
+                    <th scope="col" class="px-4 py-3">Score</th>
+                    <th scope="col" class="px-4 py-3">Away Team</th>
+                    <th scope="col" class="px-4 py-3">League</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for match in reports_data.recent_matches[:10] %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3">
+                        {{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}
+                        {% if match.time %}
+                        <br><small class="text-gray-500 dark:text-gray-400">{{ match.time.strftime('%H:%M') }}</small>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</td>
+                    <td class="px-4 py-3">
+                        {% if match.home_score is not none and match.away_score is not none %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if match.home_score > match.away_score %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% elif match.home_score == match.away_score %}bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                            {{ match.home_score }} - {{ match.away_score }}
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</td>
+                    <td class="px-4 py-3">
+                        {% if match.league %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ match.league.name }}</span>
+                        {% else %}
+                        <span class="text-gray-500 dark:text-gray-400">No League</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            <button type="button" class="p-1.5 text-cyan-600 bg-cyan-50 border border-cyan-200 rounded hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800" data-action="view-match-report" data-match-id="{{ match.id }}" title="View">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            <button type="button" class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="generate-match-report" data-match-id="{{ match.id }}" title="Generate Report">
+                                <i class="ti ti-file-text"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Statistics Charts -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <i class="ti ti-chart-pie mr-2"></i>Match Status Distribution
+        </h5>
+        <div class="h-64">
+            <canvas id="matchStatusChart"></canvas>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <i class="ti ti-chart-line mr-2"></i>Matches per Week
+        </h5>
+        <div class="h-64">
+            <canvas id="matchesPerWeekChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Team Performance Summary -->
+{% if reports_data and reports_data.teams %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-users mr-2"></i>Team Performance Summary
+        </h5>
+        <div class="flex gap-2">
+            <button type="button" class="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg" id="viewWins">Wins</button>
+            <button type="button" class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" id="viewGoals">Goals</button>
+            <button type="button" class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" id="viewMatches">Matches</button>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Team</th>
+                    <th scope="col" class="px-4 py-3">League</th>
+                    <th scope="col" class="px-4 py-3">Played</th>
+                    <th scope="col" class="px-4 py-3">Won</th>
+                    <th scope="col" class="px-4 py-3">Lost</th>
+                    <th scope="col" class="px-4 py-3">GF</th>
+                    <th scope="col" class="px-4 py-3">GA</th>
+                    <th scope="col" class="px-4 py-3">GD</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in reports_data.teams[:10] %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <div class="flex items-center justify-center w-8 h-8 rounded-full bg-ecs-green text-white font-bold text-sm mr-3">
+                                {{ team.name[0] if team.name else 'T' }}
+                            </div>
+                            <span class="font-medium text-gray-900 dark:text-white">{{ team.name }}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if team.league %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ team.league.name }}</span>
+                        {% else %}
+                        <span class="text-gray-500 dark:text-gray-400">No League</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">{{ team.matches_played if team.matches_played else 0 }}</td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ team.wins if team.wins else 0 }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ team.losses if team.losses else 0 }}</span>
+                    </td>
+                    <td class="px-4 py-3">{{ team.goals_for if team.goals_for else 0 }}</td>
+                    <td class="px-4 py-3">{{ team.goals_against if team.goals_against else 0 }}</td>
+                    <td class="px-4 py-3">
+                        {% set goal_diff = (team.goals_for or 0) - (team.goals_against or 0) %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if goal_diff > 0 %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% elif goal_diff < 0 %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                            {{ '+' ~ goal_diff if goal_diff > 0 else goal_diff }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            <button type="button" class="p-1.5 text-cyan-600 bg-cyan-50 border border-cyan-200 rounded hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800" data-action="view-team-report" data-team-id="{{ team.id }}" title="View">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            <button type="button" class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="generate-team-report" data-team-id="{{ team.id }}" title="Generate Report">
+                                <i class="ti ti-file-text"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Match Status Chart
+    const statusChartEl = document.getElementById('matchStatusChart');
+    if (statusChartEl) {
+        new Chart(statusChartEl, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Pending', 'Scheduled'],
+                datasets: [{
+                    data: [{{ reports_data.completed_matches if reports_data else 0 }}, {{ reports_data.pending_matches if reports_data else 0 }}, 5],
+                    backgroundColor: ['#10b981', '#f59e0b', '#3b82f6'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Matches per Week Chart
+    const weekChartEl = document.getElementById('matchesPerWeekChart');
+    if (weekChartEl) {
+        new Chart(weekChartEl, {
+            type: 'line',
+            data: {
+                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+                datasets: [{
+                    label: 'Matches',
+                    data: [12, 15, 18, 14, 16, 20],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: isDark ? '#374151' : '#e5e7eb'
+                        },
+                        ticks: {
+                            color: isDark ? '#9ca3af' : '#6b7280'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: isDark ? '#9ca3af' : '#6b7280'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Handle button clicks
+    document.addEventListener('click', function(e) {
+        const action = e.target.closest('[data-action]');
+        if (action) {
+            const actionName = action.dataset.action;
+            Swal.fire({
+                title: actionName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                text: 'This feature is being implemented.',
+                icon: 'info',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

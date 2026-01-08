@@ -1,0 +1,225 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}League Management{% endblock %}
+{% block panel_description %}Manage all leagues in your system{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.match_operations') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Match Operations</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">League Management</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Statistics Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.total_leagues or 0 }}</h3>
+                <span class="text-sm text-blue-700 dark:text-blue-300">Total Leagues</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                <i class="ti ti-flag text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.active_leagues or 0 }}</h3>
+                <span class="text-sm text-green-700 dark:text-green-300">Active Leagues</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50">
+                <i class="ti ti-flag-check text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.leagues_with_teams or 0 }}</h3>
+                <span class="text-sm text-yellow-700 dark:text-yellow-300">With Teams</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50">
+                <i class="ti ti-users text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.leagues_with_matches or 0 }}</h3>
+                <span class="text-sm text-cyan-700 dark:text-cyan-300">With Matches</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50">
+                <i class="ti ti-calendar text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leagues Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-flag mr-2"></i>Leagues
+        </h5>
+        <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" data-action="create-league">
+            <i class="ti ti-plus mr-1"></i>Create League
+        </button>
+    </div>
+    {% if leagues %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">League Name</th>
+                    <th scope="col" class="px-4 py-3">Season</th>
+                    <th scope="col" class="px-4 py-3">Teams</th>
+                    <th scope="col" class="px-4 py-3">Matches</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for league in leagues %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ league.name }}</td>
+                    <td class="px-4 py-3 text-gray-500 dark:text-gray-400">{{ league.season.name if league.season else 'No Season' }}</td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ league.team_count or 0 }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ league.match_count or 0 }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ league.status or 'Active' }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            <button type="button" class="p-1.5 text-cyan-600 bg-cyan-50 border border-cyan-200 rounded hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800" data-action="view-league" data-league-id="{{ league.id }}" title="View">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            <button type="button" class="p-1.5 text-yellow-600 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800" data-action="edit-league" data-league-id="{{ league.id }}" title="Edit">
+                                <i class="ti ti-edit"></i>
+                            </button>
+                            <button type="button" class="p-1.5 text-green-600 bg-green-50 border border-green-200 rounded hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800" data-action="toggle-league" data-league-id="{{ league.id }}" title="Toggle Status">
+                                <i class="ti ti-toggle-left"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-flag-off text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Leagues Found</h5>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">Create your first league to get started.</p>
+        <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" data-action="create-league">
+            <i class="ti ti-plus mr-1"></i>Create League
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Info Alert -->
+<div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
+    <div class="flex items-start">
+        <i class="ti ti-info-circle text-lg mr-3 mt-0.5"></i>
+        <div>
+            <strong>League Management:</strong>
+            Manage all leagues in your system. Create new leagues, edit existing ones, and manage team assignments.
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    document.addEventListener('click', function(e) {
+        const createBtn = e.target.closest('[data-action="create-league"]');
+        if (createBtn) {
+            Swal.fire({
+                title: 'Create New League',
+                html: `
+                    <div class="text-left space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League Name</label>
+                            <input type="text" id="leagueName" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter league name">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season</label>
+                            <select id="leagueSeason" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <option value="">Select a season</option>
+                            </select>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Create League',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+
+        const viewBtn = e.target.closest('[data-action="view-league"]');
+        if (viewBtn) {
+            const leagueId = viewBtn.dataset.leagueId;
+            Swal.fire({
+                title: 'League Details',
+                text: `Viewing league #${leagueId}`,
+                icon: 'info',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+
+        const editBtn = e.target.closest('[data-action="edit-league"]');
+        if (editBtn) {
+            const leagueId = editBtn.dataset.leagueId;
+            Swal.fire({
+                title: 'Edit League',
+                text: `Editing league #${leagueId}`,
+                icon: 'info',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+
+        const toggleBtn = e.target.closest('[data-action="toggle-league"]');
+        if (toggleBtn) {
+            const leagueId = toggleBtn.dataset.leagueId;
+            Swal.fire({
+                title: 'Toggle League Status',
+                text: 'Are you sure you want to toggle this league\'s status?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Toggle',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
