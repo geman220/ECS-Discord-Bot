@@ -1,0 +1,367 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Draft History{% endblock %}
+{% block panel_description %}View and manage draft pick history{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.draft_overview') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Draft Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">History</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Stats Cards -->
+{% if stats %}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <i class="ti ti-list-numbers text-3xl text-blue-600 dark:text-blue-400 mb-2"></i>
+            <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.total_picks }}</h3>
+            <span class="text-sm text-blue-700 dark:text-blue-300">Total All-Time Picks</span>
+        </div>
+    </div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <i class="ti ti-calendar text-3xl text-green-600 dark:text-green-400 mb-2"></i>
+            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.current_season_picks }}</h3>
+            <span class="text-sm text-green-700 dark:text-green-300">Current Season Picks</span>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <i class="ti ti-filter text-3xl text-cyan-600 dark:text-cyan-400 mb-2"></i>
+            <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.filtered_picks }}</h3>
+            <span class="text-sm text-cyan-700 dark:text-cyan-300">Showing (Filtered)</span>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center justify-center text-center h-full">
+            <a href="{{ url_for('draft_predictions.admin_dashboard') }}" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 mb-2">
+                <i class="ti ti-chart-bar mr-2"></i>Draft Predictions
+            </a>
+            <span class="text-xs text-gray-500 dark:text-gray-400">View predictions &amp; analytics</span>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season</label>
+                <select name="season" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500" onchange="this.form.submit()">
+                    <option value="">All Seasons</option>
+                    {% for season in seasons %}
+                    <option value="{{ season.id }}" {{ 'selected' if current_season_filter == season.id }}>
+                        {{ season.name }} {% if season.is_current %}(Current){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League</label>
+                <select name="league" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500" onchange="this.form.submit()">
+                    <option value="">All Leagues</option>
+                    {% for league in leagues %}
+                    <option value="{{ league.id }}" {{ 'selected' if current_league_filter|string == league.id|string }}>
+                        {{ league.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="text-right">
+                <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                    {{ total_picks }} picks showing
+                </span>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Draft History -->
+{% if draft_history %}
+    {% for season_name, leagues_data in draft_history.items() %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 rounded-t-lg">
+            <h5 class="text-lg font-semibold text-blue-900 dark:text-blue-100">
+                <i class="ti ti-calendar mr-2"></i>{{ season_name }}
+            </h5>
+        </div>
+        <div class="p-5">
+            {% for league_name, picks in leagues_data.items() %}
+            <div class="mb-6 last:mb-0">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <h6 class="text-md font-semibold text-gray-900 dark:text-white">
+                        <i class="ti ti-trophy mr-2 text-yellow-500"></i>{{ league_name }}
+                    </h6>
+                    <button type="button" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600" data-action="normalize-positions" data-season-id="{{ picks[0].season_id }}" data-league-id="{{ picks[0].league_id }}">
+                        <i class="ti ti-sort-ascending-numbers mr-1"></i>Normalize
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 w-16">Pick #</th>
+                                <th scope="col" class="px-4 py-3">Player</th>
+                                <th scope="col" class="px-4 py-3">Team</th>
+                                <th scope="col" class="px-4 py-3">Drafted By</th>
+                                <th scope="col" class="px-4 py-3">Notes</th>
+                                <th scope="col" class="px-4 py-3 w-24">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pick in picks %}
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" id="pick-row-{{ pick.id }}">
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ pick.draft_position }}</span>
+                                </td>
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ pick.player.name if pick.player else 'Unknown' }}</td>
+                                <td class="px-4 py-3">{{ pick.team.name if pick.team else 'Unknown' }}</td>
+                                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{{ pick.drafter.username if pick.drafter else 'System' }}</td>
+                                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{{ pick.notes|truncate(30) if pick.notes else '-' }}</td>
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center gap-1">
+                                        <button type="button" class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="edit-pick" data-pick-id="{{ pick.id }}" data-position="{{ pick.draft_position }}" title="Edit">
+                                            <i class="ti ti-edit"></i>
+                                        </button>
+                                        <button type="button" class="p-1.5 text-red-600 bg-red-50 border border-red-200 rounded hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800" data-action="delete-pick" data-pick-id="{{ pick.id }}" title="Delete">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-list-search text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Draft History Found</h5>
+        <p class="text-gray-500 dark:text-gray-400">Select a season or league to view draft picks.</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Edit Pick Modal -->
+<div id="editPickModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75 transition-opacity" data-modal-backdrop></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Draft Pick</h5>
+                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-close>
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-5">
+                <input type="hidden" id="edit-pick-id">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Position</label>
+                    <input type="number" id="edit-position" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Position Mode</label>
+                    <select id="edit-mode" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+                        <option value="cascading">Cascading (shift others down)</option>
+                        <option value="smart">Smart (automatic)</option>
+                        <option value="absolute">Absolute (no shift)</option>
+                        <option value="insert">Insert (shift at position)</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+                    <textarea id="edit-notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+            </div>
+            <div class="p-5 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600" data-modal-close>Cancel</button>
+                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" data-action="save-pick">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const modal = document.getElementById('editPickModal');
+
+    function showModal() { modal.classList.remove('hidden'); }
+    function hideModal() { modal.classList.add('hidden'); }
+
+    // Modal close handlers
+    modal.querySelectorAll('[data-modal-close], [data-modal-backdrop]').forEach(el => {
+        el.addEventListener('click', hideModal);
+    });
+
+    document.addEventListener('click', function(e) {
+        const editBtn = e.target.closest('[data-action="edit-pick"]');
+        if (editBtn) {
+            document.getElementById('edit-pick-id').value = editBtn.dataset.pickId;
+            document.getElementById('edit-position').value = editBtn.dataset.position;
+            document.getElementById('edit-notes').value = '';
+            showModal();
+        }
+
+        const deleteBtn = e.target.closest('[data-action="delete-pick"]');
+        if (deleteBtn) {
+            deletePick(deleteBtn.dataset.pickId);
+        }
+
+        const normalizeBtn = e.target.closest('[data-action="normalize-positions"]');
+        if (normalizeBtn) {
+            normalizePositions(normalizeBtn.dataset.seasonId, normalizeBtn.dataset.leagueId);
+        }
+
+        const saveBtn = e.target.closest('[data-action="save-pick"]');
+        if (saveBtn) {
+            savePick();
+        }
+    });
+
+    function savePick() {
+        const pickId = document.getElementById('edit-pick-id').value;
+        const position = document.getElementById('edit-position').value;
+        const mode = document.getElementById('edit-mode').value;
+        const notes = document.getElementById('edit-notes').value;
+
+        fetch(`{{ url_for('admin_panel.edit_draft_pick', pick_id=0) }}`.replace('0', pickId), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ position: position, mode: mode, notes: notes })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: data.message,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => {
+                    hideModal();
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        });
+    }
+
+    function deletePick(pickId) {
+        Swal.fire({
+            title: 'Delete Draft Pick?',
+            text: 'This will shift all subsequent picks.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Delete',
+            confirmButtonColor: '#dc2626',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`{{ url_for('admin_panel.delete_draft_pick', pick_id=0) }}`.replace('0', pickId), {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Deleted',
+                            text: data.message,
+                            timer: 1500,
+                            showConfirmButton: false,
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                        document.getElementById(`pick-row-${pickId}`).remove();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message,
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    function normalizePositions(seasonId, leagueId) {
+        Swal.fire({
+            title: 'Normalize Positions?',
+            text: 'This will fix any gaps in position numbers for this league.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Normalize',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('{{ url_for("admin_panel.normalize_draft_positions") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ season_id: seasonId, league_id: leagueId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: data.message,
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message,
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    }
+                });
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
