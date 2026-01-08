@@ -1,0 +1,363 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Match Verification Dashboard{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+            <span>/</span>
+            <span>Match Verification</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-clipboard-check text-blue-600"></i>Match Verification Dashboard
+        </h1>
+        <p class="text-gray-500 dark:text-gray-400 flex items-center gap-2">
+            <i class="ti ti-calendar-event"></i>
+            Verify match reports and confirm game results for <span class="font-medium">{{ active_season.name if active_season else "Current Season" }}</span>
+        </p>
+    </div>
+
+    {% if is_coach %}
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div class="flex gap-3">
+            <i class="ti ti-info-circle text-2xl text-blue-600 dark:text-blue-400"></i>
+            <div>
+                <h6 class="font-semibold text-blue-800 dark:text-blue-300">Coach Verification</h6>
+                <p class="text-sm text-blue-700 dark:text-blue-400">As a coach, you can verify match reports for your team. This confirms the match score and statistics are correct.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filters Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-filter text-gray-500"></i>Filter Matches
+            </h5>
+            <div class="flex gap-2">
+                <button type="button" class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400" data-collapse-toggle="seasonSelector">
+                    <i class="ti ti-calendar-stats mr-1"></i>Change Season
+                </button>
+            </div>
+        </div>
+
+        <!-- Season Selector -->
+        <div id="seasonSelector" class="hidden border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-700/50">
+            <h6 class="font-medium text-gray-900 dark:text-white mb-3">Select Season</h6>
+            <div class="flex flex-wrap gap-2">
+                {% for season in seasons %}
+                <a href="{{ url_for('admin.match_verification_dashboard', season_id=season.id) }}"
+                   class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg {{ 'bg-blue-600 text-white' if active_season and season.id == active_season.id else 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700' }} transition-colors">
+                    {{ season.name }}
+                    {% if season.is_current %}
+                    <span class="ml-2 px-1.5 py-0.5 text-xs bg-green-500 text-white rounded">Current</span>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="p-4">
+            <form method="GET" action="{{ url_for('admin.match_verification_dashboard') }}" class="flex flex-wrap gap-4 items-end">
+                {% if selected_season_id %}
+                <input type="hidden" name="season_id" value="{{ selected_season_id }}">
+                {% endif %}
+
+                <div class="flex-1 min-w-40">
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Week</label>
+                    <select name="week" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">All Weeks</option>
+                        {% if weeks %}
+                        {% for week_item in weeks %}
+                        <option value="{{ week_item }}" {% if current_week == week_item %}selected{% endif %}>Week {{ week_item }}</option>
+                        {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="flex-1 min-w-40">
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">League</label>
+                    <select name="league_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">All Leagues</option>
+                        {% for league in leagues %}
+                        <option value="{{ league.id }}" {% if current_league_id|int == league.id %}selected{% endif %}>{{ league.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="flex-1 min-w-48">
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Verification Status</label>
+                    <select name="verification_status" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="all" {% if current_verification_status == 'all' %}selected{% endif %}>All Matches</option>
+                        <option value="unverified" {% if current_verification_status == 'unverified' %}selected{% endif %}>Needs Verification</option>
+                        <option value="partially_verified" {% if current_verification_status == 'partially_verified' %}selected{% endif %}>Partially Verified</option>
+                        <option value="fully_verified" {% if current_verification_status == 'fully_verified' %}selected{% endif %}>Fully Verified</option>
+                        <option value="not_reported" {% if current_verification_status == 'not_reported' %}selected{% endif %}>Not Reported</option>
+                    </select>
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="submit" class="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                        <i class="ti ti-filter mr-2"></i>Apply
+                    </button>
+                    <a href="{{ url_for('admin.match_verification_dashboard') }}" class="inline-flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                        <i class="ti ti-refresh mr-2"></i>Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                    <i class="ti ti-soccer-field"></i>
+                </div>
+                <h6 class="text-sm text-gray-500 dark:text-gray-400">Total Matches</h6>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ matches|length }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Current season</p>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
+                    <i class="ti ti-check"></i>
+                </div>
+                <h6 class="text-sm text-gray-500 dark:text-gray-400">Fully Verified</h6>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ matches|selectattr('home_team_verified', 'defined')|selectattr('home_team_verified')|selectattr('away_team_verified', 'defined')|selectattr('away_team_verified')|list|length }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Both teams verified</p>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-lg">
+                    <i class="ti ti-clock"></i>
+                </div>
+                <h6 class="text-sm text-gray-500 dark:text-gray-400">Partially</h6>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ matches|selectattr('home_team_score', 'defined')|selectattr('away_team_score', 'defined')|rejectattr('home_team_verified')|rejectattr('away_team_verified')|list|length }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">One team verified</p>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-2 mb-2">
+                <div class="w-8 h-8 flex items-center justify-center bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg">
+                    <i class="ti ti-alert-triangle"></i>
+                </div>
+                <h6 class="text-sm text-gray-500 dark:text-gray-400">Not Reported</h6>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ matches|rejectattr('home_team_score', 'defined')|list|length + matches|rejectattr('away_team_score', 'defined')|list|length }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Needs initial report</p>
+        </div>
+    </div>
+
+    <!-- Matches Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-list text-gray-500"></i>Match List
+            </h5>
+            <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" data-dropdown-toggle="exportDropdown">
+                <i class="ti ti-download mr-2"></i>Export
+            </button>
+            <div id="exportDropdown" class="hidden z-10 w-44 bg-white rounded-lg shadow dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
+                    <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"><i class="ti ti-file-spreadsheet mr-2"></i>Export to Excel</a></li>
+                    <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"><i class="ti ti-file-csv mr-2"></i>Export to CSV</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Date</th>
+                        <th scope="col" class="px-4 py-3">Week</th>
+                        <th scope="col" class="px-4 py-3">Home Team</th>
+                        <th scope="col" class="px-4 py-3">Away Team</th>
+                        <th scope="col" class="px-4 py-3">Score</th>
+                        <th scope="col" class="px-4 py-3">Status</th>
+                        <th scope="col" class="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if matches %}
+                    {% for match in matches %}
+                    <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ match.date.strftime('%m/%d/%Y') }}</td>
+                        <td class="px-4 py-3">{{ match.schedule.week if match.schedule else 'Unknown' }}</td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-gray-900 dark:text-white">{{ match.home_team.name }}</span>
+                                {% if match.home_team_verified %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full" title="Verified by: {{ (match.home_verifier.player.name if match.home_verifier and match.home_verifier.player else match.home_verifier.username) if match.home_verifier else 'Unknown' }}">
+                                    <i class="ti ti-check mr-1"></i>Verified
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full">
+                                    <i class="ti ti-clock mr-1"></i>Pending
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-gray-900 dark:text-white">{{ match.away_team.name }}</span>
+                                {% if match.away_team_verified %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full" title="Verified by: {{ (match.away_verifier.player.name if match.away_verifier and match.away_verifier.player else match.away_verifier.username) if match.away_verifier else 'Unknown' }}">
+                                    <i class="ti ti-check mr-1"></i>Verified
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full">
+                                    <i class="ti ti-clock mr-1"></i>Pending
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if match.home_team_score is not none and match.away_team_score is not none %}
+                            <span class="font-bold text-gray-900 dark:text-white">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-full">Not reported</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if match.home_team_score is none or match.away_team_score is none %}
+                            <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-full">Not reported</span>
+                            {% elif match.home_team_verified and match.away_team_verified %}
+                            <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full">Fully verified</span>
+                            {% elif match.home_team_verified or match.away_team_verified %}
+                            <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full">Partially verified</span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full">Needs verification</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <button type="button" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" data-dropdown-toggle="matchActions{{ match.id }}">
+                                <i class="ti ti-dots-vertical"></i>
+                            </button>
+                            <div id="matchActions{{ match.id }}" class="hidden z-10 w-48 bg-white rounded-lg shadow dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                                <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
+                                    <li>
+                                        <a href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                            <i class="ti ti-home mr-2"></i>View Home Team
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('teams.team_details', team_id=match.away_team_id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                            <i class="ti ti-plane-departure mr-2"></i>View Away Team
+                                        </a>
+                                    </li>
+                                    {% if match.home_team_score is not none and match.away_team_score is not none %}
+                                    <li class="border-t border-gray-100 dark:border-gray-600"></li>
+                                    {% if not match.home_team_verified and (not is_coach or match.home_team_id in verifiable_teams) %}
+                                    <li>
+                                        <form method="POST" action="{{ url_for('admin.admin_verify_match', match_id=match.id) }}" class="verify-form">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="team" value="home">
+                                            <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                                <i class="ti ti-check mr-2"></i>Verify Home Team
+                                            </button>
+                                        </form>
+                                    </li>
+                                    {% endif %}
+                                    {% if not match.away_team_verified and (not is_coach or match.away_team_id in verifiable_teams) %}
+                                    <li>
+                                        <form method="POST" action="{{ url_for('admin.admin_verify_match', match_id=match.id) }}" class="verify-form">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="team" value="away">
+                                            <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                                <i class="ti ti-check mr-2"></i>Verify Away Team
+                                            </button>
+                                        </form>
+                                    </li>
+                                    {% endif %}
+                                    {% if (not match.home_team_verified or not match.away_team_verified) and not is_coach %}
+                                    <li>
+                                        <form method="POST" action="{{ url_for('admin.admin_verify_match', match_id=match.id) }}" class="verify-form">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="team" value="both">
+                                            <button type="submit" class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                                <i class="ti ti-checks mr-2"></i>Verify Both Teams
+                                            </button>
+                                        </form>
+                                    </li>
+                                    {% endif %}
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-12 text-center">
+                            <i class="ti ti-search text-4xl text-gray-300 dark:text-gray-600 mb-2"></i>
+                            <h5 class="font-semibold text-gray-900 dark:text-white mb-1">No matches found</h5>
+                            {% if current_week or current_league_id or current_verification_status != 'all' %}
+                            <p class="text-gray-500 dark:text-gray-400 mb-4">No matches match your current filter criteria</p>
+                            <a href="{{ url_for('admin.match_verification_dashboard') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                                <i class="ti ti-refresh mr-2"></i>Reset Filters
+                            </a>
+                            {% else %}
+                            <p class="text-gray-500 dark:text-gray-400">There are no matches to verify in the current season</p>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Verify form confirmation
+    document.querySelectorAll('.verify-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const team = this.querySelector('input[name="team"]').value;
+            let teamText = team === 'both' ? 'both teams' : (team + ' team');
+
+            Swal.fire({
+                title: 'Verify Match?',
+                text: `Are you sure you want to verify the ${teamText}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, verify',
+                confirmButtonColor: '#22c55e',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    // Season selector toggle
+    const seasonToggle = document.querySelector('[data-collapse-toggle="seasonSelector"]');
+    const seasonSelector = document.getElementById('seasonSelector');
+    if (seasonToggle && seasonSelector) {
+        seasonToggle.addEventListener('click', function() {
+            seasonSelector.classList.toggle('hidden');
+        });
+    }
+});
+</script>
+{% endblock %}

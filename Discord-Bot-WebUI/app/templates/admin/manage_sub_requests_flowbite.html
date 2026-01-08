@@ -1,0 +1,326 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Manage Sub Requests{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+            <span>/</span>
+            <span>Manage Sub Requests</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Manage Sub Requests</h1>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                    <i class="ti ti-soccer-field text-2xl"></i>
+                </div>
+                <div>
+                    <h5 class="text-sm text-gray-500 dark:text-gray-400">Total Matches</h5>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ upcoming_matches|length if upcoming_matches else 0 }}</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Upcoming matches</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-lg">
+                    <i class="ti ti-hand-stop text-2xl"></i>
+                </div>
+                <div>
+                    <h5 class="text-sm text-gray-500 dark:text-gray-400">Pending Requests</h5>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ sub_requests|selectattr('status', 'equalto', 'PENDING')|list|length }}</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Awaiting action</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
+                    <i class="ti ti-clock text-2xl"></i>
+                </div>
+                <div>
+                    <h5 class="text-sm text-gray-500 dark:text-gray-400">Approved</h5>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ sub_requests|selectattr('status', 'equalto', 'APPROVED')|list|length }}</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Need assignment</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
+                    <i class="ti ti-check text-2xl"></i>
+                </div>
+                <div>
+                    <h5 class="text-sm text-gray-500 dark:text-gray-400">Fulfilled</h5>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ sub_requests|selectattr('status', 'equalto', 'FULFILLED')|list|length }}</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Completed requests</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-filter text-gray-500"></i>Filter Matches
+            </h5>
+        </div>
+        <div class="p-4">
+            <form method="GET" class="flex flex-wrap gap-4 items-end">
+                <div class="flex-1 min-w-40">
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Week</label>
+                    <select id="week" name="week" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">All Weeks</option>
+                        {% for week_option in weeks %}
+                        <option value="{{ week_option }}" {% if current_week == week_option|string %}selected{% endif %}>Week {{ week_option }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex-1 min-w-40">
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Show Matches</label>
+                    <select id="show_requested" name="show_requested" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="all" {% if show_requested == "all" %}selected{% endif %}>All Matches</option>
+                        <option value="requested" {% if show_requested == "requested" %}selected{% endif %}>With Sub Requests</option>
+                        <option value="not_requested" {% if show_requested == "not_requested" %}selected{% endif %}>Without Sub Requests</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <a href="{{ url_for('admin.manage_sub_requests') }}" class="inline-flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                        <i class="ti ti-refresh mr-2"></i>Reset
+                    </a>
+                    <button type="submit" class="inline-flex items-center px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                        <i class="ti ti-filter mr-2"></i>Apply
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Upcoming Matches -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-list text-gray-500"></i>Upcoming Matches
+            </h5>
+        </div>
+        <div class="p-4">
+            {% if upcoming_matches %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% set matches_with_requests = [] %}
+                {% set matches_without_requests = [] %}
+                {% for match in upcoming_matches %}
+                    {% if match.home_team_id in requested_teams_by_match[match.id] or match.away_team_id in requested_teams_by_match[match.id] %}
+                        {% set _ = matches_with_requests.append(match) %}
+                    {% else %}
+                        {% set _ = matches_without_requests.append(match) %}
+                    {% endif %}
+                {% endfor %}
+
+                {% for match in matches_with_requests + matches_without_requests %}
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg border {{ 'border-yellow-400 dark:border-yellow-600' if match in matches_with_requests else 'border-gray-200 dark:border-gray-600' }} p-4">
+                    <div class="mb-3">
+                        <h6 class="font-semibold text-gray-900 dark:text-white">{{ match.home_team.name }} vs {{ match.away_team.name }}</h6>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ match.date.strftime('%m/%d/%Y') }} - Week {{ match.schedule.week if match.schedule else 'TBD' }}</p>
+                    </div>
+
+                    <!-- Team Status -->
+                    <div class="space-y-3 mb-4">
+                        <!-- Home Team -->
+                        <div class="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded-lg">
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ match.home_team.name }}</span>
+                            {% if match.home_team_id in requested_teams_by_match[match.id] %}
+                                {% set req = requested_teams_by_match[match.id][match.home_team_id] %}
+                                <span class="px-2 py-1 text-xs font-medium rounded-full
+                                    {% if req.status == 'PENDING' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400
+                                    {% elif req.status == 'APPROVED' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400
+                                    {% elif req.status == 'FULFILLED' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400
+                                    {% else %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                                    {{ req.status }} ({{ req.substitutes_needed }})
+                                </span>
+                            {% else %}
+                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">No Request</span>
+                            {% endif %}
+                        </div>
+                        <!-- Away Team -->
+                        <div class="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded-lg">
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ match.away_team.name }}</span>
+                            {% if match.away_team_id in requested_teams_by_match[match.id] %}
+                                {% set req = requested_teams_by_match[match.id][match.away_team_id] %}
+                                <span class="px-2 py-1 text-xs font-medium rounded-full
+                                    {% if req.status == 'PENDING' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400
+                                    {% elif req.status == 'APPROVED' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400
+                                    {% elif req.status == 'FULFILLED' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400
+                                    {% else %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                                    {{ req.status }} ({{ req.substitutes_needed }})
+                                </span>
+                            {% else %}
+                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">No Request</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ url_for('admin.rsvp_status', match_id=match.id) }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                            <i class="ti ti-users mr-1"></i>RSVP
+                        </a>
+                        {% set home_req = requested_teams_by_match[match.id][match.home_team_id] if match.home_team_id in requested_teams_by_match[match.id] else None %}
+                        {% set away_req = requested_teams_by_match[match.id][match.away_team_id] if match.away_team_id in requested_teams_by_match[match.id] else None %}
+                        {% if home_req and home_req.status == 'PENDING' %}
+                        <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" data-modal-toggle="fulfillModal{{ home_req.id }}">
+                            <i class="ti ti-user-plus mr-1"></i>Home Sub
+                        </button>
+                        {% endif %}
+                        {% if away_req and away_req.status == 'PENDING' %}
+                        <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" data-modal-toggle="fulfillModal{{ away_req.id }}">
+                            <i class="ti ti-user-plus mr-1"></i>Away Sub
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <i class="ti ti-search text-4xl text-gray-300 dark:text-gray-600 mb-2"></i>
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-1">No matches found</h6>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Try adjusting your filters to see more results</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pending Sub Requests -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-hand-stop text-yellow-500"></i>Pending Sub Requests
+            </h5>
+        </div>
+        <div class="p-4">
+            {% set pending_requests = sub_requests|selectattr('status', 'equalto', 'PENDING')|list %}
+            {% if pending_requests %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for request in pending_requests %}
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-yellow-200 dark:border-yellow-800 p-4">
+                    <div class="mb-3">
+                        <h6 class="font-semibold text-gray-900 dark:text-white">{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</h6>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ request.match.date.strftime('%m/%d/%Y') }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">{{ request.team.name }}</span>
+                        <span class="text-sm text-gray-700 dark:text-gray-300 ml-2">{{ request.substitutes_needed }} sub(s) needed</span>
+                    </div>
+                    {% if request.notes %}
+                    <p class="text-sm text-gray-500 dark:text-gray-400 italic mb-3">"{{ request.notes }}"</p>
+                    {% endif %}
+                    <div class="flex gap-2">
+                        <a href="{{ url_for('teams.team_details', team_id=request.team_id) }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                            <i class="ti ti-users mr-1"></i>Team
+                        </a>
+                        <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors" data-modal-toggle="fulfillModal{{ request.id }}">
+                            <i class="ti ti-user-plus mr-1"></i>Assign
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full">
+                    <i class="ti ti-check text-3xl"></i>
+                </div>
+                <h5 class="font-semibold text-gray-900 dark:text-white mb-1">No Pending Requests</h5>
+                <p class="text-sm text-gray-500 dark:text-gray-400">There are no pending substitute requests at this time.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Fulfill Modals -->
+{% for request in sub_requests %}
+{% if request.status == 'PENDING' or request.status == 'APPROVED' %}
+<div id="fulfillModal{{ request.id }}" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-green-600 text-white rounded-t-lg">
+                <h3 class="text-lg font-semibold flex items-center gap-2">
+                    <i class="ti ti-user-plus"></i>Assign Substitute
+                </h3>
+                <button type="button" class="text-white hover:text-gray-200" data-modal-hide="fulfillModal{{ request.id }}">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form action="{{ url_for('admin.update_sub_request', request_id=request.id) }}" method="POST">
+                <div class="p-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="fulfill">
+
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Substitute</label>
+                        <select name="player_id" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="" selected disabled>Choose a substitute player...</option>
+                            {% if subs_by_match[request.match_id] and subs_by_match[request.match_id].subs %}
+                                {% for sub in subs_by_match[request.match_id].subs %}
+                                <option value="{{ sub.id }}">{{ sub.name }} ({{ subs_by_match[request.match_id].league_type }})</option>
+                                {% endfor %}
+                            {% else %}
+                                {% for sub in available_subs %}
+                                <option value="{{ sub.id }}">{{ sub.name }}</option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div class="flex gap-3">
+                            <i class="ti ti-info-circle text-2xl text-blue-600 dark:text-blue-400"></i>
+                            <div>
+                                <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-1">Request Details</h6>
+                                <p class="text-sm text-blue-700 dark:text-blue-400">{{ request.team.name }} needs <strong>{{ request.substitutes_needed }} substitute(s)</strong> for their match on {{ request.match.date.strftime('%a, %b %d') }}</p>
+                                {% if request.notes %}
+                                <p class="text-sm text-blue-600 dark:text-blue-400 italic mt-2">"{{ request.notes }}"</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" data-modal-hide="fulfillModal{{ request.id }}">
+                        <i class="ti ti-x mr-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                        <i class="ti ti-user-plus mr-2"></i>Assign Substitute
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit filter form on change
+    document.getElementById('show_requested').addEventListener('change', function() {
+        this.form.submit();
+    });
+    document.getElementById('week').addEventListener('change', function() {
+        this.form.submit();
+    });
+});
+</script>
+{% endblock %}
