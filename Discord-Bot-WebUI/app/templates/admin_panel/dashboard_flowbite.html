@@ -1,0 +1,326 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, stat_card, empty_state %}
+
+{% block admin_title %}Admin Panel - Dashboard{% endblock %}
+
+{% block panel_content %}
+<div class="space-y-6">
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- System Settings -->
+        <a href="{{ url_for('admin_panel.feature_toggles') }}" class="block">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-ecs-green dark:hover:border-ecs-green transition-all cursor-pointer">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.total_settings }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">System Settings</p>
+                    </div>
+                    <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                        <i class="ti ti-adjustments-horizontal text-2xl text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        <!-- Active Features -->
+        <a href="{{ url_for('admin_panel.feature_toggles') }}" class="block">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-ecs-green dark:hover:border-ecs-green transition-all cursor-pointer">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.active_features }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Active Features</p>
+                    </div>
+                    <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+                        <i class="ti ti-toggle-right text-2xl text-green-600 dark:text-green-400"></i>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        <!-- Total Users -->
+        <a href="{{ url_for('admin_panel.user_management') }}" class="block">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-ecs-green dark:hover:border-ecs-green transition-all cursor-pointer">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.total_users }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Total Users</p>
+                    </div>
+                    <div class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                        <i class="ti ti-users text-2xl text-purple-600 dark:text-purple-400"></i>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        <!-- Recent Changes -->
+        <a href="{{ url_for('admin_panel.audit_logs') }}" class="block">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-ecs-green dark:hover:border-ecs-green transition-all cursor-pointer">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.recent_changes }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Changes (7 days)</p>
+                    </div>
+                    <div class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
+                        <i class="ti ti-history text-2xl text-yellow-600 dark:text-yellow-400"></i>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Admin Sections Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Feature Management -->
+        {% call card(title="Feature Management", subtitle="Control system features and functionality") %}
+        <div class="space-y-2">
+            <a href="{{ url_for('admin_panel.feature_toggles') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-toggle-right text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Feature Toggles</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    {{ badge(stats.active_features|string, variant="primary") }}
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </div>
+            </a>
+            <a href="{{ url_for('admin_panel.appearance') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-palette text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Theme Settings</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+        </div>
+        {% endcall %}
+
+        <!-- Communication Hub -->
+        {% call card(title="Communication Hub", subtitle="Manage all communication channels") %}
+        <div class="space-y-2">
+            <a href="{{ url_for('admin_panel.communication_hub') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-template text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Message Templates</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.push_notifications') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-bell text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Push Notifications</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-clock text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Scheduled Messages</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+        </div>
+        {% endcall %}
+
+        <!-- User Management -->
+        {% call card(title="User Management", subtitle="Manage users, roles, and permissions") %}
+        <div class="space-y-2">
+            <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-users text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">User Management</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if pending_approvals > 0 %}
+                    {{ badge(pending_approvals|string, variant="danger") }}
+                    {% endif %}
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </div>
+            </a>
+            <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-shield-check text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Role Management</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.user_approvals') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-user-check text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">User Approvals</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+        </div>
+        {% endcall %}
+
+        <!-- System Monitoring -->
+        {% call card(title="System Monitoring", subtitle="Monitor system health and performance") %}
+        <div class="space-y-2">
+            <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-activity text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">System Information</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </div>
+            </a>
+            <a href="{{ url_for('admin_panel.cache_management') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-database text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Cache Management</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.health_dashboard') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-heartbeat text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">System Health</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+        </div>
+        {% endcall %}
+
+        <!-- Match & League Operations -->
+        {% call card(title="Match & League Ops", subtitle="Manage matches and league operations") %}
+        <div class="space-y-2">
+            <a href="{{ url_for('admin_panel.match_verification') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-clipboard-check text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Match Verification</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.match_operations') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-trophy text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Match Operations</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.live_reporting_dashboard') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-broadcast text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Live Reporting</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+        </div>
+        {% endcall %}
+
+        <!-- Mobile Features -->
+        {% call card(title="Mobile Features", subtitle="Mobile app and wallet management") %}
+        <div class="space-y-2">
+            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-wallet text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Apple Wallet Passes</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            <a href="{{ url_for('wallet_admin.wallet_players') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-user-cog text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Player Eligibility</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            {% if user_roles and 'Global Admin' in user_roles %}
+            <a href="{{ url_for('wallet_admin.wallet_config') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-settings-2 text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Wallet Configuration</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            {% endif %}
+        </div>
+        {% endcall %}
+    </div>
+
+    <!-- Recent Activity -->
+    {% call card(title="Recent Admin Activity") %}
+    {% if recent_actions %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Time</th>
+                    <th scope="col" class="px-4 py-3">User</th>
+                    <th scope="col" class="px-4 py-3">Action</th>
+                    <th scope="col" class="px-4 py-3">Resource</th>
+                    <th scope="col" class="px-4 py-3">Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for action in recent_actions[:5] %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ action.timestamp.strftime('%m/%d %H:%M') }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if action.user %}
+                            {{ action.user.name or action.user.username }}
+                        {% else %}
+                            User {{ action.user_id }}
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if action.action == 'toggle' %}
+                            {{ badge('Toggle', variant='info') }}
+                        {% elif action.action == 'update' %}
+                            {{ badge('Update', variant='warning') }}
+                        {% elif action.action == 'create' %}
+                            {{ badge('Create', variant='success') }}
+                        {% elif action.action == 'delete' %}
+                            {{ badge('Delete', variant='danger') }}
+                        {% else %}
+                            {{ badge(action.action|title, variant='default') }}
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">{{ action.resource_type }}</td>
+                    <td class="px-4 py-3">
+                        <span class="text-xs">
+                            {% if action.resource_id %}{{ action.resource_id }}{% endif %}
+                            {% if action.old_value and action.new_value %}
+                                <br>{{ action.old_value }} → {{ action.new_value }}
+                            {% elif action.new_value %}
+                                <br>Set to: {{ action.new_value }}
+                            {% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="mt-4 flex justify-end">
+        <a href="{{ url_for('admin_panel.audit_logs') }}" class="inline-flex items-center text-sm text-ecs-green hover:underline">
+            View All Logs
+            <i class="ti ti-arrow-right ml-1"></i>
+        </a>
+    </div>
+    {% else %}
+    {{ empty_state(
+        title="No recent activity",
+        description="Admin actions will appear here",
+        icon="activity"
+    ) }}
+    {% endif %}
+    {% endcall %}
+
+    <!-- Initialize Settings Warning -->
+    {% if stats.total_settings == 0 %}
+    {{ alert(
+        message="Setup Required: Admin settings have not been initialized yet.",
+        variant="warning",
+        title="Action Needed"
+    ) }}
+    <form method="POST" action="{{ url_for('admin_panel.initialize_settings') }}" class="mt-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ button("Initialize Settings", variant="warning", type="submit", icon="settings") }}
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

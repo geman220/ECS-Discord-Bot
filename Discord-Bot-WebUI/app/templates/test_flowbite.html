@@ -1,0 +1,147 @@
+{% extends 'base_flowbite.html' %}
+{% from 'macros/flowbite.html' import card, button, input, select, badge, alert, stat_card, avatar, empty_state, spinner %}
+
+{% block title %}Flowbite Test Page{% endblock %}
+{% block page_title %}Flowbite Component Test{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+
+    <!-- Alert Examples -->
+    {{ alert("This is a test page to verify the Flowbite/Tailwind setup is working correctly.", variant="info", title="Testing Mode") }}
+
+    <!-- Stat Cards Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {{ stat_card(title="Total Players", value="156", change="+12%", change_type="positive", icon="users") }}
+        {{ stat_card(title="Active Teams", value="12", icon="users-group") }}
+        {{ stat_card(title="Matches Played", value="48", change="-3%", change_type="negative", icon="ball-football") }}
+        {{ stat_card(title="Goals Scored", value="127", icon="target") }}
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Buttons Card -->
+        {% call card(title="Button Variants", subtitle="All available button styles") %}
+        <div class="flex flex-wrap gap-3">
+            {{ button("Primary", variant="primary") }}
+            {{ button("Secondary", variant="secondary") }}
+            {{ button("Success", variant="success") }}
+            {{ button("Danger", variant="danger") }}
+            {{ button("Warning", variant="warning") }}
+            {{ button("Ghost", variant="ghost") }}
+            {{ button("Outline", variant="outline") }}
+        </div>
+        <div class="flex flex-wrap gap-3 mt-4">
+            {{ button("Small", variant="primary", size="sm") }}
+            {{ button("Medium", variant="primary", size="md") }}
+            {{ button("Large", variant="primary", size="lg") }}
+        </div>
+        <div class="flex flex-wrap gap-3 mt-4">
+            {{ button("With Icon", variant="primary", icon="plus") }}
+            {{ button("Edit", variant="secondary", icon="edit") }}
+            {{ button("Delete", variant="danger", icon="trash") }}
+            {{ button("", variant="ghost", icon="settings") }}
+        </div>
+        {% endcall %}
+
+        <!-- Badges Card -->
+        {% call card(title="Badge Variants") %}
+        <div class="flex flex-wrap gap-3">
+            {{ badge("Default", variant="default") }}
+            {{ badge("Primary", variant="primary") }}
+            {{ badge("Success", variant="success") }}
+            {{ badge("Warning", variant="warning") }}
+            {{ badge("Danger", variant="danger") }}
+            {{ badge("Info", variant="info") }}
+        </div>
+        <div class="flex flex-wrap gap-3 mt-4">
+            {{ badge("Online", variant="success", dot=true) }}
+            {{ badge("Away", variant="warning", dot=true) }}
+            {{ badge("Offline", variant="danger", dot=true) }}
+        </div>
+        {% endcall %}
+
+    </div>
+
+    <!-- Form Card -->
+    {% call card(title="Form Elements", subtitle="Input components with validation") %}
+    <form class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {{ input("first_name", label="First Name", placeholder="Enter first name", required=true) }}
+            {{ input("last_name", label="Last Name", placeholder="Enter last name", required=true) }}
+        </div>
+        {{ input("email", label="Email Address", type="email", placeholder="you@example.com", help_text="We'll never share your email.") }}
+        {{ input("password", label="Password", type="password", placeholder="••••••••", error="Password must be at least 8 characters") }}
+        {{ select("role", label="Role", options=[("player", "Player"), ("captain", "Team Captain"), ("admin", "Administrator")], placeholder="Select a role") }}
+
+        <div class="flex gap-3 pt-4">
+            {{ button("Submit", variant="primary", type="submit", icon="check") }}
+            {{ button("Cancel", variant="ghost") }}
+        </div>
+    </form>
+    {% endcall %}
+
+    <!-- Avatars Card -->
+    {% call card(title="Avatar Examples") %}
+    <div class="flex items-center gap-4">
+        {{ avatar(size="xs", fallback="A") }}
+        {{ avatar(size="sm", fallback="B") }}
+        {{ avatar(size="md", fallback="C", status="online") }}
+        {{ avatar(size="lg", fallback="D", status="away") }}
+        {{ avatar(size="xl", fallback="E", status="offline") }}
+    </div>
+    {% endcall %}
+
+    <!-- Alerts Card -->
+    {% call card(title="Alert Variants") %}
+    <div class="space-y-3">
+        {{ alert("This is an info message.", variant="info") }}
+        {{ alert("Operation completed successfully!", variant="success") }}
+        {{ alert("Please review your input.", variant="warning") }}
+        {{ alert("An error occurred. Please try again.", variant="danger") }}
+    </div>
+    {% endcall %}
+
+    <!-- Empty State Example -->
+    {% call card(title="Empty State Example") %}
+    {{ empty_state(
+        title="No matches scheduled",
+        description="There are no upcoming matches. Check back later or create a new match.",
+        icon="calendar-off",
+        action_text="Schedule Match",
+        action_href="#"
+    ) }}
+    {% endcall %}
+
+    <!-- Loading Spinner -->
+    {% call card(title="Loading States") %}
+    <div class="flex items-center gap-6">
+        <div class="text-center">
+            {{ spinner(size="sm") }}
+            <p class="text-sm text-gray-500 mt-2">Small</p>
+        </div>
+        <div class="text-center">
+            {{ spinner(size="md") }}
+            <p class="text-sm text-gray-500 mt-2">Medium</p>
+        </div>
+        <div class="text-center">
+            {{ spinner(size="lg") }}
+            <p class="text-sm text-gray-500 mt-2">Large</p>
+        </div>
+    </div>
+    {% endcall %}
+
+    <!-- Dark Mode Test -->
+    {% call card(title="Dark Mode Test", subtitle="Toggle the theme using the button in the navbar") %}
+    <p class="text-gray-700 dark:text-gray-300">
+        This text should change color between light and dark mode.
+        The cards, inputs, and all components should adapt automatically.
+    </p>
+    <div class="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+        <p class="text-gray-800 dark:text-gray-200">This box has a different background in dark mode.</p>
+    </div>
+    {% endcall %}
+
+</div>
+{% endblock %}

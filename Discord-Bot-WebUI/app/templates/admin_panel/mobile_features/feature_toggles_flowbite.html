@@ -1,0 +1,487 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, select %}
+
+{% block admin_title %}Feature Toggles{% endblock %}
+{% block panel_description %}Control which features are available to mobile app users{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.mobile_features') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Mobile Features</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Feature Toggles</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Feature Toggle Overview -->
+{{ alert("Control which features are available to mobile app users. Changes take effect immediately.", variant="info", title="Feature Toggle Management", dismissible=false) }}
+
+<!-- Core Mobile Features & Location/Privacy -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+    <!-- Core Mobile Features -->
+    {% call card(title="Core Mobile Features") %}
+    <div class="space-y-4">
+        <!-- Push Notifications -->
+        <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div>
+                <h6 class="font-medium text-gray-900 dark:text-white">Push Notifications</h6>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Enable push notifications for users</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" class="sr-only peer" id="pushNotifications" data-feature="mobile_push_notifications" checked>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+            </label>
+        </div>
+
+        <!-- Wallet Passes -->
+        <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div>
+                <h6 class="font-medium text-gray-900 dark:text-white">Wallet Passes</h6>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Apple Wallet / Google Pay integration</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" class="sr-only peer" id="walletPasses" data-feature="mobile_wallet_passes" checked>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+            </label>
+        </div>
+
+        <!-- Offline Sync -->
+        <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div>
+                <h6 class="font-medium text-gray-900 dark:text-white">Offline Sync</h6>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Allow offline data synchronization</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" class="sr-only peer" id="offlineSync" data-feature="mobile_offline_sync">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+            </label>
+        </div>
+
+        <!-- Biometric Auth -->
+        <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div>
+                <h6 class="font-medium text-gray-900 dark:text-white">Biometric Authentication</h6>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Face ID / Fingerprint login</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" class="sr-only peer" id="biometricAuth" data-feature="mobile_biometric_auth">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+            </label>
+        </div>
+    </div>
+    {% endcall %}
+
+    <!-- Location & Privacy Features -->
+    {% call card(title="Location & Privacy Features") %}
+    <div class="space-y-4">
+        <!-- Location Services -->
+        <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div>
+                <h6 class="font-medium text-gray-900 dark:text-white">Location Services</h6>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Location-based features and notifications</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" class="sr-only peer" id="locationServices" data-feature="mobile_location_services">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+            </label>
+        </div>
+
+        <!-- Camera Upload -->
+        <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div>
+                <h6 class="font-medium text-gray-900 dark:text-white">Camera Upload</h6>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Photo upload from camera roll</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" class="sr-only peer" id="cameraUpload" data-feature="mobile_camera_upload" checked>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+            </label>
+        </div>
+
+        <!-- Contact Sync -->
+        <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div>
+                <h6 class="font-medium text-gray-900 dark:text-white">Contact Sync</h6>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Sync contacts for team invitations</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" class="sr-only peer" id="contactSync" data-feature="mobile_contact_sync">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+            </label>
+        </div>
+
+        <!-- Analytics Tracking -->
+        <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div>
+                <h6 class="font-medium text-gray-900 dark:text-white">Analytics Tracking</h6>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Usage analytics and crash reporting</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" class="sr-only peer" id="analyticsTracking" data-feature="mobile_analytics_tracking" checked>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+            </label>
+        </div>
+    </div>
+    {% endcall %}
+</div>
+
+<!-- Experimental Features -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border-2 border-yellow-400 dark:border-yellow-500 mt-6">
+    <div class="p-6 bg-yellow-400 dark:bg-yellow-500 rounded-t-lg">
+        <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <i class="ti ti-flask"></i>
+            Experimental Features
+        </h3>
+        <p class="text-sm text-gray-700 mt-1">These features are in beta and may not be stable</p>
+    </div>
+    <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- AR Match Views -->
+            <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                <div>
+                    <h6 class="font-medium text-gray-900 dark:text-white">AR Match Views</h6>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Augmented reality match experience</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="sr-only peer" id="arMatchViews" data-feature="mobile_ar_match_views">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-500/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-yellow-500"></div>
+                </label>
+            </div>
+
+            <!-- Voice Commands -->
+            <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                <div>
+                    <h6 class="font-medium text-gray-900 dark:text-white">Voice Commands</h6>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Voice-controlled navigation</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="sr-only peer" id="voiceCommands" data-feature="mobile_voice_commands">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-500/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-yellow-500"></div>
+                </label>
+            </div>
+
+            <!-- Smart Predictions -->
+            <div class="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                <div>
+                    <h6 class="font-medium text-gray-900 dark:text-white">Smart Predictions</h6>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">AI-powered match predictions</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" class="sr-only peer" id="smartPredictions" data-feature="mobile_smart_predictions">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-500/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-yellow-500"></div>
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Feature Usage Analytics & Adoption -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+    <!-- Feature Usage Chart -->
+    <div class="lg:col-span-2">
+        {% call card(title="Feature Usage Analytics") %}
+        <div id="featureUsageChart" class="h-72"></div>
+        {% endcall %}
+    </div>
+
+    <!-- Feature Adoption -->
+    {% call card(title="Feature Adoption") %}
+    <div class="space-y-4">
+        <!-- Push Notifications -->
+        <div>
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-700 dark:text-gray-300">Push Notifications</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">91%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div class="bg-green-500 h-2 rounded-full" style="width: 91%"></div>
+            </div>
+        </div>
+
+        <!-- Wallet Passes -->
+        <div>
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-700 dark:text-gray-300">Wallet Passes</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">67%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div class="bg-ecs-green h-2 rounded-full" style="width: 67%"></div>
+            </div>
+        </div>
+
+        <!-- Camera Upload -->
+        <div>
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-700 dark:text-gray-300">Camera Upload</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">45%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div class="bg-blue-500 h-2 rounded-full" style="width: 45%"></div>
+            </div>
+        </div>
+
+        <!-- Biometric Auth -->
+        <div>
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-700 dark:text-gray-300">Biometric Auth</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">23%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div class="bg-yellow-500 h-2 rounded-full" style="width: 23%"></div>
+            </div>
+        </div>
+    </div>
+    {% endcall %}
+</div>
+
+<!-- Feature Rollout Settings -->
+{% call card(title="Feature Rollout Settings", class_="mt-6") %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <div>
+        <label for="defaultFeatureState" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Default Feature State for New Users</label>
+        <select id="defaultFeatureState"
+                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green">
+            <option value="enabled">Enabled by Default</option>
+            <option value="disabled" selected>Disabled by Default</option>
+            <option value="beta">Beta Users Only</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="rolloutStrategy" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Rollout Strategy</label>
+        <select id="rolloutStrategy"
+                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green">
+            <option value="immediate" selected>Immediate Rollout</option>
+            <option value="gradual">Gradual Rollout (10% per day)</option>
+            <option value="staged">Staged Rollout (Beta -> Full)</option>
+        </select>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <div class="flex items-start">
+        <div class="flex items-center h-5">
+            <input id="killSwitchEnabled" type="checkbox" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+        </div>
+        <div class="ml-3 text-sm">
+            <label for="killSwitchEnabled" class="font-medium text-gray-900 dark:text-white">Enable Emergency Kill Switch</label>
+            <p class="text-gray-500 dark:text-gray-400">Allows immediate disabling of all features</p>
+        </div>
+    </div>
+
+    <div class="flex items-start">
+        <div class="flex items-center h-5">
+            <input id="autoRollbackEnabled" type="checkbox" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+        </div>
+        <div class="ml-3 text-sm">
+            <label for="autoRollbackEnabled" class="font-medium text-gray-900 dark:text-white">Auto-rollback on Errors</label>
+            <p class="text-gray-500 dark:text-gray-400">Automatically disable features causing crashes</p>
+        </div>
+    </div>
+</div>
+
+<div class="flex flex-col sm:flex-row justify-between gap-4">
+    <button type="button" data-action="emergency-kill-switch"
+            class="inline-flex items-center justify-center px-4 py-2 text-red-600 bg-white border border-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-colors dark:bg-gray-800 dark:border-red-500 dark:text-red-400">
+        <i class="ti ti-alert-triangle mr-2"></i>Emergency Kill Switch
+    </button>
+    <div class="flex gap-2">
+        <button type="button" data-action="export-feature-config"
+                class="inline-flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+            <i class="ti ti-download mr-2"></i>Export Config
+        </button>
+        <button type="button" data-action="save-feature-settings"
+                class="inline-flex items-center px-4 py-2 text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700">
+            <i class="ti ti-device-floppy mr-2"></i>Save Settings
+        </button>
+    </div>
+</div>
+{% endcall %}
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function() {
+    'use strict';
+
+    document.addEventListener('DOMContentLoaded', initFeatureToggles);
+
+    function initFeatureToggles() {
+        const isDark = document.documentElement.classList.contains('dark');
+
+        // Feature toggle handling
+        document.querySelectorAll('input[data-feature]').forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const feature = this.dataset.feature;
+                const enabled = this.checked;
+
+                if (['mobile_push_notifications', 'mobile_wallet_passes'].includes(feature) && !enabled) {
+                    Swal.fire({
+                        title: 'Disable Core Feature?',
+                        text: 'This is a critical feature used by many users. Are you sure?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, Disable',
+                        confirmButtonColor: '#dc2626',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            toggleFeature(feature, enabled, this);
+                        } else {
+                            this.checked = true;
+                        }
+                    });
+                } else {
+                    toggleFeature(feature, enabled, this);
+                }
+            });
+        });
+
+        // Initialize chart
+        const chartEl = document.getElementById('featureUsageChart');
+        if (chartEl) {
+            new Chart(chartEl.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Push Notifications', 'Wallet Passes', 'Camera Upload', 'Offline Sync', 'Biometric Auth', 'Location Services'],
+                    datasets: [{
+                        label: 'Active Users',
+                        data: [1250, 890, 654, 432, 321, 543],
+                        backgroundColor: [
+                            'rgba(34, 197, 94, 0.8)',
+                            'rgba(26, 71, 42, 0.8)',
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(234, 179, 8, 0.8)',
+                            'rgba(14, 165, 233, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: isDark ? '#374151' : '#e5e7eb' },
+                            ticks: { color: isDark ? '#9ca3af' : '#6b7280' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: isDark ? '#9ca3af' : '#6b7280' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // Action button handlers
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+
+            const action = target.dataset.action;
+
+            switch(action) {
+                case 'emergency-kill-switch':
+                    Swal.fire({
+                        title: 'Emergency Kill Switch',
+                        text: 'This will immediately disable ALL mobile features. Use only in emergencies!',
+                        icon: 'error',
+                        showCancelButton: true,
+                        confirmButtonText: 'DISABLE ALL FEATURES',
+                        confirmButtonColor: '#dc2626',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                    break;
+
+                case 'export-feature-config':
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Config Exported',
+                        text: 'Feature configuration has been exported to JSON.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                    break;
+
+                case 'save-feature-settings':
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Settings Saved',
+                        text: 'Feature rollout settings have been saved.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                    break;
+            }
+        });
+    }
+
+    function toggleFeature(feature, enabled, toggle) {
+        const isDark = document.documentElement.classList.contains('dark');
+        const originalState = toggle.checked;
+        toggle.disabled = true;
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        fetch('{{ url_for("admin_panel.toggle_mobile_setting") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ key: feature, enabled: enabled })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Feature Updated!',
+                    text: `${feature.replace('mobile_', '').replace(/_/g, ' ')} has been ${enabled ? 'enabled' : 'disabled'}`,
+                    showConfirmButton: false,
+                    timer: 2000,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            } else {
+                throw new Error(data.message || 'Failed to update feature');
+            }
+        })
+        .catch(error => {
+            console.error('Feature toggle error:', error);
+            toggle.checked = originalState;
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to update feature setting',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        })
+        .finally(() => {
+            toggle.disabled = false;
+        });
+    }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,587 @@
+{# ============================================================================
+   FLOWBITE/TAILWIND JINJA MACROS
+   ============================================================================
+   Reusable UI components for Flowbite-based templates.
+   Usage: {% from 'macros/flowbite.html' import card, button, input, badge %}
+   ============================================================================ #}
+
+
+{# ============================================================================
+   CARD COMPONENT
+   ============================================================================
+   A flexible card container with optional title, header actions, and footer.
+
+   Args:
+       title: Optional card title
+       subtitle: Optional subtitle below title
+       class_: Additional CSS classes
+       header_actions: HTML content for header right side (buttons, etc.)
+       no_padding: If true, removes body padding (for tables, etc.)
+
+   Usage:
+       {% call card(title="User Info") %}
+           <p>Card content here</p>
+       {% endcall %}
+   ============================================================================ #}
+{% macro card(title=None, subtitle=None, class_="", header_actions=None, no_padding=false) %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 {{ class_ }}">
+    {% if title or header_actions %}
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div>
+            {% if title %}
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ title }}</h3>
+            {% endif %}
+            {% if subtitle %}
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ subtitle }}</p>
+            {% endif %}
+        </div>
+        {% if header_actions %}
+        <div class="flex items-center gap-2">
+            {{ header_actions }}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    <div class="{{ '' if no_padding else 'p-6' }}">
+        {{ caller() }}
+    </div>
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   BUTTON COMPONENT
+   ============================================================================
+   Consistent button styling with variants and sizes.
+
+   Args:
+       text: Button text
+       variant: primary|secondary|success|danger|warning|ghost|outline
+       size: sm|md|lg
+       type: button|submit|reset
+       class_: Additional CSS classes
+       icon: Optional Tabler icon name (e.g., "plus", "edit")
+       disabled: Whether button is disabled
+       href: If provided, renders as anchor instead of button
+       data_attrs: Dict of data-* attributes
+
+   Usage:
+       {{ button("Save", variant="primary") }}
+       {{ button("Delete", variant="danger", icon="trash") }}
+       {{ button("View", variant="ghost", href="/path") }}
+   ============================================================================ #}
+{% macro button(text, variant="primary", size="md", type="button", class_="", icon=None, disabled=false, href=None, data_attrs=None) %}
+{% set base = "inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed" %}
+
+{% set variants = {
+    "primary": "bg-ecs-green hover:bg-ecs-green-700 text-white focus:ring-ecs-green/50",
+    "secondary": "bg-gray-600 hover:bg-gray-700 text-white focus:ring-gray-500/50 dark:bg-gray-700 dark:hover:bg-gray-600",
+    "success": "bg-green-600 hover:bg-green-700 text-white focus:ring-green-500/50",
+    "danger": "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500/50",
+    "warning": "bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-500/50",
+    "ghost": "bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-gray-500/50",
+    "outline": "border border-gray-300 dark:border-gray-600 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-gray-500/50"
+} %}
+
+{% set sizes = {
+    "sm": "px-3 py-1.5 text-sm",
+    "md": "px-4 py-2 text-sm",
+    "lg": "px-6 py-3 text-base"
+} %}
+
+{% set classes = base ~ " " ~ variants.get(variant, variants.primary) ~ " " ~ sizes.get(size, sizes.md) ~ " " ~ class_ %}
+
+{% if href %}
+<a href="{{ href }}" class="{{ classes }}"
+   {% if data_attrs %}{% for key, value in data_attrs.items() %}data-{{ key }}="{{ value }}" {% endfor %}{% endif %}>
+    {% if icon %}<i class="ti ti-{{ icon }} {{ 'mr-2' if text else '' }}"></i>{% endif %}
+    {{ text }}
+</a>
+{% else %}
+<button type="{{ type }}" class="{{ classes }}" {{ "disabled" if disabled else "" }}
+   {% if data_attrs %}{% for key, value in data_attrs.items() %}data-{{ key }}="{{ value }}" {% endfor %}{% endif %}>
+    {% if icon %}<i class="ti ti-{{ icon }} {{ 'mr-2' if text else '' }}"></i>{% endif %}
+    {{ text }}
+</button>
+{% endif %}
+{% endmacro %}
+
+
+{# ============================================================================
+   INPUT COMPONENT
+   ============================================================================
+   Form input with label and validation support.
+
+   Args:
+       name: Input name/id
+       label: Optional label text
+       type: Input type (text, email, password, number, etc.)
+       placeholder: Placeholder text
+       required: Whether field is required
+       value: Default value
+       class_: Additional CSS classes
+       help_text: Help text below input
+       error: Error message to display
+
+   Usage:
+       {{ input("email", label="Email Address", type="email", required=true) }}
+   ============================================================================ #}
+{% macro input(name, label=None, type="text", placeholder="", required=false, value="", class_="", help_text=None, error=None) %}
+<div class="{{ class_ }}">
+    {% if label %}
+    <label for="{{ name }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        {{ label }}
+        {% if required %}<span class="text-red-500">*</span>{% endif %}
+    </label>
+    {% endif %}
+    <input
+        type="{{ type }}"
+        name="{{ name }}"
+        id="{{ name }}"
+        placeholder="{{ placeholder }}"
+        value="{{ value }}"
+        {{ "required" if required else "" }}
+        class="w-full rounded-lg border {{ 'border-red-500 focus:border-red-500 focus:ring-red-500' if error else 'border-gray-300 dark:border-gray-600 focus:border-ecs-green focus:ring-ecs-green' }} bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-1"
+    />
+    {% if help_text and not error %}
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ help_text }}</p>
+    {% endif %}
+    {% if error %}
+    <p class="mt-1 text-sm text-red-500">{{ error }}</p>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   SELECT COMPONENT
+   ============================================================================
+   Dropdown select with label support.
+
+   Args:
+       name: Select name/id
+       label: Optional label text
+       options: List of (value, label) tuples or list of dicts with 'value' and 'label'
+       selected: Currently selected value
+       required: Whether field is required
+       placeholder: Optional first empty option text
+       class_: Additional CSS classes
+
+   Usage:
+       {{ select("role", label="Role", options=[("admin", "Admin"), ("user", "User")]) }}
+   ============================================================================ #}
+{% macro select(name, label=None, options=[], selected=None, required=false, placeholder=None, class_="") %}
+<div class="{{ class_ }}">
+    {% if label %}
+    <label for="{{ name }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        {{ label }}
+        {% if required %}<span class="text-red-500">*</span>{% endif %}
+    </label>
+    {% endif %}
+    <select
+        name="{{ name }}"
+        id="{{ name }}"
+        {{ "required" if required else "" }}
+        class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+    >
+        {% if placeholder %}
+        <option value="">{{ placeholder }}</option>
+        {% endif %}
+        {% for opt in options %}
+            {% if opt is mapping %}
+            <option value="{{ opt.value }}" {{ "selected" if opt.value == selected else "" }}>{{ opt.label }}</option>
+            {% else %}
+            <option value="{{ opt[0] }}" {{ "selected" if opt[0] == selected else "" }}>{{ opt[1] }}</option>
+            {% endif %}
+        {% endfor %}
+    </select>
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   TEXTAREA COMPONENT
+   ============================================================================
+   Multi-line text input.
+
+   Args:
+       name: Textarea name/id
+       label: Optional label text
+       placeholder: Placeholder text
+       required: Whether field is required
+       value: Default value
+       rows: Number of rows
+       class_: Additional CSS classes
+
+   Usage:
+       {{ textarea("notes", label="Notes", rows=4) }}
+   ============================================================================ #}
+{% macro textarea(name, label=None, placeholder="", required=false, value="", rows=3, class_="") %}
+<div class="{{ class_ }}">
+    {% if label %}
+    <label for="{{ name }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        {{ label }}
+        {% if required %}<span class="text-red-500">*</span>{% endif %}
+    </label>
+    {% endif %}
+    <textarea
+        name="{{ name }}"
+        id="{{ name }}"
+        rows="{{ rows }}"
+        placeholder="{{ placeholder }}"
+        {{ "required" if required else "" }}
+        class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+    >{{ value }}</textarea>
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   BADGE COMPONENT
+   ============================================================================
+   Small status indicator.
+
+   Args:
+       text: Badge text
+       variant: default|success|warning|danger|info|primary
+       size: sm|md
+       dot: If true, shows a dot instead of text
+
+   Usage:
+       {{ badge("Active", variant="success") }}
+       {{ badge("Pending", variant="warning") }}
+   ============================================================================ #}
+{% macro badge(text, variant="default", size="md", dot=false) %}
+{% set variants = {
+    "default": "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300",
+    "primary": "bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20",
+    "success": "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+    "warning": "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+    "danger": "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+    "info": "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+} %}
+
+{% set sizes = {
+    "sm": "px-2 py-0.5 text-xs",
+    "md": "px-2.5 py-0.5 text-xs"
+} %}
+
+<span class="inline-flex items-center rounded-full font-medium {{ variants.get(variant, variants.default) }} {{ sizes.get(size, sizes.md) }}">
+    {% if dot %}
+    <span class="w-1.5 h-1.5 rounded-full mr-1.5 {{ 'bg-green-500' if variant == 'success' else 'bg-red-500' if variant == 'danger' else 'bg-yellow-500' if variant == 'warning' else 'bg-blue-500' if variant == 'info' else 'bg-gray-500' }}"></span>
+    {% endif %}
+    {{ text }}
+</span>
+{% endmacro %}
+
+
+{# ============================================================================
+   ALERT COMPONENT
+   ============================================================================
+   Notification/alert message.
+
+   Args:
+       message: Alert message
+       variant: info|success|warning|danger
+       title: Optional alert title
+       dismissible: Whether alert can be dismissed
+       icon: Custom icon (default based on variant)
+
+   Usage:
+       {{ alert("Operation successful!", variant="success") }}
+       {% call alert(title="Warning", variant="warning") %}
+           <p>Please review your changes.</p>
+       {% endcall %}
+   ============================================================================ #}
+{% macro alert(message=None, variant="info", title=None, dismissible=true, icon=None) %}
+{% set variants = {
+    "info": {"bg": "bg-blue-50 dark:bg-gray-800", "text": "text-blue-800 dark:text-blue-400", "border": "border-blue-300 dark:border-blue-800", "icon": "info-circle"},
+    "success": {"bg": "bg-green-50 dark:bg-gray-800", "text": "text-green-800 dark:text-green-400", "border": "border-green-300 dark:border-green-800", "icon": "check"},
+    "warning": {"bg": "bg-yellow-50 dark:bg-gray-800", "text": "text-yellow-800 dark:text-yellow-300", "border": "border-yellow-300 dark:border-yellow-800", "icon": "alert-triangle"},
+    "danger": {"bg": "bg-red-50 dark:bg-gray-800", "text": "text-red-800 dark:text-red-400", "border": "border-red-300 dark:border-red-800", "icon": "x-circle"}
+} %}
+{% set v = variants.get(variant, variants.info) %}
+
+<div class="flex items-start p-4 rounded-lg border {{ v.bg }} {{ v.text }} {{ v.border }}" role="alert">
+    <i class="ti ti-{{ icon or v.icon }} flex-shrink-0 w-5 h-5 mr-3"></i>
+    <div class="flex-1">
+        {% if title %}
+        <h3 class="font-medium mb-1">{{ title }}</h3>
+        {% endif %}
+        {% if message %}
+        <p class="text-sm">{{ message }}</p>
+        {% else %}
+        <div class="text-sm">{{ caller() }}</div>
+        {% endif %}
+    </div>
+    {% if dismissible %}
+    <button type="button" class="ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex items-center justify-center h-8 w-8 {{ v.text }} hover:bg-gray-200 dark:hover:bg-gray-700" data-dismiss-target="[role='alert']" aria-label="Close">
+        <i class="ti ti-x"></i>
+    </button>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   TABLE COMPONENT
+   ============================================================================
+   Responsive data table.
+
+   Args:
+       id: Table ID
+       class_: Additional CSS classes
+       striped: Whether to use striped rows
+       hoverable: Whether rows highlight on hover
+
+   Usage:
+       {% call table(id="users-table", striped=true) %}
+           <thead>
+               <tr>
+                   <th>Name</th>
+                   <th>Email</th>
+               </tr>
+           </thead>
+           <tbody>
+               <tr><td>John</td><td>john@example.com</td></tr>
+           </tbody>
+       {% endcall %}
+   ============================================================================ #}
+{% macro table(id=None, class_="", striped=false, hoverable=true) %}
+<div class="overflow-x-auto">
+    <table {% if id %}id="{{ id }}"{% endif %} class="w-full text-sm text-left text-gray-500 dark:text-gray-400 {{ class_ }}">
+        {{ caller() | replace('<thead>', '<thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">') | replace('<th>', '<th scope="col" class="px-6 py-3">') | replace('<td>', '<td class="px-6 py-4">') | replace('<tr>', '<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700' ~ (' hover:bg-gray-50 dark:hover:bg-gray-600' if hoverable else '') ~ '">') | safe }}
+    </table>
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   MODAL COMPONENT
+   ============================================================================
+   Dialog/modal overlay.
+
+   Args:
+       id: Modal ID (required for targeting)
+       title: Modal title
+       size: sm|md|lg|xl
+       footer: HTML content for footer
+
+   Usage:
+       {% call modal(id="confirm-modal", title="Confirm Action") %}
+           <p>Are you sure you want to proceed?</p>
+       {% endcall %}
+   ============================================================================ #}
+{% macro modal(id, title, size="md", footer=None) %}
+{% set sizes = {
+    "sm": "max-w-md",
+    "md": "max-w-lg",
+    "lg": "max-w-2xl",
+    "xl": "max-w-4xl"
+} %}
+
+<div id="{{ id }}" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
+    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative w-full {{ sizes.get(size, sizes.md) }}">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                <!-- Header -->
+                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">{{ title }}</h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="{{ id }}">
+                        <i class="ti ti-x text-lg"></i>
+                    </button>
+                </div>
+                <!-- Body -->
+                <div class="p-6">
+                    {{ caller() }}
+                </div>
+                <!-- Footer -->
+                {% if footer %}
+                <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
+                    {{ footer }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   SPINNER COMPONENT
+   ============================================================================
+   Loading spinner indicator.
+
+   Args:
+       size: sm|md|lg
+       color: Current color class or specific color
+
+   Usage:
+       {{ spinner() }}
+       {{ spinner(size="lg") }}
+   ============================================================================ #}
+{% macro spinner(size="md", color="text-ecs-green") %}
+{% set sizes = {
+    "sm": "w-4 h-4",
+    "md": "w-6 h-6",
+    "lg": "w-8 h-8"
+} %}
+<svg class="animate-spin {{ sizes.get(size, sizes.md) }} {{ color }}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+</svg>
+{% endmacro %}
+
+
+{# ============================================================================
+   EMPTY STATE COMPONENT
+   ============================================================================
+   Placeholder for empty lists/tables.
+
+   Args:
+       title: Main message
+       description: Secondary description
+       icon: Tabler icon name
+       action_text: Optional action button text
+       action_href: Optional action button URL
+
+   Usage:
+       {{ empty_state(title="No players found", description="Try adjusting your search.", icon="users") }}
+   ============================================================================ #}
+{% macro empty_state(title, description=None, icon="inbox", action_text=None, action_href=None) %}
+<div class="flex flex-col items-center justify-center py-12 text-center">
+    <i class="ti ti-{{ icon }} w-16 h-16 text-gray-400 dark:text-gray-600 mb-4"></i>
+    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">{{ title }}</h3>
+    {% if description %}
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ description }}</p>
+    {% endif %}
+    {% if action_text and action_href %}
+    {{ button(action_text, variant="primary", href=action_href) }}
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   AVATAR COMPONENT
+   ============================================================================
+   User/player avatar image.
+
+   Args:
+       src: Image URL
+       alt: Alt text
+       size: xs|sm|md|lg|xl
+       status: online|offline|away (optional status indicator)
+       fallback: Text to show if no image (first letter of name)
+
+   Usage:
+       {{ avatar(user.avatar_url, alt=user.name, size="md", status="online") }}
+   ============================================================================ #}
+{% macro avatar(src=None, alt="", size="md", status=None, fallback=None) %}
+{% set sizes = {
+    "xs": "w-6 h-6 text-xs",
+    "sm": "w-8 h-8 text-sm",
+    "md": "w-10 h-10 text-base",
+    "lg": "w-12 h-12 text-lg",
+    "xl": "w-16 h-16 text-xl"
+} %}
+{% set status_colors = {
+    "online": "bg-green-500",
+    "offline": "bg-gray-400",
+    "away": "bg-yellow-500"
+} %}
+
+<div class="relative inline-flex">
+    {% if src %}
+    <img class="rounded-full {{ sizes.get(size, sizes.md) }} object-cover" src="{{ src }}" alt="{{ alt }}" />
+    {% else %}
+    <div class="rounded-full {{ sizes.get(size, sizes.md) }} bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-medium text-gray-600 dark:text-gray-300">
+        {{ fallback or (alt[0] if alt else '?') | upper }}
+    </div>
+    {% endif %}
+    {% if status %}
+    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-gray-800 {{ status_colors.get(status, status_colors.offline) }}"></span>
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   PAGINATION COMPONENT
+   ============================================================================
+   Page navigation for lists.
+
+   Args:
+       pagination: Flask-SQLAlchemy Pagination object
+       endpoint: Route endpoint name
+       extra_params: Dict of additional URL parameters (optional)
+
+   Usage:
+       {{ pagination_nav(pagination, endpoint="players.players") }}
+       {{ pagination_nav(pagination, endpoint="players.players", extra_params={"team_id": 5}) }}
+   ============================================================================ #}
+{% macro pagination_nav(pagination, endpoint, extra_params=None) %}
+{% if pagination.pages > 1 %}
+<nav class="flex items-center justify-between px-4 py-3 sm:px-6" aria-label="Pagination">
+    <div class="hidden sm:block">
+        <p class="text-sm text-gray-700 dark:text-gray-400">
+            Showing <span class="font-medium">{{ ((pagination.page - 1) * pagination.per_page) + 1 }}</span>
+            to <span class="font-medium">{{ [pagination.page * pagination.per_page, pagination.total] | min }}</span>
+            of <span class="font-medium">{{ pagination.total }}</span> results
+        </p>
+    </div>
+    <div class="flex flex-1 justify-between sm:justify-end gap-2">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for(endpoint, page=pagination.prev_num, **(extra_params or {})) }}" class="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
+            <i class="ti ti-chevron-left mr-1"></i> Previous
+        </a>
+        {% endif %}
+        {% if pagination.has_next %}
+        <a href="{{ url_for(endpoint, page=pagination.next_num, **(extra_params or {})) }}" class="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
+            Next <i class="ti ti-chevron-right ml-1"></i>
+        </a>
+        {% endif %}
+    </div>
+</nav>
+{% endif %}
+{% endmacro %}
+
+
+{# ============================================================================
+   STAT CARD COMPONENT
+   ============================================================================
+   Dashboard statistic display card.
+
+   Args:
+       title: Stat label
+       value: Main value to display
+       change: Optional change value (e.g., "+5%")
+       change_type: positive|negative|neutral
+       icon: Tabler icon name
+
+   Usage:
+       {{ stat_card(title="Total Players", value="156", change="+12", change_type="positive", icon="users") }}
+   ============================================================================ #}
+{% macro stat_card(title, value, change=None, change_type="neutral", icon=None) %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{{ title }}</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ value }}</p>
+            {% if change %}
+            <p class="text-sm mt-1 {{ 'text-green-600 dark:text-green-400' if change_type == 'positive' else 'text-red-600 dark:text-red-400' if change_type == 'negative' else 'text-gray-500 dark:text-gray-400' }}">
+                {% if change_type == 'positive' %}<i class="ti ti-trending-up mr-1"></i>{% elif change_type == 'negative' %}<i class="ti ti-trending-down mr-1"></i>{% endif %}
+                {{ change }}
+            </p>
+            {% endif %}
+        </div>
+        {% if icon %}
+        <div class="p-3 bg-ecs-green/10 rounded-lg">
+            <i class="ti ti-{{ icon }} text-2xl text-ecs-green"></i>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}

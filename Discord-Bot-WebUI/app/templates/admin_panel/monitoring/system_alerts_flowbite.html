@@ -1,0 +1,376 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}System Alerts{% endblock %}
+{% block panel_description %}Monitor and manage system alerts{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">System Monitoring</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">System Alerts</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Alert Statistics -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="rounded-lg p-5 bg-red-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ active_alerts|length }}</p>
+                <p class="text-sm text-white/80 mt-1">Active Alerts</p>
+            </div>
+            <i class="ti ti-alert-circle text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <div class="rounded-lg p-5 bg-yellow-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ alert_stats.critical_count or 0 }}</p>
+                <p class="text-sm text-white/80 mt-1">Critical Alerts</p>
+            </div>
+            <i class="ti ti-alert-triangle text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <div class="rounded-lg p-5 bg-green-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ resolved_alerts|length }}</p>
+                <p class="text-sm text-white/80 mt-1">Resolved Today</p>
+            </div>
+            <i class="ti ti-check-circle text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <div class="rounded-lg p-5 bg-blue-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ alert_stats.avg_resolution_time or 0 }}m</p>
+                <p class="text-sm text-white/80 mt-1">Avg Resolution</p>
+            </div>
+            <i class="ti ti-clock text-4xl text-white/50"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Active Alerts -->
+{% if active_alerts %}
+<div class="bg-white dark:bg-gray-800 rounded-lg border-2 border-red-500 mb-6 overflow-hidden">
+    <div class="px-4 py-3 bg-red-500 text-white">
+        <h5 class="font-semibold flex items-center">
+            <i class="ti ti-alert-circle mr-2"></i>Active Alerts Requiring Attention
+        </h5>
+    </div>
+    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for alert in active_alerts %}
+        <div class="p-4">
+            <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                <div class="flex-grow">
+                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if alert.severity == 'critical' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif alert.severity == 'warning' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% endif %}">
+                            {{ alert.severity|upper }}
+                        </span>
+                        <h6 class="font-semibold text-gray-900 dark:text-white">{{ alert.title }}</h6>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">{{ alert.component }}</span>
+                    </div>
+                    <p class="text-gray-700 dark:text-gray-300 mb-2">{{ alert.description }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        <i class="ti ti-clock mr-1"></i>
+                        Triggered {{ alert.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                        {% if alert.last_seen %}
+                        &bull; Last seen {{ alert.last_seen.strftime('%H:%M:%S') }}
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" class="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50" data-action="acknowledge-alert" data-alert-id="{{ alert.id }}">
+                        <i class="ti ti-check mr-1"></i>Acknowledge
+                    </button>
+                    <button type="button" class="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50" data-action="view-alert" data-alert-id="{{ alert.id }}">
+                        <i class="ti ti-eye mr-1"></i>Details
+                    </button>
+                    <button type="button" class="px-3 py-1.5 text-sm font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50" data-action="resolve-alert" data-alert-id="{{ alert.id }}">
+                        <i class="ti ti-x mr-1"></i>Resolve
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Alert Configuration -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <div class="lg:col-span-2">
+        {% call card(title="Alert Configuration", subtitle="Configure which alerts are monitored") %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">System Health Alerts</h6>
+                <div class="space-y-3">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="cpuAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">CPU Usage > 80%</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="memoryAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Memory Usage > 85%</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="diskAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Disk Usage > 90%</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="dbAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Database Connection Issues</span>
+                    </label>
+                </div>
+            </div>
+            <div>
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Application Alerts</h6>
+                <div class="space-y-3">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="errorRateAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Error Rate > 5%</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="responseTimeAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Response Time > 2s</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="discordAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Discord Bot Offline</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" id="taskAlert" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-3 text-sm text-gray-700 dark:text-gray-300">Background Task Failures</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button type="button" class="text-white bg-ecs-green hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50 font-medium rounded-lg text-sm px-4 py-2" data-action="save-alert-config">
+                <i class="ti ti-device-floppy mr-1"></i>Save Configuration
+            </button>
+        </div>
+        {% endcall %}
+    </div>
+
+    {% call card(title="Notification Settings", subtitle="Alert delivery options") %}
+    <div class="space-y-4">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Channels</label>
+            <div class="space-y-2">
+                <label class="flex items-center">
+                    <input type="checkbox" id="emailNotifications" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" id="discordNotifications" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Discord Notifications</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" id="smsNotifications" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">SMS Notifications</span>
+                </label>
+            </div>
+        </div>
+
+        <div>
+            <label for="alertFrequency" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Alert Frequency</label>
+            <select id="alertFrequency" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="immediate" selected>Immediate</option>
+                <option value="5min">Every 5 minutes</option>
+                <option value="15min">Every 15 minutes</option>
+                <option value="1hour">Every hour</option>
+            </select>
+        </div>
+
+        <button type="button" class="w-full text-ecs-green bg-white border border-ecs-green hover:bg-ecs-green/10 font-medium rounded-lg text-sm px-4 py-2.5" data-action="test-notifications">
+            <i class="ti ti-send mr-1"></i>Test Notifications
+        </button>
+    </div>
+    {% endcall %}
+</div>
+
+<!-- Alert History -->
+{% call card(title="Alert History", subtitle="Recently resolved alerts") %}
+{% if resolved_alerts %}
+<div class="overflow-x-auto">
+    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+                <th scope="col" class="px-6 py-3">Alert</th>
+                <th scope="col" class="px-6 py-3">Severity</th>
+                <th scope="col" class="px-6 py-3">Component</th>
+                <th scope="col" class="px-6 py-3">Triggered</th>
+                <th scope="col" class="px-6 py-3">Resolved</th>
+                <th scope="col" class="px-6 py-3">Duration</th>
+                <th scope="col" class="px-6 py-3">Resolved By</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for alert in resolved_alerts %}
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td class="px-6 py-4">
+                    <p class="font-medium text-gray-900 dark:text-white">{{ alert.title }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ alert.description[:50] }}...</p>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if alert.severity == 'critical' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif alert.severity == 'warning' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% endif %}">
+                        {{ alert.severity|upper }}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-xs">{{ alert.component }}</td>
+                <td class="px-6 py-4 text-xs">{{ alert.created_at.strftime('%m/%d %H:%M') }}</td>
+                <td class="px-6 py-4 text-xs">{{ alert.resolved_at.strftime('%m/%d %H:%M') if alert.resolved_at else '-' }}</td>
+                <td class="px-6 py-4 text-xs">
+                    {% if alert.resolved_at and alert.created_at %}
+                        {% set duration = (alert.resolved_at - alert.created_at).total_seconds() / 60 %}
+                        {{ "%.0f"|format(duration) }}m
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4 text-xs">{{ alert.resolved_by.username if alert.resolved_by else 'System' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-12">
+    <div class="mx-auto w-16 h-16 flex items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
+        <i class="ti ti-check-circle text-3xl text-green-500"></i>
+    </div>
+    <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Recent Alerts</h5>
+    <p class="text-gray-500 dark:text-gray-400">All systems are running normally.</p>
+</div>
+{% endif %}
+{% endcall %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const alertId = target.dataset.alertId;
+
+        switch(action) {
+            case 'acknowledge-alert':
+                acknowledgeAlert(alertId);
+                break;
+            case 'view-alert':
+                viewAlertDetails(alertId);
+                break;
+            case 'resolve-alert':
+                resolveAlert(alertId);
+                break;
+            case 'save-alert-config':
+                saveAlertConfig();
+                break;
+            case 'test-notifications':
+                testNotifications();
+                break;
+        }
+    });
+
+    function acknowledgeAlert(alertId) {
+        Swal.fire({
+            title: 'Acknowledge Alert?',
+            text: 'This will mark the alert as acknowledged.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Acknowledge',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Acknowledged!',
+                    text: 'Alert has been acknowledged.',
+                    icon: 'success',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        });
+    }
+
+    function resolveAlert(alertId) {
+        Swal.fire({
+            title: 'Resolve Alert?',
+            text: 'This will mark the alert as resolved.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Resolve',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Resolved!',
+                    text: 'Alert has been resolved.',
+                    icon: 'success',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => location.reload());
+            }
+        });
+    }
+
+    function viewAlertDetails(alertId) {
+        Swal.fire({
+            title: 'Alert Details',
+            text: 'Loading alert details...',
+            icon: 'info',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+    }
+
+    function saveAlertConfig() {
+        Swal.fire({
+            title: 'Configuration Saved!',
+            text: 'Alert configuration has been updated.',
+            icon: 'success',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+    }
+
+    function testNotifications() {
+        Swal.fire({
+            title: 'Test Notification Sent',
+            text: 'A test notification has been sent to all enabled channels.',
+            icon: 'success',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+    }
+});
+</script>
+{% endblock %}

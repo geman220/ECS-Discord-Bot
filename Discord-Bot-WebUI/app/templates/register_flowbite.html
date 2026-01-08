@@ -1,0 +1,134 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Register - ECS FC{% endblock %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-2xl mx-auto">
+    <!-- Logo -->
+    <div class="flex justify-center mb-6">
+        <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="h-20">
+    </div>
+
+    <!-- Header -->
+    <div class="text-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Create Account</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Join the ECS FC and Pub League</p>
+    </div>
+
+    <!-- Liability Waiver -->
+    <div class="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg border border-yellow-200 dark:border-yellow-700">
+        <h6 class="font-semibold text-yellow-800 dark:text-yellow-300 mb-2 flex items-center">
+            <i class="ti ti-alert-triangle mr-2"></i>Please Read Before Registering
+        </h6>
+        <p class="text-sm text-yellow-700 dark:text-yellow-400 mb-3">
+            Registration requires acceptance of our liability waiver and code of conduct.
+        </p>
+
+        <div class="max-h-64 overflow-y-auto bg-white dark:bg-gray-700 p-4 rounded border border-yellow-200 dark:border-yellow-600 text-sm text-gray-700 dark:text-gray-300 space-y-3">
+            <h6 class="font-semibold text-gray-900 dark:text-white">Waiver of Liability and Hold Harmless Agreement</h6>
+            <p>"Participant" hereby releases, waives, discharges and covenants not to sue ECS Pub League, a Washington nonprofit organization, and its affiliated associations, officers, directors, employees, agents, and contractors (collectively, the "Released Parties") from any and all liability, claims, demands, actions and causes of action whatsoever arising out of or related to any loss, damage, or injury, including death, that may be sustained by Participant, or to any property belonging to Participant, whether caused by the negligence of the Released Parties, or otherwise, while participating in such athletic and related event activities.</p>
+
+            <p>Participant is fully aware of risks and hazards connected with the proposed soccer activity, including the risk of injury to a participant's neck, back, spine, knees or other parts of their body, and Participant hereby elects to participate as a voluntary participant in said activity. PARTICIPANT VOLUNTARILY ASSUMES FULL RESPONSIBILITY FOR ANY RISKS OF LOSS, PROPERTY DAMAGE OR PERSONAL INJURY, INCLUDING DEATH.</p>
+
+            <p>Participant acknowledges that ECS Pub League does not carry insurance on behalf of the Participant. Participant further hereby agrees to indemnify and hold harmless the Released Parties from and against any loss, liability, damage or costs.</p>
+
+            <h6 class="font-semibold text-gray-900 dark:text-white">ECS Pub League Code of Conduct</h6>
+            <p>Participant acknowledges and accepts as a condition of participation that ECS Pub League is a 21+ adult recreational league for very casual no/low contact soccer for beginners and beginner-friendly low-intermediate recreational players.</p>
+
+            <p>We do not discriminate based on race, color, religion, gender, gender expression, age, national origin, ancestry, disability, marital status, sexual orientation, or military status.</p>
+
+            <p><strong>More serious infractions may result in yellow cards, red cards, suspensions, or expulsion:</strong></p>
+            <ul class="list-disc ml-5 space-y-1">
+                <li>Excessive physical play and tackling</li>
+                <li>Repeated dissent and/or unsporting behavior</li>
+                <li>Playing in a dangerous manner</li>
+            </ul>
+
+            <p><strong>PARTICIPANT HAS READ THIS WAIVER OF LIABILITY AND CODE OF CONDUCT AND FULLY UNDERSTAND ITS TERMS.</strong></p>
+        </div>
+    </div>
+
+    <!-- Registration Form -->
+    <form method="POST" action="{{ url_for('auth.register') }}">
+        {{ empty_form.hidden_tag() }}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label for="username" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ form.username.label.text }}</label>
+                {{ form.username(class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white", id="username", placeholder="Your username") }}
+            </div>
+            <div>
+                <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ form.email.label.text }}</label>
+                {{ form.email(class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white", id="email", placeholder="your@email.com") }}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ form.password.label.text }}</label>
+                <div class="relative">
+                    {{ form.password(class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white pr-10", id="password", placeholder="********") }}
+                    <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 dark:text-gray-400" data-toggle="password" data-target="password">
+                        <i class="ti ti-eye-off"></i>
+                    </button>
+                </div>
+            </div>
+            <div>
+                <label for="confirm_password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ form.confirm_password.label.text }}</label>
+                <div class="relative">
+                    {{ form.confirm_password(class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white pr-10", id="confirm_password", placeholder="********") }}
+                    <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 dark:text-gray-400" data-toggle="password" data-target="confirm_password">
+                        <i class="ti ti-eye-off"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terms Agreement -->
+        <div class="flex items-start mb-6">
+            <div class="flex items-center h-5">
+                <input type="checkbox" id="terms_agreement" name="terms_agreement" required class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" onchange="document.getElementById('register-btn').disabled = !this.checked">
+            </div>
+            <label for="terms_agreement" class="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                I agree to the ECS FC terms and conditions, liability waiver, and code of conduct
+            </label>
+        </div>
+
+        <button type="submit" id="register-btn" disabled class="w-full px-4 py-2.5 text-white bg-ecs-green hover:bg-ecs-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg font-medium transition-colors">
+            Register Account
+        </button>
+    </form>
+
+    <!-- Footer Links -->
+    <div class="mt-6 text-center space-y-2">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            <a href="{{ url_for('auth.forgot_password') }}" class="text-ecs-green hover:underline">Forgot Password?</a>
+        </p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            Already have an account?
+            <a href="{{ url_for('auth.login') }}" class="text-ecs-green hover:underline">Login</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle password visibility
+    document.querySelectorAll('[data-toggle="password"]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            const icon = this.querySelector('i');
+
+            if (input) {
+                const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                input.setAttribute('type', type);
+                icon.className = type === 'password' ? 'ti ti-eye-off' : 'ti ti-eye';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

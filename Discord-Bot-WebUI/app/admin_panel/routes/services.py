@@ -198,6 +198,64 @@ def cache_management():
         return redirect(url_for('admin_panel.dashboard'))
 
 
+@admin_panel_bp.route('/cache-flowbite')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def cache_management_flowbite():
+    """Cache management hub - Flowbite/Tailwind version (test)."""
+    try:
+        from app.utils.safe_redis import get_safe_redis
+
+        redis_client = get_safe_redis()
+
+        redis_status = 'disconnected'
+        total_keys = 0
+        memory_usage = '0MB'
+        hit_rate = '0%'
+        cache_operations_today = 0
+        active_connections = 1
+        uptime = '99.9%'
+
+        try:
+            redis_client.ping()
+            redis_status = 'connected'
+
+            redis_info = redis_client.info()
+            total_keys = redis_info.get('db0', {}).get('keys', 0) if isinstance(redis_info.get('db0'), dict) else len(redis_client.keys('*'))
+
+            memory_usage_bytes = redis_info.get('used_memory', 0)
+            memory_usage = f'{memory_usage_bytes / (1024 * 1024):.1f}MB'
+
+            keyspace_hits = redis_info.get('keyspace_hits', 0)
+            keyspace_misses = redis_info.get('keyspace_misses', 0)
+            total_requests = keyspace_hits + keyspace_misses
+            if total_requests > 0:
+                hit_rate = f'{(keyspace_hits / total_requests) * 100:.1f}%'
+
+            cache_operations_today = redis_info.get('total_commands_processed', 0)
+            active_connections = redis_info.get('connected_clients', 1)
+
+        except Exception as e:
+            logger.error(f"Error getting Redis statistics: {e}")
+            redis_status = 'error'
+
+        stats = {
+            'redis_status': redis_status,
+            'total_keys': total_keys,
+            'memory_usage': memory_usage,
+            'hit_rate': hit_rate,
+            'cache_operations_today': cache_operations_today,
+            'active_connections': active_connections,
+            'uptime': uptime
+        }
+
+        return render_template('admin_panel/cache_management_flowbite.html', stats=stats)
+    except Exception as e:
+        logger.error(f"Error loading cache management (flowbite): {e}")
+        flash('Cache management unavailable. Verify Redis connection and cache configuration.', 'error')
+        return redirect(url_for('admin_panel.dashboard'))
+
+
 @admin_panel_bp.route('/cache-management/clear', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])

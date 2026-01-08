@@ -1,0 +1,286 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Edit {{ template.name }}{% endblock %}
+{% block panel_description %}Edit message template content{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin.message_config.list_categories') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Message Categories</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin.message_config.view_category', category_id=template.category_id) }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">{{ template.category.name }}</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Edit Template</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Edit Form (2/3 width) -->
+    <div class="lg:col-span-2">
+        {% call card(title="Edit: " + template.name) %}
+        <form method="POST" id="editTemplateForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Template Name -->
+            <div class="mb-4">
+                <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template Name</label>
+                <input type="text" id="name" name="name" value="{{ template.name }}" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">A descriptive name for this message template.</p>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-4">
+                <label for="description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                <textarea id="description" name="description" rows="2" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">{{ template.description or '' }}</textarea>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional description of when this message is used.</p>
+            </div>
+
+            <!-- Message Content -->
+            <div class="mb-4">
+                <label for="message_content" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message Content</label>
+                <textarea id="message_content" name="message_content" rows="10" required placeholder="Enter your message content here..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono">{{ template.message_content }}</textarea>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    The actual message content. You can use variables like <code class="bg-gray-100 dark:bg-gray-600 px-1 rounded">{{'{'}}username{{'}'}}</code>, <code class="bg-gray-100 dark:bg-gray-600 px-1 rounded">{{'{'}}league_display_name{{'}'}}</code>, etc.
+                </p>
+            </div>
+
+            <!-- Active Status -->
+            <div class="mb-6">
+                <div class="flex items-center">
+                    <input type="checkbox" id="is_active" name="is_active" {% if template.is_active %}checked{% endif %} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                    <label for="is_active" class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Active</label>
+                </div>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 ml-6">Only active templates are used by the Discord bot.</p>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t dark:border-gray-700">
+                <div class="flex gap-2">
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700">
+                        <i class="ti ti-device-floppy mr-1"></i>Save Changes
+                    </button>
+                    <button type="button" class="px-4 py-2 text-sm font-medium text-cyan-700 bg-white border border-cyan-500 rounded-lg hover:bg-cyan-50 dark:bg-gray-700 dark:text-cyan-400 dark:border-cyan-500" data-action="preview-message">
+                        <i class="ti ti-eye mr-1"></i>Preview
+                    </button>
+                </div>
+                <a href="{{ url_for('admin.message_config.view_category', category_id=template.category_id) }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                    <i class="ti ti-x mr-1"></i>Cancel
+                </a>
+            </div>
+        </form>
+        {% endcall %}
+    </div>
+
+    <!-- Sidebar (1/3 width) -->
+    <div class="space-y-6">
+        <!-- Template Info -->
+        {% call card(title="Template Information") %}
+        <dl class="space-y-3 text-sm">
+            <div>
+                <dt class="text-gray-500 dark:text-gray-400">Key</dt>
+                <dd class="font-medium text-gray-900 dark:text-white"><code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs">{{ template.key }}</code></dd>
+            </div>
+            <div>
+                <dt class="text-gray-500 dark:text-gray-400">Category</dt>
+                <dd class="font-medium text-gray-900 dark:text-white">{{ template.category.name }}</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500 dark:text-gray-400">Created</dt>
+                <dd class="font-medium text-gray-900 dark:text-white">{{ template.created_at.strftime('%b %d, %Y') }}</dd>
+            </div>
+            <div>
+                <dt class="text-gray-500 dark:text-gray-400">Last Updated</dt>
+                <dd class="font-medium text-gray-900 dark:text-white">{{ template.updated_at.strftime('%b %d, %Y at %I:%M %p') }}</dd>
+            </div>
+            {% if template.updated_by %}
+            <div>
+                <dt class="text-gray-500 dark:text-gray-400">Updated By</dt>
+                <dd class="font-medium text-gray-900 dark:text-white">User ID {{ template.updated_by }}</dd>
+            </div>
+            {% endif %}
+        </dl>
+        {% endcall %}
+
+        <!-- Available Variables -->
+        {% if template.variables %}
+        {% call card(title="Available Variables") %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">You can use these variables in your message:</p>
+        <div class="space-y-2">
+            {% for variable in template.variables %}
+            <div>
+                <code class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs text-ecs-green">{{'{'}}{{ variable }}{{'}'}}</code>
+            </div>
+            {% endfor %}
+        </div>
+        {% endcall %}
+        {% endif %}
+
+        <!-- Common Variables -->
+        {% call card(title="Common Variables") %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">These variables are commonly available:</p>
+        <div class="space-y-2 text-xs">
+            <div class="flex items-center justify-between">
+                <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{'{'}}username{{'}'}}</code>
+                <span class="text-gray-500 dark:text-gray-400">User's Discord name</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{'{'}}league_display_name{{'}'}}</code>
+                <span class="text-gray-500 dark:text-gray-400">League name</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{'{'}}league_welcome_message{{'}'}}</code>
+                <span class="text-gray-500 dark:text-gray-400">Welcome text</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{'{'}}league_contact_info{{'}'}}</code>
+                <span class="text-gray-500 dark:text-gray-400">Contact info</span>
+            </div>
+        </div>
+        {% endcall %}
+
+        <!-- Discord Formatting -->
+        {% call card(title="Discord Formatting") %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Discord supports these formatting options:</p>
+        <div class="space-y-1 text-xs font-mono">
+            <div><code class="text-gray-700 dark:text-gray-300">**bold text**</code></div>
+            <div><code class="text-gray-700 dark:text-gray-300">*italic text*</code></div>
+            <div><code class="text-gray-700 dark:text-gray-300">`code text`</code></div>
+            <div><code class="text-gray-700 dark:text-gray-300">~~strikethrough~~</code></div>
+            <div><code class="text-gray-700 dark:text-gray-300">||spoiler||</code></div>
+            <div><code class="text-gray-700 dark:text-gray-300">&gt; quote</code></div>
+        </div>
+        {% endcall %}
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
+        <div class="relative w-full max-w-2xl transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-eye mr-2"></i>Message Preview
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="previewModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6" id="previewContent">
+                <!-- Preview content loads here -->
+            </div>
+            <div class="flex items-center justify-end p-4 border-t dark:border-gray-700">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="previewModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Modal setup
+    const modal = document.getElementById('previewModal');
+    if (modal) {
+        document.querySelectorAll('[data-modal-hide="previewModal"]').forEach(btn => {
+            btn.addEventListener('click', () => modal.classList.add('hidden'));
+        });
+
+        const backdrop = modal.querySelector('[data-modal-backdrop]');
+        if (backdrop) {
+            backdrop.addEventListener('click', () => modal.classList.add('hidden'));
+        }
+    }
+
+    // Sample data for preview
+    const sampleData = {
+        username: 'SampleUser',
+        league_display_name: 'Pub League Premier',
+        league_welcome_message: 'Welcome to competitive soccer!',
+        league_contact_info: 'Contact us at admin@ecsfc.com',
+        team_name: 'Sample Team FC',
+        match_date: 'Saturday, July 20th',
+        match_time: '2:00 PM',
+        match_location: 'North Field'
+    };
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Preview action
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        if (target.dataset.action === 'preview-message') {
+            const messageContent = document.getElementById('message_content').value;
+
+            if (!messageContent.trim()) {
+                Swal.fire({
+                    title: 'Warning',
+                    text: 'Please enter message content to preview.',
+                    icon: 'warning',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                return;
+            }
+
+            // Replace variables with sample data
+            let preview = messageContent;
+            for (const [key, value] of Object.entries(sampleData)) {
+                const regex = new RegExp(`{${key}}`, 'g');
+                preview = preview.replace(regex, value);
+            }
+
+            document.getElementById('previewContent').innerHTML = `
+                <div class="mb-4">
+                    <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Preview with sample data:</h6>
+                    <div class="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm whitespace-pre-wrap">${escapeHtml(preview)}</div>
+                </div>
+                <div>
+                    <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sample variables used:</h6>
+                    <pre class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-xs overflow-auto">${JSON.stringify(sampleData, null, 2)}</pre>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+        }
+    });
+
+    // Form validation
+    document.getElementById('editTemplateForm')?.addEventListener('submit', function(e) {
+        const messageContent = document.getElementById('message_content').value;
+        if (!messageContent.trim()) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Warning',
+                text: 'Message content cannot be empty.',
+                icon: 'warning',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

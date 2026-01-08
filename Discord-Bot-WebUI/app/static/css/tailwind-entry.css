@@ -1,0 +1,368 @@
+/* Tailwind CSS Entry Point for Flowbite-based templates */
+/* This file is processed by PostCSS/Tailwind and outputs the utility classes */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom ECS component overrides using Tailwind */
+@layer components {
+  /* Focus ring styles using ECS green */
+  .focus-ecs {
+    @apply focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900;
+  }
+
+  /* ECS branded button base */
+  .btn-ecs {
+    @apply inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-ecs-primary {
+    @apply btn-ecs bg-ecs-green hover:bg-ecs-green-700 text-white;
+  }
+
+  .btn-ecs-secondary {
+    @apply btn-ecs bg-gray-600 hover:bg-gray-700 text-white dark:bg-gray-700 dark:hover:bg-gray-600;
+  }
+
+  .btn-ecs-ghost {
+    @apply btn-ecs bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300;
+  }
+
+  /* Card styles */
+  .card-ecs {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700;
+  }
+
+  /* Input styles */
+  .input-ecs {
+    @apply w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green;
+  }
+
+  /* Select styles */
+  .select-ecs {
+    @apply w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green;
+  }
+
+  /* Table styles */
+  .table-ecs {
+    @apply w-full text-sm text-left text-gray-500 dark:text-gray-400;
+  }
+
+  .table-ecs thead {
+    @apply text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400;
+  }
+
+  .table-ecs th {
+    @apply px-6 py-3;
+  }
+
+  .table-ecs td {
+    @apply px-6 py-4;
+  }
+
+  .table-ecs tbody tr {
+    @apply bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700;
+  }
+
+  /* Badge styles */
+  .badge-ecs {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-ecs-success {
+    @apply badge-ecs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300;
+  }
+
+  .badge-ecs-warning {
+    @apply badge-ecs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300;
+  }
+
+  .badge-ecs-danger {
+    @apply badge-ecs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300;
+  }
+
+  .badge-ecs-info {
+    @apply badge-ecs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300;
+  }
+
+  /* ============================================
+     DataTables Tailwind/Dark Mode Styling
+     ============================================ */
+  .dataTables_wrapper {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+
+  .dataTables_wrapper .dataTables_length,
+  .dataTables_wrapper .dataTables_filter,
+  .dataTables_wrapper .dataTables_info {
+    @apply text-sm text-gray-700 dark:text-gray-300 mb-4;
+  }
+
+  .dataTables_wrapper .dataTables_length select {
+    @apply rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-1.5 mr-2 focus:border-ecs-green focus:ring-ecs-green;
+  }
+
+  .dataTables_wrapper .dataTables_filter input {
+    @apply rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-1.5 ml-2 focus:border-ecs-green focus:ring-ecs-green;
+  }
+
+  .dataTables_wrapper table.dataTable {
+    @apply w-full text-sm text-left;
+  }
+
+  .dataTables_wrapper table.dataTable thead th {
+    @apply bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 uppercase text-xs font-semibold px-6 py-3 border-b border-gray-200 dark:border-gray-600;
+  }
+
+  .dataTables_wrapper table.dataTable thead th.sorting,
+  .dataTables_wrapper table.dataTable thead th.sorting_asc,
+  .dataTables_wrapper table.dataTable thead th.sorting_desc {
+    @apply cursor-pointer select-none;
+  }
+
+  .dataTables_wrapper table.dataTable thead th.sorting_asc::after,
+  .dataTables_wrapper table.dataTable thead th.sorting_desc::after {
+    @apply ml-1 text-ecs-green;
+  }
+
+  .dataTables_wrapper table.dataTable tbody td {
+    @apply px-6 py-4 border-b border-gray-200 dark:border-gray-700;
+  }
+
+  .dataTables_wrapper table.dataTable tbody tr {
+    @apply bg-white dark:bg-gray-800;
+  }
+
+  .dataTables_wrapper table.dataTable tbody tr:hover {
+    @apply bg-gray-50 dark:bg-gray-700;
+  }
+
+  .dataTables_wrapper table.dataTable tbody tr.selected {
+    @apply bg-ecs-green/10 dark:bg-ecs-green/20;
+  }
+
+  .dataTables_wrapper .dataTables_paginate {
+    @apply mt-4 flex items-center justify-end gap-1;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button {
+    @apply px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    @apply bg-ecs-green text-white border-ecs-green hover:bg-ecs-green-700;
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+    @apply opacity-50 cursor-not-allowed hover:bg-white dark:hover:bg-gray-700;
+  }
+
+  .dataTables_wrapper .dataTables_empty {
+    @apply text-center py-8 text-gray-500 dark:text-gray-400;
+  }
+
+  /* ============================================
+     Select2 Tailwind/Dark Mode Styling
+     ============================================ */
+  .select2-container--default .select2-selection--single {
+    @apply rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 h-10 flex items-center;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    @apply text-gray-900 dark:text-white leading-tight px-3;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__placeholder {
+    @apply text-gray-500 dark:text-gray-400;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    @apply h-10 flex items-center pr-3;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__arrow b {
+    @apply border-gray-400 dark:border-gray-500;
+  }
+
+  .select2-container--default.select2-container--open .select2-selection--single {
+    @apply border-ecs-green ring-1 ring-ecs-green;
+  }
+
+  .select2-container--default .select2-selection--multiple {
+    @apply rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 min-h-[2.5rem] py-1 px-2;
+  }
+
+  .select2-container--default .select2-selection--multiple .select2-selection__choice {
+    @apply bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white rounded px-2 py-0.5 mr-1 text-sm;
+  }
+
+  .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    @apply text-gray-500 dark:text-gray-400 hover:text-red-500 mr-1;
+  }
+
+  .select2-dropdown {
+    @apply border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg shadow-lg mt-1;
+  }
+
+  .select2-container--default .select2-search--dropdown .select2-search__field {
+    @apply rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 focus:border-ecs-green focus:ring-ecs-green;
+  }
+
+  .select2-container--default .select2-results__option {
+    @apply px-3 py-2 text-gray-900 dark:text-white;
+  }
+
+  .select2-container--default .select2-results__option--highlighted[aria-selected] {
+    @apply bg-ecs-green text-white;
+  }
+
+  .select2-container--default .select2-results__option[aria-selected=true] {
+    @apply bg-gray-100 dark:bg-gray-600;
+  }
+
+  /* ============================================
+     SweetAlert2 Dark Mode Styling
+     ============================================ */
+  .dark .swal2-popup {
+    @apply bg-gray-800 text-gray-100;
+  }
+
+  .dark .swal2-title {
+    @apply text-white;
+  }
+
+  .dark .swal2-html-container {
+    @apply text-gray-300;
+  }
+
+  .dark .swal2-input,
+  .dark .swal2-textarea,
+  .dark .swal2-select {
+    @apply bg-gray-700 border-gray-600 text-white;
+  }
+
+  .dark .swal2-validation-message {
+    @apply bg-gray-700 text-gray-300;
+  }
+
+  .swal2-confirm {
+    @apply bg-ecs-green hover:bg-ecs-green-700 focus:ring-ecs-green;
+  }
+
+  .swal2-cancel {
+    @apply bg-gray-500 hover:bg-gray-600;
+  }
+
+  .swal2-deny {
+    @apply bg-red-600 hover:bg-red-700;
+  }
+
+  /* ============================================
+     Flatpickr Dark Mode Styling
+     ============================================ */
+  .dark .flatpickr-calendar {
+    @apply bg-gray-800 border-gray-700 shadow-lg;
+  }
+
+  .dark .flatpickr-months {
+    @apply bg-gray-800;
+  }
+
+  .dark .flatpickr-month {
+    @apply text-white;
+  }
+
+  .dark .flatpickr-current-month .flatpickr-monthDropdown-months {
+    @apply bg-gray-700 text-white;
+  }
+
+  .dark .flatpickr-current-month input.cur-year {
+    @apply text-white;
+  }
+
+  .dark .flatpickr-weekdays {
+    @apply bg-gray-800;
+  }
+
+  .dark .flatpickr-weekday {
+    @apply text-gray-400;
+  }
+
+  .dark .flatpickr-days {
+    @apply border-gray-700;
+  }
+
+  .dark .flatpickr-day {
+    @apply text-gray-300 hover:bg-gray-700;
+  }
+
+  .dark .flatpickr-day.today {
+    @apply border-ecs-green text-ecs-green;
+  }
+
+  .dark .flatpickr-day.selected {
+    @apply bg-ecs-green text-white border-ecs-green;
+  }
+
+  .dark .flatpickr-day.inRange {
+    @apply bg-gray-700;
+  }
+
+  .dark .flatpickr-day.disabled {
+    @apply text-gray-600;
+  }
+
+  .dark .flatpickr-time {
+    @apply border-gray-700;
+  }
+
+  .dark .flatpickr-time input {
+    @apply bg-gray-800 text-white;
+  }
+
+  .dark .flatpickr-time .flatpickr-am-pm {
+    @apply bg-gray-800 text-white hover:bg-gray-700;
+  }
+
+  .dark .numInputWrapper:hover {
+    @apply bg-gray-700;
+  }
+
+  .dark .flatpickr-prev-month,
+  .dark .flatpickr-next-month {
+    @apply text-gray-400 hover:text-white;
+  }
+
+  .dark .flatpickr-prev-month svg,
+  .dark .flatpickr-next-month svg {
+    @apply fill-current;
+  }
+}
+
+/* Flowbite component customizations */
+@layer utilities {
+  /* Scrollbar styling for dark mode */
+  .scrollbar-dark {
+    scrollbar-width: thin;
+    scrollbar-color: #4B5563 #1F2937;
+  }
+
+  .scrollbar-dark::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-dark::-webkit-scrollbar-track {
+    background: #1F2937;
+  }
+
+  .scrollbar-dark::-webkit-scrollbar-thumb {
+    background: #4B5563;
+    border-radius: 4px;
+  }
+
+  .scrollbar-dark::-webkit-scrollbar-thumb:hover {
+    background: #6B7280;
+  }
+}

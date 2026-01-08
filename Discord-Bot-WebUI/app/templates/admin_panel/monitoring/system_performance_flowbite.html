@@ -1,0 +1,326 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}System Performance{% endblock %}
+{% block panel_description %}Monitor system performance metrics{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">System Monitoring</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">System Performance</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Performance Overview -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="rounded-lg p-5 bg-ecs-green text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ performance_metrics.response_time_avg }}ms</p>
+                <p class="text-sm text-white/80 mt-1">Avg Response Time</p>
+            </div>
+            <i class="ti ti-clock text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <div class="rounded-lg p-5 bg-green-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ performance_metrics.requests_per_minute }}</p>
+                <p class="text-sm text-white/80 mt-1">Requests/Min</p>
+            </div>
+            <i class="ti ti-activity text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <div class="rounded-lg p-5 bg-blue-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ performance_metrics.error_rate_percent }}%</p>
+                <p class="text-sm text-white/80 mt-1">Error Rate</p>
+            </div>
+            <i class="ti ti-alert-circle text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <div class="rounded-lg p-5 bg-yellow-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ performance_metrics.active_sessions }}</p>
+                <p class="text-sm text-white/80 mt-1">Active Sessions</p>
+            </div>
+            <i class="ti ti-users text-4xl text-white/50"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Charts Row -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <div class="lg:col-span-2">
+        {% call card(title="Response Time Trends", subtitle="Average response time over time") %}
+        <div class="h-72">
+            <canvas id="responseTimeChart"></canvas>
+        </div>
+        {% endcall %}
+    </div>
+
+    {% call card(title="Request Distribution", subtitle="Requests by endpoint type") %}
+    <div class="h-72">
+        <canvas id="requestDistributionChart"></canvas>
+    </div>
+    {% endcall %}
+</div>
+
+<!-- Resource Utilization and Top Endpoints -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    {% call card(title="Resource Utilization", subtitle="Server resource usage") %}
+    <div class="grid grid-cols-2 gap-6 mb-4">
+        <div class="text-center">
+            <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CPU Usage</h6>
+            <div class="relative w-24 h-24 mx-auto">
+                <svg class="w-24 h-24 transform -rotate-90">
+                    <circle cx="48" cy="48" r="40" stroke-width="8" class="fill-none stroke-gray-200 dark:stroke-gray-700"></circle>
+                    <circle cx="48" cy="48" r="40" stroke-width="8" class="fill-none stroke-ecs-green transition-all duration-500"
+                            style="stroke-dasharray: 251.2; stroke-dashoffset: {{ 251.2 - (251.2 * performance_metrics.cpu_usage / 100) }};"></circle>
+                </svg>
+                <span class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900 dark:text-white">{{ performance_metrics.cpu_usage }}%</span>
+            </div>
+        </div>
+        <div class="text-center">
+            <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Memory Usage</h6>
+            <div class="relative w-24 h-24 mx-auto">
+                <svg class="w-24 h-24 transform -rotate-90">
+                    <circle cx="48" cy="48" r="40" stroke-width="8" class="fill-none stroke-gray-200 dark:stroke-gray-700"></circle>
+                    <circle cx="48" cy="48" r="40" stroke-width="8" class="fill-none stroke-blue-500 transition-all duration-500"
+                            style="stroke-dasharray: 251.2; stroke-dashoffset: {{ 251.2 - (251.2 * performance_metrics.memory_usage / 100) }};"></circle>
+                </svg>
+                <span class="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-900 dark:text-white">{{ performance_metrics.memory_usage }}%</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="space-y-4">
+        <div>
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-700 dark:text-gray-300">Database Connections</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green">
+                    {{ performance_metrics.db_connections_active }}/{{ performance_metrics.db_connections_max }}
+                </span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div class="bg-ecs-green h-2 rounded-full" style="width: {{ (performance_metrics.db_connections_active / performance_metrics.db_connections_max * 100) if performance_metrics.db_connections_max else 0 }}%"></div>
+            </div>
+        </div>
+
+        <div>
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-700 dark:text-gray-300">Cache Hit Rate</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                    {{ performance_metrics.cache_hit_rate }}%
+                </span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div class="bg-green-500 h-2 rounded-full" style="width: {{ performance_metrics.cache_hit_rate }}%"></div>
+            </div>
+        </div>
+    </div>
+    {% endcall %}
+
+    {% call card(title="Top Endpoints", subtitle="Most frequently accessed endpoints") %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-2">Endpoint</th>
+                    <th scope="col" class="px-4 py-2">Requests</th>
+                    <th scope="col" class="px-4 py-2">Avg Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for endpoint in performance_metrics.top_endpoints %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                    <td class="px-4 py-2">
+                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{ endpoint.path }}</code>
+                    </td>
+                    <td class="px-4 py-2">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                            {{ endpoint.requests }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
+                        {{ endpoint.avg_time }}ms
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endcall %}
+</div>
+
+<!-- Historical Performance Data -->
+{% call card(title="Historical Performance Data", subtitle="Performance metrics over time") %}
+<div class="flex flex-wrap gap-2 mb-4">
+    <button type="button" class="px-3 py-1.5 text-sm font-medium text-white bg-ecs-green rounded-lg" data-action="load-historical" data-period="1h">1 Hour</button>
+    <button type="button" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-action="load-historical" data-period="6h">6 Hours</button>
+    <button type="button" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-action="load-historical" data-period="24h">24 Hours</button>
+    <button type="button" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-action="load-historical" data-period="7d">7 Days</button>
+</div>
+<div class="h-96">
+    <canvas id="historicalChart"></canvas>
+</div>
+{% endcall %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    const chartColors = {
+        primary: '#1a472a',
+        success: '#22c55e',
+        info: '#3b82f6',
+        warning: '#eab308',
+        danger: '#ef4444',
+        gray: '#6b7280'
+    };
+
+    // Chart data from server
+    const chartData = {
+        responseTime: {
+            labels: {{ historical_data.response_time.labels | tojson | safe if historical_data is defined else '[]' }},
+            data: {{ historical_data.response_time.data | tojson | safe if historical_data is defined else '[]' }}
+        },
+        requestDistribution: {
+            labels: {{ historical_data.request_distribution.labels | tojson | safe if historical_data is defined else '["API", "Web", "Static", "Other"]' }},
+            data: {{ historical_data.request_distribution.data | tojson | safe if historical_data is defined else '[40, 30, 20, 10]' }}
+        },
+        timeline: {
+            labels: {{ historical_data.timeline.labels | tojson | safe if historical_data is defined else '[]' }},
+            responseTime: {{ historical_data.timeline.response_time | tojson | safe if historical_data is defined else '[]' }},
+            requests: {{ historical_data.timeline.requests | tojson | safe if historical_data is defined else '[]' }}
+        }
+    };
+
+    // Response Time Chart
+    const responseTimeEl = document.getElementById('responseTimeChart');
+    if (responseTimeEl) {
+        new Chart(responseTimeEl.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: chartData.responseTime.labels.length ? chartData.responseTime.labels : ['12:00', '12:15', '12:30', '12:45', '13:00'],
+                datasets: [{
+                    label: 'Response Time (ms)',
+                    data: chartData.responseTime.data.length ? chartData.responseTime.data : [45, 52, 38, 55, 42],
+                    borderColor: chartColors.primary,
+                    backgroundColor: 'rgba(26, 71, 42, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // Request Distribution Chart
+    const requestDistEl = document.getElementById('requestDistributionChart');
+    if (requestDistEl) {
+        new Chart(requestDistEl.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: chartData.requestDistribution.labels,
+                datasets: [{
+                    data: chartData.requestDistribution.data,
+                    backgroundColor: [chartColors.primary, chartColors.success, chartColors.info, chartColors.warning, chartColors.gray]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    // Historical Chart
+    const historicalEl = document.getElementById('historicalChart');
+    if (historicalEl) {
+        new Chart(historicalEl.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: chartData.timeline.labels.length ? chartData.timeline.labels : ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+                datasets: [
+                    {
+                        label: 'Response Time (ms)',
+                        data: chartData.timeline.responseTime.length ? chartData.timeline.responseTime : [42, 38, 45, 55, 48, 52, 44],
+                        borderColor: chartColors.primary,
+                        backgroundColor: 'rgba(26, 71, 42, 0.1)',
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Requests/min',
+                        data: chartData.timeline.requests.length ? chartData.timeline.requests : [120, 85, 200, 340, 280, 220, 150],
+                        borderColor: chartColors.success,
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: 'Response Time (ms)' },
+                        grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: { display: true, text: 'Requests/min' },
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // Period button handlers
+    document.querySelectorAll('[data-action="load-historical"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Update active state
+            document.querySelectorAll('[data-action="load-historical"]').forEach(b => {
+                b.classList.remove('text-white', 'bg-ecs-green');
+                b.classList.add('text-gray-700', 'bg-white', 'dark:bg-gray-700', 'dark:text-white');
+            });
+            this.classList.remove('text-gray-700', 'bg-white', 'dark:bg-gray-700', 'dark:text-white');
+            this.classList.add('text-white', 'bg-ecs-green');
+        });
+    });
+});
+</script>
+{% endblock %}

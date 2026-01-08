@@ -113,6 +113,118 @@ def dashboard():
         return redirect(url_for('main.index'))
 
 
+@admin_panel_bp.route('/dashboard-flowbite')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@optimize_admin_queries()
+def dashboard_flowbite():
+    """Main admin panel dashboard - Flowbite/Tailwind version (test)."""
+    try:
+        # Get overview statistics with caching and fallbacks
+        try:
+            stats = admin_stats_cache.get_stats('dashboard_stats', lambda: {
+                'total_settings': AdminConfig.query.filter_by(is_enabled=True).count(),
+                'recent_changes': AdminAuditLog.query.filter(
+                    AdminAuditLog.timestamp >= datetime.utcnow() - timedelta(days=7)
+                ).count(),
+                'active_features': AdminConfig.query.filter_by(
+                    is_enabled=True, data_type='boolean'
+                ).filter(AdminConfig.value == 'true').count(),
+                'total_users': User.query.count()
+            })
+        except Exception as e:
+            logger.warning(f"Error getting dashboard stats: {e}")
+            stats = {
+                'total_settings': 0,
+                'recent_changes': 0,
+                'active_features': 0,
+                'total_users': 0
+            }
+
+        # Get recent admin actions
+        try:
+            recent_actions = AdminAuditLog.get_recent_logs(limit=10)
+        except Exception as e:
+            logger.warning(f"Error getting recent actions: {e}")
+            recent_actions = []
+
+        # Get pending approvals count
+        try:
+            pending_approvals = User.query.filter_by(is_approved=False).count()
+        except Exception as e:
+            logger.warning(f"Error getting pending approvals: {e}")
+            pending_approvals = 0
+
+        return render_template(
+            'admin_panel/dashboard_flowbite.html',
+            stats=stats,
+            recent_actions=recent_actions,
+            pending_approvals=pending_approvals
+        )
+    except Exception as e:
+        logger.error(f"Error loading admin panel dashboard (flowbite): {e}")
+        flash('Unable to load admin panel dashboard. Check system logs for details.', 'error')
+        return redirect(url_for('main.index'))
+
+
+@admin_panel_bp.route('/audit-logs-flowbite')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def audit_logs_flowbite():
+    """View admin audit logs - Flowbite/Tailwind version (test)."""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = 50
+
+        # Get filter parameters
+        user_id = request.args.get('user_id', type=int)
+        resource_type = request.args.get('resource_type')
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
+
+        # Build query
+        query = AdminAuditLog.query
+
+        if user_id:
+            query = query.filter(AdminAuditLog.user_id == user_id)
+        if resource_type:
+            query = query.filter(AdminAuditLog.resource_type == resource_type)
+        if date_from:
+            query = query.filter(AdminAuditLog.timestamp >= date_from)
+        if date_to:
+            query = query.filter(AdminAuditLog.timestamp <= date_to)
+
+        # Order by timestamp descending
+        query = query.order_by(AdminAuditLog.timestamp.desc())
+
+        # Paginate
+        logs = query.paginate(page=page, per_page=per_page, error_out=False)
+
+        # Get all users for filter dropdown
+        users = User.query.order_by(User.username).all()
+
+        # Get unique resource types for filter
+        resource_types = [r[0] for r in db.session.query(AdminAuditLog.resource_type).distinct().all() if r[0]]
+
+        # Current filters for pagination
+        current_filters = {
+            'user_id': user_id,
+            'resource_type': resource_type,
+            'date_from': date_from,
+            'date_to': date_to
+        }
+
+        return render_template('admin_panel/audit_logs_flowbite.html',
+                             logs=logs,
+                             users=users,
+                             resource_types=resource_types,
+                             current_filters=current_filters)
+    except Exception as e:
+        logger.error(f"Error loading audit logs (flowbite): {e}")
+        flash('Audit logs unavailable. Database or logging service may be offline.', 'error')
+        return redirect(url_for('admin_panel.dashboard'))
+
+
 @admin_panel_bp.route('/features')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])

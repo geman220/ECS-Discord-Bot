@@ -1,0 +1,385 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state %}
+
+{% block admin_title %}View Matches{% endblock %}
+{% block panel_description %}Browse and manage all scheduled matches{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.match_operations') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Match Operations</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">View Matches</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Filter Card -->
+{% call card(title="Filter Matches", subtitle="Filter matches by league, week, status, or date range") %}
+<form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+    <div>
+        <label for="league_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">League / Division</label>
+        <select id="league_id" name="league_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+            <option value="">All Leagues</option>
+            {% for league in leagues %}
+            <option value="{{ league.id }}" {% if current_league_id == league.id %}selected{% endif %}>{{ league.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label for="week" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Week</label>
+        <select id="week" name="week" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+            <option value="">All Weeks</option>
+            {% for week in weeks %}
+            <option value="{{ week }}" {% if current_week == week %}selected{% endif %}>Week {{ week }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label for="status" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Status</label>
+        <select id="status" name="status" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+            <option value="">All Statuses</option>
+            <option value="upcoming" {% if current_status == 'upcoming' %}selected{% endif %}>Upcoming</option>
+            <option value="past" {% if current_status == 'past' %}selected{% endif %}>Past</option>
+            <option value="verified" {% if current_status == 'verified' %}selected{% endif %}>Verified</option>
+            <option value="unverified" {% if current_status == 'unverified' %}selected{% endif %}>Unverified</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="date_from" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">From Date</label>
+        <input type="date" id="date_from" name="date_from" value="{{ request.args.get('date_from', '') }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+    </div>
+
+    <div>
+        <label for="date_to" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">To Date</label>
+        <input type="date" id="date_to" name="date_to" value="{{ request.args.get('date_to', '') }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+    </div>
+
+    <div class="flex items-end gap-2">
+        <button type="submit" class="flex-1 text-white bg-ecs-green hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50 font-medium rounded-lg text-sm px-4 py-2.5">
+            <i class="ti ti-search mr-1"></i>Filter
+        </button>
+        <a href="{{ url_for('admin_panel.view_matches') }}" class="p-2.5 text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600">
+            <i class="ti ti-x"></i>
+        </a>
+    </div>
+</form>
+
+{% if current_season %}
+<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+    <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+        <i class="ti ti-calendar mr-2"></i>{{ current_season.name }}
+    </span>
+</div>
+{% endif %}
+{% endcall %}
+
+<!-- Matches Table -->
+{% call card(title="All Matches", subtitle="Browse all matches with filtering options") %}
+{% if matches.items %}
+<div class="overflow-x-auto">
+    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+                <th scope="col" class="px-6 py-3">Date</th>
+                <th scope="col" class="px-6 py-3">Time</th>
+                <th scope="col" class="px-6 py-3">Home Team</th>
+                <th scope="col" class="px-6 py-3">Away Team</th>
+                <th scope="col" class="px-6 py-3">Score</th>
+                <th scope="col" class="px-6 py-3">Status</th>
+                <th scope="col" class="px-6 py-3">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for match in matches.items %}
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td class="px-6 py-4">
+                    {% if match.date %}
+                        {{ match.date.strftime('%Y-%m-%d') }}
+                    {% else %}
+                        <span class="text-gray-400 dark:text-gray-500">TBD</span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4">
+                    {% if match.time %}
+                        {{ match.time.strftime('%H:%M') }}
+                    {% else %}
+                        <span class="text-gray-400 dark:text-gray-500">TBD</span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                    {{ match.home_team.name if match.home_team else 'TBD' }}
+                </td>
+                <td class="px-6 py-4">
+                    {{ match.away_team.name if match.away_team else 'TBD' }}
+                </td>
+                <td class="px-6 py-4">
+                    {% if match.home_team_score is not none and match.away_team_score is not none %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            {{ match.home_team_score }} - {{ match.away_team_score }}
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">-</span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4">
+                    {% if match.date %}
+                        {% if match.home_team_score is not none and match.away_team_score is not none %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                <i class="ti ti-check mr-1"></i>Completed
+                            </span>
+                        {% elif match.date >= today_date %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                <i class="ti ti-clock mr-1"></i>Upcoming
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                Past
+                            </span>
+                        {% endif %}
+                    {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                            Unscheduled
+                        </span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-1">
+                        <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors" data-action="view-match-details" data-match-id="{{ match.id }}" title="View Details">
+                            <i class="ti ti-eye"></i>
+                        </button>
+                        <button type="button" class="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg transition-colors" data-action="edit-match" data-match-id="{{ match.id }}" title="Edit">
+                            <i class="ti ti-edit"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if matches.pages > 1 %}
+<nav class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700 mt-4" aria-label="Table navigation">
+    <span class="text-sm font-normal text-gray-500 dark:text-gray-400">
+        Showing <span class="font-semibold text-gray-900 dark:text-white">{{ matches.page }}</span> of <span class="font-semibold text-gray-900 dark:text-white">{{ matches.pages }}</span> pages
+    </span>
+    <ul class="inline-flex items-center -space-x-px">
+        {% if matches.has_prev %}
+        <li>
+            <a href="{{ url_for('admin_panel.view_matches', page=matches.prev_num, **request.args) }}" class="block px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                <i class="ti ti-chevron-left"></i>
+            </a>
+        </li>
+        {% endif %}
+
+        {% for page_num in matches.iter_pages() %}
+            {% if page_num %}
+                {% if page_num != matches.page %}
+                <li>
+                    <a href="{{ url_for('admin_panel.view_matches', page=page_num, **request.args) }}" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">{{ page_num }}</a>
+                </li>
+                {% else %}
+                <li>
+                    <span class="px-3 py-2 leading-tight text-white bg-ecs-green border border-ecs-green">{{ page_num }}</span>
+                </li>
+                {% endif %}
+            {% else %}
+            <li>
+                <span class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">...</span>
+            </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if matches.has_next %}
+        <li>
+            <a href="{{ url_for('admin_panel.view_matches', page=matches.next_num, **request.args) }}" class="block px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                <i class="ti ti-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<!-- Empty State -->
+<div class="text-center py-12">
+    <div class="mx-auto w-16 h-16 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+        <i class="ti ti-calendar-off text-3xl text-gray-400 dark:text-gray-500"></i>
+    </div>
+    <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Matches Found</h5>
+    <p class="text-gray-500 dark:text-gray-400 mb-4">No matches match the current filter criteria.</p>
+    <a href="{{ url_for('admin_panel.view_matches') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700">
+        <i class="ti ti-refresh mr-2"></i>Clear Filters
+    </a>
+</div>
+{% endif %}
+{% endcall %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const matchId = target.dataset.matchId;
+
+        switch(action) {
+            case 'view-match-details':
+                viewMatchDetails(matchId);
+                break;
+            case 'edit-match':
+                editMatch(matchId);
+                break;
+            case 'verify-match':
+                verifyMatch(matchId);
+                break;
+        }
+    });
+
+    function viewMatchDetails(matchId) {
+        Swal.fire({
+            title: 'Loading Match Details',
+            html: '<div class="flex justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div></div>',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+
+        fetch(`{{ url_for('admin_panel.get_match_details') }}?match_id=${matchId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: `Match #${matchId}`,
+                        html: data.html,
+                        width: '700px',
+                        showCloseButton: true,
+                        showConfirmButton: false,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: data.message || 'Failed to load match details',
+                        icon: 'error',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to load match details',
+                    icon: 'error',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            });
+    }
+
+    function editMatch(matchId) {
+        Swal.fire({
+            title: 'Edit Match',
+            html: `
+                <div class="text-left space-y-3">
+                    <p class="text-gray-600 dark:text-gray-400">What would you like to do?</p>
+                    <div class="space-y-2">
+                        <a href="{{ url_for('admin_panel.match_results') }}?match_id=${matchId}" class="flex items-center justify-center w-full px-4 py-2.5 text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg font-medium">
+                            <i class="ti ti-pencil mr-2"></i>Enter/Update Results
+                        </a>
+                        <a href="{{ url_for('admin_panel.match_schedule') }}" class="flex items-center justify-center w-full px-4 py-2.5 text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 rounded-lg font-medium">
+                            <i class="ti ti-calendar mr-2"></i>Reschedule Match
+                        </a>
+                        <button data-action="verify-match" data-match-id="${matchId}" class="flex items-center justify-center w-full px-4 py-2.5 text-green-700 bg-white border border-green-500 hover:bg-green-50 dark:bg-gray-700 dark:text-green-400 dark:border-green-500 dark:hover:bg-green-900/20 rounded-lg font-medium">
+                            <i class="ti ti-check mr-2"></i>Verify Match
+                        </button>
+                    </div>
+                </div>
+            `,
+            showConfirmButton: false,
+            showCloseButton: true,
+            width: '400px',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+    }
+
+    function verifyMatch(matchId) {
+        Swal.close();
+        Swal.fire({
+            title: 'Verify Match?',
+            text: 'This will mark the match as verified.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Verify',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`{{ url_for('admin_panel.match_operations') }}/verify-match/${matchId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'Verified!',
+                            text: data.message,
+                            icon: 'success',
+                            confirmButtonColor: '#1a472a',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error',
+                            text: data.message || 'Verification failed',
+                            icon: 'error',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Failed to verify match',
+                        icon: 'error',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                });
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,271 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}System Logs{% endblock %}
+{% block panel_description %}View and filter system log entries{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">System Monitoring</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">System Logs</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Log Level Statistics -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="rounded-lg p-5 bg-red-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ current_filters.error_count or 0 }}</p>
+                <p class="text-sm text-white/80 mt-1">Error Logs</p>
+            </div>
+            <i class="ti ti-alert-circle text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <div class="rounded-lg p-5 bg-yellow-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ current_filters.warning_count or 0 }}</p>
+                <p class="text-sm text-white/80 mt-1">Warning Logs</p>
+            </div>
+            <i class="ti ti-alert-triangle text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <div class="rounded-lg p-5 bg-blue-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ current_filters.info_count or 0 }}</p>
+                <p class="text-sm text-white/80 mt-1">Info Logs</p>
+            </div>
+            <i class="ti ti-info-circle text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <div class="rounded-lg p-5 bg-gray-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ current_filters.debug_count or 0 }}</p>
+                <p class="text-sm text-white/80 mt-1">Debug Logs</p>
+            </div>
+            <i class="ti ti-bug text-4xl text-white/50"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Log Filters -->
+{% call card(title="Log Filters", subtitle="Filter log entries by level, component, and date") %}
+<form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+    <div>
+        <label for="level" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Log Level</label>
+        <select id="level" name="level" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <option value="">All Levels</option>
+            <option value="ERROR" {{ 'selected' if request.args.get('level') == 'ERROR' }}>Error</option>
+            <option value="WARNING" {{ 'selected' if request.args.get('level') == 'WARNING' }}>Warning</option>
+            <option value="INFO" {{ 'selected' if request.args.get('level') == 'INFO' }}>Info</option>
+            <option value="DEBUG" {{ 'selected' if request.args.get('level') == 'DEBUG' }}>Debug</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="component" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Component</label>
+        <select id="component" name="component" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <option value="">All Components</option>
+            <option value="app" {{ 'selected' if request.args.get('component') == 'app' }}>Application</option>
+            <option value="discord" {{ 'selected' if request.args.get('component') == 'discord' }}>Discord Bot</option>
+            <option value="database" {{ 'selected' if request.args.get('component') == 'database' }}>Database</option>
+            <option value="cache" {{ 'selected' if request.args.get('component') == 'cache' }}>Cache</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="search" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Text</label>
+        <input type="text" id="search" name="search" value="{{ request.args.get('search', '') }}" placeholder="Search logs..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    </div>
+
+    <div>
+        <label for="date_from" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">From Date</label>
+        <input type="datetime-local" id="date_from" name="date_from" value="{{ request.args.get('date_from', '') }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    </div>
+
+    <div>
+        <label for="date_to" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">To Date</label>
+        <input type="datetime-local" id="date_to" name="date_to" value="{{ request.args.get('date_to', '') }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    </div>
+
+    <div class="flex items-end">
+        <button type="submit" class="w-full text-white bg-ecs-green hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50 font-medium rounded-lg text-sm px-4 py-2.5">
+            <i class="ti ti-search mr-1"></i>Filter
+        </button>
+    </div>
+</form>
+{% endcall %}
+
+<!-- Quick Actions -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h6 class="font-medium text-gray-900 dark:text-white">Log Management</h6>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Showing {{ logs|length }} log entries</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" class="px-3 py-2 text-sm font-medium text-ecs-green bg-white border border-ecs-green rounded-lg hover:bg-ecs-green/10 dark:bg-gray-700 dark:text-ecs-green dark:border-ecs-green" data-action="refresh-logs">
+                <i class="ti ti-refresh mr-1"></i>Refresh
+            </button>
+            <button type="button" class="px-3 py-2 text-sm font-medium text-blue-700 bg-white border border-blue-500 rounded-lg hover:bg-blue-50 dark:bg-gray-700 dark:text-blue-400 dark:border-blue-500" data-action="export-logs">
+                <i class="ti ti-download mr-1"></i>Export
+            </button>
+            <button type="button" class="px-3 py-2 text-sm font-medium text-yellow-700 bg-white border border-yellow-500 rounded-lg hover:bg-yellow-50 dark:bg-gray-700 dark:text-yellow-400 dark:border-yellow-500" data-action="clear-old-logs">
+                <i class="ti ti-trash mr-1"></i>Clear Old
+            </button>
+            <button type="button" class="px-3 py-2 text-sm font-medium text-green-700 bg-white border border-green-500 rounded-lg hover:bg-green-50 dark:bg-gray-700 dark:text-green-400 dark:border-green-500" data-action="start-tail">
+                <i class="ti ti-eye mr-1"></i>Live Tail
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Log Entries Table -->
+{% call card(title="Log Entries", no_padding=true) %}
+{% if logs %}
+<div class="overflow-x-auto">
+    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+                <th scope="col" class="px-4 py-3 w-36">Timestamp</th>
+                <th scope="col" class="px-4 py-3 w-20">Level</th>
+                <th scope="col" class="px-4 py-3 w-28">Component</th>
+                <th scope="col" class="px-4 py-3">Message</th>
+                <th scope="col" class="px-4 py-3 w-20">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 {% if log.level == 'ERROR' %}bg-red-50 dark:bg-red-900/10{% elif log.level == 'WARNING' %}bg-yellow-50 dark:bg-yellow-900/10{% endif %}">
+                <td class="px-4 py-3 font-mono text-xs">
+                    {{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                </td>
+                <td class="px-4 py-3">
+                    {% if log.level == 'ERROR' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">ERROR</span>
+                    {% elif log.level == 'WARNING' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">WARN</span>
+                    {% elif log.level == 'INFO' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">INFO</span>
+                    {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">DEBUG</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+                    {{ log.component or 'app' }}
+                </td>
+                <td class="px-4 py-3">
+                    <p class="text-gray-700 dark:text-gray-300">{{ log.message[:100] }}{% if log.message|length > 100 %}...{% endif %}</p>
+                    {% if log.stack_trace %}
+                    <p class="text-xs text-red-500 mt-1"><i class="ti ti-alert-triangle mr-1"></i>Stack trace available</p>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3">
+                    <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors" data-action="view-log-details" data-log-id="{{ log.id }}" title="View">
+                        <i class="ti ti-eye"></i>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Live Tail Area (hidden by default) -->
+<div id="liveTailArea" class="hidden p-4 bg-gray-900 text-green-400 font-mono text-sm max-h-80 overflow-y-auto">
+    <div class="flex items-center justify-between mb-2">
+        <span class="flex items-center"><span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>Live tail active</span>
+        <button type="button" class="px-2 py-1 text-xs text-gray-300 border border-gray-600 rounded hover:bg-gray-800" data-action="stop-tail">Stop</button>
+    </div>
+    <div id="liveTailContent"></div>
+</div>
+{% else %}
+<div class="text-center py-12">
+    <div class="mx-auto w-16 h-16 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+        <i class="ti ti-file-x text-3xl text-gray-400 dark:text-gray-500"></i>
+    </div>
+    <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Log Entries</h5>
+    <p class="text-gray-500 dark:text-gray-400 mb-4">No log entries match the current filter criteria.</p>
+    <a href="{{ url_for('admin_panel.system_logs') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700">
+        <i class="ti ti-refresh mr-2"></i>Clear Filters
+    </a>
+</div>
+{% endif %}
+{% endcall %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+
+        switch(action) {
+            case 'refresh-logs':
+                location.reload();
+                break;
+            case 'export-logs':
+                Swal.fire({
+                    title: 'Export Logs',
+                    text: 'Downloading log export...',
+                    icon: 'info',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                break;
+            case 'clear-old-logs':
+                Swal.fire({
+                    title: 'Clear Old Logs?',
+                    text: 'This will delete logs older than 30 days.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Clear',
+                    confirmButtonColor: '#dc2626',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                break;
+            case 'start-tail':
+                document.getElementById('liveTailArea').classList.remove('hidden');
+                break;
+            case 'stop-tail':
+                document.getElementById('liveTailArea').classList.add('hidden');
+                break;
+            case 'view-log-details':
+                const logId = target.dataset.logId;
+                Swal.fire({
+                    title: 'Log Details',
+                    text: `Loading details for log #${logId}...`,
+                    icon: 'info',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                break;
+        }
+    });
+});
+</script>
+{% endblock %}

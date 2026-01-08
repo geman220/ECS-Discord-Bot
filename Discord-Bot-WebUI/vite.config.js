@@ -57,6 +57,7 @@ export default defineConfig({
         main: resolve(__dirname, 'app/static/js/main-entry.js'),
         // CSS entry - Using CSS Cascade Layers architecture
         styles: resolve(__dirname, 'app/static/css/main-entry.css'),
+        // Note: Tailwind CSS is compiled separately via npm run build:tailwind
       },
       output: {
         // Asset naming

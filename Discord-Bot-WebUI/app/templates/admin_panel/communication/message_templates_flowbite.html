@@ -1,0 +1,248 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}{{ category.name }} Messages{% endblock %}
+{% block panel_description %}View and manage message templates{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin.message_config.list_categories') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Message Categories</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ category.name }}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Category Info Card -->
+<div class="bg-ecs-green rounded-lg shadow mb-6">
+    <div class="p-5 text-white">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <h4 class="text-xl font-semibold flex items-center">
+                    <i class="ti ti-comments mr-2"></i>{{ category.name }}
+                </h4>
+                {% if category.description %}
+                <p class="text-white/80 mt-1">{{ category.description }}</p>
+                {% endif %}
+                <div class="flex items-center gap-2 mt-3">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-white/20 text-white">
+                        {{ templates|length }} templates
+                    </span>
+                </div>
+            </div>
+            <a href="{{ url_for('admin.message_config.list_categories') }}" class="px-4 py-2 text-sm font-medium text-ecs-green bg-white rounded-lg hover:bg-gray-100">
+                <i class="ti ti-arrow-left mr-1"></i>Back to Categories
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Templates List -->
+{% call card(title="Message Templates", subtitle="All templates in this category") %}
+{% if templates %}
+<div class="space-y-4">
+    {% for template in templates %}
+    <div class="border {{ 'border-green-200 dark:border-green-800' if template.is_active else 'border-yellow-200 dark:border-yellow-800' }} rounded-lg overflow-hidden">
+        <div class="p-4">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-2">
+                        <h6 class="text-lg font-medium text-gray-900 dark:text-white">{{ template.name }}</h6>
+                        {% if template.is_active %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Inactive</span>
+                        {% endif %}
+                    </div>
+
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                        Key: <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs">{{ template.key }}</code>
+                    </p>
+
+                    {% if template.description %}
+                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">{{ template.description }}</p>
+                    {% endif %}
+
+                    <!-- Message Preview -->
+                    <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg mb-3">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Message Content:</p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ template.message_content[:200] }}{% if template.message_content|length > 200 %}...{% endif %}</p>
+                    </div>
+
+                    <!-- Variables -->
+                    {% if template.variables %}
+                    <div>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Variables: </span>
+                        {% for var in template.variables %}
+                        <code class="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">{{'{'}}{{ var }}{{'}'}}</code>{% if not loop.last %} {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <a href="{{ url_for('admin.message_config.edit_template', template_id=template.id) }}" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 text-center">
+                        <i class="ti ti-edit mr-1"></i>Edit Message
+                    </a>
+                    <button type="button" class="px-4 py-2 text-sm font-medium text-cyan-700 bg-white border border-cyan-500 rounded-lg hover:bg-cyan-50 dark:bg-gray-700 dark:text-cyan-400 dark:border-cyan-500" data-action="preview-template" data-template-id="{{ template.id }}" data-template-content="{{ template.message_content|e }}">
+                        <i class="ti ti-eye mr-1"></i>Preview
+                    </button>
+                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-action="copy-template" data-template-content="{{ template.message_content|e }}">
+                        <i class="ti ti-copy mr-1"></i>Copy Content
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 border-t dark:border-gray-700">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Last updated: {{ template.updated_at.strftime('%b %d, %Y at %I:%M %p') }}
+            </p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-12">
+    <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+        <i class="ti ti-file-text text-3xl text-gray-400 dark:text-gray-500"></i>
+    </div>
+    <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Templates Found</h5>
+    <p class="text-gray-500 dark:text-gray-400 mb-4">No message templates exist in this category yet.</p>
+</div>
+{% endif %}
+{% endcall %}
+
+<!-- Preview Modal -->
+<div id="previewModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
+        <div class="relative w-full max-w-2xl transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-eye mr-2"></i>Message Preview
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="previewModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6" id="previewContent">
+                <!-- Preview content loads here -->
+            </div>
+            <div class="flex items-center justify-end p-4 border-t dark:border-gray-700">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="previewModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Modal setup
+    const modal = document.getElementById('previewModal');
+    if (modal) {
+        document.querySelectorAll('[data-modal-hide="previewModal"]').forEach(btn => {
+            btn.addEventListener('click', () => modal.classList.add('hidden'));
+        });
+
+        const backdrop = modal.querySelector('[data-modal-backdrop]');
+        if (backdrop) {
+            backdrop.addEventListener('click', () => modal.classList.add('hidden'));
+        }
+    }
+
+    // Sample data for preview
+    const sampleData = {
+        username: 'SampleUser',
+        league_display_name: 'Pub League Premier',
+        league_welcome_message: 'Welcome to competitive soccer!',
+        league_contact_info: 'admin@ecsfc.com',
+        team_name: 'Sample Team FC',
+        match_date: 'Saturday, July 20th',
+        match_time: '2:00 PM',
+        match_location: 'North Field'
+    };
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Action handlers
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+
+        switch(action) {
+            case 'preview-template':
+                let content = target.dataset.templateContent || '';
+                // Decode HTML entities
+                const textarea = document.createElement('textarea');
+                textarea.innerHTML = content;
+                content = textarea.value;
+
+                // Replace variables with sample data
+                let preview = content;
+                for (const [key, value] of Object.entries(sampleData)) {
+                    const regex = new RegExp(`{${key}}`, 'g');
+                    preview = preview.replace(regex, value);
+                }
+
+                document.getElementById('previewContent').innerHTML = `
+                    <div class="mb-4">
+                        <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Discord Message Preview:</h6>
+                        <div class="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm whitespace-pre-wrap">${escapeHtml(preview)}</div>
+                    </div>
+                    <div>
+                        <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sample variables used:</h6>
+                        <pre class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-xs overflow-auto">${JSON.stringify(sampleData, null, 2)}</pre>
+                    </div>
+                `;
+                modal.classList.remove('hidden');
+                break;
+
+            case 'copy-template':
+                let copyContent = target.dataset.templateContent || '';
+                // Decode HTML entities
+                const ta = document.createElement('textarea');
+                ta.innerHTML = copyContent;
+                copyContent = ta.value;
+
+                navigator.clipboard.writeText(copyContent).then(() => {
+                    Swal.fire({
+                        title: 'Copied!',
+                        text: 'Template content copied to clipboard.',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }).catch(() => {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Failed to copy to clipboard.',
+                        icon: 'error',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                });
+                break;
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,348 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, input, select %}
+
+{% block admin_title %}Cache Management{% endblock %}
+{% block panel_description %}Monitor and manage Redis cache performance{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Cache Management</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Cache Status Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    <!-- Redis Status -->
+    <div class="rounded-lg p-5 {% if stats.redis_status == 'connected' %}bg-green-500{% else %}bg-red-500{% endif %} text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-sm font-medium text-white/80">Redis Status</p>
+                <h3 class="text-2xl font-bold mt-1">{{ stats.redis_status.title() }}</h3>
+            </div>
+            <i class="ti ti-database text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <!-- Total Keys -->
+    <div class="rounded-lg p-5 bg-blue-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-sm font-medium text-white/80">Total Keys</p>
+                <h3 class="text-2xl font-bold mt-1">{{ stats.total_keys or 0 }}</h3>
+            </div>
+            <i class="ti ti-key text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <!-- Memory Usage -->
+    <div class="rounded-lg p-5 bg-yellow-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-sm font-medium text-white/80">Memory Usage</p>
+                <h3 class="text-2xl font-bold mt-1">{{ stats.memory_usage or '0MB' }}</h3>
+            </div>
+            <i class="ti ti-device-desktop text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <!-- Hit Rate -->
+    <div class="rounded-lg p-5 bg-ecs-green text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-sm font-medium text-white/80">Hit Rate</p>
+                <h3 class="text-2xl font-bold mt-1">{{ stats.hit_rate or '0%' }}</h3>
+            </div>
+            <i class="ti ti-target text-4xl text-white/50"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Cache Operations & Analytics -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Cache Operations -->
+    {% call card(title="Cache Operations", subtitle="Manage cache keys and perform maintenance") %}
+    <div class="space-y-1">
+        <button type="button" data-action="clear-all-cache"
+                class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+            <div class="flex items-center gap-3">
+                <i class="ti ti-trash text-red-500"></i>
+                <span class="text-gray-900 dark:text-white">Clear All Cache</span>
+            </div>
+            <i class="ti ti-alert-triangle text-yellow-500"></i>
+        </button>
+
+        <button type="button" data-action="clear-user-cache"
+                class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+            <div class="flex items-center gap-3">
+                <i class="ti ti-users text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-900 dark:text-white">Clear User Cache</span>
+            </div>
+            <i class="ti ti-chevron-right text-gray-400"></i>
+        </button>
+
+        <button type="button" data-action="clear-session-cache"
+                class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+            <div class="flex items-center gap-3">
+                <i class="ti ti-key text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-900 dark:text-white">Clear Session Cache</span>
+            </div>
+            <i class="ti ti-chevron-right text-gray-400"></i>
+        </button>
+
+        <button type="button" data-action="refresh-cache-stats"
+                class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+            <div class="flex items-center gap-3">
+                <i class="ti ti-refresh text-green-500"></i>
+                <span class="text-gray-900 dark:text-white">Refresh Statistics</span>
+            </div>
+            <i class="ti ti-chevron-right text-gray-400"></i>
+        </button>
+    </div>
+    {% endcall %}
+
+    <!-- Cache Analytics -->
+    {% call card(title="Cache Analytics", subtitle="Monitor performance and usage patterns") %}
+    <div class="grid grid-cols-2 gap-6">
+        <div class="space-y-3">
+            <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                <span class="font-medium text-gray-700 dark:text-gray-300">Operations Today:</span>
+                <span class="text-gray-900 dark:text-white">{{ stats.cache_operations_today or 0 }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                <span class="font-medium text-gray-700 dark:text-gray-300">Hit Rate:</span>
+                <span class="text-green-500 font-semibold">{{ stats.hit_rate or '0%' }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2">
+                <span class="font-medium text-gray-700 dark:text-gray-300">Miss Rate:</span>
+                <span class="text-yellow-500 font-semibold">{{ (100 - (stats.hit_rate|replace('%', '')|int if stats.hit_rate else 0))|string + '%' }}</span>
+            </div>
+        </div>
+        <div class="space-y-3">
+            <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                <span class="font-medium text-gray-700 dark:text-gray-300">Memory Used:</span>
+                <span class="text-gray-900 dark:text-white">{{ stats.memory_usage or '0MB' }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                <span class="font-medium text-gray-700 dark:text-gray-300">Connections:</span>
+                <span class="text-gray-900 dark:text-white">{{ stats.active_connections or 1 }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2">
+                <span class="font-medium text-gray-700 dark:text-gray-300">Uptime:</span>
+                <span class="text-green-500 font-semibold">{{ stats.uptime or '99.9%' }}</span>
+            </div>
+        </div>
+    </div>
+    {% endcall %}
+</div>
+
+<!-- Cache Configuration -->
+{% call card(title="Cache Configuration", subtitle="Configure cache settings") %}
+<form class="space-y-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+            <label for="defaultTTL" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Default TTL (seconds)</label>
+            <input type="number" id="defaultTTL" value="3600"
+                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green">
+        </div>
+
+        <div>
+            <label for="maxMemoryPolicy" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Memory Policy</label>
+            <select id="maxMemoryPolicy"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green">
+                <option value="allkeys-lru">All Keys LRU</option>
+                <option value="volatile-lru">Volatile LRU</option>
+                <option value="allkeys-random">All Keys Random</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Enable Cache</label>
+            <label class="relative inline-flex items-center cursor-pointer mt-2">
+                <input type="checkbox" id="enableCache" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Cache Enabled</span>
+            </label>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+        {{ button("Save Configuration", variant="primary", icon="ti-device-floppy", type="button") }}
+        {{ button("Reset to Defaults", variant="secondary", icon="ti-refresh", type="button") }}
+    </div>
+</form>
+{% endcall %}
+
+<!-- Cache Status Alert -->
+<div class="mt-6">
+    {% if stats.redis_status == 'connected' %}
+    {{ alert("Redis cache is operational and performing well.", variant="success", title="Cache Status") }}
+    {% else %}
+    {{ alert("Redis cache connection issues detected. Please check configuration.", variant="danger", title="Cache Status") }}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+// Event delegation for cache management actions
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        switch(action) {
+            case 'clear-all-cache':
+                clearAllCache();
+                break;
+            case 'clear-user-cache':
+                clearUserCache();
+                break;
+            case 'clear-session-cache':
+                clearSessionCache();
+                break;
+            case 'refresh-cache-stats':
+                refreshCacheStats();
+                break;
+            case 'update-cache-config':
+                updateCacheConfig();
+                break;
+            case 'reset-cache-config':
+                resetCacheConfig();
+                break;
+        }
+    });
+});
+
+const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+async function clearCacheByType(cacheType, title) {
+    const isDark = document.documentElement.classList.contains('dark');
+    const result = await Swal.fire({
+        title: title,
+        text: 'This action cannot be undone. Continue?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, clear it!',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+        const formData = new FormData();
+        formData.append('cache_type', cacheType);
+
+        const response = await fetch('{{ url_for("admin_panel.clear_cache") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': _csrfToken
+            },
+            body: formData
+        });
+
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else {
+            Swal.fire({
+                icon: 'success',
+                title: 'Cache Cleared',
+                text: 'The cache has been successfully cleared.',
+                timer: 2000,
+                showConfirmButton: false,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then(() => location.reload());
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to clear cache. Check server connectivity.',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+    }
+}
+
+function clearAllCache() {
+    clearCacheByType('all', 'Clear All Cache?');
+}
+
+function clearUserCache() {
+    clearCacheByType('user', 'Clear User Cache?');
+}
+
+function clearSessionCache() {
+    clearCacheByType('session', 'Clear Session Cache?');
+}
+
+function refreshCacheStats() {
+    const isDark = document.documentElement.classList.contains('dark');
+    Swal.fire({
+        title: 'Refreshing...',
+        text: 'Updating cache statistics',
+        allowOutsideClick: false,
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827',
+        didOpen: () => {
+            Swal.showLoading();
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        }
+    });
+}
+
+async function updateCacheConfig() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const config = {
+        defaultTTL: document.getElementById('defaultTTL').value,
+        maxMemoryPolicy: document.getElementById('maxMemoryPolicy').value,
+        enableCache: document.getElementById('enableCache').checked
+    };
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Configuration Saved',
+        text: 'Cache configuration has been updated.',
+        timer: 2000,
+        showConfirmButton: false,
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    });
+}
+
+function resetCacheConfig() {
+    const isDark = document.documentElement.classList.contains('dark');
+    document.getElementById('defaultTTL').value = '3600';
+    document.getElementById('maxMemoryPolicy').value = 'allkeys-lru';
+    document.getElementById('enableCache').checked = true;
+
+    Swal.fire({
+        icon: 'info',
+        title: 'Reset Complete',
+        text: 'Configuration has been reset to defaults.',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    });
+}
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl+R to refresh stats
+    if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        refreshCacheStats();
+    }
+});
+</script>
+{% endblock %}

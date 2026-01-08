@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ECS FC{% endblock %}</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vite-dist/css/tailwind.css') }}">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}">
+
+    <!-- Flowbite JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.3.0/dist/flowbite.min.js" defer></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Theme Detection Script -->
+    <script>
+        // Check for dark mode preference
+        if (localStorage.getItem('color-theme') === 'dark' ||
+            (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex items-center justify-center">
+    <!-- Dark Mode Toggle (floating) -->
+    <button type="button" id="theme-toggle" class="fixed top-4 right-4 p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700">
+        <i class="ti ti-sun hidden dark:block"></i>
+        <i class="ti ti-moon block dark:hidden"></i>
+    </button>
+
+    <!-- Main Content -->
+    <div class="w-full max-w-md px-4 py-8">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Flash Messages via SweetAlert -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            Swal.fire({
+                title: '{{ "Error" if category == "error" else "Success" if category == "success" else "Info" }}',
+                text: '{{ message }}',
+                icon: '{{ "error" if category == "error" else "success" if category == "success" else "info" }}',
+                confirmButtonColor: '#1a472a',
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827'
+            });
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            // Session sweet alert
+            {% if session.get('sweet_alert') %}
+            Swal.fire({
+                title: '{{ session.get("sweet_alert").get("title", "") }}',
+                text: '{{ session.get("sweet_alert").get("text", "") }}',
+                icon: '{{ session.get("sweet_alert").get("icon", "success") }}',
+                confirmButtonColor: '#1a472a',
+                background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
+                color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827'
+            });
+            fetch("{{ url_for('main.clear_sweet_alert') }}", {method: 'POST'});
+            {% endif %}
+
+            // Theme toggle
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function() {
+                    if (document.documentElement.classList.contains('dark')) {
+                        document.documentElement.classList.remove('dark');
+                        localStorage.setItem('color-theme', 'light');
+                    } else {
+                        document.documentElement.classList.add('dark');
+                        localStorage.setItem('color-theme', 'dark');
+                    }
+                });
+            }
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

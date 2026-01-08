@@ -1,0 +1,207 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, table, empty_state %}
+
+{% block admin_title %}User Management{% endblock %}
+{% block panel_description %}Manage users, roles, and permissions{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">User Management</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- User Management Overview Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    <!-- Total Users -->
+    <div class="rounded-lg p-5 bg-ecs-green text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-sm font-medium text-white/80">Total Users</p>
+                <h3 class="text-2xl font-bold mt-1">{{ stats.total_users }}</h3>
+            </div>
+            <i class="ti ti-users text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <!-- Pending Approvals -->
+    <div class="rounded-lg p-5 bg-yellow-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-sm font-medium text-white/80">Pending Approvals</p>
+                <h3 class="text-2xl font-bold mt-1">{{ stats.pending_approvals }}</h3>
+            </div>
+            <i class="ti ti-user-clock text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <!-- Approved Users -->
+    <div class="rounded-lg p-5 bg-green-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-sm font-medium text-white/80">Approved Users</p>
+                <h3 class="text-2xl font-bold mt-1">{{ stats.approved_users }}</h3>
+            </div>
+            <i class="ti ti-user-check text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <!-- Waitlist Users -->
+    <div class="rounded-lg p-5 bg-blue-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-sm font-medium text-white/80">Waitlist Users</p>
+                <h3 class="text-2xl font-bold mt-1">{{ stats.waitlist_users }}</h3>
+            </div>
+            <i class="ti ti-user-pause text-4xl text-white/50"></i>
+        </div>
+    </div>
+</div>
+
+<!-- User Management Actions -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- User Approvals Card -->
+    {% call card(title="User Approvals", subtitle="Review and approve pending user registrations") %}
+    <div class="space-y-1">
+        <a href="{{ url_for('admin_panel.users_comprehensive') }}"
+           class="flex items-center justify-between p-3 rounded-lg bg-ecs-green text-white hover:bg-ecs-green-700 transition-colors">
+            <div class="flex items-center gap-3">
+                <i class="ti ti-users"></i>
+                <span class="font-medium">Advanced User Management</span>
+            </div>
+            <i class="ti ti-external-link"></i>
+        </a>
+
+        <a href="{{ url_for('admin_panel.user_approvals') }}"
+           class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+            <div class="flex items-center gap-3">
+                <i class="ti ti-user-check text-yellow-500"></i>
+                <span class="text-gray-900 dark:text-white">User Approvals</span>
+            </div>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                {{ stats.pending_approvals }}
+            </span>
+        </a>
+
+        <a href="{{ url_for('admin_panel.bulk_operations') }}"
+           class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+            <div class="flex items-center gap-3">
+                <i class="ti ti-list-check text-blue-500"></i>
+                <span class="text-gray-900 dark:text-white">Bulk Operations</span>
+            </div>
+            <i class="ti ti-chevron-right text-gray-400"></i>
+        </a>
+    </div>
+    {% endcall %}
+
+    <!-- Role Management Card -->
+    {% call card(title="Role Management", subtitle="Manage user roles and permissions") %}
+    <div class="space-y-1">
+        <a href="{{ url_for('admin_panel.roles_comprehensive') }}"
+           class="flex items-center justify-between p-3 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors">
+            <div class="flex items-center gap-3">
+                <i class="ti ti-shield-check"></i>
+                <span class="font-medium">Advanced Role Management</span>
+            </div>
+            <i class="ti ti-external-link"></i>
+        </a>
+
+        <a href="{{ url_for('admin_panel.roles_management') }}"
+           class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+            <div class="flex items-center gap-3">
+                <i class="ti ti-shield text-ecs-green"></i>
+                <span class="text-gray-900 dark:text-white">Role Assignment Tools</span>
+            </div>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
+                {{ stats.total_roles }}
+            </span>
+        </a>
+    </div>
+    {% endcall %}
+
+    <!-- Waitlist Management Card -->
+    {% call card(title="Waitlist Management", subtitle="Manage users on the waitlist") %}
+    <div class="space-y-1">
+        <a href="{{ url_for('admin_panel.user_waitlist') }}"
+           class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+            <div class="flex items-center gap-3">
+                <i class="ti ti-user-pause text-yellow-500"></i>
+                <span class="text-gray-900 dark:text-white">Waitlist Users</span>
+            </div>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                {{ stats.waitlist_users }}
+            </span>
+        </a>
+
+        <a href="{{ url_for('admin_panel.user_waitlist') }}"
+           class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+            <div class="flex items-center gap-3">
+                <i class="ti ti-user-plus text-green-500"></i>
+                <span class="text-gray-900 dark:text-white">Promote from Waitlist</span>
+            </div>
+            <i class="ti ti-chevron-right text-gray-400"></i>
+        </a>
+    </div>
+    {% endcall %}
+</div>
+
+<!-- Recent User Management Actions -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+    <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-history text-gray-400"></i>
+            Recent User Management Actions
+        </h3>
+    </div>
+
+    <div class="p-6">
+        {% if recent_actions %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Date</th>
+                        <th scope="col" class="px-6 py-3">Admin</th>
+                        <th scope="col" class="px-6 py-3">Action</th>
+                        <th scope="col" class="px-6 py-3">Resource</th>
+                        <th scope="col" class="px-6 py-3">Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for action in recent_actions %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ action.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="font-medium text-gray-900 dark:text-white">{{ action.admin.username if action.admin else 'System' }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
+                                {{ action.action.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ action.resource_type.replace('_', ' ').title() }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ action.new_value[:50] }}{% if action.new_value and action.new_value|length > 50 %}...{% endif %}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <i class="ti ti-history text-gray-300 dark:text-gray-600 text-6xl"></i>
+            <h4 class="text-lg font-medium text-gray-500 dark:text-gray-400 mt-4">No Recent Actions</h4>
+            <p class="text-gray-400 dark:text-gray-500 mt-2">User management actions will appear here when performed.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

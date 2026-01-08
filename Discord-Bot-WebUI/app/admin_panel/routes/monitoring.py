@@ -111,6 +111,70 @@ def system_monitoring():
         return redirect(url_for('admin_panel.dashboard'))
 
 
+@admin_panel_bp.route('/system-monitoring-flowbite')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def system_monitoring_flowbite():
+    """System monitoring hub page - Flowbite/Tailwind version (test)."""
+    try:
+        # Get system services health checks
+        services = []
+
+        services.append(_check_discord_api_status())
+        services.append(_check_push_service_status())
+        services.append(_check_email_service_status())
+        services.append(_check_redis_service_status())
+        services.append(_check_database_service_status())
+
+        healthy_services = len([s for s in services if s['status'] == 'healthy'])
+        warning_services = len([s for s in services if s['status'] == 'warning'])
+        error_services = len([s for s in services if s['status'] == 'error'])
+
+        system_health = 'healthy'
+        if error_services > 0:
+            system_health = 'critical'
+        elif warning_services > 0:
+            system_health = 'warning'
+
+        performance_metrics = _get_system_performance_metrics()
+        stats = {
+            'total_services': len(services),
+            'healthy_services': healthy_services,
+            'warning_services': warning_services,
+            'error_services': error_services,
+            'system_health': system_health,
+            'uptime': performance_metrics.get('uptime', 'Unknown'),
+            'last_check': datetime.utcnow(),
+            'cpu_usage': performance_metrics.get('cpu_usage', 0),
+            'memory_usage': performance_metrics.get('memory_usage', 0),
+            'disk_usage': performance_metrics.get('disk_usage', 0),
+            'load_average': performance_metrics.get('load_average', 'Unknown'),
+            'active_connections': performance_metrics.get('active_connections', 0)
+        }
+
+        services_dict = {}
+        for service in services:
+            if service['name'] == 'Discord API':
+                services_dict['discord_api'] = service
+            elif service['name'] == 'Push Notifications':
+                services_dict['push_notifications'] = service
+            elif service['name'] == 'Email Service':
+                services_dict['email'] = service
+            elif service['name'] == 'Redis Cache':
+                services_dict['redis'] = service
+            elif service['name'] == 'Database':
+                services_dict['database'] = service
+
+        return render_template('admin_panel/monitoring/system_monitoring_flowbite.html',
+                             services=services_dict,
+                             services_list=services,
+                             stats=stats)
+    except Exception as e:
+        logger.error(f"Error loading system monitoring (flowbite): {e}")
+        flash('System monitoring unavailable. Check service health checks and database connectivity.', 'error')
+        return redirect(url_for('admin_panel.dashboard'))
+
+
 @admin_panel_bp.route('/monitoring/tasks')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])

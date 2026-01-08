@@ -61,6 +61,13 @@ def api_health():
     })
 
 
+@main.route('/test-flowbite')
+@login_required
+def test_flowbite():
+    """Test page for Flowbite/Tailwind UI components."""
+    return render_template('test_flowbite.html', title='Flowbite Test')
+
+
 @main.route('/api/discord/check-membership', methods=['POST'])
 @login_required
 def api_check_discord_membership():

@@ -1,0 +1,124 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Sign In - ECS FC{% endblock %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8">
+    <!-- Logo Section -->
+    <div class="flex items-center justify-center gap-4 mb-8">
+        <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="h-16">
+        <div class="w-px h-12 bg-gray-300 dark:bg-gray-600"></div>
+        <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="h-16">
+    </div>
+
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Welcome Back</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Sign in to access your ECS FC account</p>
+    </div>
+
+    <!-- Discord Login - Primary -->
+    <a href="{{ url_for('auth.discord_login') }}" class="flex items-center justify-center w-full px-4 py-3 mb-3 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition-colors">
+        <i class="ti ti-brand-discord mr-2 text-xl"></i>
+        Sign In with Discord
+    </a>
+
+    {% if safe_current_user.is_anonymous %}
+    <!-- Discord Registration -->
+    <a href="{{ url_for('auth.discord_register') }}" class="flex items-center justify-center w-full px-4 py-3 mb-3 text-indigo-600 dark:text-indigo-400 bg-white dark:bg-gray-700 border border-indigo-600 dark:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg font-medium transition-colors">
+        <i class="ti ti-user-plus mr-2 text-xl"></i>
+        New? Register with Discord
+    </a>
+
+    <!-- Waitlist Registration -->
+    <a href="{{ url_for('auth.waitlist_register') }}" class="flex items-center justify-center w-full px-4 py-3 mb-6 text-yellow-700 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-400 dark:border-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 rounded-lg font-medium transition-colors">
+        <i class="ti ti-clock mr-2 text-xl"></i>
+        Join the Waitlist
+    </a>
+
+    <!-- Divider -->
+    <div class="relative flex items-center justify-center mb-6">
+        <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-300 dark:border-gray-600"></div>
+        </div>
+        <div class="relative px-4 bg-white dark:bg-gray-800">
+            <button type="button" class="text-sm text-gray-500 dark:text-gray-400 hover:text-ecs-green dark:hover:text-ecs-green cursor-pointer" id="toggleEmailLogin">
+                More Options
+            </button>
+        </div>
+    </div>
+
+    <!-- Email Login (Hidden by default) -->
+    <div id="emailLoginSection" class="hidden">
+        <form method="POST" action="{{ url_for('auth.login') }}">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-4">
+                <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email</label>
+                {{ form.email(class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white", placeholder="your@email.com", id="email") }}
+            </div>
+
+            <div class="mb-4">
+                <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
+                <div class="relative">
+                    {{ form.password(class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white pr-10", placeholder="********", id="password") }}
+                    <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 dark:text-gray-400" id="togglePassword">
+                        <i class="ti ti-eye-off" id="passwordIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    {{ form.remember(class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600", id="remember") }}
+                    <label for="remember" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Remember me</label>
+                </div>
+                <a href="{{ url_for('auth.forgot_password') }}" class="text-sm text-ecs-green hover:underline">Forgot Password?</a>
+            </div>
+
+            <button type="submit" class="w-full px-4 py-2.5 text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg font-medium transition-colors">
+                Sign In with Email
+            </button>
+        </form>
+    </div>
+
+    {% if session.get('waitlist_intent') %}
+    <!-- Waitlist Alert -->
+    <div class="mt-6 p-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-300">
+        <h6 class="font-semibold mb-1">Join the Waitlist</h6>
+        <p>Login to join the waitlist for the current season. You'll be notified when spots become available.</p>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle email login section
+    const toggleBtn = document.getElementById('toggleEmailLogin');
+    const emailSection = document.getElementById('emailLoginSection');
+
+    if (toggleBtn && emailSection) {
+        toggleBtn.addEventListener('click', function() {
+            emailSection.classList.toggle('hidden');
+            this.textContent = emailSection.classList.contains('hidden') ? 'More Options' : 'Hide Options';
+        });
+    }
+
+    // Toggle password visibility
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    const passwordIcon = document.getElementById('passwordIcon');
+
+    if (togglePassword && passwordInput && passwordIcon) {
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            passwordIcon.className = type === 'password' ? 'ti ti-eye-off' : 'ti ti-eye';
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block page_title %}{% block admin_title %}Admin Panel{% endblock %}{% endblock %}
+
+{% block sidebar_nav %}
+{{ super() }}
+
+<!-- Admin Section Divider -->
+<div class="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+    <span class="px-2 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">Admin Panel</span>
+</div>
+
+<!-- Admin Dashboard -->
+<a href="{{ url_for('admin_panel.dashboard') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ 'bg-gray-100 dark:bg-gray-700' if request.endpoint == 'admin_panel.dashboard' else '' }}">
+    <i class="ti ti-dashboard w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"></i>
+    <span class="ml-3">Dashboard</span>
+</a>
+
+<!-- League Ops Dropdown -->
+<button type="button" class="flex items-center w-full p-2 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700" aria-controls="dropdown-league-ops" data-collapse-toggle="dropdown-league-ops">
+    <i class="ti ti-tournament w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"></i>
+    <span class="flex-1 ml-3 text-left whitespace-nowrap">League Ops</span>
+    <i class="ti ti-chevron-down w-4 h-4"></i>
+</button>
+<ul id="dropdown-league-ops" class="hidden py-2 space-y-2">
+    <li>
+        <a href="{{ url_for('admin_panel.league_management_dashboard') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">League Hub</a>
+    </li>
+    <li>
+        <a href="{{ url_for('admin_panel.season_wizard') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">Season Wizard</a>
+    </li>
+    <li>
+        <a href="{{ url_for('admin_panel.match_operations') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">Match Operations</a>
+    </li>
+    <li>
+        <a href="{{ url_for('admin_panel.substitute_management') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">Substitutes</a>
+    </li>
+</ul>
+
+<!-- Users Dropdown -->
+<button type="button" class="flex items-center w-full p-2 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700" aria-controls="dropdown-users" data-collapse-toggle="dropdown-users">
+    <i class="ti ti-users w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"></i>
+    <span class="flex-1 ml-3 text-left whitespace-nowrap">Users</span>
+    <i class="ti ti-chevron-down w-4 h-4"></i>
+</button>
+<ul id="dropdown-users" class="hidden py-2 space-y-2">
+    <li>
+        <a href="{{ url_for('admin_panel.user_management') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">User Management</a>
+    </li>
+    <li>
+        <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">User Search</a>
+    </li>
+    <li>
+        <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">Roles Management</a>
+    </li>
+</ul>
+
+<!-- System Dropdown -->
+<button type="button" class="flex items-center w-full p-2 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700" aria-controls="dropdown-system" data-collapse-toggle="dropdown-system">
+    <i class="ti ti-settings w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"></i>
+    <span class="flex-1 ml-3 text-left whitespace-nowrap">System</span>
+    <i class="ti ti-chevron-down w-4 h-4"></i>
+</button>
+<ul id="dropdown-system" class="hidden py-2 space-y-2">
+    <li>
+        <a href="{{ url_for('admin_panel.feature_toggles') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">Feature Toggles</a>
+    </li>
+    <li>
+        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">System Monitoring</a>
+    </li>
+    <li>
+        <a href="{{ url_for('admin_panel.cache_management') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">Cache Management</a>
+    </li>
+    <li>
+        <a href="{{ url_for('admin_panel.audit_logs') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">Audit Logs</a>
+    </li>
+</ul>
+{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+    <!-- Admin Panel Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-settings text-ecs-green"></i>
+                    Admin Panel
+                </h1>
+                <p class="text-gray-500 dark:text-gray-400 mt-1">
+                    {% block panel_description %}Centralized administrative control center for ECS FC{% endblock %}
+                </p>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
+                    <i class="ti ti-shield-check mr-1"></i>
+                    {% if user_roles and 'Global Admin' in user_roles %}Global Admin{% else %}Pub League Admin{% endif %}
+                </span>
+                <span class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ safe_current_user.name or safe_current_user.username }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{{ url_for('admin_panel.dashboard') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">
+                    <i class="ti ti-home w-4 h-4 mr-2"></i>
+                    Admin Panel
+                </a>
+            </li>
+            {% block breadcrumb_items %}{% endblock %}
+        </ol>
+    </nav>
+
+    <!-- Page Content -->
+    <div>
+        {% block panel_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+// Initialize Flowbite collapse components for sidebar dropdowns
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-expand dropdown if current page is within it
+    const currentPath = window.location.pathname;
+    document.querySelectorAll('[data-collapse-toggle]').forEach(button => {
+        const targetId = button.getAttribute('data-collapse-toggle');
+        const target = document.getElementById(targetId);
+        if (target) {
+            const links = target.querySelectorAll('a');
+            links.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    target.classList.remove('hidden');
+                    button.setAttribute('aria-expanded', 'true');
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,222 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state %}
+
+{% block admin_title %}Team Rosters{% endblock %}
+{% block panel_description %}Manage player assignments to teams{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.match_operations') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Match Operations</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Team Rosters</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Statistics Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="rounded-lg p-5 bg-ecs-green text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ stats.total_teams or 0 }}</p>
+                <p class="text-sm text-white/80 mt-1">Total Teams</p>
+            </div>
+            <i class="ti ti-shield text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <div class="rounded-lg p-5 bg-green-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ stats.teams_with_players or 0 }}</p>
+                <p class="text-sm text-white/80 mt-1">With Players</p>
+            </div>
+            <i class="ti ti-users-check text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <div class="rounded-lg p-5 bg-yellow-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ stats.total_players or 0 }}</p>
+                <p class="text-sm text-white/80 mt-1">Total Players</p>
+            </div>
+            <i class="ti ti-user text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <div class="rounded-lg p-5 bg-blue-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-3xl font-bold">{{ stats.unassigned_players or 0 }}</p>
+                <p class="text-sm text-white/80 mt-1">Unassigned</p>
+            </div>
+            <i class="ti ti-user-minus text-4xl text-white/50"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Teams Without Players Alert -->
+{% if teams_without_players %}
+<div class="p-4 mb-6 text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300 dark:border-yellow-800" role="alert">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center">
+            <i class="ti ti-alert-triangle mr-2 text-xl"></i>
+            <span><strong class="font-semibold">{{ teams_without_players|length }} teams</strong> have no players assigned.</span>
+        </div>
+        <button type="button" class="px-3 py-1.5 text-sm font-medium text-yellow-800 bg-yellow-100 rounded-lg hover:bg-yellow-200 dark:bg-yellow-900 dark:text-yellow-300 dark:hover:bg-yellow-800" data-action="show-teams-without-players">
+            View Teams
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- Team Rosters -->
+{% call card(title="Team Rosters", subtitle="All teams and their assigned players") %}
+<div class="flex justify-end mb-4">
+    <button type="button" class="text-white bg-ecs-green hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50 font-medium rounded-lg text-sm px-4 py-2" data-action="manage-player-assignments">
+        <i class="ti ti-edit mr-2"></i>Assign Players
+    </button>
+</div>
+
+{% if teams %}
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    {% for team in teams %}
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <!-- Team Header -->
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center mr-3">
+                    <span class="text-white font-bold text-lg">{{ team.name[0] if team.name else 'T' }}</span>
+                </div>
+                <div>
+                    <h6 class="font-semibold text-gray-900 dark:text-white">{{ team.name }}</h6>
+                    {% if team.league %}
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ team.league.name }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Players List -->
+        <div class="p-4">
+            {% if team.players %}
+            <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for player in team.players[:10] %}
+                <li class="py-2 flex items-center justify-between {% if loop.first %}pt-0{% endif %}">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 w-7 h-7 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-2">
+                            <span class="text-white text-xs font-medium">{{ player.display_name[0] if player.display_name else 'P' }}</span>
+                        </div>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ player.display_name or 'Unknown Player' }}</span>
+                    </div>
+                    <span class="text-gray-400">
+                        {% if player.user and player.user.is_active %}
+                            <i class="ti ti-check text-green-500"></i>
+                        {% else %}
+                            <i class="ti ti-minus text-gray-400"></i>
+                        {% endif %}
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% if team.players|length > 10 %}
+            <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                ... and {{ team.players|length - 10 }} more players
+            </p>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-6">
+                <i class="ti ti-users text-3xl text-gray-300 dark:text-gray-600 mb-2"></i>
+                <p class="text-sm text-gray-500 dark:text-gray-400">No players assigned</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Team Footer -->
+        <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <span class="text-sm text-gray-500 dark:text-gray-400">
+                {{ team.players|length if team.players else 0 }} players
+            </span>
+            <div class="flex items-center gap-1">
+                <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors" data-action="view-team-roster" data-team-id="{{ team.id }}" title="View">
+                    <i class="ti ti-eye"></i>
+                </button>
+                <button type="button" class="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg transition-colors" data-action="edit-team-roster" data-team-id="{{ team.id }}" title="Edit">
+                    <i class="ti ti-edit"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<!-- Empty State -->
+<div class="text-center py-12">
+    <div class="mx-auto w-16 h-16 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+        <i class="ti ti-users-off text-3xl text-gray-400 dark:text-gray-500"></i>
+    </div>
+    <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Teams Found</h5>
+    <p class="text-gray-500 dark:text-gray-400 mb-4">Create teams first to manage player rosters.</p>
+    <a href="{{ url_for('admin_panel.manage_teams') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700">
+        <i class="ti ti-shield mr-2"></i>Manage Teams
+    </a>
+</div>
+{% endif %}
+{% endcall %}
+
+<!-- Info Alert -->
+{{ alert("Manage player assignments to teams. Players can be assigned to multiple teams or moved between teams as needed.", variant="info", title="Team Rosters", dismissible=false) }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+window.TEAM_ROSTERS_CONFIG = {
+    teamsWithoutPlayers: {{ teams_without_players|map(attribute='name')|list|tojson if teams_without_players else '[]' }}
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+
+        switch(action) {
+            case 'show-teams-without-players':
+                const teams = window.TEAM_ROSTERS_CONFIG.teamsWithoutPlayers;
+                Swal.fire({
+                    title: 'Teams Without Players',
+                    html: `
+                        <ul class="text-left list-disc list-inside">
+                            ${teams.map(t => `<li>${t}</li>`).join('')}
+                        </ul>
+                    `,
+                    icon: 'warning',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                break;
+            case 'manage-player-assignments':
+                window.location.href = '{{ url_for("admin_panel.player_transfers") }}';
+                break;
+            case 'view-team-roster':
+            case 'edit-team-roster':
+                const teamId = target.dataset.teamId;
+                window.location.href = `{{ url_for('admin_panel.manage_teams') }}?team_id=${teamId}`;
+                break;
+        }
+    });
+});
+</script>
+{% endblock %}

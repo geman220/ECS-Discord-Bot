@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" class="{{ 'dark' if session.get('theme', 'light') == 'dark' else '' }}">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="{{ 'dark light' if session.get('theme', 'light') == 'dark' else 'light dark' }}">
+    <meta name="description" content="ECS Soccer League Management Portal" />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <title>{% block title %}{{ title or 'ECS Soccer League' }}{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/img/favicon/favicon.png') }}" />
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='assets/img/favicon/apple-touch-icon.png') }}" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Critical CSS: Prevent flash of wrong theme -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || '{{ session.get('theme', 'light') }}';
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
+
+    <!-- Tailwind CSS (Flowbite) - Pre-compiled by tailwindcss CLI -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vite-dist/css/tailwind.css') }}" />
+
+    <!-- Tabler Icons -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" />
+
+    <!-- Flowbite JS (for components like modals, dropdowns) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js" defer></script>
+
+    {% block head_extra %}{% endblock %}
+    {% block custom_css %}{% endblock %}
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <!-- Skip to main content -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-ecs-green text-white px-4 py-2 rounded-lg z-50">
+        Skip to main content
+    </a>
+
+    {% if safe_current_user.is_authenticated %}
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full lg:translate-x-0" aria-label="Sidebar">
+        <div class="h-full px-3 py-4 overflow-y-auto bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+            <!-- Logo -->
+            <a href="{{ url_for('main.index') }}" class="flex items-center mb-6 px-2">
+                <img src="{{ url_for('static', filename='assets/img/favicon/favicon.png') }}" class="h-8 mr-3" alt="ECS Logo" />
+                <span class="text-xl font-semibold text-gray-900 dark:text-white">ECS FC</span>
+            </a>
+
+            <!-- Navigation -->
+            <nav class="space-y-2">
+                {% block sidebar_nav %}
+                <!-- Dashboard -->
+                <a href="{{ url_for('main.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ 'bg-gray-100 dark:bg-gray-700' if request.endpoint == 'main.index' else '' }}">
+                    <i class="ti ti-home w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"></i>
+                    <span class="ml-3">Dashboard</span>
+                </a>
+
+                <!-- Teams -->
+                <a href="{{ url_for('teams.teams_overview') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                    <i class="ti ti-users w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"></i>
+                    <span class="ml-3">Teams</span>
+                </a>
+
+                <!-- Players -->
+                <a href="{{ url_for('players.view_players') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                    <i class="ti ti-user w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"></i>
+                    <span class="ml-3">Players</span>
+                </a>
+
+                {% if safe_current_user.has_permission('access_admin_panel') %}
+                <!-- Admin Section -->
+                <div class="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                    <span class="px-2 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">Admin</span>
+                </div>
+
+                <a href="{{ url_for('admin_panel.dashboard') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
+                    <i class="ti ti-settings w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"></i>
+                    <span class="ml-3">Admin Panel</span>
+                </a>
+                {% endif %}
+                {% endblock %}
+            </nav>
+        </div>
+    </aside>
+    {% endif %}
+
+    <!-- Main Content Area -->
+    <div class="{% if safe_current_user.is_authenticated %}lg:ml-64{% endif %}">
+        <!-- Top Navbar -->
+        {% if safe_current_user.is_authenticated %}
+        <nav class="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <div class="px-4 py-3 lg:px-6">
+                <div class="flex items-center justify-between">
+                    <!-- Mobile menu button -->
+                    <button data-drawer-target="sidebar" data-drawer-toggle="sidebar" aria-controls="sidebar" type="button" class="inline-flex items-center p-2 text-gray-500 rounded-lg lg:hidden hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600">
+                        <span class="sr-only">Open sidebar</span>
+                        <i class="ti ti-menu-2 w-6 h-6"></i>
+                    </button>
+
+                    <!-- Page Title -->
+                    <h1 class="text-xl font-semibold text-gray-900 dark:text-white hidden lg:block">
+                        {% block page_title %}Dashboard{% endblock %}
+                    </h1>
+
+                    <!-- Right side: Search + User Menu -->
+                    <div class="flex items-center gap-4">
+                        <!-- Search -->
+                        <div class="relative hidden md:block">
+                            <input type="text" id="player-search-flowbite" placeholder="Search players..." class="w-64 px-4 py-2 pl-10 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" />
+                            <i class="ti ti-search absolute left-3 top-2.5 text-gray-500 dark:text-gray-400"></i>
+                        </div>
+
+                        <!-- Dark Mode Toggle -->
+                        <button id="theme-toggle" type="button" class="p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700">
+                            <i class="ti ti-sun w-5 h-5 hidden dark:block"></i>
+                            <i class="ti ti-moon w-5 h-5 block dark:hidden"></i>
+                        </button>
+
+                        <!-- User Menu -->
+                        <button type="button" class="flex items-center gap-2 p-1 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700" id="user-menu-button" data-dropdown-toggle="user-dropdown">
+                            <img class="w-8 h-8 rounded-full" src="{{ safe_current_user.player.profile_picture_url if safe_current_user.player else url_for('static', filename='img/default_player.png') }}" alt="User photo" />
+                            <span class="hidden md:block text-sm font-medium text-gray-900 dark:text-white">{{ safe_current_user.username }}</span>
+                            <i class="ti ti-chevron-down w-4 h-4"></i>
+                        </button>
+
+                        <!-- User Dropdown -->
+                        <div class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600" id="user-dropdown">
+                            <div class="px-4 py-3">
+                                <span class="block text-sm text-gray-900 dark:text-white">{{ safe_current_user.username }}</span>
+                                <span class="block text-sm text-gray-500 truncate dark:text-gray-400">{{ safe_current_user.email or '' }}</span>
+                            </div>
+                            <ul class="py-2" aria-labelledby="user-menu-button">
+                                {% if safe_current_user.player %}
+                                <li>
+                                    <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white">My Profile</a>
+                                </li>
+                                {% endif %}
+                                <li>
+                                    <a href="{{ url_for('auth.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white">Sign out</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        {% endif %}
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="px-4 py-2 lg:px-6">
+            {% for category, message in messages %}
+            <div class="flex items-center p-4 mb-2 text-sm rounded-lg {{ 'text-green-800 bg-green-50 dark:bg-gray-800 dark:text-green-400' if category == 'success' else 'text-red-800 bg-red-50 dark:bg-gray-800 dark:text-red-400' if category == 'error' or category == 'danger' else 'text-yellow-800 bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300' if category == 'warning' else 'text-blue-800 bg-blue-50 dark:bg-gray-800 dark:text-blue-400' }}" role="alert">
+                <i class="ti {{ 'ti-check' if category == 'success' else 'ti-x' if category == 'error' or category == 'danger' else 'ti-alert-triangle' if category == 'warning' else 'ti-info-circle' }} mr-2"></i>
+                <span>{{ message }}</span>
+                <button type="button" class="ml-auto -mx-1.5 -my-1.5 rounded-lg focus:ring-2 p-1.5 inline-flex items-center justify-center h-8 w-8 {{ 'text-green-500 hover:bg-green-200 dark:hover:bg-gray-700' if category == 'success' else 'text-red-500 hover:bg-red-200 dark:hover:bg-gray-700' if category == 'error' or category == 'danger' else 'text-yellow-500 hover:bg-yellow-200 dark:hover:bg-gray-700' if category == 'warning' else 'text-blue-500 hover:bg-blue-200 dark:hover:bg-gray-700' }}" data-dismiss-target="[role='alert']" aria-label="Close">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Main Content -->
+        <main id="main-content" class="p-4 lg:p-6" tabindex="-1">
+            {% block main_content %}
+            <!-- Page content goes here -->
+            {% endblock %}
+        </main>
+
+        <!-- Footer -->
+        <footer class="p-4 lg:p-6 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex flex-col md:flex-row items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                <span>© <script>document.write(new Date().getFullYear());</script>, made with ❤️ by <a href="https://gronix.dev/" target="_blank" class="text-ecs-green hover:underline">George</a></span>
+                <a href="https://github.com/geman220/ECS-Discord-Bot" target="_blank" class="text-ecs-green hover:underline">Github</a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Theme Toggle Script -->
+    <script>
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        if (themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', function() {
+                document.documentElement.classList.toggle('dark');
+                const isDark = document.documentElement.classList.contains('dark');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+
+                // Sync with server
+                fetch('/api/set-theme', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ theme: isDark ? 'dark' : 'light' })
+                }).catch(err => console.log('Theme sync failed:', err));
+            });
+        }
+    </script>
+
+    <!-- Core JS Dependencies -->
+    {% if vite_production_mode is defined and vite_production_mode() %}
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    {{ vite_asset('js/main-entry.js') }}
+    {% elif vite_dev_mode is defined and vite_dev_mode() %}
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    {{ vite_asset('js/main-entry.js') }}
+    {% else %}
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    {% endif %}
+
+    <!-- Socket.IO for real-time updates -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
+
+    <!-- SweetAlert Handler -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if session.get('sweet_alert') %}
+            Swal.fire({
+                title: {{ session.get('sweet_alert').get('title', '') | tojson }},
+                text: {{ session.get('sweet_alert').get('text', '') | tojson }},
+                icon: {{ session.get('sweet_alert').get('icon', 'success') | tojson }},
+                confirmButtonText: "OK",
+                customClass: {
+                    confirmButton: 'bg-ecs-green hover:bg-ecs-green-700 text-white px-4 py-2 rounded-lg'
+                }
+            }).then(function() {
+                fetch("{{ url_for('main.clear_sweet_alert') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            });
+            {% endif %}
+        });
+    </script>
+
+    {% block modals %}{% endblock %}
+    {% block custom_js %}{% endblock %}
+</body>
+</html>
