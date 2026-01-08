@@ -1,7 +1,5 @@
-<!-- ECS FC Simple Schedule Management - Button for Team Schedule Header -->
+<!-- ECS FC Schedule Management - Button for Team Schedule Header -->
 {% if is_ecs_fc and can_manage_ecs_fc %}
-<!-- This button will be inserted into the Team Schedule header via JavaScript -->
-
 <!-- Hidden data for JavaScript -->
 <div id="ecs-fc-team-data"
      data-team-id="{{ team.id }}"
@@ -9,222 +7,195 @@
      class="d-none">
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Get team data
-    const teamData = document.getElementById('ecs-fc-team-data');
-    const teamId = teamData ? teamData.dataset.teamId : null;
-    const teamName = teamData ? teamData.dataset.teamName : null;
-    
-    if (!teamId) {
-        console.error('Team ID not found');
-        return;
-    }
-    
-    // Find the Team Schedule header and add the button next to it
-    const teamScheduleHeaders = document.querySelectorAll('.card-title');
-    let teamScheduleHeader = null;
-    
-    // Look for the "Team Schedule" header specifically
-    teamScheduleHeaders.forEach(header => {
-        if (header.textContent.trim() === 'Team Schedule') {
-            teamScheduleHeader = header;
-        }
-    });
-    
-    if (teamScheduleHeader) {
-        // Find the parent container (should be the header div with d-flex)
-        const headerContainer = teamScheduleHeader.closest('.d-flex');
-        if (headerContainer) {
-            // Create the button
-            const createButton = document.createElement('button');
-            createButton.type = 'button';
-            createButton.className = 'c-btn c-btn--primary c-btn--sm ms-2';
-            createButton.id = 'ecs-fc-create-match-btn';
-            createButton.setAttribute('data-team-id', teamId);
-            createButton.innerHTML = '<i class="fas fa-plus me-1"></i>Create Match';
-            
-            // Add button to the header container
-            headerContainer.appendChild(createButton);
-            
-            // Add click handler
-            createButton.addEventListener('click', function() {
-                ModalManager.show('ecsFcCreateMatchModal');
-            });
-        }
-    }
-    
-    // Submit match form
-    const submitBtn = document.getElementById('ecs-fc-submit-match');
-    if (submitBtn) {
-        submitBtn.addEventListener('click', function() {
-            const form = document.getElementById('ecs-fc-create-match-form');
-            const formData = new FormData(form);
-            
-            // Convert form data to JSON
-            const matchData = {
-                team_id: parseInt(teamId),
-                opponent_name: formData.get('opponent_name'),
-                match_date: formData.get('match_date'),
-                match_time: formData.get('match_time'),
-                location: formData.get('location'),
-                field_name: formData.get('field_name') || null,
-                is_home_match: formData.get('is_home_match') === 'true',
-                notes: formData.get('notes') || null,
-                send_discord_rsvp: formData.get('send_discord_rsvp') === 'on'
-            };
-            
-            // Validate required fields
-            if (!matchData.opponent_name || !matchData.match_date || !matchData.match_time || !matchData.location) {
-                alert('Please fill in all required fields');
-                return;
-            }
-            
-            // Disable submit button
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
-            
-            // Submit to API
-            fetch('/api/ecs-fc/matches', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify(matchData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('ecsFcCreateMatchModal'));
-                    modal.hide();
-                    
-                    // Reset form
-                    form.reset();
-                    
-                    // Show success message
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Match Created!',
-                            text: 'The ECS FC match has been created successfully.',
-                            timer: 3000,
-                            showConfirmButton: false
-                        });
-                    } else {
-                        alert('Match created successfully!');
-                    }
-                    
-                    // Refresh the page to show the new match in the team schedule
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                } else {
-                    throw new Error(data.message || 'Failed to create match');
-                }
-            })
-            .catch(error => {
-                console.error('Error creating match:', error);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: error.message || 'Failed to create match. Please try again.'
-                    });
-                } else {
-                    alert('Error: ' + (error.message || 'Failed to create match. Please try again.'));
-                }
-            })
-            .finally(() => {
-                // Re-enable submit button
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Create Match';
-            });
-        });
-    }
-});
-</script>
-
-<!-- Styles moved to /app/static/css/features/schedule-manager.css -->
-
-{% block modals %}
-{{ super() }}
 <!-- Create Match Modal -->
-<div class="modal c-modal fade" data-modal id="ecsFcCreateMatchModal" tabindex="-1" aria-hidden="true" aria-labelledby="ecsFcCreateMatchModalLabel">
-    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content data-modal-content>
-            <div class="modal-header c-modal__header" data-modal-header data-modal-header>
+<div class="modal c-modal fade" id="ecsFcCreateMatchModal" tabindex="-1" aria-hidden="true" aria-labelledby="ecsFcCreateMatchModalLabel">
+    <div class="modal-dialog c-modal__dialog modal-lg">
+        <div class="modal-content c-modal__content">
+            <div class="modal-header c-modal__header">
                 <h5 class="modal-title c-modal__title" id="ecsFcCreateMatchModalLabel">
-                    <i class="fas fa-plus me-2"></i>Create ECS FC Match
+                    <i class="ti ti-calendar-plus me-2"></i>Schedule ECS FC Match
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body c-modal__body" data-modal-body data-modal-body>
-                <form id="ecs-fc-create-match-form">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="opponent_name" class="form-label">Opponent Team Name</label>
-                            <input type="text" class="form-control" id="opponent_name" name="opponent_name" required data-form-control>
+            <div class="modal-body c-modal__body">
+                <!-- Step Indicator -->
+                <div class="c-wizard__steps">
+                    <div class="c-wizard__steps-inner">
+                        <div class="c-wizard__step c-wizard__step--active" data-step="1">
+                            <span class="c-wizard__step-number">1</span>
+                            <small class="c-wizard__step-label">Opponent</small>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="match_date" class="form-label">Match Date</label>
-                            <input type="date" class="form-control" id="match_date" name="match_date" required data-form-control>
+                        <div class="c-wizard__connector"></div>
+                        <div class="c-wizard__step" data-step="2">
+                            <span class="c-wizard__step-number">2</span>
+                            <small class="c-wizard__step-label">When</small>
+                        </div>
+                        <div class="c-wizard__connector"></div>
+                        <div class="c-wizard__step" data-step="3">
+                            <span class="c-wizard__step-number">3</span>
+                            <small class="c-wizard__step-label">Where</small>
+                        </div>
+                        <div class="c-wizard__connector"></div>
+                        <div class="c-wizard__step" data-step="4">
+                            <span class="c-wizard__step-number">4</span>
+                            <small class="c-wizard__step-label">Review</small>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="ecsFcMatchForm" data-submit-url="/api/ecs-fc/matches" data-submit-method="json">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="team_id" value="{{ team.id }}">
+
+                    <!-- Step 1: Opponent -->
+                    <div class="c-wizard__panel c-wizard__panel--active" data-step="1">
+                        <h6 class="mb-3"><i class="ti ti-users me-2"></i>Who are you playing?</h6>
+
+                        <div class="mb-3">
+                            <label for="ecs_opponent_name" class="c-form-label">Opponent Team Name <span class="text-danger">*</span></label>
+                            <input type="text" name="opponent_name" id="ecs_opponent_name" class="c-form-control"
+                                   placeholder="Enter opponent team name (e.g., Seattle United O50)" required>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="c-form-label">Home/Away</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="is_home_match" id="ecsIsHome" value="true" checked>
+                                <label class="c-btn c-btn--outline-success" for="ecsIsHome">
+                                    <i class="ti ti-home me-1"></i>Home
+                                </label>
+                                <input type="radio" class="btn-check" name="is_home_match" id="ecsIsAway" value="false">
+                                <label class="c-btn c-btn--outline-secondary" for="ecsIsAway">
+                                    <i class="ti ti-map-pin me-1"></i>Away
+                                </label>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="match_time" class="form-label">Match Time</label>
-                            <input type="time" class="form-control" id="match_time" name="match_time" required data-form-control>
+                    <!-- Step 2: When -->
+                    <div class="c-wizard__panel" data-step="2">
+                        <h6 class="mb-3"><i class="ti ti-clock me-2"></i>When is the match?</h6>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="ecs_match_date" class="c-form-label">Date <span class="text-danger">*</span></label>
+                                <input type="date" name="match_date" id="ecs_match_date" class="c-form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="ecs_match_time" class="c-form-label">Time <span class="text-danger">*</span></label>
+                                <input type="time" name="match_time" id="ecs_match_time" class="c-form-control" required value="19:00">
+                            </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="ecsfc-section-location" class="form-label">Location</label>
-                            <input type="text" class="form-control" id="ecsfc-section-location" name="location"
-                                   placeholder="e.g., Starfire Sports Complex" required data-form-control>
+
+                        <!-- Quick Time Templates -->
+                        <div class="mb-3">
+                            <small class="text-muted d-block mb-2">Quick select:</small>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="c-btn c-btn--sm c-btn--outline-info" data-action="set-ecs-match-time" data-template="weekend">
+                                    <i class="ti ti-calendar-event me-1"></i>Next Sat 3pm
+                                </button>
+                                <button type="button" class="c-btn c-btn--sm c-btn--outline-info" data-action="set-ecs-match-time" data-template="midweek">
+                                    <i class="ti ti-calendar me-1"></i>Next Wed 7:30pm
+                                </button>
+                                <button type="button" class="c-btn c-btn--sm c-btn--outline-info" data-action="set-ecs-match-time" data-template="sunday">
+                                    <i class="ti ti-sun me-1"></i>Next Sun 2pm
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="field_name" class="form-label">Field/Pitch (Optional)</label>
-                            <input type="text" class="form-control" id="field_name" name="field_name"
-                                   placeholder="e.g., Field A, Pitch 1" data-form-control>
+                    <!-- Step 3: Where -->
+                    <div class="c-wizard__panel" data-step="3">
+                        <h6 class="mb-3"><i class="ti ti-map-pin me-2"></i>Where is the match?</h6>
+
+                        <div class="mb-3">
+                            <label for="ecs_location" class="c-form-label">Location <span class="text-danger">*</span></label>
+                            <input type="text" name="location" id="ecs_location" class="c-form-control" required
+                                   placeholder="e.g., Starfire Sports Complex">
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="is_home_match" class="form-label">Match Type</label>
-                            <select class="form-select" id="is_home_match" name="is_home_match" required data-form-select>
-                                <option value="true">Home Match</option>
-                                <option value="false">Away Match</option>
-                            </select>
+
+                        <div class="mb-3">
+                            <label for="ecs_field_name" class="c-form-label">Field Name <small class="text-muted">(optional)</small></label>
+                            <input type="text" name="field_name" id="ecs_field_name" class="c-form-control"
+                                   placeholder="e.g., Field A">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="ecs_notes" class="c-form-label">Notes <small class="text-muted">(optional)</small></label>
+                            <textarea name="notes" id="ecs_notes" class="c-form-control" rows="2"
+                                      placeholder="Any additional notes..."></textarea>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="notes" class="form-label">Notes (Optional)</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="3"
-                                  placeholder="Additional match details or instructions" data-form-control></textarea>
-                    </div>
+                    <!-- Step 4: Review -->
+                    <div class="c-wizard__panel" data-step="4">
+                        <h6 class="mb-3"><i class="ti ti-clipboard-check me-2"></i>Review & Confirm</h6>
 
-                    <div class="mb-3">
-                        <div class="form-check">
+                        <div class="c-card c-wizard__review">
+                            <div class="c-card__body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Opponent</small>
+                                        <strong id="ecsReviewOpponent">-</strong>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Home/Away</small>
+                                        <strong id="ecsReviewHomeAway">-</strong>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Date</small>
+                                        <strong id="ecsReviewDate">-</strong>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Time</small>
+                                        <strong id="ecsReviewTime">-</strong>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Location</small>
+                                        <strong id="ecsReviewLocation">-</strong>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Field</small>
+                                        <strong id="ecsReviewField">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" id="send_discord_rsvp" name="send_discord_rsvp" checked>
                             <label class="form-check-label" for="send_discord_rsvp">
-                                Send Discord RSVP notification to team
+                                <i class="ti ti-brand-discord me-1"></i>Schedule Discord RSVP notification
                             </label>
+                        </div>
+
+                        <div class="alert alert-info py-2 px-3">
+                            <small>
+                                <i class="ti ti-info-circle me-1"></i>
+                                RSVP request will be posted to Discord on <strong>Monday at 9:00 AM</strong> the week before the match.
+                                If the match is less than 7 days away, the RSVP will be posted immediately.
+                            </small>
                         </div>
                     </div>
                 </form>
             </div>
-            <div class="modal-footer c-modal__footer" data-modal-footer data-modal-footer>
-                <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                <button type="button" class="c-btn c-btn--primary" id="ecs-fc-submit-match">
-                    <i class="fas fa-save me-1"></i>Create Match
+            <div class="modal-footer c-modal__footer c-wizard__nav">
+                <button type="button" class="c-btn c-btn--outline-secondary c-wizard__nav-prev" id="ecsModalPrevBtn"
+                        data-action="ecs-wizard-prev">
+                    <i class="ti ti-chevron-left me-1"></i>Back
                 </button>
+                <div class="ms-auto d-flex gap-2">
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="c-btn c-btn--primary c-wizard__nav-next" id="ecsModalNextBtn" data-action="ecs-wizard-next">
+                        Next<i class="ti ti-chevron-right ms-1"></i>
+                    </button>
+                    <button type="button" class="c-btn c-btn--success c-wizard__nav-submit" id="ecsModalSubmitBtn"
+                            data-action="submit-ecs-match">
+                        <i class="ti ti-check me-1"></i>Create Match
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
-
 {% endif %}

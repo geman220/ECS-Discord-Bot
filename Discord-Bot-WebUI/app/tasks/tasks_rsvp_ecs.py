@@ -475,7 +475,7 @@ def send_ecs_fc_match_notification(self, session, match_id: int, notification_ty
 
         if notification_type != 'cancelled':
             embed["fields"].append({"name": "🏠 Home/Away", "value": "Home" if match.is_home_match else "Away", "inline": True})
-            
+
             if match.notes:
                 embed["fields"].append({"name": "📝 Notes", "value": match.notes, "inline": False})
 
@@ -483,8 +483,54 @@ def send_ecs_fc_match_notification(self, session, match_id: int, notification_ty
                 deadline_str = match.rsvp_deadline.strftime("%B %d at %I:%M %p")
                 embed["fields"].append({"name": "⏰ RSVP Deadline", "value": deadline_str, "inline": False})
 
-        # TODO: Send notification to team channel
-        logger.info(f"Should send match notification to team {match.team_id}: {description}")
+        # Get team's Discord channel
+        team = match.team
+        channel_id = team.discord_channel_id if team else None
+
+        if not channel_id:
+            logger.warning(f"No Discord channel configured for team {match.team_id}")
+            return {
+                'success': False,
+                'message': 'No Discord channel configured for team',
+                'match_id': match_id
+            }
+
+        # Build match data for the bot API
+        match_data = {
+            'match_id': match_id,
+            'team_id': match.team_id,
+            'team_name': team.name if team else 'Unknown Team',
+            'opponent_name': match.opponent_name,
+            'match_date': date_str,
+            'match_time': time_str,
+            'location': location_str,
+            'field_name': match.field_name,
+            'is_home_match': match.is_home_match,
+            'notes': match.notes,
+            'rsvp_deadline': match.rsvp_deadline.strftime("%B %d at %I:%M %p") if match.rsvp_deadline else None,
+            'notification_type': notification_type,
+            'response_counts': {'yes': 0, 'no': 0, 'maybe': 0}
+        }
+
+        # Send notification to team channel via Discord client
+        try:
+            discord_client = get_sync_discord_client()
+            result = discord_client.send_ecs_fc_rsvp_message(match_data)
+
+            if result.get('success'):
+                # Store the message ID for future updates
+                match.discord_channel_id = channel_id
+                match.discord_message_id = result.get('message_id')
+                match.last_discord_notification = datetime.utcnow()
+                match.notification_status = 'sent'
+                # Commit happens in decorator
+                logger.info(f"Discord notification sent for ECS FC match {match_id}, message_id: {result.get('message_id')}")
+            else:
+                match.notification_status = 'failed'
+                logger.warning(f"Failed to send Discord notification: {result.get('message')}")
+        except Exception as e:
+            match.notification_status = 'error'
+            logger.error(f"Error sending Discord notification: {str(e)}")
 
         logger.info(f"Sent ECS FC match notification: match {match_id}, type {notification_type}")
 
@@ -562,3 +608,170 @@ def cleanup_old_ecs_fc_availabilities(self, session, days_old: int = 90) -> Dict
 # Alias for backward compatibility and ease of use
 send_rsvp_reminder_task = send_ecs_fc_rsvp_reminder
 notify_discord_of_rsvp_change_task = notify_ecs_fc_discord_of_rsvp_change_task
+
+
+@celery_task(name='app.tasks.tasks_rsvp_ecs.schedule_ecs_fc_rsvp_reminders', max_retries=3, queue='maintenance')
+def schedule_ecs_fc_rsvp_reminders(self, session) -> Dict[str, Any]:
+    """
+    Scheduled task to send automatic RSVP reminders for upcoming ECS FC matches.
+
+    This task runs on a schedule (e.g., daily) and sends reminders for matches:
+    - That are upcoming (within next 7 days)
+    - That have an RSVP deadline approaching or passed
+    - That haven't had a reminder sent yet
+
+    Args:
+        session: Database session
+
+    Returns:
+        Dictionary with scheduling result
+    """
+    try:
+        now = datetime.utcnow()
+        today = now.date()
+        upcoming_cutoff = today + timedelta(days=7)
+
+        # Find upcoming matches that need reminders
+        matches_needing_reminders = session.query(EcsFcMatch).filter(
+            EcsFcMatch.match_date >= today,
+            EcsFcMatch.match_date <= upcoming_cutoff,
+            EcsFcMatch.status == 'SCHEDULED',
+            EcsFcMatch.rsvp_reminder_sent == False
+        ).all()
+
+        reminders_sent = 0
+        for match in matches_needing_reminders:
+            # Send reminder if:
+            # 1. RSVP deadline is within 48 hours, or
+            # 2. Match is within 72 hours and no deadline set
+            should_remind = False
+
+            if match.rsvp_deadline:
+                hours_until_deadline = (match.rsvp_deadline - now).total_seconds() / 3600
+                should_remind = hours_until_deadline <= 48 and hours_until_deadline > 0
+            else:
+                match_datetime = datetime.combine(match.match_date, match.match_time)
+                hours_until_match = (match_datetime - now).total_seconds() / 3600
+                should_remind = hours_until_match <= 72 and hours_until_match > 0
+
+            if should_remind:
+                try:
+                    # Queue the reminder task
+                    send_ecs_fc_rsvp_reminder.delay(match.id)
+                    match.rsvp_reminder_sent = True
+                    reminders_sent += 1
+                    logger.info(f"Queued RSVP reminder for ECS FC match {match.id}")
+                except Exception as e:
+                    logger.error(f"Failed to queue reminder for match {match.id}: {str(e)}")
+
+        logger.info(f"Scheduled {reminders_sent} ECS FC RSVP reminders")
+
+        return {
+            'success': True,
+            'message': f'Scheduled {reminders_sent} RSVP reminders',
+            'reminders_sent': reminders_sent,
+            'matches_checked': len(matches_needing_reminders),
+            'schedule_timestamp': datetime.utcnow().isoformat()
+        }
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error scheduling ECS FC RSVP reminders: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=60)
+    except Exception as e:
+        logger.error(f"Error scheduling ECS FC RSVP reminders: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=30)
+
+
+@celery_task(name='app.tasks.tasks_rsvp_ecs.send_ecs_fc_dm_reminders', max_retries=3, queue='discord')
+def send_ecs_fc_dm_reminders(self, session, match_id: int) -> Dict[str, Any]:
+    """
+    Send opt-in DM reminders to players for an ECS FC match.
+
+    Only sends to players who have:
+    - discord_notifications = True on their User account
+    - rsvp_reminder_notifications = True on their User account
+    - Haven't responded to the RSVP yet
+
+    Args:
+        session: Database session
+        match_id: ID of the ECS FC match
+
+    Returns:
+        Dictionary with reminder result
+    """
+    try:
+        match = session.query(EcsFcMatch).options(
+            joinedload(EcsFcMatch.team),
+            joinedload(EcsFcMatch.availability)
+        ).filter(EcsFcMatch.id == match_id).first()
+
+        if not match:
+            return {
+                'success': False,
+                'message': 'Match not found',
+                'match_id': match_id
+            }
+
+        # Get players who haven't responded
+        responded_player_ids = {a.player_id for a in match.availability if a.player_id and a.response}
+        team_players = match.team.players if match.team else []
+
+        dm_sent = 0
+        dm_skipped = 0
+
+        for player in team_players:
+            if player.id in responded_player_ids:
+                continue  # Already responded
+
+            # Check user notification preferences
+            user = session.query(User).filter(User.id == player.user_id).first() if player.user_id else None
+
+            if not user:
+                dm_skipped += 1
+                continue
+
+            # Check opt-in preferences
+            if not user.discord_notifications or not getattr(user, 'rsvp_reminder_notifications', True):
+                dm_skipped += 1
+                continue
+
+            if not player.discord_id:
+                dm_skipped += 1
+                continue
+
+            # Send DM reminder
+            reminder_message = (
+                f"**RSVP Reminder**\n\n"
+                f"You haven't responded to the upcoming match:\n\n"
+                f"**{match.team.name} vs {match.opponent_name}**\n"
+                f"{match.match_date.strftime('%B %d, %Y')} at {match.match_time.strftime('%I:%M %p')}\n"
+                f"{match.location}\n\n"
+                f"Please respond in your team's Discord channel!"
+            )
+
+            try:
+                result = send_ecs_fc_dm_sync(player.discord_id, reminder_message)
+                if result.get('success'):
+                    dm_sent += 1
+                else:
+                    dm_skipped += 1
+            except Exception as e:
+                logger.warning(f"Failed to DM player {player.discord_id}: {str(e)}")
+                dm_skipped += 1
+
+        logger.info(f"Sent {dm_sent} DM reminders for match {match_id}, skipped {dm_skipped}")
+
+        return {
+            'success': True,
+            'message': f'Sent {dm_sent} DM reminders',
+            'match_id': match_id,
+            'dm_sent': dm_sent,
+            'dm_skipped': dm_skipped
+        }
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error sending DM reminders: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=60)
+    except Exception as e:
+        logger.error(f"Error sending DM reminders: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=30)

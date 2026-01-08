@@ -1250,22 +1250,7 @@ body[data-style="dark"] .c-onboarding-controls {
     padding: var(--macro-space-md);
   }
 
-  .c-onboarding-controls {
-    bottom: 15px;
-    left: 15px;
-    right: 15px;
-    padding: var(--macro-space-sm) var(--macro-space-md);
-    flex-direction: column;
-  }
-
-  .c-onboarding-controls__button {
-    max-width: none;
-    width: 100%;
-  }
-
-  .c-onboarding-controls__button--next {
-    margin-left: 0;
-  }
+  /* NOTE: .c-onboarding-controls mobile styles are in onboarding.css (single source of truth) */
 
   .c-onboarding-step__header {
     flex-direction: column;

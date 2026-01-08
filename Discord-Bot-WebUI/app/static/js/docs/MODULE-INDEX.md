@@ -522,7 +522,6 @@ Complete inventory of all JavaScript files in the codebase.
 | `node-waves/node-waves.js` | Waves effect |
 | `perfect-scrollbar/perfect-scrollbar.js` | Custom scrollbars |
 | `popper/popper.js` | Popper.js positioning |
-| `select2/select2.js` | Select2 dropdowns |
 | `shepherd/shepherd.js` | Guided tours |
 | `sortablejs/sortable.js` | Drag and drop sorting |
 

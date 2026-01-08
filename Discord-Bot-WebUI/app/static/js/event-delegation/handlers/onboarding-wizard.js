@@ -1,5 +1,7 @@
 import { EventDelegation } from '../core.js';
 
+console.log('[onboarding-wizard.js] Module loading, window.EventDelegation:', typeof window.EventDelegation);
+
 /**
  * Onboarding Wizard Action Handlers
  * Handles new user onboarding flow
@@ -250,6 +252,241 @@ window.EventDelegation.register('verify-code', function(element, e) {
         window.verifyCode();
     } else {
         console.error('[verify-code] verifyCode function not available');
+    }
+});
+
+// ============================================================================
+// IMAGE CROPPER ACTIONS
+// ============================================================================
+
+/**
+ * Trigger File Input
+ * Programmatically clicks a hidden file input when a button is clicked
+ * Usage: <button data-action="trigger-file-input" data-target="image">
+ */
+window.EventDelegation.register('trigger-file-input', function(element, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const targetId = element.dataset.target;
+    console.log('[trigger-file-input] Looking for file input with id:', targetId);
+    const fileInput = document.getElementById(targetId);
+    if (fileInput) {
+        console.log('[trigger-file-input] Found file input, triggering click');
+        // Use setTimeout to escape the current event context (helps on mobile/iOS)
+        setTimeout(() => {
+            fileInput.click();
+        }, 0);
+    } else {
+        console.error('[trigger-file-input] File input not found with id:', targetId);
+    }
+});
+
+/**
+ * Reset Image Selection
+ * Resets the cropper and returns to upload mode
+ * Usage: <button data-action="reset-image-selection">
+ */
+window.EventDelegation.register('reset-image-selection', function(element, e) {
+    e.preventDefault();
+
+    // Destroy Cropper.js instance if exists
+    if (window.onboardingCropper) {
+        window.onboardingCropper.destroy();
+        window.onboardingCropper = null;
+    }
+
+    // Clear file input
+    const fileInput = document.getElementById('image');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+
+    // Clear cropper image source
+    const cropperImage = document.getElementById('onboardingCropperImage');
+    if (cropperImage) {
+        cropperImage.src = '';
+    }
+
+    // Switch back to upload mode
+    const profilePreview = document.getElementById('profilePicturePreview');
+    const uploadInstructions = document.getElementById('uploadInstructions');
+    const cropperInterface = document.getElementById('cropperInterface');
+    const cropperControls = document.getElementById('cropperControls');
+
+    if (profilePreview) profilePreview.classList.remove('d-none');
+    if (uploadInstructions) uploadInstructions.classList.remove('d-none');
+    if (cropperInterface) cropperInterface.classList.add('d-none');
+    if (cropperControls) cropperControls.classList.add('d-none');
+});
+
+/**
+ * Crop and Save Profile Image
+ * Crops the image using Cropper.js and saves it to the profile
+ * Usage: <button data-action="crop-save-profile-image">
+ */
+window.EventDelegation.register('crop-save-profile-image', async function(element, e) {
+    e.preventDefault();
+
+    if (!window.onboardingCropper) {
+        if (window.Swal) {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'No Image',
+                text: 'Please select and adjust an image first.'
+            });
+        }
+        return;
+    }
+
+    // Show loading state
+    if (window.Swal) {
+        window.Swal.fire({
+            title: 'Saving Image...',
+            text: 'Optimizing and saving your profile picture',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                window.Swal.showLoading();
+            }
+        });
+    }
+
+    try {
+        // Get cropped canvas from Cropper.js
+        const canvas = window.onboardingCropper.getCroppedCanvas({
+            width: 300,
+            height: 300,
+            imageSmoothingQuality: 'high'
+        });
+
+        if (!canvas) {
+            throw new Error('Failed to generate cropped image');
+        }
+
+        // Convert to base64
+        const croppedData = canvas.toDataURL('image/png');
+
+        // Store in hidden input for form submission
+        const hiddenInput = document.getElementById('cropped_image_data');
+        if (hiddenInput) {
+            hiddenInput.value = croppedData;
+        }
+
+        // Get player ID for AJAX upload (if available)
+        const playerId = document.getElementById('playerId')?.value;
+
+        if (playerId) {
+            // Immediately save via AJAX
+            const formData = new FormData();
+            formData.append('cropped_image_data', croppedData);
+
+            // Add CSRF token
+            const csrfTokenInput = document.querySelector('input[name="csrf_token"]');
+            if (csrfTokenInput) {
+                formData.append('csrf_token', csrfTokenInput.value);
+            }
+
+            const uploadUrl = `/players/player/${playerId}/upload_profile_picture`;
+
+            const response = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`Upload failed: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('[crop-save] Image uploaded successfully:', result);
+        }
+
+        // Update profile picture preview
+        const profilePic = document.getElementById('currentProfilePicture');
+        if (profilePic) {
+            profilePic.src = croppedData;
+        }
+
+        // Destroy cropper and switch back to preview mode
+        if (window.onboardingCropper) {
+            window.onboardingCropper.destroy();
+            window.onboardingCropper = null;
+        }
+
+        // Clear cropper image source
+        const cropperImage = document.getElementById('onboardingCropperImage');
+        if (cropperImage) {
+            cropperImage.src = '';
+        }
+
+        // Switch UI back to upload mode (showing updated preview)
+        const profilePreview = document.getElementById('profilePicturePreview');
+        const uploadInstructions = document.getElementById('uploadInstructions');
+        const cropperInterface = document.getElementById('cropperInterface');
+        const cropperControls = document.getElementById('cropperControls');
+
+        if (profilePreview) profilePreview.classList.remove('d-none');
+        if (uploadInstructions) uploadInstructions.classList.remove('d-none');
+        if (cropperInterface) cropperInterface.classList.add('d-none');
+        if (cropperControls) cropperControls.classList.add('d-none');
+
+        // Show success message
+        if (window.Swal) {
+            window.Swal.fire({
+                icon: 'success',
+                title: 'Image Saved!',
+                text: 'Your profile picture has been optimized and saved.',
+                timer: 2500,
+                showConfirmButton: false
+            });
+        }
+
+    } catch (error) {
+        console.error('[crop-save] Error saving image:', error);
+
+        // Still update the preview and form data even if AJAX fails
+        try {
+            const canvas = window.onboardingCropper?.getCroppedCanvas({ width: 300, height: 300 });
+            if (canvas) {
+                const croppedData = canvas.toDataURL('image/png');
+                const profilePic = document.getElementById('currentProfilePicture');
+                const hiddenInput = document.getElementById('cropped_image_data');
+
+                if (profilePic) profilePic.src = croppedData;
+                if (hiddenInput) hiddenInput.value = croppedData;
+            }
+        } catch (e) {
+            console.error('[crop-save] Error in fallback:', e);
+        }
+
+        // Clean up and switch UI
+        if (window.onboardingCropper) {
+            window.onboardingCropper.destroy();
+            window.onboardingCropper = null;
+        }
+
+        const profilePreview = document.getElementById('profilePicturePreview');
+        const uploadInstructions = document.getElementById('uploadInstructions');
+        const cropperInterface = document.getElementById('cropperInterface');
+        const cropperControls = document.getElementById('cropperControls');
+
+        if (profilePreview) profilePreview.classList.remove('d-none');
+        if (uploadInstructions) uploadInstructions.classList.remove('d-none');
+        if (cropperInterface) cropperInterface.classList.add('d-none');
+        if (cropperControls) cropperControls.classList.add('d-none');
+
+        // Show warning but don't block the flow
+        if (window.Swal) {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Image Prepared',
+                text: 'Image cropped successfully. It will be saved when you complete registration.',
+                timer: 3000,
+                showConfirmButton: false
+            });
+        }
     }
 });
 

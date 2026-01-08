@@ -52,7 +52,7 @@
 
                         <div class="c-form-group" data-form-group>
                             <label for="permissions" class="c-form-label">Assign Permissions</label>
-                            <select name="permissions" id="permissions" class="c-form-select select2-multiple" multiple data-form-select>
+                            <select name="permissions" id="permissions" class="c-form-select form-select-lg" multiple size="6" data-form-select>
                                 {% for permission in permissions %}
                                 <option value="{{ permission.id }}">{{ permission.name }}</option>
                                 {% endfor %}

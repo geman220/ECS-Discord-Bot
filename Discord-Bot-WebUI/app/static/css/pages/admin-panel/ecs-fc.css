@@ -1,0 +1,273 @@
+/**
+ * ECS FC Admin Panel Styles
+ * Styles for ECS FC team management, match scheduling, and wizard modals
+ */
+
+/* ==========================================================================
+   Match Wizard Component (c-wizard)
+   ========================================================================== */
+
+.c-wizard {
+    /* Container for wizard content */
+}
+
+.c-wizard__steps {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.c-wizard__steps-inner {
+    display: flex;
+    align-items: center;
+}
+
+/* Step Indicator */
+.c-wizard__step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.c-wizard__step--active {
+    opacity: 1;
+}
+
+.c-wizard__step--completed {
+    opacity: 1;
+}
+
+.c-wizard__step--completed .c-wizard__step-number {
+    background: var(--bs-success);
+}
+
+.c-wizard__step-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bs-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.875rem;
+}
+
+.c-wizard__step-label {
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+}
+
+.c-wizard__connector {
+    width: 40px;
+    height: 2px;
+    background: var(--bs-border-color);
+    margin: 0 8px;
+    margin-bottom: 20px;
+}
+
+/* Wizard Panel (each step's content) */
+.c-wizard__panel {
+    display: none;
+    animation: c-wizard-fade-in 0.2s ease;
+}
+
+.c-wizard__panel--active {
+    display: block;
+}
+
+@keyframes c-wizard-fade-in {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Wizard Review Card */
+.c-wizard__review {
+    background: var(--bs-body-bg);
+    border-radius: var(--bs-border-radius);
+    margin-bottom: 1rem;
+}
+
+/* Wizard Navigation */
+.c-wizard__nav {
+    display: flex;
+    justify-content: space-between;
+}
+
+.c-wizard__nav-prev {
+    display: none;
+}
+
+.c-wizard__nav-prev--visible {
+    display: inline-block;
+}
+
+.c-wizard__nav-next {
+    /* Visible by default */
+}
+
+.c-wizard__nav-next--hidden {
+    display: none;
+}
+
+.c-wizard__nav-submit {
+    display: none;
+}
+
+.c-wizard__nav-submit--visible {
+    display: inline-block;
+}
+
+/* ==========================================================================
+   Legacy Support - step-indicator classes (for backward compatibility)
+   ========================================================================== */
+
+.step-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.step-indicator.active,
+.step-indicator--active {
+    opacity: 1;
+}
+
+.step-indicator.completed,
+.step-indicator--completed {
+    opacity: 1;
+}
+
+.step-indicator.completed .step-number,
+.step-indicator--completed .step-number {
+    background: var(--bs-success);
+}
+
+.step-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bs-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.875rem;
+}
+
+.step-label {
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+}
+
+.step-connector {
+    width: 40px;
+    height: 2px;
+    background: var(--bs-border-color);
+    margin: 0 8px;
+    margin-bottom: 20px;
+}
+
+/* Legacy wizard-step panels */
+.wizard-step {
+    display: none;
+    animation: c-wizard-fade-in 0.2s ease;
+}
+
+.wizard-step--active {
+    display: block;
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
+.u-hidden {
+    display: none !important;
+}
+
+.u-visible {
+    display: block !important;
+}
+
+.u-inline-visible {
+    display: inline-block !important;
+}
+
+/* ==========================================================================
+   Responsive Adjustments
+   ========================================================================== */
+
+@media (max-width: 576px) {
+    .c-wizard__connector,
+    .step-connector {
+        width: 20px;
+        margin: 0 4px;
+    }
+
+    .c-wizard__step-number,
+    .step-number {
+        width: 28px;
+        height: 28px;
+        font-size: 0.75rem;
+    }
+
+    .c-wizard__step-label,
+    .step-label {
+        font-size: 0.625rem;
+    }
+}
+
+/* ==========================================================================
+   ECS FC Schedule Modal Z-Index Fix
+   Ensure modal appears above backdrop on all devices
+   ========================================================================== */
+
+/* Force ECS FC modals to have correct z-index stacking */
+#ecsFcCreateMatchModal.show,
+#addMatchModal.show {
+    z-index: 1055 !important;
+}
+
+#ecsFcCreateMatchModal .modal-dialog,
+#addMatchModal .modal-dialog {
+    position: relative;
+    z-index: 1;
+}
+
+/* Mobile-specific z-index to ensure modal is above everything */
+@media (max-width: 767.98px) {
+    #ecsFcCreateMatchModal.show,
+    #addMatchModal.show {
+        z-index: 10000 !important;
+    }
+
+    /* When ECS FC modal is open, force backdrop below */
+    body:has(#ecsFcCreateMatchModal.show) .modal-backdrop,
+    body:has(#addMatchModal.show) .modal-backdrop {
+        z-index: 9999 !important;
+    }
+}
+
+/* Fallback for browsers without :has() support */
+@supports not selector(:has(*)) {
+    @media (max-width: 767.98px) {
+        .modal-backdrop.show {
+            z-index: 9998 !important;
+        }
+    }
+}

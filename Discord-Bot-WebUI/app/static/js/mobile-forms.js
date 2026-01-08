@@ -139,30 +139,17 @@ const MobileForms = {
     },
 
     /**
-     * Optimize select2 dropdowns for mobile
+     * Optimize native selects for mobile
      */
-    optimizeSelect2: function () {
+    optimizeSelects: function () {
       if (!this.isMobile()) return;
 
-      // Configure Select2 for mobile
-      if (window.jQuery && jQuery.fn.select2) {
-        jQuery('select.select2').each(function () {
-          const $select = jQuery(this);
-
-          // Reconfigure with mobile options
-          if ($select.hasClass('select2-hidden-accessible')) {
-            $select.select2('destroy');
-          }
-
-          $select.select2({
-            width: '100%',
-            dropdownAutoWidth: true,
-            dropdownCssClass: 'mobile-select2-dropdown',
-            containerCssClass: 'mobile-select2-container',
-            minimumResultsForSearch: 10 // Show search only for long lists
-          });
-        });
-      }
+      // Enhance native selects for mobile touch
+      document.querySelectorAll('select.form-select').forEach(select => {
+        // Ensure proper touch target size
+        select.style.minHeight = '48px';
+        select.style.fontSize = '16px'; // Prevent iOS zoom
+      });
     },
 
     /**
@@ -449,14 +436,10 @@ const MobileForms = {
             justify-content: center;
           }
 
-          /* Select2 mobile */
-          .mobile-select2-dropdown {
+          /* Native select mobile optimization */
+          select.form-select {
             font-size: 16px !important;
-          }
-
-          .mobile-select2-container .select2-selection {
-            min-height: 44px;
-            padding: 8px 12px;
+            min-height: 48px;
           }
 
           /* Shake animation for validation */
@@ -535,7 +518,7 @@ const MobileForms = {
       // Run optimizations
       this.optimizeModals();
       this.optimizeInputGroups();
-      this.optimizeSelect2();
+      this.optimizeSelects();
       this.optimizeDataTables();
       this.optimizeTextareas();
       this.setupMobileValidation();

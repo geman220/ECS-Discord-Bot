@@ -457,35 +457,7 @@ const ResponsiveSystem = {
         });
       }
 
-      // Enhance Select2 if available
-      if (typeof window.$.fn !== 'undefined' && typeof window.$.fn.select2 !== 'undefined') {
-        try {
-          setTimeout(() => {
-            window.$('.select2-container').each(function () {
-              const selectElement = window.$(this).siblings('select');
-              if (selectElement.length) {
-                // Configure Select2 with mobile-friendly options
-                const config = {
-                  theme: 'window.bootstrap-5',
-                  width: '100%',
-                  // Set dropdown to modal if in modal context
-                  dropdownParent: $(selectElement).closest('.modal').length ?
-                    $(selectElement).closest('.modal') : window.$('body')
-                };
-
-                // Set appropriate placeholder
-                config.placeholder = selectElement.data('placeholder') ||
-                  (selectElement.is('[multiple]') ? 'Select multiple options' : 'Select an option');
-
-                // Initialize Select2
-                selectElement.select2(config);
-              }
-            });
-          }, 300);
-        } catch (e) {
-          // console.warn('Error enhancing Select2:', e);
-        }
-      }
+      // Native selects are used - no Select2 enhancement needed
     },
 
     /**

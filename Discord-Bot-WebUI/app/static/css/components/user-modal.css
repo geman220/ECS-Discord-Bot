@@ -275,16 +275,3 @@
 [data-style="dark"] .c-user-form__select:valid {
     border-color: var(--color-success-400, #4ade80);
 }
-
-/* Select2 in Dark Mode Modal */
-[data-style="dark"] .c-user-modal .select2-container--bootstrap-5 .select2-selection,
-[data-style="dark"] #editUserModal .select2-container--bootstrap-5 .select2-selection {
-    background-color: var(--color-secondary-900, #0f172a);
-    border-color: var(--color-secondary-600, #475569);
-    color: var(--color-secondary-50, #f8fafc);
-}
-
-[data-style="dark"] .c-user-modal .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered,
-[data-style="dark"] #editUserModal .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-    color: var(--color-secondary-50, #f8fafc);
-}

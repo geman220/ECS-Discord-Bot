@@ -1230,3 +1230,74 @@
 .c-auth-input--error:focus {
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
 }
+
+/* =============================================================================
+   Waiver Scroll Hint
+   ============================================================================ */
+
+.c-waiver__scroll-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--auth-warning);
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 6px;
+  animation: pulseHint 2s ease-in-out infinite;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.c-waiver__scroll-hint i {
+  animation: bounceArrow 1s ease-in-out infinite;
+}
+
+.c-waiver__scroll-hint--hidden {
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+  height: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+@keyframes pulseHint {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes bounceArrow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+
+/* =============================================================================
+   Disabled Checkbox State (before scrolling)
+   ============================================================================ */
+
+.c-auth-checkbox__label--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.c-auth-checkbox--terms {
+  padding: 0.75rem;
+  background: rgba(148, 163, 184, 0.06);
+  border-radius: var(--auth-radius);
+  border: 1px dashed var(--auth-border);
+  transition: all 0.3s ease;
+}
+
+.c-auth-checkbox--terms.c-auth-checkbox--enabled {
+  background: rgba(88, 101, 242, 0.08);
+  border-style: solid;
+  border-color: rgba(88, 101, 242, 0.2);
+}
+
+.c-auth-checkbox--terms .c-auth-checkbox__input:disabled + .c-auth-checkbox__label::before {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

@@ -22,6 +22,7 @@ from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import Match, Player, Season
 from app.models.calendar import LeagueEvent
+from app.models_ecs import EcsFcMatch
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +100,36 @@ def _league_event_to_calendar_event(event: LeagueEvent) -> dict:
         'notify_discord': event.notify_discord,
         'season_id': event.season_id,
         'league_id': event.league_id
+    }
+
+
+def _ecs_fc_match_to_calendar_event(match: EcsFcMatch, user_team_ids: list = None) -> dict:
+    """Convert an EcsFcMatch object to a calendar event dict for mobile."""
+    # Determine if this is a user's team match
+    is_my_team = match.team_id in user_team_ids if user_team_ids else False
+
+    return {
+        'id': f'ecs-fc-match-{match.id}',
+        'type': 'ecs_fc_match',
+        'title': f"{match.team.name if match.team else 'Unknown'} vs {match.opponent_name}",
+        'start': datetime.combine(match.match_date, match.match_time).isoformat() if match.match_time else match.match_date.isoformat(),
+        'end': None,
+        'all_day': False,
+        'location': match.location,
+        'field_name': match.field_name,
+        'color': '#ff6b35',  # Orange for ECS FC matches
+        'division': 'ECS FC',
+        'is_my_team': is_my_team,
+        'is_home_match': match.is_home_match,
+        'match_id': match.id,
+        'team': {
+            'id': match.team_id,
+            'name': match.team.name if match.team else None
+        },
+        'opponent_name': match.opponent_name,
+        'status': match.status,
+        'notes': match.notes,
+        'rsvp_deadline': match.rsvp_deadline.isoformat() if match.rsvp_deadline else None
     }
 
 
@@ -189,6 +220,27 @@ def get_calendar_events():
             for event in league_events:
                 events.append(_league_event_to_calendar_event(event))
 
+        # Get ECS FC matches (always include if user has team membership)
+        ecs_fc_query = session_db.query(EcsFcMatch).options(
+            joinedload(EcsFcMatch.team)
+        ).filter(
+            EcsFcMatch.match_date >= start_date,
+            EcsFcMatch.match_date <= end_date,
+            EcsFcMatch.status != 'CANCELLED'
+        )
+
+        # Filter to user's teams if my_team_only
+        if my_team_only and user_team_ids:
+            ecs_fc_query = ecs_fc_query.filter(EcsFcMatch.team_id.in_(user_team_ids))
+        elif user_team_ids:
+            # Show all ECS FC matches for user's teams
+            ecs_fc_query = ecs_fc_query.filter(EcsFcMatch.team_id.in_(user_team_ids))
+
+        ecs_fc_matches = ecs_fc_query.order_by(EcsFcMatch.match_date, EcsFcMatch.match_time).all()
+
+        for ecs_match in ecs_fc_matches:
+            events.append(_ecs_fc_match_to_calendar_event(ecs_match, user_team_ids))
+
         # Sort all events by start datetime
         events.sort(key=lambda x: x['start'])
 
@@ -198,7 +250,8 @@ def get_calendar_events():
         'end_date': end_date.isoformat(),
         'total_count': len(events),
         'match_count': sum(1 for e in events if e['type'] == 'match'),
-        'event_count': sum(1 for e in events if e['type'] == 'league_event')
+        'event_count': sum(1 for e in events if e['type'] == 'league_event'),
+        'ecs_fc_match_count': sum(1 for e in events if e['type'] == 'ecs_fc_match')
     }), 200
 
 
@@ -342,6 +395,20 @@ def get_upcoming_calendar():
 
         for event in league_events:
             events.append(_league_event_to_calendar_event(event))
+
+        # Get ECS FC matches for user's teams
+        if user_team_ids:
+            ecs_fc_matches = session_db.query(EcsFcMatch).options(
+                joinedload(EcsFcMatch.team)
+            ).filter(
+                EcsFcMatch.match_date >= start_date,
+                EcsFcMatch.match_date <= end_date,
+                EcsFcMatch.team_id.in_(user_team_ids),
+                EcsFcMatch.status != 'CANCELLED'
+            ).order_by(EcsFcMatch.match_date, EcsFcMatch.match_time).all()
+
+            for ecs_match in ecs_fc_matches:
+                events.append(_ecs_fc_match_to_calendar_event(ecs_match, user_team_ids))
 
     # Sort and limit
     events.sort(key=lambda x: x['start'])

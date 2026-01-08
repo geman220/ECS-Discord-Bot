@@ -65,11 +65,10 @@
                         <label for="permissions" class="form-label">Select Permissions</label>
                         <select name="permissions"
                                 id="permissions"
-                                class="form-select"
+                                class="form-select form-select-lg"
                                 multiple
-                                data-form-select
-                                data-select2="true"
-                                data-placeholder="Select permissions...">
+                                size="8"
+                                data-form-select>
                             {% for permission in permissions %}
                             <option value="{{ permission.id }}">{{ permission.name }}</option>
                             {% endfor %}

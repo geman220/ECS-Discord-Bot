@@ -22,10 +22,10 @@
                     <small class="text-muted">ECS FC Team Schedule</small>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ url_for('admin_panel.ecs_fc_match_create', team_id=team.id) }}"
-                       class="c-btn c-btn--primary">
+                    <button type="button" class="c-btn c-btn--primary"
+                            data-bs-toggle="modal" data-bs-target="#addMatchModal">
                         <i class="ti ti-plus me-1"></i>Add Match
-                    </a>
+                    </button>
                     <a href="{{ url_for('admin_panel.ecs_fc_import', team_id=team.id) }}"
                        class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-file-import me-1"></i>Import
@@ -153,4 +153,222 @@
         </div>
     </div>
 </div>
+
+<!-- Add Match Modal -->
+<div class="modal c-modal fade" id="addMatchModal" tabindex="-1" aria-labelledby="addMatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog c-modal__dialog modal-lg">
+        <div class="modal-content c-modal__content">
+            <div class="modal-header c-modal__header">
+                <h5 class="modal-title c-modal__title" id="addMatchModalLabel">
+                    <i class="ti ti-calendar-plus me-2"></i>Schedule New Match
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body c-modal__body">
+                <!-- Step Indicator -->
+                <div class="c-wizard__steps">
+                    <div class="c-wizard__steps-inner">
+                        <div class="c-wizard__step c-wizard__step--active" data-step="1">
+                            <span class="c-wizard__step-number">1</span>
+                            <small class="c-wizard__step-label">Opponent</small>
+                        </div>
+                        <div class="c-wizard__connector"></div>
+                        <div class="c-wizard__step" data-step="2">
+                            <span class="c-wizard__step-number">2</span>
+                            <small class="c-wizard__step-label">When</small>
+                        </div>
+                        <div class="c-wizard__connector"></div>
+                        <div class="c-wizard__step" data-step="3">
+                            <span class="c-wizard__step-number">3</span>
+                            <small class="c-wizard__step-label">Where</small>
+                        </div>
+                        <div class="c-wizard__connector"></div>
+                        <div class="c-wizard__step" data-step="4">
+                            <span class="c-wizard__step-number">4</span>
+                            <small class="c-wizard__step-label">Review</small>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="quickMatchForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="team_id" value="{{ team.id }}">
+                    <input type="hidden" name="schedule_rsvp" value="on">
+
+                    <!-- Step 1: Opponent -->
+                    <div class="c-wizard__panel c-wizard__panel--active" data-step="1">
+                        <h6 class="mb-3"><i class="ti ti-users me-2"></i>Who are you playing?</h6>
+
+                        <div class="btn-group w-100 mb-3" role="group">
+                            <input type="radio" class="btn-check" name="opponent_source" id="modalOppLibrary"
+                                   value="library" checked data-action="toggle-modal-opponent">
+                            <label class="c-btn c-btn--outline-primary" for="modalOppLibrary">
+                                <i class="ti ti-books me-1"></i>From Library
+                            </label>
+                            <input type="radio" class="btn-check" name="opponent_source" id="modalOppCustom"
+                                   value="custom" data-action="toggle-modal-opponent">
+                            <label class="c-btn c-btn--outline-primary" for="modalOppCustom">
+                                <i class="ti ti-pencil me-1"></i>Custom Entry
+                            </label>
+                        </div>
+
+                        <div id="modalLibrarySelect">
+                            <select name="external_opponent_id" id="modal_external_opponent_id" class="c-form-control">
+                                <option value="">Select Opponent...</option>
+                                {% for opp in opponents %}
+                                <option value="{{ opp.id }}">{{ opp.name }}{% if opp.league_affiliation %} ({{ opp.league_affiliation }}){% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div id="modalCustomInput" class="d-none">
+                            <input type="text" name="opponent_name" id="modal_opponent_name" class="c-form-control"
+                                   placeholder="Enter opponent team name (e.g., Seattle United O50)">
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="c-form-label">Home/Away</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="is_home_match" id="modalIsHome" value="true" checked>
+                                <label class="c-btn c-btn--outline-success" for="modalIsHome">
+                                    <i class="ti ti-home me-1"></i>Home
+                                </label>
+                                <input type="radio" class="btn-check" name="is_home_match" id="modalIsAway" value="false">
+                                <label class="c-btn c-btn--outline-secondary" for="modalIsAway">
+                                    <i class="ti ti-map-pin me-1"></i>Away
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: When -->
+                    <div class="c-wizard__panel" data-step="2">
+                        <h6 class="mb-3"><i class="ti ti-clock me-2"></i>When is the match?</h6>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="modal_match_date" class="c-form-label">Date <span class="text-danger">*</span></label>
+                                <input type="date" name="match_date" id="modal_match_date" class="c-form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="modal_match_time" class="c-form-label">Time <span class="text-danger">*</span></label>
+                                <input type="time" name="match_time" id="modal_match_time" class="c-form-control" required value="19:00">
+                            </div>
+                        </div>
+
+                        <!-- Quick Time Templates -->
+                        <div class="mb-3">
+                            <small class="text-muted d-block mb-2">Quick select:</small>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="c-btn c-btn--sm c-btn--outline-info" data-action="set-match-time" data-template="weekend">
+                                    <i class="ti ti-calendar-event me-1"></i>Next Sat 3pm
+                                </button>
+                                <button type="button" class="c-btn c-btn--sm c-btn--outline-info" data-action="set-match-time" data-template="midweek">
+                                    <i class="ti ti-calendar me-1"></i>Next Wed 7:30pm
+                                </button>
+                                <button type="button" class="c-btn c-btn--sm c-btn--outline-info" data-action="set-match-time" data-template="sunday">
+                                    <i class="ti ti-sun me-1"></i>Next Sun 2pm
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="modal_rsvp_deadline" class="c-form-label">RSVP Deadline <small class="text-muted">(optional)</small></label>
+                            <input type="datetime-local" name="rsvp_deadline" id="modal_rsvp_deadline" class="c-form-control">
+                            <small class="text-muted">Auto-set to 48 hours before match if left blank</small>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Where -->
+                    <div class="c-wizard__panel" data-step="3">
+                        <h6 class="mb-3"><i class="ti ti-map-pin me-2"></i>Where is the match?</h6>
+
+                        <div class="mb-3">
+                            <label for="modal_location" class="c-form-label">Location <span class="text-danger">*</span></label>
+                            <input type="text" name="location" id="modal_location" class="c-form-control" required
+                                   placeholder="e.g., Memorial Stadium">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="modal_field_name" class="c-form-label">Field Name <small class="text-muted">(optional)</small></label>
+                            <input type="text" name="field_name" id="modal_field_name" class="c-form-control"
+                                   placeholder="e.g., Field A">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="modal_notes" class="c-form-label">Notes <small class="text-muted">(optional)</small></label>
+                            <textarea name="notes" id="modal_notes" class="c-form-control" rows="2"
+                                      placeholder="Any additional notes..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Review -->
+                    <div class="c-wizard__panel" data-step="4">
+                        <h6 class="mb-3"><i class="ti ti-clipboard-check me-2"></i>Review & Confirm</h6>
+
+                        <div class="c-card c-wizard__review">
+                            <div class="c-card__body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Opponent</small>
+                                        <strong id="reviewOpponent">-</strong>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Home/Away</small>
+                                        <strong id="reviewHomeAway">-</strong>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Date</small>
+                                        <strong id="reviewDate">-</strong>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Time</small>
+                                        <strong id="reviewTime">-</strong>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Location</small>
+                                        <strong id="reviewLocation">-</strong>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <small class="text-muted d-block">Field</small>
+                                        <strong id="reviewField">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info py-2 px-3">
+                            <small>
+                                <i class="ti ti-info-circle me-1"></i>
+                                RSVP request will be posted to Discord on <strong>Monday at 9:00 AM</strong> the week before the match.
+                            </small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer c-modal__footer c-wizard__nav">
+                <button type="button" class="c-btn c-btn--outline-secondary c-wizard__nav-prev" id="modalPrevBtn"
+                        data-action="wizard-prev">
+                    <i class="ti ti-chevron-left me-1"></i>Back
+                </button>
+                <div class="ms-auto d-flex gap-2">
+                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="c-btn c-btn--primary c-wizard__nav-next" id="modalNextBtn" data-action="wizard-next">
+                        Next<i class="ti ti-chevron-right ms-1"></i>
+                    </button>
+                    <button type="button" class="c-btn c-btn--success c-wizard__nav-submit" id="modalSubmitBtn"
+                            data-action="submit-quick-match">
+                        <i class="ti ti-check me-1"></i>Create Match
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/ecs-fc.css') }}">
 {% endblock %}

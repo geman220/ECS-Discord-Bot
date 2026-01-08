@@ -163,9 +163,8 @@
   z-index: var(--z-modal-dropdown);
 }
 
-/* Autocomplete dropdowns (Tom Select, Select2, etc.) */
+/* Autocomplete dropdowns (Tom Select, etc.) */
 .ts-dropdown,
-.select2-dropdown,
 .autocomplete-dropdown {
   z-index: var(--z-autocomplete);
 }

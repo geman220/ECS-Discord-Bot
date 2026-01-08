@@ -14,7 +14,7 @@
  * Level 7:  Mobile Modal Backdrop (9998) - MOBILE ONLY, behind modal content
  * Level 6:  Toast/Notifications (1070) - Important messages
  * Level 5:  Modal Content (1060) - Desktop modal interactions
- * Level 4:  Modal Dropdown (1055) - Select2 in modals
+ * Level 4:  Modal Dropdown (1055) - Dropdowns in modals
  * Level 3:  Navbar/Header (1055) - Bootstrap default
  * Level 2:  Sidebar (1050) - Bootstrap default
  * Level 1:  Modal Backdrop (1040) - Behind modals, above page
@@ -58,8 +58,6 @@
   /* ─────────────────────────────────────────────────────────────────────────
      DROPDOWNS & POPOVERS (1000-1040)
      ───────────────────────────────────────────────────────────────────────── */
-  --z-select2-dropdown: 1030;
-  --z-select2-container: 1020;
   --z-dropdown: 1000;
   --z-popover: 1010;
   --z-tooltip: 1080;
@@ -119,11 +117,6 @@
 div.modal-backdrop,
 div.modal-backdrop.show {
   z-index: var(--z-modal-backdrop);
-}
-
-/* Select2 containers when opened - needs to be above modals */
-.select2-container--open {
-  z-index: var(--z-modal-dropdown);
 }
 
 /* SweetAlert2 */

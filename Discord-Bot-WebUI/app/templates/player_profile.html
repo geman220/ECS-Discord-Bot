@@ -554,7 +554,7 @@
                                                     <label for="profile-jersey_size" class="c-form-field__label">{{ form.jersey_size.label.text }}</label>
                                                     <div class="c-form-field__view">{{ player.jersey_size }}</div>
                                                     <div class="c-form-field__edit">
-                                                        {{ form.jersey_size(class_="form-select select2", id="profile-jersey_size", required=True) }}
+                                                        {{ form.jersey_size(class_="form-select", id="profile-jersey_size", required=True) }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -593,7 +593,7 @@
                                                     <label for="profile-pronouns" class="c-form-field__label">{{ form.pronouns.label.text }}</label>
                                                     <div class="c-form-field__view">{{ player.pronouns }}</div>
                                                     <div class="c-form-field__edit">
-                                                        {{ form.pronouns(class_="form-select select2", id="profile-pronouns", required=True) }}
+                                                        {{ form.pronouns(class_="form-select", id="profile-pronouns", required=True) }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -602,7 +602,7 @@
                                                     <label for="profile-expected_weeks_available" class="c-form-field__label">{{ form.expected_weeks_available.label.text }}</label>
                                                     <div class="c-form-field__view">{{ player.expected_weeks_available }}</div>
                                                     <div class="c-form-field__edit">
-                                                        {{ form.expected_weeks_available(class_="form-select select2", id="profile-expected_weeks_available", required=True) }}
+                                                        {{ form.expected_weeks_available(class_="form-select", id="profile-expected_weeks_available", required=True) }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -611,7 +611,7 @@
                                                     <label for="profile-favorite_position" class="c-form-field__label">{{ form.favorite_position.label.text }}</label>
                                                     <div class="c-form-field__view">{{ format_position(player.favorite_position) }}</div>
                                                     <div class="c-form-field__edit">
-                                                        {{ form.favorite_position(class_="form-select select2", id="profile-favorite_position", required=True) }}
+                                                        {{ form.favorite_position(class_="form-select", id="profile-favorite_position", required=True) }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -627,7 +627,7 @@
                                                     } %}
                                                     <div class="c-form-field__view">{{ goal_frequency_map[player.frequency_play_goal] }}</div>
                                                     <div class="c-form-field__edit">
-                                                        {{ form.frequency_play_goal(class_="form-select select2", id="profile-frequency_play_goal", required=True) }}
+                                                        {{ form.frequency_play_goal(class_="form-select", id="profile-frequency_play_goal", required=True) }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -649,7 +649,7 @@
                                                         {% endif %}
                                                     </div>
                                                     <div class="c-form-field__edit">
-                                                        {{ form.other_positions(class_="form-select select2-multiple", id="other_positions", multiple=True) }}
+                                                        {{ form.other_positions(class_="form-select-multiple", id="other_positions", multiple=True) }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -671,7 +671,7 @@
                                                         {% endif %}
                                                     </div>
                                                     <div class="c-form-field__edit">
-                                                        {{ form.positions_not_to_play(class_="form-select select2-multiple", id="positions_not_to_play", multiple=True) }}
+                                                        {{ form.positions_not_to_play(class_="form-select-multiple", id="positions_not_to_play", multiple=True) }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -679,7 +679,7 @@
                                             <div class="col-md-6 c-form-field__edit">
                                                 <div class="c-form-field" data-form-field>
                                                     <label for="{{ form.team_swap.id }}" class="c-form-field__label">{{ form.team_swap.label.text }}</label>
-                                                    {{ form.team_swap(class_="form-select select2", id=form.team_swap.id) }}
+                                                    {{ form.team_swap(class_="form-select", id=form.team_swap.id) }}
                                                     {% if form.team_swap.errors %}
                                                     <div class="c-form-field__error">
                                                         {% for error in form.team_swap.errors %}
@@ -1116,7 +1116,7 @@
                                                 {{ form.csrf_token }}
                                                 <div class="col-md-6">
                                                     <label for="match_id" class="form-label">Match</label>
-                                                    <select class="form-select select2" name="match_id" id="match_id" required>
+                                                    <select class="form-select" name="match_id" id="match_id" required>
                                                         <option value="" selected disabled>Select Match</option>
                                                         {% for match in (participated_matches if participated_matches is defined else matches) %}
                                                         {% set player_teams = (season_team_lookup.get(match.schedule.season_id, []) if match.schedule else []) if season_team_lookup is defined else [] %}

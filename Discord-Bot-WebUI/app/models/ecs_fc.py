@@ -84,11 +84,39 @@ class EcsFcMatch(db.Model):
     rsvp_deadline = db.Column(db.DateTime, nullable=True)
     rsvp_reminder_sent = db.Column(db.Boolean, nullable=False, default=False)
 
+    # Discord integration
+    discord_message_id = db.Column(db.String(30), nullable=True)
+    discord_channel_id = db.Column(db.String(30), nullable=True)
+    last_discord_notification = db.Column(db.DateTime, nullable=True)
+    notification_status = db.Column(db.String(50), nullable=True)
+
     # Relationships
     team = db.relationship('Team', foreign_keys=[team_id], backref='ecs_fc_matches')
     external_opponent = db.relationship('ExternalOpponent', foreign_keys=[external_opponent_id], backref='matches')
     availability = db.relationship('EcsFcAvailability', back_populates='match', cascade='all, delete-orphan')
-    
+
+    def get_rsvp_summary(self):
+        """Get RSVP response counts for this match."""
+        yes_count = sum(1 for a in self.availability if a.response == 'yes')
+        no_count = sum(1 for a in self.availability if a.response == 'no')
+        maybe_count = sum(1 for a in self.availability if a.response == 'maybe')
+        no_response_count = sum(1 for a in self.availability if a.response == 'no_response' or not a.response)
+
+        # Count players on team who haven't responded at all
+        if self.team and hasattr(self.team, 'players'):
+            responded_player_ids = {a.player_id for a in self.availability if a.player_id}
+            all_player_ids = {p.id for p in self.team.players}
+            not_responded = len(all_player_ids - responded_player_ids)
+            no_response_count = no_response_count + not_responded
+
+        return {
+            'yes': yes_count,
+            'no': no_count,
+            'maybe': maybe_count,
+            'no_response': no_response_count,
+            'total': yes_count + no_count + maybe_count + no_response_count
+        }
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -109,6 +137,10 @@ class EcsFcMatch(db.Model):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'rsvp_deadline': self.rsvp_deadline.isoformat() if self.rsvp_deadline else None,
             'rsvp_reminder_sent': self.rsvp_reminder_sent,
+            'discord_message_id': self.discord_message_id,
+            'discord_channel_id': self.discord_channel_id,
+            'last_discord_notification': self.last_discord_notification.isoformat() if self.last_discord_notification else None,
+            'notification_status': self.notification_status,
         }
 
 

@@ -312,9 +312,17 @@ def ecs_fc_match_create():
             session.add(match)
             session.commit()
 
-            # TODO: Send Discord notification
-            # from app.ecs_fc_schedule import EcsFcScheduleManager
-            # EcsFcScheduleManager._send_match_notification(match.id, 'created')
+            # Handle RSVP scheduling (scheduled for Monday before the match, like Pub League)
+            schedule_rsvp = request.form.get('schedule_rsvp') == 'on'
+
+            if schedule_rsvp:
+                try:
+                    # Schedule the RSVP reminder for Monday before the match
+                    from app.ecs_fc_schedule import EcsFcScheduleManager
+                    EcsFcScheduleManager._schedule_rsvp_reminder(match)
+                    logger.info(f"Scheduled RSVP reminder for ECS FC match {match.id}")
+                except Exception as e:
+                    logger.error(f"Failed to schedule RSVP reminder for match {match.id}: {e}")
 
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'success': True, 'message': 'Match created', 'match_id': match.id})
@@ -689,6 +697,33 @@ def ecs_fc_import():
 # -----------------------------------------------------------
 # RSVP Status Routes
 # -----------------------------------------------------------
+
+@admin_panel_bp.route('/ecs-fc/rsvp/<int:match_id>/send-reminder', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+def ecs_fc_send_reminder(match_id):
+    """Send RSVP reminders for a match."""
+    session = g.db_session
+
+    match = session.query(EcsFcMatch).get(match_id)
+    if not match:
+        return jsonify({'success': False, 'message': 'Match not found'}), 404
+
+    if not validate_ecs_fc_coach_access(match.team_id, current_user):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    try:
+        from app.tasks.tasks_rsvp_ecs import send_ecs_fc_rsvp_reminder
+        send_ecs_fc_rsvp_reminder.delay(match_id)
+        logger.info(f"Queued RSVP reminder for ECS FC match {match_id}")
+        return jsonify({
+            'success': True,
+            'message': 'RSVP reminders have been queued and will be sent shortly.'
+        })
+    except Exception as e:
+        logger.error(f"Failed to queue RSVP reminder: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @admin_panel_bp.route('/ecs-fc/rsvp/<int:match_id>')
 @login_required

@@ -69,8 +69,10 @@ def _init_before_request(app):
 
     @app.before_request
     def before_request():
-        # Sync theme preset from cookie to session (for anti-flash support)
+        # Sync theme settings from cookies to session (for anti-flash support)
         # This must happen before any template rendering
+        _sync_theme_from_cookie()
+        _sync_theme_variant_from_cookie()
         _sync_theme_preset_from_cookie()
 
         # Check for CSRF exemption first
@@ -206,6 +208,51 @@ def _cache_user_roles():
                     g.db_session.rollback()
                 except Exception:
                     pass
+
+
+def _sync_theme_from_cookie():
+    """
+    Sync theme preference from cookie to session.
+
+    This ensures the server knows the user's theme preference on the first request,
+    which is critical for rendering the correct data-style attribute and color-scheme
+    to prevent FOUC (Flash of Unstyled Content).
+    """
+    try:
+        # Get theme from cookie
+        theme_cookie = request.cookies.get('theme')
+
+        if theme_cookie and theme_cookie in ['light', 'dark', 'system']:
+            # Only update session if cookie value differs
+            current_session_theme = flask_session.get('theme', 'light')
+            if theme_cookie != current_session_theme:
+                flask_session['theme'] = theme_cookie
+                logger.debug(f"Synced theme from cookie: {theme_cookie}")
+    except Exception as e:
+        # Don't let theme sync errors break the request
+        logger.debug(f"Could not sync theme from cookie: {e}")
+
+
+def _sync_theme_variant_from_cookie():
+    """
+    Sync theme variant preference from cookie to session.
+
+    This ensures the server knows the user's variant preference (e.g., 'modern')
+    for proper server-side rendering.
+    """
+    try:
+        # Get variant from cookie
+        variant_cookie = request.cookies.get('theme_variant')
+
+        if variant_cookie and variant_cookie in ['modern', 'classic']:
+            # Only update session if cookie value differs
+            current_session_variant = flask_session.get('theme_variant', 'modern')
+            if variant_cookie != current_session_variant:
+                flask_session['theme_variant'] = variant_cookie
+                logger.debug(f"Synced theme variant from cookie: {variant_cookie}")
+    except Exception as e:
+        # Don't let theme sync errors break the request
+        logger.debug(f"Could not sync theme variant from cookie: {e}")
 
 
 def _sync_theme_preset_from_cookie():

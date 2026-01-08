@@ -1,8 +1,63 @@
 <!DOCTYPE html>
-<html lang="en" class="layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-content="wide" data-style="{{ session.get('theme', 'light') }}" data-theme-variant="{{ session.get('theme_variant', 'modern') }}" style="background-color: {% if session.get('theme', 'light') == 'dark' %}#0f172a{% else %}#f8fafc{% endif %}; color: {% if session.get('theme', 'light') == 'dark' %}#f8fafc{% else %}#1e293b{% endif %};">
+<html lang="en" class="layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-content="wide" data-style="{{ session.get('theme', 'light') }}" data-theme-variant="{{ session.get('theme_variant', 'modern') }}" style="color-scheme: {% if session.get('theme', 'light') == 'dark' %}dark{% else %}light{% endif %};">
 
 <head>
     <meta charset="utf-8" />
+    <!-- Color scheme meta - tells browser to use dark/light default colors BEFORE CSS loads -->
+    <meta name="color-scheme" content="{% if session.get('theme', 'light') == 'dark' %}dark light{% else %}light dark{% endif %}">
+
+    <!-- ============================================================================
+         CRITICAL CSS - Anti-FOUC (Flash of Unstyled Content)
+         ============================================================================
+         This inline CSS defines the SAME CSS variables as the main bundle.
+         It loads BEFORE external CSS, ensuring correct colors on first paint.
+         Uses CSS variables - works WITH the cascade, not against it.
+         ============================================================================ -->
+    <style id="critical-css">
+        /* Color scheme - tells browser to use dark/light default styling */
+        :root {
+            color-scheme: light;
+        }
+        [data-style="dark"] {
+            color-scheme: dark;
+        }
+
+        /* Light mode defaults (same as tokens/colors.css) */
+        :root {
+            --color-neutral-0: #FFFFFF;
+            --color-neutral-50: #FAFAFA;
+            --color-secondary-900: #1E293B;
+            --color-secondary-950: #0F172A;
+            --color-bg-primary: var(--color-neutral-0);
+            --color-bg-secondary: var(--color-neutral-50);
+            --bs-body-bg: var(--color-bg-primary);
+            --bs-body-color: #3F3F46;
+            --ecs-bg-body: var(--color-bg-secondary);
+            --ecs-dark-bg-body: var(--color-secondary-950);
+        }
+
+        /* Dark mode overrides (same as tokens/colors.css [data-style="dark"]) */
+        [data-style="dark"] {
+            --color-neutral-0: #0F172A;
+            --color-neutral-50: #1E293B;
+            --color-bg-primary: var(--color-neutral-0);
+            --color-bg-secondary: var(--color-neutral-50);
+            --bs-body-bg: var(--color-bg-primary);
+            --bs-body-color: #E2E8F0;
+            --ecs-bg-body: var(--color-bg-primary);
+        }
+
+        /* Body background using variables - cascade works naturally */
+        html, body {
+            background-color: var(--bs-body-bg);
+            color: var(--bs-body-color);
+        }
+
+        /* Modern theme variant body background */
+        [data-theme-variant="modern"][data-style="dark"] body {
+            background-color: var(--ecs-dark-bg-body, var(--color-secondary-950));
+        }
+    </style>
 
     <!-- CRITICAL: Theme detection script - enhances server-set theme with localStorage preferences -->
     <!-- Server already sets data-style on <html>, this script handles localStorage overrides -->
@@ -74,151 +129,48 @@
         })();
     </script>
 
-    <!-- Anti-flash CSS - now loads AFTER script has set the correct data-style -->
-    <style id="theme-flash-prevention">
-        /* CRITICAL: Use system preference as CSS default to prevent flash */
-        /* This ensures CSS matches user's OS before JavaScript even runs */
-
-        /* Default to light mode */
-        html, body {
-            {% if preset_colors and preset_colors.light %}
-            background-color: {{ preset_colors.light.bg_body or preset_colors.light.bg_base or '#f8fafc' }};
-            color: {{ preset_colors.light.text_body or preset_colors.light.text_primary or '#1e293b' }};
-            {% else %}
-            background-color: #f8fafc;
-            color: #1e293b;
-            {% endif %}
+    <!-- ============================================================================
+         PRESET COLORS - Injected CSS Variables (supports theme presets)
+         ============================================================================
+         When a theme preset is active, these CSS variables override the defaults
+         from critical-css above. Uses CSS variables - works WITH the cascade.
+         ============================================================================ -->
+    {% if preset_colors %}
+    <style id="preset-colors">
+        /* Light mode preset overrides */
+        {% if preset_colors.light %}
+        :root {
+            {% if preset_colors.light.bg_body %}--color-bg-primary: {{ preset_colors.light.bg_body }};{% endif %}
+            {% if preset_colors.light.bg_card %}--color-bg-card: {{ preset_colors.light.bg_card }};{% endif %}
+            {% if preset_colors.light.text_body %}--bs-body-color: {{ preset_colors.light.text_body }};{% endif %}
         }
+        {% endif %}
 
-        /* If user's OS prefers dark mode, start with dark colors BEFORE JS runs */
+        /* Dark mode preset overrides */
+        {% if preset_colors.dark %}
+        [data-style="dark"] {
+            {% if preset_colors.dark.bg_body %}--color-bg-primary: {{ preset_colors.dark.bg_body }};{% endif %}
+            {% if preset_colors.dark.bg_card %}--color-bg-card: {{ preset_colors.dark.bg_card }};{% endif %}
+            {% if preset_colors.dark.text_body %}--bs-body-color: {{ preset_colors.dark.text_body }};{% endif %}
+            {% if preset_colors.dark.bg_body %}--ecs-dark-bg-body: {{ preset_colors.dark.bg_body }};{% endif %}
+        }
+        {% endif %}
+    </style>
+    {% endif %}
+
+    <!-- System preference fallback for before JS sets data-style -->
+    <style id="system-preference-fallback">
         @media (prefers-color-scheme: dark) {
-            html, body {
-                {% if preset_colors and preset_colors.dark %}
-                background-color: {{ preset_colors.dark.bg_body or preset_colors.dark.bg_base or '#0f172a' }};
-                color: {{ preset_colors.dark.text_body or preset_colors.dark.text_primary or '#f8fafc' }};
-                {% else %}
-                background-color: #0f172a;
-                color: #f8fafc;
-                {% endif %}
+            html:not([data-style]) {
+                --color-neutral-0: #0F172A;
+                --color-bg-primary: var(--color-neutral-0);
+                --bs-body-bg: var(--color-bg-primary);
+                --bs-body-color: #E2E8F0;
             }
-        }
-
-        /* Once JS sets data-style, these take over with higher specificity */
-        html[data-style="light"], html[data-style="light"] body {
-            {% if preset_colors and preset_colors.light %}
-            background-color: {{ preset_colors.light.bg_body or preset_colors.light.bg_base or '#f8fafc' }} !important;
-            color: {{ preset_colors.light.text_body or preset_colors.light.text_primary or '#1e293b' }} !important;
-            {% else %}
-            background-color: #f8fafc !important;
-            color: #1e293b !important;
-            {% endif %}
-        }
-
-        html[data-style="dark"], html[data-style="dark"] body {
-            {% if preset_colors and preset_colors.dark %}
-            background-color: {{ preset_colors.dark.bg_body or preset_colors.dark.bg_base or '#0f172a' }} !important;
-            color: {{ preset_colors.dark.text_body or preset_colors.dark.text_primary or '#f8fafc' }} !important;
-            {% else %}
-            background-color: #0f172a !important;
-            color: #f8fafc !important;
-            {% endif %}
-        }
-
-        /* AGGRESSIVE anti-flash: hide everything until CSS loads */
-        /* Use opacity instead of visibility for smoother transition */
-        html {
-            opacity: 1;
-            transition: opacity 0s;
-        }
-
-        /* When JS hasn't set data-style yet (shouldn't happen with server-side), hide briefly */
-        html:not([data-style]) {
-            opacity: 0;
-        }
-
-        /* Ensure body inherits the background */
-        body {
-            background-color: inherit;
-            color: inherit;
-            min-height: 100vh;
-        }
-
-        /* Cards and modals also need immediate background in dark mode */
-        html[data-style="dark"] .c-card,
-        html[data-style="dark"] .card,
-        html[data-style="dark"] .modal-content {
-            {% if preset_colors and preset_colors.dark %}
-            background-color: {{ preset_colors.dark.bg_card or '#1e293b' }};
-            {% else %}
-            background-color: #1e293b;
-            {% endif %}
-        }
-
-        /* Prevent flash of wrong theme - comprehensive coverage before main CSS loads */
-        /* Dark mode base colors - applied when data-style="dark" is set */
-        html[data-style="dark"],
-        html[data-style="dark"] body,
-        html[data-style="dark"] .layout-wrapper,
-        html[data-style="dark"] .layout-page,
-        html[data-style="dark"] .layout-container,
-        html[data-style="dark"] .content-wrapper,
-        html[data-style="dark"] .layout-content-wrapper,
-        html[data-style="dark"] .container-xxl,
-        html[data-style="dark"] .container-fluid,
-        html[data-style="dark"] main,
-        html[data-style="dark"] .c-base-layout,
-        html[data-style="dark"] .c-base-layout__wrapper,
-        html[data-style="dark"] .c-base-layout__page,
-        html[data-style="dark"] .c-base-layout__content {
-            {% if preset_colors and preset_colors.dark %}
-            background-color: {{ preset_colors.dark.bg_body or preset_colors.dark.bg_base or '#0f172a' }} !important;
-            color: {{ preset_colors.dark.text_body or preset_colors.dark.text_primary or '#f8fafc' }} !important;
-            {% else %}
-            background-color: #0f172a !important;
-            color: #f8fafc !important;
-            {% endif %}
-        }
-
-        /* Dark mode cards need slightly different background */
-        html[data-style="dark"] .card,
-        html[data-style="dark"] .modal-content {
-            {% if preset_colors and preset_colors.dark %}
-            background-color: {{ preset_colors.dark.bg_card or '#1e293b' }} !important;
-            {% else %}
-            background-color: #1e293b !important;
-            {% endif %}
-        }
-
-        /* Light mode base colors - applied when data-style="light" is set */
-        html[data-style="light"],
-        html[data-style="light"] body,
-        html[data-style="light"] .layout-wrapper,
-        html[data-style="light"] .layout-page,
-        html[data-style="light"] .layout-container,
-        html[data-style="light"] .content-wrapper,
-        html[data-style="light"] .layout-content-wrapper,
-        html[data-style="light"] main,
-        html[data-style="light"] .c-base-layout,
-        html[data-style="light"] .c-base-layout__wrapper,
-        html[data-style="light"] .c-base-layout__page,
-        html[data-style="light"] .c-base-layout__content {
-            {% if preset_colors and preset_colors.light %}
-            background-color: {{ preset_colors.light.bg_body or preset_colors.light.bg_base or '#f8fafc' }} !important;
-            color: {{ preset_colors.light.text_body or preset_colors.light.text_primary or '#1e293b' }} !important;
-            {% else %}
-            background-color: #f8fafc !important;
-            color: #1e293b !important;
-            {% endif %}
-        }
-
-        /* Light mode cards */
-        html[data-style="light"] .card,
-        html[data-style="light"] .modal-content {
-            {% if preset_colors and preset_colors.light %}
-            background-color: {{ preset_colors.light.bg_card or '#ffffff' }} !important;
-            {% else %}
-            background-color: #ffffff !important;
-            {% endif %}
+            html:not([data-style]), html:not([data-style]) body {
+                background-color: var(--bs-body-bg);
+                color: var(--bs-body-color);
+            }
         }
     </style>
     
@@ -343,8 +295,6 @@
 
     {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- NON-VITE MODE: Load all vendor CSS from CDN (these are bundled in Vite mode) -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.0/sweetalert2.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/2.0.0/css/dataTables.bootstrap5.min.css">
@@ -354,6 +304,7 @@
     <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.css">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.css') }}">
 
     {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
@@ -667,10 +618,9 @@
          ============================================ -->
 
     {% if vite_production_mode is defined and vite_production_mode() %}
-    <!-- VITE PRODUCTION MODE: Load jQuery/UI/Select2 first for inline scripts -->
+    <!-- VITE PRODUCTION MODE: Load jQuery/UI first for inline scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     {{ vite_asset('js/main-entry.js') }}
 
     {% elif vite_dev_mode is defined and vite_dev_mode() %}
@@ -678,7 +628,6 @@
     <!-- CDN dependencies (not bundled by Vite) -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Vite HMR client + main entry (ES modules) -->
     {{ vite_asset('js/main-entry.js') }}
@@ -691,7 +640,6 @@
     <!-- Core JS -->
     <script src="{{ url_for('static', filename='vendor/libs/jquery/jquery.js') }}"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="{{ url_for('static', filename='vendor/libs/popper/popper.js') }}"></script>
     <!-- Bootstrap UMD version (fixes "_element is not defined" error) -->
     <script src="{{ url_for('static', filename='vendor/js/bootstrap.bundle.js') }}"></script>
@@ -934,11 +882,6 @@
     <script src="{{ url_for('static', filename='assets/js/main.js') }}"></script>
     {% endif %}
 
-    <!-- Select2 JS (development only - Vite bundle includes it in production) -->
-    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    {% endif %}
-
     {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <!-- DEV ONLY: These are bundled in Vite production -->
     <!-- Cropper.js -->
@@ -979,45 +922,14 @@
                 return;
             }
             $(document).ready(function () {
-                function initializeSelect2() {
-                $('.select2-single').select2({
-                    placeholder: 'Select an option',
-                    allowClear: true,
-                    width: '100%',
-                    theme: 'bootstrap-5'
-                });
+                // Sidebar and menu logic
+                // Note: Menu initialization is handled by main.js - do NOT duplicate here
+                // PerfectScrollbar is configured with suppressScrollX: true in menu.js
 
-                $('.select2-multiple').select2({
-                    placeholder: 'Select multiple options',
-                    allowClear: true,
-                    width: '100%',
-                    theme: 'bootstrap-5'
-                });
-            }
-
-            initializeSelect2();
-
-            // Re-initialize Select2 on modal open to ensure elements are initialized correctly
-            $('#onboardingSlideModal').on('shown.bs.modal', function () {
-                initializeSelect2();
-            });
-
-            // Ensure Select2 fields are properly captured on form submission
-            $('form').on('submit', function () {
-                $('.select2-multiple').each(function () {
-                    var selectedValues = $(this).val();
-                    $(this).val(selectedValues).trigger('change');
-                });
-            });
-
-            // Sidebar and menu logic
-            // Note: Menu initialization is handled by main.js - do NOT duplicate here
-            // PerfectScrollbar is configured with suppressScrollX: true in menu.js
-
-            // Feather Icons Initialization - restored for data-feather attributes
-            if (typeof feather !== 'undefined') {
-                feather.replace();
-            }
+                // Feather Icons Initialization - restored for data-feather attributes
+                if (typeof feather !== 'undefined') {
+                    feather.replace();
+                }
             });
         })();
     </script>

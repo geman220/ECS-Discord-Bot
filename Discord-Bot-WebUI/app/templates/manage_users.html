@@ -364,7 +364,7 @@
 
                         <div class="mb-3">
                             <label for="editRoles" class="form-label">Roles</label>
-                            <select multiple class="form-select select2-multiple" id="editRoles" name="roles" data-form-select>
+                            <select multiple class="form-select form-select-lg" id="editRoles" name="roles" data-form-select>
                                 {% for role in roles %}
                                 <option value="{{ role.id }}">{{ role.name }}</option>
                                 {% endfor %}
@@ -487,7 +487,7 @@
 
                     <div class="mb-3">
                         <label for="editRoles" class="form-label">Roles</label>
-                        <select multiple class="form-select select2-multiple" id="editRoles" name="roles" data-form-select>
+                        <select multiple class="form-select form-select-lg" id="editRoles" name="roles" data-form-select>
                             {% for role in roles %}
                             <option value="{{ role.id }}">{{ role.name }}</option>
                             {% endfor %}
@@ -736,7 +736,7 @@
                 document.getElementById('editUsername').value = data.username;
                 document.getElementById('editEmail').value = data.email;
 
-                // Store roles to set after modal is shown and Select2 is reinitialized
+                // Store roles to set after modal is shown
                 window.pendingRoleSelection = data.roles && Array.isArray(data.roles)
                     ? data.roles.map(id => id.toString())
                     : [];
@@ -960,32 +960,20 @@
         editUserModal = ModalManager.getInstance('editUserModal');
         editUserForm = document.getElementById('editUserForm');
 
-        // Initialize Select2 for roles with proper configuration
-        // Note: dropdownParent is removed to allow dropdown to append to body (fixes z-index issues)
-        $('#editRoles').select2({
-            placeholder: 'Select roles...',
-            allowClear: true,
-            width: '100%',
-            theme: 'bootstrap-5'
-        });
-
-        // Reinitialize Select2 when modal is shown to ensure proper rendering
+        // Native multi-select is used - set pending role selection when modal shows
         $('#editUserModal').on('shown.bs.modal', function () {
-            $('#editRoles').select2('destroy');
-            $('#editRoles').select2({
-                placeholder: 'Select roles...',
-                allowClear: true,
-                width: '100%',
-                theme: 'bootstrap-5'
-            });
-
-            // Set the pending role selection after Select2 is reinitialized
+            // Set the pending role selection
             if (window.pendingRoleSelection && window.pendingRoleSelection.length > 0) {
-                $('#editRoles').val(window.pendingRoleSelection).trigger('change');
+                const rolesSelect = document.getElementById('editRoles');
+                if (rolesSelect) {
+                    Array.from(rolesSelect.options).forEach(option => {
+                        option.selected = window.pendingRoleSelection.includes(option.value);
+                    });
+                }
                 window.pendingRoleSelection = null; // Clear after setting
             }
         });
-        
+
         // No need for complex modal event handlers - roles are pre-selected via server HTML
         editUserUrlTemplate = `{{ url_for('user_management.edit_user', user_id=0) }}`;
         approveUserUrlTemplate = `{{ url_for('user_management.approve_user', user_id=0) }}`;

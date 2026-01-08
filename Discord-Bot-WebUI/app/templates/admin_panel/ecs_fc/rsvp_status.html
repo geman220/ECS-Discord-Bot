@@ -32,6 +32,16 @@
                         </p>
                     </div>
                     <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                        {% if rsvp_counts.yes < 11 %}
+                        <a href="{{ url_for('admin.ecs_fc_sub_request', match_id=match.id) }}"
+                           class="c-btn c-btn--warning me-2">
+                            <i class="ti ti-user-plus me-1"></i>Request Sub
+                        </a>
+                        {% endif %}
+                        <button type="button" class="c-btn c-btn--outline-info me-2"
+                                data-action="send-rsvp-reminder" data-match-id="{{ match.id }}">
+                            <i class="ti ti-bell me-1"></i>Send Reminder
+                        </button>
                         <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
                            class="c-btn c-btn--outline-primary">
                             <i class="ti ti-edit me-1"></i>Edit Match

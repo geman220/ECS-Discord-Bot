@@ -7,7 +7,6 @@
  * Replaces inline JavaScript from profile form templates.
  *
  * Features:
- * - Select2 dropdown initialization
  * - Unsaved changes warning
  * - Form change tracking
  * - Auto-submit handling
@@ -16,8 +15,7 @@
  * NO INLINE STYLES - Uses CSS classes and data attributes instead.
  *
  * Dependencies:
- * - jQuery
- * - Select2 (for enhanced dropdowns)
+ * - jQuery (optional)
  * - Bootstrap 5.x
  *
  * ============================================================================
@@ -33,52 +31,12 @@ let _initialized = false;
     // ========================================================================
 
     const CONFIG = {
-        SELECT2_THEME: 'window.bootstrap-5',
         UNSAVED_WARNING_MESSAGE: 'You have unsaved changes. Are you sure you want to leave?'
     };
 
     // State tracking
     let formChanged = false;
     let formSubmitting = false;
-
-    // ========================================================================
-    // SELECT2 INITIALIZATION
-    // ========================================================================
-
-    /**
-     * Initialize Select2 on all selects with data-select2 attribute
-     */
-    function initSelect2() {
-        if (typeof jQuery === 'undefined' || typeof jQuery.fn.select2 === 'undefined') {
-            // Silently skip - Select2 may not be loaded on all pages
-            return;
-        }
-
-        const selects = document.querySelectorAll('[data-select2]');
-
-        selects.forEach(select => {
-            const $select = jQuery(select);
-
-            // Get configuration from data attributes
-            const config = {
-                theme: CONFIG.SELECT2_THEME,
-                placeholder: select.dataset.placeholder || 'Select an option',
-                allowClear: select.dataset.allowClear === 'true',
-                dropdownParent: select.dataset.dropdownParent ?
-                    jQuery(select.dataset.dropdownParent) : null
-            };
-
-            // Apply Select2
-            $select.select2(config);
-
-            // Track changes for unsaved warning
-            $select.on('change', function() {
-                markFormChanged();
-            });
-        });
-
-        console.log(`[Profile Form] Initialized ${selects.length} Select2 dropdowns`);
-    }
 
     // ========================================================================
     // FORM CHANGE TRACKING
@@ -345,11 +303,6 @@ let _initialized = false;
                         if (result.isConfirmed) {
                             form.reset();
 
-                            // Reset Select2 dropdowns
-                            if (typeof jQuery !== 'undefined') {
-                                jQuery(form).find('.select2-hidden-accessible').val(null).trigger('change');
-                            }
-
                             // Mark as saved
                             markFormSaved();
 
@@ -376,7 +329,6 @@ let _initialized = false;
         // Profile Form initialization started
 
         // Initialize all features
-        initSelect2();
         initFormChangeTracking();
         initUnsavedWarning();
         initAutoSubmitForms();

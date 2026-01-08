@@ -91,7 +91,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label" for="jersey_size">Jersey Size</label>
-                                    {{ onboarding_form.jersey_size(class="form-select select2-single") }}
+                                    {{ onboarding_form.jersey_size(class="form-select form-select-lg") }}
                                 </div>
                             </div>
 
@@ -102,7 +102,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label" for="pronouns">Preferred Pronouns</label>
-                                    {{ onboarding_form.pronouns(class="form-select select2-single") }}
+                                    {{ onboarding_form.pronouns(class="form-select form-select-lg") }}
                                 </div>
                             </div>
                         </div>
@@ -181,22 +181,22 @@
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label" for="favorite_position">Favorite Position</label>
-                                    {{ onboarding_form.favorite_position(class="form-select select2-single") }}
+                                    {{ onboarding_form.favorite_position(class="form-select form-select-lg") }}
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label" for="other_positions">Other Positions You Enjoy</label>
-                                    {{ onboarding_form.other_positions(class="form-select select2-multiple", multiple="multiple") }}
+                                    {{ onboarding_form.other_positions(class="form-select form-select-lg", multiple="multiple") }}
                                 </div>
                             </div>
 
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label" for="positions_not_to_play">Positions to Avoid</label>
-                                    {{ onboarding_form.positions_not_to_play(class="form-select select2-multiple", multiple="multiple") }}
+                                    {{ onboarding_form.positions_not_to_play(class="form-select form-select-lg", multiple="multiple") }}
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label" for="frequency_play_goal">Willingness to Play Goal</label>
-                                    {{ onboarding_form.frequency_play_goal(class="form-select select2-single") }}
+                                    {{ onboarding_form.frequency_play_goal(class="form-select form-select-lg") }}
                                 </div>
                             </div>
                         </div>
@@ -210,11 +210,11 @@
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label" for="expected_weeks_available">Expected Availability (# of weeks)</label>
-                                    {{ onboarding_form.expected_weeks_available(class="form-select select2-single") }}
+                                    {{ onboarding_form.expected_weeks_available(class="form-select form-select-lg") }}
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label" for="team_swap">Willing to Switch Teams if Needed?</label>
-                                    {{ onboarding_form.team_swap(class="form-select select2-single") }}
+                                    {{ onboarding_form.team_swap(class="form-select form-select-lg") }}
                                 </div>
                             </div>
 
@@ -225,7 +225,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label" for="willing_to_referee">Interested in Refereeing?</label>
-                                    {{ onboarding_form.willing_to_referee(class="form-select select2-single") }}
+                                    {{ onboarding_form.willing_to_referee(class="form-select form-select-lg") }}
                                 </div>
                             </div>
                         </div>
@@ -314,7 +314,7 @@
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label" for="profile_visibility">Profile Visibility</label>
-                                    {{ onboarding_form.profile_visibility(class="form-select select2-single") }}
+                                    {{ onboarding_form.profile_visibility(class="form-select form-select-lg") }}
                                 </div>
                             </div>
 
@@ -440,7 +440,6 @@
 {% block custom_js %}
 {{ super() }}
 {% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
-<script src="{{ url_for('static', filename='vendor/libs/select2/select2.full.min.js') }}"></script>
 <!-- Simple Cropper (Custom implementation) -->
 <script src="{{ url_for('static', filename='custom_js/simple-cropper.js') }}"></script>
 
@@ -489,21 +488,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize select2 for multiple selection dropdowns
-    $('.select2-single').select2({
-        theme: 'bootstrap-5',
-        width: '100%',
-        placeholder: 'Select an option',
-        allowClear: true
-    });
-
-    $('.select2-multiple').select2({
-        theme: 'bootstrap-5',
-        width: '100%',
-        placeholder: 'Select options',
-        allowClear: true
-    });
-
     // Form validation
     const form = document.querySelector('form.needs-validation');
     if (form) {

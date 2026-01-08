@@ -98,11 +98,8 @@ import DataTable from 'datatables.net-bs5';
 import 'datatables.net-responsive-bs5';
 
 // ============================================================================
-// 9. SELECT2 - Enhanced select dropdowns
-// jQuery must be on window BEFORE this import (done above)
-// CSS moved to vendor-styles.css (must be in @layer to not override layered CSS)
+// 9. SELECT2 - REMOVED (using native HTML5 selects for better mobile support)
 // ============================================================================
-import 'select2'; // Attaches window.$.fn.select2 to jQuery
 
 // ============================================================================
 // 10. SWEETALERT2 - Beautiful alerts and dialogs

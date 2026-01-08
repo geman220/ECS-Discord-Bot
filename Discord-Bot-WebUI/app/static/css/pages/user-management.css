@@ -21,27 +21,26 @@
  *
  * Sections:
  *   1. Role Selection Styling
- *   2. Select2 Dropdown Z-Index
- *   3. User Display Components
- *   4. Table Columns
- *   5. Action Column
- *   6. Team Select Filtering
- *   7. Mobile Responsive Styles
- *   8. Modal Styling
- *   9. Progress Components
- *  10. Filter Form
- *  11. Actions Row
- *  12. Table Enhancements
- *  13. Badge Styling
- *  14. Pagination
- *  15. Dropdown Menus
- *  16. Alert Components
- *  17. Loading States
- *  18. Form Components
- *  19. Card Enhancements
- *  20. Accessibility
- *  21. Print Styles
- *  22. Utility Classes
+ *   2. User Display Components
+ *   3. Table Columns
+ *   4. Action Column
+ *   5. Team Select Filtering
+ *   6. Mobile Responsive Styles
+ *   7. Modal Styling
+ *   8. Progress Components
+ *   9. Filter Form
+ *  10. Actions Row
+ *  11. Table Enhancements
+ *  12. Badge Styling
+ *  13. Pagination
+ *  14. Dropdown Menus
+ *  15. Alert Components
+ *  16. Loading States
+ *  17. Form Components
+ *  18. Card Enhancements
+ *  19. Accessibility
+ *  20. Print Styles
+ *  21. Utility Classes
  *
  * Target: 0 unjustified declarations
  * ============================================================================
@@ -71,32 +70,7 @@
 }
 
 /* ============================================================================
-   2. SELECT2 DROPDOWN Z-INDEX
-   Ensures Select2 dropdown appears above modal backdrop
-   Using proper z-index tokens instead of arbitrary values
-   ============================================================================ */
-
-.user-management-page .select2-container--open,
-.select2-container--open.select2-container {
-    z-index: var(--z-modal-dropdown, 1055);
-}
-
-.user-management-page .select2-dropdown,
-.select2-dropdown {
-    z-index: calc(var(--z-modal-dropdown, 1055) + 5);
-    background-color: var(--color-bg-elevated);
-    border: 1px solid var(--color-border-primary);
-    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
-}
-
-[data-style="dark"] .user-management-page .select2-dropdown,
-[data-style="dark"] .select2-dropdown {
-    background-color: var(--color-bg-elevated);
-    border-color: var(--color-border-primary);
-}
-
-/* ============================================================================
-   3. USER DISPLAY COMPONENTS
+   2. USER DISPLAY COMPONENTS
    User information display in table cells
    ============================================================================ */
 

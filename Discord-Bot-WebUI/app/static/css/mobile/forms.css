@@ -224,55 +224,6 @@ body:not(.auth-page) .form-select {
 }
 
 /* ============================================================================
-   SELECT2 MOBILE OPTIMIZATION
-   ============================================================================ */
-
-@media (max-width: 767.98px) {
-  /* Select2 container */
-
-  .select2-container {
-    /* JUSTIFIED !important: Overrides Select2 inline styles for responsive layout */
-    width: 100%;
-  }
-
-  .select2-container .select2-selection {
-    min-height: var(--mobile-touch-base);
-    font-size: 16px;
-    border-radius: var(--mobile-radius-lg);
-  }
-
-  .select2-container .select2-selection__rendered {
-    line-height: var(--mobile-touch-base);
-    padding-left: var(--mobile-space-base);
-  }
-
-  .select2-container .select2-selection__arrow {
-    height: 42px;
-  }
-
-  /* Select2 dropdown */
-
-  .select2-dropdown {
-    font-size: 16px;
-    border-radius: var(--mobile-radius-lg);
-  }
-
-  .select2-results__option {
-    min-height: var(--mobile-touch-base);
-    padding: var(--mobile-space-base) var(--mobile-space-lg);
-    line-height: 1.5;
-  }
-
-  /* Select2 search */
-
-  .select2-search__field {
-    min-height: var(--mobile-touch-base);
-    font-size: 16px;
-    padding: var(--mobile-space-sm) var(--mobile-space-base);
-  }
-}
-
-/* ============================================================================
    DATE AND TIME PICKERS
    ============================================================================ */
 
@@ -515,25 +466,6 @@ input:-webkit-autofill:hover {
 [data-style="dark"] .form-actions-sticky {
   background: var(--color-bg-primary, var(--color-secondary-950));
   border-top-color: var(--color-border-primary, var(--color-secondary-700));
-}
-
-[data-style="dark"] .select2-container .select2-selection {
-  background: var(--color-bg-elevated, var(--color-secondary-800));
-  border-color: var(--color-border-primary, var(--color-secondary-700));
-  color: var(--color-text-primary, var(--color-secondary-50));
-}
-
-[data-style="dark"] .select2-dropdown {
-  background: var(--color-bg-elevated, var(--color-secondary-800));
-  border-color: var(--color-border-primary, var(--color-secondary-700));
-}
-
-[data-style="dark"] .select2-results__option {
-  color: var(--color-text-primary, var(--color-secondary-50));
-}
-
-[data-style="dark"] .select2-results__option--highlighted {
-  background: var(--color-bg-tertiary, var(--color-secondary-700));
 }
 
 /* ============================================================================

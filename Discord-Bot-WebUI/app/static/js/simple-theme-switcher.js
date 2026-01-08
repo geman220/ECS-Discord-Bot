@@ -85,7 +85,12 @@ class SimpleThemeSwitcher {
       // Save to localStorage with consistent key
       localStorage.setItem('template-style', theme);
 
-      // Save to server
+      // Save to cookie for server-side rendering (prevents FOUC)
+      // Cookie is read by server on every request to render correct theme
+      const maxAge = 365 * 24 * 60 * 60; // 1 year
+      document.cookie = `theme=${encodeURIComponent(theme)};path=/;max-age=${maxAge};SameSite=Lax`;
+
+      // Save to server (for user preference persistence)
       this.saveThemeToServer(theme);
     }
 
@@ -256,6 +261,10 @@ class SimpleThemeSwitcher {
     if (save) {
       // Save to localStorage
       localStorage.setItem('theme-variant', variant);
+
+      // Save to cookie for server-side rendering (prevents FOUC)
+      const maxAge = 365 * 24 * 60 * 60; // 1 year
+      document.cookie = `theme_variant=${encodeURIComponent(variant)};path=/;max-age=${maxAge};SameSite=Lax`;
 
       // Save to server
       this.saveVariantToServer(variant);

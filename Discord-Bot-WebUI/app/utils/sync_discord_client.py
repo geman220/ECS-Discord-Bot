@@ -246,14 +246,25 @@ class SyncDiscordClient:
     def send_ecs_fc_rsvp_message(self, match_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Send ECS FC RSVP message using synchronous HTTP call.
-        
+
         Args:
-            match_data: Dictionary containing match details.
-            
+            match_data: Dictionary containing match details including:
+                - team_id: Team ID
+                - team_name: Team name
+                - opponent_name: Opponent name
+                - match_date: Match date string
+                - match_time: Match time string
+                - location: Match location
+                - field_name: Optional field name
+                - is_home_match: Boolean
+                - notes: Optional notes
+                - rsvp_deadline: Optional RSVP deadline
+                - response_counts: Dict with yes/no/maybe counts
+
         Returns:
             Dictionary with success status and message details.
         """
-        discord_bot_url = "http://discord-bot:5001/api/send_ecs_fc_rsvp"
+        discord_bot_url = "http://discord-bot:5001/api/ecs_fc/post_rsvp_message"
         
         try:
             logger.info(f"Sending ECS FC RSVP for match {match_data.get('match_id')} (synchronous)")
@@ -879,6 +890,64 @@ class SyncDiscordClient:
             }
         except Exception as e:
             error_msg = f"Error deleting role: {str(e)}"
+            logger.error(error_msg)
+            return {
+                'success': False,
+                'message': error_msg,
+                'error': str(e)
+            }
+
+    def update_ecs_fc_rsvp_embed(self, match_id: int, response_counts: Optional[Dict[str, int]] = None) -> Dict[str, Any]:
+        """
+        Update an existing ECS FC RSVP embed with new response counts.
+
+        Args:
+            match_id: ECS FC match ID
+            response_counts: Optional dict with yes/no/maybe/no_response counts (not used - bot fetches fresh data)
+
+        Returns:
+            Dictionary with success status.
+        """
+        # Note: match_id goes in the URL path, not the body
+        discord_bot_url = f"http://discord-bot:5001/api/ecs_fc/update_rsvp_embed/{match_id}"
+
+        try:
+            logger.info(f"Updating ECS FC RSVP embed for match {match_id} (synchronous)")
+
+            # Bot fetches fresh RSVP data itself, so we just send empty body
+            response = self.session.post(
+                discord_bot_url,
+                json={},
+                timeout=self.timeout
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"ECS FC RSVP embed updated successfully for match {match_id}")
+                return {
+                    'success': True,
+                    'message': 'RSVP embed updated successfully',
+                    'discord_response': result
+                }
+            else:
+                error_msg = f"Failed to update ECS FC RSVP embed: {response.status_code} - {response.text}"
+                logger.error(error_msg)
+                return {
+                    'success': False,
+                    'message': error_msg,
+                    'status_code': response.status_code
+                }
+
+        except requests.Timeout:
+            error_msg = f"Discord API call timed out after {self.timeout} seconds"
+            logger.error(error_msg)
+            return {
+                'success': False,
+                'message': error_msg,
+                'timeout': True
+            }
+        except Exception as e:
+            error_msg = f"Error updating ECS FC RSVP embed: {str(e)}"
             logger.error(error_msg)
             return {
                 'success': False,

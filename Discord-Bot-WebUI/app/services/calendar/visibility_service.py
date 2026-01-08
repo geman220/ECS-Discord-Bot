@@ -14,6 +14,7 @@ from typing import List, Optional, Set, Tuple
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import User, Player, Match, Team, Season, LeagueEvent
+from app.models_ecs import EcsFcMatch
 
 logger = logging.getLogger(__name__)
 
@@ -335,14 +336,17 @@ class VisibilityService:
         """
         return self.get_visible_league_events_query(user, start_date, end_date).all()
 
-    def get_all_visible_events(
+    def get_visible_ecs_fc_matches_query(
         self,
         user: User,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
-    ) -> Tuple[List[Match], List[LeagueEvent]]:
+    ):
         """
-        Get all visible events (matches and league events) for a user.
+        Get a query for ECS FC matches visible to the user.
+
+        Users see their own team's ECS FC matches.
+        Admins and ECS FC coaches see all ECS FC matches.
 
         Args:
             user: The user to filter for
@@ -350,11 +354,75 @@ class VisibilityService:
             end_date: Optional end date filter
 
         Returns:
-            Tuple of (matches, league_events)
+            SQLAlchemy query for visible ECS FC matches
+        """
+        query = self.session.query(EcsFcMatch).options(
+            joinedload(EcsFcMatch.team)
+        )
+
+        # Apply date filters if provided
+        if start_date:
+            query = query.filter(EcsFcMatch.match_date >= start_date.date())
+        if end_date:
+            query = query.filter(EcsFcMatch.match_date <= end_date.date())
+
+        # Admins and ECS FC coaches see all ECS FC matches
+        user_roles = self.get_user_roles(user)
+        if user_roles & (ADMIN_ROLES | {'ECS FC Coach'}):
+            return query.order_by(EcsFcMatch.match_date, EcsFcMatch.match_time)
+
+        # Get user's teams
+        team_ids = self.get_user_team_ids(user)
+
+        if team_ids:
+            # User sees their own team's ECS FC matches
+            query = query.filter(EcsFcMatch.team_id.in_(team_ids))
+        else:
+            # User has no teams - return empty query
+            query = query.filter(False)
+
+        return query.order_by(EcsFcMatch.match_date, EcsFcMatch.match_time)
+
+    def get_visible_ecs_fc_matches(
+        self,
+        user: User,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> List[EcsFcMatch]:
+        """
+        Get list of ECS FC matches visible to the user.
+
+        Args:
+            user: The user to filter for
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            List of visible EcsFcMatch objects
+        """
+        return self.get_visible_ecs_fc_matches_query(user, start_date, end_date).all()
+
+    def get_all_visible_events(
+        self,
+        user: User,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> Tuple[List[Match], List[LeagueEvent], List[EcsFcMatch]]:
+        """
+        Get all visible events (matches, league events, and ECS FC matches) for a user.
+
+        Args:
+            user: The user to filter for
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            Tuple of (matches, league_events, ecs_fc_matches)
         """
         matches = self.get_visible_matches(user, start_date, end_date)
         events = self.get_visible_league_events(user, start_date, end_date)
-        return matches, events
+        ecs_fc_matches = self.get_visible_ecs_fc_matches(user, start_date, end_date)
+        return matches, events, ecs_fc_matches
 
     def can_view_match(self, user: User, match: Match) -> bool:
         """

@@ -460,32 +460,34 @@ class EcsFcScheduleManager:
     def _schedule_rsvp_reminder(match: EcsFcMatch):
         """
         Schedule automatic RSVP reminder for an ECS FC match.
-        
+
+        If match is 7+ days away: Schedule for Monday 9 AM the week before.
+        If match is less than 7 days away: Post RSVP immediately.
+
         Args:
             match: The ECS FC match to schedule reminder for
         """
         try:
             from app.models import ScheduledMessage
-            
-            # Calculate when to send the reminder
-            # Send on Monday at 9 AM before the match (same as pub league)
+
+            # Calculate days until match
             match_datetime = datetime.combine(match.match_date, match.match_time)
-            
-            # Find the Monday before the match
             days_until_match = (match_datetime.date() - datetime.utcnow().date()).days
-            if days_until_match > 7:
-                # Find the Monday of the week before the match
-                days_until_monday = (match_datetime.weekday() + 6) % 7
-                if days_until_monday == 0:
-                    days_until_monday = 7
-                send_date = match_datetime.date() - timedelta(days=days_until_monday)
-                send_time = datetime.combine(send_date, datetime.strptime("09:00", "%H:%M").time())
-            else:
-                # If match is within a week, send reminder tomorrow at 9 AM
-                send_time = datetime.combine(
-                    datetime.utcnow().date() + timedelta(days=1),
-                    datetime.strptime("09:00", "%H:%M").time()
-                )
+
+            if days_until_match < 7:
+                # Match is within a week - post RSVP immediately
+                from app.tasks.tasks_rsvp_ecs import send_ecs_fc_rsvp_reminder
+                send_ecs_fc_rsvp_reminder.delay(match.id)
+                logger.info(f"Match {match.id} is within 7 days - posting RSVP immediately")
+                return
+
+            # Match is 7+ days away - schedule for Monday 9 AM before the match
+            # Find the Monday of the week before the match
+            days_until_monday = (match_datetime.weekday() + 6) % 7
+            if days_until_monday == 0:
+                days_until_monday = 7
+            send_date = match_datetime.date() - timedelta(days=days_until_monday)
+            send_time = datetime.combine(send_date, datetime.strptime("09:00", "%H:%M").time())
             
             # Check if a scheduled message already exists for this match
             existing = g.db_session.query(ScheduledMessage).filter(

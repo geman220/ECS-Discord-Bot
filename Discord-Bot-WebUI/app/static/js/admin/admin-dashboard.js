@@ -172,16 +172,6 @@ const AdminDashboard = {
         const permissionsSelect = context.querySelector(CONFIG.selectors.permissionsSelect);
         const currentPermissionsList = context.querySelector(CONFIG.selectors.currentPermissionsList);
 
-        // Initialize Select2 for permissions dropdown
-        if (permissionsSelect && typeof window.$ !== 'undefined' && window.$.fn.select2) {
-            $(permissionsSelect).select2({
-                theme: 'window.bootstrap-5',
-                placeholder: 'Select permissions...',
-                allowClear: true,
-                width: '100%'
-            });
-        }
-
         if (roleSelect) {
             roleSelect.addEventListener('change', () => {
                 const roleId = roleSelect.value;
@@ -192,11 +182,7 @@ const AdminDashboard = {
                         currentPermissionsList.innerHTML = '<li class="c-permissions-list__item c-permissions-list__item--empty">Select a role to view permissions.</li>';
                     }
                     if (permissionsSelect) {
-                        if ($(permissionsSelect).hasClass('select2-hidden-accessible')) {
-                            $(permissionsSelect).val([]).trigger('change');
-                        } else {
-                            Array.from(permissionsSelect.options).forEach(option => option.selected = false);
-                        }
+                        Array.from(permissionsSelect.options).forEach(option => option.selected = false);
                     }
                 }
             });
@@ -212,14 +198,9 @@ const AdminDashboard = {
 
                     if (permissionsSelect) {
                         const currentPermissionIds = data.permissions.map(p => p.id.toString());
-
-                        if ($(permissionsSelect).hasClass('select2-hidden-accessible')) {
-                            $(permissionsSelect).val(currentPermissionIds).trigger('change');
-                        } else {
-                            Array.from(permissionsSelect.options).forEach(option => {
-                                option.selected = currentPermissionIds.includes(option.value);
-                            });
-                        }
+                        Array.from(permissionsSelect.options).forEach(option => {
+                            option.selected = currentPermissionIds.includes(option.value);
+                        });
                     }
                 } else {
                     currentPermissionsList.innerHTML = '<li class="c-permissions-list__item c-permissions-list__item--error">Error loading permissions</li>';

@@ -11,6 +11,15 @@ let _initialized = false;
 export class SimpleCropper {
     constructor(canvasId, options = {}) {
         this.canvas = document.getElementById(canvasId);
+
+        // Guard: If canvas element doesn't exist, don't initialize
+        // This can happen when using Cropper.js instead of SimpleCropper
+        if (!this.canvas) {
+            console.log('[SimpleCropper] Canvas element not found, skipping initialization');
+            this.ctx = null;
+            return;
+        }
+
         this.ctx = this.canvas.getContext('2d');
         this.image = null;
         this.scale = 1;
@@ -19,7 +28,7 @@ export class SimpleCropper {
         this.isDragging = false;
         this.lastX = 0;
         this.lastY = 0;
-        
+
         // Default options - use ECSTheme if available
         const defaultBg = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('light') : '#f8f9fa';
         const defaultBorder = (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd';
@@ -29,11 +38,14 @@ export class SimpleCropper {
             borderColor: defaultBorder,
             ...options
         };
-        
+
         this.init();
     }
     
     init() {
+        // Guard: If canvas doesn't exist, skip initialization
+        if (!this.canvas || !this.ctx) return;
+
         // Set canvas size
         this.canvas.width = this.options.cropSize;
         this.canvas.height = this.options.cropSize;
@@ -61,17 +73,24 @@ export class SimpleCropper {
     }
     
     drawBackground() {
+        if (!this.canvas || !this.ctx) return;
+
         this.ctx.fillStyle = this.options.backgroundColor;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
+
         // Draw placeholder text
         this.ctx.fillStyle = '#666';
         this.ctx.font = '16px Arial';
         this.ctx.textAlign = 'center';
         this.ctx.fillText('Upload an image to crop', this.canvas.width / 2, this.canvas.height / 2);
     }
-    
+
     loadImage(file) {
+        // Guard: If canvas doesn't exist, reject the promise
+        if (!this.canvas || !this.ctx) {
+            return Promise.reject(new Error('SimpleCropper not initialized - canvas not found'));
+        }
+
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -91,8 +110,8 @@ export class SimpleCropper {
     }
     
     resetTransform() {
-        if (!this.image) return;
-        
+        if (!this.image || !this.canvas) return;
+
         // Scale to fit canvas while maintaining aspect ratio
         const scaleX = this.canvas.width / this.image.width;
         const scaleY = this.canvas.height / this.image.height;
@@ -104,14 +123,16 @@ export class SimpleCropper {
     }
     
     draw() {
+        if (!this.canvas || !this.ctx) return;
+
         if (!this.image) {
             this.drawBackground();
             return;
         }
-        
+
         // Clear canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
+
         // Draw image
         this.ctx.drawImage(
             this.image,
@@ -119,12 +140,14 @@ export class SimpleCropper {
             this.image.width * this.scale,
             this.image.height * this.scale
         );
-        
+
         // Draw crop area overlay (optional)
         this.drawCropOverlay();
     }
-    
+
     drawCropOverlay() {
+        if (!this.canvas || !this.ctx) return;
+
         // Draw semi-transparent overlay to show crop area
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -231,39 +254,41 @@ export class SimpleCropper {
     
     // Get the cropped image as a data URL
     getCroppedImageData(format = 'image/jpeg', quality = 0.8) {
-        if (!this.image) return null;
-        
+        if (!this.image || !this.canvas) return null;
+
         // Create a new canvas for the cropped image
         const cropCanvas = document.createElement('canvas');
         const cropCtx = cropCanvas.getContext('2d');
-        
+
         // Set output size (square)
         const outputSize = 300;
         cropCanvas.width = outputSize;
         cropCanvas.height = outputSize;
-        
+
         // Calculate crop area (center circle)
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
         const radius = this.canvas.width / 2 - 10;
-        
+
         // Draw the cropped portion
         cropCtx.drawImage(
             this.canvas,
             centerX - radius, centerY - radius, radius * 2, radius * 2,
             0, 0, outputSize, outputSize
         );
-        
+
         return cropCanvas.toDataURL(format, quality);
     }
-    
+
     // Reset the cropper
     reset() {
         this.image = null;
         this.scale = 1;
         this.offsetX = 0;
         this.offsetY = 0;
-        this.drawBackground();
+        if (this.canvas && this.ctx) {
+            this.drawBackground();
+        }
     }
 }
 

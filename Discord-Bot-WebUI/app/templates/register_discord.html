@@ -55,9 +55,12 @@
                     <p class="c-auth-alert__text c-auth-alert__text--mt-xs">
                         Registration requires acceptance of our liability waiver and code of conduct.
                     </p>
+                    <p class="c-waiver__scroll-hint" id="scroll-hint">
+                        <i class="ti ti-arrow-down"></i> Please scroll to read the entire document
+                    </p>
                 </div>
 
-                <div class="c-waiver__content">
+                <div class="c-waiver__content" id="waiver-content">
                     <h6 class="c-waiver__section-title">Waiver of Liability and Hold Harmless Agreement</h6>
                     <p>"Participant" hereby releases, waives, discharges and covenants not to sue ECS Pub League, a Washington nonprofit organization, and its affiliated associations, officers, directors, employees, agents, and contractors (collectively, the "Released Parties") from any and all liability, claims, demands, actions and causes of action whatsoever arising out of or related to any loss, damage, or injury, including death, that may be sustained by Participant, or to any property belonging to Participant, whether caused by the negligence of the Released Parties, or otherwise, while participating in such athletic and related event activities, or while in, on or upon the premises where the activities are being conducted.</p>
 
@@ -100,14 +103,15 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <!-- Terms and Conditions Agreement -->
-                <div class="c-auth-checkbox">
+                <div class="c-auth-checkbox c-auth-checkbox--terms" id="terms-checkbox-wrapper">
                     <input type="checkbox"
                            class="c-auth-checkbox__input"
                            id="terms-agreement"
                            name="terms_agreement"
                            required
-                           data-controller="terms-agreement">
-                    <label class="c-auth-checkbox__label c-auth-checkbox__label--muted" for="terms-agreement">
+                           disabled
+                           data-action="terms-agreement">
+                    <label class="c-auth-checkbox__label c-auth-checkbox__label--muted c-auth-checkbox__label--disabled" for="terms-agreement">
                         I agree to the ECS FC terms and conditions, liability waiver, and code of conduct
                     </label>
                 </div>
@@ -121,7 +125,7 @@
                         Register
                     </button>
                     <a href="{{ url_for('auth.login') }}"
-                       class="c-auth-btn c-auth-btn--outline c-auth-btn-row__item--auto">
+                       class="c-auth-btn c-auth-btn--outline c-auth-btn-row__item">
                         Cancel
                     </a>
                 </div>
@@ -133,13 +137,51 @@
 
 {% block custom_js %}
 {{ super() }}
-{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Handle terms agreement checkbox
+        const waiverContent = document.getElementById('waiver-content');
+        const termsCheckbox = document.getElementById('terms-agreement');
+        const termsWrapper = document.getElementById('terms-checkbox-wrapper');
+        const scrollHint = document.getElementById('scroll-hint');
+        let hasScrolledToBottom = false;
+
+        function checkScrollPosition() {
+            if (hasScrolledToBottom) return;
+
+            // Check if user has scrolled near the bottom (within 20px)
+            const scrolledToBottom = waiverContent.scrollHeight - waiverContent.scrollTop - waiverContent.clientHeight < 20;
+
+            if (scrolledToBottom) {
+                hasScrolledToBottom = true;
+                enableCheckbox();
+            }
+        }
+
+        function enableCheckbox() {
+            termsCheckbox.disabled = false;
+            const label = document.querySelector('label[for="terms-agreement"]');
+            if (label) {
+                label.classList.remove('c-auth-checkbox__label--disabled');
+            }
+            if (termsWrapper) {
+                termsWrapper.classList.add('c-auth-checkbox--enabled');
+            }
+            if (scrollHint) {
+                scrollHint.classList.add('c-waiver__scroll-hint--hidden');
+            }
+        }
+
+        // Listen for scroll events on the waiver content
+        if (waiverContent) {
+            waiverContent.addEventListener('scroll', checkScrollPosition);
+            // Check on load in case content is short and already "scrolled"
+            checkScrollPosition();
+        }
+
+        // Handle terms agreement checkbox (for dev mode fallback)
         document.addEventListener('change', function(e) {
             const target = e.target;
-            if (!target.matches('[data-controller="terms-agreement"]')) return;
+            if (!target.matches('#terms-agreement')) return;
 
             const submitBtn = document.querySelector('[data-target="submit-button"]');
             const label = document.querySelector('label[for="terms-agreement"]');
@@ -154,5 +196,4 @@
         });
     });
 </script>
-{% endif %}
 {% endblock %}

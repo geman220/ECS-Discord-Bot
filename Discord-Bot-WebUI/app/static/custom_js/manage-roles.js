@@ -1,29 +1,12 @@
 /**
  * Manage Roles Page
- * Handles role permission management with Select2 integration
+ * Handles role permission management with native HTML5 selects
  */
 import { InitSystem } from '../js/init-system.js';
 
 export const ManageRoles = {
     init() {
-        this.initializeSelect2();
         this.setupRoleChangeHandler();
-    },
-
-    initializeSelect2() {
-        // Check if jQuery and Select2 are available
-        if (typeof window.$ === 'undefined' || typeof window.$.fn.select2 === 'undefined') {
-            console.warn('Select2 or jQuery not available. Using basic select.');
-            return;
-        }
-
-        // Initialize Select2 for permissions select
-        window.$('#permissions').select2({
-            placeholder: 'Select permissions...',
-            width: '100%',
-            theme: 'window.bootstrap-5',
-            closeOnSelect: false
-        });
     },
 
     setupRoleChangeHandler() {
@@ -71,16 +54,10 @@ export const ManageRoles = {
             const permissionsSelect = document.getElementById('permissions');
             if (!permissionsSelect) return;
 
-            // Update selected permissions
-            if (typeof window.$ !== 'undefined' && typeof window.$.fn.select2 !== 'undefined') {
-                // Use Select2 method
-                window.$('#permissions').val(data.permissions).trigger('change');
-            } else {
-                // Vanilla JS fallback
-                Array.from(permissionsSelect.options).forEach(option => {
-                    option.selected = data.permissions.includes(option.value);
-                });
-            }
+            // Update selected permissions using native select
+            Array.from(permissionsSelect.options).forEach(option => {
+                option.selected = data.permissions.includes(option.value);
+            });
         })
         .catch(error => {
             console.error('Error loading role permissions:', error);

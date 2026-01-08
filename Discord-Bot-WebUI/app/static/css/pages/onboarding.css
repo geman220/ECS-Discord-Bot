@@ -54,6 +54,19 @@
     --onboard-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Dark Mode Variables */
+[data-style="dark"],
+[data-theme="dark"],
+body[data-style="dark"] {
+    --onboard-surface: var(--color-secondary-800, #1e293b);
+    --onboard-surface-alt: var(--color-secondary-900, #0f172a);
+    --onboard-border-color: var(--color-secondary-600, #475569);
+    --onboard-border-strong: var(--color-secondary-500, #64748b);
+    --onboard-text-primary: var(--color-secondary-100, #f1f5f9);
+    --onboard-text-secondary: var(--color-secondary-300, #cbd5e1);
+    --onboard-text-muted: var(--color-secondary-500, #64748b);
+}
+
 /* ============================================
    ONBOARDING CONTAINER
    ============================================ */
@@ -619,4 +632,458 @@
     .c-onboarding-form__section-header {
         border-width: 3px;
     }
+}
+
+/* ============================================
+   ONBOARDING MODAL - Mobile Optimizations
+   ============================================ */
+
+/* Multi-select styling for native HTML5 selects */
+.c-onboarding-step__select--multi {
+    height: auto;
+    min-height: 120px;
+    padding: 0.5rem;
+}
+
+.c-onboarding-step__select--multi option {
+    padding: 0.625rem 0.75rem;
+    margin: 2px 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.c-onboarding-step__select--multi option:checked {
+    background: linear-gradient(0deg, var(--onboard-primary) 0%, var(--onboard-primary) 100%);
+    color: white;
+}
+
+.c-onboarding-step__select--multi option:hover {
+    background-color: var(--onboard-surface-alt);
+}
+
+/* Mobile modal optimizations */
+@media (max-width: 767.98px) {
+    /* Modal body scrollable area */
+    .c-onboarding-form {
+        padding: var(--onboard-space-sm);
+    }
+
+    /* Step header - more compact on mobile */
+    .c-onboarding-step__header {
+        flex-direction: column;
+        text-align: center;
+        gap: var(--onboard-space-sm);
+        margin-bottom: var(--onboard-space-md);
+    }
+
+    .c-onboarding-step__icon {
+        font-size: 2rem;
+    }
+
+    .c-onboarding-step__heading {
+        font-size: 1.25rem;
+    }
+
+    .c-onboarding-step__subheading {
+        font-size: 0.875rem;
+    }
+
+    /* Cards - reduce padding on mobile */
+    .c-onboarding-step__card {
+        padding: var(--onboard-space-sm) !important;
+    }
+
+    /* Form inputs - larger touch targets */
+    .c-onboarding-step__input,
+    .c-onboarding-step__select,
+    .c-onboarding-step__textarea {
+        font-size: 16px; /* Prevents iOS zoom on focus */
+        min-height: 48px;
+        padding: 0.75rem 1rem;
+    }
+
+    /* Multi-select - adjust height for mobile */
+    .c-onboarding-step__select--multi {
+        min-height: 150px;
+        font-size: 16px;
+    }
+
+    .c-onboarding-step__select--multi option {
+        padding: 0.75rem 1rem;
+        font-size: 0.9375rem;
+    }
+
+    /* Labels - larger on mobile */
+    .c-onboarding-step__label {
+        font-size: 0.9375rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Help text - visible and readable */
+    .c-onboarding-step__help-text {
+        font-size: 0.8125rem;
+        margin-top: 0.375rem;
+        line-height: 1.4;
+    }
+
+    /* Navigation controls - fixed at bottom for mobile */
+    .c-onboarding-controls {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-radius: 0;
+        padding: var(--onboard-space-sm) var(--onboard-space-md);
+        padding-bottom: calc(var(--onboard-space-sm) + env(safe-area-inset-bottom, 0px));
+        margin: 0;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: var(--onboard-space-sm);
+        background: var(--onboard-surface);
+        border-top: 1px solid var(--onboard-border-color);
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+        z-index: var(--z-fixed, 1030);
+    }
+
+    .c-onboarding-controls__button {
+        flex: 1;
+        max-width: none;
+        min-height: 48px;
+        font-size: 1rem;
+    }
+
+    /* Add padding to modal body to prevent content being hidden behind fixed controls */
+    .c-onboarding-form {
+        padding-bottom: 80px;
+    }
+
+    /* Cropper - full width on mobile */
+    .c-cropper__canvas {
+        width: 100% !important;
+        max-width: 280px;
+        height: auto !important;
+        aspect-ratio: 1;
+    }
+
+    /* Profile preview - centered and appropriately sized */
+    .c-profile-preview {
+        margin-bottom: var(--onboard-space-md);
+    }
+
+    .c-profile-preview__image {
+        width: 150px;
+        height: 150px;
+    }
+
+    /* Discord image - smaller on mobile */
+    .c-onboarding-step__discord-image {
+        max-width: 120px;
+        margin-bottom: var(--onboard-space-md);
+    }
+
+    /* Row layout - stack on mobile */
+    .c-onboarding-step__card .row {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .c-onboarding-step__card [class*="col-"] {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    /* Alert content - better alignment on mobile */
+    .c-onboarding-step__alert-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .c-onboarding-step__alert-content i {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 375px) {
+    .c-onboarding-step__select--multi {
+        min-height: 130px;
+    }
+
+    .c-onboarding-step__heading {
+        font-size: 1.125rem;
+    }
+
+    .c-profile-preview__image {
+        width: 120px;
+        height: 120px;
+    }
+
+    .c-cropper__canvas {
+        max-width: 240px;
+    }
+
+    /* Stack navigation buttons vertically on extra small screens */
+    .c-onboarding-controls {
+        flex-direction: column;
+        gap: var(--onboard-space-xs);
+    }
+
+    .c-onboarding-controls__button {
+        width: 100%;
+    }
+}
+
+/* ============================================
+   CROPPER.JS - Inline cropper for profile pictures
+   Mobile-first responsive design
+   ============================================ */
+
+/* Cropper container - inline within modal */
+.c-cropper {
+    width: 100%;
+    max-width: 100%;
+}
+
+.c-cropper__container {
+    position: relative;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+    background: var(--onboard-surface-alt);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.c-cropper__image {
+    display: block;
+    max-width: 100%;
+    width: 100%;
+}
+
+/* Cropper.js overrides for onboarding modal */
+.c-cropper .cropper-container {
+    max-width: 100%;
+    border-radius: 8px;
+}
+
+.c-cropper .cropper-view-box {
+    border-radius: 50%;
+    outline: none;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+}
+
+.c-cropper .cropper-face {
+    background-color: transparent;
+}
+
+.c-cropper .cropper-dashed {
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.c-cropper .cropper-line {
+    background-color: var(--onboard-primary);
+}
+
+.c-cropper .cropper-point {
+    background-color: var(--onboard-primary);
+    width: 10px;
+    height: 10px;
+}
+
+/* Touch-friendly points on mobile */
+@media (max-width: 767.98px) {
+    .c-cropper .cropper-point {
+        width: 14px;
+        height: 14px;
+    }
+
+    .c-cropper__container {
+        max-width: 280px;
+    }
+
+    .c-cropper__help {
+        font-size: 0.8125rem;
+        padding: 0 var(--onboard-space-sm);
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 375px) {
+    .c-cropper__container {
+        max-width: 240px;
+    }
+}
+
+/* Tablet and up */
+@media (min-width: 768px) {
+    .c-cropper__container {
+        max-width: 300px;
+    }
+}
+
+/* Cropper controls */
+.c-cropper-controls {
+    margin-top: var(--onboard-space-md);
+}
+
+.c-cropper-controls__text {
+    color: var(--onboard-text-secondary);
+    font-size: 0.875rem;
+}
+
+.c-cropper-controls__actions {
+    display: grid;
+    gap: var(--onboard-space-sm);
+}
+
+/* Legacy canvas styling (kept for backwards compatibility) */
+.cropper-canvas {
+    border: 2px solid var(--onboard-primary, #0d6efd);
+    border-radius: 8px;
+    cursor: move;
+    touch-action: none;
+}
+
+/* Profile preview avatar */
+.c-profile-preview__avatar {
+    display: inline-block;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: var(--onboard-shadow-md);
+}
+
+.c-profile-preview__image {
+    width: 180px;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+/* ============================================
+   CHECKBOX GROUP - Mobile-friendly multi-select
+   (Shared with profile wizard)
+   ============================================ */
+
+.c-wizard__checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.c-wizard__checkbox-item {
+    position: relative;
+}
+
+.c-wizard__checkbox-item input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.c-wizard__checkbox-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    padding: 10px 14px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--onboard-text-secondary);
+    background: var(--onboard-surface);
+    border: 2px solid var(--onboard-border-strong, var(--onboard-border-color));
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+}
+
+.c-wizard__checkbox-label:hover {
+    background: rgba(0, 83, 159, 0.08);
+    border-color: var(--onboard-primary);
+    color: var(--onboard-text-primary);
+    transform: translateY(-1px);
+}
+
+.c-wizard__checkbox-label:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.c-wizard__checkbox-item input:checked + .c-wizard__checkbox-label {
+    background: var(--onboard-primary);
+    border-color: var(--onboard-primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 83, 159, 0.35);
+    transform: scale(1.03);
+}
+
+/* Checkmark indicator for selected items */
+.c-wizard__checkbox-item input:checked + .c-wizard__checkbox-label::before {
+    content: '\2713';
+    margin-right: 6px;
+    font-weight: bold;
+    font-size: 0.875em;
+}
+
+.c-wizard__checkbox-item input:focus-visible + .c-wizard__checkbox-label {
+    outline: 2px solid var(--onboard-primary);
+    outline-offset: 2px;
+}
+
+/* Position checkboxes - 2-column grid for better fit */
+.c-wizard__checkbox-group--positions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+@media (min-width: 768px) {
+    .c-wizard__checkbox-group--positions {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 992px) {
+    .c-wizard__checkbox-group--positions {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.c-wizard__checkbox-group--positions .c-wizard__checkbox-label {
+    font-size: 0.75rem;
+    padding: 10px 12px;
+    text-align: center;
+}
+
+/* Mobile touch targets for checkboxes */
+@media (max-width: 767.98px) {
+    .c-wizard__checkbox-label {
+        min-height: 44px;
+        font-size: 0.875rem;
+        padding: 12px 14px;
+    }
+
+    .c-wizard__checkbox-group--positions .c-wizard__checkbox-label {
+        font-size: 0.8125rem;
+        min-height: 44px;
+    }
+}
+
+/* Dark mode support for checkboxes */
+[data-style="dark"] .c-wizard__checkbox-label {
+    background: var(--color-secondary-800, #1e293b);
+    border-color: var(--color-secondary-600, #475569);
+    color: var(--color-secondary-200, #e2e8f0);
+}
+
+[data-style="dark"] .c-wizard__checkbox-label:hover {
+    background: var(--color-secondary-700, #334155);
+    border-color: var(--color-primary-400, #60a5fa);
+}
+
+[data-style="dark"] .c-wizard__checkbox-item input:checked + .c-wizard__checkbox-label {
+    background: var(--color-primary-600, #2563eb);
+    border-color: var(--color-primary-500, #3b82f6);
 }

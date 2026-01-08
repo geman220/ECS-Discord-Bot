@@ -98,16 +98,8 @@ td:has(.dropdown),
 
 /* ============================================================================
    THIRD-PARTY COMPONENT Z-INDEX
-   Ensure dropdowns from Select2, Tagify, Flatpickr appear above content
+   Ensure dropdowns from Tagify, Flatpickr appear above content
    ============================================================================ */
-
-.select2-container--open {
-  z-index: var(--z-popover, 1040);
-}
-
-.select2-dropdown {
-  z-index: var(--z-popover, 1040);
-}
 
 .tagify__dropdown {
   z-index: var(--z-popover, 1040);

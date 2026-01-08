@@ -10,7 +10,7 @@
  * - Progress tracking
  * - SMS notification toggle and verification
  * - Profile image cropping integration
- * - Select2 dropdown initialization
+ * - Native HTML5 form controls
  *
  * Event Delegation Actions:
  * - onboarding-create-profile: Start profile creation (from intro screen)
@@ -88,51 +88,89 @@ export function initOnboarding() {
             const modal = e.target;
             if (modal.id !== 'onboardingSlideModal') return;
 
-            // Initialize Select2 dropdowns
-            $(modal).find('.select2-single').select2({
-                theme: 'window.bootstrap-5',
-                width: '100%',
-                placeholder: 'Select an option',
-                allowClear: true,
-                dropdownParent: $(modal)
-            });
-
-            $(modal).find('.select2-multiple').select2({
-                theme: 'window.bootstrap-5',
-                width: '100%',
-                placeholder: 'Select options',
-                allowClear: true,
-                dropdownParent: $(modal)
-            });
-
-            // Initialize simple cropper
-            if (!window.SimpleCropperInstance) {
-                window.SimpleCropperInstance = window.initializeSimpleCropper('cropCanvas');
-            }
-
             // Update the progress bar
             if (typeof updateProgress === 'function') {
                 updateProgress();
             }
         });
 
-        // Single delegated hidden.bs.modal listener for onboarding modal
+        // Clean up Cropper.js when modal is hidden
         document.addEventListener('hidden.bs.modal', function(e) {
             const modal = e.target;
             if (modal.id !== 'onboardingSlideModal') return;
 
-            $(modal).find('.select2-single, .select2-multiple').select2('destroy');
+            // Destroy Cropper.js instance to prevent memory leaks
+            if (window.onboardingCropper) {
+                window.onboardingCropper.destroy();
+                window.onboardingCropper = null;
+            }
         });
 
-        // Single delegated change listener for image input
+        // Single delegated change listener for image input - uses Cropper.js
         document.addEventListener('change', function(e) {
             if (e.target.id === 'image' && e.target.closest('#onboardingSlideModal')) {
-                window.loadImageIntoCropper(e.target);
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const imgElement = document.getElementById('onboardingCropperImage');
+                    if (!imgElement) {
+                        console.error('[onboarding] Cropper image element not found');
+                        return;
+                    }
+                    imgElement.src = event.target.result;
+
+                    // Show cropper interface, hide preview and instructions
+                    const profilePreview = document.getElementById('profilePicturePreview');
+                    const uploadInstructions = document.getElementById('uploadInstructions');
+                    const cropperInterface = document.getElementById('cropperInterface');
+                    const cropperControls = document.getElementById('cropperControls');
+
+                    if (profilePreview) profilePreview.classList.add('d-none');
+                    if (uploadInstructions) uploadInstructions.classList.add('d-none');
+                    if (cropperInterface) cropperInterface.classList.remove('d-none');
+                    if (cropperControls) cropperControls.classList.remove('d-none');
+
+                    // Destroy existing cropper instance if any
+                    if (window.onboardingCropper) {
+                        window.onboardingCropper.destroy();
+                        window.onboardingCropper = null;
+                    }
+
+                    // Initialize Cropper.js after a short delay to ensure image is loaded
+                    setTimeout(() => {
+                        if (typeof window.Cropper === 'undefined') {
+                            console.error('[onboarding] Cropper.js library not loaded');
+                            return;
+                        }
+
+                        window.onboardingCropper = new window.Cropper(imgElement, {
+                            aspectRatio: 1,
+                            viewMode: 1,
+                            dragMode: 'move',
+                            autoCropArea: 0.8,
+                            cropBoxMovable: true,
+                            cropBoxResizable: true,
+                            guides: true,
+                            center: true,
+                            highlight: true,
+                            background: false,
+                            responsive: true,
+                            restore: false,
+                            rotatable: false,
+                            scalable: false,
+                            toggleDragModeOnDblclick: false,
+                            checkOrientation: false
+                        });
+                    }, 50);
+                };
+                reader.readAsDataURL(file);
             }
         });
     }
 
-    // Note: Crop & Save handling is now done in simple-cropper.js via cropAndSaveProfileImage()
+    // Note: Crop & Save handling is done via event delegation in onboarding-wizard.js using Cropper.js
 
     // ======================
     //  Carousel initialization

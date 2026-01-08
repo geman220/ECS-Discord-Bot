@@ -10,6 +10,9 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/team-detail.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components/c-schedule.css') }}">
 {% endif %}
+{% if is_ecs_fc and can_manage_ecs_fc %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/admin-panel/ecs-fc.css') }}">
+{% endif %}
 {% endblock %}
 
 {% block main_content %}
@@ -228,7 +231,12 @@
                             </button>
                         </div>
                         {% endif %}
-                        {% if can_add_match %}
+                        {% if is_ecs_fc and can_manage_ecs_fc %}
+                        <button type="button" class="c-btn c-btn--primary c-btn--sm"
+                                data-bs-toggle="modal" data-bs-target="#ecsFcCreateMatchModal">
+                            <i class="ti ti-plus"></i>Schedule Match
+                        </button>
+                        {% elif can_add_match %}
                         <a href="{{ url_for('matches.add_match', team_id=team.id) }}"
                            class="c-btn c-btn--primary c-btn--sm">
                             <i class="ti ti-plus"></i>Add Match
