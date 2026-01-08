@@ -1,0 +1,478 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Security Dashboard{% endblock %}
+{% block panel_description %}Monitor security status, threats, and IP bans{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.health_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">System</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Security Dashboard</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Page Header -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div>
+        <h4 class="text-xl font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-shield-check mr-2 text-blue-500"></i>Security Dashboard
+        </h4>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Monitor security status, threats, and IP bans</p>
+    </div>
+    <div class="flex items-center gap-2">
+        <button type="button" id="refreshBtn" class="px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-lg hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-gray-700">
+            <i class="ti ti-refresh mr-1"></i>Refresh
+        </button>
+        <span class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-300 rounded-lg">
+            <i class="ti ti-clock mr-1"></i>
+            Last updated: <span id="lastUpdated">{{ current_time }}</span>
+        </span>
+    </div>
+</div>
+
+<!-- Security Features Status -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 {{ 'ring-2 ring-green-500' if stats.security_features.rate_limiting else 'ring-2 ring-yellow-500' }}">
+        <div class="flex items-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mr-3">
+                <i class="ti ti-shield-lock text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <div>
+                <h6 class="font-semibold text-gray-900 dark:text-white">Rate Limiting</h6>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if stats.security_features.rate_limiting else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
+                    {{ 'Enabled' if stats.security_features.rate_limiting else 'Disabled' }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 {{ 'ring-2 ring-green-500' if stats.security_features.csrf_protection else 'ring-2 ring-yellow-500' }}">
+        <div class="flex items-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mr-3">
+                <i class="ti ti-shield-check text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+            <div>
+                <h6 class="font-semibold text-gray-900 dark:text-white">CSRF Protection</h6>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if stats.security_features.csrf_protection else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
+                    {{ 'Active' if stats.security_features.csrf_protection else 'Inactive' }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 {{ 'ring-2 ring-green-500' if stats.security_features.attack_detection else 'ring-2 ring-red-500' }}">
+        <div class="flex items-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mr-3">
+                <i class="ti ti-eye text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <div>
+                <h6 class="font-semibold text-gray-900 dark:text-white">Attack Detection</h6>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if stats.security_features.attack_detection else 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' }}">
+                    {{ 'Monitoring' if stats.security_features.attack_detection else 'Offline' }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 {{ 'ring-2 ring-green-500' if stats.security_features.auto_ban else 'ring-2 ring-yellow-500' }}">
+        <div class="flex items-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mr-3">
+                <i class="ti ti-robot text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <div>
+                <h6 class="font-semibold text-gray-900 dark:text-white">Auto-Ban System</h6>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if stats.security_features.auto_ban else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
+                    {{ 'Active (' ~ stats.auto_ban_config.attack_threshold ~ ' strikes)' if stats.security_features.auto_ban else 'Disabled' }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 text-center">
+        <div class="flex items-center justify-center w-12 h-12 mx-auto rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
+            <i class="ti ti-eye text-2xl text-blue-600 dark:text-blue-400"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 dark:text-white" id="monitoredIps">{{ stats.total_monitored_ips }}</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Monitored IPs</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 text-center">
+        <div class="flex items-center justify-center w-12 h-12 mx-auto rounded-full bg-red-100 dark:bg-red-900/50 mb-3">
+            <i class="ti ti-ban text-2xl text-red-600 dark:text-red-400"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-red-600 dark:text-red-400" id="blacklistedIps">{{ stats.total_blacklisted_ips }}</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Blacklisted IPs</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 text-center">
+        <div class="flex items-center justify-center w-12 h-12 mx-auto rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
+            <i class="ti ti-alert-triangle text-2xl text-yellow-600 dark:text-yellow-400"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" id="attackAttempts">{{ stats.total_attack_attempts }}</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Attack Attempts</p>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 text-center">
+        <div class="flex items-center justify-center w-12 h-12 mx-auto rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
+            <i class="ti ti-users text-2xl text-cyan-600 dark:text-cyan-400"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-900 dark:text-white" id="uniqueAttackers">{{ stats.unique_attackers }}</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Unique Attackers</p>
+    </div>
+</div>
+
+<!-- Auto-Ban Config and Banned IPs -->
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+    <!-- Auto-Ban Configuration -->
+    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-robot mr-2"></i>Auto-Ban Configuration
+            </h5>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <div class="flex items-center">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if stats.auto_ban_config.enabled else 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' }} mr-2">
+                            {{ 'ON' if stats.auto_ban_config.enabled else 'OFF' }}
+                        </span>
+                        <span class="text-gray-600 dark:text-gray-400">Auto-Ban System</span>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-lg font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.attack_threshold }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Attack Threshold</p>
+                </div>
+                <div>
+                    <p class="text-lg font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.rate_threshold }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Rate Limit (req/hr)</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-lg font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.duration_hours }}h</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Initial Ban Duration</p>
+                </div>
+                <div class="col-span-2 flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if stats.auto_ban_config.escalation_enabled else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }} mr-2">
+                            {{ 'ESCALATION' if stats.auto_ban_config.escalation_enabled else 'FIXED' }}
+                        </span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Ban escalation</span>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-lg font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.max_duration_hours }}h</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Max Ban Duration</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banned IPs List -->
+    <div class="lg:col-span-3 bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-ban mr-2"></i>Banned IPs
+                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ blacklisted_ips|length }}</span>
+            </h5>
+            {% if 'Global Admin' in user_roles %}
+            <div class="flex gap-2">
+                <button type="button" class="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800" data-action="show-ban-ip-modal">
+                    <i class="ti ti-plus mr-1"></i>Ban IP
+                </button>
+                <button type="button" class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800" data-action="clear-all-bans">
+                    <i class="ti ti-trash mr-1"></i>Clear All
+                </button>
+            </div>
+            {% endif %}
+        </div>
+        {% if blacklisted_ips %}
+        <div class="overflow-x-auto max-h-64">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">IP Address</th>
+                        <th scope="col" class="px-4 py-3">Reason</th>
+                        <th scope="col" class="px-4 py-3">Banned By</th>
+                        <th scope="col" class="px-4 py-3">Expires</th>
+                        <th scope="col" class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ban in blacklisted_ips %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="px-4 py-2"><code class="text-xs">{{ ban.ip }}</code></td>
+                        <td class="px-4 py-2 text-xs">{{ ban.reason[:30] }}{% if ban.reason|length > 30 %}...{% endif %}</td>
+                        <td class="px-4 py-2 text-xs">{{ ban.banned_by }}</td>
+                        <td class="px-4 py-2">
+                            {% if ban.is_permanent %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-800 text-white">Permanent</span>
+                            {% else %}
+                            <span class="text-xs">{{ ban.expires_at.strftime('%m/%d %H:%M') if ban.expires_at else 'N/A' }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2">
+                            {% if 'Global Admin' in user_roles %}
+                            <button type="button" class="p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded" data-action="unban-ip" data-ip="{{ ban.ip }}" title="Unban">
+                                <i class="ti ti-check"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
+                <i class="ti ti-shield-check text-3xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <p class="text-gray-500 dark:text-gray-400">No IPs currently banned</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Monitored IPs -->
+{% if stats.monitored_ips %}
+{% call card(title="Top Monitored IPs", no_padding=true) %}
+<div class="overflow-x-auto">
+    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+                <th scope="col" class="px-4 py-3">IP Address</th>
+                <th scope="col" class="px-4 py-3">Request Count</th>
+                <th scope="col" class="px-4 py-3">Attack Count</th>
+                <th scope="col" class="px-4 py-3">Last Seen</th>
+                <th scope="col" class="px-4 py-3">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ip in stats.monitored_ips %}
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                <td class="px-4 py-3"><code class="text-xs">{{ ip.ip }}</code></td>
+                <td class="px-4 py-3">{{ ip.request_count }}</td>
+                <td class="px-4 py-3">
+                    {% if ip.attack_count > 0 %}
+                    <span class="text-red-600 dark:text-red-400 font-bold">{{ ip.attack_count }}</span>
+                    {% else %}
+                    <span class="text-gray-400">0</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 text-xs">{{ ip.last_seen }}</td>
+                <td class="px-4 py-3">
+                    {% if ip.attack_count >= stats.auto_ban_config.attack_threshold %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">At Risk</span>
+                    {% elif ip.attack_count > 0 %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Warning</span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Normal</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endcall %}
+{% endif %}
+
+<!-- Ban IP Modal -->
+<div id="banIpModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-gray-900/50">
+    <div class="relative w-full max-w-md p-4">
+        <div class="bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-ban mr-2"></i>Ban IP Address
+                </h3>
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" data-modal-hide="banIpModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">IP Address</label>
+                    <input type="text" id="banIpAddress" placeholder="e.g., 192.168.1.100" class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason</label>
+                    <input type="text" id="banReason" placeholder="Reason for ban" class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Duration (hours)</label>
+                    <input type="number" id="banDuration" value="24" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="banPermanent" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="banPermanent" class="ml-2 text-sm text-gray-900 dark:text-white">Permanent ban</label>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 p-5 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600" data-modal-hide="banIpModal">
+                    Cancel
+                </button>
+                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700" data-action="ban-ip">
+                    Ban IP
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    // Refresh stats
+    document.getElementById('refreshBtn')?.addEventListener('click', refreshStats);
+    setInterval(refreshStats, 30000);
+
+    // Modal controls
+    document.querySelectorAll('[data-action="show-ban-ip-modal"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('banIpModal').classList.remove('hidden');
+        });
+    });
+
+    document.querySelectorAll('[data-modal-hide="banIpModal"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('banIpModal').classList.add('hidden');
+        });
+    });
+
+    // Ban IP
+    document.querySelectorAll('[data-action="ban-ip"]').forEach(btn => {
+        btn.addEventListener('click', banIp);
+    });
+
+    // Unban IP
+    document.querySelectorAll('[data-action="unban-ip"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            unbanIp(this.dataset.ip);
+        });
+    });
+
+    // Clear all bans
+    document.querySelectorAll('[data-action="clear-all-bans"]').forEach(btn => {
+        btn.addEventListener('click', clearAllBans);
+    });
+
+    async function refreshStats() {
+        try {
+            const response = await fetch('{{ url_for("admin_panel.api_security_status") }}');
+            const data = await response.json();
+            if (data.success) {
+                document.getElementById('monitoredIps').textContent = data.stats.total_monitored_ips;
+                document.getElementById('blacklistedIps').textContent = data.stats.total_blacklisted_ips;
+                document.getElementById('attackAttempts').textContent = data.stats.total_attack_attempts;
+                document.getElementById('uniqueAttackers').textContent = data.stats.unique_attackers;
+                document.getElementById('lastUpdated').textContent = data.stats.current_time;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    async function banIp() {
+        const ipAddress = document.getElementById('banIpAddress').value.trim();
+        const reason = document.getElementById('banReason').value.trim();
+        const durationHours = parseInt(document.getElementById('banDuration').value);
+        const permanent = document.getElementById('banPermanent').checked;
+
+        if (!ipAddress) {
+            Swal.fire({ title: 'Error', text: 'IP address is required', icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            return;
+        }
+
+        try {
+            const response = await fetch('{{ url_for("admin_panel.security_ban_ip") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ ip_address: ipAddress, reason: reason || 'Manual ban', duration_hours: durationHours, permanent: permanent })
+            });
+            const data = await response.json();
+            if (data.success) {
+                Swal.fire({ title: 'Success', text: data.message, icon: 'success', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+            } else {
+                Swal.fire({ title: 'Error', text: data.message, icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            }
+        } catch (error) {
+            Swal.fire({ title: 'Error', text: 'Failed to ban IP', icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+        }
+    }
+
+    async function unbanIp(ipAddress) {
+        const result = await Swal.fire({
+            title: 'Unban IP?',
+            text: `Are you sure you want to unban ${ipAddress}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, unban',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            const response = await fetch('{{ url_for("admin_panel.security_unban_ip") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ ip_address: ipAddress })
+            });
+            const data = await response.json();
+            if (data.success) {
+                Swal.fire({ title: 'Success', text: data.message, icon: 'success', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+            } else {
+                Swal.fire({ title: 'Error', text: data.message, icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            }
+        } catch (error) {
+            Swal.fire({ title: 'Error', text: 'Failed to unban IP', icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+        }
+    }
+
+    async function clearAllBans() {
+        const result = await Swal.fire({
+            title: 'Clear All Bans?',
+            text: 'This will remove ALL IP bans. Are you sure?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            confirmButtonText: 'Yes, clear all',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            const response = await fetch('{{ url_for("admin_panel.security_clear_all_bans") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            const data = await response.json();
+            if (data.success) {
+                Swal.fire({ title: 'Success', text: data.message, icon: 'success', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+            } else {
+                Swal.fire({ title: 'Error', text: data.message, icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            }
+        } catch (error) {
+            Swal.fire({ title: 'Error', text: 'Failed to clear bans', icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+        }
+    }
+});
+</script>
+{% endblock %}
