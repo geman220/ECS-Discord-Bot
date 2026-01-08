@@ -1,0 +1,1184 @@
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal, input %}
+
+{% block title %}Appearance - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-6 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow">
+        <div class="flex items-center gap-4">
+            <div class="p-3 bg-white/20 rounded-lg">
+                <i class="ti ti-palette text-3xl text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-white">Theme Customization</h1>
+                <p class="text-purple-100">Customize colors for the Modern theme. Changes apply site-wide.</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/20 hover:bg-white/30 rounded-lg transition-colors" data-action="export-colors">
+                <i class="ti ti-download mr-2"></i>Export
+            </button>
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-white/20 hover:bg-white/30 rounded-lg transition-colors" data-action="show-import">
+                <i class="ti ti-upload mr-2"></i>Import
+            </button>
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-500/80 hover:bg-red-500 rounded-lg transition-colors" data-action="reset-colors">
+                <i class="ti ti-refresh mr-2"></i>Reset to Default
+            </button>
+        </div>
+    </div>
+
+    {% if has_custom_colors %}
+    <div class="flex items-center p-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 dark:border-blue-800">
+        <i class="ti ti-info-circle text-lg mr-3"></i>
+        <div>
+            <span class="font-medium">Custom colors are active.</span>
+            These colors override the default Modern theme palette.
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Live Preview Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <div>
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-eye text-purple-600"></i>
+                    <span>Live Preview</span>
+                </h5>
+                <p class="text-sm text-gray-500 dark:text-gray-400">See your color changes in real-time for both modes</p>
+            </div>
+            <div class="flex mt-4 lg:mt-0 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                <button type="button" class="px-4 py-2 text-sm font-medium rounded-md bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm preview-mode-btn active" id="previewBothBtn" data-action="preview-mode" data-mode="both">Both</button>
+                <button type="button" class="px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 preview-mode-btn" id="previewLightBtn" data-action="preview-mode" data-mode="light">Light Only</button>
+                <button type="button" class="px-4 py-2 text-sm font-medium rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 preview-mode-btn" id="previewDarkBtn" data-action="preview-mode" data-mode="dark">Dark Only</button>
+            </div>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="previewContainer">
+                <!-- Light Mode Preview -->
+                <div id="lightPreviewCol">
+                    <div class="relative rounded-lg overflow-hidden border-2 border-gray-200">
+                        <span class="absolute top-3 left-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 z-10">
+                            <i class="ti ti-sun mr-1"></i>
+                            <span>Light Mode</span>
+                        </span>
+
+                        <!-- Preview Tabs -->
+                        <div class="absolute top-3 right-3 flex gap-1 z-10">
+                            <button type="button" class="px-2 py-1 text-xs font-medium rounded bg-white shadow text-gray-900 preview-tab-btn active" data-action="preview-tab" data-tab="basic" data-panel="light">
+                                <i class="ti ti-layout-cards"></i>
+                            </button>
+                            <button type="button" class="px-2 py-1 text-xs font-medium rounded bg-white/80 text-gray-600 hover:bg-white preview-tab-btn" data-action="preview-tab" data-tab="modal" data-panel="light">
+                                <i class="ti ti-window"></i>
+                            </button>
+                            <button type="button" class="px-2 py-1 text-xs font-medium rounded bg-white/80 text-gray-600 hover:bg-white preview-tab-btn" data-action="preview-tab" data-tab="table" data-panel="light">
+                                <i class="ti ti-table"></i>
+                            </button>
+                            <button type="button" class="px-2 py-1 text-xs font-medium rounded bg-white/80 text-gray-600 hover:bg-white preview-tab-btn" data-action="preview-tab" data-tab="nav" data-panel="light">
+                                <i class="ti ti-navigation"></i>
+                            </button>
+                        </div>
+
+                        <div id="light-preview-area" class="p-6 pt-12 min-h-[320px]" style="background: {{ colors.light.bg_body }};">
+                            <!-- Basic Preview Section -->
+                            <div class="preview-section" data-preview-section="basic" data-panel="light">
+                                <!-- Simulated Navbar -->
+                                <div class="flex items-center justify-between p-3 rounded-t-lg border-b" style="background: {{ colors.light.bg_card }}; border-color: {{ colors.light.border }};">
+                                    <span class="font-semibold" style="color: {{ colors.light.text_heading }};">ECS Dashboard</span>
+                                    <input type="text" class="px-2 py-1 text-sm rounded border w-32" style="background: {{ colors.light.bg_input }}; border-color: {{ colors.light.border_input }}; color: {{ colors.light.text_body }};" placeholder="Search...">
+                                </div>
+
+                                <!-- Simulated Card -->
+                                <div class="p-4 rounded-b-lg border border-t-0 border-l-4" style="background: {{ colors.light.bg_card }}; border-color: {{ colors.light.border }}; border-left-color: {{ colors.light.primary }};">
+                                    <h6 class="font-semibold mb-1" style="color: {{ colors.light.text_heading }};">Card Title</h6>
+                                    <p class="text-sm mb-1" style="color: {{ colors.light.text_body }};">
+                                        This is body text showing <a href="#" class="underline" style="color: {{ colors.light.text_link }};">a sample link</a>.
+                                    </p>
+                                    <p class="text-xs" style="color: {{ colors.light.text_muted }};">Muted caption text</p>
+                                </div>
+
+                                <!-- Buttons -->
+                                <div class="flex gap-2 mt-4">
+                                    <button class="px-3 py-1.5 text-xs font-medium rounded text-white" style="background: {{ colors.light.primary }};">Primary</button>
+                                    <button class="px-3 py-1.5 text-xs font-medium rounded text-white" style="background: {{ colors.light.secondary }};">Secondary</button>
+                                    <button class="px-3 py-1.5 text-xs font-medium rounded text-white" style="background: {{ colors.light.accent }};">Accent</button>
+                                </div>
+
+                                <!-- Status Badges -->
+                                <div class="flex gap-2 mt-4">
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded text-white" style="background: {{ colors.light.success }};">Success</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded text-white" style="background: {{ colors.light.warning }};">Warning</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded text-white" style="background: {{ colors.light.danger }};">Danger</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded text-white" style="background: {{ colors.light.info }};">Info</span>
+                                </div>
+                            </div>
+
+                            <!-- Modal Preview Section -->
+                            <div class="preview-section hidden" data-preview-section="modal" data-panel="light">
+                                <div class="rounded-lg border shadow-lg" style="background: {{ colors.light.bg_card }}; border-color: {{ colors.light.border }};">
+                                    <div class="flex items-center justify-between p-3 border-b" style="border-color: {{ colors.light.border }};">
+                                        <span class="font-semibold flex items-center gap-2" style="color: {{ colors.light.text_heading }};">
+                                            <i class="ti ti-edit"></i> Edit User
+                                        </span>
+                                        <button class="text-lg" style="color: {{ colors.light.text_muted }};"><i class="ti ti-x"></i></button>
+                                    </div>
+                                    <div class="p-3 space-y-3">
+                                        <div class="p-3 rounded border" style="background: {{ colors.light.bg_body }}; border-color: {{ colors.light.border }};">
+                                            <label class="block text-xs mb-1" style="color: {{ colors.light.text_muted }};">Username</label>
+                                            <input type="text" class="w-full px-2 py-1 text-sm rounded border" style="background: {{ colors.light.bg_input }}; border-color: {{ colors.light.border_input }}; color: {{ colors.light.text_body }};" value="johndoe">
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <span class="px-2 py-1 text-xs rounded border" style="background: {{ colors.light.bg_input }}; border-color: {{ colors.light.border_input }}; color: {{ colors.light.text_body }};"><i class="ti ti-user mr-1"></i>Player</span>
+                                            <span class="px-2 py-1 text-xs rounded text-white" style="background: {{ colors.light.primary }};"><i class="ti ti-shield mr-1"></i>Admin</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-end gap-2 p-3 border-t" style="border-color: {{ colors.light.border }};">
+                                        <button class="px-3 py-1 text-xs" style="color: {{ colors.light.text_muted }};"><i class="ti ti-x mr-1"></i>Cancel</button>
+                                        <button class="px-3 py-1 text-xs rounded text-white" style="background: {{ colors.light.primary }};"><i class="ti ti-device-floppy mr-1"></i>Save</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Table Preview Section -->
+                            <div class="preview-section hidden" data-preview-section="table" data-panel="light">
+                                <div class="rounded-lg border overflow-hidden" style="border-color: {{ colors.light.border }};">
+                                    <table class="w-full text-xs">
+                                        <thead style="background: {{ colors.light.bg_body }};">
+                                            <tr>
+                                                <th class="p-2 text-left border-b" style="color: {{ colors.light.text_muted }}; border-color: {{ colors.light.border }};">Player</th>
+                                                <th class="p-2 text-left border-b" style="color: {{ colors.light.text_muted }}; border-color: {{ colors.light.border }};">Team</th>
+                                                <th class="p-2 text-left border-b" style="color: {{ colors.light.text_muted }}; border-color: {{ colors.light.border }};">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr style="background: {{ colors.light.bg_card }};">
+                                                <td class="p-2 border-b font-medium" style="color: {{ colors.light.text_heading }}; border-color: {{ colors.light.border }};">John Smith</td>
+                                                <td class="p-2 border-b" style="color: {{ colors.light.text_body }}; border-color: {{ colors.light.border }};">Team Alpha</td>
+                                                <td class="p-2 border-b" style="border-color: {{ colors.light.border }};"><span class="px-1.5 py-0.5 text-xs rounded text-white" style="background: {{ colors.light.success }};">Active</span></td>
+                                            </tr>
+                                            <tr style="background: {{ colors.light.bg_body }};">
+                                                <td class="p-2 border-b font-medium" style="color: {{ colors.light.text_heading }}; border-color: {{ colors.light.border }};">Jane Doe</td>
+                                                <td class="p-2 border-b" style="color: {{ colors.light.text_body }}; border-color: {{ colors.light.border }};">Team Beta</td>
+                                                <td class="p-2 border-b" style="border-color: {{ colors.light.border }};"><span class="px-1.5 py-0.5 text-xs rounded text-white" style="background: {{ colors.light.warning }};">Pending</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Navigation Preview Section -->
+                            <div class="preview-section hidden" data-preview-section="nav" data-panel="light">
+                                <div class="flex gap-3">
+                                    <div class="w-32 rounded-lg border" style="background: {{ colors.light.bg_card }}; border-color: {{ colors.light.border }};">
+                                        <div class="p-2 border-b font-semibold text-sm" style="color: {{ colors.light.text_heading }}; border-color: {{ colors.light.border }};">ECS</div>
+                                        <nav class="p-2 space-y-1">
+                                            <a href="#" class="flex items-center gap-2 px-2 py-1 text-xs rounded text-white" style="background: {{ colors.light.primary }};"><i class="ti ti-dashboard"></i>Dashboard</a>
+                                            <a href="#" class="flex items-center gap-2 px-2 py-1 text-xs" style="color: {{ colors.light.text_body }};"><i class="ti ti-users"></i>Players</a>
+                                            <a href="#" class="flex items-center gap-2 px-2 py-1 text-xs" style="color: {{ colors.light.text_muted }};"><i class="ti ti-calendar"></i>Schedule</a>
+                                        </nav>
+                                    </div>
+                                    <div class="flex-1 space-y-3">
+                                        <nav class="flex items-center gap-1 text-xs p-2 rounded" style="background: {{ colors.light.bg_body }};">
+                                            <a href="#" style="color: {{ colors.light.text_link }};">Home</a>
+                                            <span style="color: {{ colors.light.text_muted }};">/</span>
+                                            <a href="#" style="color: {{ colors.light.text_link }};">Admin</a>
+                                            <span style="color: {{ colors.light.text_muted }};">/</span>
+                                            <span style="color: {{ colors.light.text_body }};">Settings</span>
+                                        </nav>
+                                        <div class="flex border-b" style="border-color: {{ colors.light.border }};">
+                                            <button class="px-3 py-2 text-xs border-b-2" style="color: {{ colors.light.primary }}; border-color: {{ colors.light.primary }};">Overview</button>
+                                            <button class="px-3 py-2 text-xs" style="color: {{ colors.light.text_muted }};">Details</button>
+                                            <button class="px-3 py-2 text-xs" style="color: {{ colors.light.text_muted }};">Settings</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dark Mode Preview -->
+                <div id="darkPreviewCol">
+                    <div class="relative rounded-lg overflow-hidden border-2 border-gray-700">
+                        <span class="absolute top-3 left-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-900 text-indigo-200 z-10">
+                            <i class="ti ti-moon mr-1"></i>
+                            <span>Dark Mode</span>
+                        </span>
+
+                        <!-- Preview Tabs -->
+                        <div class="absolute top-3 right-3 flex gap-1 z-10">
+                            <button type="button" class="px-2 py-1 text-xs font-medium rounded bg-gray-700 shadow text-white preview-tab-btn active" data-action="preview-tab" data-tab="basic" data-panel="dark">
+                                <i class="ti ti-layout-cards"></i>
+                            </button>
+                            <button type="button" class="px-2 py-1 text-xs font-medium rounded bg-gray-800/80 text-gray-400 hover:bg-gray-700 preview-tab-btn" data-action="preview-tab" data-tab="modal" data-panel="dark">
+                                <i class="ti ti-window"></i>
+                            </button>
+                            <button type="button" class="px-2 py-1 text-xs font-medium rounded bg-gray-800/80 text-gray-400 hover:bg-gray-700 preview-tab-btn" data-action="preview-tab" data-tab="table" data-panel="dark">
+                                <i class="ti ti-table"></i>
+                            </button>
+                            <button type="button" class="px-2 py-1 text-xs font-medium rounded bg-gray-800/80 text-gray-400 hover:bg-gray-700 preview-tab-btn" data-action="preview-tab" data-tab="nav" data-panel="dark">
+                                <i class="ti ti-navigation"></i>
+                            </button>
+                        </div>
+
+                        <div id="dark-preview-area" class="p-6 pt-12 min-h-[320px]" style="background: {{ colors.dark.bg_body }};">
+                            <!-- Basic Preview Section -->
+                            <div class="preview-section" data-preview-section="basic" data-panel="dark">
+                                <!-- Simulated Navbar -->
+                                <div class="flex items-center justify-between p-3 rounded-t-lg border-b" style="background: {{ colors.dark.bg_card }}; border-color: {{ colors.dark.border }};">
+                                    <span class="font-semibold" style="color: {{ colors.dark.text_heading }};">ECS Dashboard</span>
+                                    <input type="text" class="px-2 py-1 text-sm rounded border w-32" style="background: {{ colors.dark.bg_input }}; border-color: {{ colors.dark.border_input }}; color: {{ colors.dark.text_body }};" placeholder="Search...">
+                                </div>
+
+                                <!-- Simulated Card -->
+                                <div class="p-4 rounded-b-lg border border-t-0 border-l-4" style="background: {{ colors.dark.bg_card }}; border-color: {{ colors.dark.border }}; border-left-color: {{ colors.dark.primary }};">
+                                    <h6 class="font-semibold mb-1" style="color: {{ colors.dark.text_heading }};">Card Title</h6>
+                                    <p class="text-sm mb-1" style="color: {{ colors.dark.text_body }};">
+                                        This is body text showing <a href="#" class="underline" style="color: {{ colors.dark.text_link }};">a sample link</a>.
+                                    </p>
+                                    <p class="text-xs" style="color: {{ colors.dark.text_muted }};">Muted caption text</p>
+                                </div>
+
+                                <!-- Buttons -->
+                                <div class="flex gap-2 mt-4">
+                                    <button class="px-3 py-1.5 text-xs font-medium rounded text-white" style="background: {{ colors.dark.primary }};">Primary</button>
+                                    <button class="px-3 py-1.5 text-xs font-medium rounded text-white" style="background: {{ colors.dark.secondary }};">Secondary</button>
+                                    <button class="px-3 py-1.5 text-xs font-medium rounded text-white" style="background: {{ colors.dark.accent }};">Accent</button>
+                                </div>
+
+                                <!-- Status Badges -->
+                                <div class="flex gap-2 mt-4">
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded text-white" style="background: {{ colors.dark.success }};">Success</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded text-white" style="background: {{ colors.dark.warning }};">Warning</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded text-white" style="background: {{ colors.dark.danger }};">Danger</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded text-white" style="background: {{ colors.dark.info }};">Info</span>
+                                </div>
+                            </div>
+
+                            <!-- Modal Preview Section -->
+                            <div class="preview-section hidden" data-preview-section="modal" data-panel="dark">
+                                <div class="rounded-lg border shadow-lg" style="background: {{ colors.dark.bg_card }}; border-color: {{ colors.dark.border }};">
+                                    <div class="flex items-center justify-between p-3 border-b" style="border-color: {{ colors.dark.border }};">
+                                        <span class="font-semibold flex items-center gap-2" style="color: {{ colors.dark.text_heading }};">
+                                            <i class="ti ti-edit"></i> Edit User
+                                        </span>
+                                        <button class="text-lg" style="color: {{ colors.dark.text_muted }};"><i class="ti ti-x"></i></button>
+                                    </div>
+                                    <div class="p-3 space-y-3">
+                                        <div class="p-3 rounded border" style="background: {{ colors.dark.bg_body }}; border-color: {{ colors.dark.border }};">
+                                            <label class="block text-xs mb-1" style="color: {{ colors.dark.text_muted }};">Username</label>
+                                            <input type="text" class="w-full px-2 py-1 text-sm rounded border" style="background: {{ colors.dark.bg_input }}; border-color: {{ colors.dark.border_input }}; color: {{ colors.dark.text_body }};" value="johndoe">
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <span class="px-2 py-1 text-xs rounded border" style="background: {{ colors.dark.bg_input }}; border-color: {{ colors.dark.border_input }}; color: {{ colors.dark.text_body }};"><i class="ti ti-user mr-1"></i>Player</span>
+                                            <span class="px-2 py-1 text-xs rounded text-white" style="background: {{ colors.dark.primary }};"><i class="ti ti-shield mr-1"></i>Admin</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex justify-end gap-2 p-3 border-t" style="border-color: {{ colors.dark.border }};">
+                                        <button class="px-3 py-1 text-xs" style="color: {{ colors.dark.text_muted }};"><i class="ti ti-x mr-1"></i>Cancel</button>
+                                        <button class="px-3 py-1 text-xs rounded text-white" style="background: {{ colors.dark.primary }};"><i class="ti ti-device-floppy mr-1"></i>Save</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Table Preview Section -->
+                            <div class="preview-section hidden" data-preview-section="table" data-panel="dark">
+                                <div class="rounded-lg border overflow-hidden" style="border-color: {{ colors.dark.border }};">
+                                    <table class="w-full text-xs">
+                                        <thead style="background: {{ colors.dark.bg_body }};">
+                                            <tr>
+                                                <th class="p-2 text-left border-b" style="color: {{ colors.dark.text_muted }}; border-color: {{ colors.dark.border }};">Player</th>
+                                                <th class="p-2 text-left border-b" style="color: {{ colors.dark.text_muted }}; border-color: {{ colors.dark.border }};">Team</th>
+                                                <th class="p-2 text-left border-b" style="color: {{ colors.dark.text_muted }}; border-color: {{ colors.dark.border }};">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr style="background: {{ colors.dark.bg_card }};">
+                                                <td class="p-2 border-b font-medium" style="color: {{ colors.dark.text_heading }}; border-color: {{ colors.dark.border }};">John Smith</td>
+                                                <td class="p-2 border-b" style="color: {{ colors.dark.text_body }}; border-color: {{ colors.dark.border }};">Team Alpha</td>
+                                                <td class="p-2 border-b" style="border-color: {{ colors.dark.border }};"><span class="px-1.5 py-0.5 text-xs rounded text-white" style="background: {{ colors.dark.success }};">Active</span></td>
+                                            </tr>
+                                            <tr style="background: {{ colors.dark.bg_body }};">
+                                                <td class="p-2 border-b font-medium" style="color: {{ colors.dark.text_heading }}; border-color: {{ colors.dark.border }};">Jane Doe</td>
+                                                <td class="p-2 border-b" style="color: {{ colors.dark.text_body }}; border-color: {{ colors.dark.border }};">Team Beta</td>
+                                                <td class="p-2 border-b" style="border-color: {{ colors.dark.border }};"><span class="px-1.5 py-0.5 text-xs rounded text-white" style="background: {{ colors.dark.warning }};">Pending</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Navigation Preview Section -->
+                            <div class="preview-section hidden" data-preview-section="nav" data-panel="dark">
+                                <div class="flex gap-3">
+                                    <div class="w-32 rounded-lg border" style="background: {{ colors.dark.bg_card }}; border-color: {{ colors.dark.border }};">
+                                        <div class="p-2 border-b font-semibold text-sm" style="color: {{ colors.dark.text_heading }}; border-color: {{ colors.dark.border }};">ECS</div>
+                                        <nav class="p-2 space-y-1">
+                                            <a href="#" class="flex items-center gap-2 px-2 py-1 text-xs rounded text-white" style="background: {{ colors.dark.primary }};"><i class="ti ti-dashboard"></i>Dashboard</a>
+                                            <a href="#" class="flex items-center gap-2 px-2 py-1 text-xs" style="color: {{ colors.dark.text_body }};"><i class="ti ti-users"></i>Players</a>
+                                            <a href="#" class="flex items-center gap-2 px-2 py-1 text-xs" style="color: {{ colors.dark.text_muted }};"><i class="ti ti-calendar"></i>Schedule</a>
+                                        </nav>
+                                    </div>
+                                    <div class="flex-1 space-y-3">
+                                        <nav class="flex items-center gap-1 text-xs p-2 rounded" style="background: {{ colors.dark.bg_body }};">
+                                            <a href="#" style="color: {{ colors.dark.text_link }};">Home</a>
+                                            <span style="color: {{ colors.dark.text_muted }};">/</span>
+                                            <a href="#" style="color: {{ colors.dark.text_link }};">Admin</a>
+                                            <span style="color: {{ colors.dark.text_muted }};">/</span>
+                                            <span style="color: {{ colors.dark.text_body }};">Settings</span>
+                                        </nav>
+                                        <div class="flex border-b" style="border-color: {{ colors.dark.border }};">
+                                            <button class="px-3 py-2 text-xs border-b-2" style="color: {{ colors.dark.primary }}; border-color: {{ colors.dark.primary }};">Overview</button>
+                                            <button class="px-3 py-2 text-xs" style="color: {{ colors.dark.text_muted }};">Details</button>
+                                            <button class="px-3 py-2 text-xs" style="color: {{ colors.dark.text_muted }};">Settings</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Presets Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <div>
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-stack-2 text-purple-600"></i>
+                    <span>Theme Presets</span>
+                </h5>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Save and manage reusable color schemes for users to select</p>
+            </div>
+            <button type="button" class="mt-4 lg:mt-0 inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors" data-action="save-as-preset">
+                <i class="ti ti-plus mr-2"></i>Save Current as Preset
+            </button>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" data-presets-grid>
+                <!-- Default Preset (always present) -->
+                <div class="relative p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-600 transition-colors" data-preset-card data-preset-slug="default">
+                    <span class="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded">System</span>
+                    <div class="flex gap-1 mb-3">
+                        <span class="w-6 h-6 rounded-full bg-purple-600"></span>
+                        <span class="w-6 h-6 rounded-full bg-amber-500"></span>
+                        <span class="w-6 h-6 rounded-full bg-green-500"></span>
+                        <span class="w-6 h-6 rounded-full bg-blue-500"></span>
+                    </div>
+                    <h6 class="font-semibold text-gray-900 dark:text-white">Default</h6>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">System default color scheme</p>
+                    <button type="button" class="w-full px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors" data-action="apply-preset" data-preset-slug="default">
+                        <i class="ti ti-check mr-1"></i>Apply
+                    </button>
+                </div>
+                <!-- Dynamic presets loaded via JavaScript -->
+            </div>
+            <div class="hidden text-center py-8" data-presets-empty>
+                <i class="ti ti-palette-off text-4xl text-gray-400 dark:text-gray-600 mb-2"></i>
+                <p class="text-gray-500 dark:text-gray-400">No custom presets yet. Save your current colors as a preset to get started.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color Tabs -->
+    <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
+        <ul class="flex flex-wrap -mb-px text-sm font-medium" id="colorTabs" role="tablist">
+            <li class="mr-2" role="presentation">
+                <button class="inline-flex items-center p-4 border-b-2 border-purple-600 text-purple-600 dark:text-purple-500 dark:border-purple-500 rounded-t-lg" id="light-tab" data-tabs-target="#light-colors" type="button" role="tab" aria-controls="light-colors" aria-selected="true">
+                    <i class="ti ti-sun mr-2"></i>Light Mode Colors
+                </button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="inline-flex items-center p-4 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 text-gray-500 dark:text-gray-400 rounded-t-lg" id="dark-tab" data-tabs-target="#dark-colors" type="button" role="tab" aria-controls="dark-colors" aria-selected="false">
+                    <i class="ti ti-moon mr-2"></i>Dark Mode Colors
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <div id="colorTabContent">
+        <!-- LIGHT MODE COLORS -->
+        <div class="" id="light-colors" role="tabpanel" aria-labelledby="light-tab">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <!-- Brand Colors -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
+                        <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-brush text-purple-600"></i>Brand Colors
+                        </h6>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Main identity colors used throughout the site</p>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        {% for field, desc in [('primary', 'Buttons, links, active states'), ('primary_light', 'Hover states, highlights'), ('primary_dark', 'Pressed states, emphasis'), ('secondary', 'Secondary buttons, muted UI'), ('accent', 'CTAs, highlights, badges')] %}
+                        <div>
+                            <label class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-gray-900 dark:text-white">{{ field|replace('_', ' ')|title }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ desc }}</span>
+                            </label>
+                            <div class="flex">
+                                <input type="color" class="w-12 h-10 rounded-l-lg border border-r-0 border-gray-300 dark:border-gray-600 cursor-pointer" id="light-{{ field }}" value="{{ colors.light[field] }}">
+                                <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-r-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-mono" id="light-{{ field }}-hex" value="{{ colors.light[field] }}" pattern="^#[0-9A-Fa-f]{6}$">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Text Colors -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
+                        <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-typography text-purple-600"></i>Text Colors
+                        </h6>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Typography and content colors</p>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        {% for field, desc in [('text_heading', 'h1-h6, card titles'), ('text_body', 'Paragraphs, content'), ('text_muted', 'Captions, labels, hints'), ('text_link', 'Clickable text links')] %}
+                        <div>
+                            <label class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-gray-900 dark:text-white">{{ field|replace('text_', '')|replace('_', ' ')|title }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ desc }}</span>
+                            </label>
+                            <div class="flex">
+                                <input type="color" class="w-12 h-10 rounded-l-lg border border-r-0 border-gray-300 dark:border-gray-600 cursor-pointer" id="light-{{ field }}" value="{{ colors.light[field] }}">
+                                <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-r-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-mono" id="light-{{ field }}-hex" value="{{ colors.light[field] }}">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Status Colors -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
+                        <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-traffic-lights text-purple-600"></i>Status Colors
+                        </h6>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Alerts, badges, feedback states</p>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        {% for field, desc in [('success', 'Confirmations, completed'), ('warning', 'Cautions, pending states'), ('danger', 'Errors, destructive actions'), ('info', 'Information, tips')] %}
+                        <div>
+                            <label class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-gray-900 dark:text-white">{{ field|title }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ desc }}</span>
+                            </label>
+                            <div class="flex">
+                                <input type="color" class="w-12 h-10 rounded-l-lg border border-r-0 border-gray-300 dark:border-gray-600 cursor-pointer" id="light-{{ field }}" value="{{ colors.light[field] }}">
+                                <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-r-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-mono" id="light-{{ field }}-hex" value="{{ colors.light[field] }}">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Background Colors -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
+                        <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-layout text-purple-600"></i>Backgrounds
+                        </h6>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Page and component backgrounds</p>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        {% for field, desc in [('bg_body', 'Main body background'), ('bg_card', 'Cards, modals, panels'), ('bg_input', 'Form fields, inputs')] %}
+                        <div>
+                            <label class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-gray-900 dark:text-white">{{ field|replace('bg_', '')|replace('_', ' ')|title }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ desc }}</span>
+                            </label>
+                            <div class="flex">
+                                <input type="color" class="w-12 h-10 rounded-l-lg border border-r-0 border-gray-300 dark:border-gray-600 cursor-pointer" id="light-{{ field }}" value="{{ colors.light[field] }}">
+                                <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-r-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-mono" id="light-{{ field }}-hex" value="{{ colors.light[field] }}">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Border Colors -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
+                        <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-border-style text-purple-600"></i>Borders
+                        </h6>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Separators and outlines</p>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        {% for field, desc in [('border', 'Card borders, dividers'), ('border_input', 'Form field borders')] %}
+                        <div>
+                            <label class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-gray-900 dark:text-white">{{ field|replace('border_', '')|replace('_', ' ')|title if 'input' in field else 'Default' }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ desc }}</span>
+                            </label>
+                            <div class="flex">
+                                <input type="color" class="w-12 h-10 rounded-l-lg border border-r-0 border-gray-300 dark:border-gray-600 cursor-pointer" id="light-{{ field }}" value="{{ colors.light[field] }}">
+                                <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-r-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-mono" id="light-{{ field }}-hex" value="{{ colors.light[field] }}">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DARK MODE COLORS -->
+        <div class="hidden" id="dark-colors" role="tabpanel" aria-labelledby="dark-tab">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <!-- Brand Colors -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
+                        <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-brush text-purple-600"></i>Brand Colors
+                        </h6>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Adjusted for dark mode visibility</p>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        {% for field, desc in [('primary', 'Brighter for dark backgrounds'), ('primary_light', 'Hover states'), ('primary_dark', 'Pressed states'), ('secondary', 'Secondary UI elements'), ('accent', 'CTAs, highlights')] %}
+                        <div>
+                            <label class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-gray-900 dark:text-white">{{ field|replace('_', ' ')|title }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ desc }}</span>
+                            </label>
+                            <div class="flex">
+                                <input type="color" class="w-12 h-10 rounded-l-lg border border-r-0 border-gray-300 dark:border-gray-600 cursor-pointer" id="dark-{{ field }}" value="{{ colors.dark[field] }}">
+                                <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-r-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-mono" id="dark-{{ field }}-hex" value="{{ colors.dark[field] }}">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Text Colors -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
+                        <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-typography text-purple-600"></i>Text Colors
+                        </h6>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Light text on dark backgrounds</p>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        {% for field, desc in [('text_heading', 'h1-h6, card titles'), ('text_body', 'Paragraphs, content'), ('text_muted', 'Captions, labels'), ('text_link', 'Clickable text')] %}
+                        <div>
+                            <label class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-gray-900 dark:text-white">{{ field|replace('text_', '')|replace('_', ' ')|title }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ desc }}</span>
+                            </label>
+                            <div class="flex">
+                                <input type="color" class="w-12 h-10 rounded-l-lg border border-r-0 border-gray-300 dark:border-gray-600 cursor-pointer" id="dark-{{ field }}" value="{{ colors.dark[field] }}">
+                                <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-r-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-mono" id="dark-{{ field }}-hex" value="{{ colors.dark[field] }}">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Status Colors -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
+                        <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-traffic-lights text-purple-600"></i>Status Colors
+                        </h6>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Brighter for dark backgrounds</p>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        {% for field, desc in [('success', 'Confirmations'), ('warning', 'Cautions'), ('danger', 'Errors'), ('info', 'Information')] %}
+                        <div>
+                            <label class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-gray-900 dark:text-white">{{ field|title }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ desc }}</span>
+                            </label>
+                            <div class="flex">
+                                <input type="color" class="w-12 h-10 rounded-l-lg border border-r-0 border-gray-300 dark:border-gray-600 cursor-pointer" id="dark-{{ field }}" value="{{ colors.dark[field] }}">
+                                <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-r-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-mono" id="dark-{{ field }}-hex" value="{{ colors.dark[field] }}">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Background Colors -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
+                        <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-layout text-purple-600"></i>Backgrounds
+                        </h6>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Dark mode surface colors</p>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        {% for field, desc in [('bg_body', 'Darkest layer'), ('bg_card', 'Elevated surfaces'), ('bg_input', 'Form fields'), ('bg_sidebar', 'Navigation panel')] %}
+                        <div>
+                            <label class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-gray-900 dark:text-white">{{ field|replace('bg_', '')|replace('_', ' ')|title }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ desc }}</span>
+                            </label>
+                            <div class="flex">
+                                <input type="color" class="w-12 h-10 rounded-l-lg border border-r-0 border-gray-300 dark:border-gray-600 cursor-pointer" id="dark-{{ field }}" value="{{ colors.dark[field] }}">
+                                <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-r-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-mono" id="dark-{{ field }}-hex" value="{{ colors.dark[field] }}">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Border Colors -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
+                        <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-border-style text-purple-600"></i>Borders
+                        </h6>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Subtle separators for dark mode</p>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        {% for field, desc in [('border', 'Card borders, dividers'), ('border_input', 'Form field borders')] %}
+                        <div>
+                            <label class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-gray-900 dark:text-white">{{ field|replace('border_', '')|replace('_', ' ')|title if 'input' in field else 'Default' }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ desc }}</span>
+                            </label>
+                            <div class="flex">
+                                <input type="color" class="w-12 h-10 rounded-l-lg border border-r-0 border-gray-300 dark:border-gray-600 cursor-pointer" id="dark-{{ field }}" value="{{ colors.dark[field] }}">
+                                <input type="text" class="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-r-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-mono" id="dark-{{ field }}-hex" value="{{ colors.dark[field] }}">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Button -->
+    <div class="fixed bottom-6 right-6 z-50">
+        <button type="button" class="inline-flex items-center px-6 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-lg transition-colors" data-action="save-colors">
+            <i class="ti ti-device-floppy mr-2"></i>
+            <span>Save Changes</span>
+        </button>
+    </div>
+</div>
+
+<!-- Save Preset Modal -->
+<div id="savePresetModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-palette"></i>Save as Preset
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="savePresetModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-5 space-y-4">
+                <input type="hidden" id="editPresetId" value="">
+                <div>
+                    <label for="presetName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Preset Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="presetName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="e.g., Ocean Blue" required>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">A unique, descriptive name for this color scheme</p>
+                </div>
+                <div>
+                    <label for="presetDescription" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                    <textarea id="presetDescription" rows="2" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Optional description..."></textarea>
+                </div>
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input id="presetEnabled" type="checkbox" checked class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-purple-300 dark:bg-gray-600 dark:border-gray-500 dark:focus:ring-purple-600 dark:ring-offset-gray-800">
+                    </div>
+                    <label for="presetEnabled" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                        Enable for user selection
+                        <span class="block text-xs text-gray-500 dark:text-gray-400">When enabled, users can select this preset from the navbar</span>
+                    </label>
+                </div>
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input id="presetDefault" type="checkbox" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-purple-300 dark:bg-gray-600 dark:border-gray-500 dark:focus:ring-purple-600 dark:ring-offset-gray-800">
+                    </div>
+                    <label for="presetDefault" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                        Set as default preset
+                        <span class="block text-xs text-gray-500 dark:text-gray-400">New users will use this preset automatically</span>
+                    </label>
+                </div>
+            </div>
+            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button type="button" class="text-white bg-purple-600 hover:bg-purple-700 focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-800" data-action="confirm-save-preset">
+                    <i class="ti ti-device-floppy mr-1"></i>Save Preset
+                </button>
+                <button type="button" data-modal-hide="savePresetModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div id="importModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-upload"></i>Import Color Scheme
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="importModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-5">
+                <label for="importJson" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Paste JSON</label>
+                <textarea id="importJson" rows="10" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white font-mono" placeholder='{"light": {...}, "dark": {...}}'></textarea>
+            </div>
+            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button type="button" class="text-white bg-purple-600 hover:bg-purple-700 focus:ring-4 focus:outline-none focus:ring-purple-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-800" data-action="import-colors">Import</button>
+                <button type="button" data-modal-hide="importModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Color field definitions
+    const lightColorFields = [
+        'primary', 'primary_light', 'primary_dark', 'secondary', 'accent',
+        'success', 'warning', 'danger', 'info',
+        'text_heading', 'text_body', 'text_muted', 'text_link',
+        'bg_body', 'bg_card', 'bg_input',
+        'border', 'border_input'
+    ];
+
+    const darkColorFields = [
+        'primary', 'primary_light', 'primary_dark', 'secondary', 'accent',
+        'success', 'warning', 'danger', 'info',
+        'text_heading', 'text_body', 'text_muted', 'text_link',
+        'bg_body', 'bg_card', 'bg_input', 'bg_sidebar',
+        'border', 'border_input'
+    ];
+
+    // Tab switching
+    const lightTab = document.getElementById('light-tab');
+    const darkTab = document.getElementById('dark-tab');
+    const lightColors = document.getElementById('light-colors');
+    const darkColors = document.getElementById('dark-colors');
+
+    lightTab?.addEventListener('click', function() {
+        lightColors.classList.remove('hidden');
+        darkColors.classList.add('hidden');
+        lightTab.classList.add('border-purple-600', 'text-purple-600', 'dark:text-purple-500', 'dark:border-purple-500');
+        lightTab.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+        darkTab.classList.remove('border-purple-600', 'text-purple-600', 'dark:text-purple-500', 'dark:border-purple-500');
+        darkTab.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+    });
+
+    darkTab?.addEventListener('click', function() {
+        darkColors.classList.remove('hidden');
+        lightColors.classList.add('hidden');
+        darkTab.classList.add('border-purple-600', 'text-purple-600', 'dark:text-purple-500', 'dark:border-purple-500');
+        darkTab.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+        lightTab.classList.remove('border-purple-600', 'text-purple-600', 'dark:text-purple-500', 'dark:border-purple-500');
+        lightTab.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+    });
+
+    // Preview mode switching
+    document.querySelectorAll('[data-action="preview-mode"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            setPreviewMode(this.dataset.mode);
+        });
+    });
+
+    function setPreviewMode(mode) {
+        const lightCol = document.getElementById('lightPreviewCol');
+        const darkCol = document.getElementById('darkPreviewCol');
+
+        document.querySelectorAll('.preview-mode-btn').forEach(btn => {
+            btn.classList.remove('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm', 'active');
+            btn.classList.add('text-gray-600', 'dark:text-gray-300');
+        });
+
+        const activeBtn = document.querySelector(`[data-action="preview-mode"][data-mode="${mode}"]`);
+        activeBtn.classList.add('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm', 'active');
+        activeBtn.classList.remove('text-gray-600', 'dark:text-gray-300');
+
+        if (mode === 'both') {
+            lightCol.classList.remove('hidden', 'lg:col-span-2');
+            darkCol.classList.remove('hidden', 'lg:col-span-2');
+        } else if (mode === 'light') {
+            lightCol.classList.remove('hidden');
+            lightCol.classList.add('lg:col-span-2');
+            darkCol.classList.add('hidden');
+        } else {
+            darkCol.classList.remove('hidden');
+            darkCol.classList.add('lg:col-span-2');
+            lightCol.classList.add('hidden');
+        }
+    }
+
+    // Preview tab switching
+    document.querySelectorAll('[data-action="preview-tab"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tab = this.dataset.tab;
+            const panel = this.dataset.panel;
+
+            // Update tab buttons
+            document.querySelectorAll(`[data-action="preview-tab"][data-panel="${panel}"]`).forEach(b => {
+                b.classList.remove('active', 'bg-white', 'bg-gray-700', 'shadow', 'text-gray-900', 'text-white');
+                b.classList.add(panel === 'light' ? 'bg-white/80' : 'bg-gray-800/80', panel === 'light' ? 'text-gray-600' : 'text-gray-400');
+            });
+            this.classList.add('active', panel === 'light' ? 'bg-white' : 'bg-gray-700', 'shadow', panel === 'light' ? 'text-gray-900' : 'text-white');
+            this.classList.remove(panel === 'light' ? 'bg-white/80' : 'bg-gray-800/80', panel === 'light' ? 'text-gray-600' : 'text-gray-400');
+
+            // Show/hide sections
+            document.querySelectorAll(`.preview-section[data-panel="${panel}"]`).forEach(section => {
+                if (section.dataset.previewSection === tab) {
+                    section.classList.remove('hidden');
+                } else {
+                    section.classList.add('hidden');
+                }
+            });
+        });
+    });
+
+    // Sync color picker with hex input
+    document.querySelectorAll('input[type="color"]').forEach(picker => {
+        const hexInput = document.getElementById(picker.id + '-hex');
+        if (hexInput) {
+            picker.addEventListener('input', () => {
+                hexInput.value = picker.value;
+                updatePreview();
+            });
+            hexInput.addEventListener('input', () => {
+                if (/^#[0-9A-Fa-f]{6}$/.test(hexInput.value)) {
+                    picker.value = hexInput.value;
+                    updatePreview();
+                }
+            });
+        }
+    });
+
+    function updatePreview() {
+        updateLightPreview();
+        updateDarkPreview();
+    }
+
+    function updateLightPreview() {
+        const area = document.getElementById('light-preview-area');
+        if (!area) return;
+        const getValue = (id) => document.getElementById(id)?.value;
+        area.style.background = getValue('light-bg_body') || '#FAFAFA';
+    }
+
+    function updateDarkPreview() {
+        const area = document.getElementById('dark-preview-area');
+        if (!area) return;
+        const getValue = (id) => document.getElementById(id)?.value;
+        area.style.background = getValue('dark-bg_body') || '#09090B';
+    }
+
+    function gatherColors() {
+        const colors = { light: {}, dark: {} };
+        lightColorFields.forEach(field => {
+            const el = document.getElementById(`light-${field}`);
+            if (el) colors.light[field] = el.value;
+        });
+        darkColorFields.forEach(field => {
+            const el = document.getElementById(`dark-${field}`);
+            if (el) colors.dark[field] = el.value;
+        });
+        return colors;
+    }
+
+    // Action handlers
+    document.querySelectorAll('[data-action]').forEach(el => {
+        el.addEventListener('click', function() {
+            const action = this.dataset.action;
+
+            switch(action) {
+                case 'save-colors':
+                    saveColors();
+                    break;
+                case 'reset-colors':
+                    resetColors();
+                    break;
+                case 'export-colors':
+                    exportColors();
+                    break;
+                case 'show-import':
+                    showModal('importModal');
+                    break;
+                case 'import-colors':
+                    importColors();
+                    break;
+                case 'save-as-preset':
+                    showModal('savePresetModal');
+                    break;
+                case 'confirm-save-preset':
+                    savePreset();
+                    break;
+                case 'apply-preset':
+                    applyPreset(this.dataset.presetSlug);
+                    break;
+            }
+        });
+    });
+
+    function showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function hideModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    // Modal hide buttons
+    document.querySelectorAll('[data-modal-hide]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            hideModal(this.dataset.modalHide);
+        });
+    });
+
+    function saveColors() {
+        const colors = gatherColors();
+        const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+        fetch('{{ url_for("admin_panel.save_colors") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Csrftoken': _csrfToken
+            },
+            body: JSON.stringify(colors)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Colors Saved',
+                    text: data.message,
+                    confirmButtonText: 'Refresh Now',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => window.location.reload());
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to save colors',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            console.error(error);
+        });
+    }
+
+    function resetColors() {
+        Swal.fire({
+            title: 'Reset Colors?',
+            text: 'This will reset all colors to their default values.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Reset',
+            cancelButtonText: 'Cancel',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                fetch('{{ url_for("admin_panel.reset_colors") }}', {
+                    method: 'POST',
+                    headers: { 'X-Csrftoken': _csrfToken }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Colors Reset',
+                            text: data.message,
+                            confirmButtonText: 'Refresh Now',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        }).then(() => window.location.reload());
+                    }
+                });
+            }
+        });
+    }
+
+    function exportColors() {
+        const colors = gatherColors();
+        const json = JSON.stringify(colors, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'ecs-theme-colors.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function importColors() {
+        try {
+            const json = document.getElementById('importJson').value;
+            const colors = JSON.parse(json);
+
+            if (!colors.light || !colors.dark) {
+                throw new Error('Invalid color structure');
+            }
+
+            const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+            fetch('{{ url_for("admin_panel.import_colors") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Csrftoken': _csrfToken
+                },
+                body: JSON.stringify({ colors: colors })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    hideModal('importModal');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Colors Imported',
+                        text: data.message,
+                        confirmButtonText: 'Refresh Now',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(() => window.location.reload());
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            });
+        } catch (e) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Invalid JSON format',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+    }
+
+    function savePreset() {
+        const name = document.getElementById('presetName').value;
+        const description = document.getElementById('presetDescription').value;
+        const enabled = document.getElementById('presetEnabled').checked;
+        const isDefault = document.getElementById('presetDefault').checked;
+
+        if (!name) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Please enter a preset name',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            return;
+        }
+
+        const colors = gatherColors();
+        const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+        fetch('{{ url_for("admin_panel.save_preset") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Csrftoken': _csrfToken
+            },
+            body: JSON.stringify({
+                name: name,
+                description: description,
+                enabled: enabled,
+                is_default: isDefault,
+                colors: colors
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                hideModal('savePresetModal');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Preset Saved',
+                    text: data.message,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => window.location.reload());
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        });
+    }
+
+    function applyPreset(slug) {
+        const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+        fetch('{{ url_for("admin_panel.apply_preset") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Csrftoken': _csrfToken
+            },
+            body: JSON.stringify({ slug: slug })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Preset Applied',
+                    text: data.message,
+                    confirmButtonText: 'Refresh Now',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => window.location.reload());
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
