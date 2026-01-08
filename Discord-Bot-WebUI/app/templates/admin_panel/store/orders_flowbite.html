@@ -1,0 +1,257 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Store Orders{% endblock %}
+{% block panel_description %}View and manage store orders{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.store_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Store Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Orders</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Page Header -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <h4 class="text-xl font-semibold text-gray-900 dark:text-white">Store Orders</h4>
+    <div class="relative">
+        <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-lg hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-gray-700" id="exportDropdownBtn" data-dropdown-toggle="exportDropdown">
+            <i class="ti ti-download mr-2"></i>Export
+            <i class="ti ti-chevron-down ml-2"></i>
+        </button>
+        <div id="exportDropdown" class="hidden absolute right-0 z-10 mt-2 w-48 bg-white rounded-lg shadow-lg dark:bg-gray-700">
+            <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                <li>
+                    <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                        <i class="ti ti-file-text mr-2"></i>Export as CSV
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                        <i class="ti ti-file-spreadsheet mr-2"></i>Export as Excel
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 p-5">
+    <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Status</label>
+            <select name="status" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="all" {% if current_filters.status == 'all' %}selected{% endif %}>All Status</option>
+                {% for status in order_statuses %}
+                <option value="{{ status }}" {% if current_filters.status == status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">From Date</label>
+            <input type="date" name="date_from" value="{{ current_filters.date_from }}" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">To Date</label>
+            <input type="date" name="date_to" value="{{ current_filters.date_to }}" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Sort By</label>
+            <select name="order_by" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="order_date_desc" {% if current_filters.order_by == 'order_date_desc' %}selected{% endif %}>Newest First</option>
+                <option value="order_date_asc" {% if current_filters.order_by == 'order_date_asc' %}selected{% endif %}>Oldest First</option>
+                <option value="status" {% if current_filters.order_by == 'status' %}selected{% endif %}>Status</option>
+                <option value="item_name" {% if current_filters.order_by == 'item_name' %}selected{% endif %}>Item Name</option>
+                <option value="orderer" {% if current_filters.order_by == 'orderer' %}selected{% endif %}>Customer</option>
+            </select>
+        </div>
+        <div class="lg:col-span-2">
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search</label>
+            <div class="flex">
+                <input type="text" name="search" value="{{ current_filters.search }}" placeholder="Search orders..." class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <button type="submit" class="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-r-lg hover:bg-blue-700">
+                    <i class="ti ti-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="flex items-end">
+            <a href="{{ url_for('admin_panel.store_orders') }}" class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" title="Clear filters">
+                <i class="ti ti-x"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Orders Table -->
+{% call card(no_padding=true) %}
+{% if orders.items %}
+<div class="overflow-x-auto">
+    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+                <th scope="col" class="px-4 py-3">Order ID</th>
+                <th scope="col" class="px-4 py-3">Item</th>
+                <th scope="col" class="px-4 py-3">Customer</th>
+                <th scope="col" class="px-4 py-3">Details</th>
+                <th scope="col" class="px-4 py-3">Status</th>
+                <th scope="col" class="px-4 py-3">Order Date</th>
+                <th scope="col" class="px-4 py-3">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders.items %}
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td class="px-4 py-3 font-bold text-gray-900 dark:text-white">#{{ order.id }}</td>
+                <td class="px-4 py-3">
+                    <div class="flex items-center">
+                        {% if order.item and order.item.image_url %}
+                        <img src="{{ order.item.image_url }}" alt="{{ order.item.name }}" class="w-10 h-10 rounded object-cover mr-3">
+                        {% else %}
+                        <div class="flex items-center justify-center w-10 h-10 rounded bg-gray-100 dark:bg-gray-700 mr-3">
+                            <i class="ti ti-package text-gray-400"></i>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ order.item.name if order.item else 'Unknown Item' }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Qty: {{ order.quantity }}</p>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ order.orderer.username if order.orderer else 'Unknown User' }}</td>
+                <td class="px-4 py-3">
+                    {% if order.selected_color %}
+                    <span class="inline-flex items-center px-2 py-0.5 mr-1 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_color }}</span>
+                    {% endif %}
+                    {% if order.selected_size %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_size }}</span>
+                    {% endif %}
+                    {% if not order.selected_color and not order.selected_size %}
+                    <span class="text-gray-400">No options</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if order.status == 'PENDING' else 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300' if order.status == 'PROCESSING' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if order.status == 'ORDERED' else 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if order.status == 'DELIVERED' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
+                        {{ order.status }}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{{ order.order_date.strftime('%Y-%m-%d %H:%M') if order.order_date else 'Unknown' }}</td>
+                <td class="px-4 py-3">
+                    <div class="flex items-center gap-1">
+                        <button type="button" class="p-2 text-cyan-600 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg" data-action="view-order-details" data-order-id="{{ order.id }}" title="View Details">
+                            <i class="ti ti-eye"></i>
+                        </button>
+                        <div class="relative">
+                            <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" id="statusBtn{{ order.id }}" data-dropdown-toggle="statusDropdown{{ order.id }}" title="Update Status">
+                                <i class="ti ti-edit"></i>
+                            </button>
+                            <div id="statusDropdown{{ order.id }}" class="hidden absolute right-0 z-10 w-40 bg-white rounded-lg shadow-lg dark:bg-gray-700">
+                                <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                                    {% for status in order_statuses %}
+                                    {% if status != order.status %}
+                                    <li>
+                                        <a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="update-order-status" data-order-id="{{ order.id }}" data-new-status="{{ status }}">
+                                            {{ status }}
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if orders.pages > 1 %}
+<div class="flex items-center justify-center p-4 border-t border-gray-200 dark:border-gray-700">
+    <nav aria-label="Page navigation">
+        <ul class="inline-flex -space-x-px text-sm">
+            {% if orders.has_prev %}
+            <li>
+                <a href="{{ url_for('admin_panel.store_orders', page=orders.prev_num, **current_filters) }}" class="flex items-center justify-center px-3 h-8 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Previous</a>
+            </li>
+            {% endif %}
+
+            {% for page_num in orders.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num != orders.page %}
+                    <li>
+                        <a href="{{ url_for('admin_panel.store_orders', page=page_num, **current_filters) }}" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li>
+                        <span class="flex items-center justify-center px-3 h-8 text-white bg-ecs-green border border-ecs-green dark:bg-ecs-green dark:border-ecs-green">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                {% else %}
+                <li>
+                    <span class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">...</span>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if orders.has_next %}
+            <li>
+                <a href="{{ url_for('admin_panel.store_orders', page=orders.next_num, **current_filters) }}" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
+
+{% else %}
+<div class="text-center py-12">
+    <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+        <i class="ti ti-shopping-cart text-3xl text-gray-400 dark:text-gray-500"></i>
+    </div>
+    <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Orders Found</h5>
+    <p class="text-gray-500 dark:text-gray-400">No orders match your current filters.</p>
+</div>
+{% endif %}
+{% endcall %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Dropdown toggle functionality
+    document.querySelectorAll('[data-dropdown-toggle]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const targetId = this.getAttribute('data-dropdown-toggle');
+            const dropdown = document.getElementById(targetId);
+
+            // Close all other dropdowns
+            document.querySelectorAll('[id^="statusDropdown"], #exportDropdown').forEach(d => {
+                if (d.id !== targetId) d.classList.add('hidden');
+            });
+
+            dropdown.classList.toggle('hidden');
+        });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function() {
+        document.querySelectorAll('[id^="statusDropdown"], #exportDropdown').forEach(d => {
+            d.classList.add('hidden');
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Store Management{% endblock %}
+{% block panel_description %}Manage store items, orders, and inventory{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Store Management</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Store Overview Stats -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-500 text-white rounded-lg shadow p-5">
+        <div class="flex justify-between items-center">
+            <div>
+                <p class="text-3xl font-bold">{{ stats.total_items }}</p>
+                <p class="text-sm text-white/80">Total Items</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-white/20">
+                <i class="ti ti-package text-2xl"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-green-500 text-white rounded-lg shadow p-5">
+        <div class="flex justify-between items-center">
+            <div>
+                <p class="text-3xl font-bold">{{ stats.active_items }}</p>
+                <p class="text-sm text-white/80">Active Items</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-white/20">
+                <i class="ti ti-check-circle text-2xl"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-yellow-500 text-white rounded-lg shadow p-5">
+        <div class="flex justify-between items-center">
+            <div>
+                <p class="text-3xl font-bold">{{ stats.pending_orders }}</p>
+                <p class="text-sm text-white/80">Pending Orders</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-white/20">
+                <i class="ti ti-clock text-2xl"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-cyan-500 text-white rounded-lg shadow p-5">
+        <div class="flex justify-between items-center">
+            <div>
+                <p class="text-3xl font-bold">{{ stats.total_orders }}</p>
+                <p class="text-sm text-white/80">Total Orders</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-white/20">
+                <i class="ti ti-shopping-cart text-2xl"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions & Order Status -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Quick Actions -->
+    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-rocket mr-2"></i>Quick Actions
+            </h5>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <a href="{{ url_for('admin_panel.create_store_item') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <i class="ti ti-plus mr-2"></i>Add New Item
+                </a>
+                <a href="{{ url_for('admin_panel.store_orders') }}?status=PENDING" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600">
+                    <i class="ti ti-clock mr-2"></i>Process Pending Orders
+                </a>
+                <a href="{{ url_for('admin_panel.store_items') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-lg hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-gray-700">
+                    <i class="ti ti-list mr-2"></i>Manage Items
+                </a>
+                <a href="{{ url_for('admin_panel.store_analytics') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-cyan-600 bg-white border border-cyan-600 rounded-lg hover:bg-cyan-50 dark:bg-gray-800 dark:hover:bg-gray-700">
+                    <i class="ti ti-chart-line mr-2"></i>View Analytics
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Status Breakdown -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-chart-pie mr-2"></i>Order Status
+            </h5>
+        </div>
+        <div class="p-5">
+            {% if stats.order_status_breakdown %}
+                {% for status, count in stats.order_status_breakdown.items() %}
+                <div class="flex justify-between items-center mb-3">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if status == 'PENDING' else 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300' if status == 'PROCESSING' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if status == 'ORDERED' else 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if status == 'DELIVERED' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
+                        {{ status }}
+                    </span>
+                    <span class="font-bold text-gray-900 dark:text-white">{{ count }}</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-gray-500 dark:text-gray-400">No orders yet</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity & Popular Items -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Recent Activity -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-activity mr-2"></i>Recent Activity
+            </h5>
+        </div>
+        <div class="p-5">
+            {% if recent_activity %}
+                <div class="space-y-4">
+                    {% for activity in recent_activity %}
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 w-3 h-3 mt-1.5 rounded-full {{ 'bg-blue-500' if activity.type == 'order' else 'bg-cyan-500' }}"></div>
+                        <div class="ml-4 flex-1">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm text-gray-900 dark:text-white">{{ activity.description }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                                </div>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if activity.status == 'PENDING' else 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if activity.status in ['active', 'DELIVERED'] else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
+                                    {{ activity.status }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-gray-500 dark:text-gray-400">No recent activity</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Popular Items -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-star mr-2"></i>Popular Items
+            </h5>
+        </div>
+        <div class="p-5">
+            {% if stats.popular_items %}
+                {% for item in stats.popular_items %}
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ item.name }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ item.count }} orders</p>
+                    </div>
+                    <div class="w-24">
+                        <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: {% if stats.popular_items %}{{ (item.count / stats.popular_items[0].count * 100) }}%{% else %}0%{% endif %}"></div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-gray-500 dark:text-gray-400">No orders yet</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

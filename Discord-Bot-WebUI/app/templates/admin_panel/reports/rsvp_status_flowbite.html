@@ -1,0 +1,331 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}RSVP Status{% endblock %}
+{% block panel_description %}View and manage RSVP responses for matches{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.reports_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Reports</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">RSVP Status</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% elif match %}{{ match.id }}{% endif %}">
+    <!-- Match Info Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+        <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-calendar-event mr-2"></i>
+                {% if is_ecs_fc_match and ecs_match %}
+                    ECS FC Match: {{ ecs_match.opponent }}
+                {% elif match %}
+                    {{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}
+                {% else %}
+                    Match RSVP Status
+                {% endif %}
+            </h5>
+            {% if is_ecs_fc_match %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                ECS FC
+            </span>
+            {% endif %}
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <span class="font-semibold text-gray-700 dark:text-gray-300">Date:</span>
+                    <span class="text-gray-600 dark:text-gray-400 ml-2">
+                        {% if is_ecs_fc_match and ecs_match %}
+                            {{ ecs_match.date.strftime('%b %d, %Y') if ecs_match.date else 'TBD' }}
+                        {% elif match %}
+                            {{ match.date.strftime('%b %d, %Y') if match.date else 'TBD' }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div>
+                    <span class="font-semibold text-gray-700 dark:text-gray-300">Time:</span>
+                    <span class="text-gray-600 dark:text-gray-400 ml-2">
+                        {% if is_ecs_fc_match and ecs_match %}
+                            {{ ecs_match.time or 'TBD' }}
+                        {% elif match %}
+                            {{ match.time.strftime('%I:%M %p') if match.time else 'TBD' }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div>
+                    <span class="font-semibold text-gray-700 dark:text-gray-300">Location:</span>
+                    <span class="text-gray-600 dark:text-gray-400 ml-2">
+                        {% if is_ecs_fc_match and ecs_match %}
+                            {{ ecs_match.location or 'TBD' }}
+                        {% elif match %}
+                            {{ match.location or match.field or 'TBD' }}
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RSVP Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+            <div class="flex flex-col items-center text-center">
+                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
+                    <i class="ti ti-check text-2xl text-green-600 dark:text-green-400"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ rsvps.yes|length if rsvps.yes else 0 }}</h3>
+                <span class="text-sm text-green-700 dark:text-green-300">Yes / In</span>
+            </div>
+        </div>
+        <div class="bg-red-50 dark:bg-red-900/30 rounded-lg shadow p-5">
+            <div class="flex flex-col items-center text-center">
+                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/50 mb-3">
+                    <i class="ti ti-x text-2xl text-red-600 dark:text-red-400"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-red-600 dark:text-red-400">{{ rsvps.no|length if rsvps.no else 0 }}</h3>
+                <span class="text-sm text-red-700 dark:text-red-300">No / Out</span>
+            </div>
+        </div>
+        <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+            <div class="flex flex-col items-center text-center">
+                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
+                    <i class="ti ti-question-mark text-2xl text-yellow-600 dark:text-yellow-400"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ rsvps.maybe|length if rsvps.maybe else 0 }}</h3>
+                <span class="text-sm text-yellow-700 dark:text-yellow-300">Maybe / Tentative</span>
+            </div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/30 rounded-lg shadow p-5">
+            <div class="flex flex-col items-center text-center">
+                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 mb-3">
+                    <i class="ti ti-minus text-2xl text-gray-500 dark:text-gray-400"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-600 dark:text-gray-400">{{ rsvps.no_response|length if rsvps.no_response else 0 }}</h3>
+                <span class="text-sm text-gray-600 dark:text-gray-400">No Response</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- RSVP Details with Tabs -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="border-b border-gray-200 dark:border-gray-700 px-4">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white p-4 pb-0">
+                <i class="ti ti-list mr-2"></i>RSVP Responses
+            </h5>
+            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="rsvpTabs" role="tablist">
+                <li class="mr-2" role="presentation">
+                    <button class="inline-flex items-center p-4 border-b-2 border-green-500 text-green-600 dark:text-green-400 rounded-t-lg" id="yes-tab" data-tabs-target="#yes-panel" type="button" role="tab" aria-controls="yes-panel" aria-selected="true">
+                        <i class="ti ti-check mr-1"></i>Yes ({{ rsvps.yes|length if rsvps.yes else 0 }})
+                    </button>
+                </li>
+                <li class="mr-2" role="presentation">
+                    <button class="inline-flex items-center p-4 border-b-2 border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 rounded-t-lg" id="no-tab" data-tabs-target="#no-panel" type="button" role="tab" aria-controls="no-panel" aria-selected="false">
+                        <i class="ti ti-x mr-1"></i>No ({{ rsvps.no|length if rsvps.no else 0 }})
+                    </button>
+                </li>
+                <li class="mr-2" role="presentation">
+                    <button class="inline-flex items-center p-4 border-b-2 border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 rounded-t-lg" id="maybe-tab" data-tabs-target="#maybe-panel" type="button" role="tab" aria-controls="maybe-panel" aria-selected="false">
+                        <i class="ti ti-question-mark mr-1"></i>Maybe ({{ rsvps.maybe|length if rsvps.maybe else 0 }})
+                    </button>
+                </li>
+                <li role="presentation">
+                    <button class="inline-flex items-center p-4 border-b-2 border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 rounded-t-lg" id="no-response-tab" data-tabs-target="#no-response-panel" type="button" role="tab" aria-controls="no-response-panel" aria-selected="false">
+                        <i class="ti ti-minus mr-1"></i>No Response ({{ rsvps.no_response|length if rsvps.no_response else 0 }})
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div id="rsvpTabContent">
+            <!-- Yes Tab Panel -->
+            <div class="p-4" id="yes-panel" role="tabpanel" aria-labelledby="yes-tab">
+                {% if rsvps.yes %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-4 py-3">Player</th>
+                                <th scope="col" class="px-4 py-3">Responded</th>
+                                <th scope="col" class="px-4 py-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rsvp in rsvps.yes %}
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ rsvp.player.name if rsvp.player else 'Unknown' }}</td>
+                                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{{ rsvp.responded_at.strftime('%b %d, %I:%M %p') if rsvp.responded_at else '-' }}</td>
+                                <td class="px-4 py-3">
+                                    <button type="button" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-action="update-rsvp" data-player-id="{{ rsvp.player.id }}" data-response="no">
+                                        Change to No
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center text-gray-500 dark:text-gray-400 py-8">No "Yes" responses yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- No Tab Panel -->
+            <div class="hidden p-4" id="no-panel" role="tabpanel" aria-labelledby="no-tab">
+                {% if rsvps.no %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-4 py-3">Player</th>
+                                <th scope="col" class="px-4 py-3">Responded</th>
+                                <th scope="col" class="px-4 py-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rsvp in rsvps.no %}
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ rsvp.player.name if rsvp.player else 'Unknown' }}</td>
+                                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{{ rsvp.responded_at.strftime('%b %d, %I:%M %p') if rsvp.responded_at else '-' }}</td>
+                                <td class="px-4 py-3">
+                                    <button type="button" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-action="update-rsvp" data-player-id="{{ rsvp.player.id }}" data-response="yes">
+                                        Change to Yes
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center text-gray-500 dark:text-gray-400 py-8">No "No" responses.</p>
+                {% endif %}
+            </div>
+
+            <!-- Maybe Tab Panel -->
+            <div class="hidden p-4" id="maybe-panel" role="tabpanel" aria-labelledby="maybe-tab">
+                {% if rsvps.maybe %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-4 py-3">Player</th>
+                                <th scope="col" class="px-4 py-3">Responded</th>
+                                <th scope="col" class="px-4 py-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rsvp in rsvps.maybe %}
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ rsvp.player.name if rsvp.player else 'Unknown' }}</td>
+                                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{{ rsvp.responded_at.strftime('%b %d, %I:%M %p') if rsvp.responded_at else '-' }}</td>
+                                <td class="px-4 py-3">
+                                    <div class="flex gap-1">
+                                        <button type="button" class="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-900/50" data-action="update-rsvp" data-player-id="{{ rsvp.player.id }}" data-response="yes">
+                                            Yes
+                                        </button>
+                                        <button type="button" class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/50" data-action="update-rsvp" data-player-id="{{ rsvp.player.id }}" data-response="no">
+                                            No
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center text-gray-500 dark:text-gray-400 py-8">No "Maybe" responses.</p>
+                {% endif %}
+            </div>
+
+            <!-- No Response Tab Panel -->
+            <div class="hidden p-4" id="no-response-panel" role="tabpanel" aria-labelledby="no-response-tab">
+                {% if rsvps.no_response %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-4 py-3">Player</th>
+                                <th scope="col" class="px-4 py-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player in rsvps.no_response %}
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ player.name if player else 'Unknown' }}</td>
+                                <td class="px-4 py-3">
+                                    <div class="flex gap-1">
+                                        <button type="button" class="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-900/50" data-action="update-rsvp" data-player-id="{{ player.id }}" data-response="yes">
+                                            Yes
+                                        </button>
+                                        <button type="button" class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/50" data-action="update-rsvp" data-player-id="{{ player.id }}" data-response="no">
+                                            No
+                                        </button>
+                                        <button type="button" class="px-3 py-1.5 text-xs font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800 dark:hover:bg-yellow-900/50" data-action="update-rsvp" data-player-id="{{ player.id }}" data-response="maybe">
+                                            Maybe
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-12">
+                    <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
+                        <i class="ti ti-check text-3xl text-green-600 dark:text-green-400"></i>
+                    </div>
+                    <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">All Responded!</h5>
+                    <p class="text-gray-500 dark:text-gray-400">All players have submitted their RSVP responses.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching functionality
+    const tabs = document.querySelectorAll('[data-tabs-target]');
+    const tabPanels = document.querySelectorAll('[role="tabpanel"]');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const target = this.getAttribute('data-tabs-target');
+
+            // Reset all tabs
+            tabs.forEach(t => {
+                t.classList.remove('border-green-500', 'text-green-600', 'dark:text-green-400');
+                t.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+                t.setAttribute('aria-selected', 'false');
+            });
+
+            // Set active tab
+            this.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            this.classList.add('border-green-500', 'text-green-600', 'dark:text-green-400');
+            this.setAttribute('aria-selected', 'true');
+
+            // Hide all panels
+            tabPanels.forEach(panel => panel.classList.add('hidden'));
+
+            // Show target panel
+            document.querySelector(target).classList.remove('hidden');
+        });
+    });
+});
+</script>
+{% endblock %}
