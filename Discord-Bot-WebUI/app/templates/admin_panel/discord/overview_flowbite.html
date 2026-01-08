@@ -1,0 +1,348 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Discord Management{% endblock %}
+{% block panel_description %}Discord server management and player status overview{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Discord Management</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Statistics Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="total-players">{{ stats.total_players }}</h3>
+                <span class="text-sm text-blue-700 dark:text-blue-300">Total Players with Discord</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                <i class="ti ti-users text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-green-600 dark:text-green-400" id="in-server">{{ stats.in_server }}</h3>
+                <span class="text-sm text-green-700 dark:text-green-300">In Discord Server</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50">
+                <i class="ti ti-check text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-red-50 dark:bg-red-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-red-600 dark:text-red-400" id="not-in-server">{{ stats.not_in_server }}</h3>
+                <span class="text-sm text-red-700 dark:text-red-300">Not In Server</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/50">
+                <i class="ti ti-x text-2xl text-red-600 dark:text-red-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" id="unknown-status">{{ stats.unknown_status }}</h3>
+                <span class="text-sm text-yellow-700 dark:text-yellow-300">Unknown Status</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50">
+                <i class="ti ti-question-mark text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400" id="needs-sync">{{ stats.needs_sync }}</h3>
+                <span class="text-sm text-cyan-700 dark:text-cyan-300">Needs Role Sync</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50">
+                <i class="ti ti-refresh text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center justify-center h-full">
+            <button id="refresh-stats" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 mb-2">
+                <i class="ti ti-refresh mr-1"></i>Refresh Stats
+            </button>
+            <small class="text-gray-500 dark:text-gray-400" id="last-updated">Click to update</small>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-bolt mr-2"></i>Quick Actions
+        </h5>
+    </div>
+    <div class="p-5">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <a href="{{ url_for('admin_panel.discord_players') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="ti ti-users mr-2"></i>Manage Players
+            </a>
+            <a href="{{ url_for('admin_panel.discord_roles') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-cyan-600 rounded-lg hover:bg-cyan-700">
+                <i class="ti ti-shield mr-2"></i>Role Sync
+            </a>
+            <a href="{{ url_for('admin_panel.discord_role_mapping') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                <i class="ti ti-link mr-2"></i>Role Mapping
+            </a>
+            <a href="{{ url_for('admin_panel.discord_onboarding') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
+                <i class="ti ti-user-plus mr-2"></i>Onboarding
+            </a>
+            <button id="refresh-unknown-btn" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600">
+                <i class="ti ti-search mr-2"></i>Check Unknown
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Management Sections -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <!-- Player Management -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-users mr-2"></i>Player Management
+            </h5>
+        </div>
+        <div class="p-5">
+            <p class="text-gray-500 dark:text-gray-400 mb-4">View and manage Discord status for all players.</p>
+            <div class="space-y-2">
+                <a href="{{ url_for('admin_panel.discord_players', status='not_in_server') }}" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">
+                    <span class="flex items-center text-gray-700 dark:text-gray-300">
+                        <i class="ti ti-user-x mr-2 text-red-500"></i>Not In Server
+                    </span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ stats.not_in_server }}</span>
+                </a>
+                <a href="{{ url_for('admin_panel.discord_players', status='unknown') }}" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">
+                    <span class="flex items-center text-gray-700 dark:text-gray-300">
+                        <i class="ti ti-user-question mr-2 text-yellow-500"></i>Unknown Status
+                    </span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ stats.unknown_status }}</span>
+                </a>
+                <a href="{{ url_for('admin_panel.discord_players', status='in_server') }}" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">
+                    <span class="flex items-center text-gray-700 dark:text-gray-300">
+                        <i class="ti ti-user-check mr-2 text-green-500"></i>In Server
+                    </span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ stats.in_server }}</span>
+                </a>
+                <a href="{{ url_for('admin_panel.discord_players', status='all') }}" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">
+                    <span class="flex items-center text-gray-700 dark:text-gray-300">
+                        <i class="ti ti-users mr-2 text-blue-500"></i>All Players
+                    </span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ stats.total_players }}</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Role Synchronization -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-shield mr-2"></i>Role Synchronization
+            </h5>
+        </div>
+        <div class="p-5">
+            <p class="text-gray-500 dark:text-gray-400 mb-4">Manage Discord role assignments for players.</p>
+            <div class="space-y-2 mb-4">
+                <a href="{{ url_for('admin_panel.discord_roles') }}" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">
+                    <span class="flex items-center text-gray-700 dark:text-gray-300">
+                        <i class="ti ti-refresh mr-2 text-cyan-500"></i>Needs Sync
+                    </span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ stats.needs_sync }}</span>
+                </a>
+                <button id="mass-sync-btn" class="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 text-left">
+                    <span class="flex items-center text-gray-700 dark:text-gray-300">
+                        <i class="ti ti-bolt mr-2 text-purple-500"></i>Mass Sync All Roles
+                    </span>
+                </button>
+            </div>
+            <a href="{{ url_for('admin_panel.discord_onboarding') }}" class="block w-full px-4 py-2 text-sm font-medium text-center text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
+                <i class="ti ti-user-plus mr-1"></i>View Onboarding Status
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Info Alert -->
+<div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
+    <div class="flex items-start">
+        <i class="ti ti-info-circle text-lg mr-3 mt-0.5"></i>
+        <div>
+            <strong>Discord Management:</strong>
+            Manage Discord integration for all players. Sync roles, check server membership, and handle onboarding.
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    function refreshStats() {
+        const btn = document.getElementById('refresh-stats');
+        btn.innerHTML = '<i class="ti ti-loader animate-spin mr-1"></i>Refreshing...';
+        btn.disabled = true;
+
+        fetch('{{ url_for("admin_panel.discord_stats_api") }}')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                    return;
+                }
+
+                document.getElementById('total-players').textContent = data.total_players;
+                document.getElementById('in-server').textContent = data.in_server;
+                document.getElementById('not-in-server').textContent = data.not_in_server;
+                document.getElementById('unknown-status').textContent = data.unknown_status;
+                document.getElementById('needs-sync').textContent = data.needs_sync;
+                document.getElementById('last-updated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Stats Refreshed',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error refreshing stats',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            })
+            .finally(() => {
+                btn.innerHTML = '<i class="ti ti-refresh mr-1"></i>Refresh Stats';
+                btn.disabled = false;
+            });
+    }
+
+    function refreshUnknownStatus() {
+        const btn = document.getElementById('refresh-unknown-btn');
+        btn.innerHTML = '<i class="ti ti-loader animate-spin mr-2"></i>Checking...';
+        btn.disabled = true;
+
+        fetch('{{ url_for("admin_panel.discord_refresh_unknown_status") }}', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: data.message,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                    refreshStats();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error checking status',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            })
+            .finally(() => {
+                btn.innerHTML = '<i class="ti ti-search mr-2"></i>Check Unknown';
+                btn.disabled = false;
+            });
+    }
+
+    function massSyncRoles() {
+        Swal.fire({
+            title: 'Mass Sync Roles',
+            text: 'This will sync Discord roles for all players. Continue?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Sync All',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const btn = document.getElementById('mass-sync-btn');
+                btn.innerHTML = '<span class="flex items-center text-gray-700 dark:text-gray-300"><i class="ti ti-loader animate-spin mr-2"></i>Syncing...</span>';
+                btn.disabled = true;
+
+                fetch('{{ url_for("admin_panel.discord_mass_sync_roles") }}', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: data.message,
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.error,
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error syncing roles',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    })
+                    .finally(() => {
+                        btn.innerHTML = '<span class="flex items-center text-gray-700 dark:text-gray-300"><i class="ti ti-bolt mr-2 text-purple-500"></i>Mass Sync All Roles</span>';
+                        btn.disabled = false;
+                    });
+            }
+        });
+    }
+
+    document.getElementById('refresh-stats').addEventListener('click', refreshStats);
+    document.getElementById('refresh-unknown-btn').addEventListener('click', refreshUnknownStatus);
+    document.getElementById('mass-sync-btn').addEventListener('click', massSyncRoles);
+});
+</script>
+{% endblock %}

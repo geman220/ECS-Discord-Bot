@@ -1,0 +1,313 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Discord Onboarding{% endblock %}
+{% block panel_description %}Discord onboarding status and management{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.discord_overview') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Discord Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Onboarding</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% if error %}
+<div class="p-4 mb-6 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-red-900/50 dark:text-red-300">
+    <div class="flex items-start">
+        <i class="ti ti-alert-circle text-lg mr-3 mt-0.5"></i>
+        <div>
+            <strong>Error loading onboarding data:</strong> {{ error }}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Statistics Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.completed }}</h3>
+                <span class="text-sm text-green-700 dark:text-green-300">Completed</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50">
+                <i class="ti ti-circle-check text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.pending_discord }}</h3>
+                <span class="text-sm text-yellow-700 dark:text-yellow-300">Pending Discord</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50">
+                <i class="ti ti-brand-discord text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.pending_approval }}</h3>
+                <span class="text-sm text-cyan-700 dark:text-cyan-300">Pending Approval</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50">
+                <i class="ti ti-user-question text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ overview_data|length }}</h3>
+                <span class="text-sm text-blue-700 dark:text-blue-300">Total Users</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                <i class="ti ti-users text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Info Cards Row -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <!-- Onboarding Overview -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-user-plus mr-2"></i>Onboarding Overview
+            </h5>
+        </div>
+        <div class="p-5">
+            <p class="text-gray-500 dark:text-gray-400 mb-4">View and manage user onboarding status for Discord verification.</p>
+            <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" data-action="refresh-overview">
+                <i class="ti ti-refresh mr-1"></i>Refresh Onboarding Data
+            </button>
+        </div>
+    </div>
+
+    <!-- Status Legend -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-info-circle mr-2"></i>Status Legend
+            </h5>
+        </div>
+        <div class="p-5">
+            <ul class="space-y-3">
+                <li class="flex items-center">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 mr-2">Completed</span>
+                    <span class="text-gray-600 dark:text-gray-400">Discord linked + Approved</span>
+                </li>
+                <li class="flex items-center">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 mr-2">Pending Discord</span>
+                    <span class="text-gray-600 dark:text-gray-400">No Discord ID linked</span>
+                </li>
+                <li class="flex items-center">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 mr-2">Pending Approval</span>
+                    <span class="text-gray-600 dark:text-gray-400">Discord linked, awaiting approval</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Onboarding Status Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-list mr-2"></i>Recent Onboarding Activity
+        </h5>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ overview_data|length }} users</span>
+    </div>
+    {% if overview_data %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">User</th>
+                    <th scope="col" class="px-4 py-3">Discord</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">Approval</th>
+                    <th scope="col" class="px-4 py-3">Roles</th>
+                    <th scope="col" class="px-4 py-3">Registered</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in overview_data %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3">
+                        <div>
+                            <div class="font-medium text-gray-900 dark:text-white">{{ user.username }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ user.email }}</div>
+                            {% if user.player_name %}
+                            <div class="text-xs text-blue-600 dark:text-blue-400">{{ user.player_name }}</div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if user.discord_id %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 mb-1">
+                            <i class="ti ti-check mr-1"></i>Linked
+                        </span>
+                        <code class="block text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded mt-1">{{ user.discord_id }}</code>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Not Linked</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if user.onboarding_status == 'completed' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Completed</span>
+                        {% elif user.onboarding_status == 'pending_discord' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Pending Discord</span>
+                        {% elif user.onboarding_status == 'pending_approval' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">Pending Approval</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Unknown</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if user.approval_status == 'approved' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Approved</span>
+                        {% elif user.approval_status == 'denied' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Denied</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if user.roles %}
+                        <div class="flex flex-wrap gap-1">
+                            {% for role in user.roles[:3] %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ role }}</span>
+                            {% endfor %}
+                            {% if user.roles|length > 3 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">+{{ user.roles|length - 3 }}</span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="text-gray-400 dark:text-gray-500 text-xs">No roles</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if user.created_at %}
+                        <span class="text-xs">{{ user.created_at[:10] }}</span>
+                        {% else %}
+                        <span class="text-gray-400 dark:text-gray-500 text-xs">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            {% if user.bot_interaction_status in ['not_contacted', 'failed', None] %}
+                            <button type="button" class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="retry-contact" data-user-id="{{ user.id }}" title="Retry Contact">
+                                <i class="ti ti-refresh"></i>
+                            </button>
+                            {% endif %}
+                            <a href="{{ url_for('admin_panel.user_approvals') }}?search={{ user.username }}" class="p-1.5 text-gray-600 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600" title="View in Approvals">
+                                <i class="ti ti-eye"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-user-plus text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Onboarding Data</h5>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">No onboarding data available.</p>
+        <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" data-action="refresh-overview">
+            <i class="ti ti-refresh mr-1"></i>Load Onboarding Data
+        </button>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    document.addEventListener('click', function(e) {
+        const retryBtn = e.target.closest('[data-action="retry-contact"]');
+        if (retryBtn) {
+            const userId = retryBtn.dataset.userId;
+            retryContact(userId, retryBtn);
+        }
+
+        const refreshBtn = e.target.closest('[data-action="refresh-overview"]');
+        if (refreshBtn) {
+            location.reload();
+        }
+    });
+
+    function retryContact(userId, btn) {
+        Swal.fire({
+            title: 'Retry Contact',
+            text: 'This will enable bot contact retry for this user. Continue?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Retry',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.innerHTML = '<i class="ti ti-loader animate-spin"></i>';
+                btn.disabled = true;
+
+                fetch(`{{ url_for('admin_panel.discord_retry_onboarding_contact', user_id=0) }}`.replace('0', userId), { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: data.message,
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.error,
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error retrying contact',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    })
+                    .finally(() => {
+                        btn.innerHTML = '<i class="ti ti-refresh"></i>';
+                        btn.disabled = false;
+                    });
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

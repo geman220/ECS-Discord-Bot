@@ -1,0 +1,535 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Discord Role Mapping{% endblock %}
+{% block panel_description %}Map Flask roles to Discord server roles{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.discord_overview') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Discord</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Role Mapping</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Bot Status Card -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center">
+                <div class="flex items-center justify-center w-12 h-12 rounded-full {{ 'bg-green-100 dark:bg-green-900/50' if bot_status == 'online' else 'bg-red-100 dark:bg-red-900/50' }} mr-4">
+                    <i class="ti ti-robot text-2xl {{ 'text-green-600 dark:text-green-400' if bot_status == 'online' else 'text-red-600 dark:text-red-400' }}"></i>
+                </div>
+                <div>
+                    <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Discord Bot Status</h5>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if bot_status == 'online' else 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' }}">
+                        {{ bot_status|capitalize }}
+                    </span>
+                    {% if guild_name %}
+                    <span class="text-gray-500 dark:text-gray-400 ml-2">Connected to: {{ guild_name }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" data-action="create-discord-role">
+                    <i class="ti ti-plus mr-1"></i>Create Discord Role
+                </button>
+                <button type="button" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="refresh-roles">
+                    <i class="ti ti-refresh mr-1"></i>Refresh Roles
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Role Mapping Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-link mr-2"></i>Role Mappings
+        </h5>
+        <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700" data-action="sync-all-roles">
+            <i class="ti ti-cloud-upload mr-1"></i>Sync All to Discord
+        </button>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Flask Role</th>
+                    <th scope="col" class="px-4 py-3">Discord Role</th>
+                    <th scope="col" class="px-4 py-3">Users</th>
+                    <th scope="col" class="px-4 py-3">Sync Status</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for role in flask_roles %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" data-role-id="{{ role.id }}">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <i class="ti ti-shield mr-2 text-blue-500"></i>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-white">{{ role.name }}</div>
+                                {% if role.description %}
+                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ role.description }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <select class="discord-role-select block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                                data-role-id="{{ role.id }}"
+                                data-current="{{ role.discord_role_id or '' }}">
+                            <option value="">-- Not Mapped --</option>
+                            {% for dr in discord_roles %}
+                            <option value="{{ dr.id }}"
+                                    data-name="{{ dr.name }}"
+                                    data-color="{{ dr.color }}"
+                                    data-members="{{ dr.member_count }}"
+                                    {% if role.discord_role_id == dr.id %}selected{% endif %}>
+                                {{ dr.name }} ({{ dr.member_count }} members)
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td class="px-4 py-3">
+                        <button type="button" class="px-3 py-1.5 text-xs font-medium text-cyan-600 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800"
+                                data-action="preview-users"
+                                data-role-id="{{ role.id }}">
+                            <i class="ti ti-users mr-1"></i>
+                            <span class="user-count">{{ role.users|length }}</span>
+                        </button>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if role.discord_role_id %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            <i class="ti ti-check mr-1"></i>Mapped
+                        </span>
+                        {% if role.last_synced_at %}
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Last sync: {{ role.last_synced_at.strftime('%Y-%m-%d %H:%M') if role.last_synced_at else 'Never' }}
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            <i class="ti ti-minus mr-1"></i>Not Mapped
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            <button type="button" class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
+                                    data-action="save-mapping"
+                                    data-role-id="{{ role.id }}"
+                                    title="Save Mapping">
+                                <i class="ti ti-device-floppy"></i>
+                            </button>
+                            <button type="button" class="p-1.5 text-green-600 bg-green-50 border border-green-200 rounded hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800 {{ 'opacity-50 cursor-not-allowed' if not role.discord_role_id else '' }}"
+                                    data-action="sync-role"
+                                    data-role-id="{{ role.id }}"
+                                    {% if not role.discord_role_id %}disabled{% endif %}
+                                    title="Sync to Discord">
+                                <i class="ti ti-cloud-upload"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="px-4 py-12 text-center">
+                        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+                            <i class="ti ti-mood-empty text-3xl text-gray-400 dark:text-gray-500"></i>
+                        </div>
+                        <p class="text-gray-500 dark:text-gray-400">No Flask roles found</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Discord Roles Reference Card -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-brand-discord mr-2"></i>Available Discord Roles
+        </h5>
+    </div>
+    <div class="p-5">
+        {% if discord_roles %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for dr in discord_roles %}
+            <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                <span class="w-4 h-4 rounded mr-3" style="background-color: {{ dr.color }}"></span>
+                <div class="flex-grow">
+                    <div class="font-medium text-gray-900 dark:text-white">{{ dr.name }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ dr.member_count }} members</div>
+                </div>
+                {% if dr.managed %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" title="Managed by integration">Bot</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8">
+            <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+                <i class="ti ti-cloud-off text-3xl text-gray-400 dark:text-gray-500"></i>
+            </div>
+            <p class="text-gray-500 dark:text-gray-400">
+                {% if bot_status == 'offline' %}
+                Discord bot is offline. Start the bot to fetch roles.
+                {% else %}
+                No Discord roles available.
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- User Preview Modal -->
+<div id="userPreviewModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75 transition-opacity" data-modal-backdrop></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Users with Role</h5>
+                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-close>
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-5" id="userPreviewContent">
+                <div class="flex items-center justify-center py-8">
+                    <i class="ti ti-loader animate-spin text-3xl text-gray-400"></i>
+                </div>
+            </div>
+            <div class="p-5 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600" data-modal-close>
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    // Modal functions
+    function showModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+    }
+    function hideModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    // Modal close handlers
+    document.querySelectorAll('[data-modal-close], [data-modal-backdrop]').forEach(el => {
+        el.addEventListener('click', function() {
+            hideModal('userPreviewModal');
+        });
+    });
+
+    // Save mapping
+    document.querySelectorAll('[data-action="save-mapping"]').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const roleId = this.dataset.roleId;
+            const select = document.querySelector(`select[data-role-id="${roleId}"]`);
+            const selectedOption = select.options[select.selectedIndex];
+
+            const data = {
+                role_id: roleId,
+                discord_role_id: select.value || null,
+                discord_role_name: selectedOption.dataset.name || null,
+                sync_enabled: true
+            };
+
+            try {
+                const response = await fetch('{{ url_for("admin_panel.update_role_mapping") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Saved!',
+                        text: result.message,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(() => window.location.reload());
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: result.error || 'Failed to save mapping',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Network Error',
+                    text: 'Please try again.',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        });
+    });
+
+    // Sync role to Discord
+    document.querySelectorAll('[data-action="sync-role"]').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            if (this.disabled) return;
+            const roleId = this.dataset.roleId;
+
+            const result = await Swal.fire({
+                title: 'Sync Role to Discord?',
+                text: 'This will assign the mapped Discord role to all users with this Flask role.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Sync',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827',
+                showLoaderOnConfirm: true,
+                preConfirm: async () => {
+                    const response = await fetch('{{ url_for("admin_panel.sync_role_to_discord") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ role_id: roleId })
+                    });
+                    return response.json();
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            });
+
+            if (result.isConfirmed) {
+                if (result.value.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Synced!',
+                        text: result.value.message,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: result.value.error || 'Sync failed',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            }
+        });
+    });
+
+    // Preview users
+    document.querySelectorAll('[data-action="preview-users"]').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const roleId = this.dataset.roleId;
+            const content = document.getElementById('userPreviewContent');
+
+            content.innerHTML = '<div class="flex items-center justify-center py-8"><i class="ti ti-loader animate-spin text-3xl text-gray-400"></i></div>';
+            showModal('userPreviewModal');
+
+            try {
+                const response = await fetch(`{{ url_for("admin_panel.preview_role_sync", role_id=0) }}`.replace('/0', `/${roleId}`));
+                const data = await response.json();
+
+                if (data.success) {
+                    let html = `
+                        <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div class="grid grid-cols-3 gap-4 text-sm">
+                                <div><strong>Role:</strong> ${data.role.name}</div>
+                                <div><strong>Total Users:</strong> ${data.total_users}</div>
+                                <div><strong>With Discord:</strong> ${data.users_with_discord}</div>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                    <tr>
+                                        <th class="px-4 py-2">Username</th>
+                                        <th class="px-4 py-2">Discord</th>
+                                        <th class="px-4 py-2">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    data.users.forEach(user => {
+                        html += `
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                <td class="px-4 py-2">${user.username}</td>
+                                <td class="px-4 py-2">${user.discord_username || '<span class="text-gray-400">Not linked</span>'}</td>
+                                <td class="px-4 py-2">
+                                    ${user.has_discord
+                                        ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Ready</span>'
+                                        : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">No Discord</span>'}
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += '</tbody></table></div>';
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-red-900/50 dark:text-red-300">Error loading users</div>';
+                }
+            } catch (error) {
+                content.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-red-900/50 dark:text-red-300">Network error</div>';
+            }
+        });
+    });
+
+    // Refresh roles
+    document.querySelector('[data-action="refresh-roles"]')?.addEventListener('click', function() {
+        window.location.reload();
+    });
+
+    // Create Discord Role
+    document.querySelector('[data-action="create-discord-role"]')?.addEventListener('click', async function() {
+        const { value: formValues } = await Swal.fire({
+            title: 'Create Discord Role',
+            html: `
+                <div class="text-left space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="newRoleName" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="e.g., ECS-FC-PL-PREMIER" required>
+                        <p class="text-xs text-gray-500 mt-1">This will create a new role on your Discord server</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role Color (optional)</label>
+                        <input type="color" id="newRoleColor" class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600" value="#7C3AED">
+                    </div>
+                    <div class="flex items-center">
+                        <input class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="newRoleMentionable">
+                        <label class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="newRoleMentionable">
+                            Allow anyone to @mention this role
+                        </label>
+                    </div>
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Create Role',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827',
+            showLoaderOnConfirm: true,
+            preConfirm: async () => {
+                const name = document.getElementById('newRoleName').value.trim();
+                const color = document.getElementById('newRoleColor').value;
+                const mentionable = document.getElementById('newRoleMentionable').checked;
+
+                if (!name) {
+                    Swal.showValidationMessage('Role name is required');
+                    return false;
+                }
+
+                try {
+                    const response = await fetch('{{ url_for("admin_panel.create_discord_role") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ name, color, mentionable })
+                    });
+                    const data = await response.json();
+                    if (!data.success) {
+                        throw new Error(data.error || 'Failed to create role');
+                    }
+                    return data;
+                } catch (error) {
+                    Swal.showValidationMessage(error.message);
+                    return false;
+                }
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        });
+
+        if (formValues && formValues.success) {
+            await Swal.fire({
+                icon: 'success',
+                title: 'Role Created!',
+                html: `
+                    <p>Discord role <strong>${formValues.role_name}</strong> has been created.</p>
+                    <p class="text-sm text-gray-500 mt-2">Role ID: ${formValues.role_id}</p>
+                `,
+                confirmButtonText: 'Refresh to see new role',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            window.location.reload();
+        }
+    });
+
+    // Sync all roles
+    document.querySelector('[data-action="sync-all-roles"]')?.addEventListener('click', async function() {
+        const result = await Swal.fire({
+            title: 'Sync All Mapped Roles?',
+            text: 'This will sync all Flask roles that have Discord mappings.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Sync All',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+
+        if (result.isConfirmed) {
+            const syncButtons = document.querySelectorAll('[data-action="sync-role"]:not([disabled])');
+            let synced = 0;
+
+            for (const btn of syncButtons) {
+                btn.click();
+                synced++;
+                await new Promise(r => setTimeout(r, 1000));
+            }
+
+            if (synced === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Roles',
+                    text: 'No roles are mapped to Discord roles yet.',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
