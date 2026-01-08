@@ -1,0 +1,319 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Player Transfers{% endblock %}
+{% block panel_description %}Manage player team transfers{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.match_operations') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Match Operations</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Player Transfers</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Current Season Info -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-calendar mr-2"></i>Current Season: {{ transfers_data.current_season.name if transfers_data.current_season else 'No Active Season' }}
+        </h5>
+    </div>
+    <div class="p-5">
+        {% if transfers_data.current_season %}
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ transfers_data.total_transfers or 0 }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Total Transfers</div>
+            </div>
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ transfers_data.pending_count or 0 }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Pending Requests</div>
+            </div>
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ transfers_data.available_players|length or 0 }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Available Players</div>
+            </div>
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ transfers_data.teams|length or 0 }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Active Teams</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="p-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-yellow-900/50 dark:text-yellow-300">
+            <div class="flex items-center">
+                <i class="ti ti-alert-triangle mr-2 text-lg"></i>
+                No active season found. Please create a season to manage player transfers.
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Transfer Actions -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <!-- New Transfer -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-arrow-right mr-2"></i>New Transfer
+            </h5>
+        </div>
+        <div class="p-5">
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Transfer a player between teams</p>
+            <form id="transfer-form">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Player</label>
+                    <select name="player_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">Select Player</option>
+                        {% for player in transfers_data.available_players %}
+                        <option value="{{ player.id }}">{{ player.username or player.display_name or 'Unknown Player' }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">To Team</label>
+                    <select name="team_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">Select Team</option>
+                        {% for team in transfers_data.teams %}
+                        <option value="{{ team.id }}">{{ team.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Transfer Reason</label>
+                    <textarea name="reason" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Optional reason for transfer"></textarea>
+                </div>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <i class="ti ti-arrow-right mr-1"></i>Process Transfer
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Pending Requests -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-clock mr-2"></i>Pending Requests
+            </h5>
+        </div>
+        <div class="p-5">
+            {% if transfers_data.pending_requests %}
+            <div class="space-y-3">
+                {% for request in transfers_data.pending_requests %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div>
+                        <div class="font-medium text-gray-900 dark:text-white">{{ request.player.name or 'Unknown Player' }}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">to {{ request.team.name or 'Unknown Team' }}</div>
+                    </div>
+                    <div class="flex gap-1">
+                        <button type="button" class="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg js-approve-transfer" data-action="approve-transfer" data-request-id="{{ request.id }}" title="Approve">
+                            <i class="ti ti-check"></i>
+                        </button>
+                        <button type="button" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg js-reject-transfer" data-action="reject-transfer" data-request-id="{{ request.id }}" title="Reject">
+                            <i class="ti ti-x"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-6">
+                <div class="flex items-center justify-center w-12 h-12 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-3">
+                    <i class="ti ti-clock text-2xl text-gray-400 dark:text-gray-500"></i>
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">No pending requests</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transfers -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex justify-between items-center">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-history mr-2"></i>Recent Transfers
+            </h5>
+            <button type="button" class="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 js-export-transfer-history" data-action="export-transfer-history">
+                <i class="ti ti-download mr-1"></i>Export History
+            </button>
+        </div>
+    </div>
+    {% if transfers_data.recent_transfers %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Date</th>
+                    <th scope="col" class="px-4 py-3">Player</th>
+                    <th scope="col" class="px-4 py-3">From Team</th>
+                    <th scope="col" class="px-4 py-3">To Team</th>
+                    <th scope="col" class="px-4 py-3">Reason</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transfer in transfers_data.recent_transfers %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3 text-sm">{{ transfer.created_at.strftime('%Y-%m-%d') if transfer.created_at else 'N/A' }}</td>
+                    <td class="px-4 py-3">
+                        <div class="font-medium text-gray-900 dark:text-white">{{ transfer.player.name or 'Unknown Player' }}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="text-gray-500 dark:text-gray-400">{{ transfer.from_team.name if transfer.from_team else 'Free Agent' }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ transfer.to_team.name if transfer.to_team else 'Unknown' }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">{{ transfer.reason or '-' }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if transfer.status == 'completed' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Completed</span>
+                        {% elif transfer.status == 'pending' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Pending</span>
+                        {% elif transfer.status == 'rejected' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Rejected</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ transfer.status or 'Unknown' }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-arrows-exchange text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Transfer History</h5>
+        <p class="text-gray-500 dark:text-gray-400">Player transfers will appear here once they are processed.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Info Alert -->
+<div class="p-4 mt-6 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
+    <div class="flex items-start">
+        <i class="ti ti-info-circle text-lg mr-3 mt-0.5"></i>
+        <div>
+            <strong>Player Transfers:</strong>
+            Manage player movements between teams. All transfers are logged for audit purposes.
+            <em class="text-blue-600 dark:text-blue-400">Note: This is a demo interface. Actual transfer functionality requires implementation.</em>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    const transferForm = document.getElementById('transfer-form');
+    if (transferForm) {
+        transferForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Process Transfer?',
+                text: 'This will transfer the selected player to the new team.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Confirm Transfer',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Transfer Processed',
+                        text: 'The player transfer has been initiated.',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            });
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+        const approveBtn = e.target.closest('[data-action="approve-transfer"]');
+        if (approveBtn) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Approve Transfer?',
+                text: 'This will approve the pending transfer request.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Approve',
+                confirmButtonColor: '#059669',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Approved!',
+                        text: 'Transfer request has been approved.',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(() => location.reload());
+                }
+            });
+        }
+
+        const rejectBtn = e.target.closest('[data-action="reject-transfer"]');
+        if (rejectBtn) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Reject Transfer?',
+                text: 'This will reject the pending transfer request.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Reject',
+                confirmButtonColor: '#dc2626',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Rejected!',
+                        text: 'Transfer request has been rejected.',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(() => location.reload());
+                }
+            });
+        }
+
+        const exportBtn = e.target.closest('[data-action="export-transfer-history"]');
+        if (exportBtn) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'info',
+                title: 'Export Feature',
+                text: 'Transfer history export coming soon.',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
