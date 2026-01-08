@@ -1,0 +1,205 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Draft Management{% endblock %}
+{% block panel_description %}Manage draft history and positions{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Draft Management</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Stats Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
+                <i class="ti ti-list-numbers text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.total_picks }}</h3>
+            <span class="text-sm text-blue-700 dark:text-blue-300">Total Draft Picks</span>
+        </div>
+    </div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
+                <i class="ti ti-calendar text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.current_season_picks }}</h3>
+            <span class="text-sm text-green-700 dark:text-green-300">Current Season Picks</span>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
+                <i class="ti ti-trophy text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.seasons_count }}</h3>
+            <span class="text-sm text-cyan-700 dark:text-cyan-300">Seasons</span>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
+                <i class="ti ti-users text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.leagues_count }}</h3>
+            <span class="text-sm text-yellow-700 dark:text-yellow-300">Leagues</span>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-bolt mr-2"></i>Quick Actions
+        </h5>
+    </div>
+    <div class="p-5">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="{{ url_for('admin_panel.draft_history') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="ti ti-history mr-2"></i>View Draft History
+            </a>
+            <a href="{{ url_for('admin_panel.draft_history', season=current_season.id if current_season else '') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600">
+                <i class="ti ti-calendar mr-2"></i>Current Season Draft
+            </a>
+            <button type="button" id="export-btn" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                <i class="ti ti-download mr-2"></i>Export Draft Data
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Season/League Selection -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Seasons Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-calendar mr-2"></i>Seasons
+            </h5>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for season in seasons[:5] %}
+            <a href="{{ url_for('admin_panel.draft_history', season=season.id) }}" class="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <div class="flex items-center">
+                    <span class="font-medium text-gray-900 dark:text-white">{{ season.name }}</span>
+                    {% if season.is_current %}
+                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Current</span>
+                    {% endif %}
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            {% endfor %}
+            {% if seasons|length > 5 %}
+            <a href="{{ url_for('admin_panel.draft_history') }}" class="block p-4 text-center text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green">
+                View all {{ seasons|length }} seasons...
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Leagues Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-trophy mr-2"></i>Leagues
+            </h5>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for league in leagues[:5] %}
+            <a href="{{ url_for('admin_panel.draft_history', league=league.id) }}" class="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <span class="font-medium text-gray-900 dark:text-white">{{ league.name }}</span>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            {% endfor %}
+            {% if leagues|length > 5 %}
+            <a href="{{ url_for('admin_panel.draft_history') }}" class="block p-4 text-center text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green">
+                View all {{ leagues|length }} leagues...
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Information Card -->
+{% call card(title="Draft Management Information") %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Features</h6>
+        <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+            <li class="flex items-start">
+                <i class="ti ti-check text-green-500 mr-2 mt-0.5"></i>
+                View draft history by season and league
+            </li>
+            <li class="flex items-start">
+                <i class="ti ti-check text-green-500 mr-2 mt-0.5"></i>
+                Edit draft pick positions with cascading updates
+            </li>
+            <li class="flex items-start">
+                <i class="ti ti-check text-green-500 mr-2 mt-0.5"></i>
+                Normalize position gaps automatically
+            </li>
+            <li class="flex items-start">
+                <i class="ti ti-check text-green-500 mr-2 mt-0.5"></i>
+                Delete and reorder draft picks
+            </li>
+            <li class="flex items-start">
+                <i class="ti ti-check text-green-500 mr-2 mt-0.5"></i>
+                Export draft data for analysis
+            </li>
+        </ul>
+    </div>
+    <div>
+        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Position Editing Modes</h6>
+        <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+            <li><span class="font-semibold text-gray-700 dark:text-gray-300">Cascading:</span> Shifts all subsequent picks down</li>
+            <li><span class="font-semibold text-gray-700 dark:text-gray-300">Absolute:</span> Sets exact position without shifting</li>
+            <li><span class="font-semibold text-gray-700 dark:text-gray-300">Smart:</span> Automatically determines best approach</li>
+            <li><span class="font-semibold text-gray-700 dark:text-gray-300">Insert:</span> Inserts at position, shifting others</li>
+        </ul>
+    </div>
+</div>
+{% endcall %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    document.getElementById('export-btn').addEventListener('click', function() {
+        Swal.fire({
+            title: 'Export Draft Data',
+            html: `
+                <div class="text-left">
+                    <p class="mb-4 text-gray-600 dark:text-gray-400">Choose what to export:</p>
+                    <div class="space-y-3">
+                        <a href="{{ url_for('admin_panel.draft_history') }}?export=csv" class="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                            <i class="ti ti-file-spreadsheet mr-2"></i>All Drafts (CSV)
+                        </a>
+                        {% if current_season %}
+                        <a href="{{ url_for('admin_panel.draft_history', season=current_season.id) }}?export=csv" class="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
+                            <i class="ti ti-calendar mr-2"></i>Current Season Only (CSV)
+                        </a>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-4">Export includes player names, teams, positions, and draft order.</p>
+                </div>
+            `,
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'Close',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+    });
+});
+</script>
+{% endblock %}
