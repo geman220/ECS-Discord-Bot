@@ -1,0 +1,245 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Live Reporting Matches{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin_live.dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Live Reporting</a>
+                <span>/</span>
+                <span>Matches</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-ball-football text-green-600"></i>
+                Live Reporting Matches
+            </h1>
+        </div>
+        <a href="{{ url_for('admin_live.dashboard') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+            <i class="ti ti-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div>
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Matches</label>
+                <input type="text" name="search" value="{{ request.args.get('search', '') }}" placeholder="Team name, competition..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+            </div>
+            <div>
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Status Filter</label>
+                <select name="status" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">All Matches</option>
+                    <option value="upcoming" {{ 'selected' if request.args.get('status') == 'upcoming' }}>Upcoming</option>
+                    <option value="past" {{ 'selected' if request.args.get('status') == 'past' }}>Past</option>
+                    <option value="today" {{ 'selected' if request.args.get('status') == 'today' }}>Today</option>
+                </select>
+            </div>
+            <div>
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reporting Status</label>
+                <select name="reporting" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Any Status</option>
+                    <option value="scheduled" {{ 'selected' if request.args.get('reporting') == 'scheduled' }}>Scheduled</option>
+                    <option value="active" {{ 'selected' if request.args.get('reporting') == 'active' }}>Active</option>
+                    <option value="none" {{ 'selected' if request.args.get('reporting') == 'none' }}>No Reporting</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                    <i class="ti ti-search mr-2"></i>Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Matches Grid -->
+    {% if matches %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for match in matches %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <span class="font-semibold text-gray-900 dark:text-white">Match {{ match.id }}</span>
+                {% if match.match_id in sessions_by_match %}
+                    {% set session = sessions_by_match[match.match_id] %}
+                    {% if session.is_active %}
+                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Live Reporting Active</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Reporting Ended</span>
+                    {% endif %}
+                {% else %}
+                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">No Live Reporting</span>
+                {% endif %}
+            </div>
+            <div class="p-4 flex-1">
+                <!-- Teams -->
+                <div class="flex items-center justify-between mb-4">
+                    <div class="text-center flex-1">
+                        <p class="font-semibold text-gray-900 dark:text-white">
+                            {% if match.is_home_game %}Seattle Sounders FC{% else %}{{ match.opponent }}{% endif %}
+                        </p>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Home</span>
+                    </div>
+                    <div class="px-3 text-gray-400 dark:text-gray-500">vs</div>
+                    <div class="text-center flex-1">
+                        <p class="font-semibold text-gray-900 dark:text-white">
+                            {% if match.is_home_game %}{{ match.opponent }}{% else %}Seattle Sounders FC{% endif %}
+                        </p>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Away</span>
+                    </div>
+                </div>
+
+                <!-- Match Info -->
+                <div class="text-sm text-gray-500 dark:text-gray-400 space-y-1 mb-4">
+                    {% if match.date_time %}
+                    <div class="flex items-center gap-2"><i class="ti ti-calendar"></i>{{ match.date_time.strftime('%B %d, %Y at %I:%M %p') }}</div>
+                    {% endif %}
+                    {% if match.competition %}
+                    <div class="flex items-center gap-2"><i class="ti ti-trophy"></i>{{ match.competition }}</div>
+                    {% endif %}
+                    {% if match.venue %}
+                    <div class="flex items-center gap-2"><i class="ti ti-map-pin"></i>{{ match.venue }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Session Info -->
+                {% if match.match_id in sessions_by_match %}
+                {% set session = sessions_by_match[match.match_id] %}
+                <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                    <h6 class="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2">Live Reporting Session</h6>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                        <div>Session ID: {{ session.id }}</div>
+                        {% if session.competition %}<div>Competition: {{ session.competition }}</div>{% endif %}
+                        {% if session.update_count %}<div>Updates: {{ session.update_count }}</div>{% endif %}
+                        {% if session.error_count and session.error_count > 0 %}<div class="text-yellow-600 dark:text-yellow-400">Errors: {{ session.error_count }}</div>{% endif %}
+                        {% if session.last_status %}<div>Status: {{ session.last_status }}</div>{% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700">
+                <a href="{{ url_for('admin_live.match_detail', match_id=match.id) }}" class="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                    <i class="ti ti-eye mr-1"></i>Details
+                </a>
+                {% if match.match_id not in sessions_by_match %}
+                <button class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors" data-action="schedule-match" data-match-id="{{ match.id }}">
+                    <i class="ti ti-broadcast mr-1"></i>Schedule Reporting
+                </button>
+                {% elif sessions_by_match[match.match_id].is_active %}
+                <button class="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors" data-action="stop-session" data-session-id="{{ sessions_by_match[match.match_id].id }}">
+                    <i class="ti ti-player-stop mr-1"></i>Stop Reporting
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-12 text-center">
+        <i class="ti ti-ball-football text-6xl text-gray-400 dark:text-gray-600 mb-4"></i>
+        <h4 class="text-xl font-semibold text-gray-500 dark:text-gray-400 mb-2">No matches found</h4>
+        <p class="text-gray-400 dark:text-gray-500">Try adjusting your search filters or check back later.</p>
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if total_matches > per_page %}
+    {% set total_pages = (total_matches + per_page - 1) // per_page %}
+    <nav class="flex items-center justify-center gap-1">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}{% if request.args.get('status') %}&status={{ request.args.get('status') }}{% endif %}{% if request.args.get('reporting') %}&reporting={{ request.args.get('reporting') }}{% endif %}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><i class="ti ti-chevron-left"></i></a>
+        {% endif %}
+
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+            <span class="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg">{{ p }}</span>
+            {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+            <a href="?page={{ p }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}{% if request.args.get('status') %}&status={{ request.args.get('status') }}{% endif %}{% if request.args.get('reporting') %}&reporting={{ request.args.get('reporting') }}{% endif %}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{{ p }}</a>
+            {% elif p == page - 3 or p == page + 3 %}
+            <span class="px-3 py-2 text-sm text-gray-400 dark:text-gray-500">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}{% if request.args.get('status') %}&status={{ request.args.get('status') }}{% endif %}{% if request.args.get('reporting') %}&reporting={{ request.args.get('reporting') }}{% endif %}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><i class="ti ti-chevron-right"></i></a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    // Schedule match
+    document.querySelectorAll('[data-action="schedule-match"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            Swal.fire({
+                title: 'Schedule Live Reporting?',
+                text: 'This will schedule live reporting for this match.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, schedule it',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin/live-reporting/api/schedule-match/${matchId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({ icon: 'success', title: 'Success', text: data.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // Stop session
+    document.querySelectorAll('[data-action="stop-session"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sessionId = this.dataset.sessionId;
+            Swal.fire({
+                title: 'Stop Live Reporting?',
+                text: 'This will stop the live reporting session.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                confirmButtonText: 'Yes, stop it',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin/live-reporting/api/session/${sessionId}/stop`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({ icon: 'success', title: 'Stopped', text: data.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                        }
+                    });
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

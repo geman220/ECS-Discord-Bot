@@ -1,0 +1,205 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Manage Substitutes{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <span>Admin</span>
+                <span>/</span>
+                <span>Manage Substitutes</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Manage Substitutes</h1>
+        </div>
+        <div class="flex gap-2">
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" data-modal-target="assignSubModal" data-modal-toggle="assignSubModal">
+                <i class="ti ti-user-plus mr-2"></i>Assign Substitute
+            </button>
+            <form action="{{ url_for('admin.cleanup_subs') }}" method="POST" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                    <i class="ti ti-trash mr-2"></i>Clean Up Old Assignments
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Subs Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Substitute Player Pool</h5>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th class="px-4 py-3">Player</th>
+                        <th class="px-4 py-3">Primary Team</th>
+                        <th class="px-4 py-3">Contact Info</th>
+                        <th class="px-4 py-3">Current Assignments</th>
+                        <th class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in subs %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" data-player-id="{{ sub.id }}">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center overflow-hidden">
+                                    {% if sub.profile_picture_url %}
+                                    <img src="{{ sub.profile_picture_url }}" alt="{{ sub.name }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                    <span class="text-blue-600 dark:text-blue-400 font-semibold">{{ sub.name[:1]|upper }}</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-white">{{ sub.name }}</span>
+                                    <br><span class="text-xs text-gray-500 dark:text-gray-400">ID: {{ sub.id }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if sub.primary_team_name %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ sub.primary_team_name }}</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">No Primary Team</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="text-xs space-y-1">
+                                {% if sub.phone %}
+                                <div class="flex items-center gap-1"><i class="ti ti-phone"></i>{{ sub.phone }}</div>
+                                {% endif %}
+                                {% if sub.email %}
+                                <div class="flex items-center gap-1"><i class="ti ti-mail"></i>{{ sub.email }}</div>
+                                {% endif %}
+                                {% if sub.discord_id %}
+                                <div class="flex items-center gap-1 text-purple-600 dark:text-purple-400"><i class="ti ti-brand-discord"></i>Connected</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <button class="px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors" data-action="load-assignments" data-player-id="{{ sub.id }}">
+                                <i class="ti ti-calendar-stats mr-1"></i>View Assignments
+                            </button>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex gap-2">
+                                <a href="{{ url_for('players.player_profile', player_id=sub.id) }}" class="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" title="View Profile">
+                                    <i class="ti ti-user"></i>
+                                </a>
+                                <button class="p-2 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" data-action="assign-sub" data-player-id="{{ sub.id }}" data-player-name="{{ sub.name }}" title="Assign to Match">
+                                    <i class="ti ti-user-plus"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Sub Modal -->
+<div id="assignSubModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-user-plus"></i>Assign Substitute
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="assignSubModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form id="assignSubForm" action="{{ url_for('admin.assign_sub') }}" method="POST">
+                <div class="p-4 md:p-5 space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="subPlayer" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Substitute Player</label>
+                            <select id="subPlayer" name="player_id" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                                <option value="" disabled selected>Select a substitute player...</option>
+                                {% for sub in subs %}
+                                <option value="{{ sub.id }}">{{ sub.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="subMatch" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Match</label>
+                            <select id="subMatch" name="match_id" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                                <option value="" disabled selected>Select a match...</option>
+                                {% for match in upcoming_matches %}
+                                <option value="{{ match.id }}">{{ match.date.strftime('%a, %b %d') }} - {{ match.home_team.name }} vs {{ match.away_team.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="subTeam" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Team</label>
+                        <select id="subTeam" name="team_id" required disabled class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                            <option value="" disabled selected>Select a team for this match...</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-info-circle mr-1"></i>First select a match to see the available teams.</p>
+                    </div>
+                </div>
+                <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                    <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                        <i class="ti ti-user-plus mr-1"></i>Assign Substitute
+                    </button>
+                    <button type="button" data-modal-hide="assignSubModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Assignments Modal -->
+<div id="viewAssignmentsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 bg-blue-600">
+                <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                    <i class="ti ti-calendar"></i>Sub Assignments for <span id="assignmentsPlayerName"></span>
+                </h3>
+                <button type="button" class="text-white bg-transparent hover:bg-blue-700 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-modal-hide="viewAssignmentsModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-5">
+                <div id="assignmentsList">
+                    <div id="assignmentsLoading" class="hidden text-center py-8">
+                        <i class="ti ti-loader-2 animate-spin text-3xl text-blue-600 dark:text-blue-400"></i>
+                        <p class="mt-2 text-gray-500 dark:text-gray-400">Loading assignments...</p>
+                    </div>
+                    <div id="assignmentsEmpty" class="hidden text-center py-8">
+                        <i class="ti ti-calendar-off text-4xl text-gray-400 dark:text-gray-600 mb-2"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No active assignments found.</p>
+                    </div>
+                    <div id="assignmentsContent"></div>
+                </div>
+            </div>
+            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button type="button" data-modal-hide="viewAssignmentsModal" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    window.subsPageData = {
+        upcomingMatches: {{ upcoming_matches|tojson|safe }},
+        csrfToken: '{{ csrf_token() }}'
+    };
+</script>
+<script src="{{ url_for('static', filename='custom_js/admin-manage-subs.js') }}"></script>
+{% endblock %}
