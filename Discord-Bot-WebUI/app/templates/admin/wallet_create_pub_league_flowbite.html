@@ -1,0 +1,228 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Create Pub League Pass{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+                <span>/</span>
+                <a href="{{ url_for('wallet_admin.passes_list', tab='pub_league') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Pub League Passes</a>
+                <span>/</span>
+                <span>Create Pass</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-plus text-yellow-600 dark:text-yellow-400"></i>Create Pub League Pass
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Manually create a new Pub League seasonal membership pass</p>
+        </div>
+        <a href="{{ url_for('wallet_admin.passes_list', tab='pub_league') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+            <i class="ti ti-arrow-left mr-2"></i>Back to Passes
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Form -->
+        <div class="lg:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-ball-football"></i>Player Information
+                    </h5>
+                </div>
+                <div class="p-6">
+                    <form method="POST" action="{{ url_for('wallet_admin.create_pub_league_pass') }}" id="createPubLeagueForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-4">
+                            <label for="member_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Player Name <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="member_name" name="member_name" required autocomplete="off"
+                                   placeholder="e.g., John Smith"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">This will be displayed prominently on the digital pass</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="member_email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Email Address
+                            </label>
+                            <input type="email" id="member_email" name="member_email" autocomplete="email"
+                                   placeholder="e.g., john@example.com"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">If provided, the player can receive their pass via email</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="team_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Team <span class="text-red-500">*</span>
+                                </label>
+                                <select id="team_name" name="team_name" required
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                    <option value="">Select a team...</option>
+                                    {% for team in teams %}
+                                    <option value="{{ team.name }}">{{ team.name }}</option>
+                                    {% endfor %}
+                                    <option value="__custom__">-- Enter Custom Team --</option>
+                                </select>
+                                <input type="text" id="custom_team_name" placeholder="Enter team name"
+                                       class="hidden mt-2 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                            </div>
+                            <div>
+                                <label for="season_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    Season <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" id="season_name" name="season_name" required
+                                       placeholder="e.g., Spring 2025"
+                                       value="{{ current_season.name if current_season else '' }}"
+                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">E.g., "Spring 2025" or "Fall 2024"</p>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label for="woo_order_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                WooCommerce Order ID
+                            </label>
+                            <input type="number" id="woo_order_id" name="woo_order_id"
+                                   placeholder="e.g., 12345"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Optional - for order tracking</p>
+                        </div>
+
+                        <div class="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <button type="submit" class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition-colors">
+                                <i class="ti ti-plus mr-2"></i>Create Pass
+                            </button>
+                            <a href="{{ url_for('wallet_admin.passes_list', tab='pub_league') }}" class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-4">
+            <!-- Live Preview -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-eye"></i>Live Preview
+                    </h6>
+                </div>
+                <div class="p-4">
+                    <div class="rounded-xl p-4 text-white" style="background: {{ pub_type.background_color if pub_type else 'linear-gradient(135deg, #213e96 0%, #3a5bb8 100%)' }};">
+                        <div class="flex justify-between items-start border-b border-white/20 pb-3 mb-3">
+                            <div>
+                                <span class="text-xs uppercase opacity-75 tracking-wide">{{ pub_type.organization_name if pub_type else 'ECS Pub League' }}</span>
+                                <h5 class="font-semibold mt-1">{{ pub_type.name if pub_type else 'Pub League' }}</h5>
+                            </div>
+                            <div>
+                                {% if logo_asset %}
+                                <img src="{{ url_for('wallet_config.get_asset', asset_id=logo_asset.id) }}" alt="Logo" class="w-12 h-12 object-contain">
+                                {% else %}
+                                <i class="ti ti-ball-football text-3xl opacity-80"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <span class="text-xs uppercase opacity-75 tracking-wide">Player</span>
+                            <p class="text-lg font-semibold" id="preview-name">John Smith</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <span class="text-xs uppercase opacity-75 tracking-wide">Team</span>
+                                <p id="preview-team">Select Team</p>
+                            </div>
+                            <div>
+                                <span class="text-xs uppercase opacity-75 tracking-wide">Season</span>
+                                <p id="preview-season">{{ current_season.name if current_season else 'Spring 2025' }}</p>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <div class="inline-block bg-white rounded p-2">
+                                <i class="ti ti-qrcode text-gray-900"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Card -->
+            <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 rounded-lg p-4">
+                <h6 class="font-semibold text-yellow-800 dark:text-yellow-300 mb-3 flex items-center gap-2">
+                    <i class="ti ti-help-circle"></i>When to Create Manually
+                </h6>
+                <ul class="text-sm text-yellow-700 dark:text-yellow-400 space-y-2 list-disc list-inside">
+                    <li><strong>Late registrations</strong> - Player joined after initial passes were created</li>
+                    <li><strong>Team changes</strong> - Player moved to a different team mid-season</li>
+                    <li><strong>Replacement passes</strong> - Player lost access to original</li>
+                    <li><strong>Special cases</strong> - Guests, referees, or staff</li>
+                </ul>
+                <div class="mt-3 p-3 bg-yellow-100 dark:bg-yellow-900/40 rounded-lg text-sm text-yellow-800 dark:text-yellow-300">
+                    <i class="ti ti-info-circle mr-1"></i>
+                    <strong>Note:</strong> Pub League passes are typically created automatically when players register for a season.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nameInput = document.getElementById('member_name');
+    const teamSelect = document.getElementById('team_name');
+    const customTeamInput = document.getElementById('custom_team_name');
+    const seasonInput = document.getElementById('season_name');
+    const previewName = document.getElementById('preview-name');
+    const previewTeam = document.getElementById('preview-team');
+    const previewSeason = document.getElementById('preview-season');
+
+    nameInput.addEventListener('input', function() {
+        previewName.textContent = this.value || 'John Smith';
+    });
+
+    teamSelect.addEventListener('change', function() {
+        if (this.value === '__custom__') {
+            customTeamInput.classList.remove('hidden');
+            customTeamInput.required = true;
+            previewTeam.textContent = 'Custom Team';
+        } else {
+            customTeamInput.classList.add('hidden');
+            customTeamInput.required = false;
+            previewTeam.textContent = this.value || 'Select Team';
+        }
+    });
+
+    customTeamInput.addEventListener('input', function() {
+        previewTeam.textContent = this.value || 'Custom Team';
+    });
+
+    seasonInput.addEventListener('input', function() {
+        previewSeason.textContent = this.value || 'Spring 2025';
+    });
+
+    // Handle form submission for custom team
+    document.getElementById('createPubLeagueForm').addEventListener('submit', function(e) {
+        if (teamSelect.value === '__custom__' && customTeamInput.value) {
+            const hiddenTeam = document.createElement('input');
+            hiddenTeam.type = 'hidden';
+            hiddenTeam.name = 'team_name';
+            hiddenTeam.value = customTeamInput.value;
+            this.appendChild(hiddenTeam);
+            teamSelect.disabled = true;
+        }
+    });
+});
+</script>
+{% endblock %}

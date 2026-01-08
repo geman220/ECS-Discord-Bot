@@ -1,0 +1,340 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Playoff Schedule Generator - {{ league.name }}{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+                <span>/</span>
+                <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Schedule Manager</a>
+                <span>/</span>
+                <span>Playoff Generator</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-tournament text-blue-600 dark:text-blue-400"></i>Playoff Schedule Generator - {{ league.name }}
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Generate playoff brackets and schedules for the top 8 teams</p>
+        </div>
+        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+            <i class="ti ti-arrow-left mr-2"></i>Back to Schedule Manager
+        </a>
+    </div>
+
+    <!-- How It Works -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-info-circle"></i>How It Works
+            </h5>
+        </div>
+        <div class="p-6">
+            <ol class="list-decimal list-inside space-y-2 text-gray-700 dark:text-gray-300 mb-4">
+                <li>Review the top 8 teams from the regular season standings</li>
+                <li>Click "Generate Preview" to create a randomized playoff bracket</li>
+                <li>Review the generated groups and matchups</li>
+                <li><strong>Optional: Swap entire groups A ↔ B if needed</strong></li>
+                <li><strong>Optional: Edit teams, times, or fields directly in the match table</strong></li>
+                <li>Click "Regenerate" if you want a different random bracket</li>
+                <li>Click "Confirm & Apply" to save your schedule</li>
+            </ol>
+            <div class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+                <p class="text-sm text-blue-700 dark:text-blue-400">
+                    <i class="ti ti-info-circle mr-1"></i>
+                    <strong>Fully Editable:</strong> You can swap which group is labeled A vs B, and edit all match details (teams, times, locations) before confirming.
+                </p>
+            </div>
+            <div class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p class="text-sm text-green-700 dark:text-green-400">
+                    <i class="ti ti-calendar-check mr-1"></i>
+                    <strong>Best Practice - RSVP Timing:</strong> Generate the playoff schedule on Sunday night <em>before</em> the Monday 2am RSVP send.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Standings -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20">
+            <h5 class="font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                <i class="ti ti-trophy"></i>Current Standings (Top 8 Qualify)
+            </h5>
+        </div>
+        <div class="p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" id="standingsTable">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">Rank</th>
+                            <th scope="col" class="px-4 py-3">Team</th>
+                            <th scope="col" class="px-4 py-3">Points</th>
+                            <th scope="col" class="px-4 py-3">W-L-D</th>
+                            <th scope="col" class="px-4 py-3">GD</th>
+                            <th scope="col" class="px-4 py-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for team in standings %}
+                        <tr class="{{ 'bg-green-50 dark:bg-green-900/20' if loop.index <= 8 else 'bg-white dark:bg-gray-800' }} border-b dark:border-gray-700">
+                            <td class="px-4 py-3 font-bold text-gray-900 dark:text-white">{{ loop.index }}</td>
+                            <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ team.team_name }}</td>
+                            <td class="px-4 py-3">{{ team.points|default(0) }}</td>
+                            <td class="px-4 py-3">{{ team.wins|default(0) }}-{{ team.losses|default(0) }}-{{ team.draws|default(0) }}</td>
+                            <td class="px-4 py-3">{{ team.goal_difference|default(0) }}</td>
+                            <td class="px-4 py-3">
+                                {% if loop.index <= 8 %}
+                                <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">PLAYOFFS</span>
+                                {% else %}
+                                <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Eliminated</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generate Button -->
+    <div class="text-center">
+        <button id="previewBtn" class="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+            <i class="ti ti-wand mr-2"></i>Generate Preview
+        </button>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2" id="generateHelpText">Generate a randomized playoff schedule for review</p>
+        <div id="existingScheduleNote" class="hidden mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg inline-block">
+            <i class="ti ti-info-circle mr-1"></i>
+            <strong>Existing Schedule Loaded:</strong> Edit directly or click "Regenerate" for a new bracket.
+        </div>
+    </div>
+
+    <!-- Preview Section (Hidden initially) -->
+    <div id="previewSection" class="hidden space-y-6">
+        <hr class="border-gray-200 dark:border-gray-700">
+        <h4 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-eye"></i>Schedule Preview
+        </h4>
+
+        <!-- Groups Display -->
+        <div class="text-center mb-4">
+            <button id="swapGroupsBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-switch-horizontal mr-2"></i>Swap Groups A ↔ B
+            </button>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Swap which group is labeled A vs B (updates all matches)</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-blue-500 dark:border-blue-600">
+                <div class="p-4 bg-blue-50 dark:bg-blue-900/30 border-b border-blue-200 dark:border-blue-800">
+                    <h5 class="font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                        <i class="ti ti-users"></i>Group A
+                    </h5>
+                </div>
+                <div class="p-4">
+                    <ul id="groupAList" class="space-y-2"></ul>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-cyan-500 dark:border-cyan-600">
+                <div class="p-4 bg-cyan-50 dark:bg-cyan-900/30 border-b border-cyan-200 dark:border-cyan-800">
+                    <h5 class="font-semibold text-cyan-800 dark:text-cyan-300 flex items-center gap-2">
+                        <i class="ti ti-users"></i>Group B
+                    </h5>
+                </div>
+                <div class="p-4">
+                    <ul id="groupBList" class="space-y-2"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Matches Display -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-900/20">
+                <h5 class="font-semibold text-green-800 dark:text-green-300 flex items-center gap-2">
+                    <i class="ti ti-calendar-event"></i>Generated Playoff Matches
+                </h5>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" id="matchesTable">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-4 py-3">Week</th>
+                                <th scope="col" class="px-4 py-3">Date</th>
+                                <th scope="col" class="px-4 py-3">Time</th>
+                                <th scope="col" class="px-4 py-3">Home Team</th>
+                                <th scope="col" class="px-4 py-3">Away Team</th>
+                                <th scope="col" class="px-4 py-3">Location</th>
+                                <th scope="col" class="px-4 py-3">Group</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matchesTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmation Buttons -->
+        <div class="flex flex-wrap justify-center gap-2">
+            <button id="confirmBtn" class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                <i class="ti ti-check mr-2"></i>Confirm & Apply This Schedule
+            </button>
+            <button id="regenerateBtn" class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition-colors">
+                <i class="ti ti-refresh mr-2"></i>Regenerate (Discard Edits)
+            </button>
+            <button id="cancelBtn" class="inline-flex items-center px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-x mr-2"></i>Cancel
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const leagueId = '{{ league.id }}';
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    const previewBtn = document.getElementById('previewBtn');
+    const previewSection = document.getElementById('previewSection');
+    const groupAList = document.getElementById('groupAList');
+    const groupBList = document.getElementById('groupBList');
+    const matchesTableBody = document.getElementById('matchesTableBody');
+
+    let currentScheduleData = null;
+
+    previewBtn.addEventListener('click', generatePreview);
+    document.getElementById('regenerateBtn')?.addEventListener('click', generatePreview);
+    document.getElementById('cancelBtn')?.addEventListener('click', function() {
+        previewSection.classList.add('hidden');
+    });
+
+    document.getElementById('swapGroupsBtn')?.addEventListener('click', function() {
+        if (!currentScheduleData) return;
+        const tempA = currentScheduleData.groupA;
+        currentScheduleData.groupA = currentScheduleData.groupB;
+        currentScheduleData.groupB = tempA;
+        renderPreview(currentScheduleData);
+    });
+
+    document.getElementById('confirmBtn')?.addEventListener('click', confirmSchedule);
+
+    function generatePreview() {
+        previewBtn.disabled = true;
+        previewBtn.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-2"></i>Generating...';
+
+        fetch(`/admin/playoffs/generate-preview/${leagueId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+        })
+        .then(res => res.json())
+        .then(data => {
+            previewBtn.disabled = false;
+            previewBtn.innerHTML = '<i class="ti ti-wand mr-2"></i>Generate Preview';
+
+            if (data.success) {
+                currentScheduleData = data;
+                renderPreview(data);
+                previewSection.classList.remove('hidden');
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.error || 'Failed to generate preview',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        })
+        .catch(() => {
+            previewBtn.disabled = false;
+            previewBtn.innerHTML = '<i class="ti ti-wand mr-2"></i>Generate Preview';
+        });
+    }
+
+    function renderPreview(data) {
+        // Render Group A
+        groupAList.innerHTML = data.groupA.map((team, i) => `
+            <li class="p-2 bg-blue-50 dark:bg-blue-900/20 rounded flex items-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">${i + 1}</span>
+                ${team}
+            </li>
+        `).join('');
+
+        // Render Group B
+        groupBList.innerHTML = data.groupB.map((team, i) => `
+            <li class="p-2 bg-cyan-50 dark:bg-cyan-900/20 rounded flex items-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-cyan-600 text-white text-xs flex items-center justify-center">${i + 1}</span>
+                ${team}
+            </li>
+        `).join('');
+
+        // Render Matches
+        matchesTableBody.innerHTML = data.matches.map(match => `
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                <td class="px-4 py-3">${match.week}</td>
+                <td class="px-4 py-3">${match.date}</td>
+                <td class="px-4 py-3">${match.time}</td>
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">${match.home_team}</td>
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">${match.away_team}</td>
+                <td class="px-4 py-3">${match.location}</td>
+                <td class="px-4 py-3">
+                    <span class="px-2 py-1 text-xs font-medium rounded ${match.group === 'A' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' : 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300'}">
+                        Group ${match.group}
+                    </span>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function confirmSchedule() {
+        if (!currentScheduleData) return;
+
+        Swal.fire({
+            title: 'Confirm Schedule?',
+            text: 'This will save the playoff schedule. RSVPs will use these team assignments.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, save it',
+            confirmButtonColor: '#22c55e',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/admin/playoffs/confirm/${leagueId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify(currentScheduleData)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Schedule Saved',
+                            text: 'Playoff schedule has been confirmed.',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        }).then(() => window.location.href = '/admin/schedule-manager');
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.error || 'Failed to save schedule',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    }
+                });
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
