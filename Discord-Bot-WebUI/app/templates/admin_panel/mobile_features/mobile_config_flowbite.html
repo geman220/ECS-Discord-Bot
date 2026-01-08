@@ -1,0 +1,193 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Mobile Configuration{% endblock %}
+{% block panel_description %}Mobile app configuration and feature settings{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.mobile_features') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Mobile Features</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Mobile Configuration</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Configuration Settings -->
+    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-settings mr-2"></i>Configuration Settings
+            </h5>
+        </div>
+        <div class="p-5">
+            <form id="mobile-config-form">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">App Version</label>
+                        <input type="text" name="app_version" value="{{ config.app_version if config else 'v1.0.0' }}" placeholder="v1.0.0" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Minimum Supported Version</label>
+                        <input type="text" name="min_version" value="{{ config.min_version if config else 'v1.0.0' }}" placeholder="v1.0.0" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                </div>
+
+                <h6 class="text-md font-medium text-gray-900 dark:text-white mb-4">Feature Toggles</h6>
+                <div class="space-y-4 mb-6">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="push_notifications" class="sr-only peer" {{ 'checked' if config and config.push_notifications else '' }}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Push Notifications</span>
+                    </label>
+
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="wallet_passes" class="sr-only peer" {{ 'checked' if config and config.wallet_passes else '' }}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Wallet Passes</span>
+                    </label>
+
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="offline_mode" class="sr-only peer" {{ 'checked' if config and config.offline_mode else '' }}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Offline Mode</span>
+                    </label>
+
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="analytics_enabled" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Analytics Enabled</span>
+                    </label>
+
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="crash_reporting" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Crash Reporting</span>
+                    </label>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                        <i class="ti ti-device-floppy mr-1"></i>Save Configuration
+                    </button>
+                    <button type="reset" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                        <i class="ti ti-refresh mr-1"></i>Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Configuration Status -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-info-circle mr-2"></i>Configuration Status
+                </h5>
+            </div>
+            <div class="p-5">
+                <div class="p-4 rounded-lg {% if config_valid %}bg-green-50 dark:bg-green-900/30{% else %}bg-yellow-50 dark:bg-yellow-900/30{% endif %}">
+                    <div class="flex items-center">
+                        <i class="ti ti-{% if config_valid %}check{% else %}alert-triangle{% endif %} mr-2 {% if config_valid %}text-green-600 dark:text-green-400{% else %}text-yellow-600 dark:text-yellow-400{% endif %}"></i>
+                        <div>
+                            <h6 class="font-medium {% if config_valid %}text-green-800 dark:text-green-300{% else %}text-yellow-800 dark:text-yellow-300{% endif %}">Configuration Status</h6>
+                            <p class="text-sm {% if config_valid %}text-green-700 dark:text-green-400{% else %}text-yellow-700 dark:text-yellow-400{% endif %}">{{ 'Valid' if config_valid else 'Needs Attention' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-bolt mr-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="p-5 space-y-3">
+                <button type="button" class="w-full px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="test-config">
+                    <i class="ti ti-test-pipe mr-2"></i>Test Configuration
+                </button>
+                <button type="button" class="w-full px-4 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800" data-action="export-config">
+                    <i class="ti ti-download mr-2"></i>Export Settings
+                </button>
+                <button type="button" class="w-full px-4 py-2 text-sm font-medium text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800" data-action="reset-config">
+                    <i class="ti ti-refresh-alert mr-2"></i>Reset to Defaults
+                </button>
+            </div>
+        </div>
+
+        <!-- App Info -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-device-mobile mr-2"></i>App Info
+                </h5>
+            </div>
+            <div class="p-5">
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Current Version</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ config.app_version if config else 'v1.0.0' }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Min Version</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ config.min_version if config else 'v1.0.0' }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Last Updated</span>
+                        <span class="text-sm text-gray-900 dark:text-white">{{ config.last_updated if config else 'Never' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('mobile-config-form');
+    const isDark = document.documentElement.classList.contains('dark');
+
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            Swal.fire({
+                title: 'Save Configuration?',
+                text: 'This will update the mobile app configuration',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Save',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Saved!',
+                        text: 'Configuration has been updated successfully.',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

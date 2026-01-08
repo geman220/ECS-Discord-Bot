@@ -1,0 +1,345 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Push Campaigns{% endblock %}
+{% block panel_description %}Create and manage push notification campaigns{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.mobile_features') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Mobile Features</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Push Campaigns</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Campaign Statistics -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
+                <i class="ti ti-send text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ campaign_data.total_sent_today or 0 }}</h3>
+            <span class="text-sm text-blue-700 dark:text-blue-300">Sent Today</span>
+        </div>
+    </div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
+                <i class="ti ti-check text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ campaign_data.delivery_rate or '0%' }}</h3>
+            <span class="text-sm text-green-700 dark:text-green-300">Delivery Rate</span>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
+                <i class="ti ti-eye text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ campaign_data.avg_open_rate or '0%' }}</h3>
+            <span class="text-sm text-cyan-700 dark:text-cyan-300">Avg Open Rate</span>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
+                <i class="ti ti-users text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ campaign_data.active_users or 0 }}</h3>
+            <span class="text-sm text-yellow-700 dark:text-yellow-300">Target Users</span>
+        </div>
+    </div>
+</div>
+
+<!-- Create New Campaign -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-plus mr-2"></i>Create Push Campaign
+            </h5>
+        </div>
+        <div class="p-5">
+            <form id="campaignForm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Campaign Name</label>
+                        <input type="text" name="campaign_name" placeholder="Match Day Reminder" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Campaign Type</label>
+                        <select name="campaign_type" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">Select Type</option>
+                            <option value="match_reminder">Match Reminder</option>
+                            <option value="season_update">Season Update</option>
+                            <option value="event_announcement">Event Announcement</option>
+                            <option value="custom">Custom Campaign</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notification Title</label>
+                        <input type="text" name="notification_title" placeholder="Match Starting Soon!" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Target Audience</label>
+                        <select name="target_audience" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">Select Audience</option>
+                            <option value="all">All Users ({{ campaign_data.total_users }})</option>
+                            <option value="active">Active Players ({{ campaign_data.active_users }})</option>
+                            <option value="team_specific">Team-Specific</option>
+                            <option value="custom">Custom Segment</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notification Message</label>
+                    <textarea name="notification_message" rows="3" placeholder="Your match against Arsenal FC starts in 30 minutes. Good luck!" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <span id="messageCounter">0</span>/160 characters
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Send Schedule</label>
+                        <select name="send_schedule" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="sendSchedule">
+                            <option value="immediate">Send Immediately</option>
+                            <option value="scheduled">Schedule for Later</option>
+                            <option value="recurring">Recurring Campaign</option>
+                        </select>
+                    </div>
+                    <div class="hidden" id="scheduledDateField">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Send Date/Time</label>
+                        <input type="datetime-local" name="send_datetime" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                </div>
+
+                <div class="flex gap-4 mb-4">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="high_priority" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">High Priority Notification</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="track_opens" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Track Open Rates</span>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-action="preview-campaign">
+                        <i class="ti ti-eye mr-1"></i>Preview
+                    </button>
+                    <div class="flex gap-2">
+                        <button type="button" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="save-draft">
+                            <i class="ti ti-file mr-1"></i>Save Draft
+                        </button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                            <i class="ti ti-send mr-1"></i>Create Campaign
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Campaign Templates -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-template mr-2"></i>Campaign Templates
+            </h5>
+        </div>
+        <div class="p-5 space-y-4">
+            {% for template in campaign_data.templates %}
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h6 class="font-medium text-gray-900 dark:text-white">{{ template.name }}</h6>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ template.description }}</p>
+                    </div>
+                    <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" data-action="load-template" data-template-id="{{ template.id }}" title="Load Template">
+                        <i class="ti ti-download"></i>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-500 dark:text-gray-400">Target: {{ template.target_audience }}</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ template.estimated_reach }} users</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Recent Campaigns -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-history mr-2"></i>Recent Campaigns
+        </h5>
+    </div>
+    {% if campaign_data.recent_campaigns %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Campaign</th>
+                    <th scope="col" class="px-4 py-3">Type</th>
+                    <th scope="col" class="px-4 py-3">Sent Date</th>
+                    <th scope="col" class="px-4 py-3">Recipients</th>
+                    <th scope="col" class="px-4 py-3">Delivery</th>
+                    <th scope="col" class="px-4 py-3">Opens</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for campaign in campaign_data.recent_campaigns %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3">
+                        <span class="font-medium text-gray-900 dark:text-white">{{ campaign.name }}</span>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ campaign.description or 'No description' }}</p>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ campaign.type or 'Custom' }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">{{ campaign.sent_date }}</td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ campaign.recipients }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if campaign.delivery_rate and campaign.delivery_rate.rstrip('%')|int > 90 %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% endif %}">{{ campaign.delivery_rate }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if campaign.open_rate and campaign.open_rate.rstrip('%')|int > 50 %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ campaign.open_rate }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Completed</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            <button type="button" class="p-2 text-cyan-600 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg" data-action="view-campaign-details" data-campaign-id="{{ campaign.id }}" title="View">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" title="Duplicate">
+                                <i class="ti ti-copy"></i>
+                            </button>
+                            <button type="button" class="p-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" data-action="download-report" data-campaign-id="{{ campaign.id }}" title="Download Report">
+                                <i class="ti ti-download"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-send-off text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Campaigns Yet</h5>
+        <p class="text-gray-500 dark:text-gray-400">Create your first push notification campaign to get started.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('campaignForm');
+    const messageTextarea = document.querySelector('textarea[name="notification_message"]');
+    const scheduleSelect = document.getElementById('sendSchedule');
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Message counter
+    if (messageTextarea) {
+        messageTextarea.addEventListener('input', function() {
+            const counter = document.getElementById('messageCounter');
+            if (counter) {
+                counter.textContent = this.value.length;
+                counter.classList.toggle('text-red-600', this.value.length > 160);
+            }
+        });
+    }
+
+    // Send schedule handling
+    if (scheduleSelect) {
+        scheduleSelect.addEventListener('change', function() {
+            const scheduledField = document.getElementById('scheduledDateField');
+            if (scheduledField) {
+                scheduledField.classList.toggle('hidden', this.value !== 'scheduled' && this.value !== 'recurring');
+            }
+        });
+    }
+
+    // Form submission
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const message = formData.get('notification_message');
+
+            if (message && message.length > 160) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Message Too Long',
+                    text: 'Please keep the notification message under 160 characters.',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Create Campaign?',
+                text: 'This will send push notifications to the selected audience',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Create Campaign',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Creating Campaign...',
+                        text: 'Setting up your push notification campaign',
+                        allowOutsideClick: false,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827',
+                        didOpen: () => {
+                            Swal.showLoading();
+                            setTimeout(() => {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Campaign Created!',
+                                    text: 'Your push notification campaign has been created successfully.',
+                                    background: isDark ? '#1f2937' : '#ffffff',
+                                    color: isDark ? '#f3f4f6' : '#111827'
+                                }).then(() => location.reload());
+                            }, 3000);
+                        }
+                    });
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
