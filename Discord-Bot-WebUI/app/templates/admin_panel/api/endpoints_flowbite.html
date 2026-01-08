@@ -1,0 +1,389 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}API Endpoints{% endblock %}
+{% block panel_description %}API endpoint management and testing{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.api_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">API Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Endpoints</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <h4 class="text-xl font-semibold text-gray-900 dark:text-white">API Endpoints</h4>
+    <div class="relative">
+        <button type="button" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" id="exportDropdownBtn">
+            <i class="ti ti-download mr-2"></i>Export
+        </button>
+        <div id="exportDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg dark:bg-gray-700 z-10">
+            <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-endpoints" data-format="csv"><i class="ti ti-file-text mr-2"></i>Export as CSV</a></li>
+                <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-endpoints" data-format="json"><i class="ti ti-code mr-2"></i>Export as JSON</a></li>
+                <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-endpoints" data-format="xlsx"><i class="ti ti-file-spreadsheet mr-2"></i>Export as Excel</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Blueprint</label>
+                <select name="filter" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+                    <option value="all" {% if current_filters.filter == 'all' %}selected{% endif %}>All Blueprints</option>
+                    {% for blueprint in blueprints %}
+                    <option value="{{ blueprint }}" {% if current_filters.filter == blueprint %}selected{% endif %}>{{ blueprint }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Method</label>
+                <select name="method" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+                    <option value="all" {% if current_filters.method == 'all' %}selected{% endif %}>All Methods</option>
+                    {% for method in methods %}
+                    <option value="{{ method }}" {% if current_filters.method == method %}selected{% endif %}>{{ method }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
+                <div class="relative">
+                    <input type="text" name="search" value="{{ current_filters.search }}" placeholder="Search endpoints..." class="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+                    <button type="submit" class="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                        <i class="ti ti-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="flex items-end gap-2">
+                <a href="{{ url_for('admin_panel.api_endpoints') }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                    <i class="ti ti-x mr-1"></i>Clear
+                </a>
+                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" onclick="location.reload()">
+                    <i class="ti ti-refresh mr-1"></i>Refresh
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Endpoints Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    {% if endpoints %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Endpoint</th>
+                    <th scope="col" class="px-4 py-3">Blueprint</th>
+                    <th scope="col" class="px-4 py-3">Methods</th>
+                    <th scope="col" class="px-4 py-3">Auth</th>
+                    <th scope="col" class="px-4 py-3">Requests</th>
+                    <th scope="col" class="px-4 py-3">Avg Response</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">Last Used</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for endpoint in endpoints %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3">
+                        <code class="text-sm text-blue-600 dark:text-blue-400">{{ endpoint.path }}</code>
+                        {% if endpoint.description %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ endpoint.description }}</p>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ endpoint.blueprint }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex flex-wrap gap-1">
+                            {% for method in endpoint.methods %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300' if method == 'GET' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if method == 'POST' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' if endpoint.authentication == 'admin' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if endpoint.authentication == 'required' else 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' }}">{{ endpoint.authentication }}</span>
+                    </td>
+                    <td class="px-4 py-3 font-medium">{{ "{:,}".format(endpoint.request_count) }}</td>
+                    <td class="px-4 py-3">
+                        <span class="{{ 'text-red-600 dark:text-red-400' if endpoint.avg_response_time > 0.5 else 'text-yellow-600 dark:text-yellow-400' if endpoint.avg_response_time > 0.2 else 'text-green-600 dark:text-green-400' }}">
+                            {{ "%.3f"|format(endpoint.avg_response_time) }}s
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if endpoint.status == 'active' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if endpoint.status == 'deprecated' else 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' }}">{{ endpoint.status }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-xs">{{ endpoint.last_used.strftime('%Y-%m-%d %H:%M') if endpoint.last_used else 'Never' }}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            <button type="button" class="p-1.5 text-cyan-600 bg-cyan-50 border border-cyan-200 rounded hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800" data-action="view-endpoint-details" data-endpoint-path="{{ endpoint.path[1:] }}" title="View Details">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            <button type="button" class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="test-endpoint" data-endpoint-path="{{ endpoint.path }}" data-methods="{{ endpoint.methods | tojson }}" title="Test">
+                                <i class="ti ti-test-pipe"></i>
+                            </button>
+                            <button type="button" class="p-1.5 text-gray-600 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600" data-action="copy-endpoint" data-endpoint-path="{{ endpoint.path }}" title="Copy Path">
+                                <i class="ti ti-copy"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div class="p-5 border-t border-gray-200 dark:border-gray-700">
+        <nav class="flex items-center justify-center space-x-1">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('admin_panel.api_endpoints', page=pagination.prev_num, **current_filters) }}" class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">Previous</a>
+            {% endif %}
+
+            {% for page_num in range(1, pagination.pages + 1) %}
+                {% if page_num == pagination.page %}
+                <span class="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg">{{ page_num }}</span>
+                {% elif page_num <= 3 or page_num > pagination.pages - 3 or (page_num >= pagination.page - 1 and page_num <= pagination.page + 1) %}
+                <a href="{{ url_for('admin_panel.api_endpoints', page=page_num, **current_filters) }}" class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">{{ page_num }}</a>
+                {% elif page_num == 4 or page_num == pagination.pages - 3 %}
+                <span class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">...</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+            <a href="{{ url_for('admin_panel.api_endpoints', page=pagination.next_num, **current_filters) }}" class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">Next</a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-api text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Endpoints Found</h5>
+        <p class="text-gray-500 dark:text-gray-400">No API endpoints match your current filters.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Statistics Summary -->
+{% if endpoints %}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-5 text-center">
+        <i class="ti ti-api text-3xl text-blue-500 mb-2"></i>
+        <h6 class="text-xl font-bold text-gray-900 dark:text-white">{{ pagination.total }}</h6>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Total Endpoints</p>
+    </div>
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-5 text-center">
+        <i class="ti ti-check-circle text-3xl text-green-500 mb-2"></i>
+        <h6 class="text-xl font-bold text-gray-900 dark:text-white">{{ endpoints | selectattr('status', 'equalto', 'active') | list | length }}</h6>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Active Endpoints</p>
+    </div>
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-5 text-center">
+        <i class="ti ti-activity text-3xl text-cyan-500 mb-2"></i>
+        <h6 class="text-xl font-bold text-gray-900 dark:text-white">{{ "{:,}".format(endpoints | sum(attribute='request_count')) }}</h6>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Total Requests</p>
+    </div>
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-5 text-center">
+        <i class="ti ti-clock text-3xl text-yellow-500 mb-2"></i>
+        <h6 class="text-xl font-bold text-gray-900 dark:text-white">{{ "%.3f"|format(endpoints | sum(attribute='avg_response_time') / endpoints | length) }}s</h6>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Avg Response Time</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Export dropdown toggle
+    const exportBtn = document.getElementById('exportDropdownBtn');
+    const exportDropdown = document.getElementById('exportDropdown');
+    if (exportBtn && exportDropdown) {
+        exportBtn.addEventListener('click', () => exportDropdown.classList.toggle('hidden'));
+        document.addEventListener('click', (e) => {
+            if (!exportBtn.contains(e.target) && !exportDropdown.contains(e.target)) {
+                exportDropdown.classList.add('hidden');
+            }
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+        const viewBtn = e.target.closest('[data-action="view-endpoint-details"]');
+        if (viewBtn) {
+            viewEndpointDetails(viewBtn.dataset.endpointPath);
+        }
+
+        const testBtn = e.target.closest('[data-action="test-endpoint"]');
+        if (testBtn) {
+            testEndpoint(testBtn.dataset.endpointPath, JSON.parse(testBtn.dataset.methods));
+        }
+
+        const copyBtn = e.target.closest('[data-action="copy-endpoint"]');
+        if (copyBtn) {
+            copyEndpoint(copyBtn.dataset.endpointPath);
+        }
+
+        const exportBtn = e.target.closest('[data-action="export-endpoints"]');
+        if (exportBtn) {
+            e.preventDefault();
+            exportEndpoints(exportBtn.dataset.format);
+        }
+    });
+
+    function viewEndpointDetails(endpointPath) {
+        fetch(`/admin-panel/api/endpoint/${endpointPath}/details`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const endpoint = data.endpoint;
+                    const usage = data.usage_stats;
+                    Swal.fire({
+                        title: 'Endpoint Details',
+                        html: `
+                            <div class="grid grid-cols-2 gap-4 text-left text-sm">
+                                <div>
+                                    <h6 class="font-semibold mb-2">Information</h6>
+                                    <p><strong>Path:</strong> <code>${endpoint.path}</code></p>
+                                    <p><strong>Blueprint:</strong> ${endpoint.blueprint}</p>
+                                    <p><strong>Methods:</strong> ${endpoint.methods.join(', ')}</p>
+                                    <p><strong>Auth:</strong> ${endpoint.authentication}</p>
+                                    <p><strong>Status:</strong> ${endpoint.status}</p>
+                                </div>
+                                <div>
+                                    <h6 class="font-semibold mb-2">Statistics</h6>
+                                    <p><strong>Total Requests:</strong> ${usage.total_requests.toLocaleString()}</p>
+                                    <p><strong>Success Rate:</strong> ${usage.success_rate.toFixed(1)}%</p>
+                                    <p><strong>Avg Response:</strong> ${usage.avg_response_time.toFixed(3)}s</p>
+                                    <p><strong>24h Requests:</strong> ${usage.last_24h_requests}</p>
+                                    <p><strong>Peak Hour:</strong> ${usage.peak_hour}</p>
+                                </div>
+                            </div>
+                        `,
+                        width: '700px',
+                        confirmButtonText: 'Close',
+                        confirmButtonColor: '#1a472a',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            });
+    }
+
+    function testEndpoint(endpoint, methods) {
+        Swal.fire({
+            title: 'Test Endpoint',
+            html: `
+                <div class="text-left space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Endpoint</label>
+                        <input type="text" id="test-endpoint" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" value="${endpoint}" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Method</label>
+                        <select id="test-method" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                            ${methods.map(m => `<option value="${m}">${m}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Parameters (JSON)</label>
+                        <textarea id="test-params" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" rows="3" placeholder='{"key": "value"}'></textarea>
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Test',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827',
+            preConfirm: () => {
+                const endpointPath = document.getElementById('test-endpoint').value;
+                const method = document.getElementById('test-method').value;
+                let params = {};
+                const paramsText = document.getElementById('test-params').value;
+                if (paramsText.trim()) {
+                    try {
+                        params = JSON.parse(paramsText);
+                    } catch (e) {
+                        Swal.showValidationMessage('Invalid JSON');
+                        return false;
+                    }
+                }
+                return { endpoint: endpointPath, method, parameters: params };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/admin-panel/api/test-endpoint', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(result.value)
+                })
+                .then(r => r.json())
+                .then(data => {
+                    Swal.fire({
+                        title: 'Test Results',
+                        html: `
+                            <div class="text-left">
+                                <p><strong>Status:</strong> ${data.status_code}</p>
+                                <p><strong>Time:</strong> ${data.response_time}s</p>
+                                <pre class="mt-2 p-3 bg-gray-100 dark:bg-gray-700 rounded text-xs overflow-auto max-h-48">${JSON.stringify(data.response_data, null, 2)}</pre>
+                            </div>
+                        `,
+                        icon: data.status_code < 400 ? 'success' : 'warning',
+                        width: '600px',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                });
+            }
+        });
+    }
+
+    function copyEndpoint(endpoint) {
+        navigator.clipboard.writeText(endpoint).then(() => {
+            Swal.fire({
+                icon: 'success',
+                title: 'Copied!',
+                text: 'Endpoint path copied to clipboard',
+                timer: 1500,
+                showConfirmButton: false,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        });
+    }
+
+    function exportEndpoints(format) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Export Started',
+            text: `API endpoints export in ${format.toUpperCase()} format has been queued.`,
+            timer: 2000,
+            showConfirmButton: false,
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,381 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}API Analytics{% endblock %}
+{% block panel_description %}API performance metrics and analytics{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.api_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">API Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Analytics</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Page Header with Date Filter -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <h4 class="text-xl font-semibold text-gray-900 dark:text-white">API Analytics</h4>
+    <form method="GET" class="flex items-center gap-2">
+        <input type="date" name="date_from" value="{{ date_range.start }}" class="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+        <span class="text-gray-500 dark:text-gray-400">to</span>
+        <input type="date" name="date_to" value="{{ date_range.end }}" class="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Update</button>
+    </form>
+</div>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ "{:,}".format(analytics.total_requests) }}</h3>
+                <span class="text-sm text-blue-700 dark:text-blue-300">Total Requests</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                <i class="ti ti-activity text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="rounded-lg shadow p-5 {{ 'bg-green-50 dark:bg-green-900/30' if analytics.error_rate < 2 else 'bg-yellow-50 dark:bg-yellow-900/30' if analytics.error_rate < 5 else 'bg-red-50 dark:bg-red-900/30' }}">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold {{ 'text-green-600 dark:text-green-400' if analytics.error_rate < 2 else 'text-yellow-600 dark:text-yellow-400' if analytics.error_rate < 5 else 'text-red-600 dark:text-red-400' }}">{{ "%.1f"|format(analytics.error_rate) }}%</h3>
+                <span class="text-sm {{ 'text-green-700 dark:text-green-300' if analytics.error_rate < 2 else 'text-yellow-700 dark:text-yellow-300' if analytics.error_rate < 5 else 'text-red-700 dark:text-red-300' }}">Error Rate</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full {{ 'bg-green-100 dark:bg-green-900/50' if analytics.error_rate < 2 else 'bg-yellow-100 dark:bg-yellow-900/50' if analytics.error_rate < 5 else 'bg-red-100 dark:bg-red-900/50' }}">
+                <i class="ti ti-alert-triangle text-2xl {{ 'text-green-600 dark:text-green-400' if analytics.error_rate < 2 else 'text-yellow-600 dark:text-yellow-400' if analytics.error_rate < 5 else 'text-red-600 dark:text-red-400' }}"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ "%.3f"|format(analytics.avg_response_time) }}s</h3>
+                <span class="text-sm text-cyan-700 dark:text-cyan-300">Avg Response Time</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50">
+                <i class="ti ti-clock text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-gray-600 dark:text-gray-300">{{ "{:,}".format(analytics.total_errors) }}</h3>
+                <span class="text-sm text-gray-700 dark:text-gray-400">Total Errors</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-600">
+                <i class="ti ti-x-circle text-2xl text-gray-600 dark:text-gray-300"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Requests Chart -->
+    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-chart-line mr-2"></i>API Requests Over Time
+            </h5>
+        </div>
+        <div class="p-5">
+            <canvas id="requestsChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <!-- Error Distribution -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-chart-pie mr-2"></i>Error Distribution
+            </h5>
+        </div>
+        <div class="p-5">
+            <canvas id="errorChart" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Analysis -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <!-- Top Performing Endpoints -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-trending-up mr-2"></i>Top Performing Endpoints
+            </h5>
+        </div>
+        {% if endpoint_performance %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Endpoint</th>
+                        <th scope="col" class="px-4 py-3">Requests</th>
+                        <th scope="col" class="px-4 py-3">Avg Time</th>
+                        <th scope="col" class="px-4 py-3">Success</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for endpoint in endpoint_performance %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="px-4 py-3">
+                            <code class="text-xs">{{ endpoint.endpoint }}</code>
+                        </td>
+                        <td class="px-4 py-3">{{ "{:,}".format(endpoint.requests) }}</td>
+                        <td class="px-4 py-3">
+                            <span class="{{ 'text-red-600 dark:text-red-400' if endpoint.avg_response_time > 0.3 else 'text-yellow-600 dark:text-yellow-400' if endpoint.avg_response_time > 0.15 else 'text-green-600 dark:text-green-400' }}">
+                                {{ "%.3f"|format(endpoint.avg_response_time) }}s
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center">
+                                <div class="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700 mr-2">
+                                    <div class="h-2 rounded-full {{ 'bg-green-600' if endpoint.success_rate > 95 else 'bg-yellow-500' if endpoint.success_rate > 90 else 'bg-red-600' }}" style="width: {{ endpoint.success_rate }}%"></div>
+                                </div>
+                                <span class="text-xs">{{ "%.1f"|format(endpoint.success_rate) }}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-5 text-center text-gray-500 dark:text-gray-400">
+            No performance data available
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Error Analysis -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-alert-triangle mr-2"></i>Error Analysis
+            </h5>
+        </div>
+        <div class="p-5">
+            {% if error_analysis.error_types %}
+            <h6 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Error Types</h6>
+            <div class="space-y-3 mb-6">
+                {% for error in error_analysis.error_types %}
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">{{ error.type }}</span>
+                    <div class="flex items-center">
+                        <div class="w-20 bg-gray-200 rounded-full h-2 dark:bg-gray-700 mr-2">
+                            <div class="bg-red-600 h-2 rounded-full" style="width: {{ (error.count / error_analysis.total_errors * 100) if error_analysis.total_errors > 0 else 0 }}%"></div>
+                        </div>
+                        <span class="text-sm font-bold text-gray-900 dark:text-white">{{ error.count }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if error_analysis.top_error_endpoints %}
+            <h6 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Top Error Endpoints</h6>
+            <div class="space-y-2">
+                {% for endpoint in error_analysis.top_error_endpoints %}
+                <div class="flex justify-between items-center">
+                    <code class="text-xs">{{ endpoint.endpoint }}</code>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ endpoint.errors }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% else %}
+            <p class="text-gray-500 dark:text-gray-400 text-center">No error data available</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Daily Analytics Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-table mr-2"></i>Daily Analytics Breakdown
+        </h5>
+        <div class="flex gap-2">
+            <button type="button" class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="export-analytics" data-format="csv">
+                <i class="ti ti-download mr-1"></i>CSV
+            </button>
+            <button type="button" class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="export-analytics" data-format="json">
+                <i class="ti ti-download mr-1"></i>JSON
+            </button>
+        </div>
+    </div>
+    {% if analytics.daily_requests %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Date</th>
+                    <th scope="col" class="px-4 py-3">Requests</th>
+                    <th scope="col" class="px-4 py-3">Errors</th>
+                    <th scope="col" class="px-4 py-3">Error Rate</th>
+                    <th scope="col" class="px-4 py-3">Avg Response</th>
+                    <th scope="col" class="px-4 py-3">Health Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for day in analytics.daily_requests %}
+                {% set error_rate = (day.errors / day.requests * 100) if day.requests > 0 else 0 %}
+                {% set health_score = 100 - error_rate - (day.avg_response_time * 100) %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ day.date }}</td>
+                    <td class="px-4 py-3">{{ "{:,}".format(day.requests) }}</td>
+                    <td class="px-4 py-3">{{ day.errors }}</td>
+                    <td class="px-4 py-3">
+                        <span class="{{ 'text-green-600 dark:text-green-400' if error_rate < 2 else 'text-yellow-600 dark:text-yellow-400' if error_rate < 5 else 'text-red-600 dark:text-red-400' }}">
+                            {{ "%.1f"|format(error_rate) }}%
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="{{ 'text-green-600 dark:text-green-400' if day.avg_response_time < 0.2 else 'text-yellow-600 dark:text-yellow-400' if day.avg_response_time < 0.4 else 'text-red-600 dark:text-red-400' }}">
+                            {{ "%.3f"|format(day.avg_response_time) }}s
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <div class="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700 mr-2">
+                                <div class="h-2 rounded-full {{ 'bg-green-600' if health_score > 80 else 'bg-yellow-500' if health_score > 60 else 'bg-red-600' }}" style="width: {{ [health_score, 100] | min }}%"></div>
+                            </div>
+                            <span class="text-xs">{{ "%.0f"|format([health_score, 100] | min) }}%</span>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="p-5 text-center text-gray-500 dark:text-gray-400">
+        No daily analytics data available
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Export analytics buttons
+    document.querySelectorAll('[data-action="export-analytics"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const format = this.dataset.format;
+            Swal.fire({
+                icon: 'info',
+                title: 'Export Started',
+                text: `API analytics export in ${format.toUpperCase()} format has been queued.`,
+                timer: 2000,
+                showConfirmButton: false,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        });
+    });
+
+    // Requests Over Time Chart
+    const requestsData = {{ analytics.daily_requests | tojson }};
+    const requestsCtx = document.getElementById('requestsChart').getContext('2d');
+    new Chart(requestsCtx, {
+        type: 'line',
+        data: {
+            labels: requestsData.map(d => d.date),
+            datasets: [
+                {
+                    label: 'Requests',
+                    data: requestsData.map(d => d.requests),
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'Errors',
+                    data: requestsData.map(d => d.errors),
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: isDark ? '#374151' : '#e5e7eb'
+                    },
+                    ticks: {
+                        color: isDark ? '#9ca3af' : '#6b7280'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: isDark ? '#374151' : '#e5e7eb'
+                    },
+                    ticks: {
+                        color: isDark ? '#9ca3af' : '#6b7280'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }
+                }
+            }
+        }
+    });
+
+    // Error Distribution Chart
+    const errorData = {{ error_analysis.error_types | tojson }};
+    const errorCtx = document.getElementById('errorChart').getContext('2d');
+    new Chart(errorCtx, {
+        type: 'doughnut',
+        data: {
+            labels: errorData.map(d => d.type),
+            datasets: [{
+                data: errorData.map(d => d.count),
+                backgroundColor: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: isDark ? '#f3f4f6' : '#111827',
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
