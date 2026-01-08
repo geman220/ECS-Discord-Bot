@@ -1,0 +1,265 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Redis Connection Statistics{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <span>Admin</span>
+                <span>/</span>
+                <span>Redis Statistics</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Redis Connection Statistics</h1>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" id="redis-refresh-btn">
+                <i class="ti ti-refresh mr-2"></i>Refresh
+            </button>
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition-colors" id="cleanup-btn">
+                <i class="ti ti-trash mr-2"></i>Cleanup Connections
+            </button>
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors" id="test-btn">
+                <i class="ti ti-test-pipe mr-2"></i>Test Connection
+            </button>
+            <a href="/admin/redis/draft-cache-stats" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                <i class="ti ti-database mr-2"></i>Draft Cache Stats
+            </a>
+        </div>
+    </div>
+
+    <!-- Auto-refresh Toggle -->
+    <div class="flex items-center gap-4">
+        <label class="inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="redis-auto-refresh" checked class="sr-only peer">
+            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Auto-refresh every 5 seconds</span>
+        </label>
+        <span id="redis-last-updated" class="text-sm text-gray-500 dark:text-gray-400"></span>
+    </div>
+
+    <!-- Connection Health Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+            <h5 class="font-semibold text-gray-900 dark:text-white mb-3">Connection Health</h5>
+            <div id="health-status" class="flex items-center gap-2 mb-2">
+                {% if connection_health.overall %}
+                <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                <span class="text-green-600 dark:text-green-400">All connections healthy</span>
+                {% else %}
+                <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                <span class="text-red-600 dark:text-red-400">Connection issues detected</span>
+                {% endif %}
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+                Decoded: <span id="decoded-status" class="{{ 'text-green-500' if connection_health.decoded_client else 'text-red-500' }}">{{ "OK" if connection_health.decoded_client else "FAIL" }}</span> |
+                Raw: <span id="raw-status" class="{{ 'text-green-500' if connection_health.raw_client else 'text-red-500' }}">{{ "OK" if connection_health.raw_client else "FAIL" }}</span>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 text-center">
+            <h3 class="text-4xl font-bold text-gray-900 dark:text-white mb-2" id="redis-max-connections">{{ stats.pool_stats.max_connections|default(0) }}</h3>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Max Connections</span>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 text-center">
+            <h3 class="text-4xl font-bold text-gray-900 dark:text-white mb-2" id="utilization">{{ stats.pool_stats.utilization_percent|default(0) }}%</h3>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Pool Utilization</span>
+        </div>
+    </div>
+
+    <!-- Connection Pool Details -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="font-semibold text-gray-900 dark:text-white">Connection Pool Statistics</h5>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <tbody>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Pool Initialized</td>
+                            <td class="px-6 py-3" id="pool-initialized">{{ "Yes" if stats.connection_pool_initialized else "No" }}</td>
+                        </tr>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Created Connections</td>
+                            <td class="px-6 py-3" id="created-connections">{{ stats.pool_stats.created_connections|default(0) }}</td>
+                        </tr>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Available Connections</td>
+                            <td class="px-6 py-3" id="available-connections">{{ stats.pool_stats.available_connections|default(0) }}</td>
+                        </tr>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">In-Use Connections</td>
+                            <td class="px-6 py-3" id="in-use-connections">{{ stats.pool_stats.in_use_connections|default(0) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Last Health Check</td>
+                            <td class="px-6 py-3" id="last-health-check">{{ stats.last_health_check|default("Never") }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="font-semibold text-gray-900 dark:text-white">Redis Server Metrics</h5>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <tbody>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Connected Clients</td>
+                            <td class="px-6 py-3" id="connected-clients">{{ server_info.connected_clients|default("N/A") }}</td>
+                        </tr>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Memory Usage</td>
+                            <td class="px-6 py-3" id="memory-usage">{{ server_info.used_memory_human|default("N/A") }}</td>
+                        </tr>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Commands Processed</td>
+                            <td class="px-6 py-3" id="commands-processed">{{ server_info.total_commands_processed|default("N/A") }}</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">Ops/sec</td>
+                            <td class="px-6 py-3" id="ops-per-sec">{{ server_info.instantaneous_ops_per_sec|default("N/A") }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Results -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Connection Test Results</h5>
+        </div>
+        <div class="p-6" id="test-results">
+            <p class="text-gray-500 dark:text-gray-400">Click "Test Connection" to run connection tests</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    let autoRefreshInterval = null;
+
+    // Refresh button
+    document.getElementById('redis-refresh-btn').addEventListener('click', function() {
+        location.reload();
+    });
+
+    // Auto-refresh toggle
+    const autoRefreshCheckbox = document.getElementById('redis-auto-refresh');
+    function startAutoRefresh() {
+        if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+        autoRefreshInterval = setInterval(function() {
+            location.reload();
+        }, 5000);
+    }
+    function stopAutoRefresh() {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+        }
+    }
+
+    autoRefreshCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            startAutoRefresh();
+        } else {
+            stopAutoRefresh();
+        }
+    });
+
+    if (autoRefreshCheckbox.checked) {
+        startAutoRefresh();
+    }
+
+    // Update last updated time
+    document.getElementById('redis-last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+
+    // Test connection
+    document.getElementById('test-btn').addEventListener('click', function() {
+        const resultsDiv = document.getElementById('test-results');
+        resultsDiv.innerHTML = '<div class="flex items-center gap-2"><i class="ti ti-loader-2 animate-spin text-blue-600"></i> Testing connection...</div>';
+
+        fetch('/admin/redis/api/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                resultsDiv.innerHTML = `
+                    <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <div class="flex items-center gap-2 text-green-600 dark:text-green-400 font-medium mb-2">
+                            <i class="ti ti-check"></i> Connection Test Passed
+                        </div>
+                        <pre class="text-sm text-gray-700 dark:text-gray-300">${JSON.stringify(data.details, null, 2)}</pre>
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                        <div class="flex items-center gap-2 text-red-600 dark:text-red-400 font-medium mb-2">
+                            <i class="ti ti-x"></i> Connection Test Failed
+                        </div>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">${data.error}</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            resultsDiv.innerHTML = `
+                <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                    <div class="flex items-center gap-2 text-red-600 dark:text-red-400">
+                        <i class="ti ti-x"></i> Error testing connection
+                    </div>
+                </div>
+            `;
+        });
+    });
+
+    // Cleanup connections
+    document.getElementById('cleanup-btn').addEventListener('click', function() {
+        Swal.fire({
+            title: 'Cleanup Connections?',
+            text: 'This will close idle connections.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Cleanup',
+            confirmButtonColor: '#eab308',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/admin/redis/api/cleanup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    Swal.fire({
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Cleanup Complete' : 'Error',
+                        text: data.message || data.error,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(() => location.reload());
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

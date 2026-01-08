@@ -1,0 +1,338 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}User Waitlist{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <span>Admin</span>
+                <span>/</span>
+                <span>User Waitlist</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-clock text-yellow-600"></i>
+                User Waitlist Management
+            </h1>
+        </div>
+        <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors" data-action="refresh">
+            <i class="ti ti-refresh mr-2"></i>Refresh
+        </button>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-yellow-500 rounded-lg p-5 text-center">
+            <h3 class="text-3xl font-bold text-white mb-1" id="waitlist-count">{{ stats.waitlist_count }}</h3>
+            <span class="text-sm text-yellow-100">Users on Waitlist</span>
+        </div>
+        <div class="bg-blue-600 rounded-lg p-5 text-center">
+            <h3 class="text-3xl font-bold text-white mb-1" id="total-registered">{{ stats.total_registered }}</h3>
+            <span class="text-sm text-blue-100">Total Registered</span>
+        </div>
+        <div class="bg-green-600 rounded-lg p-5 text-center">
+            <h3 class="text-3xl font-bold text-white mb-1" id="total-approved">{{ stats.total_approved }}</h3>
+            <span class="text-sm text-green-100">Total Approved</span>
+        </div>
+    </div>
+
+    <!-- Waitlist Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th class="px-4 py-3">User</th>
+                        <th class="px-4 py-3">Email</th>
+                        <th class="px-4 py-3">Preferred League</th>
+                        <th class="px-4 py-3">Interested in Subbing</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3">Joined Waitlist</th>
+                        <th class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="waitlist-users-table">
+                    {% for user in waitlist_users %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                {% if user.player and user.player.profile_picture_url %}
+                                <img src="{{ user.player.profile_picture_url }}" alt="{{ user.username }}" class="w-10 h-10 rounded-full object-cover">
+                                {% else %}
+                                <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                                    <span class="text-blue-600 dark:text-blue-400 font-semibold">{{ user.username[0].upper() }}</span>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-white">{{ user.username }}</span>
+                                    {% if user.player and user.player.name and user.player.name != user.username %}
+                                    <br><span class="text-xs text-gray-500 dark:text-gray-400">{{ user.player.name }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="text-gray-600 dark:text-gray-400">{{ user.email }}</span>
+                            {% if user.player and user.player.discord_id %}
+                            <br><span class="inline-flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
+                                <i class="ti ti-brand-discord"></i> Discord Linked
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if user.preferred_league %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ user.preferred_league }}</span>
+                            {% else %}
+                            <span class="text-gray-400 dark:text-gray-500">Not specified</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if user.player and user.player.interested_in_sub %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded inline-flex items-center">
+                                <i class="ti ti-check mr-1"></i> Yes
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded inline-flex items-center">
+                                <i class="ti ti-minus mr-1"></i> No
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-0.5 text-xs font-medium rounded {% if user.approval_status == 'approved' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% elif user.approval_status == 'pending' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                                {{ user.approval_status.title() }}
+                            </span>
+                            <br><span class="px-2 py-0.5 mt-1 inline-flex text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded items-center">
+                                <i class="ti ti-clock mr-1"></i> Waitlist
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ user.waitlist_joined_at.strftime('%Y-%m-%d') if user.waitlist_joined_at else 'Unknown' }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex gap-1">
+                                <button type="button" class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded transition-colors" data-action="view-player" data-user-id="{{ user.id }}">
+                                    <i class="ti ti-eye mr-1"></i> View
+                                </button>
+                                <button type="button" class="inline-flex items-center px-2 py-1 text-xs font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/30 hover:bg-cyan-200 dark:hover:bg-cyan-900/50 rounded transition-colors" data-action="contact-modal" data-user-id="{{ user.id }}">
+                                    <i class="ti ti-mail mr-1"></i> Contact
+                                </button>
+                                <button type="button" class="inline-flex items-center px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded transition-colors" data-action="removal-modal" data-user-id="{{ user.id }}">
+                                    <i class="ti ti-trash mr-1"></i> Remove
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if not waitlist_users %}
+        <div class="p-12 text-center">
+            <i class="ti ti-clock text-6xl text-gray-400 dark:text-gray-600 mb-4"></i>
+            <h5 class="text-xl font-semibold text-gray-500 dark:text-gray-400 mb-2">No users on waitlist</h5>
+            <p class="text-gray-400 dark:text-gray-500">When users join the waitlist, they will appear here.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Removal Modal -->
+<div id="removalModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Remove User from Waitlist</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="removalModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-5 space-y-4">
+                <p class="text-sm text-gray-600 dark:text-gray-400">Are you sure you want to remove this user from the waitlist?</p>
+                <div>
+                    <label for="removal-reason" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason for removal <span class="text-red-500">*</span></label>
+                    <textarea id="removal-reason" rows="3" placeholder="Please provide a reason for removing this user from the waitlist..." required class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"></textarea>
+                </div>
+            </div>
+            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button type="button" class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800" data-action="submit-removal">Remove from Waitlist</button>
+                <button type="button" data-modal-hide="removalModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contact Modal -->
+<div id="contactModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Contact Waitlist User</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="contactModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-5 space-y-4">
+                <div>
+                    <label for="contact-method" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Contact Method</label>
+                    <select id="contact-method" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                        <option value="email">Email</option>
+                        <option value="discord">Discord</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="contact-message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
+                    <textarea id="contact-message" rows="4" placeholder="Enter your message to the user..." class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"></textarea>
+                </div>
+            </div>
+            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button type="button" class="text-white bg-cyan-600 hover:bg-cyan-700 focus:ring-4 focus:outline-none focus:ring-cyan-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-cyan-600 dark:hover:bg-cyan-700 dark:focus:ring-cyan-800" data-action="submit-contact">Log Contact</button>
+                <button type="button" data-modal-hide="contactModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Player Details Modal -->
+<div id="playerDetailsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Player Details</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="playerDetailsModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-5" id="playerDetailsContent">
+                <!-- Content loaded dynamically -->
+            </div>
+            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button type="button" data-modal-hide="playerDetailsModal" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    let selectedUserId = null;
+
+    // Modal handlers
+    document.querySelectorAll('[data-modal-hide]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modalId = this.dataset.modalHide;
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        });
+    });
+
+    // Refresh
+    document.querySelectorAll('[data-action="refresh"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            location.reload();
+        });
+    });
+
+    // View player
+    document.querySelectorAll('[data-action="view-player"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const modal = document.getElementById('playerDetailsModal');
+            const content = document.getElementById('playerDetailsContent');
+
+            content.innerHTML = '<div class="flex items-center justify-center py-8"><i class="ti ti-loader-2 animate-spin text-2xl text-blue-600 mr-2"></i> Loading...</div>';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            fetch(`/admin/waitlist/api/player/${userId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const p = data.player;
+                        content.innerHTML = `
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                                        <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">${p.name ? p.name[0].toUpperCase() : '?'}</span>
+                                    </div>
+                                    <div>
+                                        <h4 class="text-xl font-bold text-gray-900 dark:text-white">${p.name || 'N/A'}</h4>
+                                        <p class="text-gray-500 dark:text-gray-400">${p.email || 'No email'}</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div><span class="text-gray-500 dark:text-gray-400">Phone:</span> <span class="text-gray-900 dark:text-white">${p.phone || 'N/A'}</span></div>
+                                    <div><span class="text-gray-500 dark:text-gray-400">Preferred League:</span> <span class="text-gray-900 dark:text-white">${p.preferred_league || 'N/A'}</span></div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        content.innerHTML = `<p class="text-red-500">Error loading player details</p>`;
+                    }
+                });
+        });
+    });
+
+    // Removal modal
+    document.querySelectorAll('[data-action="removal-modal"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            selectedUserId = this.dataset.userId;
+            const modal = document.getElementById('removalModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        });
+    });
+
+    // Contact modal
+    document.querySelectorAll('[data-action="contact-modal"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            selectedUserId = this.dataset.userId;
+            const modal = document.getElementById('contactModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        });
+    });
+
+    // Submit removal
+    document.querySelectorAll('[data-action="submit-removal"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const reason = document.getElementById('removal-reason').value;
+            if (!reason.trim()) {
+                Swal.fire({ icon: 'warning', title: 'Required', text: 'Please provide a reason for removal.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                return;
+            }
+
+            fetch(`/admin/waitlist/api/remove/${selectedUserId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ reason: reason })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const modal = document.getElementById('removalModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: 'Removed', text: 'User removed from waitlist.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

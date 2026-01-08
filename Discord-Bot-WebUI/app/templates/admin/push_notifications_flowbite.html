@@ -1,0 +1,272 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Push Notification Management{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <span>Admin</span>
+                <span>/</span>
+                <span>Push Notifications</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Push Notification Management</h1>
+            <p class="text-gray-500 dark:text-gray-400">Manage push notifications for mobile apps</p>
+        </div>
+        <div class="flex gap-2">
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" data-action="refresh-notification-status">
+                <i class="ti ti-refresh mr-2"></i>Refresh Status
+            </button>
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" data-modal-target="broadcastModal" data-modal-toggle="broadcastModal">
+                <i class="ti ti-send mr-2"></i>Send Broadcast
+            </button>
+        </div>
+    </div>
+
+    <!-- System Status -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Firebase System Status</h5>
+            <span id="firebase-status-indicator" class="px-3 py-1 text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-lg">
+                <i class="ti ti-loader-2 animate-spin mr-1"></i>Checking...
+            </span>
+        </div>
+        <div class="p-6" id="firebase-status-content">
+            <div class="flex items-center justify-center py-4">
+                <i class="ti ti-loader-2 animate-spin text-2xl text-blue-600 mr-2"></i>
+                <span class="text-gray-500 dark:text-gray-400">Checking Firebase configuration...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Devices</span>
+                    <h4 class="text-2xl font-bold text-gray-900 dark:text-white mt-1" id="total-devices">-</h4>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Registered FCM tokens</span>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <i class="ti ti-device-mobile text-blue-600 dark:text-blue-400"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="text-sm font-medium text-gray-500 dark:text-gray-400">iOS Devices</span>
+                    <h4 class="text-2xl font-bold text-gray-900 dark:text-white mt-1" id="ios-devices">-</h4>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Active iOS tokens</span>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+                    <i class="ti ti-brand-apple text-cyan-600 dark:text-cyan-400"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Android Devices</span>
+                    <h4 class="text-2xl font-bold text-gray-900 dark:text-white mt-1" id="android-devices">-</h4>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Active Android tokens</span>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <i class="ti ti-brand-android text-green-600 dark:text-green-400"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Notifications Sent</span>
+                    <h4 class="text-2xl font-bold text-gray-900 dark:text-white mt-1" id="notifications-sent">-</h4>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Last 24 hours</span>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                    <i class="ti ti-bell text-yellow-600 dark:text-yellow-400"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Quick Actions</h5>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <button type="button" class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors" data-action="send-test-notification">
+                    <i class="ti ti-test-pipe mr-2"></i>Send Test Notification
+                </button>
+                <button type="button" class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg transition-colors" data-action="send-match-reminder">
+                    <i class="ti ti-calendar-event mr-2"></i>Send Match Reminder
+                </button>
+                <button type="button" class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg transition-colors" data-action="send-rsvp-reminder-notification">
+                    <i class="ti ti-clipboard-check mr-2"></i>Send RSVP Reminder
+                </button>
+                <button type="button" class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800 rounded-lg transition-colors" data-action="view-notification-logs">
+                    <i class="ti ti-file-text mr-2"></i>View Notification Logs
+                </button>
+                <button type="button" class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20 hover:bg-gray-100 dark:hover:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors" data-action="manage-push-tokens">
+                    <i class="ti ti-settings mr-2"></i>Manage FCM Tokens
+                </button>
+                <button type="button" class="inline-flex items-center justify-center px-4 py-3 text-sm font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg transition-colors" data-action="cleanup-invalid-tokens">
+                    <i class="ti ti-trash mr-2"></i>Cleanup Invalid Tokens
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Recent Notification Activity</h5>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Last 10 notifications</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" id="notification-activity-table">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th class="px-4 py-3">Time</th>
+                        <th class="px-4 py-3">Type</th>
+                        <th class="px-4 py-3">Title</th>
+                        <th class="px-4 py-3">Recipients</th>
+                        <th class="px-4 py-3">Success Rate</th>
+                        <th class="px-4 py-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="bg-white dark:bg-gray-800">
+                        <td colspan="6" class="px-4 py-8 text-center">
+                            <i class="ti ti-loader-2 animate-spin text-2xl text-blue-600 mr-2"></i>
+                            <span>Loading recent activity...</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Broadcast Modal -->
+<div id="broadcastModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-lg max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-send"></i>Send Broadcast Notification
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="broadcastModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form id="broadcastForm">
+                <div class="p-4 md:p-5 space-y-4">
+                    <div>
+                        <label for="broadcast-title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Title</label>
+                        <input type="text" id="broadcast-title" placeholder="Enter notification title" maxlength="100" required class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum 100 characters</p>
+                    </div>
+                    <div>
+                        <label for="broadcast-message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
+                        <textarea id="broadcast-message" rows="4" placeholder="Enter your message" maxlength="300" required class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"></textarea>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum 300 characters</p>
+                    </div>
+                    <div>
+                        <label for="broadcast-target" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send To</label>
+                        <select id="broadcast-target" required class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                            <option value="">Select recipients</option>
+                            <option value="all">All Users</option>
+                            <option value="ios">iOS Users Only</option>
+                            <option value="android">Android Users Only</option>
+                            <option value="coaches">Coaches Only</option>
+                            <option value="admins">Admins Only</option>
+                        </select>
+                    </div>
+                    <div class="flex items-start p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                        <i class="ti ti-alert-triangle text-yellow-500 mt-0.5 mr-2"></i>
+                        <p class="text-sm text-yellow-700 dark:text-yellow-300">
+                            <strong>Warning:</strong> This will send a notification to all selected users. Please double-check your message before sending.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                    <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" data-action="send-broadcast">
+                        <i class="ti ti-send mr-1"></i>Send Notification
+                    </button>
+                    <button type="button" data-modal-hide="broadcastModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    // Modal handlers
+    document.querySelectorAll('[data-modal-toggle]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modalId = this.dataset.modalToggle;
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.toggle('hidden');
+                modal.classList.toggle('flex');
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-modal-hide]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modalId = this.dataset.modalHide;
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        });
+    });
+
+    // Action handlers
+    function showAction(title, text, action) {
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Confirm',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                action();
+            }
+        });
+    }
+
+    document.querySelectorAll('[data-action="send-test-notification"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            showAction('Send Test Notification?', 'This will send a test notification to your device.', function() {
+                Swal.fire({ icon: 'success', title: 'Test Sent', text: 'Check your device for the notification.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            });
+        });
+    });
+
+    document.querySelectorAll('[data-action="refresh-notification-status"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            location.reload();
+        });
+    });
+});
+</script>
+{% endblock %}
