@@ -1,0 +1,222 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Duplicate Alert #{{ alert.id }}{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('duplicate_management.duplicate_registrations') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Duplicate Management</a>
+                <span>/</span>
+                <span>Alert #{{ alert.id }}</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Duplicate Alert #{{ alert.id }}</h1>
+            <p class="text-gray-500 dark:text-gray-400">Review and resolve potential duplicate registration</p>
+        </div>
+        <a href="{{ url_for('duplicate_management.duplicate_registrations') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+            <i class="ti ti-arrow-left mr-2"></i>Back to List
+        </a>
+    </div>
+
+    <!-- Alert Status -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Alert Status</h6>
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="px-3 py-1.5 text-sm font-medium rounded {% if alert.status == 'pending' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% elif alert.status == 'resolved' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                        {{ alert.status.title() }}
+                    </span>
+                    <span class="px-3 py-1.5 text-sm font-medium rounded {% if alert.match_type == 'phone' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif alert.match_type == 'name' %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300{% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% endif %}">
+                        {{ alert.match_type.replace('_', ' ').title() }} Match
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-500 dark:text-gray-400 text-sm">Confidence:</span>
+                        <div class="w-24 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full {% if alert.confidence_score >= 0.8 %}bg-red-500{% elif alert.confidence_score >= 0.6 %}bg-yellow-500{% else %}bg-green-500{% endif %}" style="width: {{ (alert.confidence_score * 100)|round }}%"></div>
+                        </div>
+                        <span class="font-bold text-sm {% if alert.confidence_score >= 0.8 %}text-red-600 dark:text-red-400{% elif alert.confidence_score >= 0.6 %}text-yellow-600 dark:text-yellow-400{% else %}text-green-600 dark:text-green-400{% endif %}">
+                            {{ (alert.confidence_score * 100)|round|int }}%
+                        </span>
+                    </div>
+                </div>
+                {% if alert.status != 'pending' %}
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Resolved {{ alert.resolved_at.strftime('%Y-%m-%d %H:%M') }} by {{ alert.resolved_by.username if alert.resolved_by else 'System' }}
+                    {% if alert.resolution_action %}({{ alert.resolution_action.title() }}){% endif %}
+                </p>
+                {% endif %}
+            </div>
+            <span class="text-xs text-gray-500 dark:text-gray-400">Created {{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+        </div>
+    </div>
+
+    <!-- Profile Comparison -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- New Registration -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-6 py-4 bg-blue-600 text-white">
+                <h6 class="font-semibold flex items-center gap-2">
+                    <i class="ti ti-user-plus"></i>New Registration
+                </h6>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Name</label>
+                    <p class="font-bold text-gray-900 dark:text-white">{{ alert.new_name or 'N/A' }}</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Discord Email</label>
+                    <p class="text-gray-700 dark:text-gray-300">{{ alert.new_discord_email }}</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Discord Username</label>
+                    <p class="text-gray-700 dark:text-gray-300">{{ alert.new_discord_username or 'N/A' }}</p>
+                </div>
+                {% if alert.new_phone %}
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Phone Number</label>
+                    <p class="text-gray-700 dark:text-gray-300">{{ alert.new_phone }}</p>
+                </div>
+                {% endif %}
+
+                {% if details %}
+                <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <h6 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">Additional Information</h6>
+                    {% for key, value in details.items() %}
+                    {% if key not in ['new_discord_email', 'new_discord_username', 'new_name', 'new_phone'] and value %}
+                    <div class="mb-2">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ key.replace('_', ' ').title() }}:</span>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">{{ value }}</p>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Existing Player -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-6 py-4 bg-green-600 text-white flex items-center justify-between">
+                <h6 class="font-semibold flex items-center gap-2">
+                    <i class="ti ti-user-check"></i>Existing Player
+                </h6>
+                {% if alert.existing_player.user %}
+                <a href="{{ url_for('players.player_profile', player_id=alert.existing_player.id) }}" class="p-1.5 text-white hover:bg-green-700 rounded transition-colors" target="_blank">
+                    <i class="ti ti-external-link"></i>
+                </a>
+                {% endif %}
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Name</label>
+                    <p class="font-bold text-gray-900 dark:text-white">{{ alert.existing_player.name }}</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Email</label>
+                    <p class="text-gray-700 dark:text-gray-300">{{ alert.existing_player.user.email if alert.existing_player.user else alert.existing_player.email or 'N/A' }}</p>
+                </div>
+                {% if alert.existing_player.discord_id %}
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Discord ID</label>
+                    <p class="text-gray-700 dark:text-gray-300">{{ alert.existing_player.discord_id }}</p>
+                </div>
+                {% endif %}
+                {% if alert.existing_player.phone %}
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Phone Number</label>
+                    <p class="text-gray-700 dark:text-gray-300">{{ alert.existing_player.phone }}</p>
+                </div>
+                {% endif %}
+
+                <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <h6 class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">Player Details</h6>
+                    {% if alert.existing_player.pronouns %}
+                    <div class="mb-2">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Pronouns:</span>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">{{ alert.existing_player.pronouns }}</p>
+                    </div>
+                    {% endif %}
+                    {% if alert.existing_player.jersey_size %}
+                    <div class="mb-2">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Jersey Size:</span>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">{{ alert.existing_player.jersey_size }}</p>
+                    </div>
+                    {% endif %}
+                    {% if alert.existing_player.favorite_position %}
+                    <div class="mb-2">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Favorite Position:</span>
+                        <p class="text-sm text-gray-700 dark:text-gray-300">{{ alert.existing_player.favorite_position }}</p>
+                    </div>
+                    {% endif %}
+                    {% if alert.existing_player.teams %}
+                    <div class="mb-2">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Teams:</span>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            {% for team in alert.existing_player.teams %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ team.name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resolution Actions -->
+    {% if alert.status == 'pending' %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h6 class="font-semibold text-gray-900 dark:text-white">Resolution Actions</h6>
+        </div>
+        <div class="p-6">
+            <form method="POST" action="{{ url_for('duplicate_management.resolve_duplicate_registration', alert_id=alert.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Resolution Notes</label>
+                        <textarea name="notes" rows="4" placeholder="Add any notes about your decision..." class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"></textarea>
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Choose Action</label>
+                        <div class="space-y-2">
+                            <button type="submit" name="action" value="allow" class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                                <i class="ti ti-check mr-2"></i>Allow Registration
+                            </button>
+                            <button type="submit" name="action" value="block" class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition-colors">
+                                <i class="ti ti-ban mr-2"></i>Block as Duplicate
+                            </button>
+                            <a href="{{ url_for('duplicate_management.merge_profiles', alert_id=alert.id) }}" class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                                <i class="ti ti-git-merge mr-2"></i>Merge Profiles
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-2">Action Explanations</h6>
+                <ul class="space-y-1 text-sm text-blue-700 dark:text-blue-400">
+                    <li><strong>Allow Registration:</strong> Mark as not a duplicate and allow the new registration to proceed</li>
+                    <li><strong>Block as Duplicate:</strong> Mark as a duplicate and prevent the new registration</li>
+                    <li><strong>Merge Profiles:</strong> Combine information from both profiles into one unified player profile</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% elif alert.resolution_notes %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h6 class="font-semibold text-gray-900 dark:text-white">Resolution Details</h6>
+        </div>
+        <div class="p-6">
+            <p class="text-gray-700 dark:text-gray-300">{{ alert.resolution_notes }}</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

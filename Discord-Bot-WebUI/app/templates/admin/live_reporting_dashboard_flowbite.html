@@ -1,0 +1,269 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Live Reporting Dashboard{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <span>Admin</span>
+                <span>/</span>
+                <span>Live Reporting</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-broadcast text-green-600"></i>
+                Live Reporting Dashboard
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Enterprise live reporting system control center</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <i class="ti ti-refresh animate-spin" id="refreshIcon"></i>
+                Auto-refresh: <span id="countdown" class="font-medium">30</span>s
+            </div>
+        </div>
+    </div>
+
+    <!-- System Status Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Real-time Service Status -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-2 {% if realtime_health.health == 'healthy' %}border-green-500{% elif realtime_health.health == 'degraded' %}border-yellow-500{% else %}border-red-500{% endif %} p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="ti ti-server text-gray-500 dark:text-gray-400"></i>
+                <span class="font-semibold text-gray-900 dark:text-white">Real-time Service</span>
+            </div>
+            <div class="flex justify-between items-center mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full {% if realtime_health.health == 'healthy' %}bg-green-500{% elif realtime_health.health == 'degraded' %}bg-yellow-500{% else %}bg-red-500{% endif %}"></span>
+                    <strong class="text-gray-900 dark:text-white">{{ realtime_health.health.title() }}</strong>
+                </div>
+                <span class="text-xs text-gray-500 dark:text-gray-400">
+                    {% if realtime_health.heartbeat_age_seconds %}
+                    {{ realtime_health.heartbeat_age_seconds }}s ago
+                    {% else %}
+                    No heartbeat
+                    {% endif %}
+                </span>
+            </div>
+            {% if realtime_health.is_running %}
+            <span class="text-xs text-green-600 dark:text-green-400">Service is running</span>
+            {% else %}
+            <span class="text-xs text-red-600 dark:text-red-400">Service is offline</span>
+            {% endif %}
+        </div>
+
+        <!-- Active Sessions -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="ti ti-player-play text-gray-500 dark:text-gray-400"></i>
+                <span class="font-semibold text-gray-900 dark:text-white">Active Sessions</span>
+            </div>
+            <h3 class="text-3xl font-bold text-gray-900 dark:text-white mb-1">{{ active_sessions|length }}</h3>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Live reporting sessions</span>
+            {% if coordination_status.database_sessions %}
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Database: {{ coordination_status.database_sessions }} sessions</p>
+            {% endif %}
+        </div>
+
+        <!-- Coordination Status -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-2 {% if coordination_status.coordination_status == 'healthy' %}border-green-500{% else %}border-yellow-500{% endif %} p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="ti ti-link text-gray-500 dark:text-gray-400"></i>
+                <span class="font-semibold text-gray-900 dark:text-white">Coordination</span>
+            </div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="w-3 h-3 rounded-full {% if coordination_status.coordination_status == 'healthy' %}bg-green-500{% else %}bg-yellow-500{% endif %}"></span>
+                <strong class="text-gray-900 dark:text-white">{{ coordination_status.coordination_status.title() }}</strong>
+            </div>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Celery ↔ Real-time Bridge</span>
+        </div>
+
+        <!-- Upcoming Matches -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="ti ti-calendar text-gray-500 dark:text-gray-400"></i>
+                <span class="font-semibold text-gray-900 dark:text-white">Upcoming Matches</span>
+            </div>
+            <h3 class="text-3xl font-bold text-gray-900 dark:text-white mb-1">{{ upcoming_matches|length }}</h3>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Next 7 days</span>
+        </div>
+    </div>
+
+    <!-- Active Sessions & Upcoming Matches -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Active Sessions -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-broadcast text-gray-500 dark:text-gray-400"></i>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Active Sessions</h5>
+                </div>
+                <a href="{{ url_for('admin_live.sessions') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors">
+                    View All
+                </a>
+            </div>
+            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for session in active_sessions %}
+                <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="font-medium text-gray-900 dark:text-white">Match {{ session.match_id }}</span>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                Session {{ session.id }} | {{ session.competition }}
+                                {% if session.last_status %}| {{ session.last_status }}{% endif %}
+                            </p>
+                        </div>
+                        <div class="text-right text-sm text-gray-500 dark:text-gray-400">
+                            {% if session.update_count %}
+                            <span>{{ session.update_count }} updates</span>
+                            {% endif %}
+                            {% if session.error_count and session.error_count > 0 %}
+                            <br><span class="text-yellow-600 dark:text-yellow-400">{{ session.error_count }} errors</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="p-8 text-center">
+                    <i class="ti ti-moon text-4xl text-gray-400 dark:text-gray-600 mb-2"></i>
+                    <p class="text-gray-500 dark:text-gray-400">No active live reporting sessions</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Upcoming Matches -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-calendar-event text-gray-500 dark:text-gray-400"></i>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Upcoming Matches</h5>
+                </div>
+                <a href="{{ url_for('admin_live.matches') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors">
+                    View All
+                </a>
+            </div>
+            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for match in upcoming_matches %}
+                <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="font-medium text-gray-900 dark:text-white">
+                                {% if match.is_home_game %}
+                                Seattle Sounders FC vs {{ match.opponent }}
+                                {% else %}
+                                {{ match.opponent }} vs Seattle Sounders FC
+                                {% endif %}
+                            </span>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                {{ match.date_time.strftime('%b %d, %Y at %I:%M %p') if match.date_time }}
+                                {% if match.venue %}| {{ match.venue }}{% endif %}
+                                {% if match.competition %}| {{ match.competition }}{% endif %}
+                            </p>
+                        </div>
+                        <a href="{{ url_for('admin_live.match_detail', match_id=match.id) }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/30 hover:bg-cyan-200 dark:hover:bg-cyan-900/50 rounded-lg transition-colors">
+                            Details
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="p-8 text-center">
+                    <i class="ti ti-calendar-x text-4xl text-gray-400 dark:text-gray-600 mb-2"></i>
+                    <p class="text-gray-500 dark:text-gray-400">No upcoming matches in next 7 days</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-2">
+                <i class="ti ti-tools text-gray-500 dark:text-gray-400"></i>
+                <h5 class="font-semibold text-gray-900 dark:text-white">Quick Actions</h5>
+            </div>
+        </div>
+        <div class="p-6">
+            <div class="flex flex-wrap gap-3">
+                <a href="{{ url_for('admin_live.schedule_season') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                    <i class="ti ti-calendar-plus mr-2"></i>Schedule Season
+                </a>
+                <a href="{{ url_for('admin_live.realtime_status') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors">
+                    <i class="ti ti-heartbeat mr-2"></i>Real-time Status
+                </a>
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition-colors" data-action="force-sync">
+                    <i class="ti ti-refresh mr-2"></i>Force Sync
+                </button>
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" data-action="refresh-dashboard">
+                    <i class="ti ti-refresh mr-2"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    // Auto-refresh countdown
+    let countdown = 30;
+    const countdownEl = document.getElementById('countdown');
+    const refreshIcon = document.getElementById('refreshIcon');
+
+    const refreshTimer = setInterval(function() {
+        countdown--;
+        if (countdownEl) countdownEl.textContent = countdown;
+        if (countdown <= 0) {
+            if (refreshIcon) refreshIcon.classList.add('animate-spin');
+            location.reload();
+        }
+    }, 1000);
+
+    // Force sync
+    document.querySelectorAll('[data-action="force-sync"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Force Synchronization?',
+                text: 'This will force sync with the real-time service.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, sync it',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/admin/live-reporting/api/force-sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({ icon: 'success', title: 'Success', text: data.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // Refresh dashboard
+    document.querySelectorAll('[data-action="refresh-dashboard"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (refreshIcon) refreshIcon.classList.add('animate-spin');
+            location.reload();
+        });
+    });
+});
+</script>
+{% endblock %}

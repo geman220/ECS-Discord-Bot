@@ -1,0 +1,581 @@
+{% extends "base_flowbite.html" %}
+{% block title %}Match Management{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <span>Admin</span>
+                <span>/</span>
+                <span>Match Management</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-calendar-event text-blue-600"></i>
+                Match Management
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Manage match scheduling, threads, and live reporting automation</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <i class="ti ti-refresh hidden animate-spin" id="refreshSpinner"></i>
+                <span>Last updated: <span id="lastUpdated" class="font-medium">{{ current_time.strftime('%I:%M %p') }}</span></span>
+            </div>
+            <div class="relative">
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" id="addMatchDropdownBtn">
+                    <i class="ti ti-plus mr-2"></i>Add Match
+                    <i class="ti ti-chevron-down ml-1"></i>
+                </button>
+                <div id="addMatchDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-10">
+                    <div class="py-1">
+                        <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" data-modal-target="addMatchModal" data-modal-toggle="addMatchModal">
+                            <i class="ti ti-plus mr-2"></i>Add Match
+                        </button>
+                        <a href="{{ url_for('admin_live.dashboard') }}" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
+                            <i class="ti ti-broadcast mr-2"></i>Live Reporting Dashboard
+                        </a>
+                        <hr class="my-1 border-gray-200 dark:border-gray-600">
+                        <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="fetch-all-from-espn">
+                            <i class="ti ti-download mr-2"></i>Fetch from ESPN
+                        </button>
+                        <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="schedule-all-matches">
+                            <i class="ti ti-calendar-check mr-2"></i>Schedule All
+                        </button>
+                        <hr class="my-1 border-gray-200 dark:border-gray-600">
+                        <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="refresh-data">
+                            <i class="ti ti-refresh mr-2"></i>Refresh Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Total Matches</h6>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white" id="totalMatches">{{ matches|length }}</h3>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">scheduled</span>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <i class="ti ti-calendar-event text-blue-600 dark:text-blue-400"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Active Threads</h6>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white" id="activeThreads">--</h3>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">created</span>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <i class="ti ti-messages text-green-600 dark:text-green-400"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Live Reporting</h6>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white" id="liveReporting">--</h3>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">active</span>
+                    <div class="mt-2">
+                        <a href="{{ url_for('admin_live.dashboard') }}" class="inline-flex items-center px-2 py-1 text-xs font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/30 hover:bg-cyan-200 dark:hover:bg-cyan-900/50 rounded transition-colors">
+                            <i class="ti ti-dashboard mr-1"></i>Dashboard
+                        </a>
+                    </div>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+                    <i class="ti ti-broadcast text-cyan-600 dark:text-cyan-400"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">System Health</h6>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white" id="systemHealth">--</h3>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">status</span>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                    <i class="ti ti-heart-rate-monitor text-yellow-600 dark:text-yellow-400"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+            <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Search</label>
+                <div class="relative">
+                    <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="matchSearch" placeholder="Search matches..." class="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Competition</label>
+                <select id="competitionFilter" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">All Competitions</option>
+                    <option value="MLS">MLS</option>
+                    <option value="US Open Cup">US Open Cup</option>
+                    <option value="Concacaf Champions League">Concacaf Champions League</option>
+                    <option value="Leagues Cup">Leagues Cup</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Time</label>
+                <select id="timeFilter" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="relevant">Relevant Only</option>
+                    <option value="all">All Matches</option>
+                    <option value="upcoming">Upcoming Only</option>
+                    <option value="previous">Previous Only</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Status</label>
+                <select id="statusFilter" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">All Status</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="running">Running</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">View</label>
+                <select id="viewMode" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="cards">Card View</option>
+                    <option value="table">Table View</option>
+                </select>
+            </div>
+            <div>
+                <button type="button" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" data-action="clear-filters">
+                    <i class="ti ti-filter-x mr-2"></i>Clear
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Match Cards View -->
+    <div id="matchCardsContainer" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        {% for match in matches %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden match-card" data-match-id="{{ match.id }}" data-competition="{{ match.competition }}" data-status="{{ match.live_reporting_status }}">
+            <div class="p-5">
+                <!-- Match Header -->
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg {{ 'bg-green-100 dark:bg-green-900/30' if match.is_home_game else 'bg-yellow-100 dark:bg-yellow-900/30' }} flex items-center justify-center">
+                            <i class="ti ti-{{ 'home' if match.is_home_game else 'plane' }} {{ 'text-green-600 dark:text-green-400' if match.is_home_game else 'text-yellow-600 dark:text-yellow-400' }}"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-semibold text-gray-900 dark:text-white">
+                                {% if match.is_home_game %}Sounders vs {{ match.opponent }}{% else %}{{ match.opponent }} vs Sounders{% endif %}
+                            </h5>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ match.competition }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ match.venue or 'TBD' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <button type="button" class="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg match-menu-btn" data-match-id="{{ match.id }}">
+                            <i class="ti ti-dots-vertical"></i>
+                        </button>
+                        <div class="hidden match-menu absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-10" data-menu-for="{{ match.id }}">
+                            <div class="py-1">
+                                <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="edit-match" data-match-id="{{ match.id }}">
+                                    <i class="ti ti-edit mr-2"></i>Edit Match
+                                </button>
+                                <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="debug-match" data-match-id="{{ match.id }}">
+                                    <i class="ti ti-bug mr-2"></i>Debug Tasks
+                                </button>
+                                <hr class="my-1 border-gray-200 dark:border-gray-600">
+                                <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="remove-match" data-match-id="{{ match.id }}">
+                                    <i class="ti ti-trash mr-2"></i>Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Match Details -->
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            <i class="ti ti-calendar"></i>
+                            <span>{{ match.date_time.strftime('%m/%d/%Y') }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                            <i class="ti ti-clock"></i>
+                            <span>{{ match.date_time.strftime('%I:%M %p PT') }}</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-{{ match.status_color }}-100 text-{{ match.status_color }}-800 dark:bg-{{ match.status_color }}-900/30 dark:text-{{ match.status_color }}-300 mb-2" id="status-{{ match.id }}">
+                            <i class="ti {{ match.status_icon }} mr-1"></i>{{ match.status_display }}
+                        </span>
+                        {% if match.discord_thread_id %}
+                        <div>
+                            <a href="https://discord.com/channels/{{ config.SERVER_ID }}/{{ config.MATCH_CHANNEL_ID }}/{{ match.discord_thread_id }}" class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded transition-colors" target="_blank">
+                                <i class="ti ti-brand-discord mr-1"></i>View Thread
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Thread and Reporting Status -->
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <h6 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Thread Status</h6>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full {{ 'bg-green-500' if match.thread_created else 'bg-yellow-500' }}"></span>
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ 'Created' if match.thread_created else 'Pending' }}</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <h6 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Live Reporting</h6>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-{{ match.status_color }}-500"></span>
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ match.status_display }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-2">
+                    {% if not match.thread_created %}
+                    <button type="button" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors" data-action="schedule-match" data-match-id="{{ match.id }}">
+                        <i class="ti ti-calendar-plus mr-1"></i>Schedule Thread
+                    </button>
+                    <button type="button" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors" data-action="create-thread-now" data-match-id="{{ match.id }}">
+                        <i class="ti ti-plus mr-1"></i>Create Now
+                    </button>
+                    {% endif %}
+                    {% if match.live_reporting_status in ['not_started', 'scheduled', 'stopped'] %}
+                    <button type="button" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition-colors" data-action="start-live-reporting" data-match-id="{{ match.id }}">
+                        <i class="ti ti-player-play mr-1"></i>Start Reporting
+                    </button>
+                    {% elif match.live_reporting_status == 'running' %}
+                    <button type="button" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors" data-action="stop-live-reporting" data-match-id="{{ match.id }}">
+                        <i class="ti ti-player-stop mr-1"></i>Stop Reporting
+                    </button>
+                    {% endif %}
+                    <button type="button" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 rounded-lg transition-colors" data-action="force-schedule" data-match-id="{{ match.id }}">
+                        <i class="ti ti-refresh mr-1"></i>Force Schedule
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Table View (Hidden by default) -->
+    <div id="matchTableContainer" class="hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">Match</th>
+                            <th class="px-4 py-3">Date & Time</th>
+                            <th class="px-4 py-3">Competition</th>
+                            <th class="px-4 py-3">Thread</th>
+                            <th class="px-4 py-3">Reporting</th>
+                            <th class="px-4 py-3 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for match in matches %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 match-row" data-match-id="{{ match.id }}">
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-full {{ 'bg-green-100 dark:bg-green-900' if match.is_home_game else 'bg-yellow-100 dark:bg-yellow-900' }} flex items-center justify-center">
+                                        <i class="ti ti-{{ 'home' if match.is_home_game else 'plane' }} text-sm {{ 'text-green-600 dark:text-green-400' if match.is_home_game else 'text-yellow-600 dark:text-yellow-400' }}"></i>
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-gray-900 dark:text-white">{% if match.is_home_game %}Sounders vs {{ match.opponent }}{% else %}{{ match.opponent }} vs Sounders{% endif %}</span>
+                                        <br><span class="text-xs text-gray-500 dark:text-gray-400">{{ match.venue or 'TBD' }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="text-gray-900 dark:text-white">{{ match.date_time.strftime('%m/%d/%Y') }}</span>
+                                <br><span class="text-xs text-gray-500 dark:text-gray-400">{{ match.date_time.strftime('%I:%M %p PT') }}</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ match.competition }}</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-0.5 text-xs font-medium rounded {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if match.thread_created else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">{{ 'Created' if match.thread_created else 'Pending' }}</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-0.5 text-xs font-medium rounded bg-{{ match.status_color }}-100 text-{{ match.status_color }}-800 dark:bg-{{ match.status_color }}-900 dark:text-{{ match.status_color }}-300">{{ match.status_display }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <div class="flex justify-center gap-1">
+                                    {% if not match.thread_created %}
+                                    <button type="button" class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" data-action="schedule-match" data-match-id="{{ match.id }}" title="Schedule">
+                                        <i class="ti ti-calendar-plus"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if match.live_reporting_status in ['not_started', 'scheduled', 'stopped'] %}
+                                    <button type="button" class="p-1.5 text-yellow-600 dark:text-yellow-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" data-action="start-live-reporting" data-match-id="{{ match.id }}" title="Start Reporting">
+                                        <i class="ti ti-player-play"></i>
+                                    </button>
+                                    {% elif match.live_reporting_status == 'running' %}
+                                    <button type="button" class="p-1.5 text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" data-action="stop-live-reporting" data-match-id="{{ match.id }}" title="Stop Reporting">
+                                        <i class="ti ti-player-stop"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" data-action="edit-match" data-match-id="{{ match.id }}" title="Edit">
+                                        <i class="ti ti-edit"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Match Modal -->
+<div id="addMatchModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-lg max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-plus"></i>Add New Match
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="addMatchModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form id="addMatchForm">
+                <div class="p-4 md:p-5 space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <p class="text-sm text-blue-700 dark:text-blue-300">
+                            <i class="ti ti-info-circle mr-1"></i>
+                            Enter a date and competition to fetch Seattle Sounders match information from ESPN automatically.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="matchDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Match Date</label>
+                            <input type="date" id="matchDate" name="date" required class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">System will search ESPN for matches on this date</p>
+                        </div>
+                        <div>
+                            <label for="matchCompetition" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Competition</label>
+                            <select id="matchCompetition" name="competition" required class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                                <option value="MLS">MLS</option>
+                                <option value="US Open Cup">US Open Cup</option>
+                                <option value="Concacaf Champions League">Concacaf Champions League</option>
+                                <option value="Leagues Cup">Leagues Cup</option>
+                                <option value="FIFA Club World Cup">FIFA Club World Cup</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                    <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                        <i class="ti ti-download mr-1"></i>Fetch Match from ESPN
+                    </button>
+                    <button type="button" data-modal-hide="addMatchModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    // Dropdown toggle
+    const addMatchDropdownBtn = document.getElementById('addMatchDropdownBtn');
+    const addMatchDropdown = document.getElementById('addMatchDropdown');
+    if (addMatchDropdownBtn && addMatchDropdown) {
+        addMatchDropdownBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            addMatchDropdown.classList.toggle('hidden');
+        });
+        document.addEventListener('click', function() {
+            addMatchDropdown.classList.add('hidden');
+        });
+    }
+
+    // Match menu dropdowns
+    document.querySelectorAll('.match-menu-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const matchId = this.dataset.matchId;
+            const menu = document.querySelector(`[data-menu-for="${matchId}"]`);
+            document.querySelectorAll('.match-menu').forEach(m => {
+                if (m !== menu) m.classList.add('hidden');
+            });
+            menu.classList.toggle('hidden');
+        });
+    });
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.match-menu').forEach(m => m.classList.add('hidden'));
+    });
+
+    // View mode toggle
+    const viewMode = document.getElementById('viewMode');
+    const cardsContainer = document.getElementById('matchCardsContainer');
+    const tableContainer = document.getElementById('matchTableContainer');
+    viewMode.addEventListener('change', function() {
+        if (this.value === 'table') {
+            cardsContainer.classList.add('hidden');
+            tableContainer.classList.remove('hidden');
+        } else {
+            cardsContainer.classList.remove('hidden');
+            tableContainer.classList.add('hidden');
+        }
+    });
+
+    // Modal handlers
+    document.querySelectorAll('[data-modal-toggle]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modalId = this.dataset.modalToggle;
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.toggle('hidden');
+                modal.classList.toggle('flex');
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-modal-hide]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modalId = this.dataset.modalHide;
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        });
+    });
+
+    // Action handlers with SweetAlert2
+    function handleAction(action, matchId, endpoint, method = 'POST', confirmTitle = 'Confirm', confirmText = 'Are you sure?') {
+        Swal.fire({
+            title: confirmTitle,
+            text: confirmText,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(endpoint, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({ icon: 'success', title: 'Success', text: data.message || 'Operation completed.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: data.error || 'Operation failed.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                    }
+                });
+            }
+        });
+    }
+
+    // Schedule match
+    document.querySelectorAll('[data-action="schedule-match"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            handleAction('schedule', matchId, `/admin/matches/api/schedule/${matchId}`, 'POST', 'Schedule Thread?', 'This will schedule the Discord thread for this match.');
+        });
+    });
+
+    // Create thread now
+    document.querySelectorAll('[data-action="create-thread-now"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            handleAction('create', matchId, `/admin/matches/api/create-thread/${matchId}`, 'POST', 'Create Thread Now?', 'This will immediately create the Discord thread.');
+        });
+    });
+
+    // Start live reporting
+    document.querySelectorAll('[data-action="start-live-reporting"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            handleAction('start', matchId, `/admin/live-reporting/api/start/${matchId}`, 'POST', 'Start Live Reporting?', 'This will start live reporting for this match.');
+        });
+    });
+
+    // Stop live reporting
+    document.querySelectorAll('[data-action="stop-live-reporting"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            handleAction('stop', matchId, `/admin/live-reporting/api/stop/${matchId}`, 'POST', 'Stop Live Reporting?', 'This will stop live reporting for this match.');
+        });
+    });
+
+    // Refresh data
+    document.querySelectorAll('[data-action="refresh-data"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            location.reload();
+        });
+    });
+
+    // Clear filters
+    document.querySelectorAll('[data-action="clear-filters"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('matchSearch').value = '';
+            document.getElementById('competitionFilter').value = '';
+            document.getElementById('timeFilter').value = 'relevant';
+            document.getElementById('statusFilter').value = '';
+            // Trigger filter update
+            filterMatches();
+        });
+    });
+
+    // Filter matches (client-side)
+    function filterMatches() {
+        const search = document.getElementById('matchSearch').value.toLowerCase();
+        const competition = document.getElementById('competitionFilter').value;
+        const status = document.getElementById('statusFilter').value;
+
+        document.querySelectorAll('.match-card, .match-row').forEach(card => {
+            const cardCompetition = card.dataset.competition || '';
+            const cardStatus = card.dataset.status || '';
+            const cardText = card.textContent.toLowerCase();
+
+            let visible = true;
+            if (search && !cardText.includes(search)) visible = false;
+            if (competition && cardCompetition !== competition) visible = false;
+            if (status && cardStatus !== status) visible = false;
+
+            card.style.display = visible ? '' : 'none';
+        });
+    }
+
+    document.getElementById('matchSearch').addEventListener('input', filterMatches);
+    document.getElementById('competitionFilter').addEventListener('change', filterMatches);
+    document.getElementById('statusFilter').addEventListener('change', filterMatches);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,383 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Match Detail{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin_live.dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Live Reporting</a>
+                <span>/</span>
+                <a href="{{ url_for('admin_live.matches') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Matches</a>
+                <span>/</span>
+                <span>Match {{ match.id }}</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-ball-football text-green-600"></i>
+                Match {{ match.id }} Detail
+            </h1>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ url_for('admin_live.matches') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-arrow-left mr-2"></i>Back to Matches
+            </a>
+            {% if not live_session %}
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors" data-action="schedule-match" data-match-id="{{ match.id }}">
+                <i class="ti ti-broadcast mr-2"></i>Schedule Live Reporting
+            </button>
+            {% elif live_session.is_active %}
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors" data-action="stop-session" data-session-id="{{ live_session.id }}">
+                <i class="ti ti-player-stop mr-2"></i>Stop Live Reporting
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Teams Display -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex-1 text-center">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                    {% if match.is_home_game %}Seattle Sounders FC{% else %}{{ match.opponent }}{% endif %}
+                </h3>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Home Team</span>
+            </div>
+            <div class="text-center px-4">
+                <div class="text-2xl font-bold text-gray-400 dark:text-gray-500">VS</div>
+                {% if match.date_time %}
+                <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ match.date_time.strftime('%b %d, %Y') }}</div>
+                {% endif %}
+            </div>
+            <div class="flex-1 text-center">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                    {% if match.is_home_game %}{{ match.opponent }}{% else %}Seattle Sounders FC{% endif %}
+                </h3>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Away Team</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Match Information -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-info-circle text-gray-500"></i>Match Information
+                </h4>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                    <span class="text-gray-500 dark:text-gray-400">Match ID</span>
+                    <span class="font-medium text-gray-900 dark:text-white">{{ match.id }}</span>
+                </div>
+                {% if match.date_time %}
+                <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                    <span class="text-gray-500 dark:text-gray-400">Date</span>
+                    <span class="font-medium text-gray-900 dark:text-white">{{ match.date_time.strftime('%A, %B %d, %Y at %I:%M %p') }}</span>
+                </div>
+                {% endif %}
+                {% if match.competition %}
+                <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                    <span class="text-gray-500 dark:text-gray-400">Competition</span>
+                    <span class="font-medium text-gray-900 dark:text-white">{{ match.competition }}</span>
+                </div>
+                {% endif %}
+                {% if match.venue %}
+                <div class="flex justify-between py-2">
+                    <span class="text-gray-500 dark:text-gray-400">Venue</span>
+                    <span class="font-medium text-gray-900 dark:text-white">{{ match.venue }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Live Reporting Status -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-broadcast text-gray-500"></i>Live Reporting Status
+                </h4>
+            </div>
+            <div class="p-6">
+                {% if live_session %}
+                <div class="space-y-4">
+                    <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                        <span class="text-gray-500 dark:text-gray-400">Session ID</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ live_session.id }}</span>
+                    </div>
+                    <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                        <span class="text-gray-500 dark:text-gray-400">Status</span>
+                        <span class="inline-flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full {% if live_session.is_active %}bg-green-500{% else %}bg-gray-400{% endif %}"></span>
+                            <span class="font-medium {% if live_session.is_active %}text-green-600 dark:text-green-400{% else %}text-gray-600 dark:text-gray-400{% endif %}">
+                                {{ 'Active' if live_session.is_active else 'Inactive' }}
+                            </span>
+                        </span>
+                    </div>
+                    {% if live_session.thread_id %}
+                    <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                        <span class="text-gray-500 dark:text-gray-400">Discord Thread</span>
+                        <code class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded">{{ live_session.thread_id }}</code>
+                    </div>
+                    {% endif %}
+                    {% if live_session.competition %}
+                    <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                        <span class="text-gray-500 dark:text-gray-400">Competition</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ live_session.competition }}</span>
+                    </div>
+                    {% endif %}
+                    {% if live_session.started_at %}
+                    <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                        <span class="text-gray-500 dark:text-gray-400">Started</span>
+                        <span class="text-sm text-gray-900 dark:text-white">{{ live_session.started_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</span>
+                    </div>
+                    {% endif %}
+                    {% if live_session.ended_at %}
+                    <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                        <span class="text-gray-500 dark:text-gray-400">Ended</span>
+                        <span class="text-sm text-gray-900 dark:text-white">{{ live_session.ended_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</span>
+                    </div>
+                    {% endif %}
+                    {% if live_session.last_status %}
+                    <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                        <span class="text-gray-500 dark:text-gray-400">Last Status</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ live_session.last_status }}</span>
+                    </div>
+                    {% endif %}
+                    {% if live_session.update_count %}
+                    <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                        <span class="text-gray-500 dark:text-gray-400">Updates</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ live_session.update_count }}</span>
+                    </div>
+                    {% endif %}
+                    {% if live_session.error_count and live_session.error_count > 0 %}
+                    <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                        <span class="text-gray-500 dark:text-gray-400">Errors</span>
+                        <span class="font-medium text-yellow-600 dark:text-yellow-400">{{ live_session.error_count }}</span>
+                    </div>
+                    {% endif %}
+                    {% if live_session.last_update_at %}
+                    <div class="flex justify-between py-2">
+                        <span class="text-gray-500 dark:text-gray-400">Last Update</span>
+                        <span class="text-sm text-gray-900 dark:text-white">{{ live_session.last_update_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="ti ti-broadcast-off text-5xl text-gray-400 dark:text-gray-600 mb-4"></i>
+                    <h5 class="text-lg font-semibold text-gray-500 dark:text-gray-400 mb-2">No Live Reporting Session</h5>
+                    <p class="text-gray-400 dark:text-gray-500 mb-4">This match does not have an active live reporting session.</p>
+                    <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" data-action="schedule-match" data-match-id="{{ match.id }}">
+                        <i class="ti ti-plus mr-2"></i>Schedule Live Reporting
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Scheduling Information -->
+    {% if match_scheduling %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-calendar-check text-gray-500"></i>Scheduling Information
+            </h4>
+        </div>
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                    <span class="text-gray-500 dark:text-gray-400">Category</span>
+                    <span class="px-2 py-0.5 text-xs font-medium rounded {% if match_scheduling.category == 'active_live' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% elif match_scheduling.category == 'upcoming_live' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% elif match_scheduling.category == 'upcoming_threads' %}bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                        {{ match_scheduling.category.replace('_', ' ').title() }}
+                    </span>
+                </div>
+                {% if match_scheduling.get('scheduled_time') %}
+                <div class="flex justify-between py-2">
+                    <span class="text-gray-500 dark:text-gray-400">Scheduled Time</span>
+                    <span class="font-medium text-gray-900 dark:text-white">{{ match_scheduling.scheduled_time }}</span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="space-y-4">
+                {% if match_scheduling.get('thread_id') %}
+                <div class="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                    <span class="text-gray-500 dark:text-gray-400">Thread ID</span>
+                    <code class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded">{{ match_scheduling.thread_id }}</code>
+                </div>
+                {% endif %}
+                {% if match_scheduling.get('task_id') %}
+                <div class="flex justify-between py-2">
+                    <span class="text-gray-500 dark:text-gray-400">Task ID</span>
+                    <code class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded">{{ match_scheduling.task_id }}</code>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-settings text-gray-500"></i>Actions
+            </h4>
+        </div>
+        <div class="p-6">
+            <div class="flex flex-wrap gap-3">
+                {% if live_session and live_session.is_active %}
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors" data-action="stop-session" data-session-id="{{ live_session.id }}">
+                    <i class="ti ti-player-stop mr-2"></i>Stop Live Reporting
+                </button>
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition-colors" data-action="refresh-session" data-session-id="{{ live_session.id }}">
+                    <i class="ti ti-refresh mr-2"></i>Refresh Session
+                </button>
+                {% elif not live_session %}
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors" data-action="schedule-match" data-match-id="{{ match.id }}">
+                    <i class="ti ti-broadcast mr-2"></i>Schedule Live Reporting
+                </button>
+                {% endif %}
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors" data-action="force-sync">
+                    <i class="ti ti-rotate-clockwise mr-2"></i>Force Sync
+                </button>
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" data-action="reload-page">
+                    <i class="ti ti-refresh mr-2"></i>Refresh Page
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    // Schedule match
+    document.querySelectorAll('[data-action="schedule-match"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            Swal.fire({
+                title: 'Schedule Live Reporting?',
+                text: 'This will schedule live reporting for this match.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, schedule it',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin/live-reporting/api/schedule-match/${matchId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({ icon: 'success', title: 'Success', text: data.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // Stop session
+    document.querySelectorAll('[data-action="stop-session"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sessionId = this.dataset.sessionId;
+            Swal.fire({
+                title: 'Stop Live Reporting?',
+                text: 'This will stop the live reporting session.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                confirmButtonText: 'Yes, stop it',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin/live-reporting/api/session/${sessionId}/stop`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({ icon: 'success', title: 'Stopped', text: data.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // Force sync
+    document.querySelectorAll('[data-action="force-sync"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Force Synchronization?',
+                text: 'This will force sync with the real-time service.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, sync it',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/admin/live-reporting/api/force-sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({ icon: 'success', title: 'Success', text: data.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // Refresh session
+    document.querySelectorAll('[data-action="refresh-session"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sessionId = this.dataset.sessionId;
+            fetch(`/admin/live-reporting/api/session/${sessionId}/refresh`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: 'Refreshed', text: data.message || 'Session refreshed.', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                }
+            });
+        });
+    });
+
+    // Reload page
+    document.querySelectorAll('[data-action="reload-page"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            location.reload();
+        });
+    });
+});
+</script>
+{% endblock %}
