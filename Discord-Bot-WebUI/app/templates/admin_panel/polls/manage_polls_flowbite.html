@@ -1,0 +1,168 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}League Polls{% endblock %}
+{% block panel_description %}Create and manage league-wide polls{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Polls</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Header Card -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">League Polls</h5>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Create and manage league-wide polls</p>
+        </div>
+        <a href="{{ url_for('admin.create_poll') }}" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700">
+            <i class="ti ti-plus mr-1"></i>Create New Poll
+        </a>
+    </div>
+</div>
+
+<!-- Polls Table -->
+{% call card(title="Active Polls", no_padding=true) %}
+{% if polls %}
+<div class="overflow-x-auto">
+    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+                <th scope="col" class="px-4 py-3">Title</th>
+                <th scope="col" class="px-4 py-3">Question</th>
+                <th scope="col" class="px-4 py-3">Status</th>
+                <th scope="col" class="px-4 py-3">Created</th>
+                <th scope="col" class="px-4 py-3">Responses</th>
+                <th scope="col" class="px-4 py-3">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for poll in polls %}
+            {% if poll.status != 'DELETED' %}
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td class="px-4 py-3">
+                    <p class="font-medium text-gray-900 dark:text-white">{{ poll.title }}</p>
+                </td>
+                <td class="px-4 py-3">
+                    <p class="text-gray-600 dark:text-gray-300 truncate max-w-xs" title="{{ poll.question }}">{{ poll.question }}</p>
+                </td>
+                <td class="px-4 py-3">
+                    {% if poll.status == 'ACTIVE' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
+                    {% elif poll.status == 'CLOSED' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Closed</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+                    {{ poll.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </td>
+                <td class="px-4 py-3">
+                    <div class="flex items-center gap-2">
+                        <span class="font-medium text-gray-900 dark:text-white">{{ poll.total_responses }}</span>
+                        {% if poll.total_responses > 0 %}
+                        <div class="flex w-24 h-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
+                            <div class="bg-green-500" style="width: {{ (poll.response_counts.yes / poll.total_responses * 100)|round(1) }}%"></div>
+                            <div class="bg-red-500" style="width: {{ (poll.response_counts.no / poll.total_responses * 100)|round(1) }}%"></div>
+                            <div class="bg-yellow-500" style="width: {{ (poll.response_counts.maybe / poll.total_responses * 100)|round(1) }}%"></div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Y: {{ poll.response_counts.yes }} | N: {{ poll.response_counts.no }} | M: {{ poll.response_counts.maybe }}
+                    </p>
+                </td>
+                <td class="px-4 py-3">
+                    <div class="flex items-center gap-1">
+                        <a href="{{ url_for('admin.poll_results', poll_id=poll.id) }}" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" title="View Results">
+                            <i class="ti ti-chart-bar"></i>
+                        </a>
+                        {% if poll.status == 'ACTIVE' %}
+                        <form method="POST" action="{{ url_for('admin.close_poll', poll_id=poll.id) }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg" title="Close Poll" data-action="close-poll">
+                                <i class="ti ti-lock"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('admin.delete_poll', poll_id=poll.id) }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg" title="Delete Poll" data-action="delete-poll">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-12">
+    <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+        <i class="ti ti-chart-dots text-3xl text-gray-400 dark:text-gray-500"></i>
+    </div>
+    <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Polls Yet</h5>
+    <p class="text-gray-500 dark:text-gray-400 mb-4">Create your first league poll to get started!</p>
+    <a href="{{ url_for('admin.create_poll') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700">
+        <i class="ti ti-plus mr-1"></i>Create Poll
+    </a>
+</div>
+{% endif %}
+{% endcall %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Confirmation for close poll
+    document.querySelectorAll('[data-action="close-poll"]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const form = this.closest('form');
+            Swal.fire({
+                title: 'Close Poll?',
+                text: 'Are you sure you want to close this poll?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Close',
+                confirmButtonColor: '#eab308',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) form.submit();
+            });
+        });
+    });
+
+    // Confirmation for delete poll
+    document.querySelectorAll('[data-action="delete-poll"]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const form = this.closest('form');
+            Swal.fire({
+                title: 'Delete Poll?',
+                text: 'This cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Delete',
+                confirmButtonColor: '#dc2626',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) form.submit();
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

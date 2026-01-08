@@ -1,0 +1,180 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Duplicate Registrations{% endblock %}
+{% block panel_description %}Review potential duplicate player registrations{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.users_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">User Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Duplicates</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Header Actions -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div>
+        <h4 class="text-xl font-semibold text-gray-900 dark:text-white">Duplicate Registration Management</h4>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Review and resolve potential duplicate player registrations</p>
+    </div>
+    <a href="{{ url_for('duplicate_management.duplicate_registration_stats') }}" class="px-4 py-2 text-sm font-medium text-ecs-green bg-white border border-ecs-green rounded-lg hover:bg-ecs-green/10 dark:bg-gray-700 dark:text-ecs-green">
+        <i class="ti ti-chart-bar mr-1"></i>View Statistics
+    </a>
+</div>
+
+<!-- Stats Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 mb-3">
+                <i class="ti ti-alert-triangle text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Pending Alerts</span>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ pending_alerts|length }}</h3>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 mb-3">
+                <i class="ti ti-phone text-2xl text-red-600 dark:text-red-400"></i>
+            </div>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Phone Matches</span>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ pending_alerts|selectattr('match_type', 'equalto', 'phone')|list|length }}</h3>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 mb-3">
+                <i class="ti ti-user text-2xl text-orange-600 dark:text-orange-400"></i>
+            </div>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Name Matches</span>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ pending_alerts|selectattr('match_type', 'equalto', 'name')|list|length }}</h3>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-3">
+                <i class="ti ti-mail text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Email Domain</span>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ pending_alerts|selectattr('match_type', 'equalto', 'email_domain_name')|list|length }}</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Alerts -->
+{% call card(title="Pending Duplicate Alerts", subtitle=pending_alerts|length ~ " alerts require review") %}
+{% if pending_alerts %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    {% for alert in pending_alerts %}
+    <div class="border-2 {{ 'border-red-300 dark:border-red-700' if alert.confidence_score >= 0.8 else 'border-yellow-300 dark:border-yellow-700' if alert.confidence_score >= 0.6 else 'border-gray-300 dark:border-gray-600' }} rounded-lg p-4">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h6 class="font-semibold text-gray-900 dark:text-white">Alert #{{ alert.id }}</h6>
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+            <div class="text-right">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' if alert.match_type == 'phone' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if alert.match_type == 'name' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' }} mb-1">
+                    {{ alert.match_type.replace('_', ' ').title() }}
+                </span>
+                <p class="text-sm font-semibold {{ 'text-red-600 dark:text-red-400' if alert.confidence_score >= 0.8 else 'text-yellow-600 dark:text-yellow-400' if alert.confidence_score >= 0.6 else 'text-gray-600 dark:text-gray-400' }}">
+                    {{ (alert.confidence_score * 100)|round|int }}% match
+                </p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <h6 class="text-sm font-medium text-blue-600 dark:text-blue-400 mb-2">New Registration</h6>
+                <p class="font-medium text-gray-900 dark:text-white">{{ alert.new_name or 'N/A' }}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-300">{{ alert.new_discord_email }}</p>
+                {% if alert.new_phone %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><i class="ti ti-phone mr-1"></i>{{ alert.new_phone }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <h6 class="text-sm font-medium text-green-600 dark:text-green-400 mb-2">Existing Player</h6>
+                <p class="font-medium text-gray-900 dark:text-white">{{ alert.existing_player.name }}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-300">{{ alert.existing_player.user.email if alert.existing_player.user else alert.existing_player.email }}</p>
+                {% if alert.existing_player.phone %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><i class="ti ti-phone mr-1"></i>{{ alert.existing_player.phone }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <a href="{{ url_for('duplicate_management.duplicate_registration_detail', alert_id=alert.id) }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700">
+            <i class="ti ti-eye mr-1"></i>Review & Resolve
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-12">
+    <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
+        <i class="ti ti-check text-3xl text-green-600 dark:text-green-400"></i>
+    </div>
+    <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Pending Alerts</h5>
+    <p class="text-gray-500 dark:text-gray-400">All duplicate registration alerts have been resolved.</p>
+</div>
+{% endif %}
+{% endcall %}
+
+<!-- Recently Resolved -->
+{% if resolved_alerts %}
+{% call card(title="Recently Resolved") %}
+<div class="overflow-x-auto">
+    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+                <th scope="col" class="px-4 py-3">Alert #</th>
+                <th scope="col" class="px-4 py-3">New User</th>
+                <th scope="col" class="px-4 py-3">Existing Player</th>
+                <th scope="col" class="px-4 py-3">Match Type</th>
+                <th scope="col" class="px-4 py-3">Resolution</th>
+                <th scope="col" class="px-4 py-3">Resolved By</th>
+                <th scope="col" class="px-4 py-3">Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for alert in resolved_alerts %}
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                <td class="px-4 py-3">
+                    <a href="{{ url_for('duplicate_management.duplicate_registration_detail', alert_id=alert.id) }}" class="text-ecs-green hover:underline">#{{ alert.id }}</a>
+                </td>
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ alert.new_name or 'N/A' }}</td>
+                <td class="px-4 py-3">{{ alert.existing_player.name }}</td>
+                <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' if alert.match_type == 'phone' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
+                        {{ alert.match_type.replace('_', ' ').title() }}
+                    </span>
+                </td>
+                <td class="px-4 py-3">
+                    {% if alert.resolution_action == 'merged' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Merged</span>
+                    {% elif alert.resolution_action == 'allowed' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Allowed</span>
+                    {% elif alert.resolution_action == 'blocked' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Blocked</span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ alert.resolution_action or 'N/A' }}</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3">{{ alert.resolved_by.username if alert.resolved_by else 'System' }}</td>
+                <td class="px-4 py-3 text-xs">{{ alert.resolved_at.strftime('%m/%d %H:%M') if alert.resolved_at else 'N/A' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endcall %}
+{% endif %}
+{% endblock %}
