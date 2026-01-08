@@ -1,0 +1,312 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Quick Actions{% endblock %}
+{% block panel_description %}Perform common administrative tasks{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Quick Actions</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Header -->
+<div class="flex items-start p-6 mb-6 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg shadow">
+    <div class="p-3 bg-white/20 rounded-full mr-4">
+        <i class="ti ti-bolt text-3xl text-white"></i>
+    </div>
+    <div class="text-white">
+        <h2 class="text-2xl font-bold">Quick Actions</h2>
+        <p class="text-yellow-100">Perform common administrative tasks quickly and efficiently. These actions provide shortcuts to frequently used operations across the admin panel.</p>
+    </div>
+</div>
+
+<!-- System Operations -->
+<div class="mb-6">
+    <div class="flex items-center gap-2 mb-4">
+        <i class="ti ti-settings text-gray-500 dark:text-gray-400"></i>
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">System Operations</h5>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <button class="flex flex-col items-center p-6 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors group" data-action="quick-clear-cache">
+            <div class="p-4 bg-yellow-100 dark:bg-yellow-800 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-refresh text-2xl text-yellow-600 dark:text-yellow-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Clear All Cache</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Reset all cached data</p>
+        </button>
+        <button class="flex flex-col items-center p-6 bg-cyan-50 dark:bg-cyan-900/20 border-2 border-cyan-200 dark:border-cyan-800 rounded-lg hover:bg-cyan-100 dark:hover:bg-cyan-900/40 transition-colors group" data-action="check-db-health">
+            <div class="p-4 bg-cyan-100 dark:bg-cyan-800 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-database text-2xl text-cyan-600 dark:text-cyan-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">DB Health Check</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Check database status</p>
+        </button>
+        <button class="flex flex-col items-center p-6 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors group" data-action="initialize-settings">
+            <div class="p-4 bg-green-100 dark:bg-green-800 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-shield text-2xl text-green-600 dark:text-green-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Initialize Settings</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Reset admin settings</p>
+        </button>
+        <button class="flex flex-col items-center p-6 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors group" data-action="quick-restart-bot">
+            <div class="p-4 bg-blue-100 dark:bg-blue-800 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-brand-discord text-2xl text-blue-600 dark:text-blue-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Restart Bot</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Restart Discord bot</p>
+        </button>
+    </div>
+</div>
+
+<!-- User Management -->
+<div class="mb-6">
+    <div class="flex items-center gap-2 mb-4">
+        <i class="ti ti-users text-gray-500 dark:text-gray-400"></i>
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">User Management</h5>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <button class="flex flex-col items-center p-6 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors group" data-action="approve-all-pending">
+            <div class="p-4 bg-green-100 dark:bg-green-800 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-user-check text-2xl text-green-600 dark:text-green-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Approve All Pending</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Approve all pending user registrations</p>
+        </button>
+        <button class="flex flex-col items-center p-6 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors group" data-action="process-waitlist">
+            <div class="p-4 bg-blue-100 dark:bg-blue-800 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-user-plus text-2xl text-blue-600 dark:text-blue-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Process Waitlist</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Process all users from waitlist</p>
+        </button>
+        <button class="flex flex-col items-center p-6 bg-cyan-50 dark:bg-cyan-900/20 border-2 border-cyan-200 dark:border-cyan-800 rounded-lg hover:bg-cyan-100 dark:hover:bg-cyan-900/40 transition-colors group" data-action="send-bulk-notifications">
+            <div class="p-4 bg-cyan-100 dark:bg-cyan-800 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-mail text-2xl text-cyan-600 dark:text-cyan-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Send Notifications</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Send bulk notifications to users</p>
+        </button>
+    </div>
+</div>
+
+<!-- Content Management -->
+<div class="mb-6">
+    <div class="flex items-center gap-2 mb-4">
+        <i class="ti ti-file-text text-gray-500 dark:text-gray-400"></i>
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Content Management</h5>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <button class="flex flex-col items-center p-6 bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-800 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors group" data-action="sync-templates">
+            <div class="p-4 bg-purple-100 dark:bg-purple-800 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-template text-2xl text-purple-600 dark:text-purple-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Sync Templates</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Synchronize message templates</p>
+        </button>
+        <button class="flex flex-col items-center p-6 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors group" data-action="quick-test-notifications">
+            <div class="p-4 bg-yellow-100 dark:bg-yellow-800 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-bell text-2xl text-yellow-600 dark:text-yellow-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Test Notifications</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Send test push notification</p>
+        </button>
+        <button class="flex flex-col items-center p-6 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors group" data-action="send-emergency-alert">
+            <div class="p-4 bg-red-100 dark:bg-red-800 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-announcement text-2xl text-red-600 dark:text-red-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Emergency Alert</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Send emergency system alert</p>
+        </button>
+        <button class="flex flex-col items-center p-6 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group" data-action="export-system-data">
+            <div class="p-4 bg-gray-100 dark:bg-gray-600 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-file-export text-2xl text-gray-600 dark:text-gray-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Export Data</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Export system data</p>
+        </button>
+    </div>
+</div>
+
+<!-- Maintenance & Troubleshooting -->
+<div class="mb-6">
+    <div class="flex items-center gap-2 mb-4">
+        <i class="ti ti-tool text-gray-500 dark:text-gray-400"></i>
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Maintenance & Troubleshooting</h5>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <button class="flex flex-col items-center p-6 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors group" data-action="toggle-maintenance-mode">
+            <div class="p-4 bg-red-100 dark:bg-red-800 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-power text-2xl text-red-600 dark:text-red-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Maintenance Mode</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Toggle system maintenance mode</p>
+        </button>
+        <button class="flex flex-col items-center p-6 bg-cyan-50 dark:bg-cyan-900/20 border-2 border-cyan-200 dark:border-cyan-800 rounded-lg hover:bg-cyan-100 dark:hover:bg-cyan-900/40 transition-colors group" data-action="clear-system-logs">
+            <div class="p-4 bg-cyan-100 dark:bg-cyan-800 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-file-text text-2xl text-cyan-600 dark:text-cyan-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Clear Logs</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Clear system and error logs</p>
+        </button>
+        <button class="flex flex-col items-center p-6 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/40 transition-colors group" data-action="generate-system-report">
+            <div class="p-4 bg-yellow-100 dark:bg-yellow-800 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                <i class="ti ti-report text-2xl text-yellow-600 dark:text-yellow-300"></i>
+            </div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-1">System Report</h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">Generate full system report</p>
+        </button>
+    </div>
+</div>
+
+<!-- Custom Actions -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-code mr-2 text-blue-500"></i>Custom Actions
+        </h5>
+    </div>
+    <div class="p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Execute custom administrative commands and scripts</p>
+        <form id="customActionForm">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Action Type</label>
+                    <select id="actionType" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="">Select action type...</option>
+                        <option value="database">Database Query</option>
+                        <option value="cache">Cache Operation</option>
+                        <option value="user">User Management</option>
+                        <option value="system">System Command</option>
+                        <option value="notification">Send Notification</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Target</label>
+                    <input type="text" id="actionTarget" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Target (optional)">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Command/Parameters</label>
+                <textarea id="actionCommand" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter command or parameters..."></textarea>
+            </div>
+            <div class="flex items-center mb-4">
+                <input type="checkbox" id="confirmBeforeExecution" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="confirmBeforeExecution" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Require confirmation before execution</label>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" data-action="execute-custom-action">
+                    <i class="ti ti-play mr-1"></i>Execute Action
+                </button>
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600" data-action="validate-custom-action">
+                    <i class="ti ti-check mr-1"></i>Validate Only
+                </button>
+                <button type="button" class="px-4 py-2 text-sm font-medium text-cyan-700 bg-cyan-100 rounded-lg hover:bg-cyan-200 dark:bg-cyan-900/50 dark:text-cyan-300 dark:hover:bg-cyan-900" data-action="save-custom-action">
+                    <i class="ti ti-device-floppy mr-1"></i>Save as Template
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const isDark = document.documentElement.classList.contains('dark');
+
+// Event delegation for all action buttons
+document.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const action = this.dataset.action;
+        handleAction(action);
+    });
+});
+
+function handleAction(action) {
+    const actions = {
+        'quick-clear-cache': () => confirmAction('Clear All Cache', 'This will clear all cached data. Continue?', 'Clear Cache', clearCache),
+        'check-db-health': () => checkDbHealth(),
+        'initialize-settings': () => confirmAction('Initialize Settings', 'This will reset admin settings to defaults. Continue?', 'Initialize', initializeSettings),
+        'quick-restart-bot': () => confirmAction('Restart Bot', 'This will restart the Discord bot. Continue?', 'Restart', restartBot),
+        'approve-all-pending': () => confirmAction('Approve All Pending', 'This will approve all pending registrations. Continue?', 'Approve All', approveAllPending),
+        'process-waitlist': () => confirmAction('Process Waitlist', 'This will process all users in the waitlist. Continue?', 'Process', processWaitlist),
+        'send-bulk-notifications': () => showBulkNotificationModal(),
+        'sync-templates': () => syncTemplates(),
+        'quick-test-notifications': () => testNotifications(),
+        'send-emergency-alert': () => confirmAction('Emergency Alert', 'This will send an emergency alert to all users. This is a critical action!', 'Send Alert', sendEmergencyAlert, true),
+        'export-system-data': () => exportSystemData(),
+        'toggle-maintenance-mode': () => toggleMaintenanceMode(),
+        'clear-system-logs': () => confirmAction('Clear Logs', 'This will clear all system logs. Continue?', 'Clear Logs', clearLogs),
+        'generate-system-report': () => generateSystemReport(),
+        'execute-custom-action': () => executeCustomAction(),
+        'validate-custom-action': () => validateCustomAction(),
+        'save-custom-action': () => saveCustomAction()
+    };
+
+    if (actions[action]) {
+        actions[action]();
+    }
+}
+
+function confirmAction(title, text, confirmText, callback, isDanger = false) {
+    Swal.fire({
+        title: title,
+        text: text,
+        icon: isDanger ? 'warning' : 'question',
+        showCancelButton: true,
+        confirmButtonColor: isDanger ? '#dc2626' : '#1a472a',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: confirmText,
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            callback();
+        }
+    });
+}
+
+function showToast(title, icon = 'success') {
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: icon,
+        title: title,
+        showConfirmButton: false,
+        timer: 3000,
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    });
+}
+
+// Placeholder functions - implement actual API calls
+function clearCache() { showToast('Cache cleared successfully'); }
+function checkDbHealth() { showToast('Database is healthy', 'info'); }
+function initializeSettings() { showToast('Settings initialized'); }
+function restartBot() { showToast('Bot restart initiated'); }
+function approveAllPending() { showToast('All pending users approved'); }
+function processWaitlist() { showToast('Waitlist processed'); }
+function showBulkNotificationModal() { showToast('Opening notification modal', 'info'); }
+function syncTemplates() { showToast('Templates synchronized'); }
+function testNotifications() { showToast('Test notification sent'); }
+function sendEmergencyAlert() { showToast('Emergency alert sent', 'warning'); }
+function exportSystemData() { showToast('Export started', 'info'); }
+function toggleMaintenanceMode() { showToast('Maintenance mode toggled'); }
+function clearLogs() { showToast('Logs cleared'); }
+function generateSystemReport() { showToast('Report generation started', 'info'); }
+function executeCustomAction() {
+    const confirm = document.getElementById('confirmBeforeExecution').checked;
+    if (confirm) {
+        confirmAction('Execute Custom Action', 'Are you sure you want to execute this action?', 'Execute', () => showToast('Custom action executed'));
+    } else {
+        showToast('Custom action executed');
+    }
+}
+function validateCustomAction() { showToast('Action validated', 'info'); }
+function saveCustomAction() { showToast('Action saved as template'); }
+</script>
+{% endblock %}

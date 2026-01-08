@@ -1,0 +1,523 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Store Management{% endblock %}
+{% block panel_description %}Manage products and orders{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Store Management</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-600 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h5 class="text-2xl font-bold text-white">{{ stats.total_items or 0 }}</h5>
+                <span class="text-sm text-blue-100">Total Items</span>
+            </div>
+            <div class="p-3 bg-blue-500 rounded-full">
+                <i class="ti ti-package text-2xl text-white"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-green-600 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h5 class="text-2xl font-bold text-white">{{ stats.total_orders or 0 }}</h5>
+                <span class="text-sm text-green-100">Total Orders</span>
+            </div>
+            <div class="p-3 bg-green-500 rounded-full">
+                <i class="ti ti-shopping-cart text-2xl text-white"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-yellow-500 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h5 class="text-2xl font-bold text-white">{{ stats.pending_orders or 0 }}</h5>
+                <span class="text-sm text-yellow-100">Pending Orders</span>
+            </div>
+            <div class="p-3 bg-yellow-400 rounded-full">
+                <i class="ti ti-clock text-2xl text-white"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-cyan-600 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h5 class="text-2xl font-bold text-white">${{ stats.revenue_total or 0 }}</h5>
+                <span class="text-sm text-cyan-100">Total Revenue</span>
+            </div>
+            <div class="p-3 bg-cyan-500 rounded-full">
+                <i class="ti ti-currency-dollar text-2xl text-white"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Management Panels -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Product Management -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-package mr-2 text-blue-500"></i>Product Management
+            </h5>
+        </div>
+        <div class="p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Manage store items, inventory, and product categories</p>
+            <div class="space-y-2">
+                <button class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="add-new-product">
+                    <div class="flex items-center">
+                        <i class="ti ti-plus mr-3 text-green-500"></i>
+                        <span class="text-gray-900 dark:text-white">Add New Product</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </button>
+                <button class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="view-all-products">
+                    <div class="flex items-center">
+                        <i class="ti ti-list mr-3 text-blue-500"></i>
+                        <span class="text-gray-900 dark:text-white">View All Products</span>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ stats.total_items or 0 }}</span>
+                </button>
+                <button class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="manage-categories">
+                    <div class="flex items-center">
+                        <i class="ti ti-category mr-3 text-purple-500"></i>
+                        <span class="text-gray-900 dark:text-white">Product Categories</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Management -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-clipboard-list mr-2 text-green-500"></i>Order Management
+            </h5>
+        </div>
+        <div class="p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Process orders, manage fulfillment, and track deliveries</p>
+            <div class="space-y-2">
+                <button class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="view-pending-orders">
+                    <div class="flex items-center">
+                        <i class="ti ti-clock mr-3 text-yellow-500"></i>
+                        <span class="text-gray-900 dark:text-white">Pending Orders</span>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ stats.pending_orders or 0 }}</span>
+                </button>
+                <button class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="view-completed-orders">
+                    <div class="flex items-center">
+                        <i class="ti ti-check mr-3 text-green-500"></i>
+                        <span class="text-gray-900 dark:text-white">Completed Orders</span>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ stats.completed_orders or 0 }}</span>
+                </button>
+                <button class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="search-orders">
+                    <div class="flex items-center">
+                        <i class="ti ti-search mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">Search Orders</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders -->
+{% if recent_orders %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-history mr-2 text-gray-500"></i>Recent Orders
+        </h5>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Order ID</th>
+                    <th scope="col" class="px-6 py-3">Customer</th>
+                    <th scope="col" class="px-6 py-3">Items</th>
+                    <th scope="col" class="px-6 py-3">Total</th>
+                    <th scope="col" class="px-6 py-3">Status</th>
+                    <th scope="col" class="px-6 py-3">Date</th>
+                    <th scope="col" class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in recent_orders %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">#{{ order.id }}</td>
+                    <td class="px-6 py-4">{{ order.orderer.name or order.orderer.username if order.orderer else 'N/A' }}</td>
+                    <td class="px-6 py-4">{{ order.quantity or 1 }} × {{ order.item.name if order.item else 'Unknown Item' }}</td>
+                    <td class="px-6 py-4">N/A</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if order.status == 'completed' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% elif order.status == 'pending' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                            {{ order.status.title() if order.status else 'Unknown' }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">{{ order.order_date.strftime('%Y-%m-%d') if order.order_date else 'N/A' }}</td>
+                    <td class="px-6 py-4">
+                        <button class="p-2 text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-blue-900/50"
+                                onclick="viewOrder('{{ order.id }}')" title="View Order">
+                            <i class="ti ti-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="flex items-start p-4 text-blue-800 bg-blue-50 rounded-lg dark:bg-blue-900/30 dark:text-blue-300">
+    <i class="ti ti-info-circle flex-shrink-0 mr-3 mt-0.5 text-lg"></i>
+    <p>No orders found. Start by adding products to your store!</p>
+</div>
+{% endif %}
+
+<!-- Add Product Modal -->
+<div id="addProductModal" tabindex="-1" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-lg max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add New Product</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="addProductModal">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <form id="addProductForm">
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label for="productName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Product Name</label>
+                        <input type="text" id="productName" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter product name">
+                    </div>
+                    <div>
+                        <label for="productDescription" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                        <textarea id="productDescription" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Product description"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="productPrice" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Price ($)</label>
+                            <input type="number" id="productPrice" step="0.01" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label for="productStock" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Stock Quantity</label>
+                            <input type="number" id="productStock" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="productCategory" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Category</label>
+                        <select id="productCategory" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">Select category</option>
+                            <option value="jersey">Jerseys</option>
+                            <option value="merchandise">Merchandise</option>
+                            <option value="equipment">Equipment</option>
+                            <option value="accessories">Accessories</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
+                    <button type="button" data-modal-hide="addProductModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const isDark = document.documentElement.classList.contains('dark');
+
+// Event delegation for action buttons
+document.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const action = this.dataset.action;
+        handleAction(action);
+    });
+});
+
+function handleAction(action) {
+    switch (action) {
+        case 'add-new-product':
+            const modal = FlowbiteInstances.getInstance('Modal', 'addProductModal');
+            if (modal) modal.show();
+            break;
+        case 'view-all-products':
+            viewAllProducts();
+            break;
+        case 'manage-categories':
+            manageCategories();
+            break;
+        case 'view-pending-orders':
+            viewPendingOrders();
+            break;
+        case 'view-completed-orders':
+            viewCompletedOrders();
+            break;
+        case 'search-orders':
+            searchOrders();
+            break;
+    }
+}
+
+// Add Product Form
+document.getElementById('addProductForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('name', document.getElementById('productName').value);
+    formData.append('description', document.getElementById('productDescription').value);
+    formData.append('price', document.getElementById('productPrice').value);
+    formData.append('category', document.getElementById('productCategory').value);
+
+    try {
+        const response = await fetch('{{ url_for("store.create_item") }}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token() }}' },
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: data.message,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then(() => window.location.reload());
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to create product', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+        }
+    } catch (error) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to create product', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+    }
+});
+
+function viewAllProducts() {
+    Swal.fire({
+        title: 'All Products',
+        html: `
+            <div class="text-left">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs uppercase bg-gray-100 dark:bg-gray-700">
+                        <tr><th class="p-2">Name</th><th class="p-2">Category</th><th class="p-2">Price</th><th class="p-2">Stock</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b dark:border-gray-700"><td class="p-2">ECS FC Jersey</td><td class="p-2">Jerseys</td><td class="p-2">$45.00</td><td class="p-2">12</td></tr>
+                        <tr class="border-b dark:border-gray-700"><td class="p-2">Team Scarf</td><td class="p-2">Merchandise</td><td class="p-2">$15.00</td><td class="p-2">5</td></tr>
+                        <tr><td class="p-2">ECS FC Mug</td><td class="p-2">Merchandise</td><td class="p-2">$12.00</td><td class="p-2">0</td></tr>
+                    </tbody>
+                </table>
+                <p class="text-xs text-gray-500 mt-3">Note: Product data is loaded from the database when available.</p>
+            </div>
+        `,
+        width: '700px',
+        confirmButtonText: 'Close',
+        confirmButtonColor: '#1a472a',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    });
+}
+
+function manageCategories() {
+    Swal.fire({
+        title: 'Product Categories',
+        html: `
+            <div class="text-left">
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="newCategoryName" placeholder="New category name" class="flex-1 p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                    <button onclick="addCategory()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add</button>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <span><i class="ti ti-hanger mr-2"></i>Jerseys</span>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded text-xs">3 items</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <span><i class="ti ti-gift mr-2"></i>Merchandise</span>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded text-xs">8 items</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <span><i class="ti ti-tools mr-2"></i>Equipment</span>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded text-xs">2 items</span>
+                    </div>
+                </div>
+            </div>
+        `,
+        width: '500px',
+        confirmButtonText: 'Close',
+        confirmButtonColor: '#1a472a',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    });
+}
+
+function viewPendingOrders() {
+    Swal.fire({
+        title: 'Pending Orders',
+        html: `
+            <div class="text-left">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs uppercase bg-gray-100 dark:bg-gray-700">
+                        <tr><th class="p-2">ID</th><th class="p-2">Customer</th><th class="p-2">Items</th><th class="p-2">Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b dark:border-gray-700">
+                            <td class="p-2">#1001</td><td class="p-2">John Doe</td><td class="p-2">2 × ECS FC Jersey</td>
+                            <td class="p-2"><button onclick="processOrder('1001')" class="px-2 py-1 bg-green-600 text-white rounded text-xs">Process</button></td>
+                        </tr>
+                        <tr>
+                            <td class="p-2">#1002</td><td class="p-2">Jane Smith</td><td class="p-2">1 × Team Scarf</td>
+                            <td class="p-2"><button onclick="processOrder('1002')" class="px-2 py-1 bg-green-600 text-white rounded text-xs">Process</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'Close',
+        confirmButtonColor: '#1a472a',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    });
+}
+
+function viewCompletedOrders() {
+    Swal.fire({
+        title: 'Completed Orders',
+        html: `
+            <div class="text-left">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs uppercase bg-gray-100 dark:bg-gray-700">
+                        <tr><th class="p-2">ID</th><th class="p-2">Customer</th><th class="p-2">Items</th><th class="p-2">Date</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b dark:border-gray-700"><td class="p-2">#0998</td><td class="p-2">Mike Johnson</td><td class="p-2">1 × ECS FC Mug</td><td class="p-2">2025-07-30</td></tr>
+                        <tr><td class="p-2">#0997</td><td class="p-2">Sarah Wilson</td><td class="p-2">3 × Team Scarf</td><td class="p-2">2025-07-29</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'Close',
+        confirmButtonColor: '#1a472a',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    });
+}
+
+function searchOrders() {
+    Swal.fire({
+        title: 'Search Orders',
+        html: `
+            <div class="text-left space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Order ID</label>
+                        <input type="text" id="searchOrderId" placeholder="Enter order ID" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Customer Name</label>
+                        <input type="text" id="searchCustomer" placeholder="Enter customer name" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Status</label>
+                        <select id="searchStatus" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                            <option value="">All statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Date Range</label>
+                        <select id="searchDateRange" class="w-full p-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                            <option value="">All dates</option>
+                            <option value="today">Today</option>
+                            <option value="week">This week</option>
+                            <option value="month">This month</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="performSearch()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Search Orders</button>
+                <div id="searchResults"></div>
+            </div>
+        `,
+        width: '600px',
+        showConfirmButton: false,
+        showCloseButton: true,
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    });
+}
+
+function viewOrder(orderId) {
+    Swal.fire({
+        title: `Order #${orderId} Details`,
+        html: `<p>Loading order details...</p>`,
+        icon: 'info',
+        confirmButtonText: 'Close',
+        confirmButtonColor: '#1a472a',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    });
+}
+
+function processOrder(orderId) {
+    Swal.fire({
+        title: 'Process Order',
+        text: `Mark order #${orderId} as processed?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#1a472a',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, process it!',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({ icon: 'success', title: 'Processed!', text: `Order #${orderId} has been processed.`, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+        }
+    });
+}
+
+function performSearch() {
+    const resultsDiv = document.getElementById('searchResults');
+    if (resultsDiv) {
+        resultsDiv.innerHTML = '<div class="p-3 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-lg">Search complete. Found 2 matching orders.</div>';
+    }
+}
+
+function addCategory() {
+    const input = document.getElementById('newCategoryName');
+    if (input && input.value) {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Category added',
+            showConfirmButton: false,
+            timer: 2000,
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+    }
+}
+</script>
+{% endblock %}

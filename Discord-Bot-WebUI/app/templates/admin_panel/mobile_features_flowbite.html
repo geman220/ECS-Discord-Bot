@@ -1,0 +1,343 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Mobile Features{% endblock %}
+{% block panel_description %}Mobile app management hub{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Mobile Features</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-600 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h5 class="text-2xl font-bold text-white">{{ stats.total_app_installs or 0 }}</h5>
+                <span class="text-sm text-blue-100">App Installs</span>
+            </div>
+            <div class="p-3 bg-blue-500 rounded-full">
+                <i class="ti ti-download text-2xl text-white"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-green-600 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h5 class="text-2xl font-bold text-white">{{ stats.mobile_users or 0 }}</h5>
+                <span class="text-sm text-green-100">Mobile Users</span>
+            </div>
+            <div class="p-3 bg-green-500 rounded-full">
+                <i class="ti ti-device-mobile text-2xl text-white"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-yellow-500 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h5 class="text-2xl font-bold text-white">{{ stats.push_subscriptions or 0 }}</h5>
+                <span class="text-sm text-yellow-100">Push Subscriptions</span>
+            </div>
+            <div class="p-3 bg-yellow-400 rounded-full">
+                <i class="ti ti-bell text-2xl text-white"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-cyan-600 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h5 class="text-2xl font-bold text-white">{{ stats.app_downloads or 0 }}</h5>
+                <span class="text-sm text-cyan-100">App Downloads</span>
+            </div>
+            <div class="p-3 bg-cyan-500 rounded-full">
+                <i class="ti ti-download text-2xl text-white"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile User & App Management -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Mobile User Management -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-users mr-2 text-blue-500"></i>Mobile User Management
+            </h5>
+        </div>
+        <div class="p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Manage users with mobile app access and their roles</p>
+            <div class="space-y-2">
+                <a href="{{ url_for('admin_panel.mobile_user_management') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-user-cog mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">Manage Mobile Users</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ stats.mobile_users or 0 }}</span>
+                        <i class="ti ti-chevron-right text-gray-400"></i>
+                    </div>
+                </a>
+                <a href="{{ url_for('admin_panel.user_management') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-users-group mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">All User Management</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </a>
+                <a href="{{ url_for('admin_panel.mobile_users') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-device-mobile mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">View Mobile Users</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ stats.active_mobile_users or 0 }}</span>
+                        <i class="ti ti-chevron-right text-gray-400"></i>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile App Settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-device-mobile mr-2 text-green-500"></i>Mobile App Settings
+            </h5>
+        </div>
+        <div class="p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Configure mobile app features and functionality</p>
+            <div class="space-y-2">
+                <a href="{{ url_for('admin_panel.mobile_config') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-settings-cog mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">App Configuration</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </a>
+                <a href="{{ url_for('admin_panel.mobile_app_distribution') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-app-window mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">App Distribution</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </a>
+                <a href="{{ url_for('admin_panel.mobile_features_toggle') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-toggle-left mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">Feature Toggles</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Push Notifications & Analytics -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Push Notification Management -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-bell mr-2 text-yellow-500"></i>Push Notifications
+            </h5>
+        </div>
+        <div class="p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Manage mobile push notification campaigns</p>
+            <div class="space-y-2">
+                <a href="{{ url_for('admin_panel.push_notifications') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-send mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">Send Notification</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </a>
+                <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-users-group mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">Notification Groups</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </a>
+                <a href="{{ url_for('admin_panel.campaigns_list') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-broadcast mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">Push Campaigns</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </a>
+                <a href="{{ url_for('admin_panel.push_subscriptions') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-users mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">Subscriptions</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ stats.push_subscriptions or 0 }}</span>
+                        <i class="ti ti-chevron-right text-gray-400"></i>
+                    </div>
+                </a>
+                <a href="{{ url_for('admin_panel.push_history') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-history mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">Notification History</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Analytics -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-chart-line mr-2 text-cyan-500"></i>Mobile Analytics
+            </h5>
+        </div>
+        <div class="p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Track mobile app performance and user engagement</p>
+            <div class="space-y-2">
+                <a href="{{ url_for('admin_panel.mobile_analytics') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-chart-dots mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">Usage Analytics</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </a>
+                <a href="{{ url_for('admin_panel.mobile_app_analytics') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-chart-bar mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">App Analytics</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </a>
+                <div class="flex items-center justify-between p-3 rounded-lg">
+                    <div class="flex items-center">
+                        <i class="ti ti-download mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">App Downloads</span>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ stats.app_downloads or 0 }}</span>
+                </div>
+                <div class="flex items-center justify-between p-3 rounded-lg">
+                    <div class="flex items-center">
+                        <i class="ti ti-users mr-3 text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-gray-900 dark:text-white">Active Mobile Users</span>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ stats.active_mobile_users or 0 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Platform Status -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-device-mobile mr-2 text-blue-500"></i>Mobile Platform Status
+            </h5>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
+                    <div class="text-lg font-bold {% if stats.mobile_service_status == 'active' %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+                        {% if stats.mobile_service_status == 'active' %}Online{% else %}Offline{% endif %}
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Mobile Service</div>
+                </div>
+                <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
+                    <div class="text-lg font-bold {% if stats.push_service_status == 'active' %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+                        {% if stats.push_service_status == 'active' %}Active{% else %}Inactive{% endif %}
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Push Service</div>
+                </div>
+                <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
+                    <div class="text-lg font-bold text-cyan-600 dark:text-cyan-400">{{ stats.mobile_app_version or 'v1.0.0' }}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">App Version</div>
+                </div>
+                <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
+                    <div class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ stats.last_updated or 'Recently' }}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Last Updated</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Alert -->
+    <div class="flex items-start p-4 text-blue-800 bg-blue-50 rounded-lg dark:bg-blue-900/30 dark:text-blue-300">
+        <i class="ti ti-info-circle flex-shrink-0 mr-3 mt-0.5 text-lg"></i>
+        <div>
+            <h6 class="font-medium mb-1">Mobile App Status Information</h6>
+            <p class="text-sm">
+                <strong>Mobile Service Status</strong> reflects whether the mobile app is configured and enabled in Admin Settings.
+                <strong>Push Service Status</strong> shows if push notifications are enabled.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile API Documentation -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-api mr-2 text-green-500"></i>Mobile API Documentation
+        </h5>
+    </div>
+    <div class="p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            The following API endpoints are available for mobile app integration. Share this with the mobile development team.
+        </p>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Endpoint</th>
+                        <th scope="col" class="px-6 py-3">Method</th>
+                        <th scope="col" class="px-6 py-3">Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="px-6 py-4 font-mono text-xs">/api/mobile/auth/login</td>
+                        <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">POST</span></td>
+                        <td class="px-6 py-4">User authentication</td>
+                    </tr>
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="px-6 py-4 font-mono text-xs">/api/mobile/user/profile</td>
+                        <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">GET</span></td>
+                        <td class="px-6 py-4">Get user profile data</td>
+                    </tr>
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="px-6 py-4 font-mono text-xs">/api/mobile/matches</td>
+                        <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">GET</span></td>
+                        <td class="px-6 py-4">Get matches for user's team</td>
+                    </tr>
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="px-6 py-4 font-mono text-xs">/api/mobile/push/register</td>
+                        <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">POST</span></td>
+                        <td class="px-6 py-4">Register device for push notifications</td>
+                    </tr>
+                    <tr class="bg-white dark:bg-gray-800">
+                        <td class="px-6 py-4 font-mono text-xs">/api/mobile/notifications</td>
+                        <td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">GET</span></td>
+                        <td class="px-6 py-4">Get user notifications</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="mt-4 text-sm text-gray-500 dark:text-gray-400 flex items-center">
+            <i class="ti ti-info-circle mr-2"></i>
+            Full API documentation available at <code class="mx-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">/api/docs</code> (if enabled) or contact tech support for Swagger/OpenAPI spec.
+        </p>
+    </div>
+</div>
+{% endblock %}

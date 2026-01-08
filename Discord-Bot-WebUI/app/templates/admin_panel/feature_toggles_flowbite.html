@@ -1,0 +1,187 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Feature Toggles{% endblock %}
+{% block panel_description %}Manage system feature settings{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Feature Toggles</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="space-y-6">
+    {% for category, settings in categories.items() %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                {% if category == 'navigation' %}
+                    <i class="ti ti-navigation mr-2 text-blue-500"></i>Navigation Settings
+                {% elif category == 'registration' %}
+                    <i class="ti ti-user-plus mr-2 text-green-500"></i>Registration Settings
+                {% elif category == 'features' %}
+                    <i class="ti ti-apps mr-2 text-yellow-500"></i>Feature Settings
+                {% elif category == 'system' %}
+                    <i class="ti ti-server mr-2 text-cyan-500"></i>System Settings
+                {% else %}
+                    <i class="ti ti-settings mr-2 text-gray-500"></i>{{ category.title() }} Settings
+                {% endif %}
+            </h5>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for setting in settings %}
+            <div class="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4" data-setting-key="{{ setting.key }}">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mr-3 mt-1">
+                        {% if setting.data_type == 'boolean' %}
+                            {% if setting.parsed_value %}
+                                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30">
+                                    <i class="ti ti-toggle-right text-green-600 dark:text-green-400"></i>
+                                </span>
+                            {% else %}
+                                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700">
+                                    <i class="ti ti-toggle-left text-gray-500 dark:text-gray-400"></i>
+                                </span>
+                            {% endif %}
+                        {% else %}
+                            <span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                                <i class="ti ti-adjustments-horizontal text-blue-600 dark:text-blue-400"></i>
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h6 class="font-medium text-gray-900 dark:text-white">{{ setting.key.replace('_', ' ').title() }}</h6>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ setting.description or 'No description available' }}</p>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                {{ setting.data_type }}
+                            </span>
+                            <span class="text-xs text-gray-400 dark:text-gray-500">
+                                Updated: {{ setting.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center sm:ml-4">
+                    {% if setting.data_type == 'boolean' %}
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer setting-toggle"
+                               data-setting-key="{{ setting.key }}"
+                               {% if setting.parsed_value %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                        <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 toggle-status">
+                            {% if setting.parsed_value %}Enabled{% else %}Disabled{% endif %}
+                        </span>
+                    </label>
+                    {% else %}
+                    <form method="POST" action="{{ url_for('admin_panel.update_setting') }}" class="flex items-center gap-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="key" value="{{ setting.key }}">
+                        {% if setting.data_type == 'integer' %}
+                        <input type="number" name="value" value="{{ setting.value or '' }}"
+                               class="w-24 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                               placeholder="Value">
+                        {% else %}
+                        <input type="text" name="value" value="{{ setting.value or '' }}"
+                               class="w-40 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                               placeholder="Value">
+                        {% endif %}
+                        <button type="submit" class="p-2 text-white bg-green-600 hover:bg-green-700 rounded-lg" title="Save">
+                            <i class="ti ti-check"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Warning Alert -->
+    <div class="flex items-start p-4 text-yellow-800 bg-yellow-50 rounded-lg dark:bg-yellow-900/30 dark:text-yellow-300">
+        <i class="ti ti-alert-triangle flex-shrink-0 mr-3 mt-0.5 text-lg"></i>
+        <div>
+            <span class="font-medium">Important:</span> Changes to these settings take effect immediately. Be careful when modifying critical features like Teams navigation and Waitlist registration, as they directly affect user experience.
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const isDark = document.documentElement.classList.contains('dark');
+
+// Handle toggle changes
+document.querySelectorAll('.setting-toggle').forEach(toggle => {
+    toggle.addEventListener('change', function() {
+        const settingKey = this.dataset.settingKey;
+        const enabled = this.checked;
+        const statusEl = this.closest('label').querySelector('.toggle-status');
+
+        // Update status text
+        if (statusEl) {
+            statusEl.textContent = enabled ? 'Enabled' : 'Disabled';
+        }
+
+        // Update icon
+        const container = this.closest('[data-setting-key]');
+        const iconContainer = container.querySelector('.flex-shrink-0 span');
+        if (iconContainer) {
+            if (enabled) {
+                iconContainer.className = 'flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30';
+                iconContainer.innerHTML = '<i class="ti ti-toggle-right text-green-600 dark:text-green-400"></i>';
+            } else {
+                iconContainer.className = 'flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700';
+                iconContainer.innerHTML = '<i class="ti ti-toggle-left text-gray-500 dark:text-gray-400"></i>';
+            }
+        }
+
+        // Save the setting
+        fetch('{{ url_for("admin_panel.update_setting") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: `key=${encodeURIComponent(settingKey)}&value=${enabled}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Setting updated',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            } else {
+                // Revert toggle
+                toggle.checked = !enabled;
+                if (statusEl) statusEl.textContent = !enabled ? 'Enabled' : 'Disabled';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || 'Failed to update setting',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            toggle.checked = !enabled;
+            if (statusEl) statusEl.textContent = !enabled ? 'Enabled' : 'Disabled';
+        });
+    });
+});
+</script>
+{% endblock %}

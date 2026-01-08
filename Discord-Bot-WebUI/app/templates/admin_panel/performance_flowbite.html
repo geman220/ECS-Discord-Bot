@@ -1,0 +1,324 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Performance Monitoring{% endblock %}
+{% block panel_description %}System performance metrics and analytics{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Performance</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-600 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h5 class="text-2xl font-bold text-white">{{ "%.1f"|format(report.database.avg_query_time * 1000) }}ms</h5>
+                <span class="text-sm text-blue-100">Avg Query Time</span>
+            </div>
+            <div class="p-3 bg-blue-500 rounded-full">
+                <i class="ti ti-database text-2xl text-white"></i>
+            </div>
+        </div>
+    </div>
+    <div class="{% if report.database.slow_queries > 5 %}bg-red-600{% elif report.database.slow_queries > 2 %}bg-yellow-500{% else %}bg-green-600{% endif %} rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h5 class="text-2xl font-bold text-white">{{ report.database.slow_queries }}</h5>
+                <span class="text-sm {% if report.database.slow_queries > 5 %}text-red-100{% elif report.database.slow_queries > 2 %}text-yellow-100{% else %}text-green-100{% endif %}">Slow Queries</span>
+            </div>
+            <div class="p-3 {% if report.database.slow_queries > 5 %}bg-red-500{% elif report.database.slow_queries > 2 %}bg-yellow-400{% else %}bg-green-500{% endif %} rounded-full">
+                <i class="ti ti-clock-exclamation text-2xl text-white"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-cyan-600 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h5 class="text-2xl font-bold text-white">{{ report.cache.active_entries }}</h5>
+                <span class="text-sm text-cyan-100">Cache Entries</span>
+            </div>
+            <div class="p-3 bg-cyan-500 rounded-full">
+                <i class="ti ti-server text-2xl text-white"></i>
+            </div>
+        </div>
+    </div>
+    <div class="{% if report.cache.cache_size_mb > 50 %}bg-yellow-500{% else %}bg-gray-600{% endif %} rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h5 class="text-2xl font-bold text-white">{{ "%.1f"|format(report.cache.cache_size_mb) }}MB</h5>
+                <span class="text-sm {% if report.cache.cache_size_mb > 50 %}text-yellow-100{% else %}text-gray-100{% endif %}">Cache Size</span>
+            </div>
+            <div class="p-3 {% if report.cache.cache_size_mb > 50 %}bg-yellow-400{% else %}bg-gray-500{% endif %} rounded-full">
+                <i class="ti ti-memory text-2xl text-white"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Database & Cache Performance -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Database Performance -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-database mr-2 text-blue-500"></i>Database Performance
+            </h5>
+            <span class="flex items-center gap-2">
+                {% if report.database.slow_queries <= 2 %}
+                    <span class="flex w-3 h-3 bg-green-500 rounded-full"></span>
+                    <span class="text-sm text-green-600 dark:text-green-400">Healthy</span>
+                {% else %}
+                    <span class="flex w-3 h-3 bg-yellow-500 rounded-full"></span>
+                    <span class="text-sm text-yellow-600 dark:text-yellow-400">Attention Needed</span>
+                {% endif %}
+            </span>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Total Queries</div>
+                    <div class="text-xl font-bold text-gray-900 dark:text-white">{{ report.database.total_queries }}</div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Slow Queries</div>
+                    <div class="text-xl font-bold {% if report.database.slow_queries > 5 %}text-red-600 dark:text-red-400{% elif report.database.slow_queries > 2 %}text-yellow-600 dark:text-yellow-400{% else %}text-green-600 dark:text-green-400{% endif %}">{{ report.database.slow_queries }}</div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Average Time</div>
+                    <div class="text-xl font-bold text-gray-900 dark:text-white">{{ "%.3f"|format(report.database.avg_query_time) }}s</div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Min Time</div>
+                    <div class="text-xl font-bold text-gray-900 dark:text-white">{{ "%.3f"|format(report.database.min_query_time) }}s</div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Max Time</div>
+                    <div class="text-xl font-bold {% if report.database.max_query_time > 2 %}text-red-600 dark:text-red-400{% elif report.database.max_query_time > 1 %}text-yellow-600 dark:text-yellow-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ "%.3f"|format(report.database.max_query_time) }}s</div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Performance</div>
+                    {% if report.database.avg_query_time < 0.1 %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Excellent</span>
+                    {% elif report.database.avg_query_time < 0.5 %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Good</span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Slow</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="h-48">
+                <canvas id="queryPerformanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cache Performance -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-server mr-2 text-cyan-500"></i>Cache Performance
+            </h5>
+            <form method="POST" action="{{ url_for('admin_panel.clear_performance_cache') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-lg dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900">
+                    <i class="ti ti-trash mr-1"></i>Clear Cache
+                </button>
+            </form>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Total Entries</div>
+                    <div class="text-xl font-bold text-gray-900 dark:text-white">{{ report.cache.total_entries }}</div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Active Entries</div>
+                    <div class="text-xl font-bold text-green-600 dark:text-green-400">{{ report.cache.active_entries }}</div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Expired Entries</div>
+                    <div class="text-xl font-bold {% if report.cache.expired_entries > report.cache.active_entries %}text-yellow-600 dark:text-yellow-400{% else %}text-gray-600 dark:text-gray-400{% endif %}">{{ report.cache.expired_entries }}</div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Cache Size</div>
+                    <div class="text-xl font-bold {% if report.cache.cache_size_mb > 50 %}text-yellow-600 dark:text-yellow-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ "%.2f"|format(report.cache.cache_size_mb) }} MB</div>
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Hit Rate</div>
+                    {% set hit_rate = (report.cache.active_entries / (report.cache.total_entries or 1)) * 100 %}
+                    {% if report.cache.active_entries > report.cache.expired_entries %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ "%.1f"|format(hit_rate) }}%</span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ "%.1f"|format(hit_rate) }}%</span>
+                    {% endif %}
+                </div>
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Status</div>
+                    {% if report.cache.cache_size_mb < 25 and report.cache.active_entries > 0 %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Optimal</span>
+                    {% elif report.cache.cache_size_mb < 50 %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Fair</span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Bloated</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="h-48">
+                <canvas id="cacheUsageChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Recommendations -->
+{% if report.recommendations %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-bulb mr-2 text-yellow-500"></i>Performance Recommendations
+        </h5>
+    </div>
+    <div class="p-5">
+        <div class="flex items-start p-4 text-blue-800 bg-blue-50 rounded-lg dark:bg-blue-900/30 dark:text-blue-300">
+            <i class="ti ti-info-circle flex-shrink-0 mr-3 mt-0.5 text-lg"></i>
+            <div>
+                <strong class="block mb-2">Performance Optimization Suggestions:</strong>
+                <ul class="list-disc list-inside space-y-1">
+                    {% for recommendation in report.recommendations %}
+                    <li>{{ recommendation }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Real-time Metrics -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-activity mr-2 text-green-500"></i>Real-time Performance Metrics
+        </h5>
+        <div class="flex items-center gap-4">
+            <button id="toggleAutoRefresh" class="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-lg dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900">
+                <i class="ti ti-refresh mr-1"></i>Auto Refresh: <span id="autoRefreshStatus">ON</span>
+            </button>
+            <span class="text-sm text-gray-500 dark:text-gray-400">
+                Last updated: <span id="lastUpdated">{{ report.timestamp }}</span>
+            </span>
+        </div>
+    </div>
+    <div class="p-5">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="text-center p-4 rounded-lg bg-blue-50 dark:bg-blue-900/30">
+                <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="liveQueryTime">{{ "%.1f"|format(report.database.avg_query_time * 1000) }}ms</h3>
+                <p class="text-sm text-blue-700 dark:text-blue-300">Current Avg Query</p>
+            </div>
+            <div class="text-center p-4 rounded-lg {% if report.database.slow_queries > 5 %}bg-red-50 dark:bg-red-900/30{% elif report.database.slow_queries > 2 %}bg-yellow-50 dark:bg-yellow-900/30{% else %}bg-green-50 dark:bg-green-900/30{% endif %}">
+                <h3 class="text-2xl font-bold {% if report.database.slow_queries > 5 %}text-red-600 dark:text-red-400{% elif report.database.slow_queries > 2 %}text-yellow-600 dark:text-yellow-400{% else %}text-green-600 dark:text-green-400{% endif %}" id="liveSlowQueries">{{ report.database.slow_queries }}</h3>
+                <p class="text-sm {% if report.database.slow_queries > 5 %}text-red-700 dark:text-red-300{% elif report.database.slow_queries > 2 %}text-yellow-700 dark:text-yellow-300{% else %}text-green-700 dark:text-green-300{% endif %}">Slow Queries</p>
+            </div>
+            <div class="text-center p-4 rounded-lg bg-cyan-50 dark:bg-cyan-900/30">
+                <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400" id="liveCacheHits">{{ report.cache.active_entries }}</h3>
+                <p class="text-sm text-cyan-700 dark:text-cyan-300">Cache Hits</p>
+            </div>
+            <div class="text-center p-4 rounded-lg {% if report.cache.cache_size_mb > 50 %}bg-yellow-50 dark:bg-yellow-900/30{% else %}bg-gray-50 dark:bg-gray-700{% endif %}">
+                <h3 class="text-2xl font-bold {% if report.cache.cache_size_mb > 50 %}text-yellow-600 dark:text-yellow-400{% else %}text-gray-600 dark:text-gray-400{% endif %}" id="liveCacheSize">{{ "%.1f"|format(report.cache.cache_size_mb) }}MB</h3>
+                <p class="text-sm {% if report.cache.cache_size_mb > 50 %}text-yellow-700 dark:text-yellow-300{% else %}text-gray-700 dark:text-gray-300{% endif %}">Cache Size</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const isDark = document.documentElement.classList.contains('dark');
+const chartColors = {
+    primary: isDark ? 'rgb(59, 130, 246)' : 'rgb(37, 99, 235)',
+    success: isDark ? 'rgb(34, 197, 94)' : 'rgb(22, 163, 74)',
+    warning: isDark ? 'rgb(234, 179, 8)' : 'rgb(202, 138, 4)',
+    danger: isDark ? 'rgb(239, 68, 68)' : 'rgb(220, 38, 38)',
+    gray: isDark ? 'rgb(107, 114, 128)' : 'rgb(156, 163, 175)'
+};
+
+// Query Performance Chart
+const queryCtx = document.getElementById('queryPerformanceChart');
+if (queryCtx) {
+    new Chart(queryCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Min', 'Avg', 'Max'],
+            datasets: [{
+                label: 'Query Time (s)',
+                data: [
+                    {{ report.database.min_query_time }},
+                    {{ report.database.avg_query_time }},
+                    {{ report.database.max_query_time }}
+                ],
+                backgroundColor: [chartColors.success, chartColors.primary, chartColors.warning],
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' },
+                    ticks: { color: isDark ? '#9ca3af' : '#6b7280' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: isDark ? '#9ca3af' : '#6b7280' }
+                }
+            }
+        }
+    });
+}
+
+// Cache Usage Chart
+const cacheCtx = document.getElementById('cacheUsageChart');
+if (cacheCtx) {
+    new Chart(cacheCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Active', 'Expired'],
+            datasets: [{
+                data: [{{ report.cache.active_entries }}, {{ report.cache.expired_entries }}],
+                backgroundColor: [chartColors.success, chartColors.gray],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: isDark ? '#9ca3af' : '#6b7280' }
+                }
+            }
+        }
+    });
+}
+
+// Auto-refresh toggle
+let autoRefresh = true;
+document.getElementById('toggleAutoRefresh')?.addEventListener('click', function() {
+    autoRefresh = !autoRefresh;
+    document.getElementById('autoRefreshStatus').textContent = autoRefresh ? 'ON' : 'OFF';
+});
+</script>
+{% endblock %}
