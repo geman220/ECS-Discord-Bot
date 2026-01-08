@@ -1,0 +1,377 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}{{ category.name }} Templates{% endblock %}
+{% block panel_description %}Message templates in {{ category.name }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.message_templates') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Message Templates</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ category.name }}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Category Header -->
+<div class="bg-blue-600 dark:bg-blue-800 rounded-lg shadow mb-6 p-5">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-white flex items-center">
+                <i class="ti ti-folder mr-3"></i>{{ category.name }}
+            </h2>
+            <p class="text-blue-100 mt-1">{{ category.description or 'No description provided' }}</p>
+        </div>
+        <div class="text-right">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white text-blue-600 mb-2">
+                {{ templates|length }} Templates
+            </span>
+            <div class="text-sm text-blue-100">
+                Last updated: {{ category.updated_at.strftime('%Y-%m-%d %H:%M') if category.updated_at else 'Never' }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Templates Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-file-text mr-2"></i>Message Templates
+        </h5>
+        <div class="flex items-center gap-2">
+            <button onclick="history.back()" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
+                <i class="ti ti-arrow-left mr-1"></i>Back
+            </button>
+            <button type="button" data-modal-target="createTemplateModal" data-modal-toggle="createTemplateModal" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="ti ti-plus mr-1"></i>Add Template
+            </button>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        {% if templates %}
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Template Name</th>
+                    <th scope="col" class="px-6 py-3">Channel</th>
+                    <th scope="col" class="px-6 py-3">Content Preview</th>
+                    <th scope="col" class="px-6 py-3">Status</th>
+                    <th scope="col" class="px-6 py-3">Last Updated</th>
+                    <th scope="col" class="px-6 py-3 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for template in templates %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <i class="ti ti-file-text mr-2 text-blue-500"></i>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-white">{{ template.name }}</div>
+                                {% if template.description %}
+                                <div class="text-sm text-gray-500 dark:text-gray-400">{{ template.description }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if template.channel_type == 'discord_dm' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300">
+                            <i class="ti ti-brand-discord mr-1"></i>DM
+                        </span>
+                        {% elif template.channel_type == 'discord_channel' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
+                            <i class="ti ti-brand-discord mr-1"></i>Channel
+                        </span>
+                        {% elif template.channel_type == 'sms' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            <i class="ti ti-message mr-1"></i>SMS
+                        </span>
+                        {% elif template.channel_type == 'email' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                            <i class="ti ti-mail mr-1"></i>Email
+                        </span>
+                        {% elif template.channel_type == 'announcement' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                            <i class="ti ti-speakerphone mr-1"></i>Announce
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            <i class="ti ti-question-mark mr-1"></i>Unset
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="max-w-xs truncate text-gray-600 dark:text-gray-400">
+                            {{ template.message_content[:80] }}{% if template.message_content|length > 80 %}...{% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if template.is_active %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {{ template.updated_at.strftime('%Y-%m-%d %H:%M') if template.updated_at else 'Never' }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center justify-end gap-1">
+                            <button class="p-2 text-cyan-600 hover:bg-cyan-50 rounded dark:hover:bg-cyan-900/30" title="Preview" data-action="view-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-template-content="{{ template.message_content }}">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            <button class="p-2 text-yellow-600 hover:bg-yellow-50 rounded dark:hover:bg-yellow-900/30" title="Edit" data-action="edit-template" data-template-id="{{ template.id }}">
+                                <i class="ti ti-edit"></i>
+                            </button>
+                            <button class="p-2 {{ 'text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/30' if template.is_active else 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30' }} rounded" title="{{ 'Deactivate' if template.is_active else 'Activate' }}" data-action="toggle-template" data-template-id="{{ template.id }}">
+                                <i class="ti ti-{{ 'pause' if template.is_active else 'play' }}"></i>
+                            </button>
+                            <button class="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/30" title="Delete" data-action="delete-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <i class="ti ti-file-x text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
+            <h5 class="text-xl font-medium text-gray-500 dark:text-gray-400 mb-2">No templates found in this category</h5>
+            <p class="text-gray-400 dark:text-gray-500 mb-4">Create your first message template to get started.</p>
+            <button type="button" data-modal-target="createTemplateModal" data-modal-toggle="createTemplateModal" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="ti ti-plus mr-1"></i>Create Template
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Template Modal -->
+<div id="createTemplateModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-4xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Create Message Template</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="createTemplateModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('admin_panel.create_message_template') }}">
+                <div class="p-5 max-h-[70vh] overflow-y-auto">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="category_id" value="{{ category.id }}">
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 space-y-4">
+                            <div>
+                                <label for="template_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template Name *</label>
+                                <input type="text" id="template_name" name="name" required placeholder="e.g., Welcome New Player" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            </div>
+
+                            <div>
+                                <label for="template_description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                                <input type="text" id="template_description" name="description" placeholder="Brief description of when this template is used" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="channel_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Channel Type</label>
+                                    <select id="channel_type" name="channel_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                        <option value="">-- Select Channel --</option>
+                                        <option value="discord_dm">Discord DM</option>
+                                        <option value="discord_channel">Discord Channel</option>
+                                        <option value="sms">SMS</option>
+                                        <option value="email">Email</option>
+                                        <option value="announcement">Announcement</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="usage_context" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Usage Context</label>
+                                    <input type="text" id="usage_context" name="usage_context" placeholder="e.g., Onboarding flow" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="template_content" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template Content *</label>
+                                <textarea id="template_content" name="content" rows="10" required placeholder="Enter your message template here..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono"></textarea>
+                            </div>
+
+                            <label class="flex items-center">
+                                <input type="checkbox" name="is_active" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Activate template immediately</span>
+                            </label>
+                        </div>
+
+                        <!-- Variables Panel -->
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <h6 class="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                                <i class="ti ti-code mr-1"></i>Available Variables
+                            </h6>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Click to insert into content:</p>
+
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">Player</label>
+                                    <div class="flex flex-wrap gap-1">
+                                        <code class="var-btn px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800" data-var="{player_name}">{player_name}</code>
+                                        <code class="var-btn px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800" data-var="{username}">{username}</code>
+                                        <code class="var-btn px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800" data-var="{discord_name}">{discord_name}</code>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">Team</label>
+                                    <div class="flex flex-wrap gap-1">
+                                        <code class="var-btn px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded cursor-pointer hover:bg-green-200 dark:hover:bg-green-800" data-var="{team_name}">{team_name}</code>
+                                        <code class="var-btn px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded cursor-pointer hover:bg-green-200 dark:hover:bg-green-800" data-var="{captain_name}">{captain_name}</code>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">Match</label>
+                                    <div class="flex flex-wrap gap-1">
+                                        <code class="var-btn px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800" data-var="{match_date}">{match_date}</code>
+                                        <code class="var-btn px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800" data-var="{match_time}">{match_time}</code>
+                                        <code class="var-btn px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800" data-var="{opponent}">{opponent}</code>
+                                        <code class="var-btn px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800" data-var="{location}">{location}</code>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">League</label>
+                                    <div class="flex flex-wrap gap-1">
+                                        <code class="var-btn px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs rounded cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800" data-var="{league_name}">{league_name}</code>
+                                        <code class="var-btn px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs rounded cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800" data-var="{season_name}">{season_name}</code>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">System</label>
+                                    <div class="flex flex-wrap gap-1">
+                                        <code class="var-btn px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs rounded cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500" data-var="{site_url}">{site_url}</code>
+                                        <code class="var-btn px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs rounded cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500" data-var="{date}">{date}</code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end p-5 border-t dark:border-gray-700 gap-3">
+                    <button type="button" data-modal-hide="createTemplateModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Create Template</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Template Modal -->
+<div id="viewTemplateModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="view_template_title">Template Preview</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="viewTemplateModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-5">
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <pre id="view_template_content" class="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200"></pre>
+                </div>
+            </div>
+            <div class="flex items-center justify-end p-5 border-t dark:border-gray-700">
+                <button type="button" data-modal-hide="viewTemplateModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Variable buttons - insert into textarea
+    document.querySelectorAll('.var-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const varText = this.dataset.var;
+            const textarea = document.getElementById('template_content');
+            if (textarea) {
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+                textarea.value = text.substring(0, start) + varText + text.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + varText.length;
+                textarea.focus();
+            }
+        });
+    });
+
+    // Template actions
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+
+        const action = btn.dataset.action;
+        const templateId = btn.dataset.templateId;
+        const templateName = btn.dataset.templateName;
+        const templateContent = btn.dataset.templateContent;
+
+        if (action === 'view-template') {
+            document.getElementById('view_template_title').textContent = templateName;
+            document.getElementById('view_template_content').textContent = templateContent;
+        } else if (action === 'delete-template') {
+            Swal.fire({
+                title: 'Delete Template?',
+                text: `Delete "${templateName}"? This cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Delete',
+                confirmButtonColor: '#dc2626',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('{{ url_for("admin_panel.delete_message_template") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ template_id: templateId })
+                    }).then(() => location.reload());
+                }
+            });
+        } else if (action === 'toggle-template') {
+            fetch('{{ url_for("admin_panel.toggle_message_template") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ template_id: templateId })
+            }).then(() => location.reload());
+        }
+    });
+});
+</script>
+{% endblock %}

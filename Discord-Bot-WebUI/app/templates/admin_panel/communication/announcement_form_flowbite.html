@@ -1,0 +1,187 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}{{ title }}{% endblock %}
+{% block panel_description %}Create or edit announcement{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.announcements') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Announcements</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ 'Edit' if announcement else 'Create' }}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Announcement Form -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-speakerphone mr-2"></i>{{ title }}
+        </h5>
+        <a href="{{ url_for('admin_panel.announcements') }}" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+            <i class="ti ti-arrow-left mr-1"></i>Back to Announcements
+        </a>
+    </div>
+    <div class="p-5">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div class="md:col-span-3">
+                    <label for="title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Announcement Title *</label>
+                    <input type="text" id="title" name="title"
+                           value="{{ announcement.title if announcement else '' }}"
+                           required maxlength="255"
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Clear, concise title for the announcement</p>
+                </div>
+                <div>
+                    <label for="priority" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Priority</label>
+                    <select id="priority" name="priority" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="low" {% if announcement and announcement.priority == 'low' %}selected{% endif %}>Low</option>
+                        <option value="normal" {% if not announcement or announcement.priority == 'normal' %}selected{% endif %}>Normal</option>
+                        <option value="medium" {% if announcement and announcement.priority == 'medium' %}selected{% endif %}>Medium</option>
+                        <option value="high" {% if announcement and announcement.priority == 'high' %}selected{% endif %}>High</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="announcement_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Type</label>
+                    <select id="announcement_type" name="announcement_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="general" {% if not announcement or announcement.announcement_type == 'general' %}selected{% endif %}>General</option>
+                        <option value="league" {% if announcement and announcement.announcement_type == 'league' %}selected{% endif %}>League</option>
+                        <option value="match" {% if announcement and announcement.announcement_type == 'match' %}selected{% endif %}>Match</option>
+                        <option value="system" {% if announcement and announcement.announcement_type == 'system' %}selected{% endif %}>System</option>
+                        <option value="urgent" {% if announcement and announcement.announcement_type == 'urgent' %}selected{% endif %}>Urgent</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="content" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Content *</label>
+                <textarea id="content" name="content" rows="8" required
+                          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">{{ announcement.content if announcement else '' }}</textarea>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Detailed announcement content. Supports basic HTML formatting.</p>
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div>
+                    {% if announcement %}
+                    <button type="button" id="delete-btn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
+                        <i class="ti ti-trash mr-1"></i>Delete Announcement
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('admin_panel.announcements') }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
+                        <i class="ti ti-x mr-1"></i>Cancel
+                    </a>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                        <i class="ti ti-device-floppy mr-1"></i>{% if announcement %}Update{% else %}Create{% endif %} Announcement
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Preview Card -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h6 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-eye mr-2"></i>Preview
+        </h6>
+    </div>
+    <div class="p-5">
+        <div id="preview-content" class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <h6 id="preview-title" class="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">{{ announcement.title if announcement else 'Announcement Title' }}</h6>
+                    <div id="preview-body" class="text-blue-700 dark:text-blue-300">{{ announcement.content if announcement else 'Announcement content will appear here...' }}</div>
+                </div>
+                <div class="ml-4">
+                    <span id="preview-priority" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ (announcement.priority if announcement else 'normal').title() }}</span>
+                </div>
+            </div>
+            <hr class="my-3 border-blue-200 dark:border-blue-700">
+            <div class="text-sm text-blue-600 dark:text-blue-400">
+                <strong>Type:</strong> <span id="preview-type">{{ (announcement.announcement_type if announcement else 'general').title() }}</span>
+                <strong class="ml-4">Created:</strong> {{ moment().format('YYYY-MM-DD HH:mm') if moment else 'Now' }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const titleInput = document.getElementById('title');
+    const contentInput = document.getElementById('content');
+    const prioritySelect = document.getElementById('priority');
+    const typeSelect = document.getElementById('announcement_type');
+
+    const previewTitle = document.getElementById('preview-title');
+    const previewBody = document.getElementById('preview-body');
+    const previewPriority = document.getElementById('preview-priority');
+    const previewType = document.getElementById('preview-type');
+
+    function updatePreview() {
+        previewTitle.textContent = titleInput.value || 'Announcement Title';
+        previewBody.textContent = contentInput.value || 'Announcement content will appear here...';
+        previewPriority.textContent = prioritySelect.options[prioritySelect.selectedIndex].text;
+        previewType.textContent = typeSelect.options[typeSelect.selectedIndex].text;
+    }
+
+    titleInput.addEventListener('input', updatePreview);
+    contentInput.addEventListener('input', updatePreview);
+    prioritySelect.addEventListener('change', updatePreview);
+    typeSelect.addEventListener('change', updatePreview);
+
+    {% if announcement %}
+    document.getElementById('delete-btn').addEventListener('click', function() {
+        Swal.fire({
+            title: 'Delete Announcement?',
+            text: 'This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Delete',
+            confirmButtonColor: '#dc2626',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('{{ url_for("admin_panel.delete_announcement", id=announcement.id) }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        window.location.href = '{{ url_for("admin_panel.announcements") }}';
+                    }
+                });
+            }
+        });
+    });
+    {% endif %}
+});
+</script>
+{% endblock %}

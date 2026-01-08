@@ -1,0 +1,436 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Push Campaigns{% endblock %}
+{% block panel_description %}Manage push notification campaigns{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Push Campaigns</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Statistics Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ status_counts.all }}</h3>
+                <span class="text-sm text-blue-700 dark:text-blue-300">Total Campaigns</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                <i class="ti ti-broadcast text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ status_counts.scheduled }}</h3>
+                <span class="text-sm text-yellow-700 dark:text-yellow-300">Scheduled</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50">
+                <i class="ti ti-clock text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ status_counts.sent }}</h3>
+                <span class="text-sm text-green-700 dark:text-green-300">Sent</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50">
+                <i class="ti ti-check text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-gray-600 dark:text-gray-400">{{ status_counts.draft }}</h3>
+                <span class="text-sm text-gray-700 dark:text-gray-300">Drafts</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-600">
+                <i class="ti ti-file-text text-2xl text-gray-600 dark:text-gray-400"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Campaigns Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-broadcast mr-2"></i>Push Campaigns
+        </h5>
+        <div class="flex flex-wrap items-center gap-2">
+            <!-- Status Filter -->
+            <div class="inline-flex rounded-lg shadow-sm">
+                <a href="{{ url_for('admin_panel.campaigns_list') }}" class="px-3 py-2 text-sm font-medium rounded-l-lg {{ 'text-white bg-blue-600' if not status_filter else 'text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-300' }} border border-gray-300 dark:border-gray-600">
+                    All ({{ status_counts.all }})
+                </a>
+                <a href="{{ url_for('admin_panel.campaigns_list', status='draft') }}" class="px-3 py-2 text-sm font-medium {{ 'text-white bg-gray-600' if status_filter == 'draft' else 'text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-300' }} border-t border-b border-gray-300 dark:border-gray-600">
+                    Drafts
+                </a>
+                <a href="{{ url_for('admin_panel.campaigns_list', status='scheduled') }}" class="px-3 py-2 text-sm font-medium {{ 'text-white bg-yellow-600' if status_filter == 'scheduled' else 'text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-300' }} border-t border-b border-gray-300 dark:border-gray-600">
+                    Scheduled
+                </a>
+                <a href="{{ url_for('admin_panel.campaigns_list', status='sent') }}" class="px-3 py-2 text-sm font-medium rounded-r-lg {{ 'text-white bg-green-600' if status_filter == 'sent' else 'text-gray-700 bg-white dark:bg-gray-700 dark:text-gray-300' }} border border-gray-300 dark:border-gray-600">
+                    Sent
+                </a>
+            </div>
+            <button onclick="history.back()" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
+                <i class="ti ti-arrow-left mr-1"></i>Back
+            </button>
+            <button type="button" data-modal-target="createCampaignModal" data-modal-toggle="createCampaignModal" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="ti ti-plus mr-1"></i>New Campaign
+            </button>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        {% if campaigns.items %}
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Campaign</th>
+                    <th scope="col" class="px-6 py-3">Target</th>
+                    <th scope="col" class="px-6 py-3">Status</th>
+                    <th scope="col" class="px-6 py-3">Schedule</th>
+                    <th scope="col" class="px-6 py-3">Analytics</th>
+                    <th scope="col" class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for campaign in campaigns.items %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4">
+                        <div>
+                            <div class="font-medium text-gray-900 dark:text-white">{{ campaign.name }}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ campaign.title }}</div>
+                            {% if campaign.priority == 'urgent' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 mt-1">Urgent</span>
+                            {% elif campaign.priority == 'high' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300 mt-1">High</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">{{ campaign.target_type|title }}</span>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">{{ campaign.target_count or 0 }} recipients</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% set status = campaign.status %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            {% if status == 'sent' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                            {% elif status == 'scheduled' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
+                            {% elif status == 'draft' %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300
+                            {% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% endif %}">
+                            {{ status|title }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if campaign.scheduled_send_time %}
+                        <span class="text-sm">{{ campaign.scheduled_send_time.strftime('%Y-%m-%d %H:%M') }}</span>
+                        {% elif campaign.actual_send_time %}
+                        <span class="text-sm">Sent: {{ campaign.actual_send_time.strftime('%Y-%m-%d %H:%M') }}</span>
+                        {% else %}
+                        <span class="text-sm text-gray-400">Not scheduled</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3 text-sm">
+                            <div class="flex items-center" title="Sent">
+                                <i class="ti ti-send text-blue-500 mr-1"></i>{{ campaign.sent_count or 0 }}
+                            </div>
+                            <div class="flex items-center" title="Delivered">
+                                <i class="ti ti-check text-green-500 mr-1"></i>{{ campaign.delivered_count or 0 }}
+                            </div>
+                            <div class="flex items-center" title="Clicked">
+                                <i class="ti ti-click text-purple-500 mr-1"></i>{{ campaign.click_count or 0 }}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-1">
+                            <button class="p-2 text-cyan-600 hover:bg-cyan-50 rounded dark:hover:bg-cyan-900/30" title="View" data-action="view-campaign" data-campaign-id="{{ campaign.id }}">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            {% if campaign.status == 'draft' %}
+                            <button class="p-2 text-yellow-600 hover:bg-yellow-50 rounded dark:hover:bg-yellow-900/30" title="Edit" data-action="edit-campaign" data-campaign-id="{{ campaign.id }}">
+                                <i class="ti ti-edit"></i>
+                            </button>
+                            <button class="p-2 text-green-600 hover:bg-green-50 rounded dark:hover:bg-green-900/30" title="Send Now" data-action="send-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+                                <i class="ti ti-send"></i>
+                            </button>
+                            <button class="p-2 text-blue-600 hover:bg-blue-50 rounded dark:hover:bg-blue-900/30" title="Schedule" data-action="schedule-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+                                <i class="ti ti-clock"></i>
+                            </button>
+                            <button class="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/30" title="Delete" data-action="delete-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                            {% elif campaign.status == 'scheduled' %}
+                            <button class="p-2 text-red-600 hover:bg-red-50 rounded dark:hover:bg-red-900/30" title="Cancel" data-action="cancel-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+                                <i class="ti ti-x"></i>
+                            </button>
+                            {% endif %}
+                            <button class="p-2 text-gray-600 hover:bg-gray-50 rounded dark:hover:bg-gray-700" title="Duplicate" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}">
+                                <i class="ti ti-copy"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        {% if campaigns.pages > 1 %}
+        <nav class="flex items-center justify-center p-4">
+            <ul class="inline-flex -space-x-px text-sm">
+                {% if campaigns.has_prev %}
+                <li>
+                    <a href="{{ url_for('admin_panel.campaigns_list', page=campaigns.prev_num, status=status_filter) }}" class="px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">Previous</a>
+                </li>
+                {% endif %}
+                {% for page_num in campaigns.iter_pages() %}
+                    {% if page_num %}
+                    <li>
+                        <a href="{{ url_for('admin_panel.campaigns_list', page=page_num, status=status_filter) }}" class="px-3 py-2 leading-tight {{ 'text-blue-600 bg-blue-50 border-blue-300' if page_num == campaigns.page else 'text-gray-500 bg-white border-gray-300 hover:bg-gray-100' }} border dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li><span class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                {% if campaigns.has_next %}
+                <li>
+                    <a href="{{ url_for('admin_panel.campaigns_list', page=campaigns.next_num, status=status_filter) }}" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="p-12 text-center">
+            <i class="ti ti-broadcast-off text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
+            <h5 class="text-xl font-medium text-gray-500 dark:text-gray-400 mb-2">No campaigns found</h5>
+            <p class="text-gray-400 dark:text-gray-500 mb-4">Create your first push notification campaign to get started.</p>
+            <button type="button" data-modal-target="createCampaignModal" data-modal-toggle="createCampaignModal" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="ti ti-plus mr-1"></i>Create Campaign
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Campaign Modal -->
+<div id="createCampaignModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-plus mr-2"></i>Create Push Campaign
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="createCampaignModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form id="createCampaignForm">
+                <div class="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="campaign_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Campaign Name *</label>
+                            <input type="text" id="campaign_name" name="name" required placeholder="e.g., Spring Season Launch" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        <div>
+                            <label for="campaign_priority" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Priority</label>
+                            <select id="campaign_priority" name="priority" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <option value="normal">Normal</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="campaign_title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Title *</label>
+                        <input type="text" id="campaign_title" name="title" required maxlength="50" placeholder="e.g., New Season Starting!" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <p class="mt-1 text-xs text-gray-500">Max 50 characters</p>
+                    </div>
+
+                    <div>
+                        <label for="campaign_body" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message Body *</label>
+                        <textarea id="campaign_body" name="body" rows="3" required maxlength="200" placeholder="The notification message..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+                        <p class="mt-1 text-xs text-gray-500">Max 200 characters</p>
+                    </div>
+
+                    <hr class="border-gray-200 dark:border-gray-700">
+
+                    <h6 class="text-sm font-medium text-gray-900 dark:text-white"><i class="ti ti-target mr-2"></i>Targeting</h6>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="campaign_target_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Target Type</label>
+                            <select id="campaign_target_type" name="target_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <option value="all">All Subscribers</option>
+                                <option value="team">By Team</option>
+                                <option value="league">By League</option>
+                                <option value="role">By Role</option>
+                                <option value="pool">Substitute Pool</option>
+                                <option value="group">Notification Group</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="campaign_platform" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Platform</label>
+                            <select id="campaign_platform" name="platform_filter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <option value="all">All Platforms</option>
+                                <option value="ios">iOS Only</option>
+                                <option value="android">Android Only</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr class="border-gray-200 dark:border-gray-700">
+
+                    <h6 class="text-sm font-medium text-gray-900 dark:text-white"><i class="ti ti-clock mr-2"></i>Scheduling</h6>
+
+                    <div class="flex flex-wrap gap-4">
+                        <label class="flex items-center">
+                            <input type="radio" name="send_type" value="immediate" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                            <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Save as Draft</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="send_type" value="send_now" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                            <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Send Immediately</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="send_type" value="scheduled" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                            <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Schedule for Later</span>
+                        </label>
+                    </div>
+
+                    <div id="campaignScheduleContainer" class="hidden">
+                        <label for="campaign_schedule_time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send Date & Time</label>
+                        <input type="datetime-local" id="campaign_schedule_time" name="scheduled_send_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+
+                    <div>
+                        <label for="campaign_action_url" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Action URL (Optional)</label>
+                        <input type="url" id="campaign_action_url" name="action_url" placeholder="https://example.com/action" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <p class="mt-1 text-xs text-gray-500">URL to open when notification is clicked</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end p-5 border-t dark:border-gray-700 gap-3">
+                    <button type="button" data-modal-hide="createCampaignModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                        <i class="ti ti-plus mr-1"></i>Create Campaign
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule Campaign Modal -->
+<div id="scheduleCampaignModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-clock mr-2"></i>Schedule Campaign
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="scheduleCampaignModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-5">
+                <input type="hidden" id="schedule_campaign_id">
+                <p class="text-gray-600 dark:text-gray-400 mb-4">Schedule <strong id="schedule_campaign_name"></strong> for delivery:</p>
+                <div>
+                    <label for="schedule_send_time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send Date & Time</label>
+                    <input type="datetime-local" id="schedule_send_time" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+            </div>
+            <div class="flex items-center justify-end p-5 border-t dark:border-gray-700 gap-3">
+                <button type="button" data-modal-hide="scheduleCampaignModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Cancel</button>
+                <button type="button" id="confirmScheduleBtn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <i class="ti ti-clock mr-1"></i>Schedule
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Toggle schedule container visibility
+    document.querySelectorAll('input[name="send_type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const container = document.getElementById('campaignScheduleContainer');
+            container.classList.toggle('hidden', this.value !== 'scheduled');
+        });
+    });
+
+    // Campaign actions
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+
+        const action = btn.dataset.action;
+        const campaignId = btn.dataset.campaignId;
+        const campaignName = btn.dataset.campaignName;
+
+        if (action === 'send-campaign') {
+            Swal.fire({
+                title: 'Send Campaign Now?',
+                text: `Send "${campaignName}" immediately to all recipients?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Send Now',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Send campaign
+                }
+            });
+        } else if (action === 'delete-campaign') {
+            Swal.fire({
+                title: 'Delete Campaign?',
+                text: `Delete "${campaignName}"? This cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Delete',
+                confirmButtonColor: '#dc2626',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Delete campaign
+                }
+            });
+        } else if (action === 'schedule-campaign') {
+            document.getElementById('schedule_campaign_id').value = campaignId;
+            document.getElementById('schedule_campaign_name').textContent = campaignName;
+        }
+    });
+});
+</script>
+{% endblock %}

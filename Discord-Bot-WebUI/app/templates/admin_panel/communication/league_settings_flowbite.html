@@ -1,0 +1,316 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}League Settings{% endblock %}
+{% block panel_description %}Configure Discord bot league settings{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">League Settings</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Help Section -->
+<div class="p-4 mb-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+    <div class="flex items-start">
+        <i class="ti ti-info-circle text-2xl text-blue-600 dark:text-blue-400 mr-3 mt-0.5"></i>
+        <div>
+            <h6 class="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">About League Settings</h6>
+            <p class="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                Configure league-specific information that the Discord bot uses when welcoming new players. Changes here are reflected immediately in bot messages.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                    <strong class="text-blue-800 dark:text-blue-200">Display Name:</strong>
+                    <p class="text-blue-700 dark:text-blue-300">How the league appears in messages</p>
+                </div>
+                <div>
+                    <strong class="text-blue-800 dark:text-blue-200">Welcome Message:</strong>
+                    <p class="text-blue-700 dark:text-blue-300">Sent when players select this league</p>
+                </div>
+                <div>
+                    <strong class="text-blue-800 dark:text-blue-200">Contact Info:</strong>
+                    <p class="text-blue-700 dark:text-blue-300">Tells players how to get help</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- League Settings Cards -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-trophy mr-2"></i>League Configurations
+        </h5>
+        <button type="button" data-modal-target="createLeagueModal" data-modal-toggle="createLeagueModal" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+            <i class="ti ti-plus mr-1"></i>Add League
+        </button>
+    </div>
+    <div class="p-5">
+        {% if settings %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="leagueSettingsContainer">
+            {% for setting in settings %}
+            <div class="bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 {{ 'opacity-50' if not setting.is_active }}" data-league-id="{{ setting.id }}">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                    <div class="flex items-center">
+                        {% if setting.emoji %}
+                        <span class="text-2xl mr-2">{{ setting.emoji }}</span>
+                        {% else %}
+                        <i class="ti ti-trophy text-xl text-blue-500 mr-2"></i>
+                        {% endif %}
+                        <h6 class="font-medium text-gray-900 dark:text-white">{{ setting.display_name }}</h6>
+                    </div>
+                    {% if setting.is_active %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">Inactive</span>
+                    {% endif %}
+                </div>
+                <div class="p-4 space-y-3">
+                    <div>
+                        <label class="text-xs text-gray-500 dark:text-gray-400">League Key</label>
+                        <p class="font-mono text-sm text-gray-900 dark:text-white">{{ setting.league_key }}</p>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 dark:text-gray-400">Welcome Message</label>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">{{ setting.welcome_message[:100] }}{% if setting.welcome_message|length > 100 %}...{% endif %}</p>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 dark:text-gray-400">Contact Info</label>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">{{ setting.contact_info[:80] }}{% if setting.contact_info|length > 80 %}...{% endif %}</p>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-gray-200 dark:border-gray-600 flex gap-2">
+                    <button type="button" class="flex-1 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 js-edit-league"
+                            data-setting-id="{{ setting.id }}"
+                            data-league-key="{{ setting.league_key }}"
+                            data-display-name="{{ setting.display_name }}"
+                            data-welcome-message="{{ setting.welcome_message }}"
+                            data-contact-info="{{ setting.contact_info }}"
+                            data-emoji="{{ setting.emoji or '' }}"
+                            data-modal-target="editLeagueModal"
+                            data-modal-toggle="editLeagueModal">
+                        <i class="ti ti-edit mr-1"></i>Edit
+                    </button>
+                    <form method="POST" action="{{ url_for('admin_panel.toggle_league_setting') }}" class="inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="setting_id" value="{{ setting.id }}">
+                        <button type="submit" class="p-2 text-sm font-medium {{ 'text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/30' if setting.is_active else 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30' }} rounded-lg">
+                            <i class="ti ti-{{ 'eye-off' if setting.is_active else 'eye' }}"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <i class="ti ti-trophy text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
+            <h5 class="text-xl font-medium text-gray-500 dark:text-gray-400 mb-2">No league settings configured</h5>
+            <p class="text-gray-400 dark:text-gray-500 mb-4">Add your first league to enable Discord bot welcome messages.</p>
+            <button type="button" data-modal-target="createLeagueModal" data-modal-toggle="createLeagueModal" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="ti ti-plus mr-1"></i>Add League
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Preview Section -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-message mr-2"></i>Message Preview
+        </h5>
+    </div>
+    <div class="p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            This is how the welcome message will appear when a user selects a league via Discord.
+        </p>
+        <div class="bg-gray-900 rounded-lg p-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                    <i class="ti ti-robot text-white"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="mb-1">
+                        <span class="text-blue-400 font-bold">ECS Bot</span>
+                        <span class="text-gray-500 text-sm ml-2">Today at 12:00 PM</span>
+                    </div>
+                    <div class="text-gray-100" id="messagePreview">
+                        Perfect! I've updated your profile to show you're interested in <strong>Pub League Classic</strong>.
+
+                        You'll love our classic recreational league - it's all about having fun and improving your game!
+
+                        For Pub League Classic questions, reach out to our Pub League coordinators in the #pub-league channels.
+
+                        Your information has been passed along to our leadership team. Welcome to the community! &#127881;
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create League Modal -->
+<div id="createLeagueModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add New League</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="createLeagueModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('admin_panel.create_league_setting') }}">
+                <div class="p-5 space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="league_key" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">League Key *</label>
+                            <input type="text" id="league_key" name="league_key" required placeholder="e.g., pub_league_classic" pattern="[a-z_]+" title="Lowercase letters and underscores only" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Unique identifier (lowercase, underscores only)</p>
+                        </div>
+                        <div>
+                            <label for="display_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Display Name *</label>
+                            <input type="text" id="display_name" name="display_name" required placeholder="e.g., Pub League Classic" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="emoji" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Emoji (optional)</label>
+                        <input type="text" id="emoji" name="emoji" maxlength="10" placeholder="e.g., &#127942;" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Shown next to the league name</p>
+                    </div>
+
+                    <div>
+                        <label for="welcome_message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Welcome Message *</label>
+                        <textarea id="welcome_message" name="welcome_message" rows="3" required placeholder="Welcome message sent to new players..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Displayed when a player selects this league</p>
+                    </div>
+
+                    <div>
+                        <label for="contact_info" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Contact Info *</label>
+                        <textarea id="contact_info" name="contact_info" rows="2" required placeholder="How to get help or ask questions..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Tells players where to go for help</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end p-5 border-t dark:border-gray-700 gap-3">
+                    <button type="button" data-modal-hide="createLeagueModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Create League</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit League Modal -->
+<div id="editLeagueModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit League Setting</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="editLeagueModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('admin_panel.update_league_setting') }}">
+                <div class="p-5 space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="setting_id" id="edit_setting_id">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="edit_league_key" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">League Key</label>
+                            <input type="text" id="edit_league_key" disabled class="bg-gray-100 border border-gray-300 text-gray-500 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-600 dark:border-gray-600 dark:text-gray-400 cursor-not-allowed">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Cannot be changed after creation</p>
+                        </div>
+                        <div>
+                            <label for="edit_display_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Display Name *</label>
+                            <input type="text" id="edit_display_name" name="display_name" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="edit_emoji" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Emoji (optional)</label>
+                        <input type="text" id="edit_emoji" name="emoji" maxlength="10" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+
+                    <div>
+                        <label for="edit_welcome_message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Welcome Message *</label>
+                        <textarea id="edit_welcome_message" name="welcome_message" rows="3" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="edit_contact_info" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Contact Info *</label>
+                        <textarea id="edit_contact_info" name="contact_info" rows="2" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end p-5 border-t dark:border-gray-700 gap-3">
+                    <button type="button" data-modal-hide="editLeagueModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle edit button clicks
+    document.querySelectorAll('.js-edit-league').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.getElementById('edit_setting_id').value = this.dataset.settingId;
+            document.getElementById('edit_league_key').value = this.dataset.leagueKey;
+            document.getElementById('edit_display_name').value = this.dataset.displayName;
+            document.getElementById('edit_welcome_message').value = this.dataset.welcomeMessage;
+            document.getElementById('edit_contact_info').value = this.dataset.contactInfo;
+            document.getElementById('edit_emoji').value = this.dataset.emoji || '';
+        });
+    });
+
+    // Live preview update
+    const previewContainer = document.getElementById('messagePreview');
+    const firstCard = document.querySelector('[data-setting-id]');
+    if (firstCard && previewContainer) {
+        updatePreview(firstCard);
+    }
+
+    document.querySelectorAll('[data-setting-id]').forEach(function(card) {
+        card.addEventListener('click', function(e) {
+            if (!e.target.closest('button') && !e.target.closest('form')) {
+                updatePreview(this);
+            }
+        });
+    });
+
+    function updatePreview(element) {
+        const displayName = element.dataset.displayName;
+        const welcomeMessage = element.dataset.welcomeMessage;
+        const contactInfo = element.dataset.contactInfo;
+
+        previewContainer.innerHTML = `Perfect! I've updated your profile to show you're interested in <strong>${displayName}</strong>.
+
+${welcomeMessage}
+
+${contactInfo}
+
+Your information has been passed along to our leadership team. Welcome to the community! &#127881;`;
+    }
+});
+</script>
+{% endblock %}

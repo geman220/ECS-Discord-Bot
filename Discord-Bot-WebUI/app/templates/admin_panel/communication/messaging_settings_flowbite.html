@@ -1,0 +1,487 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Messaging Settings{% endblock %}
+{% block panel_description %}Configure in-app messaging system settings{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Messaging Settings</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Page Header -->
+<div class="flex flex-wrap items-center justify-between mb-6">
+    <div>
+        <h4 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-settings mr-2"></i>In-App Messaging Settings
+        </h4>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Configure the direct messaging system for players, coaches, and admins</p>
+    </div>
+    <a href="{{ url_for('messages_pages.messages_inbox') }}" target="_blank" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400">
+        <i class="ti ti-external-link mr-1"></i>Open Messages
+    </a>
+</div>
+
+<!-- Statistics Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5 text-center">
+        <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ stats.total_messages }}</div>
+        <div class="text-sm text-blue-700 dark:text-blue-300">Total Messages</div>
+    </div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5 text-center">
+        <div class="text-3xl font-bold text-green-600 dark:text-green-400">{{ stats.messages_today }}</div>
+        <div class="text-sm text-green-700 dark:text-green-300">Messages Today</div>
+    </div>
+    <div class="bg-purple-50 dark:bg-purple-900/30 rounded-lg shadow p-5 text-center">
+        <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ stats.total_conversations }}</div>
+        <div class="text-sm text-purple-700 dark:text-purple-300">Conversations</div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5 text-center">
+        <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.unread_messages }}</div>
+        <div class="text-sm text-yellow-700 dark:text-yellow-300">Unread</div>
+    </div>
+</div>
+
+<div class="space-y-6">
+    <!-- Global Settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-adjustments mr-2"></i>Global Settings
+            </h5>
+        </div>
+        <div class="p-5">
+            <form action="{{ url_for('admin_panel.update_messaging_settings') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="space-y-4">
+                    <!-- Enable/Disable Toggle -->
+                    <div class="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
+                        <div>
+                            <p class="font-medium text-gray-900 dark:text-white">Enable Messaging System</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Allow users to send direct messages to each other</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="enabled" class="sr-only peer" {{ 'checked' if settings.enabled else '' }}>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+
+                    <!-- Typing Indicators -->
+                    <div class="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
+                        <div>
+                            <p class="font-medium text-gray-900 dark:text-white">Typing Indicators</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Show when someone is typing a message</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="typing_indicators" class="sr-only peer" {{ 'checked' if settings.typing_indicators else '' }}>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+
+                    <!-- Read Receipts -->
+                    <div class="flex items-center justify-between py-3 border-b border-gray-100 dark:border-gray-700">
+                        <div>
+                            <p class="font-medium text-gray-900 dark:text-white">Read Receipts</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Show when messages have been read</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="read_receipts" class="sr-only peer" {{ 'checked' if settings.read_receipts else '' }}>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <hr class="my-6 border-gray-200 dark:border-gray-700">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="max_message_length" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Message Length</label>
+                        <input type="number" id="max_message_length" name="max_message_length" value="{{ settings.max_message_length }}" min="100" max="10000" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum characters per message (100-10,000)</p>
+                    </div>
+                    <div>
+                        <label for="message_retention_days" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message Retention</label>
+                        <input type="number" id="message_retention_days" name="message_retention_days" value="{{ settings.message_retention_days }}" min="7" max="365" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Days to keep messages before cleanup (7-365)</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-6">
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                        <i class="ti ti-device-floppy mr-1"></i>Save Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Role Permissions -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-shield-check mr-2"></i>Role Messaging Permissions
+            </h5>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ roles|length }} roles configured</span>
+        </div>
+        <div class="p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                Configure which roles can send messages to which other roles. Click "Edit" to modify a role's permissions.
+            </p>
+
+            <form action="{{ url_for('admin_panel.bulk_update_messaging_permissions') }}" method="POST" id="permissionsForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    {% for sender_role in roles %}
+                    {% set allowed_roles = [] %}
+                    {% for recipient_role in roles %}
+                      {% set perm_key = sender_role.id|string + '_' + recipient_role.id|string %}
+                      {% if permissions.get(perm_key, False) %}
+                        {% set _ = allowed_roles.append(recipient_role) %}
+                      {% endif %}
+                    {% endfor %}
+
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4" data-role-id="{{ sender_role.id }}">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <i class="ti ti-shield text-blue-500 mr-2"></i>
+                                <span class="font-medium text-gray-900 dark:text-white">{{ sender_role.name }}</span>
+                            </div>
+                            <button type="button" class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400" data-action="edit-permissions" data-role-id="{{ sender_role.id }}" data-role-name="{{ sender_role.name }}">
+                                <i class="ti ti-edit mr-1"></i>Edit
+                            </button>
+                        </div>
+
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">Can message:</div>
+                        <div class="flex flex-wrap gap-1" id="recipients-{{ sender_role.id }}">
+                            {% if allowed_roles %}
+                                {% for recipient in allowed_roles %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                    {{ recipient.name }}
+                                </span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-gray-400 dark:text-gray-500 text-xs italic">No roles selected</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Hidden checkboxes for form submission -->
+                        <div class="hidden">
+                            {% for recipient_role in roles %}
+                            {% set perm_key = sender_role.id|string + '_' + recipient_role.id|string %}
+                            {% set is_allowed = permissions.get(perm_key, False) %}
+                            <input type="checkbox" name="perm_{{ sender_role.id }}_{{ recipient_role.id }}"
+                                   id="perm_{{ sender_role.id }}_{{ recipient_role.id }}"
+                                   {{ 'checked' if is_allowed else '' }}
+                                   data-recipient-name="{{ recipient_role.name }}">
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Quick Presets:</span>
+                        <button type="button" id="presetAllToAll" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300">
+                            <i class="ti ti-arrows-exchange mr-1"></i>Everyone → Everyone
+                        </button>
+                        <button type="button" id="presetAdminToAll" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300">
+                            <i class="ti ti-crown mr-1"></i>Admins → Everyone
+                        </button>
+                        <button type="button" id="presetClearAll" class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400">
+                            <i class="ti ti-x mr-1"></i>Clear All
+                        </button>
+                    </div>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                        <i class="ti ti-device-floppy mr-1"></i>Save All Permissions
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-bolt mr-2"></i>Quick Actions
+            </h5>
+        </div>
+        <div class="p-5 flex flex-wrap gap-3">
+            <a href="{{ url_for('messages_pages.messages_inbox') }}" target="_blank" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400">
+                <i class="ti ti-inbox mr-1"></i>View Messages Inbox
+            </a>
+            <button type="button" data-modal-target="messageStatsModal" data-modal-toggle="messageStatsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">
+                <i class="ti ti-chart-bar mr-1"></i>View Statistics
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Permissions Modal -->
+<div id="editPermissionsModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-edit mr-2"></i>Edit Permissions: <span id="modalRoleName">Role</span>
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="editPermissionsModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-5">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Select which roles <strong id="modalRoleNameText">this role</strong> can send messages to:</p>
+
+                <div id="permissionChecklist" class="space-y-2 max-h-64 overflow-y-auto"></div>
+
+                <div class="flex gap-2 mt-4">
+                    <button type="button" id="modalSelectAll" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300">
+                        <i class="ti ti-checkbox mr-1"></i>Select All
+                    </button>
+                    <button type="button" id="modalDeselectAll" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300">
+                        <i class="ti ti-square mr-1"></i>Deselect All
+                    </button>
+                </div>
+            </div>
+            <div class="flex items-center justify-end p-5 border-t dark:border-gray-700 gap-3">
+                <button type="button" data-modal-hide="editPermissionsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Cancel</button>
+                <button type="button" id="savePermissions" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <i class="ti ti-check mr-1"></i>Apply Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Modal -->
+<div id="messageStatsModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-chart-bar mr-2"></i>Messaging Statistics
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="messageStatsModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-5" id="statsContent">
+                <div class="text-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Loading statistics...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    let currentRoleId = null;
+
+    // Edit permissions modal handling
+    document.addEventListener('click', function(e) {
+        const editBtn = e.target.closest('[data-action="edit-permissions"]');
+        if (editBtn) {
+            currentRoleId = editBtn.dataset.roleId;
+            const roleName = editBtn.dataset.roleName;
+            openPermissionModal(currentRoleId, roleName);
+        }
+    });
+
+    function openPermissionModal(roleId, roleName) {
+        document.getElementById('modalRoleName').textContent = roleName;
+        document.getElementById('modalRoleNameText').textContent = roleName;
+
+        const card = document.querySelector(`[data-role-id="${roleId}"]`);
+        const inputs = card.querySelectorAll('input[type="checkbox"]');
+        const checklist = document.getElementById('permissionChecklist');
+
+        let html = '';
+        inputs.forEach(input => {
+            const recipientName = input.dataset.recipientName;
+            html += `
+                <label class="flex items-center p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                    <input type="checkbox" id="modal_${input.id}" ${input.checked ? 'checked' : ''} data-original-id="${input.id}" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                    <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">${recipientName}</span>
+                </label>
+            `;
+        });
+        checklist.innerHTML = html;
+    }
+
+    // Save permissions
+    document.getElementById('savePermissions')?.addEventListener('click', function() {
+        const card = document.querySelector(`[data-role-id="${currentRoleId}"]`);
+        const checklist = document.getElementById('permissionChecklist');
+        const modalInputs = checklist.querySelectorAll('input[type="checkbox"]');
+
+        modalInputs.forEach(modalInput => {
+            const originalId = modalInput.dataset.originalId;
+            const originalInput = document.getElementById(originalId);
+            if (originalInput) {
+                originalInput.checked = modalInput.checked;
+            }
+        });
+
+        updateCardDisplay(currentRoleId);
+    });
+
+    function updateCardDisplay(roleId) {
+        const card = document.querySelector(`[data-role-id="${roleId}"]`);
+        const inputs = card.querySelectorAll('input[type="checkbox"]');
+        const recipientsContainer = card.querySelector(`#recipients-${roleId}`);
+
+        let pills = [];
+        inputs.forEach(input => {
+            if (input.checked) {
+                pills.push(`<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">${input.dataset.recipientName}</span>`);
+            }
+        });
+
+        if (pills.length > 0) {
+            recipientsContainer.innerHTML = pills.join('');
+        } else {
+            recipientsContainer.innerHTML = '<span class="text-gray-400 dark:text-gray-500 text-xs italic">No roles selected</span>';
+        }
+    }
+
+    // Modal select/deselect all
+    document.getElementById('modalSelectAll')?.addEventListener('click', function() {
+        document.querySelectorAll('#permissionChecklist input[type="checkbox"]').forEach(cb => cb.checked = true);
+    });
+
+    document.getElementById('modalDeselectAll')?.addEventListener('click', function() {
+        document.querySelectorAll('#permissionChecklist input[type="checkbox"]').forEach(cb => cb.checked = false);
+    });
+
+    // Quick Presets
+    document.getElementById('presetAllToAll')?.addEventListener('click', function() {
+        document.querySelectorAll('[data-role-id] input[type="checkbox"]').forEach(cb => cb.checked = true);
+        updateAllCardDisplays();
+        showToast('All roles can now message all roles', 'success');
+    });
+
+    document.getElementById('presetAdminToAll')?.addEventListener('click', function() {
+        document.querySelectorAll('[data-role-id] input[type="checkbox"]').forEach(cb => cb.checked = false);
+        document.querySelectorAll('[data-role-id]').forEach(card => {
+            const roleName = card.querySelector('.font-medium').textContent.toLowerCase();
+            if (roleName.includes('admin') || roleName.includes('owner')) {
+                card.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+            }
+        });
+        updateAllCardDisplays();
+        showToast('Admin roles can now message all roles', 'success');
+    });
+
+    document.getElementById('presetClearAll')?.addEventListener('click', function() {
+        if (confirm('Clear all messaging permissions?')) {
+            document.querySelectorAll('[data-role-id] input[type="checkbox"]').forEach(cb => cb.checked = false);
+            updateAllCardDisplays();
+            showToast('All permissions cleared', 'warning');
+        }
+    });
+
+    function updateAllCardDisplays() {
+        document.querySelectorAll('[data-role-id]').forEach(card => {
+            updateCardDisplay(card.dataset.roleId);
+        });
+    }
+
+    function showToast(message, type = 'info') {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: type,
+                title: message,
+                showConfirmButton: false,
+                timer: 3000,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+    }
+
+    // Statistics Modal
+    const statsModal = document.getElementById('messageStatsModal');
+    if (statsModal) {
+        statsModal.addEventListener('show.bs.modal', loadMessageStats);
+        // Also handle Flowbite modal events
+        document.querySelector('[data-modal-toggle="messageStatsModal"]')?.addEventListener('click', loadMessageStats);
+    }
+
+    async function loadMessageStats() {
+        const container = document.getElementById('statsContent');
+        try {
+            const response = await fetch('{{ url_for("admin_panel.messaging_stats_api") }}');
+            const data = await response.json();
+
+            if (data.success) {
+                container.innerHTML = `
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">${data.total}</div>
+                            <div class="text-sm text-blue-700 dark:text-blue-300">Total Messages</div>
+                        </div>
+                        <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">${data.unread}</div>
+                            <div class="text-sm text-yellow-700 dark:text-yellow-300">Unread</div>
+                        </div>
+                    </div>
+
+                    <h6 class="font-medium text-gray-900 dark:text-white mb-3">Messages Last 7 Days</h6>
+                    <div class="overflow-x-auto mb-6">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 dark:bg-gray-700">
+                                    ${data.daily_counts.map(d => `<th class="px-2 py-1 text-center text-gray-600 dark:text-gray-300">${d.date}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    ${data.daily_counts.map(d => `<td class="px-2 py-1 text-center text-gray-900 dark:text-white">${d.count}</td>`).join('')}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h6 class="font-medium text-gray-900 dark:text-white mb-3">Top Users by Messages Sent</h6>
+                    <div class="space-y-2">
+                        ${data.top_users.map((u, i) => `
+                            <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                                <span class="text-gray-900 dark:text-white">${i + 1}. ${u.name}</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">${u.count} messages</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '<div class="p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg">Failed to load statistics</div>';
+            }
+        } catch (error) {
+            console.error('Error loading stats:', error);
+            container.innerHTML = '<div class="p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg">Failed to load statistics</div>';
+        }
+    }
+});
+</script>
+{% endblock %}
