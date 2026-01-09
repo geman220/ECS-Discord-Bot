@@ -1,0 +1,390 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-users text-ecs-green"></i>
+            User Management
+        </h1>
+        <p class="text-gray-500 dark:text-gray-400">Manage users, roles, player profiles, and access control</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+        <details open>
+            <summary class="p-4 cursor-pointer flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+                <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-filter text-ecs-green"></i>
+                    Filter Users
+                </h2>
+                <i class="ti ti-chevron-down"></i>
+            </summary>
+            <div class="p-4">
+                <form method="get" action="{{ url_for('user_management.manage_users') }}" id="filterForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div>
+                        {{ filter_form.search.label(class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1") }}
+                        {{ filter_form.search(class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green", placeholder="Search...") }}
+                    </div>
+                    <div>
+                        {{ filter_form.role.label(class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1") }}
+                        {{ filter_form.role(class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green") }}
+                    </div>
+                    <div>
+                        {{ filter_form.approved.label(class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1") }}
+                        {{ filter_form.approved(class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green") }}
+                    </div>
+                    <div>
+                        {{ filter_form.league.label(class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1") }}
+                        {{ filter_form.league(class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green") }}
+                    </div>
+                    <div>
+                        {{ filter_form.active.label(class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1") }}
+                        {{ filter_form.active(class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green") }}
+                    </div>
+                </form>
+            </div>
+        </details>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ url_for('user_management.create_user') }}"
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                <i class="ti ti-user-plus"></i>
+                Create User
+            </a>
+            <form method="POST" action="{{ url_for('user_management.update_players') }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors">
+                    <i class="ti ti-refresh"></i>
+                    Sync from WooCommerce
+                </button>
+            </form>
+            <button id="resetComplianceBtn" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500 text-white font-medium hover:bg-yellow-600 transition-colors">
+                <i class="ti ti-refresh-alert"></i>
+                Reset Compliance
+            </button>
+        </div>
+        <span class="text-gray-500 dark:text-gray-400">Total: {{ pagination.total }} users</span>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-list text-ecs-green"></i>
+                User List
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Roles</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Team</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody" class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for user in users %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-gray-900 dark:text-white">{{ user.actual_name }}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">@{{ user.username }}</div>
+                        </td>
+                        <td class="px-4 py-3 hidden md:table-cell">
+                            {% for role in user.roles %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green mr-1">{{ role }}</span>
+                            {% endfor %}
+                        </td>
+                        <td class="px-4 py-3 hidden lg:table-cell">
+                            <div class="text-gray-900 dark:text-white">{{ user.team if user.team != 'N/A' else 'No Team' }}</div>
+                            {% if user.secondary_team %}
+                            <div class="text-sm text-gray-500 dark:text-gray-400">+ {{ user.secondary_team }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if user.is_current_player %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300">Active</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300">Inactive</span>
+                            {% endif %}
+                            {% if user.is_approved %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 ml-1">Approved</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 ml-1">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <button class="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                                        data-action="edit-user" data-user-id="{{ user.id }}" title="Edit">
+                                    <i class="ti ti-edit"></i>
+                                </button>
+                                {% if not user.is_approved %}
+                                <button class="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
+                                        data-action="approve-user-status" data-user-id="{{ user.id }}" title="Approve">
+                                    <i class="ti ti-check"></i>
+                                </button>
+                                {% endif %}
+                                <button class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                                        data-action="delete-user" data-user-id="{{ user.id }}" data-username="{{ user.username }}" title="Delete">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if pagination.pages > 1 %}
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    Showing {{ ((pagination.page - 1) * pagination.per_page) + 1 }} to
+                    {{ pagination.page * pagination.per_page if pagination.page * pagination.per_page < pagination.total else pagination.total }}
+                    of {{ pagination.total }} entries
+                </div>
+                <nav class="flex gap-1">
+                    {% if pagination.has_prev %}
+                    <a href="{{ url_for('user_management.manage_users', page=pagination.prev_num, **pagination_args) }}"
+                       class="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <i class="ti ti-chevron-left"></i>
+                    </a>
+                    {% endif %}
+                    {% for p in range([1, pagination.page - 2]|max, [pagination.pages, pagination.page + 2]|min + 1) %}
+                    <a href="{{ url_for('user_management.manage_users', page=p, **pagination_args) }}"
+                       class="px-3 py-1.5 rounded-lg border {{ 'bg-ecs-green text-white border-ecs-green' if p == pagination.page else 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700' }}">
+                        {{ p }}
+                    </a>
+                    {% endfor %}
+                    {% if pagination.has_next %}
+                    <a href="{{ url_for('user_management.manage_users', page=pagination.next_num, **pagination_args) }}"
+                       class="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <i class="ti ti-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="editUserModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-black/50" onclick="document.getElementById('editUserModal').classList.add('hidden')"></div>
+        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <form method="POST" id="editUserForm">
+                {{ edit_form.csrf_token }}
+                {{ edit_form.user_id(id='editUserId') }}
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-edit text-ecs-green"></i>
+                        Edit User
+                    </h3>
+                    <button type="button" onclick="document.getElementById('editUserModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
+                        <i class="ti ti-x text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+                        <input type="text" id="editUsername" name="username" required
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                        <input type="email" id="editEmail" name="email" required
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Roles</label>
+                        <select multiple id="editRoles" name="roles" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green h-24">
+                            {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <hr class="border-gray-200 dark:border-gray-700">
+                    <h4 class="font-medium text-gray-900 dark:text-white">Player Profile</h4>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League</label>
+                        <select id="editLeague" name="league_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="0">Select League</option>
+                            {% for league in leagues %}{% if league.season.is_current %}
+                            <option value="{{ league.id }}">{{ league.name }}</option>
+                            {% endif %}{% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team</label>
+                        <select id="editTeam" name="team_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="0">Select Team</option>
+                            {% for league in leagues %}{% if league.season.is_current %}{% for team in league.teams %}
+                            <option value="{{ team.id }}" data-league="{{ league.id }}">{{ team.name }}</option>
+                            {% endfor %}{% endif %}{% endfor %}
+                        </select>
+                    </div>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="editIsCurrentPlayer" name="is_current_player"
+                               class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                        <span class="text-gray-700 dark:text-gray-300">Active Player</span>
+                    </label>
+                </div>
+                <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('editUserModal').classList.add('hidden')"
+                            class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90">
+                        <i class="ti ti-device-floppy mr-1"></i>Update
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+const isDark = document.documentElement.classList.contains('dark');
+const editUserUrlTemplate = "{{ url_for('user_management.edit_user', user_id=0) }}";
+const getUserDataUrl = "{{ url_for('user_management.get_user_data') }}";
+const approveUserUrlTemplate = "{{ url_for('user_management.approve_user', user_id=0) }}";
+const deleteUserUrlTemplate = "{{ url_for('user_management.delete_user', user_id=0) }}";
+const csrfToken = "{{ csrf_token() }}";
+
+// Real-time filtering
+const filterInputs = document.querySelectorAll('#filterForm input, #filterForm select');
+filterInputs.forEach(input => {
+    input.addEventListener('change', () => document.getElementById('filterForm').submit());
+    if (input.type === 'text') {
+        let timeout;
+        input.addEventListener('input', () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => document.getElementById('filterForm').submit(), 500);
+        });
+    }
+});
+
+// Event delegation for action buttons
+document.addEventListener('click', function(e) {
+    const editBtn = e.target.closest('[data-action="edit-user"]');
+    const approveBtn = e.target.closest('[data-action="approve-user-status"]');
+    const deleteBtn = e.target.closest('[data-action="delete-user"]');
+
+    if (editBtn) {
+        const userId = editBtn.dataset.userId;
+        fetch(`${getUserDataUrl}?user_id=${userId}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) return alert(data.error);
+                document.getElementById('editUserId').value = data.id;
+                document.getElementById('editUsername').value = data.username;
+                document.getElementById('editEmail').value = data.email;
+                document.getElementById('editLeague').value = data.league_id || '0';
+                document.getElementById('editTeam').value = data.team_id || '0';
+                document.getElementById('editIsCurrentPlayer').checked = data.is_current_player;
+                Array.from(document.getElementById('editRoles').options).forEach(opt => {
+                    opt.selected = data.roles?.includes(parseInt(opt.value));
+                });
+                document.getElementById('editUserForm').action = editUserUrlTemplate.replace('/0', `/${userId}`);
+                document.getElementById('editUserModal').classList.remove('hidden');
+            });
+    }
+
+    if (approveBtn) {
+        const userId = approveBtn.dataset.userId;
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Approve User?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = approveUserUrlTemplate.replace('/0', `/${userId}`);
+                    form.innerHTML = `<input type="hidden" name="csrf_token" value="${csrfToken}">`;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+    }
+
+    if (deleteBtn) {
+        const userId = deleteBtn.dataset.userId;
+        const username = deleteBtn.dataset.username;
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Delete User?',
+                html: `<p>Are you sure you want to permanently delete <strong>${username}</strong>?</p><p class="text-red-500">This cannot be undone.</p>`,
+                icon: 'error',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                confirmButtonText: 'Delete',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    fetch(deleteUserUrlTemplate.replace('/0', `/${userId}`), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    }).then(r => r.json()).then(data => {
+                        if (data.success) location.reload();
+                        else alert(data.message);
+                    });
+                }
+            });
+        }
+    }
+});
+
+// Reset compliance button
+document.getElementById('resetComplianceBtn')?.addEventListener('click', function() {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'Reset Profile Compliance?',
+            text: 'This will mark ALL players as non-compliant for profile updates.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#eab308',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then(result => {
+            if (result.isConfirmed) {
+                fetch("{{ url_for('user_management.reset_profile_compliance') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                }).then(r => r.json()).then(data => {
+                    Swal.fire({
+                        icon: data.success ? 'success' : 'error',
+                        title: data.success ? 'Done!' : 'Error',
+                        text: data.message,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                });
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
