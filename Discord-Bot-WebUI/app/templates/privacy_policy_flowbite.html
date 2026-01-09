@@ -1,0 +1,246 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Privacy Policy - ECS Soccer League{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen py-8 px-4 bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}"
+                 alt="ECS Logo" class="w-16 h-16 mx-auto mb-4">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">ECS Soccer League</h1>
+            <p class="text-gray-500 dark:text-gray-400">ChatGPT Assistant Privacy Policy</p>
+        </div>
+
+        <!-- Privacy Policy Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <!-- Header -->
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green to-ecs-green/80">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="ti ti-shield-check"></i>
+                    Privacy Policy
+                </h2>
+                <p class="text-white/80 text-sm mt-1">
+                    Effective Date: June 4, 2025 | Last Updated: June 4, 2025
+                </p>
+            </div>
+
+            <div class="p-6 space-y-8">
+                <!-- Overview Section -->
+                <section>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+                        <i class="ti ti-info-circle text-ecs-green"></i>
+                        Overview
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-300">
+                        This Privacy Policy explains how the ECS Soccer League ChatGPT Assistant ("the Assistant")
+                        collects, uses, and protects information when you interact with our custom GPT integration.
+                    </p>
+                </section>
+
+                <!-- Information We Access -->
+                <section>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+                        <i class="ti ti-database text-ecs-green"></i>
+                        Information We Access
+                    </h3>
+
+                    <h4 class="font-medium text-gray-900 dark:text-white mb-2">From Our ECS Database</h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-2">The Assistant has read-only access to:</p>
+                    <ul class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-1 mb-4 ml-4">
+                        <li><strong>Player Information:</strong> Names, positions, team affiliations, statistics, and public profile data</li>
+                        <li><strong>Team Data:</strong> Team names, rosters, standings, and match information</li>
+                        <li><strong>Match Records:</strong> Scores, dates, locations, and game events</li>
+                        <li><strong>League Information:</strong> Standings, schedules, and seasonal data</li>
+                    </ul>
+
+                    <h4 class="font-medium text-gray-900 dark:text-white mb-2">From Your Interactions</h4>
+                    <p class="text-gray-600 dark:text-gray-300 mb-2">When you use the Assistant, we may collect:</p>
+                    <ul class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-1 ml-4">
+                        <li><strong>Query Content:</strong> The questions and requests you ask</li>
+                        <li><strong>Usage Patterns:</strong> How you interact with the Assistant</li>
+                        <li><strong>Session Information:</strong> Technical data about your interactions</li>
+                    </ul>
+                </section>
+
+                <!-- How We Use Information -->
+                <section>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+                        <i class="ti ti-settings text-ecs-green"></i>
+                        How We Use Information
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-2">We use the information to:</p>
+                    <ul class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-1 ml-4">
+                        <li><strong>Provide Responses:</strong> Answer your questions about league data</li>
+                        <li><strong>Improve Service:</strong> Enhance the Assistant's performance and accuracy</li>
+                        <li><strong>Maintain Security:</strong> Monitor for misuse and ensure system integrity</li>
+                    </ul>
+                </section>
+
+                <!-- Information Sharing -->
+                <section>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+                        <i class="ti ti-share text-ecs-green"></i>
+                        Information We Share
+                    </h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="p-4 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-200 dark:border-red-800">
+                            <h4 class="font-semibold text-red-800 dark:text-red-200 flex items-center gap-2 mb-2">
+                                <i class="ti ti-x"></i>
+                                We DO NOT Share:
+                            </h4>
+                            <ul class="text-sm text-red-700 dark:text-red-300 space-y-1">
+                                <li>Personal contact information</li>
+                                <li>Sensitive data or private communications</li>
+                                <li>Your specific queries with third parties</li>
+                            </ul>
+                        </div>
+                        <div class="p-4 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800">
+                            <h4 class="font-semibold text-green-800 dark:text-green-200 flex items-center gap-2 mb-2">
+                                <i class="ti ti-check"></i>
+                                We DO Share:
+                            </h4>
+                            <ul class="text-sm text-green-700 dark:text-green-300 space-y-1">
+                                <li>Public league data only</li>
+                                <li>Aggregated, non-identifying statistics</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Data Security -->
+                <section>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+                        <i class="ti ti-shield-lock text-ecs-green"></i>
+                        Data Security
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-2">We implement security measures including:</p>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <ul class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-1">
+                            <li><strong>API Key Authentication:</strong> Secure access controls</li>
+                            <li><strong>Read-Only Access:</strong> Cannot modify or delete data</li>
+                        </ul>
+                        <ul class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-1">
+                            <li><strong>Encrypted Communications:</strong> All data transmission is encrypted</li>
+                            <li><strong>Limited Scope:</strong> Access restricted to public information</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Your Rights -->
+                <section>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+                        <i class="ti ti-user-check text-ecs-green"></i>
+                        Your Privacy Rights
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-2">You have the right to:</p>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <ul class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-1">
+                            <li><strong>Access:</strong> Request information about accessible data</li>
+                            <li><strong>Correction:</strong> Request updates to inaccurate information</li>
+                        </ul>
+                        <ul class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-1">
+                            <li><strong>Deletion:</strong> Request removal of your data</li>
+                            <li><strong>Restriction:</strong> Limit information processing</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- OpenAI Integration -->
+                <section>
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <h4 class="font-semibold text-blue-800 dark:text-blue-200 flex items-center gap-2 mb-2">
+                            <i class="ti ti-external-link"></i>
+                            OpenAI Integration
+                        </h4>
+                        <p class="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                            This Assistant operates through OpenAI's ChatGPT platform. Please also review:
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="https://openai.com/privacy/" target="_blank"
+                               class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors">
+                                <i class="ti ti-external-link"></i>
+                                OpenAI Privacy Policy
+                            </a>
+                            <a href="https://openai.com/terms/" target="_blank"
+                               class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors">
+                                <i class="ti ti-external-link"></i>
+                                OpenAI Terms of Service
+                            </a>
+                        </div>
+                        <p class="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                            Your interactions are subject to both this policy and OpenAI's policies.
+                        </p>
+                    </div>
+                </section>
+
+                <!-- Compliance -->
+                <section>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+                        <i class="ti ti-certificate text-ecs-green"></i>
+                        Compliance
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-3">This privacy policy complies with:</p>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                            <i class="ti ti-world text-2xl text-ecs-green"></i>
+                            <p class="font-medium text-gray-900 dark:text-white mt-1">GDPR</p>
+                        </div>
+                        <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                            <i class="ti ti-map-pin text-2xl text-ecs-green"></i>
+                            <p class="font-medium text-gray-900 dark:text-white mt-1">CCPA</p>
+                        </div>
+                        <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                            <i class="ti ti-robot text-2xl text-ecs-green"></i>
+                            <p class="font-medium text-gray-900 dark:text-white mt-1">OpenAI</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Contact -->
+                <section>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+                        <i class="ti ti-mail text-ecs-green"></i>
+                        Contact Information
+                    </h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-3">For privacy-related questions or requests:</p>
+                    <a href="https://portal.ecsfc.com" target="_blank"
+                       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                        <i class="ti ti-world"></i>
+                        Visit Our Portal
+                    </a>
+                </section>
+
+                <!-- Important Note -->
+                <div class="p-4 bg-amber-50 dark:bg-amber-900/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <h4 class="font-semibold text-amber-800 dark:text-amber-200 flex items-center gap-2 mb-2">
+                        <i class="ti ti-alert-triangle"></i>
+                        Important Note
+                    </h4>
+                    <p class="text-sm text-amber-700 dark:text-amber-300">
+                        This Assistant provides information about our soccer league based on publicly available data.
+                        For official league business or sensitive matters, please contact us directly through our official channels.
+                    </p>
+                </div>
+
+                <!-- Footer -->
+                <div class="text-center pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 italic">
+                        This policy was last reviewed on June 4, 2025 and applies specifically to the ECS Soccer League ChatGPT Assistant integration.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back Link -->
+        <div class="text-center mt-6">
+            <a href="{{ url_for('auth.login') }}"
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <i class="ti ti-arrow-left"></i>
+                Back to Portal Login
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
