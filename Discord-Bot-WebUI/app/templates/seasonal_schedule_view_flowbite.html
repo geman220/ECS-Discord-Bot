@@ -1,0 +1,874 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}{{ season.name }} Schedule{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6 bg-gradient-to-r from-ecs-green to-ecs-green/80 rounded-xl p-6 text-white">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold">{{ season.name }} Schedule</h1>
+                <p class="text-white/80">Complete season schedule for all leagues and divisions</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ url_for('auto_schedule.schedule_manager') }}"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors">
+                    <i class="ti ti-arrow-left"></i> Back to Season Builder
+                </a>
+                {% if current_user.has_role('Pub League Admin') or current_user.has_role('Global Admin') %}
+                <div class="relative">
+                    <button type="button" id="adminToolsBtn"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-white text-ecs-green rounded-lg hover:bg-gray-100 transition-colors">
+                        <i class="ti ti-settings"></i> Admin Tools
+                        <i class="ti ti-chevron-down text-sm"></i>
+                    </button>
+                    <div id="adminToolsMenu" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                        <div class="py-1">
+                            <button type="button" class="js-toggle-edit w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                                <i class="ti ti-edit"></i> Toggle Edit Mode
+                            </button>
+                            <hr class="my-1 border-gray-200 dark:border-gray-700">
+                            {% for league in leagues %}
+                            <a href="{{ url_for('playoff.manage_playoffs', league_id=league.id) }}"
+                               class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                                <i class="ti ti-trophy"></i> Manage {{ league.name }} Playoffs
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <h2 class="font-semibold text-gray-900 dark:text-white mb-4">Filter Schedule</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label for="leagueFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League/Division</label>
+                <select id="leagueFilter"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    <option value="">All Leagues</option>
+                    {% for league in leagues %}
+                    <option value="{{ league.id }}">{{ league.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="teamFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team</label>
+                <select id="teamFilter"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    <option value="">All Teams</option>
+                    {% for league in leagues %}
+                    <optgroup label="{{ league.name }}">
+                        {% for team in league.teams %}
+                        <option value="{{ team.id }}" data-league="{{ league.id }}">{{ team.name }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="weekTypeFilter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Week Type</label>
+                <select id="weekTypeFilter"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    <option value="">All Weeks</option>
+                    <option value="REGULAR">Regular Season</option>
+                    <option value="TST">TST Week</option>
+                    <option value="FUN">Fun Week</option>
+                    <option value="BYE">Bye Weeks</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="button" id="applyFiltersBtn"
+                        class="w-full px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors flex items-center justify-center gap-2">
+                    <i class="ti ti-filter"></i> Apply Filters
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Display -->
+    <div id="scheduleContainer" class="space-y-4">
+        {% for week_num, week_data in schedule_by_week.items() %}
+        <div class="week-container bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+             data-week="{{ week_num }}" data-week-type="{{ week_data.week_type }}">
+            <!-- Week Header -->
+            <div class="week-header bg-gray-50 dark:bg-gray-700/50 p-4 flex flex-wrap justify-between items-center gap-3 cursor-pointer"
+                 data-week-toggle="{{ week_num }}">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-chevron-down week-chevron text-gray-500 transition-transform"></i>
+                    <div>
+                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <span class="week-title">Week {{ week_num }} - {{ week_data.date.strftime('%B %d, %Y') }}</span>
+                            {% if week_data.week_type == 'TST' %}
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">TST Week</span>
+                            {% elif week_data.week_type == 'FUN' %}
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300">Fun Week</span>
+                            {% elif week_data.week_type == 'BYE' %}
+                            <span class="px-2 py-0.5 text-xs rounded-full bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300">Bye Week</span>
+                            {% endif %}
+                        </h3>
+                        <!-- Inline edit form (hidden by default) -->
+                        <div class="week-edit-form hidden flex items-center gap-2 mt-2">
+                            <input type="date" class="week-edit-date text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                                   value="{{ week_data.date.strftime('%Y-%m-%d') }}">
+                            <input type="time" class="week-edit-time text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                            <button type="button" class="js-save-week p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/50 rounded" data-week="{{ week_num }}">
+                                <i class="ti ti-check"></i>
+                            </button>
+                            <button type="button" class="js-cancel-week-edit p-1 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">
+                                <i class="ti ti-x"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2" onclick="event.stopPropagation();">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ week_data.matches|length }} matches</span>
+                    <button type="button" class="p-1.5 text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 rounded week-toggle-btn" data-week="{{ week_num }}">
+                        <i class="ti ti-chevron-down"></i>
+                    </button>
+                    <button type="button" class="edit-control hidden p-1.5 text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 rounded js-edit-week" data-week="{{ week_num }}" title="Edit Week">
+                        <i class="ti ti-edit"></i>
+                    </button>
+                    <button type="button" class="edit-control hidden p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/50 rounded js-add-match-btn" data-week="{{ week_num }}" title="Add Match">
+                        <i class="ti ti-plus"></i>
+                    </button>
+                    <button type="button" class="edit-control hidden p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded js-delete-week" data-week="{{ week_num }}" title="Delete Week">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Week Content -->
+            <div class="week-content" id="week-content-{{ week_num }}">
+                {% if week_data.week_type == 'BYE' %}
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/30 flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                    <i class="ti ti-moon"></i>
+                    <span><strong>Bye Week</strong> - No matches scheduled. Teams have the week off.</span>
+                </div>
+                {% elif week_data.week_type == 'FUN' %}
+                <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
+                    <i class="ti ti-confetti"></i>
+                    <span><strong>Fun Week</strong> - Special activities and fun matches for all teams.</span>
+                </div>
+                {% elif week_data.week_type == 'TST' %}
+                <div class="p-4 bg-blue-50 dark:bg-blue-900/20 flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                    <i class="ti ti-trophy"></i>
+                    <span><strong>TST Week</strong> - The Soccer Tournament competition week.</span>
+                </div>
+                {% endif %}
+
+                {% if week_data.matches %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-4 py-3">Time</th>
+                                <th scope="col" class="px-4 py-3">Field</th>
+                                <th scope="col" class="px-4 py-3">League</th>
+                                <th scope="col" class="px-4 py-3">Home Team</th>
+                                <th scope="col" class="px-4 py-3">Away Team</th>
+                                <th scope="col" class="px-4 py-3">Status</th>
+                                <th scope="col" class="px-4 py-3">Actions</th>
+                                <th scope="col" class="px-4 py-3 edit-col hidden">Edit</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for match in week_data.matches|sort(attribute='time') %}
+                            <tr class="match-row bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                data-league="{{ match.home_team.league_id }}"
+                                data-home-team="{{ match.home_team_id }}"
+                                data-away-team="{{ match.away_team_id }}"
+                                data-match-id="{{ match.id }}"
+                                data-week="{{ week_num }}">
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                                        <i class="ti ti-clock"></i>
+                                        <span class="time-display">{{ match.time.strftime('%I:%M %p') }}</span>
+                                        <input type="time" class="time-edit hidden text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                                               value="{{ match.time.strftime('%H:%M') }}">
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="field-display px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                                        {{ match.location }}
+                                    </span>
+                                    <select class="field-edit hidden text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                        <option value="North" {% if match.location == 'North' %}selected{% endif %}>North</option>
+                                        <option value="South" {% if match.location == 'South' %}selected{% endif %}>South</option>
+                                        <option value="East" {% if match.location == 'East' %}selected{% endif %}>East</option>
+                                        <option value="West" {% if match.location == 'West' %}selected{% endif %}>West</option>
+                                    </select>
+                                </td>
+                                <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
+                                    {{ match.home_team.league.name }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    {% if match.week_type == 'PLAYOFF' and match.home_team_id != match.away_team_id %}
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 mr-1">Playoff</span>
+                                    <a href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}" class="text-ecs-green hover:underline">
+                                        {{ match.home_team.name }}
+                                    </a>
+                                    {% elif match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                                        {% if match.week_type == 'FUN' %}Fun Week{% elif match.week_type == 'TST' %}TST Week{% elif match.week_type == 'BYE' %}BYE Week{% elif match.week_type == 'BONUS' %}Bonus Week{% elif match.week_type == 'PLAYOFF' %}Playoff Week{% endif %}
+                                    </span>
+                                    {% elif match.week_type == 'PRACTICE' or (match.is_practice_game if match.is_practice_game is defined else False) %}
+                                    <span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300">PRACTICE</span>
+                                    {% else %}
+                                    <span class="team-display">
+                                        <a href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}" class="text-ecs-green hover:underline">
+                                            {{ match.home_team.name }}
+                                        </a>
+                                    </span>
+                                    <select class="team-edit hidden text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700" data-team-type="home">
+                                        {% for league in leagues %}
+                                        {% if league.id == match.home_team.league_id %}
+                                        {% for team in league.teams %}
+                                        <option value="{{ team.id }}" {% if team.id == match.home_team_id %}selected{% endif %}>{{ team.name }}</option>
+                                        {% endfor %}
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3">
+                                    {% if match.week_type == 'PLAYOFF' and match.home_team_id != match.away_team_id %}
+                                    <a href="{{ url_for('teams.team_details', team_id=match.away_team_id) }}" class="text-ecs-green hover:underline">
+                                        {{ match.away_team.name }}
+                                    </a>
+                                    {% elif match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                    <span class="text-gray-400">
+                                        {% if match.week_type == 'FUN' %}Special activities{% elif match.week_type == 'TST' %}Tournament events{% elif match.week_type == 'BYE' %}No games{% elif match.week_type == 'BONUS' %}Additional activities{% elif match.week_type == 'PLAYOFF' %}TBD{% endif %}
+                                    </span>
+                                    {% elif match.week_type == 'PRACTICE' or (match.is_practice_game if match.is_practice_game is defined else False) %}
+                                    <span class="text-gray-400">All teams practice together</span>
+                                    {% else %}
+                                    <span class="team-display">
+                                        <a href="{{ url_for('teams.team_details', team_id=match.away_team_id) }}" class="text-ecs-green hover:underline">
+                                            {{ match.away_team.name }}
+                                        </a>
+                                    </span>
+                                    <select class="team-edit hidden text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700" data-team-type="away">
+                                        {% for league in leagues %}
+                                        {% if league.id == match.home_team.league_id %}
+                                        {% for team in league.teams %}
+                                        <option value="{{ team.id }}" {% if team.id == match.away_team_id %}selected{% endif %}>{{ team.name }}</option>
+                                        {% endfor %}
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3">
+                                    {% if match.reported %}
+                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">Reported</span>
+                                    {% else %}
+                                    <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Scheduled</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
+                                       class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded inline-flex"
+                                       title="View Match">
+                                        <i class="ti ti-eye"></i>
+                                    </a>
+                                </td>
+                                <td class="px-4 py-3 edit-col hidden">
+                                    <div class="flex items-center gap-1">
+                                        <button type="button" class="js-edit-match p-1.5 text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 rounded" data-match-id="{{ match.id }}" title="Edit">
+                                            <i class="ti ti-edit"></i>
+                                        </button>
+                                        <button type="button" class="js-delete-match p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded" data-match-id="{{ match.id }}" title="Delete">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                <i class="ti ti-calendar-off text-2xl text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Schedule Found</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-4">No matches have been scheduled for this season yet.</p>
+            <a href="{{ url_for('auto_schedule.schedule_manager') }}"
+               class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
+                <i class="ti ti-plus"></i> Create Schedule
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Export Options -->
+    {% if schedule_by_week %}
+    <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h2 class="font-semibold text-gray-900 dark:text-white mb-4">Export Options</h2>
+        <div class="flex flex-wrap gap-3">
+            <button type="button" id="exportCsvBtn"
+                    class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <i class="ti ti-file-spreadsheet"></i> Export to CSV
+            </button>
+            <button type="button" id="printScheduleBtn"
+                    class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <i class="ti ti-printer"></i> Print Schedule
+            </button>
+            <button type="button" id="shareScheduleBtn"
+                    class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <i class="ti ti-share"></i> Share Link
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Edit Match Modal -->
+<div id="editMatchModal" class="fixed inset-0 z-50 hidden">
+    <div class="fixed inset-0 bg-black/50" id="editMatchModalBackdrop"></div>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg relative">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Match</h3>
+                <button type="button" class="js-close-edit-modal text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form id="editMatchForm">
+                <input type="hidden" id="editMatchId">
+                <div class="p-4 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="editMatchTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+                            <input type="time" id="editMatchTime" required
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                        <div>
+                            <label for="editMatchField" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Field</label>
+                            <select id="editMatchField" required
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="North">North</option>
+                                <option value="South">South</option>
+                                <option value="East">East</option>
+                                <option value="West">West</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="editMatchHomeTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Home Team</label>
+                            <select id="editMatchHomeTeam" required
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </select>
+                        </div>
+                        <div>
+                            <label for="editMatchAwayTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Away Team</label>
+                            <select id="editMatchAwayTeam" required
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" class="js-close-edit-modal px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Match Modal -->
+<div id="addMatchModal" class="fixed inset-0 z-50 hidden">
+    <div class="fixed inset-0 bg-black/50" id="addMatchModalBackdrop"></div>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg relative">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add New Match</h3>
+                <button type="button" class="js-close-add-modal text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form id="addMatchForm">
+                <input type="hidden" id="addMatchWeek">
+                <div class="p-4 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="addMatchDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                            <input type="date" id="addMatchDate" required
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                        <div>
+                            <label for="addMatchTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+                            <input type="time" id="addMatchTime" value="19:00" required
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="addMatchField" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Field</label>
+                            <select id="addMatchField" required
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="North">North</option>
+                                <option value="South">South</option>
+                                <option value="East">East</option>
+                                <option value="West">West</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="addMatchLeague" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League</label>
+                            <select id="addMatchLeague" required
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                {% for league in leagues %}
+                                <option value="{{ league.id }}">{{ league.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="addMatchHomeTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Home Team</label>
+                            <select id="addMatchHomeTeam" required
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </select>
+                        </div>
+                        <div>
+                            <label for="addMatchAwayTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Away Team</label>
+                            <select id="addMatchAwayTeam" required
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" class="js-close-add-modal px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
+                        Add Match
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+// League teams data for populating dropdowns
+window.leagueTeams = {};
+{% for league in leagues %}
+window.leagueTeams[{{ league.id }}] = [
+    {% for team in league.teams %}
+    {id: {{ team.id }}, name: "{{ team.name|e }}"}{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+{% endfor %}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = () => document.documentElement.classList.contains('dark');
+    let editMode = false;
+
+    // Admin tools dropdown
+    const adminToolsBtn = document.getElementById('adminToolsBtn');
+    const adminToolsMenu = document.getElementById('adminToolsMenu');
+
+    if (adminToolsBtn && adminToolsMenu) {
+        adminToolsBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            adminToolsMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', function() {
+            adminToolsMenu.classList.add('hidden');
+        });
+    }
+
+    // Toggle edit mode
+    document.querySelectorAll('.js-toggle-edit').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            editMode = !editMode;
+            document.querySelectorAll('.edit-control').forEach(el => el.classList.toggle('hidden', !editMode));
+            document.querySelectorAll('.edit-col').forEach(el => el.classList.toggle('hidden', !editMode));
+            adminToolsMenu?.classList.add('hidden');
+        });
+    });
+
+    // Week toggle (expand/collapse)
+    document.querySelectorAll('.week-header').forEach(header => {
+        header.addEventListener('click', function() {
+            const weekNum = this.dataset.weekToggle;
+            const content = document.getElementById('week-content-' + weekNum);
+            const chevron = this.querySelector('.week-chevron');
+
+            if (content) {
+                content.classList.toggle('hidden');
+                chevron?.classList.toggle('rotate-180');
+            }
+        });
+    });
+
+    // Filter functionality
+    document.getElementById('applyFiltersBtn')?.addEventListener('click', function() {
+        const leagueFilter = document.getElementById('leagueFilter').value;
+        const teamFilter = document.getElementById('teamFilter').value;
+        const weekTypeFilter = document.getElementById('weekTypeFilter').value;
+
+        document.querySelectorAll('.week-container').forEach(week => {
+            let showWeek = true;
+
+            // Week type filter
+            if (weekTypeFilter && week.dataset.weekType !== weekTypeFilter) {
+                showWeek = false;
+            }
+
+            if (showWeek) {
+                week.classList.remove('hidden');
+
+                // Filter matches within week
+                const matchRows = week.querySelectorAll('.match-row');
+                let visibleMatches = 0;
+
+                matchRows.forEach(row => {
+                    let showMatch = true;
+
+                    if (leagueFilter && row.dataset.league !== leagueFilter) {
+                        showMatch = false;
+                    }
+
+                    if (teamFilter) {
+                        const homeTeam = row.dataset.homeTeam;
+                        const awayTeam = row.dataset.awayTeam;
+                        if (homeTeam !== teamFilter && awayTeam !== teamFilter) {
+                            showMatch = false;
+                        }
+                    }
+
+                    row.classList.toggle('hidden', !showMatch);
+                    if (showMatch) visibleMatches++;
+                });
+
+                if (visibleMatches === 0 && (leagueFilter || teamFilter)) {
+                    week.classList.add('hidden');
+                }
+            } else {
+                week.classList.add('hidden');
+            }
+        });
+    });
+
+    // Edit Match Modal
+    const editMatchModal = document.getElementById('editMatchModal');
+
+    function openEditMatchModal(matchId, time, field, homeTeamId, awayTeamId, leagueId) {
+        document.getElementById('editMatchId').value = matchId;
+        document.getElementById('editMatchTime').value = time;
+        document.getElementById('editMatchField').value = field;
+
+        // Populate team dropdowns
+        const teams = window.leagueTeams[leagueId] || [];
+        const homeSelect = document.getElementById('editMatchHomeTeam');
+        const awaySelect = document.getElementById('editMatchAwayTeam');
+
+        homeSelect.innerHTML = teams.map(t => `<option value="${t.id}" ${t.id == homeTeamId ? 'selected' : ''}>${t.name}</option>`).join('');
+        awaySelect.innerHTML = teams.map(t => `<option value="${t.id}" ${t.id == awayTeamId ? 'selected' : ''}>${t.name}</option>`).join('');
+
+        editMatchModal.classList.remove('hidden');
+    }
+
+    function closeEditMatchModal() {
+        editMatchModal.classList.add('hidden');
+    }
+
+    document.querySelectorAll('.js-close-edit-modal').forEach(btn => {
+        btn.addEventListener('click', closeEditMatchModal);
+    });
+    document.getElementById('editMatchModalBackdrop')?.addEventListener('click', closeEditMatchModal);
+
+    document.querySelectorAll('.js-edit-match').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const row = this.closest('.match-row');
+            const matchId = this.dataset.matchId;
+            const time = row.querySelector('.time-edit')?.value || '';
+            const field = row.querySelector('.field-edit')?.value || row.querySelector('.field-display')?.textContent.trim() || 'North';
+            const homeTeamId = row.dataset.homeTeam;
+            const awayTeamId = row.dataset.awayTeam;
+            const leagueId = row.dataset.league;
+
+            openEditMatchModal(matchId, time, field, homeTeamId, awayTeamId, leagueId);
+        });
+    });
+
+    document.getElementById('editMatchForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const matchId = document.getElementById('editMatchId').value;
+
+        try {
+            const response = await fetch(`/api/match/${matchId}/update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    time: document.getElementById('editMatchTime').value,
+                    field: document.getElementById('editMatchField').value,
+                    home_team_id: document.getElementById('editMatchHomeTeam').value,
+                    away_team_id: document.getElementById('editMatchAwayTeam').value
+                })
+            });
+
+            if (response.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Match Updated',
+                    background: isDark() ? '#1f2937' : '#ffffff',
+                    color: isDark() ? '#f3f4f6' : '#111827',
+                    confirmButtonColor: '#1a472a'
+                }).then(() => window.location.reload());
+            } else {
+                throw new Error('Failed to update match');
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message,
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f3f4f6' : '#111827',
+                confirmButtonColor: '#1a472a'
+            });
+        }
+    });
+
+    // Add Match Modal
+    const addMatchModal = document.getElementById('addMatchModal');
+
+    function openAddMatchModal(weekNum) {
+        document.getElementById('addMatchWeek').value = weekNum;
+        addMatchModal.classList.remove('hidden');
+
+        // Populate teams based on first league
+        const firstLeagueId = document.getElementById('addMatchLeague').value;
+        populateTeamDropdowns(firstLeagueId);
+    }
+
+    function closeAddMatchModal() {
+        addMatchModal.classList.add('hidden');
+    }
+
+    function populateTeamDropdowns(leagueId) {
+        const teams = window.leagueTeams[leagueId] || [];
+        const homeSelect = document.getElementById('addMatchHomeTeam');
+        const awaySelect = document.getElementById('addMatchAwayTeam');
+
+        homeSelect.innerHTML = teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        awaySelect.innerHTML = teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    }
+
+    document.querySelectorAll('.js-close-add-modal').forEach(btn => {
+        btn.addEventListener('click', closeAddMatchModal);
+    });
+    document.getElementById('addMatchModalBackdrop')?.addEventListener('click', closeAddMatchModal);
+
+    document.querySelectorAll('.js-add-match-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openAddMatchModal(this.dataset.week);
+        });
+    });
+
+    document.getElementById('addMatchLeague')?.addEventListener('change', function() {
+        populateTeamDropdowns(this.value);
+    });
+
+    document.getElementById('addMatchForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        try {
+            const response = await fetch('/api/match/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    week: document.getElementById('addMatchWeek').value,
+                    date: document.getElementById('addMatchDate').value,
+                    time: document.getElementById('addMatchTime').value,
+                    field: document.getElementById('addMatchField').value,
+                    league_id: document.getElementById('addMatchLeague').value,
+                    home_team_id: document.getElementById('addMatchHomeTeam').value,
+                    away_team_id: document.getElementById('addMatchAwayTeam').value
+                })
+            });
+
+            if (response.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Match Added',
+                    background: isDark() ? '#1f2937' : '#ffffff',
+                    color: isDark() ? '#f3f4f6' : '#111827',
+                    confirmButtonColor: '#1a472a'
+                }).then(() => window.location.reload());
+            } else {
+                throw new Error('Failed to add match');
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message,
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f3f4f6' : '#111827',
+                confirmButtonColor: '#1a472a'
+            });
+        }
+    });
+
+    // Delete Match
+    document.querySelectorAll('.js-delete-match').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+
+            Swal.fire({
+                title: 'Delete Match?',
+                text: 'This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, delete it',
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f3f4f6' : '#111827'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const response = await fetch(`/api/match/${matchId}/delete`, {
+                            method: 'POST',
+                            headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+                        });
+
+                        if (response.ok) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted',
+                                background: isDark() ? '#1f2937' : '#ffffff',
+                                color: isDark() ? '#f3f4f6' : '#111827',
+                                confirmButtonColor: '#1a472a'
+                            }).then(() => window.location.reload());
+                        } else {
+                            throw new Error('Failed to delete');
+                        }
+                    } catch (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: error.message,
+                            background: isDark() ? '#1f2937' : '#ffffff',
+                            color: isDark() ? '#f3f4f6' : '#111827',
+                            confirmButtonColor: '#1a472a'
+                        });
+                    }
+                }
+            });
+        });
+    });
+
+    // Delete Week
+    document.querySelectorAll('.js-delete-week').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const weekNum = this.dataset.week;
+
+            Swal.fire({
+                title: 'Delete Week ' + weekNum + '?',
+                text: 'This will delete all matches in this week.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, delete it',
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f3f4f6' : '#111827'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const response = await fetch(`/api/schedule/week/${weekNum}/delete`, {
+                            method: 'POST',
+                            headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+                        });
+
+                        if (response.ok) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Week Deleted',
+                                background: isDark() ? '#1f2937' : '#ffffff',
+                                color: isDark() ? '#f3f4f6' : '#111827',
+                                confirmButtonColor: '#1a472a'
+                            }).then(() => window.location.reload());
+                        } else {
+                            throw new Error('Failed to delete week');
+                        }
+                    } catch (error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: error.message,
+                            background: isDark() ? '#1f2937' : '#ffffff',
+                            color: isDark() ? '#f3f4f6' : '#111827',
+                            confirmButtonColor: '#1a472a'
+                        });
+                    }
+                }
+            });
+        });
+    });
+
+    // Export functionality
+    document.getElementById('exportCsvBtn')?.addEventListener('click', function() {
+        window.location.href = '/api/schedule/export/csv?season_id={{ season.id }}';
+    });
+
+    document.getElementById('printScheduleBtn')?.addEventListener('click', function() {
+        window.print();
+    });
+
+    document.getElementById('shareScheduleBtn')?.addEventListener('click', function() {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(() => {
+            Swal.fire({
+                icon: 'success',
+                title: 'Link Copied',
+                text: 'Schedule link has been copied to clipboard',
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f3f4f6' : '#111827',
+                confirmButtonColor: '#1a472a'
+            });
+        });
+    });
+
+    // Initialize admin mode event
+    {% if current_user.has_role('Pub League Admin') or current_user.has_role('Global Admin') %}
+    document.dispatchEvent(new CustomEvent('admin-mode-init'));
+    {% endif %}
+});
+</script>
+{% endblock %}
