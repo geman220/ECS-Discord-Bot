@@ -1,0 +1,254 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Live Match Reporting{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Live Match Reporting</h1>
+        <div id="notifications" class="mt-2"></div>
+    </div>
+
+    <!-- Report Complete Message (Hidden by default) -->
+    <div id="reportCompleteMessage" class="hidden bg-green-100 dark:bg-green-900/50 border border-green-200 dark:border-green-700 rounded-xl p-6 mb-6 text-center">
+        <div class="w-12 h-12 mx-auto rounded-full bg-green-200 dark:bg-green-800 flex items-center justify-center mb-3">
+            <i class="ti ti-check text-xl text-green-600 dark:text-green-400"></i>
+        </div>
+        <h4 class="text-lg font-semibold text-green-800 dark:text-green-300 mb-2">Match Report Submitted</h4>
+        <p class="text-green-700 dark:text-green-400">This match has been reported and the data has been saved. Thank you for your contribution!</p>
+    </div>
+
+    <!-- Match Details Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+        <div class="p-6">
+            <div class="grid grid-cols-3 gap-4 items-center">
+                <!-- Home Team -->
+                <div class="text-center">
+                    <h3 id="homeTeamName" class="text-lg font-bold text-gray-900 dark:text-white mb-2">Home Team</h3>
+                    <div id="homeScore" class="text-5xl font-bold text-ecs-green">0</div>
+                </div>
+
+                <!-- Match Status -->
+                <div class="text-center">
+                    <div class="mb-2">
+                        <span id="matchStatusBadge" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300">
+                            In Progress
+                        </span>
+                    </div>
+                    <div id="timerDisplay" class="text-3xl font-mono font-bold text-gray-900 dark:text-white mb-3">00:00</div>
+                    <div class="flex justify-center gap-2 mb-3">
+                        <button id="startStopTimer" class="px-4 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors">
+                            Start Timer
+                        </button>
+                        <button id="resetTimer" class="px-4 py-2 rounded-lg border border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">
+                            Reset
+                        </button>
+                    </div>
+                    <select id="periodSelector" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                        <option value="first_half">First Half</option>
+                        <option value="second_half">Second Half</option>
+                        <option value="halftime">Halftime</option>
+                        <option value="extra_time_1">Extra Time 1</option>
+                        <option value="extra_time_2">Extra Time 2</option>
+                        <option value="penalties">Penalties</option>
+                        <option value="fulltime">Full Time</option>
+                    </select>
+                </div>
+
+                <!-- Away Team -->
+                <div class="text-center">
+                    <h3 id="awayTeamName" class="text-lg font-bold text-gray-900 dark:text-white mb-2">Away Team</h3>
+                    <div id="awayScore" class="text-5xl font-bold text-ecs-green">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Score Control Panel -->
+        <div class="lg:col-span-3 space-y-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Score Controls</h3>
+                </div>
+                <div class="p-4 space-y-4">
+                    <!-- Home Score -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Home Score</label>
+                        <div class="flex items-center gap-2">
+                            <button id="decreaseHomeScore" class="flex-shrink-0 w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <i class="ti ti-minus"></i>
+                            </button>
+                            <span id="homeScoreDisplay" class="flex-1 text-center text-2xl font-bold text-gray-900 dark:text-white">0</span>
+                            <button id="increaseHomeScore" class="flex-shrink-0 w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <i class="ti ti-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Away Score -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Away Score</label>
+                        <div class="flex items-center gap-2">
+                            <button id="decreaseAwayScore" class="flex-shrink-0 w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <i class="ti ti-minus"></i>
+                            </button>
+                            <span id="awayScoreDisplay" class="flex-1 text-center text-2xl font-bold text-gray-900 dark:text-white">0</span>
+                            <button id="increaseAwayScore" class="flex-shrink-0 w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <i class="ti ti-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Reporters -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Active Reporters</h3>
+                </div>
+                <div class="p-4">
+                    <ul id="reportersList" class="space-y-2">
+                        <li class="text-sm text-gray-500 dark:text-gray-400">Loading reporters...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Entry Panel -->
+        <div class="lg:col-span-5 space-y-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Add Match Event</h3>
+                </div>
+                <div class="p-4">
+                    <form id="addEventForm" class="space-y-4">
+                        <div>
+                            <label for="eventType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Type</label>
+                            <select id="eventType" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="">Select Event Type</option>
+                                <option value="GOAL">Goal</option>
+                                <option value="YELLOW_CARD">Yellow Card</option>
+                                <option value="RED_CARD">Red Card</option>
+                                <option value="SUBSTITUTION">Substitution</option>
+                                <option value="INJURY">Injury</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="eventTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team</label>
+                            <select id="eventTeam" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="">Select Team</option>
+                                {% if match %}
+                                <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
+                                <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
+                                {% endif %}
+                            </select>
+                        </div>
+
+                        <div id="playerSelectGroup" class="hidden">
+                            <label for="eventPlayer" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Player</label>
+                            <select id="eventPlayer" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="">Select Player</option>
+                            </select>
+                        </div>
+
+                        <div id="substitutionFields" class="hidden">
+                            <label for="playerOut" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Player Out</label>
+                            <select id="playerOut" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="">Select Player Out</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="eventMinute" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Minute</label>
+                            <input type="number" id="eventMinute" min="0" placeholder="Match minute"
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+
+                        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                            <i class="ti ti-plus"></i>
+                            Add Event
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Match Events -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Match Events</h3>
+                </div>
+                <div class="p-4">
+                    <div id="eventsList" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Shifts & Notes Panel -->
+        <div class="lg:col-span-4 space-y-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Player Shifts (Your Team Only)</h3>
+                </div>
+                <div class="p-4">
+                    <div id="playerShiftsContainer">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Loading player shifts...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-900 dark:text-white">Match Notes</h3>
+                </div>
+                <div class="p-4 space-y-4">
+                    <textarea id="matchNotes" rows="5" placeholder="Enter any additional notes about the match here..."
+                              class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green"></textarea>
+                    <button id="submitReportBtn" class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors">
+                        <i class="ti ti-send"></i>
+                        Submit Final Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden data for JavaScript -->
+<div id="homeTeamPlayers" data-players="{{ home_players|tojson }}" class="hidden"></div>
+<div id="awayTeamPlayers" data-players="{{ away_players|tojson }}" class="hidden"></div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='custom_js/live_reporting.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const config = {
+        matchId: {{ match.id if match else 0 }},
+        teamId: {{ team_id if team_id else 0 }},
+        socketUrl: "{{ request.host_url }}".replace(/\/$/, '')
+    };
+
+    if (typeof LiveReporting !== 'undefined') {
+        LiveReporting.init(config);
+
+        // Update score displays to match the score controls
+        const homeScore = document.getElementById('homeScore');
+        const awayScore = document.getElementById('awayScore');
+        const homeScoreDisplay = document.getElementById('homeScoreDisplay');
+        const awayScoreDisplay = document.getElementById('awayScoreDisplay');
+
+        if (homeScore && homeScoreDisplay) {
+            homeScoreDisplay.textContent = homeScore.textContent;
+        }
+        if (awayScore && awayScoreDisplay) {
+            awayScoreDisplay.textContent = awayScore.textContent;
+        }
+    }
+});
+</script>
+{% endblock %}

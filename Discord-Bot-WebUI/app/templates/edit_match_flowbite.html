@@ -1,0 +1,112 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Edit Match{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <!-- Page Header -->
+        <div class="mb-6">
+            <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}"
+               class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-ecs-green mb-2">
+                <i class="ti ti-arrow-left"></i>
+                Back to Schedule
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Match</h1>
+            <p class="text-gray-500 dark:text-gray-400">{{ season.name }} - {{ league_name }} League</p>
+        </div>
+
+        <!-- Edit Form Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="h-1 bg-gradient-to-r from-ecs-green to-ecs-green/60"></div>
+
+            <form method="POST" action="{{ url_for('publeague.schedule.edit_match', match_id=match.id) }}" class="p-6">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="space-y-6">
+                    <!-- Date and Time -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="edit-match-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Date <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date"
+                                   id="edit-match-date"
+                                   name="date"
+                                   value="{{ match.date }}"
+                                   required
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                        <div>
+                            <label for="edit-match-time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Time <span class="text-red-500">*</span>
+                            </label>
+                            <input type="time"
+                                   id="edit-match-time"
+                                   name="time"
+                                   value="{{ match.time }}"
+                                   required
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                    </div>
+
+                    <!-- Team A -->
+                    <div>
+                        <label for="teamA" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Team A <span class="text-red-500">*</span>
+                        </label>
+                        <select id="teamA"
+                                name="teamA"
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            {% for team in teams %}
+                            <option value="{{ team.id }}" {% if team.id == match.team_id %}selected{% endif %}>{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Team B -->
+                    <div>
+                        <label for="teamB" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Team B <span class="text-red-500">*</span>
+                        </label>
+                        <select id="teamB"
+                                name="teamB"
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            {% for team in teams %}
+                            <option value="{{ team.id }}" {% if team.id == match.opponent %}selected{% endif %}>{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Location -->
+                    <div>
+                        <label for="edit-match-location" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Location <span class="text-red-500">*</span>
+                        </label>
+                        <select id="edit-match-location"
+                                name="location"
+                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="North" {% if match.location == 'North' %}selected{% endif %}>North</option>
+                            <option value="South" {% if match.location == 'South' %}selected{% endif %}>South</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}"
+                       class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <i class="ti ti-arrow-left"></i>
+                        Back
+                    </a>
+                    <button type="submit"
+                            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                        <i class="ti ti-check"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

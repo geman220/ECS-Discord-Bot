@@ -1,0 +1,130 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Join the Waitlist - ECS FC Pub League{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
+    <div class="w-full max-w-lg">
+        <!-- Logo Section -->
+        <div class="flex justify-center items-center gap-4 mb-8">
+            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}"
+                 alt="ECS Logo"
+                 class="h-16 w-auto">
+            <div class="h-12 w-px bg-gray-300 dark:bg-gray-600"></div>
+            <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}"
+                 alt="ECS FC Pub League Logo"
+                 class="h-16 w-auto">
+        </div>
+
+        <!-- Waitlist Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="h-1 bg-gradient-to-r from-ecs-green to-ecs-green/60"></div>
+
+            <div class="p-8">
+                <!-- Header -->
+                <div class="text-center mb-6">
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Join the Waitlist</h1>
+                    <p class="text-gray-500 dark:text-gray-400 mt-2">Season is full, but you can join our waitlist!</p>
+                </div>
+
+                <!-- Season Full Alert -->
+                <div class="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 mb-6">
+                    <div class="flex items-start gap-3">
+                        <i class="ti ti-clock text-yellow-500 text-xl mt-0.5"></i>
+                        <div>
+                            <h4 class="font-semibold text-yellow-800 dark:text-yellow-300">Season Full</h4>
+                            <p class="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
+                                All spots are filled. Join our waitlist to be first in line for future openings!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Existing User Section -->
+                <p class="text-gray-600 dark:text-gray-300 text-center mb-4">
+                    <strong>Already have an account?</strong> Login with Discord to join the waitlist.
+                </p>
+
+                <a href="{{ url_for('auth.waitlist_discord_login') }}"
+                   class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors mb-6">
+                    <i class="ti ti-brand-discord text-xl"></i>
+                    Login with Discord
+                </a>
+
+                <!-- Divider -->
+                <div class="relative mb-6">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-200 dark:border-gray-700"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-4 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">New to Pub League?</span>
+                    </div>
+                </div>
+
+                <!-- New User Section -->
+                <p class="text-gray-600 dark:text-gray-300 text-center mb-4">
+                    Create a new account with Discord to join the waitlist.
+                </p>
+
+                <a href="{{ url_for('auth.waitlist_discord_register') }}"
+                   class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors mb-6">
+                    <i class="ti ti-user-plus"></i>
+                    Register with Discord
+                </a>
+
+                <!-- Info Note -->
+                <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
+                    <div class="flex items-start gap-3">
+                        <i class="ti ti-info-circle text-blue-500 text-xl mt-0.5"></i>
+                        <div>
+                            <h4 class="font-semibold text-blue-800 dark:text-blue-300">Why Discord?</h4>
+                            <p class="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                                Discord registration is required for all members. It helps us manage teams, communicate, and organize matches effectively.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Benefits Section -->
+                <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4 text-center">Benefits of Joining</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 flex items-center justify-center mb-2">
+                                <i class="ti ti-bell text-ecs-green"></i>
+                            </div>
+                            <p class="text-xs text-gray-600 dark:text-gray-400">Priority notifications when spots open</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 flex items-center justify-center mb-2">
+                                <i class="ti ti-calendar text-ecs-green"></i>
+                            </div>
+                            <p class="text-xs text-gray-600 dark:text-gray-400">Early access to more information</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 flex items-center justify-center mb-2">
+                                <i class="ti ti-users text-ecs-green"></i>
+                            </div>
+                            <p class="text-xs text-gray-600 dark:text-gray-400">Sub opportunities for matches</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Links -->
+                <div class="mt-6 text-center">
+                    <a href="{{ url_for('auth.login') }}"
+                       class="text-sm text-ecs-green hover:text-ecs-green/80 inline-flex items-center gap-1">
+                        <i class="ti ti-chevron-left"></i>
+                        Back to login
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
+            ECS Soccer League - Emerald City Supporters
+        </p>
+    </div>
+</div>
+{% endblock %}

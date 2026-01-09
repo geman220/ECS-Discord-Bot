@@ -1,0 +1,172 @@
+{% extends "base_flowbite.html" %}
+{% from 'playoff_bracket_macro.html' import render_playoff_bracket %}
+{% from 'macros.html' import render_report_match_modal %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 rounded-xl p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <i class="ti ti-trophy"></i>
+                    {{ league.name }} Playoffs
+                </h1>
+                <p class="text-white/70 mt-1">{{ season.name }} - Interactive Bracket & Match Reporting</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Playoff Bracket -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+        <div class="p-6">
+            {{ render_playoff_bracket(league.id, season.id) }}
+        </div>
+    </div>
+
+    <!-- Instructions Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-blue-200 dark:border-blue-700 overflow-hidden">
+        <div class="p-4 border-b border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30">
+            <h3 class="font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                <i class="ti ti-info-circle"></i>
+                How to Report Matches
+            </h3>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="font-medium text-gray-900 dark:text-white mb-3">From Mobile (On the Field):</h4>
+                    <ol class="space-y-2 text-gray-600 dark:text-gray-300 list-decimal list-inside">
+                        <li>Tap any match card in the bracket above</li>
+                        <li>Enter final scores</li>
+                        <li>Add goals, assists, and cards</li>
+                        <li>Tap "Submit" to save</li>
+                    </ol>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-900 dark:text-white mb-3">Group Stage Updates:</h4>
+                    <ul class="space-y-2 text-gray-600 dark:text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <i class="ti ti-check text-green-500 mt-0.5"></i>
+                            <span>Standings update automatically</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="ti ti-check text-green-500 mt-0.5"></i>
+                            <span>Placement finals generate after Week 2 morning</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="ti ti-check text-green-500 mt-0.5"></i>
+                            <span>Bracket refreshes every 30 seconds</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Match Reporting Modals -->
+{% if playoff_matches %}
+    {% for match in playoff_matches %}
+        {% if match.home_team and match.away_team %}
+            {{ render_report_match_modal(match, player_choices) }}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Wait for playoff bracket to initialize
+    setTimeout(function() {
+        if (window.playoffBracket) {
+            window.playoffBracket.handleMatchReport = function(matchId) {
+                const modalId = `reportMatchModal-${matchId}`;
+                const modalElement = document.getElementById(modalId);
+
+                if (modalElement) {
+                    if (typeof ModalManager !== 'undefined') {
+                        ModalManager.show(modalId);
+                    } else {
+                        modalElement.classList.remove('hidden');
+                    }
+                } else {
+                    console.error('Match report modal not found:', modalId);
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Unable to load match report form. Please refresh the page.',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    }
+                }
+            };
+        }
+    }, 500);
+
+    // Handle form submissions
+    document.querySelectorAll('.report-match-form').forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const matchId = this.dataset.matchId;
+            const formData = new FormData(this);
+
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Close modal
+                    const modalEl = document.getElementById(`reportMatchModal-${matchId}`);
+                    if (modalEl) {
+                        modalEl.classList.add('hidden');
+                    }
+
+                    // Show success message
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Match Reported!',
+                            text: 'Match has been successfully reported.',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    }
+
+                    // Refresh bracket
+                    if (window.playoffBracket) {
+                        await window.playoffBracket.refresh();
+                    }
+                } else {
+                    throw new Error(data.message || 'Failed to report match');
+                }
+            } catch (error) {
+                console.error('Error reporting match:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message || 'Failed to report match. Please try again.',
+                        confirmButtonColor: '#1a472a',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

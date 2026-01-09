@@ -1,0 +1,58 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Discord Account Not Linked{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <!-- Notice Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="h-1 bg-gradient-to-r from-yellow-500 to-orange-500"></div>
+            <div class="p-8">
+                <!-- Icon -->
+                <div class="w-16 h-16 mx-auto rounded-full bg-yellow-100 dark:bg-yellow-900/50 flex items-center justify-center mb-6">
+                    <i class="ti ti-link-off text-3xl text-yellow-600 dark:text-yellow-400"></i>
+                </div>
+
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white text-center mb-4">Discord Account Not Linked</h2>
+
+                <div class="space-y-4 text-gray-600 dark:text-gray-300">
+                    <p>
+                        It appears that your Discord account
+                        <span class="font-semibold text-gray-900 dark:text-white">{{ discord_username }}</span> with email
+                        <span class="font-semibold text-gray-900 dark:text-white">{{ discord_email }}</span> is not linked to any account in our system.
+                    </p>
+
+                    <p>
+                        Please contact your coach on Discord (or any other method) and ask them to update your account with your correct Discord email.
+                    </p>
+
+                    <p>
+                        If you haven't joined our Discord server yet, please click the button below to join:
+                    </p>
+
+                    <div class="flex justify-center">
+                        <a href="https://discord.com/invite/weareecs" target="_blank"
+                           class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors">
+                            <i class="ti ti-brand-discord"></i>
+                            Join Our Discord
+                        </a>
+                    </div>
+
+                    <p class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        Once your coach has updated your email, click the button below to try logging in again.
+                    </p>
+
+                    <div class="flex justify-center">
+                        <a href="{{ url_for('auth.discord_login') }}"
+                           class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                            <i class="ti ti-brand-discord"></i>
+                            My coach updated my email
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

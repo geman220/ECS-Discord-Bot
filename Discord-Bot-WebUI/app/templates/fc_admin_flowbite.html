@@ -1,0 +1,43 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}FC Admin{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">FC Admin</h1>
+        <p class="text-gray-500 dark:text-gray-400">FC administration and announcements</p>
+    </div>
+
+    <!-- Redirect Notice -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="p-8 text-center">
+            <div class="w-16 h-16 mx-auto rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center mb-4">
+                <i class="ti ti-arrow-right text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Announcement Management Moved</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
+                Website announcements are now managed through the centralized Message Management system.
+                This provides better organization and integration with Discord bot messaging.
+            </p>
+            <a href="{{ url_for('admin.message_config.list_categories') }}"
+               class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                <i class="ti ti-message-2"></i>
+                Go to Message Management
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-redirect after 3 seconds if user doesn't interact
+    setTimeout(function() {
+        if (document.visibilityState === 'visible') {
+            window.location.href = "{{ url_for('admin.message_config.list_categories') }}";
+        }
+    }, 3000);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSVP for Upcoming Matches</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vite-dist/css/tailwind.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-2xl">
+        <!-- Page Header -->
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 mx-auto rounded-full bg-ecs-green/10 flex items-center justify-center mb-4">
+                <i class="ti ti-calendar-event text-3xl text-ecs-green"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">RSVP for Upcoming Matches</h1>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Please let us know your availability</p>
+        </div>
+
+        <!-- RSVP Form -->
+        <form method="POST" class="space-y-4">
+            {{ form.csrf_token }}
+
+            {% for match in matches %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green to-ecs-green/80">
+                    <h3 class="font-bold text-white">{{ match.home_team.name }} vs {{ match.away_team.name }}</h3>
+                </div>
+                <div class="p-4">
+                    <div class="space-y-2 mb-4">
+                        <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                            <i class="ti ti-calendar text-ecs-green"></i>
+                            <span>{{ match.date.strftime('%A, %B %d, %Y') }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                            <i class="ti ti-clock text-ecs-green"></i>
+                            <span>{{ match.time.strftime('%I:%M %p') }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                            <i class="ti ti-map-pin text-ecs-green"></i>
+                            <span>{{ match.location }}</span>
+                        </div>
+                    </div>
+
+                    <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Will you be able to attend this match?</h4>
+
+                    <div class="flex flex-wrap gap-2">
+                        <label class="flex-1">
+                            <input type="radio" name="response-{{ match.id }}" value="yes"
+                                   {% if existing_rsvps.get(match.id) == 'yes' %}checked{% endif %}
+                                   class="peer hidden">
+                            <div class="cursor-pointer text-center py-2 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600
+                                        peer-checked:border-green-500 peer-checked:bg-green-50 dark:peer-checked:bg-green-900/30
+                                        peer-checked:text-green-600 dark:peer-checked:text-green-400 transition-colors">
+                                <i class="ti ti-check mr-1"></i>Yes
+                            </div>
+                        </label>
+                        <label class="flex-1">
+                            <input type="radio" name="response-{{ match.id }}" value="maybe"
+                                   {% if existing_rsvps.get(match.id) == 'maybe' %}checked{% endif %}
+                                   class="peer hidden">
+                            <div class="cursor-pointer text-center py-2 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600
+                                        peer-checked:border-yellow-500 peer-checked:bg-yellow-50 dark:peer-checked:bg-yellow-900/30
+                                        peer-checked:text-yellow-600 dark:peer-checked:text-yellow-400 transition-colors">
+                                <i class="ti ti-question-mark mr-1"></i>Maybe
+                            </div>
+                        </label>
+                        <label class="flex-1">
+                            <input type="radio" name="response-{{ match.id }}" value="no"
+                                   {% if existing_rsvps.get(match.id) == 'no' %}checked{% endif %}
+                                   class="peer hidden">
+                            <div class="cursor-pointer text-center py-2 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600
+                                        peer-checked:border-red-500 peer-checked:bg-red-50 dark:peer-checked:bg-red-900/30
+                                        peer-checked:text-red-600 dark:peer-checked:text-red-400 transition-colors">
+                                <i class="ti ti-x mr-1"></i>No
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <button type="submit"
+                    class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                <i class="ti ti-send"></i>
+                Submit RSVP
+            </button>
+        </form>
+
+        <!-- Footer -->
+        <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
+            ECS Soccer League - Emerald City Supporters
+        </p>
+    </div>
+
+    <script>
+    // Dark mode detection
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+    }
+    </script>
+</body>
+</html>
