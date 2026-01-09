@@ -1,0 +1,274 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Auto Schedule Configuration - {{ league.name }}{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <a href="{{ url_for('publeague.season.manage_seasons') }}"
+           class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-ecs-green mb-2">
+            <i class="ti ti-arrow-left"></i>
+            Back to Seasons
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Auto Schedule Configuration</h1>
+        <p class="text-gray-500 dark:text-gray-400">Generate a randomized schedule for {{ league.name }} ({{ team_count }} teams)</p>
+    </div>
+
+    {% if team_count < 2 %}
+    <!-- Not Enough Teams Warning -->
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+        <div class="flex items-center">
+            <i class="ti ti-alert-triangle text-yellow-400 text-xl mr-3"></i>
+            <p class="text-yellow-700 dark:text-yellow-300">
+                This league only has {{ team_count }} teams. You need at least 2 teams to generate a schedule.
+            </p>
+        </div>
+    </div>
+    {% else %}
+    <!-- Schedule Rules Info -->
+    <div class="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-400 p-4 rounded-r-lg mb-6">
+        <div class="flex">
+            <i class="ti ti-info-circle text-blue-400 text-xl mr-3 mt-0.5"></i>
+            <div>
+                <h6 class="font-semibold text-blue-700 dark:text-blue-300 mb-2">Schedule Generation Rules:</h6>
+                <ul class="list-disc list-inside text-blue-600 dark:text-blue-400 space-y-1 text-sm">
+                    <li>Each team plays every other team twice during the regular season</li>
+                    <li>Teams play 2 matches per day (back-to-back time slots)</li>
+                    <li>Schedule is randomized but ensures balanced play</li>
+                    <li>You can preview and modify the schedule before committing</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" class="space-y-6">
+        {{ csrf_token() }}
+
+        <!-- Time Configuration Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-clock text-ecs-green"></i>
+                    Time Configuration
+                </h2>
+            </div>
+            <div class="p-6 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="premier_start_time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Premier Start Time <span class="text-red-500">*</span>
+                        </label>
+                        <input type="time" id="premier_start_time" name="premier_start_time"
+                               value="{{ config.premier_start_time.strftime('%H:%M') if config and config.premier_start_time else '08:20' }}"
+                               required
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">First time slot for Premier teams</p>
+                    </div>
+                    <div>
+                        <label for="classic_start_time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Classic Start Time <span class="text-red-500">*</span>
+                        </label>
+                        <input type="time" id="classic_start_time" name="classic_start_time"
+                               value="{{ config.classic_start_time.strftime('%H:%M') if config and config.classic_start_time else '13:10' }}"
+                               required
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">First time slot for Classic teams</p>
+                    </div>
+                    <div>
+                        <label for="match_duration" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Match Duration (minutes) <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="match_duration" name="match_duration"
+                               value="{{ config.match_duration_minutes if config else 70 }}"
+                               min="30" max="120" required
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Duration including setup time</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex items-start gap-3">
+                        <input type="checkbox" id="enable_time_rotation" name="enable_time_rotation"
+                               {{ 'checked' if config and config.enable_time_rotation else '' }}
+                               class="mt-1 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                        <div>
+                            <label for="enable_time_rotation" class="font-medium text-gray-700 dark:text-gray-300">
+                                Enable Time Slot Rotation
+                            </label>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                Premier teams will be balanced between morning (8:20) and mid-morning time slots
+                            </p>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="break_duration" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Break Between Matches (minutes)
+                        </label>
+                        <input type="number" id="break_duration" name="break_duration"
+                               value="{{ config.break_duration_minutes if config else 10 }}"
+                               min="0" max="30"
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Rest time between back-to-back matches</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weeks and Fields Configuration -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Number of Weeks -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <label for="weeks_count" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Number of Weeks <span class="text-red-500">*</span>
+                </label>
+                <input type="number" id="weeks_count" name="weeks_count"
+                       value="{{ config.weeks_count if config else 7 }}"
+                       min="1" max="20" required
+                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Number of weeks in the regular season</p>
+            </div>
+
+            <!-- Field Configuration -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-map-pin text-ecs-green"></i>
+                        Field Configuration
+                    </h3>
+                </div>
+                <div class="p-4 space-y-3">
+                    <div id="field-configurations" class="space-y-2">
+                        {% set fields = config.fields.split(',') if config and config.fields else ['North', 'South'] %}
+                        {% for field in fields %}
+                        <div class="field-config-item flex gap-2" data-field-index="{{ loop.index0 }}">
+                            <input type="text" name="field_name_{{ loop.index0 }}"
+                                   value="{{ field.strip() }}"
+                                   placeholder="Field name" required
+                                   class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <input type="number" name="field_capacity_{{ loop.index0 }}"
+                                   value="20" min="1" max="50"
+                                   placeholder="Capacity"
+                                   class="w-20 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <button type="button" class="js-remove-field p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg {{ 'opacity-50 cursor-not-allowed' if loop.index0 < 2 else '' }}"
+                                    data-action="remove-field" {{ 'disabled' if loop.index0 < 2 else '' }}>
+                                <i class="ti ti-x"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="js-add-field inline-flex items-center gap-1 text-sm text-ecs-green hover:text-ecs-green/80"
+                            data-action="add-config-field">
+                        <i class="ti ti-plus"></i> Add Field
+                    </button>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">At least 2 fields required for back-to-back scheduling</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Season Schedule Configuration -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-calendar text-ecs-green"></i>
+                    Season Schedule Configuration
+                </h2>
+            </div>
+            <div class="p-6 space-y-6">
+                <p class="text-gray-500 dark:text-gray-400">Configure your season layout with regular matches, practice sessions, and special weeks.</p>
+
+                <!-- Quick Setup Templates -->
+                <div>
+                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Setup Templates</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" class="js-template px-4 py-2 border border-ecs-green text-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors text-sm"
+                                data-action="apply-template" data-template="premier-standard">
+                            Premier Standard (8 weeks)
+                        </button>
+                        <button type="button" class="js-template px-4 py-2 border border-ecs-green text-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors text-sm"
+                                data-action="apply-template" data-template="classic-practice">
+                            Classic w/ Practice (7 weeks)
+                        </button>
+                        <button type="button" class="js-template px-4 py-2 border border-blue-500 text-blue-500 rounded-lg hover:bg-blue-500 hover:text-white transition-colors text-sm"
+                                data-action="apply-template" data-template="custom">
+                            Custom Schedule
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Practice Week Configuration for Classic -->
+                <div class="hidden" id="practice-config">
+                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Classic Practice Configuration</h3>
+                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="enable-practice-weeks" name="enable_practice_weeks"
+                               class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                        <span class="text-gray-700 dark:text-gray-300">Enable Practice Sessions for Classic</span>
+                    </label>
+                    <div class="hidden mt-3" id="practice-weeks-selection">
+                        <label class="block text-sm text-gray-700 dark:text-gray-300 mb-2">Practice Session Weeks:</label>
+                        <div id="practice-week-checkboxes" class="flex flex-wrap gap-2">
+                            <!-- Generated dynamically -->
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            Practice sessions will be scheduled at 1:10 PM on the selected weeks
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Visual Week Builder -->
+                <div>
+                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                        Season Layout <span class="text-gray-400 font-normal">(Drag to reorder weeks)</span>
+                    </h3>
+                    <div id="week-configurations" class="space-y-2">
+                        <!-- Week configurations added dynamically -->
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-4">
+                        <button type="button" class="js-add-week-config inline-flex items-center gap-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm"
+                                data-action="add-week-config">
+                            <i class="ti ti-plus"></i> Add Week
+                        </button>
+                        <button type="button" class="js-generate-weeks inline-flex items-center gap-1 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 text-sm"
+                                data-action="generate-default-weeks">
+                            <i class="ti ti-wand"></i> Auto-Generate
+                        </button>
+                        <button type="button" class="js-clear-weeks inline-flex items-center gap-1 px-3 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-sm"
+                                data-action="clear-weeks">
+                            <i class="ti ti-trash"></i> Clear All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Info -->
+        <div class="bg-gray-100 dark:bg-gray-700/50 rounded-lg p-4">
+            <p class="text-gray-700 dark:text-gray-300">
+                <strong>Preview:</strong> With {{ team_count }} teams, each team will play
+                <strong>{{ (team_count - 1) * 2 }}</strong> matches total
+                ({{ team_count - 1 }} different opponents, twice each).
+            </p>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-wrap gap-3">
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-6 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                <i class="ti ti-settings"></i>
+                Generate Schedule
+            </button>
+            <a href="{{ url_for('publeague.season.manage_seasons') }}"
+               class="inline-flex items-center gap-2 px-6 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <i class="ti ti-arrow-left"></i>
+                Back to Seasons
+            </a>
+        </div>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script src="{{ url_for('static', filename='custom_js/auto-schedule-config.js') }}"></script>
+{% endblock %}

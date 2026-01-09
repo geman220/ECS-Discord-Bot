@@ -1,0 +1,786 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Season Overview{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Season Overview</h1>
+            <p class="text-gray-500 dark:text-gray-400">Comprehensive season statistics and analytics</p>
+        </div>
+        <select id="seasonSelector"
+                class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+            <option selected>{{ season.name }}</option>
+        </select>
+    </div>
+
+    <!-- Division Tabs -->
+    <div class="mb-6">
+        <div class="flex flex-wrap gap-2" id="division-tabs">
+            <button type="button" class="division-tab px-4 py-2 rounded-lg bg-ecs-green text-white font-medium"
+                    data-tab="premier">
+                <i class="ti ti-trophy mr-1"></i>Premier Division
+            </button>
+            <button type="button" class="division-tab px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-300 dark:hover:bg-gray-600"
+                    data-tab="classic">
+                <i class="ti ti-ball-football mr-1"></i>Classic Division
+            </button>
+            <button type="button" class="division-tab px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-300 dark:hover:bg-gray-600"
+                    data-tab="all-stats">
+                <i class="ti ti-chart-bar mr-1"></i>All League Leaderboards
+            </button>
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- Premier Division Tab -->
+        <div class="division-pane" id="premier">
+            <!-- Premier Standings -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="font-semibold text-gray-900 dark:text-white">Premier Division Standings</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">#</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Team</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">P</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">W</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">D</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">L</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">GF</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">GA</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">GD</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for standing in premier_standings %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                <td class="px-4 py-3 text-center font-bold text-gray-900 dark:text-white">{{ loop.index }}</td>
+                                <td class="px-4 py-3">
+                                    <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
+                                       class="text-ecs-green hover:underline font-medium">
+                                        {{ standing.team.name }}
+                                    </a>
+                                </td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.played }}</td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.wins }}</td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.draws }}</td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.losses }}</td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.goals_for }}</td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.goals_against }}</td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.goal_difference }}</td>
+                                <td class="px-4 py-3 text-center font-bold text-gray-900 dark:text-white">{{ standing.points }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="10" class="px-4 py-8 text-center">
+                                    <i class="ti ti-trophy text-4xl text-gray-300 dark:text-gray-600"></i>
+                                    <p class="mt-2 text-gray-500 dark:text-gray-400">No standings data available for Premier Division.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Premier Stats Cards Row -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Top Scorers -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-award text-yellow-500"></i> Golden Boot
+                        </h3>
+                        <span class="px-2 py-1 text-xs bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 rounded-full">Premier Division</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Player</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Team</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Goals</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% set ns = namespace(prev_goals=None, prev_rank=0, num_tied=0) %}
+                                {% for player, goals in premier_top_scorers %}
+                                {% if goals != ns.prev_goals %}
+                                    {% set ns.prev_rank = loop.index - ns.num_tied %}
+                                    {% set ns.num_tied = 0 %}
+                                {% else %}
+                                    {% set ns.num_tied = ns.num_tied + 1 %}
+                                {% endif %}
+                                {% set ns.prev_goals = goals %}
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                    <td class="px-4 py-2">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-ecs-green hover:underline font-medium">
+                                            {{ player.name }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                    <td class="px-4 py-2 text-center font-bold text-gray-900 dark:text-white">{{ goals }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">No goal data available</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Top Assisters -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-award text-gray-400"></i> Silver Boot
+                        </h3>
+                        <span class="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-full">Premier Division</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Player</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Team</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Assists</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% set ns = namespace(prev_assists=None, prev_rank=0, num_tied=0) %}
+                                {% for player, assists in premier_top_assisters %}
+                                {% if assists != ns.prev_assists %}
+                                    {% set ns.prev_rank = loop.index - ns.num_tied %}
+                                    {% set ns.num_tied = 0 %}
+                                {% else %}
+                                    {% set ns.num_tied = ns.num_tied + 1 %}
+                                {% endif %}
+                                {% set ns.prev_assists = assists %}
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                    <td class="px-4 py-2">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-ecs-green hover:underline font-medium">
+                                            {{ player.name }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                    <td class="px-4 py-2 text-center font-bold text-gray-900 dark:text-white">{{ assists }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">No assist data available</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Premier Disciplinary Cards Row -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Yellow Cards -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-cards text-yellow-500"></i> Yellow Cards
+                        </h3>
+                        <span class="px-2 py-1 text-xs bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 rounded-full">Premier Division</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Player</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Team</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Cards</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% set ns = namespace(prev_cards=None, prev_rank=0, num_tied=0) %}
+                                {% for player, yellow_cards in premier_yellow_cards %}
+                                {% if yellow_cards != ns.prev_cards %}
+                                    {% set ns.prev_rank = loop.index - ns.num_tied %}
+                                    {% set ns.num_tied = 0 %}
+                                {% else %}
+                                    {% set ns.num_tied = ns.num_tied + 1 %}
+                                {% endif %}
+                                {% set ns.prev_cards = yellow_cards %}
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                    <td class="px-4 py-2">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-ecs-green hover:underline font-medium">
+                                            {{ player.name }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                    <td class="px-4 py-2 text-center font-bold text-gray-900 dark:text-white">{{ yellow_cards }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">No yellow card data available</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Red Cards -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-cards text-red-500"></i> Red Cards
+                        </h3>
+                        <span class="px-2 py-1 text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-full">Premier Division</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Player</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Team</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Cards</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% set ns = namespace(prev_cards=None, prev_rank=0, num_tied=0) %}
+                                {% for player, red_cards in premier_red_cards %}
+                                {% if red_cards != ns.prev_cards %}
+                                    {% set ns.prev_rank = loop.index - ns.num_tied %}
+                                    {% set ns.num_tied = 0 %}
+                                {% else %}
+                                    {% set ns.num_tied = ns.num_tied + 1 %}
+                                {% endif %}
+                                {% set ns.prev_cards = red_cards %}
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                    <td class="px-4 py-2">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-ecs-green hover:underline font-medium">
+                                            {{ player.name }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                    <td class="px-4 py-2 text-center font-bold text-gray-900 dark:text-white">{{ red_cards }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">No red card data available</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Classic Division Tab -->
+        <div class="division-pane hidden" id="classic">
+            <!-- Classic Standings -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="font-semibold text-gray-900 dark:text-white">Classic Division Standings</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">#</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Team</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">P</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">W</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">D</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">L</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">GF</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">GA</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">GD</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Pts</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for standing in classic_standings %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                <td class="px-4 py-3 text-center font-bold text-gray-900 dark:text-white">{{ loop.index }}</td>
+                                <td class="px-4 py-3">
+                                    <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
+                                       class="text-ecs-green hover:underline font-medium">
+                                        {{ standing.team.name }}
+                                    </a>
+                                </td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.played }}</td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.wins }}</td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.draws }}</td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.losses }}</td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.goals_for }}</td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.goals_against }}</td>
+                                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.goal_difference }}</td>
+                                <td class="px-4 py-3 text-center font-bold text-gray-900 dark:text-white">{{ standing.points }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="10" class="px-4 py-8 text-center">
+                                    <i class="ti ti-ball-football text-4xl text-gray-300 dark:text-gray-600"></i>
+                                    <p class="mt-2 text-gray-500 dark:text-gray-400">No standings data available for Classic Division.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Classic Stats Cards Row -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Top Scorers -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-award text-yellow-500"></i> Golden Boot
+                        </h3>
+                        <span class="px-2 py-1 text-xs bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 rounded-full">Classic Division</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Player</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Team</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Goals</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% set ns = namespace(prev_goals=None, prev_rank=0, num_tied=0) %}
+                                {% for player, goals in classic_top_scorers %}
+                                {% if goals != ns.prev_goals %}
+                                    {% set ns.prev_rank = loop.index - ns.num_tied %}
+                                    {% set ns.num_tied = 0 %}
+                                {% else %}
+                                    {% set ns.num_tied = ns.num_tied + 1 %}
+                                {% endif %}
+                                {% set ns.prev_goals = goals %}
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                    <td class="px-4 py-2">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-ecs-green hover:underline font-medium">
+                                            {{ player.name }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                    <td class="px-4 py-2 text-center font-bold text-gray-900 dark:text-white">{{ goals }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">No goal data available</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Top Assisters -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-award text-gray-400"></i> Silver Boot
+                        </h3>
+                        <span class="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-full">Classic Division</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Player</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Team</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Assists</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% set ns = namespace(prev_assists=None, prev_rank=0, num_tied=0) %}
+                                {% for player, assists in classic_top_assisters %}
+                                {% if assists != ns.prev_assists %}
+                                    {% set ns.prev_rank = loop.index - ns.num_tied %}
+                                    {% set ns.num_tied = 0 %}
+                                {% else %}
+                                    {% set ns.num_tied = ns.num_tied + 1 %}
+                                {% endif %}
+                                {% set ns.prev_assists = assists %}
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                    <td class="px-4 py-2">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-ecs-green hover:underline font-medium">
+                                            {{ player.name }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                    <td class="px-4 py-2 text-center font-bold text-gray-900 dark:text-white">{{ assists }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">No assist data available</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Classic Disciplinary Cards Row -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Yellow Cards -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-cards text-yellow-500"></i> Yellow Cards
+                        </h3>
+                        <span class="px-2 py-1 text-xs bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 rounded-full">Classic Division</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Player</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Team</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Cards</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% set ns = namespace(prev_cards=None, prev_rank=0, num_tied=0) %}
+                                {% for player, yellow_cards in classic_yellow_cards %}
+                                {% if yellow_cards != ns.prev_cards %}
+                                    {% set ns.prev_rank = loop.index - ns.num_tied %}
+                                    {% set ns.num_tied = 0 %}
+                                {% else %}
+                                    {% set ns.num_tied = ns.num_tied + 1 %}
+                                {% endif %}
+                                {% set ns.prev_cards = yellow_cards %}
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                    <td class="px-4 py-2">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-ecs-green hover:underline font-medium">
+                                            {{ player.name }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                    <td class="px-4 py-2 text-center font-bold text-gray-900 dark:text-white">{{ yellow_cards }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">No yellow card data available</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Red Cards -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-cards text-red-500"></i> Red Cards
+                        </h3>
+                        <span class="px-2 py-1 text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-full">Classic Division</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Player</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Team</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Cards</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% set ns = namespace(prev_cards=None, prev_rank=0, num_tied=0) %}
+                                {% for player, red_cards in classic_red_cards %}
+                                {% if red_cards != ns.prev_cards %}
+                                    {% set ns.prev_rank = loop.index - ns.num_tied %}
+                                    {% set ns.num_tied = 0 %}
+                                {% else %}
+                                    {% set ns.num_tied = ns.num_tied + 1 %}
+                                {% endif %}
+                                {% set ns.prev_cards = red_cards %}
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                    <td class="px-4 py-2">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-ecs-green hover:underline font-medium">
+                                            {{ player.name }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                    <td class="px-4 py-2 text-center font-bold text-gray-900 dark:text-white">{{ red_cards }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="px-4 py-4 text-center text-gray-500 dark:text-gray-400">No red card data available</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All League Stats Tab -->
+        <div class="division-pane hidden" id="all-stats">
+            <!-- Season Summary Statistics -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-chart-bar text-ecs-green"></i> Season Summary Statistics
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                            <div class="w-10 h-10 flex items-center justify-center bg-red-100 dark:bg-red-900/40 text-red-500 rounded-lg">
+                                <i class="ti ti-target text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Total Own Goals</p>
+                                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ total_own_goals }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <div class="w-10 h-10 flex items-center justify-center bg-green-100 dark:bg-green-900/40 text-green-500 rounded-lg">
+                                <i class="ti ti-target text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Premier Own Goals</p>
+                                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ premier_own_goals }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <div class="w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/40 text-blue-500 rounded-lg">
+                                <i class="ti ti-target text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Classic Own Goals</p>
+                                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ classic_own_goals }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                            <div class="w-10 h-10 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/40 text-yellow-500 rounded-lg">
+                                <i class="ti ti-info-circle text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Season</p>
+                                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ season.name }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- All League Leaderboards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- All Goal Scorers -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-ball-football text-ecs-green"></i> Top Goal Scorers (All Leagues)
+                        </h3>
+                        <div class="relative">
+                            <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" class="table-search pl-9 pr-4 py-1.5 text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green"
+                                   data-table="allGoalScorersTable" placeholder="Search...">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto max-h-96">
+                        <table class="w-full" id="allGoalScorersTable">
+                            <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Player</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Team</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Division</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Goals</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% set ns = namespace(prev_goals=None, prev_rank=0, num_tied=0) %}
+                                {% for player, team, league_name, goals in all_goal_scorers %}
+                                {% if goals != ns.prev_goals %}
+                                    {% set ns.prev_rank = loop.index - ns.num_tied %}
+                                    {% set ns.num_tied = 0 %}
+                                {% else %}
+                                    {% set ns.num_tied = ns.num_tied + 1 %}
+                                {% endif %}
+                                {% set ns.prev_goals = goals %}
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                    <td class="px-4 py-2">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-ecs-green hover:underline font-medium">
+                                            {{ player.name }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="text-gray-600 dark:text-gray-300 hover:text-ecs-green">
+                                            {{ team.name }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ league_name }}</td>
+                                    <td class="px-4 py-2 text-center font-bold text-gray-900 dark:text-white">{{ goals }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="px-4 py-8 text-center">
+                                        <i class="ti ti-ball-football text-4xl text-gray-300 dark:text-gray-600"></i>
+                                        <p class="mt-2 text-gray-500 dark:text-gray-400">No goal scorer data available.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- All Assist Providers -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-hand-finger text-ecs-green"></i> Top Assist Providers (All Leagues)
+                        </h3>
+                        <div class="relative">
+                            <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" class="table-search pl-9 pr-4 py-1.5 text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green"
+                                   data-table="allAssistProvidersTable" placeholder="Search...">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto max-h-96">
+                        <table class="w-full" id="allAssistProvidersTable">
+                            <thead class="bg-gray-50 dark:bg-gray-700 sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Player</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Team</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Division</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Assists</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% set ns = namespace(prev_assists=None, prev_rank=0, num_tied=0) %}
+                                {% for player, team, league_name, assists in all_assist_providers %}
+                                {% if assists != ns.prev_assists %}
+                                    {% set ns.prev_rank = loop.index - ns.num_tied %}
+                                    {% set ns.num_tied = 0 %}
+                                {% else %}
+                                    {% set ns.num_tied = ns.num_tied + 1 %}
+                                {% endif %}
+                                {% set ns.prev_assists = assists %}
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                                    <td class="px-4 py-2">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-ecs-green hover:underline font-medium">
+                                            {{ player.name }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="text-gray-600 dark:text-gray-300 hover:text-ecs-green">
+                                            {{ team.name }}
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ league_name }}</td>
+                                    <td class="px-4 py-2 text-center font-bold text-gray-900 dark:text-white">{{ assists }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="px-4 py-8 text-center">
+                                        <i class="ti ti-hand-finger text-4xl text-gray-300 dark:text-gray-600"></i>
+                                        <p class="mt-2 text-gray-500 dark:text-gray-400">No assist provider data available.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <h3 class="font-medium text-gray-900 dark:text-white mb-3">Legend</h3>
+            <div class="flex flex-wrap gap-4 text-sm">
+                <span><strong class="text-gray-700 dark:text-gray-300">P:</strong> <span class="text-gray-500 dark:text-gray-400">Played</span></span>
+                <span><strong class="text-gray-700 dark:text-gray-300">W:</strong> <span class="text-gray-500 dark:text-gray-400">Won</span></span>
+                <span><strong class="text-gray-700 dark:text-gray-300">D:</strong> <span class="text-gray-500 dark:text-gray-400">Drawn</span></span>
+                <span><strong class="text-gray-700 dark:text-gray-300">L:</strong> <span class="text-gray-500 dark:text-gray-400">Lost</span></span>
+                <span><strong class="text-gray-700 dark:text-gray-300">GF:</strong> <span class="text-gray-500 dark:text-gray-400">Goals For</span></span>
+                <span><strong class="text-gray-700 dark:text-gray-300">GA:</strong> <span class="text-gray-500 dark:text-gray-400">Goals Against</span></span>
+                <span><strong class="text-gray-700 dark:text-gray-300">GD:</strong> <span class="text-gray-500 dark:text-gray-400">Goal Difference</span></span>
+                <span><strong class="text-gray-700 dark:text-gray-300">Pts:</strong> <span class="text-gray-500 dark:text-gray-400">Points</span></span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Division tab switching
+    document.querySelectorAll('.division-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetId = this.dataset.tab;
+
+            // Update tab button styles
+            document.querySelectorAll('.division-tab').forEach(t => {
+                t.classList.remove('bg-ecs-green', 'text-white');
+                t.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            });
+            this.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            this.classList.add('bg-ecs-green', 'text-white');
+
+            // Show/hide tab panes
+            document.querySelectorAll('.division-pane').forEach(pane => {
+                pane.classList.add('hidden');
+            });
+            document.getElementById(targetId).classList.remove('hidden');
+
+            // Save to localStorage
+            localStorage.setItem('seasonOverviewActiveTab', targetId);
+        });
+    });
+
+    // Restore saved tab
+    const savedTab = localStorage.getItem('seasonOverviewActiveTab');
+    if (savedTab) {
+        const tabBtn = document.querySelector(`.division-tab[data-tab="${savedTab}"]`);
+        if (tabBtn) tabBtn.click();
+    }
+
+    // Table search functionality
+    document.querySelectorAll('.table-search').forEach(input => {
+        input.addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const tableId = this.dataset.table;
+            const table = document.getElementById(tableId);
+            if (!table) return;
+
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                let matchFound = false;
+                for (let i = 1; i < row.cells.length - 1; i++) {
+                    if (row.cells[i].textContent.toLowerCase().includes(searchValue)) {
+                        matchFound = true;
+                        break;
+                    }
+                }
+                row.style.display = matchFound ? '' : 'none';
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
