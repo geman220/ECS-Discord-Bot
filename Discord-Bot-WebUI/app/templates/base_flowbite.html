@@ -36,6 +36,12 @@
     <!-- Tabler Icons -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" />
 
+    <!-- Chat Widget CSS (for messaging functionality) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/c-chat-widget.css') }}" />
+
+    <!-- jQuery UI CSS (for autocomplete) -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" />
+
     <!-- Flowbite JS (for components like modals, dropdowns) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js" defer></script>
 
@@ -50,51 +56,8 @@
     </a>
 
     {% if safe_current_user.is_authenticated %}
-    <!-- Sidebar -->
-    <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full lg:translate-x-0" aria-label="Sidebar">
-        <div class="h-full px-3 py-4 overflow-y-auto bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
-            <!-- Logo -->
-            <a href="{{ url_for('main.index') }}" class="flex items-center mb-6 px-2">
-                <img src="{{ url_for('static', filename='assets/img/favicon/favicon.png') }}" class="h-8 mr-3" alt="ECS Logo" />
-                <span class="text-xl font-semibold text-gray-900 dark:text-white">ECS FC</span>
-            </a>
-
-            <!-- Navigation -->
-            <nav class="space-y-2">
-                {% block sidebar_nav %}
-                <!-- Dashboard -->
-                <a href="{{ url_for('main.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ 'bg-gray-100 dark:bg-gray-700' if request.endpoint == 'main.index' else '' }}">
-                    <i class="ti ti-home w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"></i>
-                    <span class="ml-3">Dashboard</span>
-                </a>
-
-                <!-- Teams -->
-                <a href="{{ url_for('teams.teams_overview') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                    <i class="ti ti-users w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"></i>
-                    <span class="ml-3">Teams</span>
-                </a>
-
-                <!-- Players -->
-                <a href="{{ url_for('players.view_players') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                    <i class="ti ti-user w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"></i>
-                    <span class="ml-3">Players</span>
-                </a>
-
-                {% if safe_current_user.has_permission('access_admin_panel') %}
-                <!-- Admin Section -->
-                <div class="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-                    <span class="px-2 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">Admin</span>
-                </div>
-
-                <a href="{{ url_for('admin_panel.dashboard') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group">
-                    <i class="ti ti-settings w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"></i>
-                    <span class="ml-3">Admin Panel</span>
-                </a>
-                {% endif %}
-                {% endblock %}
-            </nav>
-        </div>
-    </aside>
+    <!-- Sidebar Menu - Role-based navigation -->
+    {% include 'sidebar_flowbite.html' %}
     {% endif %}
 
     <!-- Main Content Area -->
@@ -229,6 +192,61 @@
     <!-- Socket.IO for real-time updates -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
 
+    <!-- jQuery UI for autocomplete -->
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+    <!-- Player Search Autocomplete -->
+    <script>
+        $(document).ready(function() {
+            // Build the base URL for player profiles
+            var playerProfileBaseUrl = "{{ url_for('players.player_profile', player_id=9999) }}";
+            playerProfileBaseUrl = playerProfileBaseUrl.replace('9999', '');
+
+            $("#player-search-flowbite").autocomplete({
+                source: function(request, response) {
+                    $.ajax({
+                        url: "{{ url_for('search.search_players') }}",
+                        dataType: "json",
+                        data: { term: request.term },
+                        success: function(data) {
+                            response($.map(data, function(item) {
+                                return {
+                                    label: item.name,
+                                    value: item.name,
+                                    id: item.id,
+                                    profile_picture_url: item.profile_picture_url
+                                };
+                            }));
+                        }
+                    });
+                },
+                minLength: 1,
+                select: function(event, ui) {
+                    window.location.href = playerProfileBaseUrl + ui.item.id;
+                }
+            }).autocomplete("instance")._renderItem = function(ul, item) {
+                var $li = $("<li>");
+                var $div = $("<div>").addClass("ui-menu-item-wrapper");
+                if(item.profile_picture_url) {
+                    $div.append("<img src='" + item.profile_picture_url + "' alt='" + item.label + "' class='autocomplete-profile-img' />");
+                }
+                $div.append("<span>" + item.label + "</span>");
+                return $li.append($div).appendTo(ul);
+            };
+
+            // Handle ENTER key
+            $("#player-search-flowbite").on("keypress", function(e) {
+                if (e.which == 13) {
+                    var firstItem = $("#player-search-flowbite").autocomplete("instance").menu.element.find("li:first-child a");
+                    if (firstItem.length) {
+                        var playerId = firstItem.data("ui-autocomplete-item").id;
+                        window.location.href = playerProfileBaseUrl + playerId;
+                    }
+                }
+            });
+        });
+    </script>
+
     <!-- SweetAlert Handler -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -252,6 +270,19 @@
     </script>
 
     {% block modals %}{% endblock %}
+
+    {# Floating Chat Widget - Facebook Messenger style #}
+    {% if safe_current_user.is_authenticated %}
+    {% include 'components/_chat_widget.html' %}
+    {% endif %}
+
+    <!-- Chat Widget JS -->
+    {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
+    <script type="module" src="{{ url_for('static', filename='js/chat-widget.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/messenger-widget.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/online-status.js') }}"></script>
+    {% endif %}
+
     {% block custom_js %}{% endblock %}
 </body>
 </html>
