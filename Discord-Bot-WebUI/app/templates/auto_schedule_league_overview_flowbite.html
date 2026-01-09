@@ -1,0 +1,220 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}{{ league.name }} - Auto Schedule Overview{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ league.name }} - Auto Schedule Overview</h1>
+                <p class="text-gray-500 dark:text-gray-400">Season: {{ league.season.name }} ({{ league.season.league_type }})</p>
+            </div>
+            <a href="{{ url_for('auto_schedule.schedule_manager') }}"
+               class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                <i class="ti ti-arrow-left"></i> Back to Manager
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-blue-200 dark:border-blue-800 p-4 text-center">
+            <h3 class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ league.teams|length }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Teams</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border {{ 'border-green-200 dark:border-green-800' if config else 'border-yellow-200 dark:border-yellow-800' }} p-4 text-center">
+            <h3 class="text-3xl font-bold {{ 'text-green-600 dark:text-green-400' if config else 'text-yellow-600 dark:text-yellow-400' }}">
+                {% if config %}
+                    <i class="ti ti-check"></i>
+                {% else %}
+                    <i class="ti ti-x"></i>
+                {% endif %}
+            </h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Configuration</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border {{ 'border-cyan-200 dark:border-cyan-800' if templates_count > 0 else 'border-gray-200 dark:border-gray-700' }} p-4 text-center">
+            <h3 class="text-3xl font-bold {{ 'text-cyan-600 dark:text-cyan-400' if templates_count > 0 else 'text-gray-400 dark:text-gray-500' }}">{{ templates_count }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Draft Templates</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border {{ 'border-red-200 dark:border-red-800' if existing_schedule else 'border-green-200 dark:border-green-800' }} p-4 text-center">
+            <h3 class="text-3xl font-bold {{ 'text-red-600 dark:text-red-400' if existing_schedule else 'text-green-600 dark:text-green-400' }}">
+                {% if existing_schedule %}
+                    <i class="ti ti-alert-triangle"></i>
+                {% else %}
+                    <i class="ti ti-check"></i>
+                {% endif %}
+            </h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Schedule Status</p>
+        </div>
+    </div>
+
+    <!-- Current Status Alert -->
+    {% if existing_schedule %}
+    <div class="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-4 rounded-r-lg mb-6">
+        <div class="flex items-start gap-3">
+            <i class="ti ti-alert-triangle text-red-500 text-xl mt-0.5"></i>
+            <div>
+                <h4 class="font-semibold text-red-800 dark:text-red-200">Warning: Existing Schedule Detected</h4>
+                <p class="text-red-700 dark:text-red-300 text-sm">This league already has a manual schedule. Using the auto schedule system will require deleting the existing schedule first.</p>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500 p-4 rounded-r-lg mb-6">
+        <div class="flex items-start gap-3">
+            <i class="ti ti-check text-green-500 text-xl mt-0.5"></i>
+            <div>
+                <h4 class="font-semibold text-green-800 dark:text-green-200">Ready for Auto Schedule</h4>
+                <p class="text-green-700 dark:text-green-300 text-sm">This league is ready for automatic schedule generation. No conflicting manual schedule found.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Teams List -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-users text-ecs-green"></i> Teams ({{ league.teams|length }})
+            </h2>
+        </div>
+        <div class="p-4">
+            {% if league.teams %}
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {% for team in league.teams %}
+                    {% if team.name not in ['FUN WEEK', 'BYE', 'TST'] %}
+                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                        <h5 class="font-medium text-gray-900 dark:text-white">{{ team.name }}</h5>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ team.players|length }} players</p>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+            <!-- Placeholder Teams -->
+            {% set placeholder_teams = league.teams|selectattr('name', 'in', ['FUN WEEK', 'BYE', 'TST'])|list %}
+            {% if placeholder_teams %}
+            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Special Week Placeholder Teams:</h6>
+                <div class="flex flex-wrap gap-2">
+                    {% for team in placeholder_teams %}
+                    <span class="px-3 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-full text-sm">{{ team.name }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-center">
+                <i class="ti ti-alert-triangle text-yellow-500 text-xl"></i>
+                <p class="text-yellow-700 dark:text-yellow-300 mt-2">No teams found in this league. Create teams before generating a schedule.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Configuration Status -->
+    {% if config %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-settings text-ecs-green"></i> Current Configuration
+            </h2>
+        </div>
+        <div class="p-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Start Time</p>
+                    <span class="inline-block mt-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full text-sm">{{ config.start_time.strftime('%H:%M') }}</span>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Match Duration</p>
+                    <span class="inline-block mt-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full text-sm">{{ config.match_duration_minutes }} minutes</span>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Weeks</p>
+                    <span class="inline-block mt-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full text-sm">{{ config.weeks_count }} weeks</span>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Fields</p>
+                    <span class="inline-block mt-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full text-sm">{{ config.fields }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="flex flex-wrap gap-3 mb-6">
+        {% if league.teams|length >= 2 %}
+        <a href="{{ url_for('auto_schedule.auto_schedule_config', league_id=league.id) }}"
+           class="inline-flex items-center gap-2 px-6 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors">
+            <i class="ti ti-calendar"></i>
+            {% if config %}Reconfigure & Generate{% else %}Configure & Generate{% endif %}
+        </a>
+        {% endif %}
+
+        {% if templates_count > 0 %}
+        <a href="{{ url_for('auto_schedule.preview_schedule', league_id=league.id) }}"
+           class="inline-flex items-center gap-2 px-6 py-2 rounded-lg bg-blue-500 text-white font-medium hover:bg-blue-600 transition-colors">
+            <i class="ti ti-eye"></i> Preview Schedule ({{ templates_count }} matches)
+        </a>
+        {% endif %}
+
+        {% if existing_schedule %}
+        <button type="button" class="js-show-schedule-conflict-info inline-flex items-center gap-2 px-6 py-2 rounded-lg bg-yellow-500 text-white font-medium hover:bg-yellow-600 transition-colors"
+                data-action="show-schedule-conflict-info">
+            <i class="ti ti-alert-triangle"></i> Existing Schedule Conflict
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Schedule Calculation Preview -->
+    {% if league.teams|length >= 2 %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-calculator text-ecs-green"></i> Schedule Calculation
+            </h2>
+        </div>
+        <div class="p-4">
+            {% set real_teams = league.teams|rejectattr('name', 'in', ['FUN WEEK', 'BYE', 'TST'])|list %}
+            {% set team_count = real_teams|length %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <p><strong class="text-gray-700 dark:text-gray-300">Teams:</strong> <span class="text-gray-600 dark:text-gray-400">{{ team_count }} teams</span></p>
+                    <p><strong class="text-gray-700 dark:text-gray-300">Matches per team:</strong> <span class="text-gray-600 dark:text-gray-400">{{ (team_count - 1) * 2 }} total matches</span></p>
+                    <p><strong class="text-gray-700 dark:text-gray-300">Regular season:</strong> <span class="text-gray-600 dark:text-gray-400">Each team plays every other team twice</span></p>
+                </div>
+                <div class="space-y-2">
+                    <p><strong class="text-gray-700 dark:text-gray-300">Games per day:</strong> <span class="text-gray-600 dark:text-gray-400">2 back-to-back matches</span></p>
+                    <p><strong class="text-gray-700 dark:text-gray-300">Total league matches:</strong> <span class="text-gray-600 dark:text-gray-400">{{ (team_count * (team_count - 1)) }} matches</span></p>
+                    <p><strong class="text-gray-700 dark:text-gray-300">Special weeks:</strong> <span class="text-gray-600 dark:text-gray-400">FUN, TST, BYE supported</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('click', function(e) {
+    const conflictBtn = e.target.closest('.js-show-schedule-conflict-info');
+    if (conflictBtn) {
+        const isDark = document.documentElement.classList.contains('dark');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Schedule Conflict',
+            text: 'Manual schedule deletion must be done through the regular schedule management interface.',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827',
+            confirmButtonColor: '#1a472a'
+        });
+    }
+});
+</script>
+{% endblock %}
