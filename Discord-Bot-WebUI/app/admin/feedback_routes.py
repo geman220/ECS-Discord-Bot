@@ -88,7 +88,7 @@ def view_feedback(feedback_id):
             return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
 
     return render_template(
-        'admin_report_detail.html',
+        'admin_report_detail_flowbite.html',
         feedback=feedback,
         form=form,
         reply_form=reply_form,

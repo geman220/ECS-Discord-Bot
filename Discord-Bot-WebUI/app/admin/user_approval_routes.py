@@ -228,7 +228,7 @@ def ux_test_flow():
             db_session.refresh(user_state)
 
     return render_template(
-        'admin/ux_test_flow.html',
+        'admin/ux_test_flow_flowbite.html',
         current_player_id=current_player_id or 1,
         user_discord_id=user_discord_id,
         user_state=user_state,

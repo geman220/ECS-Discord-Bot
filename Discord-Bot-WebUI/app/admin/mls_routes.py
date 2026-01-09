@@ -246,12 +246,12 @@ def match_management():
         match.task_details = {'status': 'HISTORICAL'}
     
     return render_template(
-        'admin/match_management.html', 
+        'admin/match_management_flowbite.html',
         matches=visible_matches,
         historical_matches=historical_matches,
         historical_count=len(historical_matches),
-        title='Match Management', 
-        current_time=datetime.utcnow(), 
+        title='Match Management',
+        current_time=datetime.utcnow(),
         timedelta=timedelta
     )
 
