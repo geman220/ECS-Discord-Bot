@@ -1,0 +1,460 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}{{ league_config.name }} Substitute Pool{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Breadcrumb -->
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+            <a href="{{ url_for('admin.substitute_pool.manage_substitute_pools') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Substitute Pools</a>
+            <span>/</span>
+            <span>{{ league_config.name }}</span>
+        </div>
+    </div>
+
+    <!-- League Header -->
+    <div class="p-6 rounded-lg text-white" style="background-color: {{ league_config.color }};">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold flex items-center gap-2">
+                    <i class="{{ league_config.icon }}"></i>{{ league_config.name }} Substitute Pool
+                </h1>
+                <p class="opacity-90">Manage substitute players for {{ league_config.name }} matches</p>
+            </div>
+            <button type="button" id="refreshPool" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-white hover:bg-gray-100 rounded-lg transition-colors">
+                <i class="ti ti-refresh mr-2"></i>Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Dashboard -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 border-l-4" style="border-left-color: {{ league_config.color }};">
+            <h3 class="text-2xl font-bold" style="color: {{ league_config.color }};">{{ stats.total_active }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Active Substitutes</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 border-l-4" style="border-left-color: {{ league_config.color }};">
+            <h3 class="text-2xl font-bold" style="color: {{ league_config.color }};">{{ stats.pending_approval }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Pending Approval</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 border-l-4" style="border-left-color: {{ league_config.color }};">
+            <h3 class="text-2xl font-bold" style="color: {{ league_config.color }};">{{ stats.total_requests_sent }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Total Requests Sent</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 border-l-4" style="border-left-color: {{ league_config.color }};">
+            <h3 class="text-2xl font-bold" style="color: {{ league_config.color }};">{{ stats.total_matches_played }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Matches Played</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Pool Management -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Search and Add Players -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Add Players to Pool</h5>
+                </div>
+                <div class="p-4">
+                    <div class="flex gap-2">
+                        <input type="text" id="playerSearch" placeholder="Search players by name, email, or Discord ID..."
+                               data-league="{{ league_type }}"
+                               class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <button type="button" id="searchPlayers" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                            <i class="ti ti-search mr-2"></i>Search
+                        </button>
+                    </div>
+                    <div id="searchResults" class="mt-2 hidden"></div>
+                </div>
+            </div>
+
+            <!-- Pending Approval -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-clock text-yellow-500"></i>Pending Approval ({{ available_players|length }})
+                    </h5>
+                </div>
+                <div class="p-4">
+                    {% if available_players %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% for player in available_players %}
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                            <div class="flex items-start justify-between mb-3">
+                                <div>
+                                    <h6 class="font-medium text-gray-900 dark:text-white">{{ player.name }}</h6>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-mail mr-1"></i>{{ player.user.email if player.user else 'No email' }}</p>
+                                    {% if player.discord_id %}
+                                    <p class="text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-brand-discord mr-1"></i>{{ player.discord_id }}</p>
+                                    {% endif %}
+                                    {% if player.phone_number %}
+                                    <p class="text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-phone mr-1"></i>{{ player.phone_number }}</p>
+                                    {% endif %}
+                                </div>
+                                <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full">Pending</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" class="approve-player-btn flex-1 inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                                        data-player-id="{{ player.id }}" data-league="{{ league_type }}">
+                                    <i class="ti ti-check mr-1"></i>Approve
+                                </button>
+                                <button type="button" class="view-details-btn inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors"
+                                        data-player-id="{{ player.id }}">
+                                    <i class="ti ti-info-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <i class="ti ti-user-plus text-4xl text-gray-300 dark:text-gray-600 mb-2"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No players pending approval</p>
+                        <p class="text-sm text-gray-400 dark:text-gray-500">Players with the "{{ league_config.role }}" role will appear here</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Active Pool -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-check-circle text-green-500"></i>Active Pool ({{ active_pools|length }})
+                    </h5>
+                </div>
+                <div class="p-4">
+                    {% if active_pools %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% for pool in active_pools %}
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                            <div class="flex items-start justify-between mb-3">
+                                <div>
+                                    <h6 class="font-medium text-gray-900 dark:text-white">{{ pool.player.name }}</h6>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ pool.player.user.email if pool.player.user else 'No email' }}</p>
+                                    {% if pool.preferred_positions %}
+                                    <p class="text-xs text-blue-600 dark:text-blue-400"><i class="ti ti-run mr-1"></i>{{ pool.preferred_positions }}</p>
+                                    {% endif %}
+                                    {% if pool.approver %}
+                                    <p class="text-xs text-gray-400 dark:text-gray-500"><i class="ti ti-user-check mr-1"></i>Approved by {{ pool.approver.display_name }}</p>
+                                    {% endif %}
+                                </div>
+                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full">Active</span>
+                            </div>
+                            <div class="flex gap-4 mb-3 text-center text-xs">
+                                <div>
+                                    <span class="block font-bold" style="color: {{ league_config.color }};">{{ pool.requests_received }}</span>
+                                    <span class="text-gray-500">Requests</span>
+                                </div>
+                                <div>
+                                    <span class="block font-bold" style="color: {{ league_config.color }};">{{ pool.matches_played }}</span>
+                                    <span class="text-gray-500">Matches</span>
+                                </div>
+                                <div>
+                                    <span class="block font-bold" style="color: {{ league_config.color }};">{{ "%.0f"|format(pool.acceptance_rate) }}%</span>
+                                    <span class="text-gray-500">Accept Rate</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-1 mb-3">
+                                {% if pool.sms_for_sub_requests %}
+                                <span class="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded">SMS</span>
+                                {% endif %}
+                                {% if pool.discord_for_sub_requests %}
+                                <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded">Discord</span>
+                                {% endif %}
+                                {% if pool.email_for_sub_requests %}
+                                <span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded">Email</span>
+                                {% endif %}
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" class="remove-player-btn flex-1 inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 border border-yellow-200 dark:border-yellow-800 rounded-lg transition-colors"
+                                        data-player-id="{{ pool.player_id }}" data-league="{{ league_type }}">
+                                    <i class="ti ti-x mr-1"></i>Remove
+                                </button>
+                                <button type="button" class="edit-player-btn inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors"
+                                        data-player-id="{{ pool.player_id }}" data-league="{{ league_type }}">
+                                    <i class="ti ti-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <i class="ti ti-users text-4xl text-gray-300 dark:text-gray-600 mb-2"></i>
+                        <p class="text-gray-500 dark:text-gray-400">No active substitutes</p>
+                        <p class="text-sm text-gray-400 dark:text-gray-500">Drag players from the pending section to activate them</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Performance Chart -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-chart-line text-gray-500"></i>Analytics
+                    </h5>
+                </div>
+                <div class="p-4">
+                    <canvas id="performanceChart" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-history text-gray-500"></i>Recent Activity
+                    </h5>
+                </div>
+                <div class="p-4">
+                    {% if recent_activity %}
+                    <div class="space-y-3">
+                        {% for activity in recent_activity %}
+                        <div class="pb-3 {% if not loop.last %}border-b border-gray-100 dark:border-gray-700{% endif %}">
+                            <p class="text-sm font-medium" style="color: {{ league_config.color }};">{{ activity.action }}</p>
+                            <p class="text-sm text-gray-900 dark:text-white">{{ activity.pool.player.name if activity.pool and activity.pool.player else 'Unknown Player' }}</p>
+                            {% if activity.notes %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ activity.notes }}</p>
+                            {% endif %}
+                            <p class="text-xs text-gray-400 dark:text-gray-500">{{ activity.performed_at.strftime('%b %d, %Y at %I:%M %p') }}{% if activity.performer %} by {{ activity.performer.display_name }}{% endif %}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="ti ti-history text-3xl text-gray-300 dark:text-gray-600 mb-2"></i>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">No recent activity</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-bolt text-gray-500"></i>Quick Actions
+                    </h5>
+                </div>
+                <div class="p-4 space-y-2">
+                    <button type="button" id="exportPoolData" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors">
+                        <i class="ti ti-download mr-2"></i>Export Pool Data
+                    </button>
+                    <button type="button" id="sendPoolReminder" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 border border-cyan-200 dark:border-cyan-800 rounded-lg transition-colors">
+                        <i class="ti ti-bell mr-2"></i>Send Pool Reminder
+                    </button>
+                    <button type="button" id="viewPoolHistory" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 border border-yellow-200 dark:border-yellow-800 rounded-lg transition-colors">
+                        <i class="ti ti-history mr-2"></i>View Full History
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Preferences Modal -->
+<div id="editPreferencesModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Substitute Preferences</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="editPreferencesModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form id="preferencesForm">
+                <input type="hidden" id="editPlayerId" name="player_id">
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Preferred Positions</label>
+                        <input type="text" id="editPositions" name="preferred_positions" placeholder="e.g., Forward, Midfielder"
+                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Matches Per Week</label>
+                        <input type="number" id="editMaxMatches" name="max_matches_per_week" min="1" max="10" value="3"
+                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Preferences</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="editSmsNotifications" name="sms_notifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">SMS Notifications</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="editDiscordNotifications" name="discord_notifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Discord Notifications</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="editEmailNotifications" name="email_notifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes</label>
+                        <textarea id="editNotes" name="notes" rows="3" placeholder="Any additional notes..."
+                                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" data-modal-hide="editPreferencesModal">Cancel</button>
+                    <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Player Details Modal -->
+<div id="playerDetailsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Player Details</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="playerDetailsModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4" id="playerDetailsContent">
+                <!-- Content will be loaded via AJAX -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    const leagueType = '{{ league_type }}';
+    const leagueColor = '{{ league_config.color }}';
+
+    // Initialize chart
+    const ctx = document.getElementById('performanceChart');
+    if (ctx) {
+        new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Substitute Requests',
+                    data: [12, 19, 3, 5, 2, 3],
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    borderColor: leagueColor,
+                    borderWidth: 2,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Approve player buttons
+    document.querySelectorAll('.approve-player-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const playerId = this.dataset.playerId;
+            const league = this.dataset.league;
+
+            Swal.fire({
+                title: 'Approve Player?',
+                text: 'Add this player to the active substitute pool?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, approve',
+                confirmButtonColor: '#22c55e',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/admin/substitute-pools/approve', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ player_id: playerId, league_type: league })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // Remove player buttons
+    document.querySelectorAll('.remove-player-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const playerId = this.dataset.playerId;
+            const league = this.dataset.league;
+
+            Swal.fire({
+                title: 'Remove Player?',
+                text: 'Remove this player from the active substitute pool?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, remove',
+                confirmButtonColor: '#dc2626',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/admin/substitute-pools/remove', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ player_id: playerId, league_type: league })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // Edit player buttons
+    document.querySelectorAll('.edit-player-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const playerId = this.dataset.playerId;
+            document.getElementById('editPlayerId').value = playerId;
+            const modal = FlowbiteInstances.getInstance('Modal', 'editPreferencesModal');
+            if (modal) modal.show();
+        });
+    });
+
+    // Refresh button
+    document.getElementById('refreshPool')?.addEventListener('click', function() {
+        location.reload();
+    });
+});
+</script>
+{% endblock %}

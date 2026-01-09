@@ -1,0 +1,417 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}ECS FC RSVP Status - {{ match.team.name }} vs {{ match.opponent_name }}{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+            <span>/</span>
+            <span>ECS FC</span>
+            <span>/</span>
+            <span>RSVPs</span>
+            <span>/</span>
+            <span>{{ match.team.name }} vs {{ match.opponent_name }}</span>
+        </div>
+    </div>
+
+    <!-- Match Information Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full">
+                        <i class="ti ti-trophy text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ match.team.name }} vs {{ match.opponent_name }}</h2>
+                        <div class="flex flex-wrap gap-2 mt-1">
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full">ECS FC</span>
+                            <span class="px-2 py-0.5 text-xs font-medium {{ 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' if match.is_home_match else 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' }} rounded-full">
+                                {{ 'Home' if match.is_home_match else 'Away' }} Match
+                            </span>
+                            <span class="px-2 py-0.5 text-xs font-medium {% if match.status == 'COMPLETED' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400{% elif match.status == 'SCHEDULED' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400{% else %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400{% endif %} rounded-full">
+                                {{ match.status }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" data-action="send-rsvp-reminder">
+                        <i class="ti ti-bell mr-2"></i>Send Reminder
+                    </button>
+                    <a href="{{ url_for('ecs_fc.match_details', match_id=match.id) }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                        <i class="ti ti-eye mr-2"></i>View Match
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="ti ti-calendar text-green-600 dark:text-green-400"></i>
+                        <h6 class="font-medium text-gray-900 dark:text-white">Match Date</h6>
+                    </div>
+                    <p class="font-semibold text-gray-900 dark:text-white">{{ match.match_date.strftime('%A, %B %d, %Y') }}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ match.match_time.strftime('%I:%M %p') }}</p>
+                </div>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="ti ti-map-pin text-green-600 dark:text-green-400"></i>
+                        <h6 class="font-medium text-gray-900 dark:text-white">Location</h6>
+                    </div>
+                    <p class="font-semibold text-gray-900 dark:text-white">{{ match.location }}</p>
+                    {% if match.field_name %}
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ match.field_name }}</p>
+                    {% endif %}
+                </div>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="ti ti-users text-green-600 dark:text-green-400"></i>
+                        <h6 class="font-medium text-gray-900 dark:text-white">Team</h6>
+                    </div>
+                    <p class="font-semibold text-gray-900 dark:text-white">{{ match.team.name }}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ match.team.players|length }} players</p>
+                </div>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="ti ti-percentage text-green-600 dark:text-green-400"></i>
+                        <h6 class="font-medium text-gray-900 dark:text-white">Response Rate</h6>
+                    </div>
+                    <p class="font-semibold text-gray-900 dark:text-white">{{ response_rate }}%</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ total_responses }}/{{ total_players }} responded</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RSVP Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="w-12 h-12 mx-auto mb-2 flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full">
+                <i class="ti ti-check text-xl"></i>
+            </div>
+            <h4 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ rsvp_summary.yes }}</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Available</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="w-12 h-12 mx-auto mb-2 flex items-center justify-center bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full">
+                <i class="ti ti-x text-xl"></i>
+            </div>
+            <h4 class="text-2xl font-bold text-red-600 dark:text-red-400">{{ rsvp_summary.no }}</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Unavailable</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="w-12 h-12 mx-auto mb-2 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-full">
+                <i class="ti ti-help text-xl"></i>
+            </div>
+            <h4 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ rsvp_summary.maybe }}</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Maybe</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="w-12 h-12 mx-auto mb-2 flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
+                <i class="ti ti-clock text-xl"></i>
+            </div>
+            <h4 class="text-2xl font-bold text-gray-600 dark:text-gray-400">{{ rsvp_summary.no_response }}</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400">No Response</p>
+        </div>
+    </div>
+
+    <!-- Player RSVP Management Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Player RSVP Management</h5>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" class="filter-btn px-3 py-1.5 text-sm font-medium rounded-lg bg-blue-600 text-white" data-filter="all">All</button>
+                <button type="button" class="filter-btn px-3 py-1.5 text-sm font-medium rounded-lg bg-white dark:bg-gray-800 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800" data-filter="yes">Available</button>
+                <button type="button" class="filter-btn px-3 py-1.5 text-sm font-medium rounded-lg bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800" data-filter="no">Unavailable</button>
+                <button type="button" class="filter-btn px-3 py-1.5 text-sm font-medium rounded-lg bg-white dark:bg-gray-800 text-yellow-600 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800" data-filter="maybe">Maybe</button>
+                <button type="button" class="filter-btn px-3 py-1.5 text-sm font-medium rounded-lg bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600" data-filter="no_response">No Response</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table id="rsvpTable" class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Player</th>
+                        <th scope="col" class="px-4 py-3">Contact</th>
+                        <th scope="col" class="px-4 py-3">Response</th>
+                        <th scope="col" class="px-4 py-3">Response Time</th>
+                        <th scope="col" class="px-4 py-3">Notes</th>
+                        <th scope="col" class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in match.team.players %}
+                    {% set availability = rsvp_responses.get(player.id) %}
+                    <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" data-response="{{ availability.response if availability else 'no_response' }}">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                {% if player.profile_picture %}
+                                <img src="{{ player.profile_picture }}" alt="{{ player.player_name }}" class="w-8 h-8 rounded-full">
+                                {% else %}
+                                <div class="w-8 h-8 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium">
+                                    {{ player.player_name[0] }}
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <p class="font-medium text-gray-900 dark:text-white">{{ player.player_name }}</p>
+                                    {% if player.discord_id %}
+                                    <p class="text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-brand-discord mr-1"></i>Discord User</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if player.email %}
+                            <p class="text-xs"><i class="ti ti-mail mr-1"></i>{{ player.email }}</p>
+                            {% endif %}
+                            {% if player.phone %}
+                            <p class="text-xs"><i class="ti ti-phone mr-1"></i>{{ player.phone }}</p>
+                            {% endif %}
+                            {% if not player.email and not player.phone %}
+                            <p class="text-xs text-gray-400">No contact info</p>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if availability %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full {% if availability.response == 'yes' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400{% elif availability.response == 'no' %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400{% elif availability.response == 'maybe' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                                {% if availability.response == 'yes' %}Available{% elif availability.response == 'no' %}Unavailable{% elif availability.response == 'maybe' %}Maybe{% else %}No Response{% endif %}
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">No Response</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if availability and availability.response_time %}
+                            <span class="text-xs">{{ availability.response_time.strftime('%m/%d/%Y %I:%M %p') }}</span>
+                            {% else %}
+                            <span class="text-xs text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if availability and availability.notes %}
+                            <span class="text-xs">{{ availability.notes }}</span>
+                            {% else %}
+                            <span class="text-xs text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-1">
+                                <button type="button" class="update-rsvp-btn p-1.5 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300" data-player-id="{{ player.id }}" data-response="yes" data-player-name="{{ player.player_name }}" title="Mark Available">
+                                    <i class="ti ti-check"></i>
+                                </button>
+                                <button type="button" class="update-rsvp-btn p-1.5 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300" data-player-id="{{ player.id }}" data-response="no" data-player-name="{{ player.player_name }}" title="Mark Unavailable">
+                                    <i class="ti ti-x"></i>
+                                </button>
+                                <button type="button" class="update-rsvp-btn p-1.5 text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300" data-player-id="{{ player.id }}" data-response="maybe" data-player-name="{{ player.player_name }}" title="Mark Maybe">
+                                    <i class="ti ti-help"></i>
+                                </button>
+                                {% if player.discord_id %}
+                                <button type="button" class="send-reminder-btn p-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" data-player-id="{{ player.id }}" title="Send Individual Reminder">
+                                    <i class="ti ti-bell"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Update RSVP Modal -->
+<div id="updateRsvpModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Update Player RSVP</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="updateRsvpModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <p class="text-gray-700 dark:text-gray-300 mb-4">Are you sure you want to update <strong id="playerName"></strong>'s RSVP to <strong id="responseType"></strong>?</p>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Admin Notes (Optional)</label>
+                    <textarea id="adminNotes" rows="3" placeholder="Add any notes about this RSVP change..."
+                              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" data-modal-hide="updateRsvpModal">Cancel</button>
+                <button type="button" id="confirmUpdate" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Update RSVP</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    const matchId = {{ match.id }};
+    let currentPlayerId = null;
+    let currentResponse = null;
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const filter = this.dataset.filter;
+
+            // Update button styles
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.classList.remove('bg-blue-600', 'text-white');
+                b.classList.add('bg-white', 'dark:bg-gray-800');
+            });
+            this.classList.remove('bg-white', 'dark:bg-gray-800');
+            this.classList.add('bg-blue-600', 'text-white');
+
+            // Filter table rows
+            document.querySelectorAll('#rsvpTable tbody tr').forEach(row => {
+                const response = row.dataset.response;
+                row.style.display = (filter === 'all' || response === filter) ? '' : 'none';
+            });
+        });
+    });
+
+    // Update RSVP buttons
+    document.querySelectorAll('.update-rsvp-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentPlayerId = this.dataset.playerId;
+            currentResponse = this.dataset.response;
+            const playerName = this.dataset.playerName;
+
+            document.getElementById('playerName').textContent = playerName;
+            document.getElementById('responseType').textContent = currentResponse === 'yes' ? 'Available' : currentResponse === 'no' ? 'Unavailable' : 'Maybe';
+            document.getElementById('adminNotes').value = '';
+
+            const modal = FlowbiteInstances.getInstance('Modal', 'updateRsvpModal');
+            if (modal) modal.show();
+        });
+    });
+
+    // Confirm update
+    document.getElementById('confirmUpdate').addEventListener('click', function() {
+        const notes = document.getElementById('adminNotes').value.trim();
+
+        fetch('/api/ecs-fc/rsvp/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                match_id: matchId,
+                player_id: currentPlayerId,
+                response: currentResponse,
+                notes: notes || null,
+                admin_override: true
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const modal = FlowbiteInstances.getInstance('Modal', 'updateRsvpModal');
+                if (modal) modal.hide();
+                setTimeout(() => location.reload(), 500);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message || 'Failed to update RSVP',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        });
+    });
+
+    // Send reminder buttons
+    document.querySelectorAll('.send-reminder-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const playerId = this.dataset.playerId;
+
+            Swal.fire({
+                title: 'Send Reminder?',
+                text: 'Send an individual RSVP reminder to this player?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, send',
+                confirmButtonColor: '#2563eb',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/api/ecs-fc/matches/${matchId}/remind`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ target_players: [playerId] })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Reminder Sent!',
+                                text: 'Individual reminder sent successfully',
+                                timer: 3000,
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // Send reminder to all
+    document.querySelector('[data-action="send-rsvp-reminder"]')?.addEventListener('click', function() {
+        Swal.fire({
+            title: 'Send Reminder to All?',
+            text: 'Send RSVP reminder to all players who haven\'t responded?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, send',
+            confirmButtonColor: '#2563eb',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/api/ecs-fc/matches/${matchId}/remind`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Reminders Sent!',
+                            text: data.message,
+                            timer: 3000,
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
