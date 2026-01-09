@@ -34,6 +34,8 @@
     </script>
 
     {% block extra_css %}{% endblock %}
+    {% block head %}{% endblock %}
+    {% block head_extra %}{% endblock %}
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex items-center justify-center">
     <!-- Dark Mode Toggle (floating) -->
@@ -95,5 +97,7 @@
     </script>
 
     {% block extra_js %}{% endblock %}
+    {% block custom_js %}{% endblock %}
+    {% block scripts %}{% endblock %}
 </body>
 </html>

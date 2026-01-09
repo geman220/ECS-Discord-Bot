@@ -125,6 +125,8 @@
         {% block panel_content %}{% endblock %}
     </div>
 </div>
+
+{% block modals %}{% endblock %}
 {% endblock %}
 
 {% block custom_js %}
@@ -149,4 +151,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+{% block extra_js %}{% endblock %}
 {% endblock %}
