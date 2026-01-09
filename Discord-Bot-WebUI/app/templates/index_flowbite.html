@@ -1,0 +1,475 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block main_content %}
+<div class="p-4 space-y-6">
+    {% if player %}
+    <div id="rsvp-data"
+         data-player-id="{{ player.id }}"
+         data-discord-id="{{ player.discord_id }}"
+         data-discord-in-server="{{ 'true' if player.discord_in_server else 'false' if player.discord_in_server is not none else 'unknown' }}"
+         data-discord-last-checked="{{ player.discord_last_checked.isoformat() if player.discord_last_checked else '' }}"
+         data-csrf-token="{{ csrf_token() }}"
+         data-discord-auth-url="{{ url_for('auth.discord_login') }}">
+    </div>
+    {% endif %}
+
+    <!-- Welcome Header -->
+    <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-xl p-6 text-white">
+        {% if player %}
+        <h2 class="text-2xl font-bold mb-2">Welcome, {{ player.name }}!</h2>
+        {% if user_team and user_team|length > 0 %}
+        <p class="text-white/80">
+            You're playing for:
+            {% for team in user_team %}
+            <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 hover:bg-white/30 transition-colors ml-1">
+                {{ team.name }}
+            </a>{% if not loop.last %},{% endif %}
+            {% endfor %}
+        </p>
+        {% else %}
+        <p class="text-white/80">You are not currently assigned to a team</p>
+        {% endif %}
+        {% else %}
+        <div class="text-center">
+            <h2 class="text-2xl font-bold mb-2">Welcome!</h2>
+            <p class="text-white/80">Please create your player profile to get started</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if not show_onboarding %}
+    <!-- Announcements Card -->
+    {% if announcements %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="flex items-center gap-4 p-4">
+            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-ecs-gold/20 flex items-center justify-center">
+                <i class="ti ti-bell text-ecs-gold text-xl"></i>
+            </div>
+            <div class="flex-1 min-w-0" id="announcementsCarousel">
+                {% for announcement in announcements %}
+                <div class="announcement-slide {% if not loop.first %}hidden{% endif %}" data-slide="{{ loop.index0 }}">
+                    <h5 class="font-semibold text-gray-900 dark:text-white">{{ announcement.title }}</h5>
+                    <p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{{ announcement.content }}</p>
+                    <small class="text-xs text-gray-400">{{ announcement.created_at.strftime('%B %d, %Y') }}</small>
+                </div>
+                {% endfor %}
+            </div>
+            {% if announcements|length > 1 %}
+            <button type="button" class="flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" id="nextAnnouncement">
+                <i class="ti ti-chevron-right text-gray-500"></i>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if not player %}
+    <!-- Create Profile Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+        <img src="{{ url_for('static', filename='img/undraw_profile_details_re_ch9r.svg') }}"
+             alt="Create Profile" class="w-48 h-48 mx-auto mb-4 opacity-80">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Get Started</h3>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">Create your player profile to access team information, match scheduling, and more.</p>
+        <form method="POST" action="{{ url_for('main.index') }}">
+            {{ onboarding_form.hidden_tag() }}
+            <input type="hidden" name="form_action" id="form_action" value="reset_skip_profile">
+            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                <i class="ti ti-user-plus"></i>Create Player Profile
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if player %}
+    <!-- Upcoming Matches Section -->
+    <div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <h4 class="text-lg font-bold text-gray-900 dark:text-white">Upcoming Matches</h4>
+            {% if user_team and user_team|length > 0 %}
+            <div class="flex flex-wrap gap-2" id="match-tabs" role="tablist">
+                {% for t in user_team %}
+                <button class="team-tab px-3 py-1.5 text-sm font-medium rounded-lg transition-colors {% if loop.first %}bg-ecs-green text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600{% endif %}"
+                        data-tab="team-{{ t.id }}" role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                    {{ t.name }}
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div id="match-tab-content">
+            {% if user_team and user_team|length > 0 %}
+            {% for t in user_team %}
+            <div class="team-content {% if not loop.first %}hidden{% endif %}" data-content="team-{{ t.id }}">
+                {% set team_next_matches = team_matches.get(t.id, {}).get('next', {}) %}
+
+                {% if team_next_matches|length > 0 %}
+                {% for date, matches in team_next_matches.items() | sort %}
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-4 overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between">
+                        <h5 class="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-calendar-event text-ecs-green dark:text-ecs-gold"></i>
+                            {{ date.strftime('%A, %B %d, %Y') }}
+                        </h5>
+                        {% if t.league %}
+                        <span class="px-2 py-0.5 text-xs rounded bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">{{ t.league.name }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for match_data in matches %}
+                        {% set match = match_data['match'] %}
+                        {% set home_team_name = match_data['home_team_name'] %}
+                        {% set opponent_team_name = match_data['opponent_name'] %}
+                        {% if match_data['home_team_id'] == t.id %}
+                            {% set is_home = true %}
+                            {% set opponent_name = opponent_team_name %}
+                        {% else %}
+                            {% set is_home = false %}
+                            {% set opponent_name = home_team_name %}
+                        {% endif %}
+
+                        <div class="p-4">
+                            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                                <div class="flex items-start gap-3">
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold {% if is_home %}bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400{% else %}bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400{% endif %}">
+                                        {% if is_home %}H{% else %}A{% endif %}
+                                    </div>
+                                    <div>
+                                        <h6 class="font-medium text-gray-900 dark:text-white">
+                                            {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                            <span class="px-2 py-0.5 text-xs rounded bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400 mr-2">
+                                                {% if match.week_type == 'FUN' %}Fun Week
+                                                {% elif match.week_type == 'TST' %}TST Week
+                                                {% elif match.week_type == 'BYE' %}Bye Week
+                                                {% elif match.week_type == 'BONUS' %}Bonus Week
+                                                {% elif match.week_type == 'PLAYOFF' %}Playoff Week
+                                                {% endif %}
+                                            </span>
+                                            {% else %}
+                                            {% if is_home %}
+                                            <span class="text-ecs-green dark:text-ecs-gold">{{ t.name }}</span> vs {{ opponent_name }}
+                                            {% else %}
+                                            {{ opponent_name }} vs <span class="text-ecs-green dark:text-ecs-gold">{{ t.name }}</span>
+                                            {% endif %}
+                                            {% endif %}
+                                        </h6>
+                                        <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            <span class="flex items-center gap-1"><i class="ti ti-clock"></i>{{ match.time.strftime('%I:%M %p') }}</span>
+                                            <span class="flex items-center gap-1"><i class="ti ti-map-pin"></i>{{ match.location }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <!-- RSVP Controls -->
+                                    <div class="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600" data-rsvp-controls data-match-id="{{ match.id }}">
+                                        <label class="rsvp-option cursor-pointer">
+                                            <input type="radio" class="rsvp-input sr-only" name="response-{{ match.id }}" value="yes">
+                                            <span class="px-3 py-2 flex items-center justify-center hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors" title="I can play">
+                                                <i class="ti ti-check text-green-600 dark:text-green-400"></i>
+                                            </span>
+                                        </label>
+                                        <label class="rsvp-option cursor-pointer border-l border-r border-gray-200 dark:border-gray-600">
+                                            <input type="radio" class="rsvp-input sr-only" name="response-{{ match.id }}" value="maybe">
+                                            <span class="px-3 py-2 flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors" title="Maybe">
+                                                <i class="ti ti-question-mark text-amber-600 dark:text-amber-400"></i>
+                                            </span>
+                                        </label>
+                                        <label class="rsvp-option cursor-pointer">
+                                            <input type="radio" class="rsvp-input sr-only" name="response-{{ match.id }}" value="no">
+                                            <span class="px-3 py-2 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" title="Can't play">
+                                                <i class="ti ti-x text-red-600 dark:text-red-400"></i>
+                                            </span>
+                                        </label>
+                                    </div>
+
+                                    {% if has_permission('view_match_page') %}
+                                    <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
+                                       class="px-3 py-2 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green/90 transition-colors">
+                                        Details
+                                    </a>
+                                    {% endif %}
+
+                                    {% if has_permission('report_match') %}
+                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors edit-match-btn"
+                                            data-match-id="{{ match.id }}" data-reported="{{ match.reported | lower }}">
+                                        <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %}"></i>
+                                        <span class="hidden sm:inline ml-1">{% if match.reported %}Edit{% else %}Report{% endif %}</span>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+                    <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}"
+                         alt="No Matches" class="w-32 h-32 mx-auto mb-4 opacity-60">
+                    <h5 class="font-semibold text-gray-900 dark:text-white mb-1">No Upcoming Matches</h5>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">There are no upcoming matches scheduled for {{ t.name }}.</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+                <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}"
+                     alt="No Matches" class="w-32 h-32 mx-auto mb-4 opacity-60">
+                <h5 class="font-semibold text-gray-900 dark:text-white mb-1">No Upcoming Matches</h5>
+                <p class="text-sm text-gray-500 dark:text-gray-400">You are not currently assigned to any teams.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Matches Section -->
+    <div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <h4 class="text-lg font-bold text-gray-900 dark:text-white">Recent Matches</h4>
+            {% if user_team and user_team|length > 0 %}
+            <div class="flex flex-wrap gap-2" id="recent-match-tabs" role="tablist">
+                {% for t in user_team %}
+                <button class="recent-team-tab px-3 py-1.5 text-sm font-medium rounded-lg transition-colors {% if loop.first %}bg-ecs-green text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600{% endif %}"
+                        data-tab="recent-team-{{ t.id }}" role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                    {{ t.name }}
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div id="recent-match-tab-content">
+            {% if user_team and user_team|length > 0 %}
+            {% for t in user_team %}
+            <div class="recent-team-content {% if not loop.first %}hidden{% endif %}" data-content="recent-team-{{ t.id }}">
+                {% set team_prev_matches = team_matches.get(t.id, {}).get('prev', {}) %}
+
+                {% if team_prev_matches|length > 0 %}
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for date, matches in team_prev_matches.items() | sort(reverse=true) %}
+                        {% for match_data in matches %}
+                        {% set match = match_data['match'] %}
+                        {% set home_team_name = match_data['home_team_name'] %}
+                        {% set opponent_team_name = match_data['opponent_name'] %}
+                        {% if match_data['home_team_id'] == t.id %}
+                            {% set is_home = true %}
+                            {% set opponent_name = opponent_team_name %}
+                        {% else %}
+                            {% set is_home = false %}
+                            {% set opponent_name = home_team_name %}
+                        {% endif %}
+
+                        <div class="p-4">
+                            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                                <div class="flex items-start gap-3">
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold {% if is_home %}bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400{% else %}bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400{% endif %}">
+                                        {% if is_home %}H{% else %}A{% endif %}
+                                    </div>
+                                    <div>
+                                        <h6 class="font-medium text-gray-900 dark:text-white">
+                                            {% if is_home %}
+                                            <span class="text-ecs-green dark:text-ecs-gold">{{ t.name }}</span> vs {{ opponent_name }}
+                                            {% else %}
+                                            {{ opponent_name }} vs <span class="text-ecs-green dark:text-ecs-gold">{{ t.name }}</span>
+                                            {% endif %}
+                                        </h6>
+                                        <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            <span>{{ date.strftime('%a, %b %d') }} · {{ match.time.strftime('%I:%M %p') }} · {{ match.location }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-2">
+                                    {% if has_permission('view_match_page') %}
+                                    <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
+                                       class="px-3 py-2 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green/90 transition-colors">
+                                        Details
+                                    </a>
+                                    {% endif %}
+
+                                    {% if has_permission('report_match') %}
+                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors edit-match-btn"
+                                            data-match-id="{{ match.id }}" data-reported="{{ match.reported | lower }}">
+                                        <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %}"></i>
+                                        <span class="hidden sm:inline ml-1">{% if match.reported %}Edit{% else %}Report{% endif %}</span>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+                    <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}"
+                         alt="No Matches" class="w-32 h-32 mx-auto mb-4 opacity-60">
+                    <h5 class="font-semibold text-gray-900 dark:text-white mb-1">No Recent Matches</h5>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">There are no recent matches for {{ t.name }}.</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+                <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}"
+                     alt="No Matches" class="w-32 h-32 mx-auto mb-4 opacity-60">
+                <h5 class="font-semibold text-gray-900 dark:text-white mb-1">No Recent Matches</h5>
+                <p class="text-sm text-gray-500 dark:text-gray-400">You are not currently assigned to any teams.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
+<!-- Enhanced Onboarding Modal -->
+{% if show_onboarding or session.get('force_onboarding') %}
+<div id="onboardingSlideModal" tabindex="-1" aria-hidden="true"
+     class="fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full flex items-center justify-center bg-black/50 dark:bg-black/70">
+    <div class="relative w-full max-w-2xl max-h-full">
+        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 rounded-t-xl">
+                <h5 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-user-circle text-ecs-green dark:text-ecs-gold"></i>Player Profile Setup
+                </h5>
+                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="onboardingSlideModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <div class="p-0">
+                {% include 'onboarding_modal_content.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock modals %}
+
+{% block custom_js %}
+<script>
+    // Make show_tour and player_choices globally available
+    window.showTour = {{ show_tour | tojson }};
+    window.playerChoices = {{ player_choices | tojson }};
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Announcement carousel
+    {% if announcements and announcements|length > 1 %}
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.announcement-slide');
+    const nextBtn = document.getElementById('nextAnnouncement');
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            slides[currentSlide].classList.add('hidden');
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].classList.remove('hidden');
+        });
+
+        // Auto-rotate every 8 seconds
+        setInterval(() => {
+            slides[currentSlide].classList.add('hidden');
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].classList.remove('hidden');
+        }, 8000);
+    }
+    {% endif %}
+
+    // Team tabs for upcoming matches
+    document.querySelectorAll('.team-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetId = tab.dataset.tab;
+
+            // Update tab styles
+            document.querySelectorAll('.team-tab').forEach(t => {
+                t.classList.remove('bg-ecs-green', 'text-white');
+                t.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                t.setAttribute('aria-selected', 'false');
+            });
+            tab.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            tab.classList.add('bg-ecs-green', 'text-white');
+            tab.setAttribute('aria-selected', 'true');
+
+            // Show/hide content
+            document.querySelectorAll('.team-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.querySelector(`[data-content="${targetId}"]`).classList.remove('hidden');
+        });
+    });
+
+    // Team tabs for recent matches
+    document.querySelectorAll('.recent-team-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetId = tab.dataset.tab;
+
+            // Update tab styles
+            document.querySelectorAll('.recent-team-tab').forEach(t => {
+                t.classList.remove('bg-ecs-green', 'text-white');
+                t.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                t.setAttribute('aria-selected', 'false');
+            });
+            tab.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            tab.classList.add('bg-ecs-green', 'text-white');
+            tab.setAttribute('aria-selected', 'true');
+
+            // Show/hide content
+            document.querySelectorAll('.recent-team-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.querySelector(`[data-content="${targetId}"]`).classList.remove('hidden');
+        });
+    });
+
+    // RSVP selection styling
+    document.querySelectorAll('.rsvp-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const container = this.closest('[data-rsvp-controls]');
+            container.querySelectorAll('.rsvp-option span').forEach(span => {
+                span.classList.remove('bg-green-100', 'dark:bg-green-900/50', 'bg-amber-100', 'dark:bg-amber-900/50', 'bg-red-100', 'dark:bg-red-900/50');
+            });
+
+            const selectedSpan = this.nextElementSibling;
+            if (this.value === 'yes') {
+                selectedSpan.classList.add('bg-green-100', 'dark:bg-green-900/50');
+            } else if (this.value === 'maybe') {
+                selectedSpan.classList.add('bg-amber-100', 'dark:bg-amber-900/50');
+            } else if (this.value === 'no') {
+                selectedSpan.classList.add('bg-red-100', 'dark:bg-red-900/50');
+            }
+        });
+    });
+
+    // Auto-open onboarding modal
+    {% if show_onboarding or session.get('force_onboarding') %}
+    const onboardingModal = document.getElementById('onboardingSlideModal');
+    if (onboardingModal) {
+        onboardingModal.classList.remove('hidden');
+    }
+    {% endif %}
+});
+</script>
+<script src="{{ url_for('static', filename='custom_js/tour.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/home.js') }}"></script>
+{% if show_onboarding or session.get('force_onboarding') %}
+<script src="{{ url_for('static', filename='custom_js/onboarding.js') }}"></script>
+{% endif %}
+{% if player %}
+<script src="{{ url_for('static', filename='custom_js/rsvp.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/simple-cropper.js') }}"></script>
+{% endif %}
+{% endblock %}
