@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSVP Submitted Successfully</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vite-dist/css/tailwind.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+    <script>
+        if (localStorage.getItem('color-theme') === 'dark' ||
+            (!localStorage.getItem('color-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <div class="w-full max-w-md">
+        <!-- Success Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+            <!-- Success Icon -->
+            <div class="w-20 h-20 mx-auto rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center mb-6">
+                <i class="ti ti-check text-4xl text-green-600 dark:text-green-400"></i>
+            </div>
+
+            <!-- Title -->
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">RSVP Submitted Successfully!</h1>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">Thank you for responding to the match invitation. Your RSVP has been recorded.</p>
+
+            <!-- Info -->
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6">
+                <p class="text-sm text-gray-600 dark:text-gray-300">You can now close this page.</p>
+            </div>
+
+            <!-- Countdown -->
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                This page will automatically become inactive in
+                <span id="countdown" class="font-bold text-ecs-green">30</span> seconds.
+            </p>
+        </div>
+
+        <!-- ECS Branding -->
+        <p class="text-center text-sm text-gray-400 dark:text-gray-500 mt-6">
+            ECS Soccer League
+        </p>
+    </div>
+
+    <script>
+        let timeLeft = 30;
+        const countdownElement = document.getElementById('countdown');
+
+        const countdownTimer = setInterval(function () {
+            timeLeft--;
+            countdownElement.textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+                clearInterval(countdownTimer);
+                document.body.innerHTML = `
+                    <div class="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+                        <div class="text-center">
+                            <p class="text-gray-500 dark:text-gray-400">This page is now inactive. You can close the tab.</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

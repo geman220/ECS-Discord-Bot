@@ -1,0 +1,168 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Sub Request - ECS Soccer League{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <!-- Sub Request Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <!-- Header -->
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green to-ecs-green/80">
+            <h1 class="text-xl font-bold text-white flex items-center gap-2">
+                <i class="ti ti-users"></i>
+                Substitute Request
+            </h1>
+        </div>
+
+        <div class="p-6">
+            {% if error %}
+            <!-- Error State -->
+            <div class="flex items-start gap-3 p-4 text-red-800 dark:text-red-200 bg-red-50 dark:bg-red-900/50 rounded-lg border border-red-200 dark:border-red-800">
+                <i class="ti ti-alert-circle text-xl flex-shrink-0 mt-0.5"></i>
+                <p>{{ error }}</p>
+            </div>
+
+            {% elif already_responded %}
+            <!-- Already Responded View -->
+            <div class="text-center mb-6">
+                {% if response.is_available %}
+                <div class="w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center mb-4">
+                    <i class="ti ti-check text-3xl text-green-600 dark:text-green-400"></i>
+                </div>
+                <h2 class="text-xl font-bold text-green-600 dark:text-green-400 mb-2">You're Available!</h2>
+                <p class="text-gray-500 dark:text-gray-400">Thanks for letting us know. We'll contact you if you're selected.</p>
+                {% else %}
+                <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                    <i class="ti ti-x text-3xl text-gray-500 dark:text-gray-400"></i>
+                </div>
+                <h2 class="text-xl font-bold text-gray-600 dark:text-gray-400 mb-2">Not Available</h2>
+                <p class="text-gray-500 dark:text-gray-400">Thanks for letting us know. Maybe next time!</p>
+                {% endif %}
+
+                {% if response.response_text %}
+                <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-left">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Your note:</p>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">{{ response.response_text }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <hr class="border-gray-200 dark:border-gray-700 my-6">
+
+            <h3 class="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <i class="ti ti-calendar-event text-ecs-green"></i>
+                Match Details
+            </h3>
+
+            {% else %}
+            <!-- Active Request View -->
+            <p class="text-gray-600 dark:text-gray-300 mb-6">
+                Hi <strong class="text-gray-900 dark:text-white">{{ details.player_name }}</strong>!
+                <strong class="text-gray-900 dark:text-white">{{ details.team_name }}</strong> is looking for a substitute player.
+            </p>
+
+            <h3 class="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <i class="ti ti-calendar-event text-ecs-green"></i>
+                Match Details
+            </h3>
+            {% endif %}
+
+            {% if details %}
+            <!-- Match Details Table -->
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden mb-6">
+                <div class="divide-y divide-gray-200 dark:divide-gray-600">
+                    <div class="flex justify-between p-3">
+                        <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                            <i class="ti ti-vs"></i> Match
+                        </span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ details.match.home_team }} vs {{ details.match.away_team }}</span>
+                    </div>
+                    <div class="flex justify-between p-3">
+                        <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                            <i class="ti ti-users"></i> Team
+                        </span>
+                        <span class="text-gray-900 dark:text-white">{{ details.team_name }}</span>
+                    </div>
+                    <div class="flex justify-between p-3">
+                        <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                            <i class="ti ti-calendar"></i> Date
+                        </span>
+                        <span class="text-gray-900 dark:text-white">{{ details.match.date }}</span>
+                    </div>
+                    <div class="flex justify-between p-3">
+                        <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                            <i class="ti ti-clock"></i> Time
+                        </span>
+                        <span class="text-gray-900 dark:text-white">{{ details.match.time }}</span>
+                    </div>
+                    <div class="flex justify-between p-3">
+                        <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                            <i class="ti ti-map-pin"></i> Location
+                        </span>
+                        <span class="text-gray-900 dark:text-white">{{ details.match.location }}</span>
+                    </div>
+                    {% if details.positions_needed %}
+                    <div class="flex justify-between p-3">
+                        <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                            <i class="ti ti-shirt"></i> Position
+                        </span>
+                        <span class="text-gray-900 dark:text-white">{{ details.positions_needed }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if details.notes %}
+            <div class="flex items-start gap-3 p-4 mb-6 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
+                <i class="ti ti-info-circle text-xl flex-shrink-0 mt-0.5"></i>
+                <p class="text-sm"><strong>Notes:</strong> {{ details.notes }}</p>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            {% if not already_responded and not error %}
+            <hr class="border-gray-200 dark:border-gray-700 my-6">
+
+            <h3 class="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <i class="ti ti-question-mark text-ecs-green"></i>
+                Are you available?
+            </h3>
+
+            <form action="{{ url_for('substitute_rsvp.submit_rsvp', token=token) }}" method="POST">
+                <!-- Optional Note -->
+                <div class="mb-6">
+                    <label for="response_text" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Optional note (e.g., "Might be 5 min late")
+                    </label>
+                    <textarea id="response_text" name="response_text" rows="2" maxlength="500"
+                              placeholder="Add any notes here..."
+                              class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"></textarea>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-2 gap-4">
+                    <button type="submit" name="is_available" value="yes"
+                            class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors">
+                        <i class="ti ti-check"></i>
+                        Yes, I'm Available!
+                    </button>
+                    <button type="submit" name="is_available" value="no"
+                            class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                        <i class="ti ti-x"></i>
+                        No, I Can't Make It
+                    </button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 text-center">
+            <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1">
+                <i class="ti ti-shield-check"></i>
+                ECS Soccer League - Substitute Management
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
