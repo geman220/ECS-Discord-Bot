@@ -1,0 +1,459 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state, avatar %}
+
+{% block admin_title %}I-Spy Players{% endblock %}
+{% block panel_description %}Manage I-Spy game players and scores{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.ispy_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">I-Spy</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Players</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Header Card -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 mb-6 border border-gray-200 dark:border-gray-700">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-users mr-2 text-ecs-green"></i>I-Spy Players
+            </h5>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Manage player accounts, scores, and jail status</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" id="exportPlayers">
+                <i class="ti ti-download mr-1"></i>Export
+            </button>
+            <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90" data-modal-target="addPlayerModal" data-modal-toggle="addPlayerModal">
+                <i class="ti ti-plus mr-1"></i>Add Player
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Player Stats -->
+<div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.total_players }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Players</p>
+            </div>
+            <div class="p-3 bg-ecs-green/10 rounded-full">
+                <i class="ti ti-users text-2xl text-ecs-green"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.active_players }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Active</p>
+            </div>
+            <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+                <i class="ti ti-user-check text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.players_in_jail }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">In Jail</p>
+            </div>
+            <div class="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+                <i class="ti ti-lock text-2xl text-red-600 dark:text-red-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.avg_score }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Avg Score</p>
+            </div>
+            <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                <i class="ti ti-chart-bar text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.high_score }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">High Score</p>
+            </div>
+            <div class="p-3 bg-ecs-gold/20 rounded-full">
+                <i class="ti ti-trophy text-2xl text-ecs-gold"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Players Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">All Players</h5>
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="relative">
+                <input type="text" id="searchPlayers" placeholder="Search players..." class="w-64 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 pl-10 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            </div>
+            <select id="filterSeason" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                <option value="">All Seasons</option>
+                {% for season in seasons %}
+                <option value="{{ season.id }}">{{ season.name }}</option>
+                {% endfor %}
+            </select>
+            <select id="filterStatus" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="jail">In Jail</option>
+                <option value="inactive">Inactive</option>
+            </select>
+        </div>
+    </div>
+
+    {% if players %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Player</th>
+                    <th scope="col" class="px-6 py-3">Discord</th>
+                    <th scope="col" class="px-6 py-3">Score</th>
+                    <th scope="col" class="px-6 py-3">Shots</th>
+                    <th scope="col" class="px-6 py-3">Status</th>
+                    <th scope="col" class="px-6 py-3">Last Active</th>
+                    <th scope="col" class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for player in players %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                {% if player.avatar_url %}
+                                <img class="w-10 h-10 rounded-full object-cover" src="{{ player.avatar_url }}" alt="{{ player.name }}">
+                                {% else %}
+                                <div class="w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center">
+                                    <span class="font-medium text-ecs-green">{{ player.name[0]|upper }}</span>
+                                </div>
+                                {% endif %}
+                                {% if player.is_in_jail %}
+                                <span class="absolute -bottom-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center">
+                                    <i class="ti ti-lock text-white text-xs"></i>
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900 dark:text-white">{{ player.name }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">ID: {{ player.id }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-gray-600 dark:text-gray-400">{{ player.discord_username or 'Not linked' }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-gray-900 dark:text-white">{{ player.score }}</span>
+                            {% if player.rank <= 3 %}
+                            <i class="ti ti-trophy {% if player.rank == 1 %}text-ecs-gold{% elif player.rank == 2 %}text-gray-400{% else %}text-amber-600{% endif %}"></i>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-900 dark:text-white">{{ player.shots_count }}</span>
+                            <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                <span class="text-green-600 dark:text-green-400">{{ player.approved_shots }}</span>
+                                <span class="mx-1">/</span>
+                                <span class="text-red-600 dark:text-red-400">{{ player.rejected_shots }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if player.is_in_jail %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                            <i class="ti ti-lock mr-1"></i>In Jail
+                        </span>
+                        {% elif player.is_active %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>Active
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            Inactive
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-xs text-gray-500 dark:text-gray-400">
+                        {{ player.last_active.strftime('%Y-%m-%d %H:%M') if player.last_active else 'Never' }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-1">
+                            <a href="{{ url_for('admin_panel.ispy_player_detail', player_id=player.id) }}" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" title="View Details">
+                                <i class="ti ti-eye"></i>
+                            </a>
+                            <button type="button" class="p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg" title="Edit" data-action="edit-player" data-id="{{ player.id }}">
+                                <i class="ti ti-edit"></i>
+                            </button>
+                            {% if player.is_in_jail %}
+                            <button type="button" class="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg" title="Release from Jail" data-action="release-player" data-id="{{ player.id }}">
+                                <i class="ti ti-lock-open"></i>
+                            </button>
+                            {% else %}
+                            <button type="button" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg" title="Send to Jail" data-action="jail-player" data-id="{{ player.id }}">
+                                <i class="ti ti-lock"></i>
+                            </button>
+                            {% endif %}
+                            <button type="button" class="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg" title="Adjust Score" data-action="adjust-score" data-id="{{ player.id }}" data-score="{{ player.score }}">
+                                <i class="ti ti-adjustments"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination and pagination.pages > 1 %}
+    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+        <nav class="flex items-center justify-between">
+            <p class="text-sm text-gray-700 dark:text-gray-400">
+                Showing <span class="font-medium">{{ ((pagination.page - 1) * pagination.per_page) + 1 }}</span>
+                to <span class="font-medium">{{ [pagination.page * pagination.per_page, pagination.total] | min }}</span>
+                of <span class="font-medium">{{ pagination.total }}</span> players
+            </p>
+            <div class="flex gap-2">
+                {% if pagination.has_prev %}
+                <a href="?page={{ pagination.prev_num }}" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
+                    <i class="ti ti-chevron-left mr-1"></i>Previous
+                </a>
+                {% endif %}
+                {% if pagination.has_next %}
+                <a href="?page={{ pagination.next_num }}" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
+                    Next<i class="ti ti-chevron-right ml-1"></i>
+                </a>
+                {% endif %}
+            </div>
+        </nav>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-users-minus text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Players Found</h5>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">No players have joined the I-Spy game yet.</p>
+        <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90" data-modal-target="addPlayerModal" data-modal-toggle="addPlayerModal">
+            <i class="ti ti-plus mr-1"></i>Add Player
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add Player Modal -->
+<div id="addPlayerModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
+    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative w-full max-w-md">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Add Player</h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="addPlayerModal">
+                        <i class="ti ti-x text-lg"></i>
+                    </button>
+                </div>
+                <form id="addPlayerForm">
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label for="playerDiscordId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Discord User <span class="text-red-500">*</span></label>
+                            <select id="playerDiscordId" name="discord_id" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                                <option value="">Select a user...</option>
+                                {% for user in discord_users %}
+                                <option value="{{ user.discord_id }}">{{ user.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="playerSeason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season <span class="text-red-500">*</span></label>
+                            <select id="playerSeason" name="season_id" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                                {% for season in seasons %}
+                                <option value="{{ season.id }}" {% if season.is_active %}selected{% endif %}>{{ season.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="playerInitialScore" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Initial Score</label>
+                            <input type="number" id="playerInitialScore" name="initial_score" value="0" min="0" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
+                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-modal-hide="addPlayerModal">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
+                            <i class="ti ti-plus mr-1"></i>Add Player
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Adjust Score Modal -->
+<div id="adjustScoreModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
+    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative w-full max-w-sm">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Adjust Score</h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="adjustScoreModal">
+                        <i class="ti ti-x text-lg"></i>
+                    </button>
+                </div>
+                <form id="adjustScoreForm">
+                    <input type="hidden" id="adjustPlayerId" name="player_id">
+                    <div class="p-6 space-y-4">
+                        <div class="text-center">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Current Score</p>
+                            <p id="currentScore" class="text-4xl font-bold text-gray-900 dark:text-white">0</p>
+                        </div>
+                        <div>
+                            <label for="scoreAdjustment" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Adjustment</label>
+                            <input type="number" id="scoreAdjustment" name="adjustment" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white text-center text-xl focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" placeholder="+/- points">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">Use negative numbers to subtract points</p>
+                        </div>
+                        <div>
+                            <label for="adjustmentReason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason</label>
+                            <input type="text" id="adjustmentReason" name="reason" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" placeholder="Optional reason for adjustment">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
+                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-modal-hide="adjustScoreModal">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
+                            <i class="ti ti-check mr-1"></i>Apply
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Search functionality
+    document.getElementById('searchPlayers')?.addEventListener('input', function() {
+        const search = this.value.toLowerCase();
+        document.querySelectorAll('tbody tr').forEach(row => {
+            const name = row.querySelector('td:first-child')?.textContent.toLowerCase() || '';
+            row.style.display = name.includes(search) ? '' : 'none';
+        });
+    });
+
+    // Jail player
+    document.querySelectorAll('[data-action="jail-player"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            Swal.fire({
+                title: 'Send to Jail?',
+                text: 'This player will be unable to submit shots until released.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Jail Player',
+                confirmButtonColor: '#dc2626',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`{{ url_for('admin_panel.ispy_jail_player', player_id=0) }}`.replace('0', id), {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+                    }).then(() => window.location.reload());
+                }
+            });
+        });
+    });
+
+    // Release player
+    document.querySelectorAll('[data-action="release-player"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            fetch(`{{ url_for('admin_panel.ispy_release_player', player_id=0) }}`.replace('0', id), {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+            }).then(() => window.location.reload());
+        });
+    });
+
+    // Adjust score
+    document.querySelectorAll('[data-action="adjust-score"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const score = this.dataset.score;
+            document.getElementById('adjustPlayerId').value = id;
+            document.getElementById('currentScore').textContent = score;
+            document.getElementById('scoreAdjustment').value = '';
+            // Show modal
+            const modal = document.getElementById('adjustScoreModal');
+            modal.classList.remove('hidden');
+        });
+    });
+
+    // Close adjust score modal
+    document.querySelectorAll('[data-modal-hide="adjustScoreModal"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('adjustScoreModal').classList.add('hidden');
+        });
+    });
+
+    // Submit score adjustment
+    document.getElementById('adjustScoreForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const playerId = formData.get('player_id');
+        try {
+            const response = await fetch(`{{ url_for('admin_panel.ispy_adjust_score', player_id=0) }}`.replace('0', playerId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    adjustment: parseInt(formData.get('adjustment')),
+                    reason: formData.get('reason')
+                })
+            });
+            if (response.ok) window.location.reload();
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    });
+
+    // Export players
+    document.getElementById('exportPlayers')?.addEventListener('click', function() {
+        window.location.href = "{{ url_for('admin_panel.ispy_export_players') }}";
+    });
+});
+</script>
+{% endblock %}

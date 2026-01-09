@@ -1,0 +1,232 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Schedule Season{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin_live.dashboard') }}" class="hover:text-[#1a472a] dark:hover:text-[#c9a227]">Live Reporting</a>
+                <span>/</span>
+                <span>Schedule Season</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-calendar-plus text-[#1a472a]"></i>
+                Schedule Season for Live Reporting
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Schedule live reporting for all matches in a season</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('admin_live.dashboard') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Information Alert -->
+    <div class="flex items-start p-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" role="alert">
+        <i class="ti ti-info-circle text-xl mr-3 mt-0.5"></i>
+        <div>
+            <span class="font-medium">How it works:</span>
+            <p class="mt-1">Scheduling a season will create automated tasks for all matches within that season. This includes:</p>
+            <ul class="list-disc list-inside mt-2 space-y-1">
+                <li>Match thread creation (48 hours before match)</li>
+                <li>Live reporting start (5 minutes before match)</li>
+                <li>Live reporting end (2 hours after match start)</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Season Selection Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-2">
+                <i class="ti ti-calendar-event text-gray-500 dark:text-gray-400"></i>
+                <h5 class="font-semibold text-gray-900 dark:text-white">Select Season to Schedule</h5>
+            </div>
+        </div>
+        <div class="p-6">
+            <form method="POST" action="{{ url_for('admin_live.schedule_season') }}" id="schedule-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="mb-6">
+                    <label for="season_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Season
+                    </label>
+                    <select id="season_id" name="season_id" required
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#1a472a] focus:border-[#1a472a] block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-[#c9a227] dark:focus:border-[#c9a227]">
+                        <option value="">-- Select a Season --</option>
+                        {% for season in seasons %}
+                        <option value="{{ season.id }}" data-league="{{ season.league.name if season.league else 'Unknown' }}" data-year="{{ season.year }}">
+                            {{ season.league.name if season.league else 'Unknown League' }} - {{ season.name }} ({{ season.year }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        Select the season you want to schedule for live reporting.
+                    </p>
+                </div>
+
+                <!-- Season Details Preview -->
+                <div id="season-preview" class="hidden mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <h6 class="font-medium text-gray-900 dark:text-white mb-3">Season Details</h6>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">League</span>
+                            <p id="preview-league" class="font-medium text-gray-900 dark:text-white">-</p>
+                        </div>
+                        <div>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Year</span>
+                            <p id="preview-year" class="font-medium text-gray-900 dark:text-white">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Warning -->
+                <div class="flex items-start p-4 text-sm text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800 mb-6" role="alert">
+                    <i class="ti ti-alert-triangle text-xl mr-3 mt-0.5"></i>
+                    <div>
+                        <span class="font-medium">Important:</span>
+                        <p class="mt-1">This action will schedule all matches in the selected season. Previously scheduled matches may be rescheduled. Make sure you have selected the correct season before proceeding.</p>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex items-center gap-3">
+                    <button type="submit" id="submit-btn" class="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-[#1a472a] hover:bg-[#143d23] rounded-lg transition-colors focus:ring-4 focus:ring-[#1a472a]/30">
+                        <i class="ti ti-calendar-check mr-2"></i>Schedule Season
+                    </button>
+                    <button type="reset" class="inline-flex items-center px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                        <i class="ti ti-x mr-2"></i>Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Available Seasons Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-2">
+                <i class="ti ti-list text-gray-500 dark:text-gray-400"></i>
+                <h5 class="font-semibold text-gray-900 dark:text-white">Available Seasons</h5>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            {% if seasons %}
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th class="px-6 py-3">League</th>
+                        <th class="px-6 py-3">Season Name</th>
+                        <th class="px-6 py-3">Year</th>
+                        <th class="px-6 py-3">Status</th>
+                        <th class="px-6 py-3">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for season in seasons %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                            {{ season.league.name if season.league else 'Unknown' }}
+                        </td>
+                        <td class="px-6 py-4">{{ season.name }}</td>
+                        <td class="px-6 py-4">{{ season.year }}</td>
+                        <td class="px-6 py-4">
+                            {% if season.is_current %}
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full">
+                                <span class="w-2 h-2 mr-1 bg-green-500 rounded-full"></span>
+                                Current
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300 rounded-full">
+                                Inactive
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <button type="button" class="select-season-btn inline-flex items-center px-3 py-1.5 text-sm font-medium text-[#1a472a] dark:text-[#c9a227] bg-[#1a472a]/10 dark:bg-[#c9a227]/10 hover:bg-[#1a472a]/20 dark:hover:bg-[#c9a227]/20 rounded-lg transition-colors" data-season-id="{{ season.id }}">
+                                <i class="ti ti-calendar-plus mr-1"></i>Select
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="p-12 text-center">
+                <i class="ti ti-calendar-x text-5xl text-gray-400 dark:text-gray-600 mb-4"></i>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Seasons Available</h3>
+                <p class="text-gray-500 dark:text-gray-400">There are no seasons available for scheduling.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const seasonSelect = document.getElementById('season_id');
+    const previewContainer = document.getElementById('season-preview');
+    const previewLeague = document.getElementById('preview-league');
+    const previewYear = document.getElementById('preview-year');
+    const form = document.getElementById('schedule-form');
+
+    // Season select change
+    seasonSelect?.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (this.value) {
+            previewContainer.classList.remove('hidden');
+            previewLeague.textContent = selectedOption.dataset.league || '-';
+            previewYear.textContent = selectedOption.dataset.year || '-';
+        } else {
+            previewContainer.classList.add('hidden');
+        }
+    });
+
+    // Select season buttons
+    document.querySelectorAll('.select-season-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const seasonId = this.dataset.seasonId;
+            seasonSelect.value = seasonId;
+            seasonSelect.dispatchEvent(new Event('change'));
+            seasonSelect.focus();
+
+            // Scroll to form
+            document.getElementById('schedule-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    // Form submission confirmation
+    form?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const seasonText = seasonSelect.options[seasonSelect.selectedIndex].text;
+
+        Swal.fire({
+            title: 'Schedule Season?',
+            html: `<p>You are about to schedule live reporting for:</p><p class="font-semibold mt-2">${seasonText}</p>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, schedule it',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const submitBtn = document.getElementById('submit-btn');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-2"></i>Scheduling...';
+                form.submit();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

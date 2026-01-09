@@ -1,0 +1,284 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Mobile Error Patterns{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('mobile_analytics_admin.dashboard') }}" class="hover:text-[#1a472a] dark:hover:text-[#c9a227]">Mobile Analytics</a>
+                <span>/</span>
+                <span>Error Patterns</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-brain text-purple-600"></i>
+                Error Patterns Analysis
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Detected recurring error patterns from mobile app data</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('mobile_analytics_admin.dashboard') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                    <i class="ti ti-brain text-2xl text-purple-600 dark:text-purple-400"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Patterns</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ patterns|length }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-lg bg-[#1a472a]/10 dark:bg-[#1a472a]/30 flex items-center justify-center">
+                    <i class="ti ti-activity text-2xl text-[#1a472a] dark:text-[#c9a227]"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Occurrences</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">
+                        {% set total_occurrences = namespace(count=0) %}
+                        {% for pattern in patterns %}
+                            {% set total_occurrences.count = total_occurrences.count + pattern.occurrences %}
+                        {% endfor %}
+                        {{ total_occurrences.count }}
+                    </h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <i class="ti ti-clock text-2xl text-amber-600 dark:text-amber-400"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Analysis Period</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">30 days</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patterns Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-2">
+                <i class="ti ti-list text-gray-500 dark:text-gray-400"></i>
+                <h5 class="font-semibold text-gray-900 dark:text-white">Detected Error Patterns</h5>
+            </div>
+            <div class="mt-4 lg:mt-0">
+                <input type="text" id="pattern-search" placeholder="Search patterns..." class="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#1a472a] focus:border-[#1a472a]">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            {% if patterns %}
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th class="px-6 py-3">Pattern Signature</th>
+                        <th class="px-6 py-3">Error Type</th>
+                        <th class="px-6 py-3">Occurrences</th>
+                        <th class="px-6 py-3">First Seen</th>
+                        <th class="px-6 py-3">Last Seen</th>
+                        <th class="px-6 py-3">Status</th>
+                        <th class="px-6 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="patterns-table-body">
+                    {% for pattern in patterns %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 pattern-row">
+                        <td class="px-6 py-4">
+                            <div class="max-w-xs">
+                                <span class="font-medium text-gray-900 dark:text-white pattern-signature" title="{{ pattern.pattern_signature }}">
+                                    {{ pattern.pattern_signature[:60] }}{% if pattern.pattern_signature|length > 60 %}...{% endif %}
+                                </span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded">
+                                {{ pattern.error_type or 'Unknown' }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 text-sm font-semibold rounded-full
+                                {% if pattern.occurrences > 100 %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400
+                                {% elif pattern.occurrences > 50 %}bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400
+                                {% elif pattern.occurrences > 10 %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400
+                                {% else %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400{% endif %}">
+                                {{ pattern.occurrences }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                            {{ pattern.first_seen.strftime('%Y-%m-%d %H:%M') if pattern.first_seen else 'N/A' }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                            {{ pattern.last_seen.strftime('%Y-%m-%d %H:%M') if pattern.last_seen else 'N/A' }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if pattern.is_resolved %}
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full">
+                                <span class="w-2 h-2 mr-1 bg-green-500 rounded-full"></span>
+                                Resolved
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full">
+                                <span class="w-2 h-2 mr-1 bg-yellow-500 rounded-full"></span>
+                                Active
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <button type="button" class="view-pattern-btn inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors" data-pattern-id="{{ pattern.id }}">
+                                <i class="ti ti-eye mr-1"></i>View
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="p-12 text-center">
+                <i class="ti ti-brain-off text-5xl text-gray-400 dark:text-gray-600 mb-4"></i>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Patterns Detected</h3>
+                <p class="text-gray-500 dark:text-gray-400">No recurring error patterns have been identified in the last 30 days.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Pattern Detail Modal -->
+<div id="pattern-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75" id="modal-backdrop"></div>
+        <div class="relative inline-block w-full max-w-2xl p-6 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-lg">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Pattern Details</h3>
+                <button type="button" id="close-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div id="pattern-detail-content">
+                <!-- Content loaded via AJAX -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const modal = document.getElementById('pattern-modal');
+    const modalBackdrop = document.getElementById('modal-backdrop');
+    const closeModalBtn = document.getElementById('close-modal');
+    const patternContent = document.getElementById('pattern-detail-content');
+    const searchInput = document.getElementById('pattern-search');
+
+    // Search functionality
+    searchInput?.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('.pattern-row');
+
+        rows.forEach(row => {
+            const signature = row.querySelector('.pattern-signature')?.textContent.toLowerCase() || '';
+            if (signature.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+
+    // View pattern details
+    document.querySelectorAll('.view-pattern-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const patternId = this.dataset.patternId;
+
+            patternContent.innerHTML = '<div class="text-center py-8"><i class="ti ti-loader-2 animate-spin text-2xl text-gray-400"></i></div>';
+            modal.classList.remove('hidden');
+
+            fetch(`/admin/mobile-analytics/api/pattern/${patternId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        patternContent.innerHTML = `<div class="text-center py-8 text-red-500">${data.error}</div>`;
+                    } else {
+                        patternContent.innerHTML = `
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Pattern Signature</label>
+                                    <p class="text-gray-900 dark:text-white break-all">${data.pattern_signature || 'N/A'}</p>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Error Type</label>
+                                        <p class="text-gray-900 dark:text-white">${data.error_type || 'Unknown'}</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Occurrences</label>
+                                        <p class="text-gray-900 dark:text-white font-semibold">${data.occurrences || 0}</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">First Seen</label>
+                                        <p class="text-gray-900 dark:text-white">${data.first_seen || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Last Seen</label>
+                                        <p class="text-gray-900 dark:text-white">${data.last_seen || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                ${data.affected_users ? `
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Affected Users</label>
+                                    <p class="text-gray-900 dark:text-white">${data.affected_users}</p>
+                                </div>
+                                ` : ''}
+                                ${data.sample_stack_trace ? `
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Sample Stack Trace</label>
+                                    <pre class="mt-1 p-3 bg-gray-100 dark:bg-gray-700 rounded text-xs overflow-x-auto max-h-48">${data.sample_stack_trace}</pre>
+                                </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    patternContent.innerHTML = `<div class="text-center py-8 text-red-500">Failed to load pattern details</div>`;
+                });
+        });
+    });
+
+    // Close modal
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    closeModalBtn?.addEventListener('click', closeModal);
+    modalBackdrop?.addEventListener('click', closeModal);
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+});
+</script>
+{% endblock %}

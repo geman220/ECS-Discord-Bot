@@ -1,0 +1,341 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, stat_card %}
+
+{% block admin_title %}Store Analytics{% endblock %}
+{% block panel_description %}View store performance metrics and insights{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.store_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Store Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Analytics</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Page Header with Date Filter -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <h4 class="text-xl font-semibold text-gray-900 dark:text-white">Store Analytics</h4>
+    <form method="GET" class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-500 dark:text-gray-400">From:</label>
+            <input type="date" name="start_date" value="{{ analytics.date_range.start }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+        <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-500 dark:text-gray-400">To:</label>
+            <input type="date" name="end_date" value="{{ analytics.date_range.end }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50">
+            <i class="ti ti-refresh mr-1"></i>Update
+        </button>
+    </form>
+</div>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-ecs-green text-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-2xl font-bold">{{ analytics.status_stats.values() | sum if analytics.status_stats else 0 }}</p>
+                <p class="text-sm opacity-75">Total Orders</p>
+            </div>
+            <div class="opacity-75">
+                <i class="ti ti-shopping-cart text-4xl"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-green-600 text-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-2xl font-bold">{{ analytics.status_stats.get('DELIVERED', 0) }}</p>
+                <p class="text-sm opacity-75">Delivered</p>
+            </div>
+            <div class="opacity-75">
+                <i class="ti ti-truck-delivery text-4xl"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-yellow-500 text-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-2xl font-bold">{{ analytics.status_stats.get('PENDING', 0) + analytics.status_stats.get('PROCESSING', 0) }}</p>
+                <p class="text-sm opacity-75">In Progress</p>
+            </div>
+            <div class="opacity-75">
+                <i class="ti ti-clock text-4xl"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-blue-600 text-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-2xl font-bold">{{ analytics.top_customers | length }}</p>
+                <p class="text-sm opacity-75">Active Customers</p>
+            </div>
+            <div class="opacity-75">
+                <i class="ti ti-users text-4xl"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Orders Over Time Chart -->
+    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-chart-line mr-2 text-ecs-green"></i>
+                Orders Over Time
+            </h3>
+        </div>
+        <div class="p-6">
+            <canvas id="ordersChart" height="120"></canvas>
+        </div>
+    </div>
+
+    <!-- Order Status Distribution Chart -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-chart-pie mr-2 text-ecs-gold"></i>
+                Order Status Distribution
+            </h3>
+        </div>
+        <div class="p-6">
+            <canvas id="statusChart" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Popular Items & Categories -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Popular Items -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-star mr-2 text-yellow-500"></i>
+                Popular Items
+            </h3>
+        </div>
+        <div class="p-6">
+            {% if analytics.popular_items %}
+                {% for item in analytics.popular_items %}
+                <div class="mb-4 last:mb-0">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ item.name }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ item.orders }} orders - {{ item.quantity }} items</p>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                        <div class="bg-ecs-green h-2 rounded-full" style="width: {% if analytics.popular_items %}{{ (item.orders / analytics.popular_items[0].orders * 100)|int }}{% else %}0{% endif %}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="text-center py-6">
+                <i class="ti ti-package text-3xl text-gray-400 dark:text-gray-500 mb-2"></i>
+                <p class="text-gray-500 dark:text-gray-400">No orders in selected period</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Category Performance -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-category mr-2 text-blue-500"></i>
+                Category Performance
+            </h3>
+        </div>
+        <div class="p-6">
+            {% if analytics.category_stats %}
+                {% for category in analytics.category_stats %}
+                <div class="mb-4 last:mb-0">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ category.category }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ category.orders }} orders - {{ category.quantity }} items</p>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                        <div class="bg-blue-500 h-2 rounded-full" style="width: {% if analytics.category_stats %}{{ (category.orders / analytics.category_stats[0].orders * 100)|int }}{% else %}0{% endif %}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="text-center py-6">
+                <i class="ti ti-category text-3xl text-gray-400 dark:text-gray-500 mb-2"></i>
+                <p class="text-gray-500 dark:text-gray-400">No category data available</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Top Customers -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-trophy mr-2 text-ecs-gold"></i>
+            Top Customers
+        </h3>
+    </div>
+    {% if analytics.top_customers %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Rank</th>
+                    <th scope="col" class="px-6 py-3">Customer</th>
+                    <th scope="col" class="px-6 py-3">Orders</th>
+                    <th scope="col" class="px-6 py-3">Total Items</th>
+                    <th scope="col" class="px-6 py-3">Activity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in analytics.top_customers %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            {% if loop.index == 1 %}
+                            <i class="ti ti-trophy text-yellow-500 mr-1"></i>
+                            {% elif loop.index == 2 %}
+                            <i class="ti ti-medal text-gray-400 mr-1"></i>
+                            {% elif loop.index == 3 %}
+                            <i class="ti ti-award text-amber-600 mr-1"></i>
+                            {% endif %}
+                            <span class="font-medium text-gray-900 dark:text-white">#{{ loop.index }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ customer.username }}</td>
+                    <td class="px-6 py-4">{{ customer.orders }}</td>
+                    <td class="px-6 py-4">{{ customer.items }}</td>
+                    <td class="px-6 py-4">
+                        <div class="w-24 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                            <div class="h-2 rounded-full {{ 'bg-yellow-500' if loop.index == 1 else 'bg-blue-500' if loop.index <= 3 else 'bg-ecs-green' }}" style="width: {{ (customer.orders / analytics.top_customers[0].orders * 100)|int }}%"></div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-users text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Customer Data</h5>
+        <p class="text-gray-500 dark:text-gray-400">No customer data available for selected period.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const textColor = isDark ? '#9ca3af' : '#6b7280';
+    const gridColor = isDark ? '#374151' : '#e5e7eb';
+
+    // ECS Brand Colors
+    const ecsGreen = '#1a472a';
+    const ecsGold = '#c9a227';
+
+    // Orders Over Time Chart
+    const ordersData = {{ analytics.daily_orders | tojson }};
+    const ordersCtx = document.getElementById('ordersChart').getContext('2d');
+    new Chart(ordersCtx, {
+        type: 'line',
+        data: {
+            labels: ordersData.map(d => d.date),
+            datasets: [{
+                label: 'Orders',
+                data: ordersData.map(d => d.count),
+                borderColor: ecsGreen,
+                backgroundColor: isDark ? 'rgba(26, 71, 42, 0.2)' : 'rgba(26, 71, 42, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: ecsGreen,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    grid: { color: gridColor },
+                    ticks: { color: textColor }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: gridColor },
+                    ticks: {
+                        color: textColor,
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+
+    // Order Status Chart
+    const statusData = {{ analytics.status_stats | tojson }};
+    const statusLabels = Object.keys(statusData);
+    const statusValues = Object.values(statusData);
+    const statusColors = {
+        'PENDING': '#eab308',
+        'PROCESSING': '#3b82f6',
+        'ORDERED': ecsGreen,
+        'DELIVERED': '#22c55e',
+        'CANCELLED': '#ef4444'
+    };
+
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: statusLabels,
+            datasets: [{
+                data: statusValues,
+                backgroundColor: statusLabels.map(label => statusColors[label] || '#6b7280'),
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        color: textColor
+                    }
+                }
+            },
+            cutout: '65%'
+        }
+    });
+});
+</script>
+{% endblock %}

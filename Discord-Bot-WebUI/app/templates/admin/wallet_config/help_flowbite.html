@@ -1,0 +1,592 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Wallet Pass Help Documentation{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-[#1a472a] dark:hover:text-[#c9a227]">Admin</a>
+                <span>/</span>
+                <a href="{{ url_for('wallet_admin.wallet_management') }}" class="hover:text-[#1a472a] dark:hover:text-[#c9a227]">Digital Wallets</a>
+                <span>/</span>
+                <span>Help Center</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-help text-[#1a472a] dark:text-[#c9a227]"></i>
+                Wallet Pass Help Center
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Comprehensive documentation and troubleshooting for the wallet pass system</p>
+        </div>
+        <div>
+            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Help Topic Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <a href="#getting-started" class="block bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+            <div class="p-6 text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4">
+                    <i class="ti ti-info-circle text-3xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <h5 class="font-semibold text-gray-900 dark:text-white mb-2">Getting Started</h5>
+                <p class="text-gray-500 dark:text-gray-400 text-sm mb-4">Basic introduction to the wallet pass system</p>
+                <span class="inline-flex items-center text-[#1a472a] dark:text-[#c9a227] text-sm font-medium">
+                    Read Guide <i class="ti ti-arrow-right ml-1"></i>
+                </span>
+            </div>
+        </a>
+
+        <a href="{{ url_for('wallet_config.certificates_help') }}" class="block bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+            <div class="p-6 text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
+                    <i class="ti ti-certificate text-3xl text-green-600 dark:text-green-400"></i>
+                </div>
+                <h5 class="font-semibold text-gray-900 dark:text-white mb-2">Certificates</h5>
+                <p class="text-gray-500 dark:text-gray-400 text-sm mb-4">Managing wallet pass certificates</p>
+                <span class="inline-flex items-center text-[#1a472a] dark:text-[#c9a227] text-sm font-medium">
+                    View Guide <i class="ti ti-arrow-right ml-1"></i>
+                </span>
+            </div>
+        </a>
+
+        <a href="#asset-management" class="block bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+            <div class="p-6 text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
+                    <i class="ti ti-photo text-3xl text-purple-600 dark:text-purple-400"></i>
+                </div>
+                <h5 class="font-semibold text-gray-900 dark:text-white mb-2">Asset Management</h5>
+                <p class="text-gray-500 dark:text-gray-400 text-sm mb-4">Working with icons, logos and images</p>
+                <span class="inline-flex items-center text-[#1a472a] dark:text-[#c9a227] text-sm font-medium">
+                    Read Guide <i class="ti ti-arrow-right ml-1"></i>
+                </span>
+            </div>
+        </a>
+
+        <a href="#templates" class="block bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+            <div class="p-6 text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 mb-4">
+                    <i class="ti ti-file-text text-3xl text-orange-600 dark:text-orange-400"></i>
+                </div>
+                <h5 class="font-semibold text-gray-900 dark:text-white mb-2">Templates</h5>
+                <p class="text-gray-500 dark:text-gray-400 text-sm mb-4">Customizing pass templates</p>
+                <span class="inline-flex items-center text-[#1a472a] dark:text-[#c9a227] text-sm font-medium">
+                    Read Guide <i class="ti ti-arrow-right ml-1"></i>
+                </span>
+            </div>
+        </a>
+    </div>
+
+    <!-- Main Documentation Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Getting Started Section -->
+            <div id="getting-started" class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 scroll-mt-6">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Getting Started with Wallet Passes</h5>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">What are Digital Wallet Passes?</h6>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">Digital wallet passes are virtual membership cards, event tickets, coupons, or loyalty cards that can be stored in smartphone wallet apps like Apple Wallet and Google Wallet. They allow your members to carry their membership information digitally without needing physical cards.</p>
+
+                        <p class="text-gray-600 dark:text-gray-300 mb-2">Key benefits include:</p>
+                        <ul class="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-300">
+                            <li>Instant digital delivery to members</li>
+                            <li>Easy updates and push notifications</li>
+                            <li>Simplified validation via QR codes or NFC</li>
+                            <li>Reduced costs compared to physical cards</li>
+                            <li>Environmental benefits by reducing plastic waste</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">System Components</h6>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">The wallet pass system consists of four primary components:</p>
+
+                        <div class="space-y-4">
+                            <div class="flex gap-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 rounded-full bg-[#1a472a] dark:bg-[#c9a227] flex items-center justify-center">
+                                        <span class="text-white text-sm font-semibold">1</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h6 class="font-semibold text-gray-900 dark:text-white">Certificates</h6>
+                                    <p class="text-gray-600 dark:text-gray-300 text-sm">Digital certificates from Apple and Google that allow you to sign passes so they're recognized as legitimate by wallet apps.</p>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 rounded-full bg-[#1a472a] dark:bg-[#c9a227] flex items-center justify-center">
+                                        <span class="text-white text-sm font-semibold">2</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h6 class="font-semibold text-gray-900 dark:text-white">Assets</h6>
+                                    <p class="text-gray-600 dark:text-gray-300 text-sm">Visual elements like icons, logos, and backgrounds that brand your passes and make them visually appealing.</p>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 rounded-full bg-[#1a472a] dark:bg-[#c9a227] flex items-center justify-center">
+                                        <span class="text-white text-sm font-semibold">3</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h6 class="font-semibold text-gray-900 dark:text-white">Templates</h6>
+                                    <p class="text-gray-600 dark:text-gray-300 text-sm">JSON structures that define the appearance, content, and behavior of your passes.</p>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 rounded-full bg-[#1a472a] dark:bg-[#c9a227] flex items-center justify-center">
+                                        <span class="text-white text-sm font-semibold">4</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h6 class="font-semibold text-gray-900 dark:text-white">Pass Management</h6>
+                                    <p class="text-gray-600 dark:text-gray-300 text-sm">Tools for creating, distributing, and validating passes for your members.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Configuration Workflow</h6>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">The setup wizard will guide you through the configuration process:</p>
+
+                        <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                            <li><strong class="text-gray-900 dark:text-white">Certificate Setup</strong>: Upload necessary certificates from Apple Developer and/or Google Cloud</li>
+                            <li><strong class="text-gray-900 dark:text-white">Asset Upload</strong>: Add your organization's logos, icons, and background images</li>
+                            <li><strong class="text-gray-900 dark:text-white">Template Customization</strong>: Configure how your passes look and what information they display</li>
+                            <li><strong class="text-gray-900 dark:text-white">Testing</strong>: Verify your configuration and generate sample passes</li>
+                        </ol>
+
+                        <p class="text-gray-600 dark:text-gray-300 mt-4">After completing these steps, you'll be ready to create and issue digital passes to your members.</p>
+
+                        <div class="mt-6 text-center">
+                            <a href="{{ url_for('wallet_config.setup_wizard') }}" class="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-[#1a472a] hover:bg-[#1a472a]/90 dark:bg-[#c9a227] dark:hover:bg-[#c9a227]/90 rounded-lg transition-colors">
+                                <i class="ti ti-wand mr-2"></i>Start Setup Wizard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Asset Management Section -->
+            <div id="asset-management" class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 scroll-mt-6">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Asset Management</h5>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Understanding Asset Requirements</h6>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">Wallet passes require specific images to display correctly. Here's what you need to know:</p>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3">Asset Type</th>
+                                        <th scope="col" class="px-4 py-3">Dimensions</th>
+                                        <th scope="col" class="px-4 py-3">Format</th>
+                                        <th scope="col" class="px-4 py-3">Required</th>
+                                        <th scope="col" class="px-4 py-3">Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">icon</td>
+                                        <td class="px-4 py-3">29x29px</td>
+                                        <td class="px-4 py-3">PNG</td>
+                                        <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Required</span></td>
+                                        <td class="px-4 py-3">Small icon displayed in notifications and lists</td>
+                                    </tr>
+                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">logo</td>
+                                        <td class="px-4 py-3">160x50px</td>
+                                        <td class="px-4 py-3">PNG</td>
+                                        <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Required</span></td>
+                                        <td class="px-4 py-3">Organization logo displayed at the top of the pass</td>
+                                    </tr>
+                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">background</td>
+                                        <td class="px-4 py-3">180x220px</td>
+                                        <td class="px-4 py-3">PNG/JPG</td>
+                                        <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Optional</span></td>
+                                        <td class="px-4 py-3">Background image for the pass</td>
+                                    </tr>
+                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">strip</td>
+                                        <td class="px-4 py-3">320x84px</td>
+                                        <td class="px-4 py-3">PNG</td>
+                                        <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Optional</span></td>
+                                        <td class="px-4 py-3">Image displayed as a strip across the pass</td>
+                                    </tr>
+                                    <tr class="bg-white dark:bg-gray-800">
+                                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">thumbnail</td>
+                                        <td class="px-4 py-3">90x90px</td>
+                                        <td class="px-4 py-3">PNG</td>
+                                        <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Optional</span></td>
+                                        <td class="px-4 py-3">Thumbnail image for the pass</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-4 flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <i class="ti ti-info-circle text-blue-600 dark:text-blue-400 mt-0.5"></i>
+                            <p class="text-blue-700 dark:text-blue-400 text-sm"><strong>High-Resolution Versions:</strong> For best results on high-resolution displays, also provide 2x versions of each asset (e.g., icon@2x.png at 58x58px).</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Asset Preparation Tips</h6>
+                        <ul class="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-300">
+                            <li><strong class="text-gray-900 dark:text-white">Use transparency</strong> where appropriate in PNG files</li>
+                            <li><strong class="text-gray-900 dark:text-white">Follow exact dimensions</strong> for best results</li>
+                            <li><strong class="text-gray-900 dark:text-white">Optimize file sizes</strong> to keep them under 1MB each</li>
+                            <li><strong class="text-gray-900 dark:text-white">Use consistent branding</strong> across all assets</li>
+                            <li><strong class="text-gray-900 dark:text-white">Test on different devices</strong> to ensure visibility</li>
+                            <li><strong class="text-gray-900 dark:text-white">Avoid text in images</strong> - use the pass fields for text instead</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Uploading Assets</h6>
+                        <p class="text-gray-600 dark:text-gray-300 mb-2">To upload assets:</p>
+                        <ol class="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-300 mb-4">
+                            <li>Go to the Assets page in the Wallet Configuration dashboard</li>
+                            <li>Select the pass type (ECS Membership or Pub League)</li>
+                            <li>Choose the asset type you want to upload</li>
+                            <li>Select the image file from your computer</li>
+                            <li>Click "Upload Asset"</li>
+                        </ol>
+
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">If you're replacing an existing asset, the new one will automatically replace the old version.</p>
+
+                        <div class="text-center">
+                            <a href="{{ url_for('wallet_config.assets') }}" class="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-[#1a472a] hover:bg-[#1a472a]/90 dark:bg-[#c9a227] dark:hover:bg-[#c9a227]/90 rounded-lg transition-colors">
+                                <i class="ti ti-upload mr-2"></i>Manage Assets
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Templates Section -->
+            <div id="templates" class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 scroll-mt-6">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Pass Templates</h5>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Understanding Templates</h6>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">Pass templates define the structure, appearance, and content of your wallet passes. They are JSON documents that specify fields, colors, barcodes, and other elements.</p>
+                        <p class="text-gray-600 dark:text-gray-300">Each pass type (ECS Membership and Pub League) needs its own template. You can create multiple templates and set one as the default for each pass type.</p>
+                    </div>
+
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Template Structure</h6>
+                        <p class="text-gray-600 dark:text-gray-300 mb-3">A basic template structure includes:</p>
+
+                        <div class="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                            <pre class="text-green-400 text-sm font-mono"><code>{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.yourcompany.membership",
+  "serialNumber": "{% raw %}{{serial_number}}{% endraw %}",
+  "teamIdentifier": "{% raw %}{{team_identifier}}{% endraw %}",
+  "organizationName": "Your Organization Name",
+  "description": "Membership Pass",
+  "logoText": "Your Logo Text",
+  "foregroundColor": "rgb(255, 255, 255)",
+  "backgroundColor": "rgb(33, 62, 150)",
+  "labelColor": "rgb(200, 200, 200)",
+  "generic": {
+    "primaryFields": [
+      {
+        "key": "member",
+        "label": "MEMBER",
+        "value": "{% raw %}{{member_name}}{% endraw %}"
+      }
+    ],
+    "secondaryFields": [...],
+    "auxiliaryFields": [...],
+    "backFields": [...]
+  },
+  "barcodes": [
+    {
+      "format": "PKBarcodeFormatQR",
+      "message": "{% raw %}{{barcode_data}}{% endraw %}",
+      "messageEncoding": "utf-8"
+    }
+  ]
+}</code></pre>
+                        </div>
+
+                        <div class="mt-4 flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <i class="ti ti-info-circle text-blue-600 dark:text-blue-400 mt-0.5"></i>
+                            <p class="text-blue-700 dark:text-blue-400 text-sm"><strong>Template Variables:</strong> Variables like <code class="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/50 rounded">{% raw %}{{member_name}}{% endraw %}</code> and <code class="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/50 rounded">{% raw %}{{validity}}{% endraw %}</code> are automatically replaced with actual data when passes are generated.</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Template Customization</h6>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">You can customize templates in two ways:</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                                <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-2">
+                                    <i class="ti ti-brush text-[#1a472a] dark:text-[#c9a227]"></i>Visual Editor
+                                </h6>
+                                <p class="text-gray-600 dark:text-gray-300 text-sm mb-3">The visual editor provides an easy way to customize colors, logo text, and preview how passes will look.</p>
+                                <a href="{{ url_for('wallet_config.visual_editor', pass_type='ecs') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-[#1a472a] dark:text-[#c9a227] border border-[#1a472a] dark:border-[#c9a227] hover:bg-[#1a472a]/10 dark:hover:bg-[#c9a227]/10 rounded-lg transition-colors">
+                                    Open Visual Editor
+                                </a>
+                            </div>
+                            <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                                <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-2">
+                                    <i class="ti ti-code text-[#1a472a] dark:text-[#c9a227]"></i>JSON Editor
+                                </h6>
+                                <p class="text-gray-600 dark:text-gray-300 text-sm mb-3">For advanced customization, you can edit the template JSON directly to add or modify fields.</p>
+                                <a href="{{ url_for('wallet_config.templates') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-[#1a472a] dark:text-[#c9a227] border border-[#1a472a] dark:border-[#c9a227] hover:bg-[#1a472a]/10 dark:hover:bg-[#c9a227]/10 rounded-lg transition-colors">
+                                    Manage Templates
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Field Types</h6>
+                        <p class="text-gray-600 dark:text-gray-300 mb-3">Pass templates support different field types:</p>
+                        <ul class="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-300">
+                            <li><strong class="text-gray-900 dark:text-white">primaryFields</strong>: Main information (usually member name)</li>
+                            <li><strong class="text-gray-900 dark:text-white">secondaryFields</strong>: Important supporting info (validity period)</li>
+                            <li><strong class="text-gray-900 dark:text-white">auxiliaryFields</strong>: Additional info (team name)</li>
+                            <li><strong class="text-gray-900 dark:text-white">headerFields</strong>: Displayed at the top of the pass</li>
+                            <li><strong class="text-gray-900 dark:text-white">backFields</strong>: Displayed when the pass is flipped over</li>
+                        </ul>
+                        <p class="text-gray-600 dark:text-gray-300 mt-3">Each field has properties like "key" (unique identifier), "label" (displayed above value), and "value" (the actual content).</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pass Management Section -->
+            <div id="pass-management" class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 scroll-mt-6">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Pass Management</h5>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Creating Passes</h6>
+                        <p class="text-gray-600 dark:text-gray-300 mb-3">Once your configuration is complete, you can create passes in several ways:</p>
+                        <ol class="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-300 mb-4">
+                            <li><strong class="text-gray-900 dark:text-white">Manual Creation</strong>: Create individual passes through the admin interface</li>
+                            <li><strong class="text-gray-900 dark:text-white">Bulk Generation</strong>: Create passes for multiple members at once</li>
+                            <li><strong class="text-gray-900 dark:text-white">WooCommerce Integration</strong>: Automatically generate passes when members purchase memberships online</li>
+                        </ol>
+
+                        <p class="text-gray-600 dark:text-gray-300 mb-2">To manually create a pass:</p>
+                        <ol class="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-300">
+                            <li>Go to "Create Pass" in the Wallet Management section</li>
+                            <li>Enter the member's name and email</li>
+                            <li>Select the membership year or season</li>
+                            <li>Click "Create Pass"</li>
+                        </ol>
+                    </div>
+
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Distributing Passes</h6>
+                        <p class="text-gray-600 dark:text-gray-300 mb-3">Passes can be distributed to members in several ways:</p>
+                        <ul class="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-300 mb-4">
+                            <li><strong class="text-gray-900 dark:text-white">Email</strong>: Send passes directly to members' email addresses</li>
+                            <li><strong class="text-gray-900 dark:text-white">Direct Download</strong>: Members can download passes from order confirmation pages</li>
+                            <li><strong class="text-gray-900 dark:text-white">QR Code</strong>: Display a QR code that members can scan to add the pass</li>
+                            <li><strong class="text-gray-900 dark:text-white">Link</strong>: Share a direct link to download the pass</li>
+                        </ul>
+
+                        <div class="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <i class="ti ti-info-circle text-blue-600 dark:text-blue-400 mt-0.5"></i>
+                            <p class="text-blue-700 dark:text-blue-400 text-sm">When members receive a pass, they simply tap "Add to Wallet" on their device, and the pass will be stored in their Apple Wallet or Google Wallet app.</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Validating Passes</h6>
+                        <p class="text-gray-600 dark:text-gray-300 mb-3">To validate passes at events or check-ins:</p>
+                        <ol class="list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-300 mb-4">
+                            <li>Open the Scanner interface in the Wallet Management section</li>
+                            <li>Use the camera to scan the QR code on the member's pass</li>
+                            <li>The system will verify the pass and record the check-in</li>
+                            <li>You'll see immediate confirmation of the pass validity and member details</li>
+                        </ol>
+
+                        <p class="text-gray-600 dark:text-gray-300 mb-4">All check-ins are recorded and can be viewed in the Check-in History section.</p>
+
+                        <div class="text-center">
+                            <a href="{{ url_for('wallet_admin.scanner') }}" class="inline-flex items-center px-6 py-3 text-sm font-medium text-white bg-[#1a472a] hover:bg-[#1a472a]/90 dark:bg-[#c9a227] dark:hover:bg-[#c9a227]/90 rounded-lg transition-colors">
+                                <i class="ti ti-qrcode mr-2"></i>Open Scanner
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="space-y-6">
+            <!-- Quick Links -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Quick Links</h5>
+                </div>
+                <div class="p-4">
+                    <nav class="space-y-1">
+                        <a href="{{ url_for('wallet_admin.wallet_management') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <i class="ti ti-layout-dashboard text-[#1a472a] dark:text-[#c9a227]"></i>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-white">Wallet Dashboard</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Main control center</div>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('wallet_config.setup_wizard') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <i class="ti ti-wand text-[#1a472a] dark:text-[#c9a227]"></i>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-white">Setup Wizard</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Step-by-step configuration</div>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('wallet_admin.passes_list') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <i class="ti ti-ticket text-[#1a472a] dark:text-[#c9a227]"></i>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-white">Pass Management</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Manage issued passes</div>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <i class="ti ti-plus text-[#1a472a] dark:text-[#c9a227]"></i>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-white">Create Pass</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Issue a new pass</div>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('wallet_admin.scanner') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <i class="ti ti-qrcode text-[#1a472a] dark:text-[#c9a227]"></i>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-white">Scanner</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Validate passes</div>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('wallet_config.diagnostics') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <i class="ti ti-stethoscope text-[#1a472a] dark:text-[#c9a227]"></i>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-white">Diagnostics</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Troubleshoot issues</div>
+                            </div>
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Frequently Asked Questions -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Frequently Asked Questions</h5>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <h6 class="font-medium text-gray-900 dark:text-white mb-1">How do members add passes to their wallet?</h6>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm">Members simply tap the "Add to Apple Wallet" or "Add to Google Wallet" button when viewing the pass on their device.</p>
+                    </div>
+
+                    <div>
+                        <h6 class="font-medium text-gray-900 dark:text-white mb-1">Can I update passes after they've been issued?</h6>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm">Yes, you can update passes by editing the pass information in the admin interface. Members will receive a push notification with the changes.</p>
+                    </div>
+
+                    <div>
+                        <h6 class="font-medium text-gray-900 dark:text-white mb-1">What devices support wallet passes?</h6>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm">Apple Wallet is available on iPhone/iPod with iOS 6+. Google Wallet is available on Android 4.4+.</p>
+                    </div>
+
+                    <div>
+                        <h6 class="font-medium text-gray-900 dark:text-white mb-1">Can I void or revoke a pass?</h6>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm">Yes, you can void a pass in the pass management interface. This will mark the pass as invalid and update it on the member's device.</p>
+                    </div>
+
+                    <div>
+                        <h6 class="font-medium text-gray-900 dark:text-white mb-1">Do I need separate certificates for each pass type?</h6>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm">No, you can use the same Apple Developer certificate for multiple pass types.</p>
+                    </div>
+
+                    <div>
+                        <h6 class="font-medium text-gray-900 dark:text-white mb-1">How do I customize the barcode?</h6>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm">The barcode format and data are defined in the template JSON. You can choose from QR, PDF417, Aztec, or Code128 formats.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support Information -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Need More Help?</h5>
+                </div>
+                <div class="p-6">
+                    <p class="text-gray-600 dark:text-gray-300 text-sm mb-4">If you can't find the information you need in this documentation, here are additional resources:</p>
+
+                    <ul class="space-y-2 text-sm mb-4">
+                        <li>
+                            <a href="https://developer.apple.com/documentation/walletpasses" target="_blank" class="text-[#1a472a] dark:text-[#c9a227] hover:underline flex items-center gap-1">
+                                Apple Wallet Developer Guide <i class="ti ti-external-link"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://developers.google.com/wallet" target="_blank" class="text-[#1a472a] dark:text-[#c9a227] hover:underline flex items-center gap-1">
+                                Google Wallet Developer Guide <i class="ti ti-external-link"></i>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <h6 class="font-medium text-gray-900 dark:text-white flex items-center gap-2 mb-2">
+                            <i class="ti ti-mail"></i>Contact Support
+                        </h6>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm">For technical assistance, please contact your system administrator or email support at <a href="mailto:support@example.com" class="text-[#1a472a] dark:text-[#c9a227] hover:underline">support@example.com</a>.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href').substring(1);
+            const targetElement = document.getElementById(targetId);
+            if (targetElement) {
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

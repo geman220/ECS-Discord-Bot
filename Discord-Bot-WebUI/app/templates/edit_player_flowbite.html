@@ -1,0 +1,275 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Edit Player - {{ player.name }}{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <!-- Page Header -->
+        <div class="mb-6">
+            <a href="{{ url_for('players.view_players') }}"
+               class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-ecs-green mb-2">
+                <i class="ti ti-arrow-left"></i>
+                Back to Players
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Player</h1>
+            <p class="text-gray-500 dark:text-gray-400">Update player information for {{ player.name }}</p>
+        </div>
+
+        <!-- Player Info Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+            <div class="h-1 bg-gradient-to-r from-ecs-green to-ecs-gold"></div>
+            <div class="p-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-bold text-xl">
+                        {% if player.profile_picture_url %}
+                        <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}" class="w-16 h-16 rounded-full object-cover">
+                        {% else %}
+                        {{ player.name[0].upper() if player.name else 'P' }}
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ player.name }}</h2>
+                        {% if player.team %}
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ player.team.name }}</p>
+                        {% endif %}
+                        {% if player.discord_id %}
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                            <i class="ti ti-brand-discord mr-1"></i>
+                            Discord: {{ player.discord_id }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Form Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="h-1 bg-gradient-to-r from-ecs-green to-ecs-green/60"></div>
+
+            <form method="POST" action="{{ url_for('players.edit_player', player_id=player.id) }}" class="p-6">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="space-y-6">
+                    <!-- Name -->
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text"
+                               id="name"
+                               name="name"
+                               value="{{ form.name.data or player.name }}"
+                               required
+                               maxlength="100"
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green"
+                               placeholder="Enter player name">
+                        {% if form.name.errors %}
+                        <p class="mt-1 text-sm text-red-500">{{ form.name.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Phone Number -->
+                    <div>
+                        <label for="phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Phone Number <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="ti ti-phone text-gray-400"></i>
+                            </div>
+                            <input type="tel"
+                                   id="phone"
+                                   name="phone"
+                                   value="{{ form.phone.data or player.phone }}"
+                                   required
+                                   maxlength="20"
+                                   class="w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green"
+                                   placeholder="(555) 123-4567">
+                        </div>
+                        {% if form.phone.errors %}
+                        <p class="mt-1 text-sm text-red-500">{{ form.phone.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Jersey Size -->
+                    <div>
+                        <label for="jersey_size" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Jersey Size <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="ti ti-shirt text-gray-400"></i>
+                            </div>
+                            <select id="jersey_size"
+                                    name="jersey_size"
+                                    required
+                                    class="w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="">Select a size...</option>
+                                {% for value, label in form.jersey_size.choices %}
+                                <option value="{{ value }}" {% if form.jersey_size.data == value or player.jersey_size == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% if form.jersey_size.errors %}
+                        <p class="mt-1 text-sm text-red-500">{{ form.jersey_size.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- League -->
+                    <div>
+                        <label for="league_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            League <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="ti ti-trophy text-gray-400"></i>
+                            </div>
+                            <select id="league_id"
+                                    name="league_id"
+                                    required
+                                    class="w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="">Select a league...</option>
+                                {% for value, label in form.league_id.choices %}
+                                <option value="{{ value }}" {% if form.league_id.data == value or (player.league_id and player.league_id|string == value|string) %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% if form.league_id.errors %}
+                        <p class="mt-1 text-sm text-red-500">{{ form.league_id.errors[0] }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <a href="{{ url_for('players.view_players') }}"
+                       class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <i class="ti ti-arrow-left"></i>
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                        <i class="ti ti-check"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Player Stats Card (Read Only) -->
+        {% if player.goals is defined or player.assists is defined %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-chart-bar text-gray-400"></i>
+                    Player Statistics
+                </h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Current season performance metrics</p>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                        <p class="text-2xl font-bold text-ecs-green">{{ player.goals or 0 }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Goals</p>
+                    </div>
+                    <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                        <p class="text-2xl font-bold text-ecs-gold">{{ player.assists or 0 }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Assists</p>
+                    </div>
+                    <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                        <p class="text-2xl font-bold text-yellow-500">{{ player.yellow_cards or 0 }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Yellow Cards</p>
+                    </div>
+                    <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                        <p class="text-2xl font-bold text-red-500">{{ player.red_cards or 0 }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Red Cards</p>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-4">
+                    <i class="ti ti-info-circle mr-1"></i>
+                    Statistics are managed through match reporting and cannot be edited directly.
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Danger Zone -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-200 dark:border-red-900/50 overflow-hidden mt-6">
+            <div class="p-6 border-b border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20">
+                <h3 class="text-lg font-semibold text-red-600 dark:text-red-400 flex items-center gap-2">
+                    <i class="ti ti-alert-triangle"></i>
+                    Danger Zone
+                </h3>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    These actions are irreversible. Please proceed with caution.
+                </p>
+                <button type="button"
+                        class="px-4 py-2 text-sm font-medium text-red-500 bg-white border border-red-500 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:hover:bg-red-500/10 transition-colors"
+                        data-action="delete-player"
+                        data-player-id="{{ player.id }}">
+                    <i class="ti ti-trash mr-1"></i>
+                    Delete Player
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Delete player action
+    document.querySelector('[data-action="delete-player"]')?.addEventListener('click', function() {
+        const playerId = this.dataset.playerId;
+
+        Swal.fire({
+            title: 'Delete Player?',
+            text: 'This action cannot be undone. All player data including statistics and history will be permanently removed.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, delete player',
+            cancelButtonText: 'Cancel',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Redirect to delete endpoint or make API call
+                Swal.fire({
+                    title: 'Not Implemented',
+                    text: 'Player deletion requires additional confirmation. Please contact an administrator.',
+                    icon: 'info',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        });
+    });
+
+    // Phone number formatting
+    const phoneInput = document.getElementById('phone');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 10) {
+                value = '(' + value.substring(0,3) + ') ' + value.substring(3,6) + '-' + value.substring(6,10);
+            } else if (value.length >= 6) {
+                value = '(' + value.substring(0,3) + ') ' + value.substring(3,6) + '-' + value.substring(6);
+            } else if (value.length >= 3) {
+                value = '(' + value.substring(0,3) + ') ' + value.substring(3);
+            }
+            e.target.value = value;
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,418 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state %}
+
+{% block admin_title %}I-Spy Categories{% endblock %}
+{% block panel_description %}Manage I-Spy game categories{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.ispy_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">I-Spy</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Categories</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Header Card -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 mb-6 border border-gray-200 dark:border-gray-700">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-category mr-2 text-ecs-green"></i>I-Spy Categories
+            </h5>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Create and manage scavenger hunt categories</p>
+        </div>
+        <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90" data-modal-target="createCategoryModal" data-modal-toggle="createCategoryModal">
+            <i class="ti ti-plus mr-1"></i>Create Category
+        </button>
+    </div>
+</div>
+
+<!-- Category Stats -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.total_categories }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Categories</p>
+            </div>
+            <div class="p-3 bg-ecs-green/10 rounded-full">
+                <i class="ti ti-category text-2xl text-ecs-green"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.active_categories }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Active</p>
+            </div>
+            <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+                <i class="ti ti-check text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.total_shots }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Shots</p>
+            </div>
+            <div class="p-3 bg-cyan-100 dark:bg-cyan-900/30 rounded-full">
+                <i class="ti ti-camera text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.avg_shots_per_category }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Avg Shots/Category</p>
+            </div>
+            <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                <i class="ti ti-chart-bar text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Categories Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">All Categories</h5>
+        <div class="flex items-center gap-3">
+            <div class="relative">
+                <input type="text" id="searchCategories" placeholder="Search categories..." class="w-64 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 pl-10 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            </div>
+            <select id="filterStatus" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+        </div>
+    </div>
+
+    {% if categories %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Category</th>
+                    <th scope="col" class="px-6 py-3">Description</th>
+                    <th scope="col" class="px-6 py-3">Color</th>
+                    <th scope="col" class="px-6 py-3">Points</th>
+                    <th scope="col" class="px-6 py-3">Shots</th>
+                    <th scope="col" class="px-6 py-3">Status</th>
+                    <th scope="col" class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-lg" style="background-color: {{ category.color or '#1a472a' }}20;">
+                                <i class="ti ti-{{ category.icon or 'eye' }} text-lg" style="color: {{ category.color or '#1a472a' }};"></i>
+                            </div>
+                            <span class="font-medium text-gray-900 dark:text-white">{{ category.name }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <p class="truncate max-w-xs text-gray-600 dark:text-gray-400">{{ category.description or 'No description' }}</p>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600" style="background-color: {{ category.color or '#1a472a' }};"></div>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ category.color or '#1a472a' }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="font-medium text-gray-900 dark:text-white">{{ category.points_value or 10 }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="font-medium text-gray-900 dark:text-white">{{ category.shots_count or 0 }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if category.is_active %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
+                            Active
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            <span class="w-1.5 h-1.5 rounded-full bg-gray-500 mr-1.5"></span>
+                            Inactive
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-1">
+                            <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" title="Edit" data-action="edit-category" data-id="{{ category.id }}">
+                                <i class="ti ti-edit"></i>
+                            </button>
+                            <button type="button" class="p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg" title="Toggle Status" data-action="toggle-category" data-id="{{ category.id }}">
+                                <i class="ti ti-{% if category.is_active %}eye-off{% else %}eye{% endif %}"></i>
+                            </button>
+                            <button type="button" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg" title="Delete" data-action="delete-category" data-id="{{ category.id }}">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-category-2 text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Categories Yet</h5>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">Create your first I-Spy category to get started!</p>
+        <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90" data-modal-target="createCategoryModal" data-modal-toggle="createCategoryModal">
+            <i class="ti ti-plus mr-1"></i>Create Category
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Create Category Modal -->
+<div id="createCategoryModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
+    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative w-full max-w-lg">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Create New Category</h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="createCategoryModal">
+                        <i class="ti ti-x text-lg"></i>
+                    </button>
+                </div>
+                <form id="createCategoryForm">
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label for="categoryName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="categoryName" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        </div>
+                        <div>
+                            <label for="categoryDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                            <textarea id="categoryDescription" name="description" rows="3" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" placeholder="Describe what players should look for..."></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="categoryColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="color" id="categoryColor" name="color" value="#1a472a" class="w-12 h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer">
+                                    <input type="text" id="categoryColorText" value="#1a472a" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white font-mono">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="categoryPoints" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Points Value</label>
+                                <input type="number" id="categoryPoints" name="points_value" value="10" min="1" max="100" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="categoryIcon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Icon</label>
+                            <select id="categoryIcon" name="icon" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                                <option value="eye">Eye</option>
+                                <option value="camera">Camera</option>
+                                <option value="target">Target</option>
+                                <option value="search">Search</option>
+                                <option value="focus">Focus</option>
+                                <option value="flag">Flag</option>
+                                <option value="star">Star</option>
+                                <option value="heart">Heart</option>
+                                <option value="trophy">Trophy</option>
+                                <option value="ball-football">Football</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="categoryIsActive" name="is_active" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <label for="categoryIsActive" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Active category</label>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
+                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-modal-hide="createCategoryModal">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
+                            <i class="ti ti-plus mr-1"></i>Create Category
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div id="editCategoryModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
+    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative w-full max-w-lg">
+            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Edit Category</h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="editCategoryModal">
+                        <i class="ti ti-x text-lg"></i>
+                    </button>
+                </div>
+                <form id="editCategoryForm">
+                    <input type="hidden" id="editCategoryId" name="id">
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label for="editCategoryName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="editCategoryName" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        </div>
+                        <div>
+                            <label for="editCategoryDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                            <textarea id="editCategoryDescription" name="description" rows="3" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="editCategoryColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+                                <input type="color" id="editCategoryColor" name="color" class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer">
+                            </div>
+                            <div>
+                                <label for="editCategoryPoints" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Points Value</label>
+                                <input type="number" id="editCategoryPoints" name="points_value" min="1" max="100" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="editCategoryIcon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Icon</label>
+                            <select id="editCategoryIcon" name="icon" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                                <option value="eye">Eye</option>
+                                <option value="camera">Camera</option>
+                                <option value="target">Target</option>
+                                <option value="search">Search</option>
+                                <option value="focus">Focus</option>
+                                <option value="flag">Flag</option>
+                                <option value="star">Star</option>
+                                <option value="heart">Heart</option>
+                                <option value="trophy">Trophy</option>
+                                <option value="ball-football">Football</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="editCategoryIsActive" name="is_active" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <label for="editCategoryIsActive" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Active category</label>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
+                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-modal-hide="editCategoryModal">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
+                            <i class="ti ti-check mr-1"></i>Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Color picker sync
+    document.getElementById('categoryColor')?.addEventListener('input', function() {
+        document.getElementById('categoryColorText').value = this.value;
+    });
+    document.getElementById('categoryColorText')?.addEventListener('input', function() {
+        if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
+            document.getElementById('categoryColor').value = this.value;
+        }
+    });
+
+    // Search functionality
+    document.getElementById('searchCategories')?.addEventListener('input', function() {
+        const search = this.value.toLowerCase();
+        document.querySelectorAll('tbody tr').forEach(row => {
+            const name = row.querySelector('td:first-child')?.textContent.toLowerCase() || '';
+            row.style.display = name.includes(search) ? '' : 'none';
+        });
+    });
+
+    // Filter by status
+    document.getElementById('filterStatus')?.addEventListener('change', function() {
+        const status = this.value;
+        document.querySelectorAll('tbody tr').forEach(row => {
+            const isActive = row.querySelector('.bg-green-100') !== null;
+            if (!status) {
+                row.style.display = '';
+            } else if (status === 'active') {
+                row.style.display = isActive ? '' : 'none';
+            } else {
+                row.style.display = isActive ? 'none' : '';
+            }
+        });
+    });
+
+    // Delete category
+    document.querySelectorAll('[data-action="delete-category"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            Swal.fire({
+                title: 'Delete Category?',
+                text: 'This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Delete',
+                confirmButtonColor: '#dc2626',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`{{ url_for('admin_panel.ispy_delete_category', category_id=0) }}`.replace('0', id), {
+                        method: 'DELETE',
+                        headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+                    }).then(() => window.location.reload());
+                }
+            });
+        });
+    });
+
+    // Toggle category status
+    document.querySelectorAll('[data-action="toggle-category"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            fetch(`{{ url_for('admin_panel.ispy_toggle_category', category_id=0) }}`.replace('0', id), {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+            }).then(() => window.location.reload());
+        });
+    });
+
+    // Form submissions
+    document.getElementById('createCategoryForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+        data.is_active = formData.has('is_active');
+
+        try {
+            const response = await fetch("{{ url_for('admin_panel.ispy_create_category') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(data)
+            });
+            if (response.ok) window.location.reload();
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    });
+});
+</script>
+{% endblock %}

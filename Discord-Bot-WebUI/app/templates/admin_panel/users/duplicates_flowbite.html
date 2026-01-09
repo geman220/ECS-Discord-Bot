@@ -1,0 +1,406 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Duplicate Management{% endblock %}
+{% block panel_description %}Detect and manage duplicate user registrations{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.user_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">User Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Duplicates</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Stats Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <!-- Duplicate Groups -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mb-3">
+                <i class="ti ti-copy text-2xl text-yellow-500"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.total_groups }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Duplicate Groups</p>
+        </div>
+    </div>
+
+    <!-- Affected Users -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
+                <i class="ti ti-users text-2xl text-red-500"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.total_potential_duplicates }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Affected Users</p>
+        </div>
+    </div>
+
+    <!-- By Email -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-3">
+                <i class="ti ti-mail text-2xl text-blue-500"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.by_email }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">By Email</p>
+        </div>
+    </div>
+
+    <!-- By Discord -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="w-12 h-12 rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-3">
+                <i class="ti ti-brand-discord text-2xl text-ecs-green"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.by_discord }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">By Discord</p>
+        </div>
+    </div>
+</div>
+
+<!-- Actions Bar -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4 mb-6">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <button id="scan-btn" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 transition-colors flex items-center gap-2">
+                <i class="ti ti-scan"></i>
+                Scan for Duplicates
+            </button>
+            <span class="text-sm text-gray-500 dark:text-gray-400">
+                Last scan: {{ stats.last_scan or 'Never' }}
+            </span>
+        </div>
+        <span class="text-sm text-gray-500 dark:text-gray-400">
+            Showing {{ duplicate_groups|length }} potential duplicate groups
+        </span>
+    </div>
+</div>
+
+<!-- Duplicate Groups -->
+{% if duplicate_groups %}
+<div class="space-y-6">
+    {% for group in duplicate_groups %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <!-- Group Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+            <div class="flex items-center gap-2">
+                {% if group.match_type == 'email' %}
+                <i class="ti ti-mail text-blue-500"></i>
+                <span class="font-medium text-gray-900 dark:text-white">Email Match:</span>
+                <span class="text-gray-600 dark:text-gray-300">{{ group.match_value }}</span>
+                {% elif group.match_type == 'name' %}
+                <i class="ti ti-user text-green-500"></i>
+                <span class="font-medium text-gray-900 dark:text-white">Name Match:</span>
+                <span class="text-gray-600 dark:text-gray-300">{{ group.match_value }}</span>
+                {% elif group.match_type == 'discord' %}
+                <i class="ti ti-brand-discord text-ecs-green"></i>
+                <span class="font-medium text-gray-900 dark:text-white">Discord Match:</span>
+                <span class="text-gray-600 dark:text-gray-300">{{ group.match_value }}</span>
+                {% endif %}
+                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                    {{ group.users|length }} users
+                </span>
+            </div>
+            <button type="button" class="px-3 py-1.5 text-sm font-medium text-red-500 bg-white border border-red-500 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:hover:bg-red-500/10 transition-colors" data-action="dismiss-group" data-user-ids='{{ group.users|map(attribute="id")|list|tojson }}'>
+                <i class="ti ti-x mr-1"></i>Not Duplicates
+            </button>
+        </div>
+
+        <!-- Users Table -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 w-16">
+                            <span class="sr-only">Select Primary</span>
+                        </th>
+                        <th scope="col" class="px-4 py-3">Username</th>
+                        <th scope="col" class="px-4 py-3">Email</th>
+                        <th scope="col" class="px-4 py-3">Player Name</th>
+                        <th scope="col" class="px-4 py-3">Discord ID</th>
+                        <th scope="col" class="px-4 py-3">Status</th>
+                        <th scope="col" class="px-4 py-3">Created</th>
+                        <th scope="col" class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in group.users %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3">
+                            <input type="radio"
+                                   name="primary-{{ loop.parent.loop.index }}"
+                                   value="{{ user.id }}"
+                                   class="primary-select w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600"
+                                   data-group="{{ loop.parent.loop.index }}">
+                        </td>
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                            {{ user.username }}
+                        </td>
+                        <td class="px-4 py-3">{{ user.email }}</td>
+                        <td class="px-4 py-3">{{ user.player.name if user.player else '-' }}</td>
+                        <td class="px-4 py-3">
+                            {% if user.player and user.player.discord_id %}
+                            <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{ user.player.discord_id }}</code>
+                            {% else %}
+                            <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if user.approval_status == 'approved' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Approved</span>
+                            {% elif user.approval_status == 'pending' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Pending</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ user.approval_status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-xs">
+                            {{ user.created_at[:10] if user.created_at else 'N/A' }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <a href="{{ url_for('admin_panel.user_details_api', user_id=user.id) }}"
+                               target="_blank"
+                               class="px-2 py-1 text-xs font-medium text-ecs-green bg-white border border-ecs-green rounded hover:bg-ecs-green/10 dark:bg-gray-700 transition-colors"
+                               title="View Details">
+                                <i class="ti ti-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Group Footer -->
+        <div class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700">
+            <button type="button"
+                    class="merge-btn px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    data-group="{{ loop.index }}"
+                    data-users='{{ group.users|map(attribute="id")|list|tojson }}'
+                    disabled>
+                <i class="ti ti-git-merge"></i>
+                Merge Selected
+            </button>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Select the account to keep as primary, then merge.</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<!-- No Duplicates Found -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+    <div class="text-center py-16">
+        <div class="w-20 h-20 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+            <i class="ti ti-check-circle text-4xl text-green-500"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-green-600 dark:text-green-400 mb-2">No Duplicates Found</h3>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">No potential duplicate registrations detected.</p>
+        <button id="scan-btn-alt" class="px-4 py-2 text-sm font-medium text-ecs-green bg-white border border-ecs-green rounded-lg hover:bg-ecs-green/10 dark:bg-gray-700 transition-colors flex items-center gap-2 mx-auto">
+            <i class="ti ti-scan"></i>
+            Run Scan
+        </button>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Scan buttons
+    document.querySelectorAll('#scan-btn, #scan-btn-alt').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.disabled = true;
+            this.innerHTML = '<div class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>Scanning...';
+
+            fetch('{{ url_for("admin_panel.scan_for_duplicates") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Scan Complete',
+                        text: `Found ${data.groups || 0} potential duplicate groups.`,
+                        icon: 'success',
+                        confirmButtonColor: '#1a472a',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(() => location.reload());
+                } else {
+                    throw new Error(data.message || 'Scan failed');
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    title: 'Error',
+                    text: error.message,
+                    icon: 'error',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                this.disabled = false;
+                this.innerHTML = '<i class="ti ti-scan mr-2"></i>Scan for Duplicates';
+            });
+        });
+    });
+
+    // Primary selection - enable merge buttons
+    document.querySelectorAll('.primary-select').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const groupIndex = this.dataset.group;
+            const mergeBtn = document.querySelector(`.merge-btn[data-group="${groupIndex}"]`);
+            if (mergeBtn) {
+                mergeBtn.disabled = false;
+            }
+        });
+    });
+
+    // Merge buttons
+    document.querySelectorAll('.merge-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const groupIndex = this.dataset.group;
+            const userIds = JSON.parse(this.dataset.users);
+            const primaryRadio = document.querySelector(`input[name="primary-${groupIndex}"]:checked`);
+
+            if (!primaryRadio) {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Please select a primary account first.',
+                    icon: 'error',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                return;
+            }
+
+            const primaryId = parseInt(primaryRadio.value);
+            const secondaryIds = userIds.filter(id => id !== primaryId);
+
+            Swal.fire({
+                title: 'Confirm Merge',
+                text: `Merge ${secondaryIds.length} account(s) into the primary account? This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#1a472a',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, merge them',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('{{ url_for("admin_panel.merge_duplicate_users") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify({
+                            primary_id: primaryId,
+                            secondary_ids: secondaryIds
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Merged!',
+                                text: 'Accounts have been merged successfully.',
+                                icon: 'success',
+                                confirmButtonColor: '#1a472a',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => location.reload());
+                        } else {
+                            throw new Error(data.message || 'Merge failed');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error',
+                            text: error.message,
+                            icon: 'error',
+                            confirmButtonColor: '#1a472a',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    });
+                }
+            });
+        });
+    });
+
+    // Dismiss group buttons
+    document.querySelectorAll('[data-action="dismiss-group"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userIds = JSON.parse(this.dataset.userIds);
+
+            Swal.fire({
+                title: 'Dismiss Group',
+                text: 'Mark these accounts as not duplicates? They will not appear in future scans.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#1a472a',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, dismiss',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('{{ url_for("admin_panel.dismiss_duplicate") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify({ user_ids: userIds })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Dismissed!',
+                                text: 'Group has been dismissed.',
+                                icon: 'success',
+                                confirmButtonColor: '#1a472a',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => location.reload());
+                        } else {
+                            throw new Error(data.message || 'Dismiss failed');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error',
+                            text: error.message,
+                            icon: 'error',
+                            confirmButtonColor: '#1a472a',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    });
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,281 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Certificate Help{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-[#1a472a] dark:hover:text-[#c9a227]">Admin</a>
+                <span>/</span>
+                <a href="{{ url_for('wallet_admin.wallet_management') }}" class="hover:text-[#1a472a] dark:hover:text-[#c9a227]">Digital Wallets</a>
+                <span>/</span>
+                <a href="{{ url_for('wallet_config.certificates') }}" class="hover:text-[#1a472a] dark:hover:text-[#c9a227]">Certificates</a>
+                <span>/</span>
+                <span>Help</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-help text-[#1a472a] dark:text-[#c9a227]"></i>
+                Certificate Setup Help
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">How to obtain and configure Apple Wallet certificates</p>
+        </div>
+        <div>
+            <a href="{{ url_for('wallet_config.certificates') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-arrow-left mr-2"></i>Back to Certificates
+            </a>
+        </div>
+    </div>
+
+    <!-- Overview Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-info-circle text-gray-500 dark:text-gray-400"></i>
+                Overview
+            </h5>
+        </div>
+        <div class="p-6">
+            <p class="text-gray-600 dark:text-gray-300 mb-4">Apple Wallet passes must be cryptographically signed to be valid. This requires:</p>
+            <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                <li><strong class="text-gray-900 dark:text-white">Apple Developer Program membership</strong> ($99/year)</li>
+                <li><strong class="text-gray-900 dark:text-white">Pass Type ID</strong> - A unique identifier for your pass type</li>
+                <li><strong class="text-gray-900 dark:text-white">Signing Certificate</strong> - Used to sign passes</li>
+                <li><strong class="text-gray-900 dark:text-white">WWDR Certificate</strong> - Apple's intermediate certificate</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Step by Step Guide -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-list-numbers text-gray-500 dark:text-gray-400"></i>
+                Step-by-Step Guide
+            </h5>
+        </div>
+        <div class="p-6">
+            <div id="certStepsAccordion" data-accordion="collapse">
+                <!-- Step 1 -->
+                <h2 id="step1-heading">
+                    <button type="button" class="flex items-center justify-between w-full p-5 font-medium text-left text-gray-500 border border-b-0 border-gray-200 rounded-t-lg dark:border-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-accordion-target="#step1-body" aria-expanded="true" aria-controls="step1-body">
+                        <span class="flex items-center gap-2">
+                            <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-white bg-[#1a472a] dark:bg-[#c9a227] rounded-full">1</span>
+                            Create a Pass Type ID
+                        </span>
+                        <i class="ti ti-chevron-down transition-transform"></i>
+                    </button>
+                </h2>
+                <div id="step1-body" aria-labelledby="step1-heading">
+                    <div class="p-5 border border-b-0 border-gray-200 dark:border-gray-700">
+                        <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                            <li>Log in to the <a href="https://developer.apple.com/account" target="_blank" class="text-[#1a472a] dark:text-[#c9a227] hover:underline">Apple Developer Portal</a></li>
+                            <li>Go to <strong class="text-gray-900 dark:text-white">Certificates, Identifiers & Profiles</strong></li>
+                            <li>Select <strong class="text-gray-900 dark:text-white">Identifiers</strong> from the sidebar</li>
+                            <li>Click the <strong class="text-gray-900 dark:text-white">+</strong> button and select <strong class="text-gray-900 dark:text-white">Pass Type IDs</strong></li>
+                            <li>Enter a description (e.g., "ECS Membership Pass")</li>
+                            <li>Enter an identifier (e.g., <code class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-sm">pass.com.weareecs.membership</code>)</li>
+                            <li>Click <strong class="text-gray-900 dark:text-white">Continue</strong> and then <strong class="text-gray-900 dark:text-white">Register</strong></li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <h2 id="step2-heading">
+                    <button type="button" class="flex items-center justify-between w-full p-5 font-medium text-left text-gray-500 border border-b-0 border-gray-200 dark:border-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-accordion-target="#step2-body" aria-expanded="false" aria-controls="step2-body">
+                        <span class="flex items-center gap-2">
+                            <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-white bg-[#1a472a] dark:bg-[#c9a227] rounded-full">2</span>
+                            Create a Pass Signing Certificate
+                        </span>
+                        <i class="ti ti-chevron-down transition-transform"></i>
+                    </button>
+                </h2>
+                <div id="step2-body" class="hidden" aria-labelledby="step2-heading">
+                    <div class="p-5 border border-b-0 border-gray-200 dark:border-gray-700">
+                        <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                            <li>In the Developer Portal, go to <strong class="text-gray-900 dark:text-white">Certificates</strong></li>
+                            <li>Click the <strong class="text-gray-900 dark:text-white">+</strong> button</li>
+                            <li>Under <strong class="text-gray-900 dark:text-white">Services</strong>, select <strong class="text-gray-900 dark:text-white">Pass Type ID Certificate</strong></li>
+                            <li>Select your Pass Type ID from the dropdown</li>
+                            <li>Follow the instructions to create a Certificate Signing Request (CSR) using Keychain Access on Mac:
+                                <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
+                                    <li>Open Keychain Access</li>
+                                    <li>Go to <strong class="text-gray-900 dark:text-white">Keychain Access > Certificate Assistant > Request a Certificate from a Certificate Authority</strong></li>
+                                    <li>Enter your email, leave CA Email blank, select "Saved to disk"</li>
+                                    <li>Save the CSR file</li>
+                                </ul>
+                            </li>
+                            <li>Upload the CSR to the Developer Portal</li>
+                            <li>Download the generated certificate (.cer file)</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <h2 id="step3-heading">
+                    <button type="button" class="flex items-center justify-between w-full p-5 font-medium text-left text-gray-500 border border-b-0 border-gray-200 dark:border-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-accordion-target="#step3-body" aria-expanded="false" aria-controls="step3-body">
+                        <span class="flex items-center gap-2">
+                            <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-white bg-[#1a472a] dark:bg-[#c9a227] rounded-full">3</span>
+                            Export as .p12 File
+                        </span>
+                        <i class="ti ti-chevron-down transition-transform"></i>
+                    </button>
+                </h2>
+                <div id="step3-body" class="hidden" aria-labelledby="step3-heading">
+                    <div class="p-5 border border-b-0 border-gray-200 dark:border-gray-700">
+                        <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                            <li>Double-click the downloaded .cer file to install it in Keychain Access</li>
+                            <li>In Keychain Access, find your certificate under <strong class="text-gray-900 dark:text-white">My Certificates</strong></li>
+                            <li>Expand the certificate to see the private key</li>
+                            <li>Select both the certificate and private key</li>
+                            <li>Right-click and choose <strong class="text-gray-900 dark:text-white">Export 2 items...</strong></li>
+                            <li>Save as a .p12 file with a strong password</li>
+                            <li><strong class="text-red-600 dark:text-red-400">Remember this password!</strong> You'll need it when uploading</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <h2 id="step4-heading">
+                    <button type="button" class="flex items-center justify-between w-full p-5 font-medium text-left text-gray-500 border border-b-0 border-gray-200 dark:border-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-accordion-target="#step4-body" aria-expanded="false" aria-controls="step4-body">
+                        <span class="flex items-center gap-2">
+                            <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-white bg-[#1a472a] dark:bg-[#c9a227] rounded-full">4</span>
+                            Download WWDR Certificate
+                        </span>
+                        <i class="ti ti-chevron-down transition-transform"></i>
+                    </button>
+                </h2>
+                <div id="step4-body" class="hidden" aria-labelledby="step4-heading">
+                    <div class="p-5 border border-b-0 border-gray-200 dark:border-gray-700">
+                        <p class="text-gray-600 dark:text-gray-300 mb-3">Download Apple's Worldwide Developer Relations (WWDR) intermediate certificate:</p>
+                        <ul class="list-disc list-inside text-gray-600 dark:text-gray-300">
+                            <li><a href="https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer" target="_blank" class="text-[#1a472a] dark:text-[#c9a227] hover:underline">WWDR G4 Certificate</a> (recommended for new passes)</li>
+                        </ul>
+                        <div class="mt-4 flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <i class="ti ti-info-circle text-blue-600 dark:text-blue-400 mt-0.5"></i>
+                            <p class="text-blue-700 dark:text-blue-400 text-sm">The WWDR certificate is the same for all developers and doesn't require any account-specific setup.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5 -->
+                <h2 id="step5-heading">
+                    <button type="button" class="flex items-center justify-between w-full p-5 font-medium text-left text-gray-500 border border-gray-200 rounded-b-lg dark:border-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-accordion-target="#step5-body" aria-expanded="false" aria-controls="step5-body">
+                        <span class="flex items-center gap-2">
+                            <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-white bg-[#1a472a] dark:bg-[#c9a227] rounded-full">5</span>
+                            Upload to This System
+                        </span>
+                        <i class="ti ti-chevron-down transition-transform"></i>
+                    </button>
+                </h2>
+                <div id="step5-body" class="hidden" aria-labelledby="step5-heading">
+                    <div class="p-5 border border-gray-200 rounded-b-lg dark:border-gray-700">
+                        <p class="text-gray-600 dark:text-gray-300 mb-3">Upload your certificates to this system:</p>
+                        <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                            <li>Go to <a href="{{ url_for('wallet_config.certificates') }}" class="text-[#1a472a] dark:text-[#c9a227] hover:underline">Certificate Management</a></li>
+                            <li>Upload your <strong class="text-gray-900 dark:text-white">.p12 certificate</strong> (enter the password you set)</li>
+                            <li>Upload the <strong class="text-gray-900 dark:text-white">WWDR certificate</strong></li>
+                            <li>Enter your <strong class="text-gray-900 dark:text-white">Team Identifier</strong> and <strong class="text-gray-900 dark:text-white">Pass Type Identifier</strong></li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Finding Your Identifiers -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-search text-gray-500 dark:text-gray-400"></i>
+                Finding Your Identifiers
+            </h5>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Team Identifier</h6>
+                    <p class="text-gray-600 dark:text-gray-300 mb-2">Your 10-character Team ID can be found:</p>
+                    <ul class="list-disc list-inside text-gray-600 dark:text-gray-300 space-y-1">
+                        <li>In the Apple Developer Portal under <strong class="text-gray-900 dark:text-white">Membership</strong></li>
+                        <li>Or in the URL when viewing your team: <code class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">developer.apple.com/account/#!/membership/XXXXXXXXXX</code></li>
+                    </ul>
+                </div>
+                <div>
+                    <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Pass Type Identifier</h6>
+                    <p class="text-gray-600 dark:text-gray-300 mb-2">The identifier you created in Step 1, formatted like:</p>
+                    <code class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded text-sm text-gray-900 dark:text-white">pass.com.weareecs.membership</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Troubleshooting -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-bug text-gray-500 dark:text-gray-400"></i>
+                Troubleshooting
+            </h5>
+        </div>
+        <div class="p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">Issue</th>
+                            <th scope="col" class="px-6 py-3">Solution</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">"Invalid certificate" error</td>
+                            <td class="px-6 py-4">Ensure your certificate hasn't expired and matches your Pass Type ID</td>
+                        </tr>
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">Can't export .p12</td>
+                            <td class="px-6 py-4">Make sure you installed the certificate on the same Mac where you created the CSR</td>
+                        </tr>
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">Pass won't open on device</td>
+                            <td class="px-6 py-4">Check that Team ID and Pass Type ID match exactly, including the "pass." prefix</td>
+                        </tr>
+                        <tr class="bg-white dark:bg-gray-800">
+                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">"Certificate chain invalid"</td>
+                            <td class="px-6 py-4">Make sure you've uploaded the correct WWDR certificate (G4 for newer passes)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize accordion functionality
+    document.querySelectorAll('[data-accordion-target]').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-accordion-target');
+            const target = document.querySelector(targetId);
+            const icon = this.querySelector('.ti-chevron-down');
+
+            if (target.classList.contains('hidden')) {
+                target.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+                this.setAttribute('aria-expanded', 'true');
+            } else {
+                target.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+                this.setAttribute('aria-expanded', 'false');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

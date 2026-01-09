@@ -1,0 +1,420 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Wallet Certificate Setup Guide{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-[#1a472a] dark:hover:text-[#c9a227]">Admin</a>
+                <span>/</span>
+                <a href="{{ url_for('wallet_admin.wallet_management') }}" class="hover:text-[#1a472a] dark:hover:text-[#c9a227]">Digital Wallets</a>
+                <span>/</span>
+                <a href="{{ url_for('wallet_config.certificates') }}" class="hover:text-[#1a472a] dark:hover:text-[#c9a227]">Certificates</a>
+                <span>/</span>
+                <span>Setup Guide</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-certificate text-[#1a472a] dark:text-[#c9a227]"></i>
+                Wallet Certificate Setup Guide
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Detailed instructions for configuring Apple and Google Wallet certificates</p>
+        </div>
+        <div>
+            <a href="{{ url_for('wallet_config.certificates') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-arrow-left mr-2"></i>Back to Certificates
+            </a>
+        </div>
+    </div>
+
+    <!-- Apple Wallet Certificate Setup -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-brand-apple text-gray-500 dark:text-gray-400"></i>
+                Apple Wallet Certificate Setup
+            </h5>
+        </div>
+        <div class="p-6 space-y-6">
+            <!-- Prerequisites Alert -->
+            <div class="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div class="flex-shrink-0">
+                    <i class="ti ti-info-circle text-2xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <div>
+                    <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-2">Prerequisites</h6>
+                    <p class="text-blue-700 dark:text-blue-400 mb-2">Before proceeding, you'll need:</p>
+                    <ul class="list-disc list-inside text-blue-700 dark:text-blue-400 space-y-1">
+                        <li>An active Apple Developer account</li>
+                        <li>Access to the Apple Developer portal</li>
+                        <li>A Mac computer for some steps (especially for certificate creation)</li>
+                        <li>OpenSSL installed (for certificate conversion)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Step 1 -->
+            <div class="border-l-4 border-[#1a472a] dark:border-[#c9a227] pl-4">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Step 1: Create a Pass Type ID in Apple Developer Portal</h6>
+                <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                    <li>Log in to the <a href="https://developer.apple.com/account/" target="_blank" class="text-[#1a472a] dark:text-[#c9a227] hover:underline">Apple Developer Portal</a> with your developer account</li>
+                    <li>Click on "Certificates, IDs & Profiles" in the left sidebar</li>
+                    <li>Under "Identifiers" section, click the "+" button to create a new identifier</li>
+                    <li>Select "Pass Type IDs" and click "Continue"</li>
+                    <li>Enter a description (e.g., "ECS Membership Passes")</li>
+                    <li>Enter a Pass Type ID (e.g., "pass.com.ecsfc.membership")</li>
+                    <li>The format must be "pass." followed by a reverse-domain identifier</li>
+                    <li>Click "Register" to create the Pass Type ID</li>
+                </ol>
+                <div class="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <h6 class="font-semibold text-yellow-800 dark:text-yellow-300 flex items-center gap-2 mb-1">
+                        <i class="ti ti-note"></i>Important Note
+                    </h6>
+                    <p class="text-yellow-700 dark:text-yellow-400 text-sm">Make sure to remember your Pass Type ID as you'll need it for your pass configuration. It should match the passTypeIdentifier in your pass templates.</p>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="border-l-4 border-[#1a472a] dark:border-[#c9a227] pl-4">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Step 2: Create a Pass Type Certificate</h6>
+                <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                    <li>In the Certificates, IDs & Profiles section, select "Certificates" from the sidebar</li>
+                    <li>Click the "+" button to add a new certificate</li>
+                    <li>Under "Services," select "Pass Type ID Certificate" and click "Continue"</li>
+                    <li>Select the Pass Type ID you created in Step 1 and click "Continue"</li>
+                    <li>You'll be prompted to create a Certificate Signing Request (CSR)</li>
+                </ol>
+
+                <!-- CSR on macOS -->
+                <div class="mt-4 bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Creating a Certificate Signing Request (CSR) on macOS</h6>
+                    <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300 text-sm">
+                        <li>Open Keychain Access (in Applications > Utilities)</li>
+                        <li>From the menu bar, select Keychain Access > Certificate Assistant > Request a Certificate from a Certificate Authority</li>
+                        <li>Enter your email address and common name (usually your name)</li>
+                        <li>Select "Saved to disk" and check "Let me specify key pair information"</li>
+                        <li>Click "Continue"</li>
+                        <li>Set Key Size to 2048 bits and Algorithm to RSA</li>
+                        <li>Click "Continue" and save the CSR file to your desktop</li>
+                    </ol>
+                </div>
+
+                <!-- CSR using OpenSSL -->
+                <div class="mt-4 bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Creating a CSR using OpenSSL (Linux/Windows)</h6>
+                    <p class="text-gray-600 dark:text-gray-300 text-sm mb-3">Run the following commands in a terminal:</p>
+                    <div class="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                        <pre class="text-green-400 text-sm font-mono"><code># Generate a private key
+openssl genrsa -out mykey.key 2048
+
+# Create the CSR from the private key
+openssl req -new -key mykey.key -out mycsr.certSigningRequest</code></pre>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 text-sm mt-3">When prompted, enter your details. Common Name should be your name or organization name.</p>
+                </div>
+
+                <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300 mt-4" start="6">
+                    <li>Upload the CSR file you created to the Apple Developer Portal</li>
+                    <li>Click "Continue" and then "Download" to get your certificate (will be a .cer file)</li>
+                </ol>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="border-l-4 border-[#1a472a] dark:border-[#c9a227] pl-4">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Step 3: Download Apple WWDR Certificate</h6>
+                <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                    <li>Go to <a href="https://www.apple.com/certificateauthority/" target="_blank" class="text-[#1a472a] dark:text-[#c9a227] hover:underline">Apple's Certificate Authority</a></li>
+                    <li>In the "Apple Worldwide Developer Relations Certification Authority" section</li>
+                    <li>Download the "Apple Worldwide Developer Relations Certification Authority G4" certificate</li>
+                    <li>Save the file (AppleWWDRCAG4.cer) to your computer</li>
+                </ol>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="border-l-4 border-[#1a472a] dark:border-[#c9a227] pl-4">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Step 4: Convert Certificates to PEM Format</h6>
+
+                <div class="mb-4 p-4 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg">
+                    <h6 class="font-semibold text-cyan-800 dark:text-cyan-300 flex items-center gap-2 mb-1">
+                        <i class="ti ti-bulb"></i>Why Convert?
+                    </h6>
+                    <p class="text-cyan-700 dark:text-cyan-400 text-sm">Apple provides certificates in .cer format, but our wallet pass system needs them in .pem format for proper signing.</p>
+                </div>
+
+                <p class="text-gray-600 dark:text-gray-300 mb-3">Run the following OpenSSL commands in a terminal window:</p>
+                <div class="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                    <pre class="text-green-400 text-sm font-mono"><code># Convert the pass type certificate from .cer to .pem
+openssl x509 -in PassTypeID.cer -inform DER -out certificate.pem -outform PEM
+
+# Convert the WWDR certificate from .cer to .pem
+openssl x509 -in AppleWWDRCAG4.cer -inform DER -out wwdr.pem -outform PEM
+
+# Export your private key from the Keychain (macOS)
+# If you created the CSR using OpenSSL, you already have the key.key file
+openssl pkcs12 -export -out passkey.p12 -inkey mykey.key -in certificate.pem
+
+# Convert the .p12 file to .pem
+openssl pkcs12 -in passkey.p12 -nodes -out key.pem</code></pre>
+                </div>
+
+                <p class="text-gray-600 dark:text-gray-300 mt-4 mb-2">After running these commands, you should have three key files:</p>
+                <ul class="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-300">
+                    <li><strong class="text-gray-900 dark:text-white">certificate.pem</strong>: Your Pass Type ID certificate</li>
+                    <li><strong class="text-gray-900 dark:text-white">key.pem</strong>: Your private key</li>
+                    <li><strong class="text-gray-900 dark:text-white">wwdr.pem</strong>: The Apple WWDR certificate</li>
+                </ul>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="border-l-4 border-[#1a472a] dark:border-[#c9a227] pl-4">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Step 5: Upload Certificates to Wallet Pass System</h6>
+                <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                    <li>Go to the Certificates page in the Wallet Configuration dashboard</li>
+                    <li>Upload each of the three PEM files separately:
+                        <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
+                            <li>For <strong class="text-gray-900 dark:text-white">certificate.pem</strong>, select "Certificate" as type</li>
+                            <li>For <strong class="text-gray-900 dark:text-white">key.pem</strong>, select "Private Key" as type</li>
+                            <li>For <strong class="text-gray-900 dark:text-white">wwdr.pem</strong>, select "WWDR Certificate" as type</li>
+                        </ul>
+                    </li>
+                    <li>Enter your Apple Developer Team ID and Pass Type ID in the respective fields</li>
+                    <li>The Team ID can be found in your Apple Developer account under Membership</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- Google Wallet Certificate Setup -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-brand-google text-gray-500 dark:text-gray-400"></i>
+                Google Wallet Certificate Setup
+            </h5>
+        </div>
+        <div class="p-6 space-y-6">
+            <!-- Prerequisites Alert -->
+            <div class="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div class="flex-shrink-0">
+                    <i class="ti ti-info-circle text-2xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <div>
+                    <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-2">Prerequisites</h6>
+                    <p class="text-blue-700 dark:text-blue-400 mb-2">Before proceeding, you'll need:</p>
+                    <ul class="list-disc list-inside text-blue-700 dark:text-blue-400 space-y-1">
+                        <li>A Google Cloud account</li>
+                        <li>A Google Wallet API project</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Step 1 -->
+            <div class="border-l-4 border-[#1a472a] dark:border-[#c9a227] pl-4">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Step 1: Create a Google Cloud Project</h6>
+                <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                    <li>Go to the <a href="https://console.cloud.google.com/" target="_blank" class="text-[#1a472a] dark:text-[#c9a227] hover:underline">Google Cloud Console</a></li>
+                    <li>Click on the project dropdown at the top of the page</li>
+                    <li>Click "New Project" and enter a name (e.g., "ECS Wallet Passes")</li>
+                    <li>Click "Create" to create the new project</li>
+                    <li>Make sure your new project is selected in the project dropdown</li>
+                </ol>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="border-l-4 border-[#1a472a] dark:border-[#c9a227] pl-4">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Step 2: Enable the Google Wallet API</h6>
+                <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                    <li>In the Google Cloud Console, click "APIs & Services" > "Library"</li>
+                    <li>Search for "Google Wallet API"</li>
+                    <li>Click on the API from the search results</li>
+                    <li>Click "Enable" to enable the API for your project</li>
+                </ol>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="border-l-4 border-[#1a472a] dark:border-[#c9a227] pl-4">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Step 3: Create a Service Account</h6>
+                <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                    <li>In the Google Cloud Console, go to "IAM & Admin" > "Service Accounts"</li>
+                    <li>Click "Create Service Account"</li>
+                    <li>Enter a name (e.g., "wallet-pass-service") and description</li>
+                    <li>Click "Create and Continue"</li>
+                    <li>For the role, select "Google Wallet API" > "Wallet Object Issuer"</li>
+                    <li>Click "Continue" and then "Done"</li>
+                </ol>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="border-l-4 border-[#1a472a] dark:border-[#c9a227] pl-4">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Step 4: Create and Download Service Account Key</h6>
+                <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                    <li>In the Service Accounts list, click on the service account you just created</li>
+                    <li>Go to the "Keys" tab</li>
+                    <li>Click "Add Key" > "Create New Key"</li>
+                    <li>Select "JSON" as the key type</li>
+                    <li>Click "Create" to download the JSON key file</li>
+                    <li>Save this file securely - it contains your Google Cloud credentials</li>
+                </ol>
+                <div class="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <h6 class="font-semibold text-yellow-800 dark:text-yellow-300 flex items-center gap-2 mb-1">
+                        <i class="ti ti-note"></i>Important Note
+                    </h6>
+                    <p class="text-yellow-700 dark:text-yellow-400 text-sm">Keep your service account key secure. Anyone with this key can access your Google Wallet resources.</p>
+                </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="border-l-4 border-[#1a472a] dark:border-[#c9a227] pl-4">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Step 5: Set Up Your Wallet Issuer Account</h6>
+                <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                    <li>Go to the <a href="https://pay.google.com/business/console/" target="_blank" class="text-[#1a472a] dark:text-[#c9a227] hover:underline">Google Pay and Wallet Console</a></li>
+                    <li>Sign in with the same Google account you used for Google Cloud</li>
+                    <li>Follow the prompts to set up your issuer account</li>
+                    <li>Once set up, you'll receive an Issuer ID</li>
+                </ol>
+            </div>
+
+            <!-- Step 6 -->
+            <div class="border-l-4 border-[#1a472a] dark:border-[#c9a227] pl-4">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Step 6: Upload Credentials to Wallet Pass System</h6>
+                <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                    <li>Go to the Certificates page in the Wallet Configuration dashboard</li>
+                    <li>In the Google Wallet section, select "Credentials" as type</li>
+                    <li>Upload the JSON key file you downloaded in Step 4</li>
+                    <li>Enter the Issuer ID from Step 5</li>
+                    <li>Click "Upload Credentials" to complete the setup</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- Troubleshooting Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-bug text-gray-500 dark:text-gray-400"></i>
+                Troubleshooting Certificate Issues
+            </h5>
+        </div>
+        <div class="p-6">
+            <div id="troubleshootingAccordion" data-accordion="collapse">
+                <!-- Error 1 -->
+                <h2 id="error1-heading">
+                    <button type="button" class="flex items-center justify-between w-full p-5 font-medium text-left text-gray-500 border border-b-0 border-gray-200 rounded-t-lg dark:border-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-accordion-target="#error1-body" aria-expanded="false" aria-controls="error1-body">
+                        <span>"Could not read certificate" or "Invalid certificate format"</span>
+                        <i class="ti ti-chevron-down transition-transform"></i>
+                    </button>
+                </h2>
+                <div id="error1-body" class="hidden" aria-labelledby="error1-heading">
+                    <div class="p-5 border border-b-0 border-gray-200 dark:border-gray-700">
+                        <p class="text-gray-600 dark:text-gray-300 mb-2"><strong>Problem:</strong> The certificate file is not in the expected format or is corrupted.</p>
+                        <p class="text-gray-600 dark:text-gray-300 mb-2"><strong>Solution:</strong></p>
+                        <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                            <li>Make sure you've converted the certificate to PEM format</li>
+                            <li>Check if the certificate file starts with "-----BEGIN CERTIFICATE-----"</li>
+                            <li>Verify the certificate conversion commands:</li>
+                        </ol>
+                        <div class="bg-gray-900 rounded-lg p-4 mt-3 overflow-x-auto">
+                            <pre class="text-green-400 text-sm font-mono"><code>openssl x509 -in YourCertificate.cer -inform DER -out certificate.pem -outform PEM</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error 2 -->
+                <h2 id="error2-heading">
+                    <button type="button" class="flex items-center justify-between w-full p-5 font-medium text-left text-gray-500 border border-b-0 border-gray-200 dark:border-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-accordion-target="#error2-body" aria-expanded="false" aria-controls="error2-body">
+                        <span>"Private key does not match certificate" or "Key verification failed"</span>
+                        <i class="ti ti-chevron-down transition-transform"></i>
+                    </button>
+                </h2>
+                <div id="error2-body" class="hidden" aria-labelledby="error2-heading">
+                    <div class="p-5 border border-b-0 border-gray-200 dark:border-gray-700">
+                        <p class="text-gray-600 dark:text-gray-300 mb-2"><strong>Problem:</strong> The private key doesn't correspond to the certificate.</p>
+                        <p class="text-gray-600 dark:text-gray-300 mb-2"><strong>Solution:</strong></p>
+                        <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                            <li>Make sure you're using the private key that was used to generate the CSR</li>
+                            <li>If you created the CSR using Keychain Access, export the private key:</li>
+                        </ol>
+                        <div class="bg-gray-900 rounded-lg p-4 mt-3 overflow-x-auto">
+                            <pre class="text-green-400 text-sm font-mono"><code># Export the key pair from Keychain
+security export -k login.keychain -t certs -f pkcs12 -o passkey.p12 -n "Your Certificate Name"
+
+# Convert to PEM format
+openssl pkcs12 -in passkey.p12 -nodes -out key.pem</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error 3 -->
+                <h2 id="error3-heading">
+                    <button type="button" class="flex items-center justify-between w-full p-5 font-medium text-left text-gray-500 border border-b-0 border-gray-200 dark:border-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-accordion-target="#error3-body" aria-expanded="false" aria-controls="error3-body">
+                        <span>"Pass generation fails" or "Unable to sign pass"</span>
+                        <i class="ti ti-chevron-down transition-transform"></i>
+                    </button>
+                </h2>
+                <div id="error3-body" class="hidden" aria-labelledby="error3-heading">
+                    <div class="p-5 border border-b-0 border-gray-200 dark:border-gray-700">
+                        <p class="text-gray-600 dark:text-gray-300 mb-2"><strong>Problem:</strong> Pass signing fails due to certificate configuration issues.</p>
+                        <p class="text-gray-600 dark:text-gray-300 mb-2"><strong>Solution:</strong></p>
+                        <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                            <li>Verify all three certificates are properly uploaded (certificate, key, and WWDR)</li>
+                            <li>Check that the Team ID and Pass Type ID in the configuration match your Apple Developer account</li>
+                            <li>Make sure the passTypeIdentifier in your pass template matches your registered Pass Type ID</li>
+                            <li>Try regenerating and reuploading all certificates</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Error 4 -->
+                <h2 id="error4-heading">
+                    <button type="button" class="flex items-center justify-between w-full p-5 font-medium text-left text-gray-500 border border-gray-200 rounded-b-lg dark:border-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700" data-accordion-target="#error4-body" aria-expanded="false" aria-controls="error4-body">
+                        <span>"Google Wallet API not authorized" or "Service account issues"</span>
+                        <i class="ti ti-chevron-down transition-transform"></i>
+                    </button>
+                </h2>
+                <div id="error4-body" class="hidden" aria-labelledby="error4-heading">
+                    <div class="p-5 border border-gray-200 rounded-b-lg dark:border-gray-700">
+                        <p class="text-gray-600 dark:text-gray-300 mb-2"><strong>Problem:</strong> Google Wallet API authorization issues.</p>
+                        <p class="text-gray-600 dark:text-gray-300 mb-2"><strong>Solution:</strong></p>
+                        <ol class="list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                            <li>Verify the Google Wallet API is enabled in your Google Cloud project</li>
+                            <li>Check that your service account has the "Wallet Object Issuer" role</li>
+                            <li>Make sure the Issuer ID entered matches your Google Pay and Wallet Console</li>
+                            <li>Verify the service account JSON file is valid and not corrupted</li>
+                            <li>Check if your Google Cloud project is linked to your Google Wallet issuer account</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize accordion functionality
+    document.querySelectorAll('[data-accordion-target]').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-accordion-target');
+            const target = document.querySelector(targetId);
+            const icon = this.querySelector('.ti-chevron-down');
+
+            if (target.classList.contains('hidden')) {
+                target.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+                this.setAttribute('aria-expanded', 'true');
+            } else {
+                target.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+                this.setAttribute('aria-expanded', 'false');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,241 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Mobile Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <span>Admin</span>
+                <span>/</span>
+                <span>Mobile Analytics</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-device-mobile-analytics text-[#1a472a]"></i>
+                Mobile Analytics Dashboard
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Monitor mobile app usage and error patterns</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('mobile_analytics_admin.view_errors') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-[#1a472a] hover:bg-[#143d23] rounded-lg transition-colors">
+                <i class="ti ti-alert-triangle mr-2"></i>View Errors
+            </a>
+            <a href="{{ url_for('mobile_analytics_admin.view_patterns') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-brain mr-2"></i>Error Patterns
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Overview Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Errors -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Errors</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.total_errors or 0 }}</h3>
+                </div>
+                <div class="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <i class="ti ti-alert-circle text-2xl text-red-600 dark:text-red-400"></i>
+                </div>
+            </div>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">All time tracked errors</p>
+        </div>
+
+        <!-- Total Logs -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Logs</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.total_logs or 0 }}</h3>
+                </div>
+                <div class="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <i class="ti ti-file-text text-2xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+            </div>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Mobile activity logs</p>
+        </div>
+
+        <!-- Error Patterns -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Error Patterns</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.total_patterns or 0 }}</h3>
+                </div>
+                <div class="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                    <i class="ti ti-brain text-2xl text-purple-600 dark:text-purple-400"></i>
+                </div>
+            </div>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Detected recurring patterns</p>
+        </div>
+
+        <!-- Critical Errors (24h) -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-2 {% if stats.critical_errors_24h and stats.critical_errors_24h > 0 %}border-red-500{% else %}border-green-500{% endif %} p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Critical (24h)</p>
+                    <h3 class="text-2xl font-bold {% if stats.critical_errors_24h and stats.critical_errors_24h > 0 %}text-red-600 dark:text-red-400{% else %}text-green-600 dark:text-green-400{% endif %}">{{ stats.critical_errors_24h or 0 }}</h3>
+                </div>
+                <div class="w-12 h-12 rounded-lg {% if stats.critical_errors_24h and stats.critical_errors_24h > 0 %}bg-red-100 dark:bg-red-900/30{% else %}bg-green-100 dark:bg-green-900/30{% endif %} flex items-center justify-center">
+                    <i class="ti ti-urgent text-2xl {% if stats.critical_errors_24h and stats.critical_errors_24h > 0 %}text-red-600 dark:text-red-400{% else %}text-green-600 dark:text-green-400{% endif %}"></i>
+                </div>
+            </div>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Last 24 hours</p>
+        </div>
+    </div>
+
+    <!-- Recent Activity Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Recent Errors (7 days) -->
+        <div class="bg-[#1a472a] rounded-lg shadow p-5 text-white">
+            <div class="flex items-center justify-between mb-3">
+                <span class="font-semibold">Recent Errors (7 days)</span>
+                <i class="ti ti-trending-up text-[#c9a227]"></i>
+            </div>
+            <h3 class="text-3xl font-bold mb-1">{{ stats.recent_errors or 0 }}</h3>
+            <span class="text-sm text-green-200">New errors this week</span>
+        </div>
+
+        <!-- Recent Logs (7 days) -->
+        <div class="bg-[#c9a227] rounded-lg shadow p-5 text-gray-900">
+            <div class="flex items-center justify-between mb-3">
+                <span class="font-semibold">Recent Logs (7 days)</span>
+                <i class="ti ti-activity text-[#1a472a]"></i>
+            </div>
+            <h3 class="text-3xl font-bold mb-1">{{ stats.recent_logs or 0 }}</h3>
+            <span class="text-sm text-gray-700">Activity logs this week</span>
+        </div>
+    </div>
+
+    <!-- Top Errors & Active Patterns -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Top Error Types -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-chart-bar text-gray-500 dark:text-gray-400"></i>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Top Error Types (7 days)</h5>
+                </div>
+            </div>
+            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% if stats.top_errors %}
+                {% for error in stats.top_errors %}
+                <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="font-medium text-gray-900 dark:text-white">{{ error.error_type }}</span>
+                            <span class="ml-2 px-2 py-0.5 text-xs font-medium rounded
+                                {% if error.severity == 'critical' %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400
+                                {% elif error.severity == 'error' %}bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400
+                                {% elif error.severity == 'warning' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400
+                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300{% endif %}">
+                                {{ error.severity }}
+                            </span>
+                        </div>
+                        <span class="px-3 py-1 text-sm font-semibold bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-full">
+                            {{ error.count }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="p-8 text-center">
+                    <i class="ti ti-check-circle text-4xl text-green-500 mb-2"></i>
+                    <p class="text-gray-500 dark:text-gray-400">No errors in the last 7 days</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Active Patterns -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-brain text-gray-500 dark:text-gray-400"></i>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Active Error Patterns</h5>
+                </div>
+                <a href="{{ url_for('mobile_analytics_admin.view_patterns') }}" class="text-sm text-[#1a472a] dark:text-[#c9a227] hover:underline">View All</a>
+            </div>
+            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% if stats.active_patterns %}
+                {% for pattern in stats.active_patterns %}
+                <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <span class="font-medium text-gray-900 dark:text-white">{{ pattern.pattern_signature[:50] }}...</span>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                First seen: {{ pattern.first_seen | default('N/A') }}
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <span class="px-2 py-1 text-xs font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 rounded-full">
+                                {{ pattern.occurrences }} occurrences
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="p-8 text-center">
+                    <i class="ti ti-bulb-off text-4xl text-gray-400 dark:text-gray-600 mb-2"></i>
+                    <p class="text-gray-500 dark:text-gray-400">No active patterns detected</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-2">
+                <i class="ti ti-tools text-gray-500 dark:text-gray-400"></i>
+                <h5 class="font-semibold text-gray-900 dark:text-white">Quick Actions</h5>
+            </div>
+        </div>
+        <div class="p-6">
+            <div class="flex flex-wrap gap-3">
+                <a href="{{ url_for('mobile_analytics_admin.cleanup_page') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
+                    <i class="ti ti-trash mr-2"></i>Data Cleanup
+                </a>
+                <button type="button" id="refresh-stats" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-[#1a472a] hover:bg-[#143d23] rounded-lg transition-colors">
+                    <i class="ti ti-refresh mr-2"></i>Refresh Stats
+                </button>
+                <button type="button" id="export-analytics" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                    <i class="ti ti-download mr-2"></i>Export Data
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Refresh stats
+    document.getElementById('refresh-stats')?.addEventListener('click', function() {
+        this.disabled = true;
+        this.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-2"></i>Refreshing...';
+        location.reload();
+    });
+
+    // Export analytics
+    document.getElementById('export-analytics')?.addEventListener('click', function() {
+        Swal.fire({
+            title: 'Export Analytics',
+            text: 'Export feature will be available in a future update.',
+            icon: 'info',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+    });
+});
+</script>
+{% endblock %}

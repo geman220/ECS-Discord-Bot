@@ -1,0 +1,215 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}MLS Matches{% endblock %}
+{% block panel_description %}Full MLS match management and scheduling{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.mls_overview') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">MLS Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">All Matches</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Action Bar -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Match Management</h5>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600" data-action="fetch-espn">
+                    <i class="ti ti-download mr-2"></i>Fetch ESPN
+                </button>
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600" data-action="mls-schedule-all-matches">
+                    <i class="ti ti-calendar-event mr-2"></i>Schedule All
+                </button>
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-action="refresh-match-statuses">
+                    <i class="ti ti-refresh mr-2"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current/Upcoming Matches -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-4 p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-calendar mr-2"></i>Current & Upcoming Matches
+        </h5>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+            {{ matches|length }} matches
+        </span>
+    </div>
+
+    {% if matches %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3 min-w-[250px]">Match</th>
+                    <th scope="col" class="px-4 py-3">Date/Time</th>
+                    <th scope="col" class="px-4 py-3">Competition</th>
+                    <th scope="col" class="px-4 py-3">Thread</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3 min-w-[250px]">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for match in matches %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" id="match-row-{{ match.id }}">
+                    <td class="px-4 py-3">
+                        <div>
+                            {% if match.is_home_game %}
+                            <span class="font-bold text-gray-900 dark:text-white">Seattle Sounders FC</span> vs {{ match.opponent }}
+                            {% else %}
+                            {{ match.opponent }} vs <span class="font-bold text-gray-900 dark:text-white">Seattle Sounders FC</span>
+                            {% endif %}
+                        </div>
+                        {% if match.venue %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ match.venue }}</p>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <p class="font-medium text-gray-900 dark:text-white">{{ match.date_time.strftime('%b %d, %Y') }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ match.date_time.strftime('%I:%M %p') }} UTC</p>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            {{ match.competition or 'MLS' }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if match.thread_created %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            <i class="ti ti-check mr-1"></i> Created
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            Not Created
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if match.status_color == 'success' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if match.status_color == 'warning' else 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300' if match.status_color == 'info' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}" id="status-{{ match.id }}">
+                            <i class="ti {{ match.status_icon }} mr-1"></i>{{ match.status_display }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex flex-wrap gap-1">
+                            <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg js-schedule-match" data-action="mls-schedule-match" data-match-id="{{ match.id }}" title="Schedule Tasks">
+                                <i class="ti ti-calendar-event"></i>
+                            </button>
+                            {% if not match.thread_created %}
+                            <button type="button" class="p-2 text-cyan-600 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg js-create-thread" data-action="create-thread" data-match-id="{{ match.id }}" title="Create Thread">
+                                <i class="ti ti-message-plus"></i>
+                            </button>
+                            {% endif %}
+                            {% if match.live_reporting_status != 'running' %}
+                            <button type="button" class="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg js-start-reporting" data-action="start-reporting" data-match-id="{{ match.id }}" title="Start Reporting">
+                                <i class="ti ti-player-play"></i>
+                            </button>
+                            {% else %}
+                            <button type="button" class="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg js-stop-reporting" data-action="stop-reporting" data-match-id="{{ match.id }}" title="Stop Reporting">
+                                <i class="ti ti-player-stop"></i>
+                            </button>
+                            {% endif %}
+                            <button type="button" class="p-2 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg js-resync-match" data-action="resync-match" data-match-id="{{ match.id }}" title="Resync Match">
+                                <i class="ti ti-refresh"></i>
+                            </button>
+                            <a href="{{ url_for('admin_panel.match_debug', match_id=match.id) }}" class="p-2 text-cyan-600 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg" title="Debug Match" target="_blank">
+                                <i class="ti ti-bug"></i>
+                            </a>
+                            <button type="button" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg js-remove-match" data-action="remove-match" data-match-id="{{ match.id }}" title="Remove Match">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-calendar-off text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Upcoming Matches</h5>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">No upcoming matches found.</p>
+        <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600" data-action="fetch-espn">
+            <i class="ti ti-download mr-2"></i>Fetch Matches from ESPN
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+{% if historical_matches %}
+<!-- Historical Matches (Collapsible) -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <button type="button" class="flex w-full items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700 text-left" data-collapse-toggle="historicalMatches">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-history mr-2"></i>Historical Matches
+        </h5>
+        <div class="flex items-center gap-3">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                {{ historical_count }} matches
+            </span>
+            <i class="ti ti-chevron-down w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform"></i>
+        </div>
+    </button>
+    <div class="hidden" id="historicalMatches">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Match</th>
+                        <th scope="col" class="px-4 py-3">Date</th>
+                        <th scope="col" class="px-4 py-3">Competition</th>
+                        <th scope="col" class="px-4 py-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in historical_matches %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                            {% if match.is_home_game %}
+                            Seattle Sounders FC vs {{ match.opponent }}
+                            {% else %}
+                            {{ match.opponent }} vs Seattle Sounders FC
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-gray-600 dark:text-gray-400">{{ match.date_time.strftime('%b %d, %Y') }}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                {{ match.competition or 'MLS' }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if match.status_color == 'success' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if match.status_color == 'warning' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
+                                {{ match.status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{# Inline scripts migrated to mls-handlers.js #}
+{# Actions: fetch-espn, schedule-all-matches, refresh-match-statuses, schedule-match, create-thread, start-reporting, stop-reporting, resync-match, remove-match #}
+{% endblock %}

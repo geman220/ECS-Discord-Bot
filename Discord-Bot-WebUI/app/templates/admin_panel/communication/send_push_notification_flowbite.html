@@ -1,0 +1,529 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Send Push Notification{% endblock %}
+{% block panel_description %}Compose and send push notifications to users{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.push_notifications_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Push Notifications</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Send</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Form -->
+    <div class="lg:col-span-2">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-send mr-2 text-ecs-green"></i>Compose Push Notification
+                </h5>
+            </div>
+            <form id="pushNotificationForm" method="POST" action="{{ url_for('admin_panel.send_push_notification') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="p-5 space-y-6">
+
+                    <!-- Notification Type -->
+                    <div>
+                        <label class="block mb-3 text-sm font-medium text-gray-900 dark:text-white">Notification Type</label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="notification_type" value="announcement" class="sr-only peer" checked>
+                                <div class="p-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg peer-checked:border-ecs-green peer-checked:bg-ecs-green/5 dark:peer-checked:bg-ecs-green/10 transition-all text-center">
+                                    <i class="ti ti-speakerphone text-2xl mb-1 text-yellow-500"></i>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">Announcement</p>
+                                </div>
+                            </label>
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="notification_type" value="match_reminder" class="sr-only peer">
+                                <div class="p-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg peer-checked:border-ecs-green peer-checked:bg-ecs-green/5 dark:peer-checked:bg-ecs-green/10 transition-all text-center">
+                                    <i class="ti ti-calendar-event text-2xl mb-1 text-blue-500"></i>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">Match</p>
+                                </div>
+                            </label>
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="notification_type" value="rsvp_reminder" class="sr-only peer">
+                                <div class="p-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg peer-checked:border-ecs-green peer-checked:bg-ecs-green/5 dark:peer-checked:bg-ecs-green/10 transition-all text-center">
+                                    <i class="ti ti-clipboard-check text-2xl mb-1 text-green-500"></i>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">RSVP</p>
+                                </div>
+                            </label>
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="notification_type" value="custom" class="sr-only peer">
+                                <div class="p-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg peer-checked:border-ecs-green peer-checked:bg-ecs-green/5 dark:peer-checked:bg-ecs-green/10 transition-all text-center">
+                                    <i class="ti ti-edit text-2xl mb-1 text-gray-500"></i>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">Custom</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Title -->
+                    <div>
+                        <label for="title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Notification Title <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="title" name="title" required maxlength="65" placeholder="Enter notification title..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            <span id="titleCount">0</span>/65 characters (recommended for optimal display)
+                        </p>
+                    </div>
+
+                    <!-- Message Body -->
+                    <div>
+                        <label for="body" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Message Body <span class="text-red-500">*</span>
+                        </label>
+                        <textarea id="body" name="body" rows="4" required maxlength="240" placeholder="Enter your message..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"></textarea>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            <span id="bodyCount">0</span>/240 characters (recommended for optimal display)
+                        </p>
+                    </div>
+
+                    <!-- Recipients -->
+                    <div>
+                        <label class="block mb-3 text-sm font-medium text-gray-900 dark:text-white">Recipients</label>
+                        <div class="space-y-3">
+                            <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <input type="radio" name="recipient_type" value="all" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" checked>
+                                <div class="ml-3">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white">All Users</span>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Send to all registered mobile app users</p>
+                                </div>
+                                <span class="ml-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300" id="all-users-count">{{ total_subscribers or '-' }}</span>
+                            </label>
+
+                            <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <input type="radio" name="recipient_type" value="team" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                                <div class="ml-3">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white">Specific Team</span>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Send to players on a specific team</p>
+                                </div>
+                            </label>
+
+                            <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <input type="radio" name="recipient_type" value="league" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                                <div class="ml-3">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white">Specific League</span>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Send to all players in a league</p>
+                                </div>
+                            </label>
+
+                            <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <input type="radio" name="recipient_type" value="role" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                                <div class="ml-3">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white">By Role</span>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Send to captains, coaches, or admins</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Team/League/Role Selection (conditional) -->
+                    <div id="team-select-container" class="hidden">
+                        <label for="team_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Team</label>
+                        <select id="team_id" name="team_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">Choose a team...</option>
+                            {% if teams %}
+                            {% for team in teams %}
+                            <option value="{{ team.id }}">{{ team.name }}</option>
+                            {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <div id="league-select-container" class="hidden">
+                        <label for="league_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select League</label>
+                        <select id="league_id" name="league_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">Choose a league...</option>
+                            <option value="pub_league">Pub League</option>
+                            <option value="ecs_fc">ECS FC</option>
+                        </select>
+                    </div>
+
+                    <div id="role-select-container" class="hidden">
+                        <label for="role" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Role</label>
+                        <select id="role" name="role" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">Choose a role...</option>
+                            <option value="captain">Team Captains</option>
+                            <option value="coach">Coaches</option>
+                            <option value="admin">Administrators</option>
+                        </select>
+                    </div>
+
+                    <!-- Action URL (Optional) -->
+                    <div>
+                        <label for="action_url" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Action URL (Optional)
+                        </label>
+                        <input type="url" id="action_url" name="action_url" placeholder="https://..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Deep link or web URL to open when user taps notification</p>
+                    </div>
+
+                    <!-- Scheduling Options -->
+                    <div>
+                        <label class="block mb-3 text-sm font-medium text-gray-900 dark:text-white">Send Options</label>
+                        <div class="flex flex-wrap gap-3">
+                            <label class="flex items-center">
+                                <input type="radio" name="send_option" value="now" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" checked>
+                                <span class="ml-2 text-sm text-gray-900 dark:text-white">Send Now</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="send_option" value="schedule" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                                <span class="ml-2 text-sm text-gray-900 dark:text-white">Schedule for Later</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Schedule DateTime (conditional) -->
+                    <div id="schedule-container" class="hidden grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="schedule_date" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Date</label>
+                            <input type="date" id="schedule_date" name="schedule_date" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        <div>
+                            <label for="schedule_time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Time (PST)</label>
+                            <input type="time" id="schedule_time" name="schedule_time" value="09:00" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex items-center justify-end gap-3 p-5 border-t border-gray-200 dark:border-gray-700">
+                    <a href="{{ url_for('admin_panel.push_notifications_dashboard') }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                        Cancel
+                    </a>
+                    <button type="button" class="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="preview-notification">
+                        <i class="ti ti-eye mr-1"></i>Preview
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700">
+                        <i class="ti ti-send mr-1"></i>Send Notification
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Preview Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-device-mobile mr-2"></i>Live Preview
+                </h6>
+            </div>
+            <div class="p-5">
+                <!-- Phone mockup -->
+                <div class="bg-gray-900 rounded-2xl p-2 mx-auto max-w-[280px]">
+                    <div class="bg-gray-800 rounded-xl overflow-hidden">
+                        <!-- Status bar -->
+                        <div class="flex items-center justify-between px-4 py-1 bg-gray-900 text-white text-xs">
+                            <span>9:41</span>
+                            <div class="flex items-center gap-1">
+                                <i class="ti ti-wifi text-xs"></i>
+                                <i class="ti ti-battery text-xs"></i>
+                            </div>
+                        </div>
+                        <!-- Notification -->
+                        <div class="p-3 bg-gray-700/50 m-2 rounded-xl">
+                            <div class="flex items-start gap-2">
+                                <div class="flex-shrink-0 w-8 h-8 bg-ecs-green rounded-lg flex items-center justify-center">
+                                    <i class="ti ti-ball-football text-white text-sm"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p id="preview-title" class="text-white text-sm font-semibold truncate">Notification Title</p>
+                                    <p id="preview-body" class="text-gray-400 text-xs line-clamp-2">Message body will appear here...</p>
+                                    <p class="text-gray-500 text-xs mt-1">now</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Templates -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-template mr-2"></i>Quick Templates
+                </h6>
+            </div>
+            <div class="p-5 space-y-2">
+                <button type="button" class="w-full px-3 py-2 text-sm text-left text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-template="match-reminder">
+                    <i class="ti ti-calendar-event mr-2 text-blue-500"></i>Match Reminder
+                </button>
+                <button type="button" class="w-full px-3 py-2 text-sm text-left text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-template="rsvp-reminder">
+                    <i class="ti ti-clipboard-check mr-2 text-green-500"></i>RSVP Reminder
+                </button>
+                <button type="button" class="w-full px-3 py-2 text-sm text-left text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-template="score-update">
+                    <i class="ti ti-trophy mr-2 text-ecs-gold"></i>Score Update
+                </button>
+                <button type="button" class="w-full px-3 py-2 text-sm text-left text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-template="field-change">
+                    <i class="ti ti-map-pin mr-2 text-red-500"></i>Field/Time Change
+                </button>
+            </div>
+        </div>
+
+        <!-- Best Practices -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-bulb mr-2 text-yellow-500"></i>Best Practices
+                </h6>
+            </div>
+            <div class="p-5">
+                <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+                    <li class="flex items-start">
+                        <i class="ti ti-check text-green-500 mr-2 mt-0.5 flex-shrink-0"></i>
+                        <span>Keep titles under 65 characters</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="ti ti-check text-green-500 mr-2 mt-0.5 flex-shrink-0"></i>
+                        <span>Body text should be actionable and clear</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="ti ti-check text-green-500 mr-2 mt-0.5 flex-shrink-0"></i>
+                        <span>Avoid sending during quiet hours (10pm-8am)</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="ti ti-check text-green-500 mr-2 mt-0.5 flex-shrink-0"></i>
+                        <span>Include action URL when relevant</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
+        <div class="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-eye mr-2"></i>Notification Preview
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="previewModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div id="modal-preview-content" class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <!-- Preview content -->
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600" data-modal-hide="previewModal">Close</button>
+                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700" data-action="send-from-preview">
+                    <i class="ti ti-send mr-1"></i>Send Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const titleInput = document.getElementById('title');
+    const bodyInput = document.getElementById('body');
+    const titleCount = document.getElementById('titleCount');
+    const bodyCount = document.getElementById('bodyCount');
+    const previewTitle = document.getElementById('preview-title');
+    const previewBody = document.getElementById('preview-body');
+    const previewModal = document.getElementById('previewModal');
+
+    // Character counters
+    titleInput.addEventListener('input', function() {
+        titleCount.textContent = this.value.length;
+        previewTitle.textContent = this.value || 'Notification Title';
+    });
+
+    bodyInput.addEventListener('input', function() {
+        bodyCount.textContent = this.value.length;
+        previewBody.textContent = this.value || 'Message body will appear here...';
+    });
+
+    // Recipient type toggling
+    const recipientRadios = document.querySelectorAll('input[name="recipient_type"]');
+    const teamSelect = document.getElementById('team-select-container');
+    const leagueSelect = document.getElementById('league-select-container');
+    const roleSelect = document.getElementById('role-select-container');
+
+    recipientRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            teamSelect.classList.add('hidden');
+            leagueSelect.classList.add('hidden');
+            roleSelect.classList.add('hidden');
+
+            if (this.value === 'team') teamSelect.classList.remove('hidden');
+            if (this.value === 'league') leagueSelect.classList.remove('hidden');
+            if (this.value === 'role') roleSelect.classList.remove('hidden');
+        });
+    });
+
+    // Schedule toggling
+    const sendOptions = document.querySelectorAll('input[name="send_option"]');
+    const scheduleContainer = document.getElementById('schedule-container');
+
+    sendOptions.forEach(option => {
+        option.addEventListener('change', function() {
+            scheduleContainer.classList.toggle('hidden', this.value !== 'schedule');
+        });
+    });
+
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('schedule_date').setAttribute('min', today);
+
+    // Templates
+    const templates = {
+        'match-reminder': {
+            title: 'Match Reminder',
+            body: 'Your match is coming up soon! Make sure you\'re ready.'
+        },
+        'rsvp-reminder': {
+            title: 'RSVP Needed',
+            body: 'Please confirm your availability for the upcoming match.'
+        },
+        'score-update': {
+            title: 'Final Score',
+            body: 'The match has ended. Check the app for the final score!'
+        },
+        'field-change': {
+            title: 'Important: Field Change',
+            body: 'There has been a change to your match location. Please check details.'
+        }
+    };
+
+    document.querySelectorAll('[data-template]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const template = templates[this.dataset.template];
+            if (template) {
+                titleInput.value = template.title;
+                bodyInput.value = template.body;
+                titleInput.dispatchEvent(new Event('input'));
+                bodyInput.dispatchEvent(new Event('input'));
+            }
+        });
+    });
+
+    // Preview modal
+    document.querySelector('[data-action="preview-notification"]').addEventListener('click', function() {
+        const title = titleInput.value || 'Notification Title';
+        const body = bodyInput.value || 'Message body';
+        const recipientType = document.querySelector('input[name="recipient_type"]:checked').value;
+
+        document.getElementById('modal-preview-content').innerHTML = `
+            <div class="space-y-4">
+                <div>
+                    <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Title</h6>
+                    <p class="text-gray-900 dark:text-white font-medium">${title}</p>
+                </div>
+                <div>
+                    <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Body</h6>
+                    <p class="text-gray-900 dark:text-white">${body}</p>
+                </div>
+                <div>
+                    <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Recipients</h6>
+                    <p class="text-gray-900 dark:text-white capitalize">${recipientType.replace('_', ' ')}</p>
+                </div>
+            </div>
+        `;
+        previewModal.classList.remove('hidden');
+    });
+
+    // Modal handlers
+    document.querySelectorAll('[data-modal-hide="previewModal"]').forEach(btn => {
+        btn.addEventListener('click', () => previewModal.classList.add('hidden'));
+    });
+
+    const backdrop = previewModal.querySelector('[data-modal-backdrop]');
+    if (backdrop) {
+        backdrop.addEventListener('click', () => previewModal.classList.add('hidden'));
+    }
+
+    document.querySelector('[data-action="send-from-preview"]').addEventListener('click', function() {
+        previewModal.classList.add('hidden');
+        document.getElementById('pushNotificationForm').dispatchEvent(new Event('submit'));
+    });
+
+    // Form submission
+    document.getElementById('pushNotificationForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const title = titleInput.value;
+        const body = bodyInput.value;
+
+        if (!title || !body) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Missing Fields',
+                text: 'Please fill in both title and message body.',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Confirm Send',
+            text: 'Send this notification to the selected recipients?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Send',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Sending...',
+                    text: 'Delivering notification to users',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading(),
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+
+                setTimeout(function() {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Notification Sent',
+                        text: 'Your push notification has been delivered.',
+                        confirmButtonColor: '#1a472a',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(() => {
+                        // Reset form or redirect
+                        // window.location.href = '{{ url_for("admin_panel.push_notifications_dashboard") }}';
+                    });
+                }, 2000);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

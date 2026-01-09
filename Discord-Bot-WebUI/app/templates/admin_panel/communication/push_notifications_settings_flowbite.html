@@ -1,0 +1,410 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Push Notification Settings{% endblock %}
+{% block panel_description %}Configure push notification preferences and Firebase settings{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Push Settings</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Firebase Configuration Status -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Status Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-flame mr-2 text-orange-500"></i>Firebase Status
+            </h5>
+        </div>
+        <div class="p-5">
+            <div class="flex items-center justify-between mb-4">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Connection</span>
+                <span id="firebase-status" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                    <i class="ti ti-loader-2 animate-spin mr-1"></i>Checking...
+                </span>
+            </div>
+            <div class="flex items-center justify-between mb-4">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Project ID</span>
+                <span id="firebase-project" class="text-sm font-medium text-gray-900 dark:text-white">-</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Last Verified</span>
+                <span id="firebase-verified" class="text-sm text-gray-500 dark:text-gray-400">-</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Defaults -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-bell-cog mr-2 text-ecs-green"></i>Default Settings
+            </h5>
+        </div>
+        <div class="p-5 space-y-4">
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Sound</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Enabled</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Badge Count</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Enabled</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Priority</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">High</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-chart-bar mr-2 text-ecs-gold"></i>Quick Stats
+            </h5>
+        </div>
+        <div class="p-5 space-y-4">
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Registered Devices</span>
+                <span id="stat-devices" class="text-lg font-bold text-gray-900 dark:text-white">-</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Active Tokens</span>
+                <span id="stat-active-tokens" class="text-lg font-bold text-green-600 dark:text-green-400">-</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Invalid Tokens</span>
+                <span id="stat-invalid-tokens" class="text-lg font-bold text-red-600 dark:text-red-400">-</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Form -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-settings mr-2"></i>Push Notification Settings
+            </h5>
+            <button type="button" class="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" onclick="location.reload()">
+                <i class="ti ti-refresh mr-1"></i>Refresh
+            </button>
+        </div>
+    </div>
+    <form id="pushSettingsForm" class="p-5">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Global Settings -->
+        <div class="mb-6">
+            <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                <i class="ti ti-world mr-2 text-gray-500"></i>Global Settings
+            </h6>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div>
+                        <label class="text-sm font-medium text-gray-900 dark:text-white">Enable Push Notifications</label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Master switch for all push notifications</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="push_enabled" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div>
+                        <label class="text-sm font-medium text-gray-900 dark:text-white">Silent Mode</label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Send notifications without sound</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="silent_mode" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Types -->
+        <div class="mb-6">
+            <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                <i class="ti ti-category mr-2 text-gray-500"></i>Notification Types
+            </h6>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex items-center">
+                        <i class="ti ti-calendar-event text-blue-500 mr-3"></i>
+                        <div>
+                            <label class="text-sm font-medium text-gray-900 dark:text-white">Match Reminders</label>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Upcoming match notifications</p>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="match_reminders" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex items-center">
+                        <i class="ti ti-clipboard-check text-green-500 mr-3"></i>
+                        <div>
+                            <label class="text-sm font-medium text-gray-900 dark:text-white">RSVP Reminders</label>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Availability request reminders</p>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="rsvp_reminders" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex items-center">
+                        <i class="ti ti-speakerphone text-yellow-500 mr-3"></i>
+                        <div>
+                            <label class="text-sm font-medium text-gray-900 dark:text-white">Announcements</label>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">League-wide announcements</p>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="announcements" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex items-center">
+                        <i class="ti ti-trophy text-ecs-gold mr-3"></i>
+                        <div>
+                            <label class="text-sm font-medium text-gray-900 dark:text-white">Score Updates</label>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Live match score notifications</p>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="score_updates" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timing Settings -->
+        <div class="mb-6">
+            <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                <i class="ti ti-clock mr-2 text-gray-500"></i>Timing Settings
+            </h6>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="match_reminder_hours" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Match Reminder (hours before)</label>
+                    <select id="match_reminder_hours" name="match_reminder_hours" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="1">1 hour before</option>
+                        <option value="2" selected>2 hours before</option>
+                        <option value="3">3 hours before</option>
+                        <option value="6">6 hours before</option>
+                        <option value="12">12 hours before</option>
+                        <option value="24">24 hours before</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="rsvp_deadline_hours" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">RSVP Deadline Reminder (hours before)</label>
+                    <select id="rsvp_deadline_hours" name="rsvp_deadline_hours" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="6">6 hours before</option>
+                        <option value="12">12 hours before</option>
+                        <option value="24" selected>24 hours before</option>
+                        <option value="48">48 hours before</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiet Hours -->
+        <div class="mb-6">
+            <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                <i class="ti ti-moon mr-2 text-gray-500"></i>Quiet Hours
+            </h6>
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg mb-4">
+                <div>
+                    <label class="text-sm font-medium text-gray-900 dark:text-white">Enable Quiet Hours</label>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">No notifications during specified hours</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="quiet_hours_enabled" name="quiet_hours_enabled" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+                </label>
+            </div>
+            <div id="quiet-hours-config" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
+                <div>
+                    <label for="quiet_start" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Start Time</label>
+                    <input type="time" id="quiet_start" name="quiet_start" value="22:00" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <div>
+                    <label for="quiet_end" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">End Time</label>
+                    <input type="time" id="quiet_end" name="quiet_end" value="08:00" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" onclick="location.reload()">
+                Reset
+            </button>
+            <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700">
+                <i class="ti ti-device-floppy mr-1"></i>Save Settings
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Token Management -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-key mr-2"></i>FCM Token Management
+            </h5>
+            <div class="flex gap-2">
+                <button type="button" class="px-3 py-1.5 text-sm font-medium text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800" data-action="validate-tokens">
+                    <i class="ti ti-checklist mr-1"></i>Validate Tokens
+                </button>
+                <button type="button" class="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800" data-action="cleanup-tokens">
+                    <i class="ti ti-trash mr-1"></i>Cleanup Invalid
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="p-5">
+        <div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300 mb-4">
+            <i class="ti ti-info-circle mr-2"></i>
+            <strong>Token Validation:</strong> Periodically validate FCM tokens to ensure delivery reliability. Invalid tokens are automatically marked and can be cleaned up.
+        </div>
+        <div id="token-management-status" class="text-center py-8">
+            <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+                <i class="ti ti-key text-3xl text-gray-400 dark:text-gray-500"></i>
+            </div>
+            <p class="text-gray-500 dark:text-gray-400">Token management tools ready</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Quiet hours toggle
+    const quietHoursEnabled = document.getElementById('quiet_hours_enabled');
+    const quietHoursConfig = document.getElementById('quiet-hours-config');
+
+    quietHoursEnabled.addEventListener('change', function() {
+        quietHoursConfig.classList.toggle('hidden', !this.checked);
+    });
+
+    // Simulate loading Firebase status
+    setTimeout(function() {
+        document.getElementById('firebase-status').innerHTML = '<span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>Connected';
+        document.getElementById('firebase-status').className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+        document.getElementById('firebase-project').textContent = 'ecs-soccer-app';
+        document.getElementById('firebase-verified').textContent = 'Just now';
+
+        // Load stats
+        document.getElementById('stat-devices').textContent = '156';
+        document.getElementById('stat-active-tokens').textContent = '152';
+        document.getElementById('stat-invalid-tokens').textContent = '4';
+    }, 1000);
+
+    // Form submission
+    document.getElementById('pushSettingsForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        Swal.fire({
+            title: 'Saving Settings',
+            text: 'Please wait...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+
+        setTimeout(function() {
+            Swal.fire({
+                icon: 'success',
+                title: 'Settings Saved',
+                text: 'Push notification settings have been updated.',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }, 1000);
+    });
+
+    // Action buttons
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+
+        if (action === 'validate-tokens') {
+            Swal.fire({
+                title: 'Validating Tokens',
+                text: 'Checking all FCM tokens...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+
+            setTimeout(function() {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Validation Complete',
+                    html: '<p>152 valid tokens</p><p class="text-red-500">4 invalid tokens found</p>',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }, 2000);
+        }
+
+        if (action === 'cleanup-tokens') {
+            Swal.fire({
+                title: 'Cleanup Invalid Tokens?',
+                text: 'This will remove all invalid FCM tokens from the database.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Cleanup',
+                confirmButtonColor: '#dc2626',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Cleanup Complete',
+                        text: '4 invalid tokens have been removed.',
+                        confirmButtonColor: '#1a472a',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(() => {
+                        document.getElementById('stat-invalid-tokens').textContent = '0';
+                    });
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

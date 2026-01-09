@@ -1,0 +1,547 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Message History{% endblock %}
+{% block panel_description %}View sent and archived scheduled messages{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.scheduled_messages') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Scheduled Messages</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">History</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Statistics Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.sent if stats else 0 }}</h3>
+                <span class="text-sm text-green-700 dark:text-green-300">Successfully Sent</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50">
+                <i class="ti ti-check text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-red-50 dark:bg-red-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-red-600 dark:text-red-400">{{ stats.failed if stats else 0 }}</h3>
+                <span class="text-sm text-red-700 dark:text-red-300">Failed</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/50">
+                <i class="ti ti-x text-2xl text-red-600 dark:text-red-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-gray-600 dark:text-gray-400">{{ stats.cancelled if stats else 0 }}</h3>
+                <span class="text-sm text-gray-700 dark:text-gray-300">Cancelled</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-600">
+                <i class="ti ti-ban text-2xl text-gray-600 dark:text-gray-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.total_history if stats else 0 }}</h3>
+                <span class="text-sm text-blue-700 dark:text-blue-300">Total History</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                <i class="ti ti-history text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters and Actions -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <!-- Search -->
+            <div class="flex-grow max-w-md">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <i class="ti ti-search text-gray-500 dark:text-gray-400"></i>
+                    </div>
+                    <input type="text" id="historySearch" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Search messages, teams, or dates...">
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Status Filter -->
+                <select id="statusFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">All Statuses</option>
+                    <option value="SENT">Sent</option>
+                    <option value="FAILED">Failed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                </select>
+
+                <!-- League Filter -->
+                <select id="leagueFilter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">All Leagues</option>
+                    <option value="pub_league">Pub League</option>
+                    <option value="ecs_fc">ECS FC</option>
+                </select>
+
+                <!-- Date Range -->
+                <input type="date" id="dateFrom" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <span class="text-gray-500 dark:text-gray-400">to</span>
+                <input type="date" id="dateTo" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+
+                <!-- Clear Filters -->
+                <button type="button" class="px-3 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600" data-action="clear-filters">
+                    <i class="ti ti-x mr-1"></i>Clear
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- History Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-history mr-2"></i>Message History
+            </h5>
+            <div class="flex items-center gap-2">
+                <!-- Export Dropdown -->
+                <button id="exportBtn" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600" data-dropdown-toggle="exportMenu">
+                    <i class="ti ti-download mr-1"></i>Export
+                    <i class="ti ti-chevron-down ml-1"></i>
+                </button>
+                <div id="exportMenu" class="hidden z-10 w-44 bg-white rounded-lg shadow dark:bg-gray-700">
+                    <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                        <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-csv"><i class="ti ti-file-text mr-2"></i>CSV</button></li>
+                        <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-excel"><i class="ti ti-file-spreadsheet mr-2"></i>Excel</button></li>
+                        <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-pdf"><i class="ti ti-file-description mr-2"></i>PDF</button></li>
+                    </ul>
+                </div>
+
+                <!-- Cleanup -->
+                <button type="button" class="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800" data-action="cleanup-history">
+                    <i class="ti ti-trash mr-1"></i>Cleanup Old
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" id="historyTable">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">League</th>
+                    <th scope="col" class="px-4 py-3">Match</th>
+                    <th scope="col" class="px-4 py-3">Sent At</th>
+                    <th scope="col" class="px-4 py-3">Recipients</th>
+                    <th scope="col" class="px-4 py-3">Responses</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if messages %}
+                {% for message in messages %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 history-row"
+                    data-status="{{ message.status }}"
+                    data-league="{{ 'pub_league' if not message.message_type or message.message_type == 'standard' else 'ecs_fc' }}"
+                    data-date="{{ message.sent_at.strftime('%Y-%m-%d') if message.sent_at else '' }}">
+                    <td class="px-4 py-3">
+                        {% if not message.message_type or message.message_type == 'standard' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green">
+                            <i class="ti ti-soccer-field mr-1"></i>Pub League
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ecs-gold/10 text-ecs-gold">
+                            <i class="ti ti-trophy mr-1"></i>ECS FC
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <div class="flex items-center justify-center w-8 h-8 rounded-full mr-2 {{ 'bg-ecs-green/10' if not message.message_type or message.message_type == 'standard' else 'bg-ecs-gold/10' }}">
+                                <i class="ti {{ 'ti-soccer-field text-ecs-green' if not message.message_type or message.message_type == 'standard' else 'ti-trophy text-ecs-gold' }}"></i>
+                            </div>
+                            <div>
+                                {% if message.match %}
+                                <p class="font-medium text-gray-900 dark:text-white">{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ message.match.date.strftime('%b %d, %Y') }}</p>
+                                {% else %}
+                                <p class="font-medium text-gray-900 dark:text-white">{{ message.message_type or 'Unknown' }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if message.sent_at %}
+                        <p class="text-gray-900 dark:text-white">{{ message.sent_at.strftime('%b %d, %Y') }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ message.sent_at.strftime('%I:%M %p') }} PST</p>
+                        {% else %}
+                        <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <i class="ti ti-users mr-1 text-gray-400"></i>
+                            <span class="text-gray-900 dark:text-white">{{ message.recipient_count or '-' }}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if message.response_stats %}
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" title="Yes">
+                                <i class="ti ti-check mr-0.5"></i>{{ message.response_stats.yes or 0 }}
+                            </span>
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" title="No">
+                                <i class="ti ti-x mr-0.5"></i>{{ message.response_stats.no or 0 }}
+                            </span>
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" title="Maybe">
+                                <i class="ti ti-question-mark mr-0.5"></i>{{ message.response_stats.maybe or 0 }}
+                            </span>
+                        </div>
+                        {% else %}
+                        <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if message.status == 'SENT' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            <i class="ti ti-check mr-1"></i>Sent
+                        </span>
+                        {% elif message.status == 'FAILED' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                            <i class="ti ti-x mr-1"></i>Failed
+                        </span>
+                        {% elif message.status == 'CANCELLED' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            <i class="ti ti-ban mr-1"></i>Cancelled
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            {{ message.status }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" title="View Details" data-action="view-details" data-message-id="{{ message.id }}">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            {% if message.match %}
+                            <a href="{{ url_for('admin.rsvp_status', match_id=message.match.id) }}" class="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg" title="View RSVPs">
+                                <i class="ti ti-list-check"></i>
+                            </a>
+                            {% endif %}
+                            {% if message.status == 'FAILED' %}
+                            <button type="button" class="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg" title="Retry" data-action="retry-message" data-message-id="{{ message.id }}">
+                                <i class="ti ti-refresh"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="7" class="px-4 py-12 text-center">
+                        <div class="flex flex-col items-center">
+                            <div class="flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+                                <i class="ti ti-history-off text-3xl text-gray-400 dark:text-gray-500"></i>
+                            </div>
+                            <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Message History</h5>
+                            <p class="text-gray-500 dark:text-gray-400 mb-4">Sent messages will appear here.</p>
+                            <a href="{{ url_for('admin_panel.scheduled_messages') }}" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700">
+                                <i class="ti ti-calendar mr-1"></i>View Scheduled Messages
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination and pagination.pages > 1 %}
+    <div class="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+        <div class="text-sm text-gray-700 dark:text-gray-400">
+            Showing <span class="font-medium">{{ ((pagination.page - 1) * pagination.per_page) + 1 }}</span>
+            to <span class="font-medium">{{ [pagination.page * pagination.per_page, pagination.total] | min }}</span>
+            of <span class="font-medium">{{ pagination.total }}</span> results
+        </div>
+        <div class="flex gap-2">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('admin_panel.scheduled_messages_history', page=pagination.prev_num) }}" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
+                <i class="ti ti-chevron-left mr-1"></i>Previous
+            </a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a href="{{ url_for('admin_panel.scheduled_messages_history', page=pagination.next_num) }}" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
+                Next<i class="ti ti-chevron-right ml-1"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Message Details Modal -->
+<div id="detailsModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
+        <div class="relative w-full max-w-2xl transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-info-circle mr-2"></i>Message Details
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="detailsModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6" id="details-content">
+                <!-- Content populated by JavaScript -->
+            </div>
+            <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600" data-modal-hide="detailsModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const historyRows = document.querySelectorAll('.history-row');
+    const searchInput = document.getElementById('historySearch');
+    const statusFilter = document.getElementById('statusFilter');
+    const leagueFilter = document.getElementById('leagueFilter');
+    const dateFrom = document.getElementById('dateFrom');
+    const dateTo = document.getElementById('dateTo');
+    const detailsModal = document.getElementById('detailsModal');
+
+    // Export dropdown
+    const exportBtn = document.getElementById('exportBtn');
+    const exportMenu = document.getElementById('exportMenu');
+
+    exportBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        exportMenu.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', function() {
+        exportMenu.classList.add('hidden');
+    });
+
+    // Filter function
+    function applyFilters() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const status = statusFilter.value;
+        const league = leagueFilter.value;
+        const fromDate = dateFrom.value;
+        const toDate = dateTo.value;
+
+        historyRows.forEach(row => {
+            const rowStatus = row.dataset.status;
+            const rowLeague = row.dataset.league;
+            const rowDate = row.dataset.date;
+            const rowText = row.textContent.toLowerCase();
+
+            let visible = true;
+
+            // Search filter
+            if (searchTerm && !rowText.includes(searchTerm)) {
+                visible = false;
+            }
+
+            // Status filter
+            if (status && rowStatus !== status) {
+                visible = false;
+            }
+
+            // League filter
+            if (league && rowLeague !== league) {
+                visible = false;
+            }
+
+            // Date range filter
+            if (fromDate && rowDate && rowDate < fromDate) {
+                visible = false;
+            }
+            if (toDate && rowDate && rowDate > toDate) {
+                visible = false;
+            }
+
+            row.style.display = visible ? '' : 'none';
+        });
+    }
+
+    // Add filter event listeners
+    let debounceTimer;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(applyFilters, 200);
+    });
+
+    statusFilter.addEventListener('change', applyFilters);
+    leagueFilter.addEventListener('change', applyFilters);
+    dateFrom.addEventListener('change', applyFilters);
+    dateTo.addEventListener('change', applyFilters);
+
+    // Clear filters
+    document.querySelector('[data-action="clear-filters"]').addEventListener('click', function() {
+        searchInput.value = '';
+        statusFilter.value = '';
+        leagueFilter.value = '';
+        dateFrom.value = '';
+        dateTo.value = '';
+        applyFilters();
+    });
+
+    // Modal handlers
+    document.querySelectorAll('[data-modal-hide="detailsModal"]').forEach(btn => {
+        btn.addEventListener('click', () => detailsModal.classList.add('hidden'));
+    });
+
+    const backdrop = detailsModal.querySelector('[data-modal-backdrop]');
+    if (backdrop) {
+        backdrop.addEventListener('click', () => detailsModal.classList.add('hidden'));
+    }
+
+    // Action handlers
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+
+        if (action === 'view-details') {
+            const messageId = target.dataset.messageId;
+            document.getElementById('details-content').innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Message ID</h6>
+                            <p class="text-gray-900 dark:text-white">${messageId}</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Status</h6>
+                            <p class="text-gray-900 dark:text-white">Sent</p>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Delivery Channels</h6>
+                        <div class="flex gap-2">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300">
+                                <i class="ti ti-brand-discord mr-1"></i>Discord
+                            </span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                <i class="ti ti-bell mr-1"></i>Push
+                            </span>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Message Content</h6>
+                        <p class="text-gray-900 dark:text-white text-sm">RSVP request for upcoming match. Please indicate your availability for this week's game.</p>
+                    </div>
+                </div>
+            `;
+            detailsModal.classList.remove('hidden');
+        }
+
+        if (action === 'retry-message') {
+            const messageId = target.dataset.messageId;
+            Swal.fire({
+                title: 'Retry Message?',
+                text: 'This will attempt to resend the failed message.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Retry',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Message Queued',
+                        text: 'The message has been queued for retry.',
+                        confirmButtonColor: '#1a472a',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            });
+        }
+
+        if (action === 'cleanup-history') {
+            Swal.fire({
+                title: 'Cleanup Old History?',
+                html: `
+                    <p class="mb-3">Delete message history older than:</p>
+                    <select id="cleanup-days" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                        <option value="30">30 days</option>
+                        <option value="60">60 days</option>
+                        <option value="90" selected>90 days</option>
+                        <option value="180">180 days</option>
+                    </select>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Cleanup',
+                confirmButtonColor: '#dc2626',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Cleanup Complete',
+                        text: 'Old message history has been removed.',
+                        confirmButtonColor: '#1a472a',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            });
+        }
+
+        if (action.startsWith('export-')) {
+            const format = action.replace('export-', '').toUpperCase();
+            Swal.fire({
+                title: 'Exporting...',
+                text: `Generating ${format} export`,
+                icon: 'info',
+                timer: 2000,
+                showConfirmButton: false,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            exportMenu.classList.add('hidden');
+        }
+    });
+});
+</script>
+{% endblock %}

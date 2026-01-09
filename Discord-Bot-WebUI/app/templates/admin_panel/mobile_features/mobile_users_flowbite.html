@@ -1,0 +1,258 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Mobile Users{% endblock %}
+{% block panel_description %}Mobile app user management and device tracking{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.mobile_features') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Mobile Features</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Mobile Users</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Mobile User Statistics -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
+                <i class="ti ti-device-mobile text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.total_mobile_users or 0 }}</h3>
+            <span class="text-sm text-blue-700 dark:text-blue-300">Total Mobile Users</span>
+        </div>
+    </div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
+                <i class="ti ti-activity text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.active_last_week or 0 }}</h3>
+            <span class="text-sm text-green-700 dark:text-green-300">Active This Week</span>
+        </div>
+    </div>
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
+                <i class="ti ti-calendar text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.active_last_month or 0 }}</h3>
+            <span class="text-sm text-cyan-700 dark:text-cyan-300">Active This Month</span>
+        </div>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+        <div class="flex flex-col items-center text-center">
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
+                <i class="ti ti-chart-line text-2xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.retention_rate or '0%' }}</h3>
+            <span class="text-sm text-yellow-700 dark:text-yellow-300">Retention Rate</span>
+        </div>
+    </div>
+</div>
+
+<!-- User Filters -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-filter mr-2"></i>Filter Mobile Users
+        </h5>
+    </div>
+    <div class="p-5">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label for="activity" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Activity Status</label>
+                <select id="activity" name="activity" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    <option value="">All Users</option>
+                    <option value="active_week" {{ 'selected' if request.args.get('activity') == 'active_week' }}>Active This Week</option>
+                    <option value="active_month" {{ 'selected' if request.args.get('activity') == 'active_month' }}>Active This Month</option>
+                    <option value="inactive" {{ 'selected' if request.args.get('activity') == 'inactive' }}>Inactive Users</option>
+                </select>
+            </div>
+            <div>
+                <label for="platform" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Platform</label>
+                <select id="platform" name="platform" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    <option value="">All Platforms</option>
+                    <option value="iOS" {{ 'selected' if request.args.get('platform') == 'iOS' }}>iOS</option>
+                    <option value="Android" {{ 'selected' if request.args.get('platform') == 'Android' }}>Android</option>
+                </select>
+            </div>
+            <div>
+                <label for="search" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search User</label>
+                <input type="text" id="search" name="search" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Username or email..." value="{{ request.args.get('search', '') }}">
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <i class="ti ti-search mr-2"></i>Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bulk Actions -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h6 class="text-lg font-medium text-gray-900 dark:text-white">Mobile User Management</h6>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ mobile_users|length or 0 }} users shown</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="send-bulk-notification">
+                    <i class="ti ti-send mr-2"></i>Send Notification
+                </button>
+                <button type="button" class="px-4 py-2 text-sm font-medium text-cyan-600 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800" data-action="export-user-data">
+                    <i class="ti ti-download mr-2"></i>Export Data
+                </button>
+                <button type="button" class="px-4 py-2 text-sm font-medium text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800" data-action="bulk-device-management">
+                    <i class="ti ti-device-mobile mr-2"></i>Manage Devices
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Users Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-users mr-2"></i>Mobile Users
+        </h5>
+    </div>
+    {% if mobile_users %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">
+                        <div class="flex items-center">
+                            <input id="mobile-users-selectAll" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        </div>
+                    </th>
+                    <th scope="col" class="px-4 py-3">User</th>
+                    <th scope="col" class="px-4 py-3">Platform</th>
+                    <th scope="col" class="px-4 py-3">Last Active</th>
+                    <th scope="col" class="px-4 py-3">Device Tokens</th>
+                    <th scope="col" class="px-4 py-3">Push Status</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in mobile_users %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <input type="checkbox" class="user-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}">
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center mr-3">
+                                <span class="text-sm font-medium text-blue-600 dark:text-blue-400">{{ user.username[0].upper() if user.username else 'U' }}</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900 dark:text-white">{{ user.username or 'Unknown User' }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.email or 'No email' }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% set platform = 'iOS' if 'iOS' in (user.device_tokens[0].token if user.device_tokens else '') else 'Android' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if platform == 'iOS' else 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' }}">
+                            <i class="ti ti-{{ 'brand-apple' if platform == 'iOS' else 'brand-android' }} mr-1"></i>
+                            {{ platform }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-gray-400">
+                        {% if user.device_tokens and user.device_tokens[0].updated_at %}
+                            {{ user.device_tokens[0].updated_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            <span class="text-gray-400 dark:text-gray-500">Unknown</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
+                            {{ user.device_tokens|length or 0 }} devices
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if user.device_tokens and user.device_tokens[0].is_active %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            <i class="ti ti-check mr-1"></i>Enabled
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            <i class="ti ti-x mr-1"></i>Disabled
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            <button type="button" class="p-2 text-cyan-600 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 rounded-lg" data-action="view-user-details" data-user-id="{{ user.id }}" title="View">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" data-action="send-notification" data-user-id="{{ user.id }}" title="Send Notification">
+                                <i class="ti ti-send"></i>
+                            </button>
+                            <button type="button" class="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg" data-action="manage-devices" data-user-id="{{ user.id }}" title="Manage Devices">
+                                <i class="ti ti-device-mobile"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-device-mobile-off text-3xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Mobile Users Found</h5>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">No users match the current filter criteria.</p>
+        <a href="{{ url_for('admin_panel.mobile_users') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+            <i class="ti ti-refresh mr-2"></i>Clear Filters
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{# Event handlers managed by mobile-features-handlers.js via EventDelegation #}
+<script>
+(function() {
+    'use strict';
+
+    // Register initialization with InitSystem
+    if (typeof InitSystem !== 'undefined') {
+        InitSystem.register('mobile-users', initMobileUsers);
+    } else {
+        document.addEventListener('DOMContentLoaded', initMobileUsers);
+    }
+
+    function initMobileUsers() {
+        // Select all functionality
+        const selectAllEl = document.getElementById('mobile-users-selectAll');
+        if (selectAllEl) {
+            selectAllEl.addEventListener('change', function() {
+                document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+            });
+        }
+    }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,358 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Real-time Service Status{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin_live.dashboard') }}" class="hover:text-[#1a472a] dark:hover:text-[#c9a227]">Live Reporting</a>
+                <span>/</span>
+                <span>Real-time Status</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-heartbeat text-red-500"></i>
+                Real-time Service Status
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Monitor the real-time reporting service health and coordination</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button type="button" id="refresh-status" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-[#1a472a] hover:bg-[#143d23] rounded-lg transition-colors">
+                <i class="ti ti-refresh mr-2"></i>Refresh
+            </button>
+            <a href="{{ url_for('admin_live.dashboard') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <i class="ti ti-arrow-left mr-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Service Health Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Service Status -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-2 {% if health.health == 'healthy' %}border-green-500{% elif health.health == 'degraded' %}border-yellow-500{% else %}border-red-500{% endif %} p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="ti ti-server text-gray-500 dark:text-gray-400"></i>
+                <span class="font-semibold text-gray-900 dark:text-white">Service Status</span>
+            </div>
+            <div class="flex items-center gap-2 mb-2">
+                <span class="w-4 h-4 rounded-full {% if health.health == 'healthy' %}bg-green-500{% elif health.health == 'degraded' %}bg-yellow-500{% else %}bg-red-500{% endif %} animate-pulse"></span>
+                <strong class="text-xl text-gray-900 dark:text-white">{{ health.health.title() if health.health else 'Unknown' }}</strong>
+            </div>
+            {% if health.is_running %}
+            <span class="text-sm text-green-600 dark:text-green-400">
+                <i class="ti ti-check mr-1"></i>Service is running
+            </span>
+            {% else %}
+            <span class="text-sm text-red-600 dark:text-red-400">
+                <i class="ti ti-x mr-1"></i>Service is offline
+            </span>
+            {% endif %}
+        </div>
+
+        <!-- Heartbeat -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="ti ti-heart-rate-monitor text-gray-500 dark:text-gray-400"></i>
+                <span class="font-semibold text-gray-900 dark:text-white">Last Heartbeat</span>
+            </div>
+            {% if health.heartbeat_age_seconds %}
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">{{ health.heartbeat_age_seconds }}s ago</h3>
+            {% if health.heartbeat_age_seconds < 60 %}
+            <span class="text-sm text-green-600 dark:text-green-400">Recent heartbeat</span>
+            {% elif health.heartbeat_age_seconds < 300 %}
+            <span class="text-sm text-yellow-600 dark:text-yellow-400">Heartbeat slightly delayed</span>
+            {% else %}
+            <span class="text-sm text-red-600 dark:text-red-400">Heartbeat stale</span>
+            {% endif %}
+            {% else %}
+            <h3 class="text-2xl font-bold text-gray-500 dark:text-gray-400 mb-1">N/A</h3>
+            <span class="text-sm text-gray-500 dark:text-gray-400">No heartbeat received</span>
+            {% endif %}
+        </div>
+
+        <!-- Coordination Status -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-2 {% if coordination.coordination_status == 'healthy' %}border-green-500{% else %}border-yellow-500{% endif %} p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="ti ti-link text-gray-500 dark:text-gray-400"></i>
+                <span class="font-semibold text-gray-900 dark:text-white">Coordination</span>
+            </div>
+            <div class="flex items-center gap-2 mb-2">
+                <span class="w-4 h-4 rounded-full {% if coordination.coordination_status == 'healthy' %}bg-green-500{% else %}bg-yellow-500{% endif %}"></span>
+                <strong class="text-xl text-gray-900 dark:text-white">{{ coordination.coordination_status.title() if coordination.coordination_status else 'Unknown' }}</strong>
+            </div>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Bridge status</span>
+        </div>
+
+        <!-- Active Sessions -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center gap-2 mb-3">
+                <i class="ti ti-broadcast text-gray-500 dark:text-gray-400"></i>
+                <span class="font-semibold text-gray-900 dark:text-white">Active Sessions</span>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-1">{{ coordination.database_sessions or 0 }}</h3>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Database sessions</span>
+        </div>
+    </div>
+
+    <!-- Detailed Status Sections -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Health Details -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-activity text-gray-500 dark:text-gray-400"></i>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Health Details</h5>
+                </div>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600 dark:text-gray-400">Service Running</span>
+                    <span class="{% if health.is_running %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %} font-medium">
+                        {{ 'Yes' if health.is_running else 'No' }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600 dark:text-gray-400">Health Status</span>
+                    <span class="px-2 py-1 text-xs font-medium rounded
+                        {% if health.health == 'healthy' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                        {% elif health.health == 'degraded' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400
+                        {% else %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                        {{ health.health.title() if health.health else 'Unknown' }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600 dark:text-gray-400">Heartbeat Age</span>
+                    <span class="text-gray-900 dark:text-white font-medium">
+                        {% if health.heartbeat_age_seconds %}{{ health.heartbeat_age_seconds }} seconds{% else %}N/A{% endif %}
+                    </span>
+                </div>
+                {% if health.last_check %}
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600 dark:text-gray-400">Last Check</span>
+                    <span class="text-gray-900 dark:text-white font-medium">{{ health.last_check }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Coordination Details -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-topology-ring-3 text-gray-500 dark:text-gray-400"></i>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Coordination Details</h5>
+                </div>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600 dark:text-gray-400">Coordination Status</span>
+                    <span class="px-2 py-1 text-xs font-medium rounded
+                        {% if coordination.coordination_status == 'healthy' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                        {% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400{% endif %}">
+                        {{ coordination.coordination_status.title() if coordination.coordination_status else 'Unknown' }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600 dark:text-gray-400">Database Sessions</span>
+                    <span class="text-gray-900 dark:text-white font-medium">{{ coordination.database_sessions or 0 }}</span>
+                </div>
+                {% if coordination.timestamp %}
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600 dark:text-gray-400">Timestamp</span>
+                    <span class="text-gray-900 dark:text-white font-medium">{{ coordination.timestamp }}</span>
+                </div>
+                {% endif %}
+                {% if coordination.realtime_service %}
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600 dark:text-gray-400">Real-time Service Health</span>
+                    <span class="px-2 py-1 text-xs font-medium rounded
+                        {% if coordination.realtime_service.health == 'healthy' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                        {% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400{% endif %}">
+                        {{ coordination.realtime_service.health.title() if coordination.realtime_service.health else 'Unknown' }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Sessions List -->
+    {% if coordination.sessions %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-2">
+                <i class="ti ti-list text-gray-500 dark:text-gray-400"></i>
+                <h5 class="font-semibold text-gray-900 dark:text-white">Active Sessions</h5>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th class="px-6 py-3">Session ID</th>
+                        <th class="px-6 py-3">Match ID</th>
+                        <th class="px-6 py-3">Competition</th>
+                        <th class="px-6 py-3">Status</th>
+                        <th class="px-6 py-3">Started At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for session in coordination.sessions %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ session.session_id }}</td>
+                        <td class="px-6 py-4">{{ session.match_id }}</td>
+                        <td class="px-6 py-4">{{ session.competition or 'N/A' }}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full">
+                                <span class="w-2 h-2 mr-1 bg-green-500 rounded-full animate-pulse"></span>
+                                Active
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">{{ session.started_at or 'N/A' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-2">
+                <i class="ti ti-tools text-gray-500 dark:text-gray-400"></i>
+                <h5 class="font-semibold text-gray-900 dark:text-white">Service Controls</h5>
+            </div>
+        </div>
+        <div class="p-6">
+            <div class="flex flex-wrap gap-3">
+                <button type="button" id="force-sync-btn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition-colors">
+                    <i class="ti ti-refresh mr-2"></i>Force Sync
+                </button>
+                <button type="button" id="send-health-check" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors">
+                    <i class="ti ti-heartbeat mr-2"></i>Health Check
+                </button>
+                <a href="{{ url_for('admin_live.sessions') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                    <i class="ti ti-list mr-2"></i>View All Sessions
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    // Refresh status
+    document.getElementById('refresh-status')?.addEventListener('click', function() {
+        this.disabled = true;
+        this.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-2"></i>Refreshing...';
+        location.reload();
+    });
+
+    // Force sync
+    document.getElementById('force-sync-btn')?.addEventListener('click', function() {
+        const btn = this;
+        Swal.fire({
+            title: 'Force Synchronization?',
+            text: 'This will force sync between the database and real-time service.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, sync it',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-2"></i>Syncing...';
+
+                fetch('/admin/live-reporting/api/force-sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: data.message || 'Synchronization complete',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.error || 'Sync failed',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    }
+                })
+                .catch(err => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to sync',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="ti ti-refresh mr-2"></i>Force Sync';
+                });
+            }
+        });
+    });
+
+    // Health check
+    document.getElementById('send-health-check')?.addEventListener('click', function() {
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-2"></i>Checking...';
+
+        fetch('/admin/live-reporting/api/health')
+            .then(res => res.json())
+            .then(data => {
+                Swal.fire({
+                    icon: data.health === 'healthy' ? 'success' : 'warning',
+                    title: 'Health Check Result',
+                    html: `
+                        <div class="text-left">
+                            <p><strong>Status:</strong> ${data.health || 'Unknown'}</p>
+                            <p><strong>Running:</strong> ${data.is_running ? 'Yes' : 'No'}</p>
+                            <p><strong>Heartbeat:</strong> ${data.heartbeat_age_seconds ? data.heartbeat_age_seconds + 's ago' : 'N/A'}</p>
+                        </div>
+                    `,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            })
+            .catch(err => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Health check failed',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ti ti-heartbeat mr-2"></i>Health Check';
+            });
+    });
+});
+</script>
+{% endblock %}

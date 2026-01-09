@@ -1,0 +1,318 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, input, textarea, select %}
+
+{% block admin_title %}{% if season %}Edit Season{% else %}Create Season{% endif %} - I-Spy{% endblock %}
+{% block panel_description %}{% if season %}Edit I-Spy season details{% else %}Create a new I-Spy game season{% endif %}{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.ispy_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">I-Spy</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.ispy_seasons') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Seasons</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{% if season %}Edit{% else %}Create{% endif %}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="max-w-3xl mx-auto">
+    <!-- Form Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 mb-6 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-4">
+            <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-ecs-green/10">
+                <i class="ti ti-calendar-plus text-2xl text-ecs-green"></i>
+            </div>
+            <div>
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    {% if season %}Edit Season: {{ season.name }}{% else %}Create New Season{% endif %}
+                </h5>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    {% if season %}Update the season details below{% else %}Fill in the details to create a new I-Spy season{% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Season Form -->
+    <form id="seasonForm" method="POST" action="{% if season %}{{ url_for('admin_panel.ispy_edit_season', season_id=season.id) }}{% else %}{{ url_for('admin_panel.ispy_create_season') }}{% endif %}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Basic Information -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-6">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-info-circle mr-2 text-ecs-green"></i>Basic Information
+                </h6>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Season Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="name" name="name" required
+                        value="{{ season.name if season else '' }}"
+                        placeholder="e.g., Spring 2024 Season"
+                        class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                </div>
+
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Description
+                    </label>
+                    <textarea id="description" name="description" rows="3"
+                        placeholder="Describe the theme or goals for this season..."
+                        class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">{{ season.description if season else '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date Range -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-6">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-calendar-event mr-2 text-ecs-green"></i>Date Range
+                </h6>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Start Date <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" id="start_date" name="start_date" required
+                            value="{{ season.start_date.strftime('%Y-%m-%d') if season and season.start_date else '' }}"
+                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                    </div>
+                    <div>
+                        <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            End Date <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" id="end_date" name="end_date" required
+                            value="{{ season.end_date.strftime('%Y-%m-%d') if season and season.end_date else '' }}"
+                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    <i class="ti ti-info-circle mr-1"></i>
+                    The season will automatically activate on the start date and deactivate on the end date.
+                </p>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-6">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-settings mr-2 text-ecs-green"></i>Season Settings
+                </h6>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="max_daily_submissions" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Max Daily Submissions
+                        </label>
+                        <input type="number" id="max_daily_submissions" name="max_daily_submissions" min="1" max="100"
+                            value="{{ season.max_daily_submissions if season else 5 }}"
+                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Maximum shots a player can submit per day</p>
+                    </div>
+                    <div>
+                        <label for="jail_duration_hours" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Jail Duration (Hours)
+                        </label>
+                        <input type="number" id="jail_duration_hours" name="jail_duration_hours" min="1" max="168"
+                            value="{{ season.jail_duration_hours if season else 24 }}"
+                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">How long players stay in jail for violations</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="points_multiplier" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Points Multiplier
+                        </label>
+                        <input type="number" id="points_multiplier" name="points_multiplier" min="0.1" max="10" step="0.1"
+                            value="{{ season.points_multiplier if season else 1.0 }}"
+                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Multiply all points by this factor</p>
+                    </div>
+                    <div>
+                        <label for="bonus_points_threshold" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Bonus Points Threshold
+                        </label>
+                        <input type="number" id="bonus_points_threshold" name="bonus_points_threshold" min="0" max="1000"
+                            value="{{ season.bonus_points_threshold if season else 100 }}"
+                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Points needed for bonus rewards</p>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="is_active" name="is_active"
+                            {{ 'checked' if season and season.is_active else '' }}
+                            class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="is_active" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Set as Active Season
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 ml-6">
+                        <i class="ti ti-alert-circle mr-1"></i>
+                        Activating this season will deactivate any other currently active season.
+                    </p>
+
+                    <div class="flex items-center">
+                        <input type="checkbox" id="allow_registration" name="allow_registration"
+                            {{ 'checked' if not season or season.allow_registration else '' }}
+                            class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="allow_registration" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Allow New Player Registration
+                        </label>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input type="checkbox" id="auto_approve_shots" name="auto_approve_shots"
+                            {{ 'checked' if season and season.auto_approve_shots else '' }}
+                            class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="auto_approve_shots" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Auto-approve Submissions
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories Selection -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-6">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-category mr-2 text-ecs-green"></i>Categories
+                </h6>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Select which categories will be available in this season:</p>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {% for category in categories %}
+                    <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <input type="checkbox" name="categories" value="{{ category.id }}"
+                            {{ 'checked' if season and category.id in season.category_ids else 'checked' if not season else '' }}
+                            class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-2 flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full" style="background-color: {{ category.color or '#1a472a' }};"></div>
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ category.name }}</span>
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% if not categories %}
+                <div class="text-center py-6">
+                    <p class="text-gray-500 dark:text-gray-400 mb-3">No categories available</p>
+                    <a href="{{ url_for('admin_panel.ispy_categories') }}" class="text-ecs-green hover:underline text-sm">
+                        <i class="ti ti-plus mr-1"></i>Create categories first
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex items-center justify-between gap-4">
+            <a href="{{ url_for('admin_panel.ispy_seasons') }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                <i class="ti ti-arrow-left mr-1"></i>Back to Seasons
+            </a>
+            <div class="flex items-center gap-3">
+                {% if season %}
+                <button type="button" id="deleteSeason" class="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-900/20">
+                    <i class="ti ti-trash mr-1"></i>Delete Season
+                </button>
+                {% endif %}
+                <button type="submit" class="px-6 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
+                    <i class="ti ti-{% if season %}check{% else %}plus{% endif %} mr-1"></i>
+                    {% if season %}Save Changes{% else %}Create Season{% endif %}
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Date validation
+    const startDate = document.getElementById('start_date');
+    const endDate = document.getElementById('end_date');
+
+    startDate?.addEventListener('change', function() {
+        if (endDate.value && new Date(endDate.value) < new Date(this.value)) {
+            endDate.value = this.value;
+        }
+        endDate.min = this.value;
+    });
+
+    // Delete season confirmation
+    document.getElementById('deleteSeason')?.addEventListener('click', function() {
+        Swal.fire({
+            title: 'Delete Season?',
+            text: 'This will permanently delete the season and all associated data. This cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Delete',
+            confirmButtonColor: '#dc2626',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('admin_panel.ispy_delete_season', season_id=season.id if season else 0) }}";
+            }
+        });
+    });
+
+    // Form validation
+    document.getElementById('seasonForm')?.addEventListener('submit', function(e) {
+        const name = document.getElementById('name').value.trim();
+        const startDateVal = document.getElementById('start_date').value;
+        const endDateVal = document.getElementById('end_date').value;
+
+        if (!name) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Validation Error',
+                text: 'Season name is required.',
+                icon: 'error',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            return;
+        }
+
+        if (new Date(endDateVal) < new Date(startDateVal)) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Validation Error',
+                text: 'End date must be after start date.',
+                icon: 'error',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

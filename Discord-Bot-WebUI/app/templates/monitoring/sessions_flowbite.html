@@ -1,0 +1,352 @@
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, stat_card %}
+
+{% block title %}Session Monitoring{% endblock %}
+{% block page_title %}Session Monitoring{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{{ url_for('main.index') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">
+                    <i class="ti ti-home w-4 h-4 mr-2"></i>
+                    Dashboard
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+                    <a href="{{ url_for('admin_panel.dashboard') }}" class="ml-1 text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Monitoring</a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+                    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Sessions</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-user-circle text-ecs-green"></i>
+                Session Monitoring
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Monitor active sessions and detect potential memory leaks</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-sm text-gray-500 dark:text-gray-400">
+                Last updated: <span id="lastUpdated" class="font-medium">--</span>
+            </span>
+            <button type="button" id="refreshBtn"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                <i class="ti ti-refresh" id="refreshIcon"></i>
+                Refresh
+            </button>
+            <button type="button" id="cleanupBtn"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500 text-white font-medium hover:bg-yellow-600 transition-colors">
+                <i class="ti ti-trash"></i>
+                Cleanup Stale
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Sessions -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Total Sessions</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white" id="totalSessions">{{ stats.total_sessions if stats else '--' }}</p>
+                </div>
+                <div class="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                    <i class="ti ti-users text-2xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Sessions -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Active Sessions</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white" id="activeSessions">{{ stats.active_count if stats else '--' }}</p>
+                </div>
+                <div class="p-3 bg-green-100 dark:bg-green-900/50 rounded-lg">
+                    <i class="ti ti-activity text-2xl text-green-600 dark:text-green-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Long Running Sessions -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Long Running</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white" id="longRunningSessions">{{ long_running_sessions|length if long_running_sessions else '--' }}</p>
+                </div>
+                <div class="p-3 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg">
+                    <i class="ti ti-clock-exclamation text-2xl text-yellow-600 dark:text-yellow-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Average Duration -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Avg Duration</p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-white" id="avgDuration">{{ stats.avg_duration if stats else '--' }}s</p>
+                </div>
+                <div class="p-3 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
+                    <i class="ti ti-hourglass text-2xl text-purple-600 dark:text-purple-400"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Tables -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <!-- Active Sessions Table -->
+        {% call card(title="Active Sessions", no_padding=true) %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Session ID</th>
+                        <th scope="col" class="px-6 py-3">Route</th>
+                        <th scope="col" class="px-6 py-3">User</th>
+                        <th scope="col" class="px-6 py-3">Status</th>
+                        <th scope="col" class="px-6 py-3">Duration</th>
+                    </tr>
+                </thead>
+                <tbody id="activeSessionsTable">
+                    {% if active_sessions %}
+                    {% for session in active_sessions %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                        <td class="px-6 py-4 font-mono text-xs">{{ session.session_id[:12] }}...</td>
+                        <td class="px-6 py-4">{{ session.route }}</td>
+                        <td class="px-6 py-4">{{ session.user_id or 'Anonymous' }}</td>
+                        <td class="px-6 py-4">
+                            {% if session.status == 'active' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
+                                Active
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                {{ session.status }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">{{ session.duration|round(2) }}s</td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center">
+                                <i class="ti ti-users-off text-4xl text-gray-400 dark:text-gray-600 mb-2"></i>
+                                <p class="text-gray-500 dark:text-gray-400">No active sessions</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        {% endcall %}
+
+        <!-- Long Running Sessions Table -->
+        {% call card(title="Long Running Sessions (Potential Leaks)", no_padding=true) %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Session ID</th>
+                        <th scope="col" class="px-6 py-3">Route</th>
+                        <th scope="col" class="px-6 py-3">User</th>
+                        <th scope="col" class="px-6 py-3">Duration</th>
+                        <th scope="col" class="px-6 py-3">Created</th>
+                    </tr>
+                </thead>
+                <tbody id="longRunningSessionsTable">
+                    {% if long_running_sessions %}
+                    {% for session in long_running_sessions %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                        <td class="px-6 py-4 font-mono text-xs">{{ session.session_id[:12] }}...</td>
+                        <td class="px-6 py-4">{{ session.route }}</td>
+                        <td class="px-6 py-4">{{ session.user_id or 'Anonymous' }}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                                {{ session.duration|round(2) }}s
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-xs">{{ session.created_at }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center">
+                                <i class="ti ti-check-circle text-4xl text-green-500 dark:text-green-400 mb-2"></i>
+                                <p class="text-gray-500 dark:text-gray-400">No long running sessions detected</p>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">All sessions are healthy</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        {% endcall %}
+    </div>
+
+    <!-- Session Health Info -->
+    {% call card(title="Session Health Guidelines") %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="flex items-start gap-4">
+            <div class="p-3 bg-green-100 dark:bg-green-900/50 rounded-lg flex-shrink-0">
+                <i class="ti ti-check text-xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <div>
+                <h4 class="font-medium text-gray-900 dark:text-white">Healthy</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Sessions under 60 seconds are considered normal</p>
+            </div>
+        </div>
+        <div class="flex items-start gap-4">
+            <div class="p-3 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg flex-shrink-0">
+                <i class="ti ti-alert-triangle text-xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <div>
+                <h4 class="font-medium text-gray-900 dark:text-white">Warning</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Sessions over 2 minutes may indicate slow queries</p>
+            </div>
+        </div>
+        <div class="flex items-start gap-4">
+            <div class="p-3 bg-red-100 dark:bg-red-900/50 rounded-lg flex-shrink-0">
+                <i class="ti ti-x text-xl text-red-600 dark:text-red-400"></i>
+            </div>
+            <div>
+                <h4 class="font-medium text-gray-900 dark:text-white">Critical</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Sessions over 5 minutes are potential memory leaks</p>
+            </div>
+        </div>
+    </div>
+    {% endcall %}
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Update timestamp
+    function updateTimestamp() {
+        document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+    }
+    updateTimestamp();
+
+    // Refresh data
+    document.getElementById('refreshBtn').addEventListener('click', async function() {
+        const icon = document.getElementById('refreshIcon');
+        icon.classList.add('animate-spin');
+
+        try {
+            const response = await fetch('{{ url_for("monitoring.session_monitoring_api") }}');
+            const data = await response.json();
+
+            if (data.stats) {
+                document.getElementById('totalSessions').textContent = data.stats.total_sessions || '--';
+                document.getElementById('activeSessions').textContent = data.stats.active_count || '--';
+                document.getElementById('avgDuration').textContent = (data.stats.avg_duration || '--') + 's';
+            }
+
+            document.getElementById('longRunningSessions').textContent = data.long_running_sessions?.length || 0;
+            updateTimestamp();
+
+            Swal.fire({
+                title: 'Refreshed',
+                text: 'Session data updated successfully',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        } catch (error) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Failed to refresh session data',
+                icon: 'error',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        } finally {
+            icon.classList.remove('animate-spin');
+        }
+    });
+
+    // Cleanup stale sessions
+    document.getElementById('cleanupBtn').addEventListener('click', async function() {
+        const result = await Swal.fire({
+            title: 'Cleanup Stale Sessions?',
+            text: 'This will remove all stale session records from monitoring.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#1a472a',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, cleanup!',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const response = await fetch('{{ url_for("monitoring.cleanup_stale_sessions") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content
+                    }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Cleaned Up!',
+                        text: data.message,
+                        icon: 'success',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(() => location.reload());
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                Swal.fire({
+                    title: 'Error',
+                    text: error.message || 'Failed to cleanup sessions',
+                    icon: 'error',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            }
+        }
+    });
+
+    // Auto-refresh every 30 seconds
+    setInterval(function() {
+        document.getElementById('refreshBtn').click();
+    }, 30000);
+});
+</script>
+{% endblock %}

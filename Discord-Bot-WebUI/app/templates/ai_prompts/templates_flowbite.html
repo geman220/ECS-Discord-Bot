@@ -1,0 +1,426 @@
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, empty_state %}
+
+{% block title %}AI Prompt Templates{% endblock %}
+{% block page_title %}AI Prompt Templates{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{{ url_for('main.index') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">
+                    <i class="ti ti-home w-4 h-4 mr-2"></i>
+                    Admin
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+                    <a href="{{ url_for('ai_prompts.list_prompts') }}" class="ml-1 text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">AI Prompts</a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+                    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Templates</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    {% call card() %}
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-template text-ecs-green"></i>
+                Prompt Templates
+            </h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Manage reusable AI prompt templates for quick configuration</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('ai_prompts.list_prompts') }}" class="inline-flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
+                <i class="ti ti-arrow-left mr-2"></i> Back to Prompts
+            </a>
+            <button type="button" id="createTemplateBtn"
+                    class="inline-flex items-center px-4 py-2 text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 focus:ring-4 focus:ring-ecs-green/50">
+                <i class="ti ti-plus mr-2"></i> Create Template
+            </button>
+        </div>
+    </div>
+    {% endcall %}
+
+    <!-- Templates Grid -->
+    {% if templates %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for template in templates %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow">
+            <!-- Template Header -->
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-ecs-green/10 flex items-center justify-center">
+                            <i class="ti ti-brain text-ecs-green text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 dark:text-white">{{ template.name }}</h3>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                {{ template.category }}
+                            </span>
+                        </div>
+                    </div>
+                    {% if template.is_default %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-gold/20 text-ecs-gold">
+                        <i class="ti ti-star-filled mr-1"></i> Default
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Template Body -->
+            <div class="p-4">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+                    {{ template.description or 'No description available' }}
+                </p>
+
+                <!-- Template Stats -->
+                <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-4">
+                    {% if template.template_data %}
+                    <span class="flex items-center gap-1">
+                        <i class="ti ti-code"></i>
+                        {{ template.template_data|length if template.template_data is string else 'Custom' }} chars
+                    </span>
+                    {% endif %}
+                    <span class="flex items-center gap-1">
+                        <i class="ti ti-calendar"></i>
+                        {{ template.created_at.strftime('%b %d, %Y') if template.created_at else 'N/A' }}
+                    </span>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-2">
+                    <button type="button" class="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 transition-colors"
+                            data-action="use-template" data-template-id="{{ template.id }}">
+                        <i class="ti ti-copy mr-1"></i> Use Template
+                    </button>
+                    <button type="button" class="inline-flex items-center justify-center p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                            data-action="view-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-template-desc="{{ template.description }}" data-template-data="{{ template.template_data }}">
+                        <i class="ti ti-eye"></i>
+                    </button>
+                    <button type="button" class="inline-flex items-center justify-center p-2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                            data-action="delete-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    {% call card() %}
+    <div class="flex flex-col items-center justify-center py-12 text-center">
+        <div class="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+            <i class="ti ti-template text-4xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Templates Available</h3>
+        <p class="text-gray-500 dark:text-gray-400 mb-6 max-w-sm">
+            Create your first prompt template to save time when configuring AI prompts.
+        </p>
+        <button type="button" id="createFirstTemplateBtn"
+                class="inline-flex items-center px-4 py-2 text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
+            <i class="ti ti-plus mr-2"></i> Create First Template
+        </button>
+    </div>
+    {% endcall %}
+    {% endif %}
+
+    <!-- Quick Tips Card -->
+    {% call card(title="Template Tips") %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="flex items-start gap-4">
+            <div class="p-3 bg-ecs-green/10 rounded-lg flex-shrink-0">
+                <i class="ti ti-bulb text-xl text-ecs-green"></i>
+            </div>
+            <div>
+                <h4 class="font-medium text-gray-900 dark:text-white">Reusable Configurations</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Templates save your favorite prompt settings for quick reuse across different matches.</p>
+            </div>
+        </div>
+        <div class="flex items-start gap-4">
+            <div class="p-3 bg-blue-500/10 rounded-lg flex-shrink-0">
+                <i class="ti ti-trophy text-xl text-blue-500"></i>
+            </div>
+            <div>
+                <h4 class="font-medium text-gray-900 dark:text-white">Competition-Specific</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Create templates for different competitions like MLS, NWSL, or international matches.</p>
+            </div>
+        </div>
+        <div class="flex items-start gap-4">
+            <div class="p-3 bg-ecs-gold/10 rounded-lg flex-shrink-0">
+                <i class="ti ti-star text-xl text-ecs-gold"></i>
+            </div>
+            <div>
+                <h4 class="font-medium text-gray-900 dark:text-white">Default Templates</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Mark templates as default to auto-apply them for specific prompt types.</p>
+            </div>
+        </div>
+    </div>
+    {% endcall %}
+</div>
+
+<!-- Create Template Modal -->
+<div id="createTemplateModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" id="modal-backdrop"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Create Prompt Template</h3>
+                <button type="button" id="closeModal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form id="createTemplateForm" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label for="template-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Template Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="template-name" name="name" required
+                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                               placeholder="e.g., MLS Match Commentary">
+                    </div>
+                    <div>
+                        <label for="template-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category <span class="text-red-500">*</span></label>
+                        <select id="template-category" name="category" required
+                                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                            <option value="">Select category</option>
+                            <option value="match_commentary">Match Commentary</option>
+                            <option value="goal">Goal Events</option>
+                            <option value="card">Card Events</option>
+                            <option value="substitution">Substitutions</option>
+                            <option value="rivalry">Rivalry Matches</option>
+                            <option value="general">General</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="template-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                        <input type="text" id="template-description" name="description"
+                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                               placeholder="Brief description of this template">
+                    </div>
+                    <div>
+                        <label for="template-data" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Template Data (JSON)</label>
+                        <textarea id="template-data" name="template_data" rows="6"
+                                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-gray-900 dark:text-white font-mono text-sm focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                                  placeholder='{"system_prompt": "...", "temperature": 0.7}'></textarea>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="template-default" name="is_default"
+                               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                        <label for="template-default" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                            Set as default template for this category
+                        </label>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" id="cancelModal" class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
+                        Create Template
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Template Modal -->
+<div id="viewTemplateModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" id="view-modal-backdrop"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white" id="view-template-title">Template Details</h3>
+                <button type="button" id="closeViewModal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Description</label>
+                    <p id="view-template-desc" class="text-gray-900 dark:text-white">--</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Template Data</label>
+                    <pre id="view-template-data" class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg text-sm overflow-x-auto text-gray-900 dark:text-white font-mono">--</pre>
+                </div>
+            </div>
+            <div class="flex items-center justify-end p-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" id="closeViewModalBtn" class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const createModal = document.getElementById('createTemplateModal');
+    const viewModal = document.getElementById('viewTemplateModal');
+
+    // Show create modal
+    function showCreateModal() {
+        createModal.classList.remove('hidden');
+    }
+
+    // Hide create modal
+    function hideCreateModal() {
+        createModal.classList.add('hidden');
+        document.getElementById('createTemplateForm').reset();
+    }
+
+    // Show view modal
+    function showViewModal(name, desc, data) {
+        document.getElementById('view-template-title').textContent = name;
+        document.getElementById('view-template-desc').textContent = desc || 'No description';
+        try {
+            const parsed = JSON.parse(data);
+            document.getElementById('view-template-data').textContent = JSON.stringify(parsed, null, 2);
+        } catch {
+            document.getElementById('view-template-data').textContent = data || 'No template data';
+        }
+        viewModal.classList.remove('hidden');
+    }
+
+    // Hide view modal
+    function hideViewModal() {
+        viewModal.classList.add('hidden');
+    }
+
+    // Event listeners
+    document.getElementById('createTemplateBtn')?.addEventListener('click', showCreateModal);
+    document.getElementById('createFirstTemplateBtn')?.addEventListener('click', showCreateModal);
+    document.getElementById('closeModal')?.addEventListener('click', hideCreateModal);
+    document.getElementById('cancelModal')?.addEventListener('click', hideCreateModal);
+    document.getElementById('modal-backdrop')?.addEventListener('click', hideCreateModal);
+    document.getElementById('closeViewModal')?.addEventListener('click', hideViewModal);
+    document.getElementById('closeViewModalBtn')?.addEventListener('click', hideViewModal);
+    document.getElementById('view-modal-backdrop')?.addEventListener('click', hideViewModal);
+
+    // Action buttons
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const templateId = target.dataset.templateId;
+
+        switch (action) {
+            case 'use-template':
+                window.location.href = `{{ url_for('ai_prompts.create_prompt') }}?template=${templateId}`;
+                break;
+
+            case 'view-template':
+                showViewModal(
+                    target.dataset.templateName,
+                    target.dataset.templateDesc,
+                    target.dataset.templateData
+                );
+                break;
+
+            case 'delete-template':
+                Swal.fire({
+                    title: 'Delete Template?',
+                    text: `Are you sure you want to delete "${target.dataset.templateName}"?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, delete it!',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Submit delete request
+                        fetch(`/ai-prompts/templates/${templateId}/delete`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content
+                            }
+                        }).then(response => {
+                            if (response.ok) {
+                                location.reload();
+                            } else {
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: 'Failed to delete template',
+                                    icon: 'error',
+                                    background: isDark ? '#1f2937' : '#ffffff',
+                                    color: isDark ? '#f3f4f6' : '#111827'
+                                });
+                            }
+                        });
+                    }
+                });
+                break;
+        }
+    });
+
+    // Form submission
+    document.getElementById('createTemplateForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const data = {
+            name: formData.get('name'),
+            category: formData.get('category'),
+            description: formData.get('description'),
+            template_data: formData.get('template_data'),
+            is_default: formData.get('is_default') === 'on'
+        };
+
+        try {
+            const response = await fetch('{{ url_for("ai_prompts.manage_templates") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': formData.get('csrf_token')
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                Swal.fire({
+                    title: 'Created!',
+                    text: 'Template created successfully',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => location.reload());
+            } else {
+                throw new Error('Failed to create template');
+            }
+        } catch (error) {
+            Swal.fire({
+                title: 'Error',
+                text: error.message,
+                icon: 'error',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,254 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Feedback #{{ feedback.id }}{% endblock %}
+{% block panel_description %}Manage feedback details and responses{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.reports_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Reports</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.feedback_list') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Feedback</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">#{{ feedback.id }}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Content Column -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Feedback Details Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+            <div class="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-message-circle mr-2 text-ecs-green"></i>
+                    {{ feedback.subject }}
+                </h3>
+                <div class="flex flex-wrap gap-2">
+                    {% if feedback.status == 'Open' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Open</span>
+                    {% elif feedback.status == 'In Progress' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">In Progress</span>
+                    {% elif feedback.status == 'Closed' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Closed</span>
+                    {% endif %}
+                    {% if feedback.priority == 'High' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">High Priority</span>
+                    {% elif feedback.priority == 'Medium' %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Medium Priority</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="mb-6">
+                    <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</h6>
+                    <p class="text-gray-900 dark:text-white">{{ feedback.description or feedback.content or 'No description provided.' }}</p>
+                </div>
+                <hr class="border-gray-200 dark:border-gray-700 my-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500 dark:text-gray-400">
+                    <div>
+                        <span class="font-medium">Submitted by:</span> {{ feedback.user.username if feedback.user else 'Anonymous' }}
+                    </div>
+                    <div>
+                        <span class="font-medium">Created:</span> {{ feedback.created_at.strftime('%b %d, %Y at %I:%M %p') if feedback.created_at else 'N/A' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Replies Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-messages mr-2 text-ecs-green"></i>
+                    Replies ({{ feedback.replies|length }})
+                </h3>
+            </div>
+            <div class="p-6">
+                {% if feedback.replies %}
+                    {% for reply in feedback.replies %}
+                    <div class="mb-4 pb-4 {{ 'border-b border-gray-200 dark:border-gray-700' if not loop.last }}">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="font-medium {{ 'text-ecs-green' if reply.is_admin_reply else 'text-gray-900 dark:text-white' }}">
+                                    {{ reply.user.username if reply.user else 'System' }}
+                                </span>
+                                {% if reply.is_admin_reply %}
+                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">Admin</span>
+                                {% endif %}
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    {{ reply.created_at.strftime('%b %d, %Y at %I:%M %p') if reply.created_at else '' }}
+                                </p>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-gray-700 dark:text-gray-300">{{ reply.content }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="text-center py-6">
+                    <i class="ti ti-messages-off text-4xl text-gray-400 dark:text-gray-600 mb-2"></i>
+                    <p class="text-gray-500 dark:text-gray-400">No replies yet.</p>
+                </div>
+                {% endif %}
+
+                <!-- Reply Form -->
+                {% if feedback.status != 'Closed' %}
+                <hr class="border-gray-200 dark:border-gray-700 my-6">
+                <form method="post">
+                    <input type="hidden" name="submit_reply" value="1">
+                    {{ reply_form.hidden_tag() if reply_form }}
+                    <div class="mb-4">
+                        <label for="reply-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Add Reply</label>
+                        <textarea
+                            name="content"
+                            id="reply-content"
+                            rows="3"
+                            placeholder="Type your reply..."
+                            required
+                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                        ></textarea>
+                    </div>
+                    <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50">
+                        <i class="ti ti-send mr-2"></i>Send Reply
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Column -->
+    <div class="space-y-6">
+        <!-- Update Status Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-settings mr-2 text-ecs-green"></i>
+                    Update Status
+                </h3>
+            </div>
+            <div class="p-6">
+                <form method="post">
+                    <input type="hidden" name="update_feedback" value="1">
+                    {{ form.hidden_tag() if form }}
+                    <div class="mb-4">
+                        <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                        <select
+                            name="status"
+                            id="status"
+                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                        >
+                            <option value="Open" {{ 'selected' if feedback.status == 'Open' }}>Open</option>
+                            <option value="In Progress" {{ 'selected' if feedback.status == 'In Progress' }}>In Progress</option>
+                            <option value="Closed" {{ 'selected' if feedback.status == 'Closed' }}>Closed</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="priority" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priority</label>
+                        <select
+                            name="priority"
+                            id="priority"
+                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                        >
+                            <option value="Low" {{ 'selected' if feedback.priority == 'Low' }}>Low</option>
+                            <option value="Medium" {{ 'selected' if feedback.priority == 'Medium' }}>Medium</option>
+                            <option value="High" {{ 'selected' if feedback.priority == 'High' }}>High</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50">
+                        <i class="ti ti-check mr-2"></i>Update
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Actions Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-bolt mr-2 text-ecs-gold"></i>
+                    Quick Actions
+                </h3>
+            </div>
+            <div class="p-6 space-y-3">
+                {% if feedback.status != 'Closed' %}
+                <form action="{{ url_for('admin_panel.close_feedback', feedback_id=feedback.id) }}" method="post" class="js-confirm-form" data-confirm="Close this feedback?">
+                    <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-500/50">
+                        <i class="ti ti-check mr-2"></i>Close Feedback
+                    </button>
+                </form>
+                {% endif %}
+                <form action="{{ url_for('admin_panel.delete_feedback', feedback_id=feedback.id) }}" method="post" class="js-confirm-form" data-confirm="Delete this feedback? This cannot be undone.">
+                    <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-red-600 bg-transparent border border-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 focus:ring-4 focus:ring-red-500/50">
+                        <i class="ti ti-trash mr-2"></i>Delete Feedback
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- User Info Card -->
+        {% if feedback.user %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-user mr-2 text-ecs-green"></i>
+                    Submitted By
+                </h3>
+            </div>
+            <div class="p-6">
+                <p class="font-medium text-gray-900 dark:text-white mb-1">{{ feedback.user.username }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">{{ feedback.user.email }}</p>
+                {% if feedback.user.player %}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Player: {{ feedback.user.player.name }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Form submission confirmation delegation
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (form.classList.contains('js-confirm-form')) {
+            e.preventDefault();
+            const confirmMsg = form.dataset.confirm;
+
+            Swal.fire({
+                title: 'Confirm Action',
+                text: confirmMsg,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes',
+                confirmButtonColor: '#1a472a',
+                cancelButtonText: 'Cancel',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
