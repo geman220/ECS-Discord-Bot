@@ -1,0 +1,151 @@
+{% extends "mobile_base_flowbite.html" %}
+
+{% block title %}Profile Complete! - {{ player.name }}{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen flex flex-col justify-center px-4 py-8">
+    <!-- Success Animation Card -->
+    <div class="text-center mb-6">
+        <!-- Success Icon with animation -->
+        <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-100 dark:bg-green-900/50 mb-4 animate-bounce">
+            <i class="ti ti-circle-check text-5xl text-green-600 dark:text-green-400"></i>
+        </div>
+
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            {% if action_type == 'verified' %}
+            Profile Confirmed!
+            {% else %}
+            Profile Updated!
+            {% endif %}
+        </h2>
+
+        <p class="text-gray-600 dark:text-gray-300">
+            {% if action_type == 'verified' %}
+            Thank you for confirming your profile information is current.
+            {% else %}
+            Thank you for updating your profile information.
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Player Confirmation Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+            <h5 class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-user-check text-green-600 dark:text-green-400"></i>
+                Profile Complete
+            </h5>
+        </div>
+        <div class="p-4">
+            <!-- Player Info -->
+            <div class="flex items-center gap-4 mb-4">
+                {% if player.profile_picture_url %}
+                <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() }}"
+                     class="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                     alt="Profile Picture">
+                {% else %}
+                <img src="{{ url_for('static', filename='img/default_player.png') }}"
+                     class="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                     alt="Default Profile Picture">
+                {% endif %}
+                <div>
+                    <h6 class="font-semibold text-gray-900 dark:text-white">{{ player.name }}</h6>
+                    {% if player.teams %}
+                    <div class="flex flex-wrap gap-1 mt-1">
+                        {% for team in player.teams %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">
+                            {{ team.name }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Status Grid -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border-l-4 border-green-500">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="ti ti-calendar-check text-green-600 dark:text-green-400"></i>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Profile Status</span>
+                    </div>
+                    <div class="font-semibold text-green-600 dark:text-green-400">Current</div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="ti ti-clock text-gray-500 dark:text-gray-400"></i>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Last Updated</span>
+                    </div>
+                    <div class="font-semibold text-gray-900 dark:text-white">Just Now</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Show to Staff Card -->
+    <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-xl p-6 mb-6 text-white">
+        <h5 class="flex items-center gap-2 text-lg font-semibold mb-2">
+            <i class="ti ti-hand-finger"></i>
+            Show This Screen to Staff
+        </h5>
+        <p class="text-sm text-white/90 mb-4">
+            Present this confirmation to the registration staff to verify you have completed your profile update.
+        </p>
+
+        <!-- Large Verification Badge -->
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center">
+            <div class="inline-flex items-center justify-center gap-2 text-2xl font-bold mb-1">
+                <i class="ti ti-shield-check"></i>
+                VERIFIED
+            </div>
+            <div class="text-sm text-white/80">
+                Completed: Just now
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Button -->
+    <div class="mb-6">
+        <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
+           class="w-full inline-flex items-center justify-center gap-2 px-6 py-4 text-base font-medium text-white bg-ecs-green hover:bg-ecs-green/90 rounded-xl shadow-sm transition-colors">
+            <i class="ti ti-user"></i>
+            View My Profile
+        </a>
+    </div>
+
+    <!-- Thank You Message -->
+    <div class="text-center">
+        <p class="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-300 mb-1">
+            <i class="ti ti-heart text-red-500"></i>
+            Thank you for being part of ECS FC!
+        </p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            We look forward to an amazing season with you.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<style>
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+    .animate-bounce {
+        animation: bounce 2s ease-in-out infinite;
+    }
+</style>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+// Confetti celebration effect (optional)
+document.addEventListener('DOMContentLoaded', function() {
+    // Simple celebration animation can be added here
+    console.log('Profile successfully updated!');
+});
+</script>
+{% endblock %}

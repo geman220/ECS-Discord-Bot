@@ -1,0 +1,586 @@
+{% extends "mobile_base_flowbite.html" %}
+
+{% block title %}Profile Verification - {{ player.name }}{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Progress Indicator -->
+    <div class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+        <!-- Progress Bar -->
+        <div class="relative h-1 bg-gray-200 dark:bg-gray-700 rounded-full mb-4 overflow-hidden">
+            <div id="progressBar" class="absolute left-0 top-0 h-full bg-ecs-green dark:bg-ecs-gold transition-all duration-300 rounded-full" style="width: 20%"></div>
+        </div>
+        <!-- Step Indicators -->
+        <div class="flex justify-between">
+            <div class="flex flex-col items-center flex-1" data-step-indicator="1">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-ecs-green text-white dark:bg-ecs-gold text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-home text-sm"></i>
+                </div>
+                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Welcome</span>
+            </div>
+            <div class="flex flex-col items-center flex-1" data-step-indicator="2">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-user text-sm"></i>
+                </div>
+                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Contact</span>
+            </div>
+            <div class="flex flex-col items-center flex-1" data-step-indicator="3">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-ball-football text-sm"></i>
+                </div>
+                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Playing</span>
+            </div>
+            <div class="flex flex-col items-center flex-1" data-step-indicator="4">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-notes text-sm"></i>
+                </div>
+                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Notes</span>
+            </div>
+            <div class="flex flex-col items-center flex-1" data-step-indicator="5">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-check text-sm"></i>
+                </div>
+                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Confirm</span>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('players.wizard_profile_update', player_id=player.id) }}" id="wizardForm" class="px-4 py-6">
+        {{ form.hidden_tag() }}
+        <input type="hidden" name="current_step" id="currentStep" value="1">
+
+        <!-- Step 1: Welcome -->
+        <div class="wizard-step" data-step="1">
+            <div class="bg-gradient-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center">
+                <!-- Profile Avatar -->
+                <div class="mb-4">
+                    {% if player.profile_picture_url %}
+                    <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() if player.updated_at else '0' }}"
+                         class="w-24 h-24 rounded-full object-cover mx-auto border-4 border-white/30"
+                         alt="{{ player.name }}">
+                    {% else %}
+                    <div class="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center mx-auto border-4 border-white/30">
+                        <i class="ti ti-user text-4xl"></i>
+                    </div>
+                    {% endif %}
+                    {% if player.teams %}
+                    <div class="mt-2">
+                        {% for team in player.teams %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20">
+                            {{ team.name }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <h1 class="text-2xl font-bold mb-4">Welcome, {{ player.name.split(' ')[0] }}!</h1>
+
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-4">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-ecs-gold/20 mb-2">
+                        <i class="ti ti-trophy text-ecs-gold text-2xl"></i>
+                    </div>
+                    <h2 class="text-lg font-semibold mb-1">New Season Check-In</h2>
+                    <p class="text-sm text-white/80">Let's make sure your profile is up to date. This only takes a minute!</p>
+                </div>
+
+                <!-- Checklist -->
+                <div class="space-y-2 text-left">
+                    <div class="flex items-center gap-3 text-sm">
+                        <i class="ti ti-circle-check text-ecs-gold"></i>
+                        <span>Verify your contact info</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm">
+                        <i class="ti ti-circle-check text-ecs-gold"></i>
+                        <span>Update playing preferences</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm">
+                        <i class="ti ti-circle-check text-ecs-gold"></i>
+                        <span>Add notes for coaches</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm">
+                        <i class="ti ti-circle-check text-ecs-gold"></i>
+                        <span>Confirm everything is accurate</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Contact Information -->
+        <div class="wizard-step hidden" data-step="2">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                            <i class="ti ti-address-book text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 dark:text-white">Contact Information</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Make sure we can reach you</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <i class="ti ti-user text-gray-400"></i> Full Name
+                        </label>
+                        {{ form.name(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", placeholder="Your full name", **{"data-field": "name"}) }}
+                    </div>
+
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <i class="ti ti-mail text-gray-400"></i> Email Address
+                        </label>
+                        {{ form.email(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", placeholder="your@email.com", **{"data-field": "email"}) }}
+                    </div>
+
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <i class="ti ti-phone text-gray-400"></i> Phone Number
+                        </label>
+                        {{ form.phone(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", placeholder="(555) 123-4567", **{"data-field": "phone"}) }}
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <i class="ti ti-shirt text-gray-400"></i> Jersey Size
+                            </label>
+                            {{ form.jersey_size(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", **{"data-field": "jersey_size"}) }}
+                        </div>
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <i class="ti ti-message-circle text-gray-400"></i> Pronouns
+                            </label>
+                            {{ form.pronouns(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", **{"data-field": "pronouns"}) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Playing Preferences -->
+        <div class="wizard-step hidden" data-step="3">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                            <i class="ti ti-ball-football text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 dark:text-white">Playing Preferences</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Help your coach understand your style</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <i class="ti ti-star text-gray-400"></i> Favorite Position
+                        </label>
+                        {{ form.favorite_position(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", **{"data-field": "favorite_position"}) }}
+                    </div>
+
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <i class="ti ti-list-check text-gray-400"></i> Other Positions You Enjoy
+                        </label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Tap to select all that apply</p>
+                        <div class="grid grid-cols-2 gap-2" data-field="other_positions">
+                            {% set selected_other = form.other_positions.data or [] %}
+                            {% for value, label in form.other_positions.choices %}
+                            {% if value != 'no_preference' %}
+                            <label class="flex items-center gap-2 p-3 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors has-[:checked]:bg-ecs-green/10 has-[:checked]:border-ecs-green dark:has-[:checked]:bg-ecs-green/20">
+                                <input type="checkbox" name="other_positions" value="{{ value }}" {% if value in selected_other %}checked{% endif %}
+                                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">{{ label }}</span>
+                            </label>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <i class="ti ti-x text-gray-400"></i> Positions to Avoid
+                        </label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Tap any you'd prefer not to play</p>
+                        <div class="grid grid-cols-2 gap-2" data-field="positions_not_to_play">
+                            {% set selected_avoid = form.positions_not_to_play.data or [] %}
+                            {% for value, label in form.positions_not_to_play.choices %}
+                            {% if value != 'no_preference' %}
+                            <label class="flex items-center gap-2 p-3 rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors has-[:checked]:bg-red-50 has-[:checked]:border-red-400 dark:has-[:checked]:bg-red-900/20">
+                                <input type="checkbox" name="positions_not_to_play" value="{{ value }}" {% if value in selected_avoid %}checked{% endif %}
+                                       class="rounded border-gray-300 dark:border-gray-600 text-red-500 focus:ring-red-500">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">{{ label }}</span>
+                            </label>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <i class="ti ti-shield text-gray-400"></i> Goalkeeper Willingness
+                        </label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">How often would you play in goal?</p>
+                        {{ form.frequency_play_goal(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", **{"data-field": "frequency_play_goal"}) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Notes & Availability -->
+        <div class="wizard-step hidden" data-step="4">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                            <i class="ti ti-notes text-purple-600 dark:text-purple-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 dark:text-white">Notes & Availability</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Anything else we should know?</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <i class="ti ti-calendar text-gray-400"></i> Expected Availability
+                        </label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">How many weeks can you play this season?</p>
+                        {{ form.expected_weeks_available(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", **{"data-field": "expected_weeks_available"}) }}
+                    </div>
+
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <i class="ti ti-whistle text-gray-400"></i> Interested in Refereeing?
+                        </label>
+                        {{ form.willing_to_referee(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", **{"data-field": "willing_to_referee"}) }}
+                    </div>
+
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <i class="ti ti-message text-gray-400"></i> Notes for Your Coach
+                        </label>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Injuries, availability issues, or anything else</p>
+                        {{ form.player_notes(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", rows=4, placeholder="E.g., I can't play on specific dates, injury concerns, etc.", **{"data-field": "player_notes"}) }}
+                    </div>
+
+                    <div class="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-sm text-blue-700 dark:text-blue-300">
+                        <i class="ti ti-info-circle flex-shrink-0 mt-0.5"></i>
+                        <p>Your notes are only visible to coaches and league admins.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 5: Review & Confirm -->
+        <div class="wizard-step hidden" data-step="5">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-4 py-4 border-b border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                            <i class="ti ti-clipboard-check text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 dark:text-white">Review & Confirm</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Please verify your information is correct</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 space-y-4">
+                    <!-- Contact Summary -->
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                        <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
+                            <div class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <i class="ti ti-address-book"></i>
+                                <span>Contact Information</span>
+                            </div>
+                            <button type="button" data-goto-step="2" class="text-ecs-green dark:text-ecs-gold hover:underline text-sm">
+                                <i class="ti ti-pencil"></i> Edit
+                            </button>
+                        </div>
+                        <div class="p-4 grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400 block">Name</span>
+                                <span class="font-medium text-gray-900 dark:text-white" data-review="name">-</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400 block">Email</span>
+                                <span class="font-medium text-gray-900 dark:text-white" data-review="email">-</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400 block">Phone</span>
+                                <span class="font-medium text-gray-900 dark:text-white" data-review="phone">-</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400 block">Jersey</span>
+                                <span class="font-medium text-gray-900 dark:text-white" data-review="jersey_size">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Playing Preferences Summary -->
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                        <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
+                            <div class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <i class="ti ti-ball-football"></i>
+                                <span>Playing Preferences</span>
+                            </div>
+                            <button type="button" data-goto-step="3" class="text-ecs-green dark:text-ecs-gold hover:underline text-sm">
+                                <i class="ti ti-pencil"></i> Edit
+                            </button>
+                        </div>
+                        <div class="p-4 grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400 block">Favorite Position</span>
+                                <span class="font-medium text-gray-900 dark:text-white" data-review="favorite_position">-</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400 block">Goalkeeper</span>
+                                <span class="font-medium text-gray-900 dark:text-white" data-review="frequency_play_goal">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Availability Summary -->
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                        <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
+                            <div class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <i class="ti ti-calendar"></i>
+                                <span>Availability & Notes</span>
+                            </div>
+                            <button type="button" data-goto-step="4" class="text-ecs-green dark:text-ecs-gold hover:underline text-sm">
+                                <i class="ti ti-pencil"></i> Edit
+                            </button>
+                        </div>
+                        <div class="p-4 grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400 block">Weeks Available</span>
+                                <span class="font-medium text-gray-900 dark:text-white" data-review="expected_weeks_available">-</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 dark:text-gray-400 block">Referee Interest</span>
+                                <span class="font-medium text-gray-900 dark:text-white" data-review="willing_to_referee">-</span>
+                            </div>
+                        </div>
+                        <div class="px-4 pb-4 text-sm">
+                            <span class="text-gray-500 dark:text-gray-400 block mb-1">Notes</span>
+                            <div class="p-2 bg-gray-50 dark:bg-gray-700/50 rounded text-gray-700 dark:text-gray-300" data-review="player_notes">
+                                No additional notes
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Confirmation Checkbox -->
+                    <label class="flex items-start gap-3 p-4 bg-green-50 dark:bg-green-900/30 rounded-xl border border-green-200 dark:border-green-800 cursor-pointer">
+                        <input type="checkbox" id="confirmCheck" name="confirm_accurate" required
+                               class="mt-0.5 rounded border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">
+                            I have reviewed my profile and confirm all information is accurate
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-3 z-40">
+            <button type="button" id="prevBtn" disabled
+                    class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="ti ti-chevron-left"></i>
+                <span>Back</span>
+            </button>
+
+            <button type="button" id="nextBtn"
+                    class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-ecs-green hover:bg-ecs-green/90 rounded-lg transition-colors">
+                <span>Get Started</span>
+                <i class="ti ti-chevron-right"></i>
+            </button>
+
+            <button type="submit" name="verify_profile" id="confirmBtn"
+                    class="hidden flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                <i class="ti ti-shield-check"></i>
+                <span>Confirm Profile</span>
+            </button>
+        </div>
+    </form>
+
+    <!-- Swipe Hint (mobile only) -->
+    <div id="swipeHint" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 bg-gray-800/80 text-white text-xs rounded-full z-30 opacity-0 transition-opacity duration-300 md:hidden">
+        <i class="ti ti-hand-finger"></i>
+        <span>Swipe to navigate</span>
+    </div>
+
+    <!-- Auto-save Indicator -->
+    <div id="saveIndicator" class="fixed top-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white text-xs rounded-full z-50 opacity-0 transition-opacity duration-300">
+        <i class="ti ti-check"></i>
+        <span>Saved</span>
+    </div>
+</div>
+
+<!-- Add padding for fixed bottom nav -->
+<div class="h-20"></div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const totalSteps = 5;
+    let currentStep = 1;
+    const form = document.getElementById('wizardForm');
+    const progressBar = document.getElementById('progressBar');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const currentStepInput = document.getElementById('currentStep');
+    const saveIndicator = document.getElementById('saveIndicator');
+    const swipeHint = document.getElementById('swipeHint');
+
+    // Show swipe hint briefly on mobile
+    if (window.innerWidth < 768) {
+        setTimeout(() => {
+            swipeHint.classList.remove('opacity-0');
+            setTimeout(() => {
+                swipeHint.classList.add('opacity-0');
+            }, 3000);
+        }, 1000);
+    }
+
+    function updateStep(step) {
+        // Update step visibility
+        document.querySelectorAll('.wizard-step').forEach(el => {
+            el.classList.add('hidden');
+        });
+        document.querySelector(`[data-step="${step}"]`).classList.remove('hidden');
+
+        // Update progress bar
+        progressBar.style.width = `${(step / totalSteps) * 100}%`;
+
+        // Update step indicators
+        document.querySelectorAll('[data-step-indicator]').forEach(el => {
+            const stepNum = parseInt(el.dataset.stepIndicator);
+            const dot = el.querySelector('div');
+            if (stepNum < step) {
+                dot.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-500', 'dark:text-gray-400');
+                dot.classList.add('bg-ecs-green', 'text-white', 'dark:bg-ecs-gold');
+            } else if (stepNum === step) {
+                dot.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-500', 'dark:text-gray-400');
+                dot.classList.add('bg-ecs-green', 'text-white', 'dark:bg-ecs-gold');
+            } else {
+                dot.classList.remove('bg-ecs-green', 'text-white', 'dark:bg-ecs-gold');
+                dot.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-500', 'dark:text-gray-400');
+            }
+        });
+
+        // Update buttons
+        prevBtn.disabled = step === 1;
+
+        if (step === totalSteps) {
+            nextBtn.classList.add('hidden');
+            confirmBtn.classList.remove('hidden');
+            confirmBtn.classList.add('flex');
+            updateReviewSection();
+        } else {
+            nextBtn.classList.remove('hidden');
+            confirmBtn.classList.add('hidden');
+            confirmBtn.classList.remove('flex');
+            nextBtn.querySelector('span').textContent = step === 1 ? 'Get Started' : 'Next';
+        }
+
+        currentStepInput.value = step;
+        currentStep = step;
+    }
+
+    function updateReviewSection() {
+        // Update review values from form fields
+        const fields = ['name', 'email', 'phone', 'jersey_size', 'favorite_position', 'frequency_play_goal', 'expected_weeks_available', 'willing_to_referee', 'player_notes'];
+        fields.forEach(field => {
+            const input = form.querySelector(`[name="${field}"]`);
+            const review = document.querySelector(`[data-review="${field}"]`);
+            if (input && review) {
+                let value = input.value;
+                if (input.tagName === 'SELECT') {
+                    value = input.options[input.selectedIndex]?.text || '-';
+                }
+                review.textContent = value || '-';
+            }
+        });
+
+        // Handle player_notes specially
+        const notesReview = document.querySelector('[data-review="player_notes"]');
+        const notesInput = form.querySelector('[name="player_notes"]');
+        if (notesReview && notesInput) {
+            notesReview.textContent = notesInput.value || 'No additional notes';
+        }
+    }
+
+    nextBtn.addEventListener('click', () => {
+        if (currentStep < totalSteps) {
+            updateStep(currentStep + 1);
+        }
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (currentStep > 1) {
+            updateStep(currentStep - 1);
+        }
+    });
+
+    // Handle edit buttons on review step
+    document.querySelectorAll('[data-goto-step]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const step = parseInt(btn.dataset.gotoStep);
+            updateStep(step);
+        });
+    });
+
+    // Auto-save functionality
+    let saveTimeout;
+    form.querySelectorAll('input, select, textarea').forEach(input => {
+        input.addEventListener('change', () => {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                // Show save indicator
+                saveIndicator.classList.remove('opacity-0');
+                setTimeout(() => {
+                    saveIndicator.classList.add('opacity-0');
+                }, 2000);
+            }, 500);
+        });
+    });
+
+    // Touch swipe support
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    document.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    document.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+
+        if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0 && currentStep < totalSteps) {
+                // Swipe left - next
+                updateStep(currentStep + 1);
+            } else if (diff < 0 && currentStep > 1) {
+                // Swipe right - prev
+                updateStep(currentStep - 1);
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

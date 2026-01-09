@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{% block title %}ECS FC Profile Update{% endblock %}</title>
+
+    <!-- Tailwind CSS (Flowbite) -->
+    {% if vite_production_mode is defined and vite_production_mode() %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='vite-dist/css/tailwind.css') }}">
+    {% else %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='vite-dist/css/tailwind.css') }}">
+    {% endif %}
+
+    <!-- Tabler Icons -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" />
+
+    <!-- Dark mode initialization (before page render) -->
+    <script>
+        // Check for saved theme or system preference
+        if (localStorage.getItem('color-theme') === 'dark' ||
+            (!localStorage.getItem('color-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+    {% block custom_css %}{% endblock %}
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Skip to main content link -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg shadow-lg text-ecs-green dark:text-ecs-gold z-50">
+        Skip to main content
+    </a>
+
+    <div class="min-h-screen">
+        <main id="main-content" tabindex="-1" class="pb-safe">
+            {% block main_content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Flash Messages via SweetAlert2 with dark mode support -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <script>
+            (function() {
+                const isDark = document.documentElement.classList.contains('dark');
+                const bgColor = isDark ? '#1f2937' : '#ffffff';
+                const textColor = isDark ? '#f3f4f6' : '#111827';
+
+                {% for category, message in messages %}
+                    {% if category == 'error' %}
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: '{{ message|e }}',
+                            background: bgColor,
+                            color: textColor,
+                            confirmButtonColor: '#dc2626'
+                        });
+                    {% elif category == 'warning' %}
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Warning',
+                            text: '{{ message|e }}',
+                            background: bgColor,
+                            color: textColor,
+                            confirmButtonColor: '#d97706'
+                        });
+                    {% elif category == 'success' %}
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: '{{ message|e }}',
+                            background: bgColor,
+                            color: textColor,
+                            confirmButtonColor: '#1a472a'
+                        });
+                    {% else %}
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Info',
+                            text: '{{ message|e }}',
+                            background: bgColor,
+                            color: textColor,
+                            confirmButtonColor: '#0ea5e9'
+                        });
+                    {% endif %}
+                {% endfor %}
+            })();
+        </script>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Flowbite JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
+
+    {% block custom_js %}{% endblock %}
+</body>
+</html>
