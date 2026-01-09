@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Mobile Experience - ECS Soccer League</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vite-dist/css/tailwind.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-8 text-center">
+                <!-- Logo -->
+                <a href="/" class="inline-block mb-6">
+                    <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="h-16 mx-auto">
+                </a>
+
+                <!-- Title -->
+                <h1 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Updating App</h1>
+                <p class="text-gray-500 dark:text-gray-400 mb-6">We've made improvements to our mobile experience</p>
+
+                <!-- Loading Status -->
+                <div class="space-y-4">
+                    <div class="flex justify-center">
+                        <div class="animate-spin rounded-full h-10 w-10 border-4 border-ecs-green border-t-transparent"></div>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-300 font-medium" id="statusMessage">Clearing cache and reloading...</p>
+                    <p class="text-sm text-gray-400 dark:text-gray-500">This page will automatically redirect you in a moment</p>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mt-6">
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div class="bg-ecs-green h-2 rounded-full transition-all duration-500" id="progressBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-4">
+            ECS Soccer League - Emerald City Supporters
+        </p>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        const statusMessage = document.getElementById('statusMessage');
+        const progressBar = document.getElementById('progressBar');
+
+        // Detect dark mode preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+
+        try {
+            // Step 1: Clear service worker caches
+            progressBar.style.width = '20%';
+            statusMessage.textContent = 'Clearing browser cache...';
+
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+            }
+
+            // Step 2: Unregister service workers
+            progressBar.style.width = '40%';
+            statusMessage.textContent = 'Updating service workers...';
+
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(reg => reg.unregister()));
+            }
+
+            // Step 3: Clear local storage (optional, but helpful for stale UI state)
+            progressBar.style.width = '60%';
+            statusMessage.textContent = 'Refreshing local data...';
+
+            // Clear specific app-related localStorage keys if needed
+            // localStorage.removeItem('app-cache-version');
+
+            // Step 4: Final progress
+            progressBar.style.width = '80%';
+            statusMessage.textContent = 'Preparing redirect...';
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Step 5: Complete and redirect
+            progressBar.style.width = '100%';
+            statusMessage.textContent = 'Complete! Redirecting...';
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Redirect to home with cache-busting parameter
+            const timestamp = Date.now();
+            window.location.href = '/?v=' + timestamp;
+
+        } catch (error) {
+            console.error('Cache clear error:', error);
+            statusMessage.textContent = 'Update complete. Redirecting...';
+            progressBar.style.width = '100%';
+
+            // Redirect anyway after a short delay
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1000);
+        }
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Create New User{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Create New User</h1>
+        <p class="text-gray-500 dark:text-gray-400">Add a new user to the system</p>
+    </div>
+
+    <!-- Create User Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-user-plus text-ecs-green"></i>
+                User Details
+            </h2>
+        </div>
+
+        <form method="POST" action="{{ url_for('user_management.create_user') }}" class="p-6 space-y-6">
+            {{ form.hidden_tag() }}
+
+            <!-- Username -->
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {{ form.username.label.text }}
+                </label>
+                <div class="relative">
+                    <i class="ti ti-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    {{ form.username(class="block w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                </div>
+                {% for error in form.username.errors %}
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Email -->
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {{ form.email.label.text }}
+                </label>
+                <div class="relative">
+                    <i class="ti ti-mail absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    {{ form.email(class="block w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", inputmode="email", autocomplete="email") }}
+                </div>
+                {% for error in form.email.errors %}
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Password -->
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {{ form.password.label.text }}
+                </label>
+                <div class="relative">
+                    <i class="ti ti-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    {{ form.password(class="block w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                </div>
+                {% for error in form.password.errors %}
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Roles -->
+            <div>
+                <label for="roles" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {{ form.roles.label.text }}
+                </label>
+                {{ form.roles(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", multiple=True, size=5) }}
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple roles</p>
+                {% for error in form.roles.errors %}
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- League -->
+            <div>
+                <label for="league_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {{ form.league_id.label.text }}
+                </label>
+                {{ form.league_id(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                {% for error in form.league_id.errors %}
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Is Current Player -->
+            <div class="flex items-center">
+                {{ form.is_current_player(class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green") }}
+                <label for="is_current_player" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    {{ form.is_current_player.label.text }}
+                </label>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="submit"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                    <i class="ti ti-user-plus"></i>
+                    Create User
+                </button>
+                <a href="{{ url_for('user_management.manage_users') }}"
+                   class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <i class="ti ti-x"></i>
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
