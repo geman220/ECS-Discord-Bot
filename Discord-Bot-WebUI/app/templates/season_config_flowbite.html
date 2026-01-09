@@ -1,0 +1,238 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Season Configuration - {{ league.name }}{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Season Configuration</h1>
+                <p class="text-gray-500 dark:text-gray-400">{{ league.name }}</p>
+            </div>
+            <a href="{{ url_for('auto_schedule.schedule_manager') }}"
+               class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                <i class="ti ti-arrow-left"></i> Back to Schedule Manager
+            </a>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('auto_schedule.season_config', league_id=league.id) }}" class="space-y-6">
+        {{ csrf_token() }}
+
+        <!-- Season Length Configuration -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-calendar text-ecs-green"></i> Season Length
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="regular_season_weeks" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Regular Season Weeks <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="regular_season_weeks" name="regular_season_weeks"
+                               value="{{ season_config.regular_season_weeks }}"
+                               min="1" max="20" required
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Number of regular season weeks</p>
+                    </div>
+                    <div>
+                        <label for="playoff_weeks" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Playoff Weeks <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="playoff_weeks" name="playoff_weeks"
+                               value="{{ season_config.playoff_weeks }}"
+                               min="0" max="5" required
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Number of playoff weeks</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Special Weeks Configuration -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-star text-ecs-green"></i> Special Weeks
+                </h2>
+            </div>
+            <div class="p-6 space-y-4">
+                <label class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <input type="checkbox" id="has_fun_week" name="has_fun_week"
+                           {{ 'checked' if season_config.has_fun_week else '' }}
+                           class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                    <div>
+                        <p class="font-medium text-gray-900 dark:text-white">Fun Week</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Include a fun week in the schedule</p>
+                    </div>
+                </label>
+                <label class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <input type="checkbox" id="has_tst_week" name="has_tst_week"
+                           {{ 'checked' if season_config.has_tst_week else '' }}
+                           class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                    <div>
+                        <p class="font-medium text-gray-900 dark:text-white">TST Week</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Include a TST (Tournament) week</p>
+                    </div>
+                </label>
+                <label class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <input type="checkbox" id="has_bonus_week" name="has_bonus_week"
+                           {{ 'checked' if season_config.has_bonus_week else '' }}
+                           class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                    <div>
+                        <p class="font-medium text-gray-900 dark:text-white">Bonus Week</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Include a bonus week at the end of the season</p>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Practice Sessions Configuration -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-ball-football text-ecs-green"></i> Practice Sessions
+                </h2>
+            </div>
+            <div class="p-6 space-y-4">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" id="has_practice_sessions" name="has_practice_sessions"
+                           {{ 'checked' if season_config.has_practice_sessions else '' }}
+                           class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                    <div>
+                        <p class="font-medium text-gray-900 dark:text-white">Enable Practice Sessions</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Enable practice sessions for specific weeks</p>
+                    </div>
+                </label>
+
+                <div id="practice-config" class="{{ 'hidden' if not season_config.has_practice_sessions else '' }} pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="practice_weeks" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Practice Weeks
+                            </label>
+                            <input type="text" id="practice_weeks" name="practice_weeks"
+                                   value="{{ season_config.practice_weeks or '' }}"
+                                   placeholder="e.g., 1,3"
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Comma-separated week numbers (e.g., 1,3)</p>
+                        </div>
+                        <div>
+                            <label for="practice_game_number" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Practice Game Number
+                            </label>
+                            <select id="practice_game_number" name="practice_game_number"
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="1" {{ 'selected' if season_config.practice_game_number == 1 else '' }}>Game 1</option>
+                                <option value="2" {{ 'selected' if season_config.practice_game_number == 2 else '' }}>Game 2</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Which game number should be practice</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Season Preview -->
+        <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+            <h3 class="font-semibold text-blue-900 dark:text-blue-200 mb-4 flex items-center gap-2">
+                <i class="ti ti-info-circle"></i> Season Structure Preview
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <p class="text-blue-800 dark:text-blue-300"><strong>League Type:</strong> {{ season_config.league_type }}</p>
+                    <p class="text-blue-800 dark:text-blue-300"><strong>Total Season Length:</strong> <span id="total-weeks">{{ season_config.regular_season_weeks + season_config.playoff_weeks + (1 if season_config.has_fun_week else 0) + (1 if season_config.has_tst_week else 0) + (1 if season_config.has_bonus_week else 0) }}</span> weeks</p>
+                </div>
+                <div>
+                    <ul class="text-blue-700 dark:text-blue-400 space-y-1">
+                        <li><i class="ti ti-check mr-1"></i> Regular Season: <span id="preview-regular">{{ season_config.regular_season_weeks }}</span> weeks</li>
+                        <li id="preview-fun" class="{{ '' if season_config.has_fun_week else 'hidden' }}"><i class="ti ti-check mr-1"></i> Fun Week: 1 week</li>
+                        <li id="preview-tst" class="{{ '' if season_config.has_tst_week else 'hidden' }}"><i class="ti ti-check mr-1"></i> TST Week: 1 week</li>
+                        <li><i class="ti ti-check mr-1"></i> Playoffs: <span id="preview-playoffs">{{ season_config.playoff_weeks }}</span> weeks</li>
+                        <li id="preview-bonus" class="{{ '' if season_config.has_bonus_week else 'hidden' }}"><i class="ti ti-check mr-1"></i> Bonus Week: 1 week</li>
+                    </ul>
+                </div>
+            </div>
+            <div id="preview-practice" class="{{ '' if season_config.has_practice_sessions else 'hidden' }} mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
+                <p class="text-blue-800 dark:text-blue-300">
+                    <strong>Practice Sessions:</strong> Game <span id="preview-practice-game">{{ season_config.practice_game_number or 1 }}</span> of weeks <span id="preview-practice-weeks">{{ season_config.practice_weeks or 'Not specified' }}</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-wrap gap-3">
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-6 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                <i class="ti ti-device-floppy"></i> Save Configuration
+            </button>
+            <a href="{{ url_for('auto_schedule.schedule_manager') }}"
+               class="inline-flex items-center gap-2 px-6 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <i class="ti ti-x"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const practiceCheckbox = document.getElementById('has_practice_sessions');
+    const practiceConfig = document.getElementById('practice-config');
+    const previewPractice = document.getElementById('preview-practice');
+
+    // Toggle practice configuration visibility
+    practiceCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            practiceConfig.classList.remove('hidden');
+            previewPractice.classList.remove('hidden');
+        } else {
+            practiceConfig.classList.add('hidden');
+            previewPractice.classList.add('hidden');
+        }
+        updatePreview();
+    });
+
+    // Update season preview when values change
+    function updatePreview() {
+        const regularWeeks = parseInt(document.getElementById('regular_season_weeks').value) || 0;
+        const playoffWeeks = parseInt(document.getElementById('playoff_weeks').value) || 0;
+        const hasFun = document.getElementById('has_fun_week').checked;
+        const hasTst = document.getElementById('has_tst_week').checked;
+        const hasBonus = document.getElementById('has_bonus_week').checked;
+        const hasPractice = document.getElementById('has_practice_sessions').checked;
+
+        const totalWeeks = regularWeeks + playoffWeeks + (hasFun ? 1 : 0) + (hasTst ? 1 : 0) + (hasBonus ? 1 : 0);
+        document.getElementById('total-weeks').textContent = totalWeeks;
+        document.getElementById('preview-regular').textContent = regularWeeks;
+        document.getElementById('preview-playoffs').textContent = playoffWeeks;
+
+        document.getElementById('preview-fun').classList.toggle('hidden', !hasFun);
+        document.getElementById('preview-tst').classList.toggle('hidden', !hasTst);
+        document.getElementById('preview-bonus').classList.toggle('hidden', !hasBonus);
+        document.getElementById('preview-practice').classList.toggle('hidden', !hasPractice);
+
+        if (hasPractice) {
+            document.getElementById('preview-practice-game').textContent = document.getElementById('practice_game_number').value;
+            document.getElementById('preview-practice-weeks').textContent = document.getElementById('practice_weeks').value || 'Not specified';
+        }
+    }
+
+    // Add event listeners to update preview
+    document.getElementById('regular_season_weeks').addEventListener('input', updatePreview);
+    document.getElementById('playoff_weeks').addEventListener('input', updatePreview);
+    document.getElementById('has_fun_week').addEventListener('change', updatePreview);
+    document.getElementById('has_tst_week').addEventListener('change', updatePreview);
+    document.getElementById('has_bonus_week').addEventListener('change', updatePreview);
+    document.getElementById('practice_weeks').addEventListener('input', updatePreview);
+    document.getElementById('practice_game_number').addEventListener('change', updatePreview);
+});
+</script>
+{% endblock %}

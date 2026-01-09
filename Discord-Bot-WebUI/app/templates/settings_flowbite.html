@@ -1,0 +1,665 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-settings-cog text-ecs-green"></i>
+            Settings
+        </h1>
+        <p class="text-gray-500 dark:text-gray-400">Manage your account settings and preferences</p>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="mb-6">
+        <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700" id="settings-tabs">
+            <button type="button" class="settings-tab px-4 py-3 text-sm font-medium border-b-2 border-ecs-green text-ecs-green"
+                    data-tab="account">
+                <i class="ti ti-user-circle mr-1"></i> Account
+            </button>
+            <button type="button" class="settings-tab px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200"
+                    data-tab="appearance">
+                <i class="ti ti-palette mr-1"></i> Appearance
+            </button>
+            <button type="button" class="settings-tab px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200"
+                    data-tab="security">
+                <i class="ti ti-lock mr-1"></i> Security
+            </button>
+            <button type="button" class="settings-tab px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200"
+                    data-tab="notifications">
+                <i class="ti ti-bell mr-1"></i> Notifications
+            </button>
+            <button type="button" class="settings-tab px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200"
+                    data-tab="integrations">
+                <i class="ti ti-plug mr-1"></i> Integrations
+            </button>
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- Account Tab -->
+        <div class="settings-pane" id="account">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Personal Information -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+                            <div class="w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg">
+                                <i class="ti ti-user-circle text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900 dark:text-white">Personal Information</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Update your account details</p>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <form id="accountInfoForm" action="{{ url_for('account.update_account_info') }}" method="POST" class="space-y-4">
+                                {{ notification_form.hidden_tag() }}
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="account-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                                        <input type="text" id="account-name" name="name"
+                                               value="{{ safe_current_user.player.name if safe_current_user.player else '' }}"
+                                               placeholder="Your full name"
+                                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                    </div>
+                                    <div>
+                                        <label for="account-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                                        <input type="email" id="account-email" name="email"
+                                               value="{{ safe_current_user.email }}"
+                                               placeholder="your@email.com"
+                                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                    </div>
+                                    <div>
+                                        <label for="account-phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                                        <input type="tel" id="account-phone" name="phone"
+                                               value="{{ safe_current_user.player.phone if safe_current_user.player else '' }}"
+                                               placeholder="(555) 123-4567"
+                                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                    </div>
+                                    <div>
+                                        <label for="profile-visibility" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Profile Visibility</label>
+                                        {{ notification_form.profile_visibility(class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green", id="profile-visibility") }}
+                                    </div>
+                                </div>
+                                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90">
+                                    <i class="ti ti-device-floppy"></i> Save Changes
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Player Status -->
+                    {% if safe_current_user.player %}
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+                            <div class="w-10 h-10 flex items-center justify-center bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 rounded-lg">
+                                <i class="ti ti-shield-check text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900 dark:text-white">Player Status</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Your current team and season information</p>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</p>
+                                    {% if safe_current_user.player.is_current_player %}
+                                    <span class="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-full">Active</span>
+                                    {% else %}
+                                    <span class="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400 rounded-full">Inactive</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Primary Team</p>
+                                    <p class="font-medium text-gray-900 dark:text-white text-sm">
+                                        {{ safe_current_user.player.primary_team.name if safe_current_user.player.primary_team else 'None' }}
+                                    </p>
+                                </div>
+                                <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">League</p>
+                                    <p class="font-medium text-gray-900 dark:text-white text-sm">
+                                        {{ safe_current_user.player.league.name if safe_current_user.player.league else 'None' }}
+                                    </p>
+                                </div>
+                                <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Teams</p>
+                                    <p class="font-medium text-gray-900 dark:text-white text-sm">
+                                        {{ safe_current_user.player.teams|length if safe_current_user.player.teams else 0 }}
+                                    </p>
+                                </div>
+                            </div>
+                            {% if user_team and user_team|length > 0 %}
+                            <div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Current Season Teams:</p>
+                                <div class="flex flex-wrap gap-2">
+                                    {% for team in user_team %}
+                                    <span class="px-3 py-1 bg-ecs-green/10 text-ecs-green rounded-full text-sm">{{ team.name }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Quick Actions Sidebar -->
+                <div>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                            <i class="ti ti-bolt text-yellow-500"></i> Quick Actions
+                        </h4>
+                        <div class="space-y-2">
+                            <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) if safe_current_user.player else '#' }}"
+                               class="flex items-center gap-2 p-3 rounded-lg {{ 'hover:bg-gray-50 dark:hover:bg-gray-700' if safe_current_user.player else 'opacity-50 cursor-not-allowed' }} text-gray-700 dark:text-gray-300">
+                                <i class="ti ti-user"></i> View My Profile
+                            </a>
+                            <a href="{{ url_for('players.profile_wizard') }}"
+                               class="flex items-center gap-2 p-3 rounded-lg {{ 'hover:bg-gray-50 dark:hover:bg-gray-700' if safe_current_user.player else 'opacity-50 cursor-not-allowed' }} text-gray-700 dark:text-gray-300">
+                                <i class="ti ti-clipboard-check"></i> Verify Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Appearance Tab -->
+        <div class="settings-pane hidden" id="appearance">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+                    <div class="w-10 h-10 flex items-center justify-center bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 rounded-lg">
+                        <i class="ti ti-palette text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900 dark:text-white">Theme Preferences</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Customize your visual experience</p>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Color Theme</label>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <label class="relative flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-ecs-green dark:hover:border-ecs-green theme-option"
+                                       data-theme="light">
+                                    <input type="radio" name="theme" value="light" class="sr-only peer">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-white border border-gray-200 rounded-lg flex items-center justify-center">
+                                            <i class="ti ti-sun text-yellow-500 text-xl"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-gray-900 dark:text-white">Light</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Classic light theme</p>
+                                        </div>
+                                    </div>
+                                    <div class="absolute top-2 right-2 hidden peer-checked:block">
+                                        <i class="ti ti-check text-ecs-green"></i>
+                                    </div>
+                                </label>
+                                <label class="relative flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-ecs-green dark:hover:border-ecs-green theme-option"
+                                       data-theme="dark">
+                                    <input type="radio" name="theme" value="dark" class="sr-only peer">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-gray-800 border border-gray-700 rounded-lg flex items-center justify-center">
+                                            <i class="ti ti-moon text-blue-400 text-xl"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-gray-900 dark:text-white">Dark</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Easy on the eyes</p>
+                                        </div>
+                                    </div>
+                                    <div class="absolute top-2 right-2 hidden peer-checked:block">
+                                        <i class="ti ti-check text-ecs-green"></i>
+                                    </div>
+                                </label>
+                                <label class="relative flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-ecs-green dark:hover:border-ecs-green theme-option"
+                                       data-theme="system">
+                                    <input type="radio" name="theme" value="system" class="sr-only peer">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-gradient-to-br from-white to-gray-800 border border-gray-300 rounded-lg flex items-center justify-center">
+                                            <i class="ti ti-device-desktop text-gray-600 text-xl"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-gray-900 dark:text-white">System</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Match device setting</p>
+                                        </div>
+                                    </div>
+                                    <div class="absolute top-2 right-2 hidden peer-checked:block">
+                                        <i class="ti ti-check text-ecs-green"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Tab -->
+        <div class="settings-pane hidden" id="security">
+            <div class="space-y-6">
+                <!-- Two-Factor Authentication -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+                        <div class="w-10 h-10 flex items-center justify-center bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 rounded-lg">
+                            <i class="ti ti-shield text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 dark:text-white">Two-Factor Authentication</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Add an extra layer of security</p>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        {% if safe_current_user.totp_secret %}
+                        <div class="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <i class="ti ti-shield-check text-green-600 dark:text-green-400 text-2xl"></i>
+                                <div>
+                                    <p class="font-medium text-green-700 dark:text-green-300">2FA is enabled</p>
+                                    <p class="text-sm text-green-600 dark:text-green-400">Your account has enhanced security</p>
+                                </div>
+                            </div>
+                            <button type="button" class="px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
+                                    id="disable2FABtn">
+                                Disable 2FA
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="flex items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <i class="ti ti-shield-x text-yellow-600 dark:text-yellow-400 text-2xl"></i>
+                                <div>
+                                    <p class="font-medium text-yellow-700 dark:text-yellow-300">2FA is not enabled</p>
+                                    <p class="text-sm text-yellow-600 dark:text-yellow-400">Enable for better security</p>
+                                </div>
+                            </div>
+                            <button type="button" class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90"
+                                    id="enable2FABtn" data-modal-target="enable2FAModal" data-modal-toggle="enable2FAModal">
+                                Enable 2FA
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Password Change -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+                        <div class="w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg">
+                            <i class="ti ti-key text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 dark:text-white">Change Password</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Update your password regularly</p>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <form id="passwordChangeForm" action="{{ url_for('account.change_password') }}" method="POST" class="space-y-4">
+                            {{ notification_form.hidden_tag() }}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Password</label>
+                                <input type="password" name="current_password" required
+                                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+                                    <input type="password" name="new_password" required minlength="8"
+                                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm New Password</label>
+                                    <input type="password" name="confirm_password" required minlength="8"
+                                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                </div>
+                            </div>
+                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90">
+                                <i class="ti ti-key"></i> Update Password
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Tab -->
+        <div class="settings-pane hidden" id="notifications">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+                    <div class="w-10 h-10 flex items-center justify-center bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 rounded-lg">
+                        <i class="ti ti-bell text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900 dark:text-white">Notification Preferences</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Control how you receive notifications</p>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <form id="notificationForm" action="{{ url_for('account.update_notifications') }}" method="POST" class="space-y-6">
+                        {{ notification_form.hidden_tag() }}
+                        <div class="space-y-4">
+                            <label class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer">
+                                <div>
+                                    <p class="font-medium text-gray-900 dark:text-white">Email Notifications</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Receive updates via email</p>
+                                </div>
+                                <input type="checkbox" name="email_notifications" {{ 'checked' if safe_current_user.email_notifications else '' }}
+                                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                            </label>
+                            <label class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer">
+                                <div>
+                                    <p class="font-medium text-gray-900 dark:text-white">SMS Notifications</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Receive text messages for important updates</p>
+                                </div>
+                                {% if safe_current_user.sms_opted_in %}
+                                <span class="px-3 py-1 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-full text-sm">Enabled</span>
+                                {% else %}
+                                <button type="button" class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 text-sm"
+                                        data-modal-target="smsOptInModal" data-modal-toggle="smsOptInModal">
+                                    Enable SMS
+                                </button>
+                                {% endif %}
+                            </label>
+                            <label class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer">
+                                <div>
+                                    <p class="font-medium text-gray-900 dark:text-white">Discord Notifications</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Receive notifications via Discord DM</p>
+                                </div>
+                                <input type="checkbox" name="discord_notifications" {{ 'checked' if safe_current_user.discord_notifications else '' }}
+                                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                            </label>
+                        </div>
+                        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90">
+                            <i class="ti ti-device-floppy"></i> Save Preferences
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Integrations Tab -->
+        <div class="settings-pane hidden" id="integrations">
+            <div class="space-y-6">
+                <!-- Discord Integration -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+                        <div class="w-10 h-10 flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                            <i class="ti ti-brand-discord text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 dark:text-white">Discord</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Connect your Discord account</p>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        {% if safe_current_user.discord_id %}
+                        <div class="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <i class="ti ti-check text-green-600 dark:text-green-400 text-2xl"></i>
+                                <div>
+                                    <p class="font-medium text-green-700 dark:text-green-300">Connected</p>
+                                    <p class="text-sm text-green-600 dark:text-green-400">{{ safe_current_user.discord_username }}</p>
+                                </div>
+                            </div>
+                            <button type="button" class="px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg">
+                                Disconnect
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <i class="ti ti-brand-discord text-gray-400 text-2xl"></i>
+                                <div>
+                                    <p class="font-medium text-gray-700 dark:text-gray-300">Not Connected</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Link your Discord for full features</p>
+                                </div>
+                            </div>
+                            <a href="{{ url_for('auth.discord_login') }}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                                Connect Discord
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Calendar Subscription -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+                        <div class="w-10 h-10 flex items-center justify-center bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg">
+                            <i class="ti ti-calendar text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 dark:text-white">Calendar Subscription</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Subscribe to match schedules in your calendar</p>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">Add your team's matches to Google Calendar, Apple Calendar, or Outlook.</p>
+                        <div class="flex flex-wrap gap-3">
+                            <button type="button" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                                    id="copyCalendarUrl">
+                                <i class="ti ti-link"></i> Copy Calendar URL
+                            </button>
+                            <a href="#" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                               id="addToGoogleCalendar">
+                                <i class="ti ti-brand-google"></i> Add to Google
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2FA Enable Modal -->
+<div id="enable2FAModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/50" data-modal-backdrop></div>
+    <div class="relative min-h-screen flex items-center justify-center p-4">
+        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-shield text-ecs-green"></i> Enable Two-Factor Authentication
+                </h3>
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" data-modal-hide="enable2FAModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div id="qrCodeContainer" class="flex justify-center mb-4"></div>
+                <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-4">
+                    <h6 class="font-medium text-blue-700 dark:text-blue-300 mb-2">How to set up:</h6>
+                    <ol class="text-sm text-blue-600 dark:text-blue-400 space-y-1 list-decimal list-inside">
+                        <li>Download an authenticator app like Google Authenticator or Authy</li>
+                        <li>Scan the QR code with your app</li>
+                        <li>Enter the 6-digit code from your app below</li>
+                    </ol>
+                </div>
+                <form id="verify2FAForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Verification Code</label>
+                        <input type="text" id="twoFactorCode" required maxlength="6" pattern="[0-9]{6}"
+                               placeholder="Enter 6-digit code"
+                               class="w-full text-center text-2xl tracking-widest rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    </div>
+                    <button type="submit" class="w-full px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90">
+                        <i class="ti ti-shield-check mr-2"></i> Verify and Enable 2FA
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SMS Opt-in Modal -->
+<div id="smsOptInModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/50" data-modal-backdrop></div>
+    <div class="relative min-h-screen flex items-center justify-center p-4">
+        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-message-text text-ecs-green"></i> Enable SMS Notifications
+                </h3>
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" data-modal-hide="smsOptInModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div id="smsConsentStep">
+                    <form id="smsOptInForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                            <input type="tel" id="phoneNumber" required
+                                   value="{{ safe_current_user.player.phone if safe_current_user.player else '' }}"
+                                   placeholder="Enter your phone number"
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Format: +1XXXXXXXXXX or just 10 digits for US</p>
+                        </div>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="smsConsent" required
+                                   class="mt-1 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">
+                                I consent to receive text messages from ECS FC about team updates, schedule changes, and important announcements.
+                                Standard message and data rates may apply.
+                            </span>
+                        </label>
+                        <button type="submit" class="w-full px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90">
+                            <i class="ti ti-send mr-2"></i> Send Verification Code
+                        </button>
+                    </form>
+                </div>
+                <div id="smsVerificationStep" class="hidden">
+                    <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg mb-4">
+                        <p class="text-sm text-blue-700 dark:text-blue-300">
+                            Verification code sent to <strong id="sentPhoneNumber"></strong>
+                        </p>
+                    </div>
+                    <form id="smsVerificationForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Verification Code</label>
+                            <input type="text" id="verificationCode" required maxlength="6" pattern="[0-9]{6}"
+                                   placeholder="Enter 6-digit code"
+                                   class="w-full text-center text-2xl tracking-widest rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="submit" class="flex-1 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90">
+                                <i class="ti ti-check mr-2"></i> Verify Code
+                            </button>
+                            <button type="button" id="resendCodeBtn" class="hidden px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <i class="ti ti-refresh mr-2"></i> Resend
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div id="smsConfirmationStep" class="hidden text-center">
+                    <i class="ti ti-check-circle text-green-500 text-5xl"></i>
+                    <h4 class="text-xl font-semibold text-green-600 dark:text-green-400 mt-4">Success!</h4>
+                    <p class="text-gray-600 dark:text-gray-400 mt-2">SMS notifications have been enabled.</p>
+                    <button type="button" class="mt-4 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90"
+                            onclick="window.location.reload()">
+                        <i class="ti ti-refresh mr-2"></i> Refresh Page
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching
+    document.querySelectorAll('.settings-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetId = this.dataset.tab;
+
+            // Update tab styles
+            document.querySelectorAll('.settings-tab').forEach(t => {
+                t.classList.remove('border-ecs-green', 'text-ecs-green');
+                t.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+            });
+            this.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+            this.classList.add('border-ecs-green', 'text-ecs-green');
+
+            // Show/hide panes
+            document.querySelectorAll('.settings-pane').forEach(pane => {
+                pane.classList.add('hidden');
+            });
+            document.getElementById(targetId).classList.remove('hidden');
+
+            // Save to localStorage
+            localStorage.setItem('settingsActiveTab', targetId);
+        });
+    });
+
+    // Restore saved tab
+    const savedTab = localStorage.getItem('settingsActiveTab');
+    if (savedTab) {
+        const tabBtn = document.querySelector(`.settings-tab[data-tab="${savedTab}"]`);
+        if (tabBtn) tabBtn.click();
+    }
+
+    // Theme selection
+    const currentTheme = localStorage.getItem('color-theme') || 'system';
+    document.querySelectorAll('.theme-option').forEach(option => {
+        const input = option.querySelector('input');
+        if (input.value === currentTheme) {
+            input.checked = true;
+            option.classList.add('border-ecs-green');
+        }
+
+        input.addEventListener('change', function() {
+            const theme = this.value;
+            localStorage.setItem('color-theme', theme);
+
+            if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+
+            // Update border styles
+            document.querySelectorAll('.theme-option').forEach(opt => {
+                opt.classList.remove('border-ecs-green');
+            });
+            option.classList.add('border-ecs-green');
+        });
+    });
+
+    // Modal handling
+    document.querySelectorAll('[data-modal-toggle]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modalId = this.dataset.modalTarget;
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.remove('hidden');
+        });
+    });
+
+    document.querySelectorAll('[data-modal-hide]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modalId = this.dataset.modalHide;
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.add('hidden');
+        });
+    });
+
+    document.querySelectorAll('[data-modal-backdrop]').forEach(backdrop => {
+        backdrop.addEventListener('click', function() {
+            this.closest('[id]').classList.add('hidden');
+        });
+    });
+});
+</script>
+<script src="{{ url_for('static', filename='custom_js/settings.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/handle_2fa.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/calendar-subscription.js') }}"></script>
+{% endblock %}
