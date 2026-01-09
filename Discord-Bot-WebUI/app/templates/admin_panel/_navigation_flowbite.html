@@ -1,0 +1,359 @@
+{# ============================================================================
+   ADMIN PANEL NAVIGATION - FLOWBITE VERSION
+   ============================================================================
+   Horizontal navigation bar with dropdown menus for admin sections
+   ============================================================================ #}
+
+<nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-lg shadow-sm mb-6">
+    <div class="overflow-x-auto">
+        <ul class="flex flex-nowrap items-center text-sm font-medium text-gray-500 dark:text-gray-400">
+            {# Dashboard #}
+            <li>
+                <a href="{{ url_for('admin_panel.dashboard') }}"
+                   class="inline-flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors
+                   {{ 'text-ecs-green border-ecs-green' if request.endpoint == 'admin_panel.dashboard' else 'border-transparent' }}">
+                    <i class="ti ti-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+
+            {# League Operations #}
+            <li class="relative" data-dropdown-wrapper>
+                <button type="button" data-dropdown-toggle="dropdown-league-ops-nav"
+                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                    <i class="ti ti-tournament"></i>
+                    <span>League Ops</span>
+                    <i class="ti ti-chevron-down text-xs"></i>
+                </button>
+                <div id="dropdown-league-ops-nav" class="hidden absolute left-0 z-50 mt-1 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2">
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">League Management</div>
+                        <a href="{{ url_for('admin_panel.league_management_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-layout-dashboard text-gray-400"></i>League Hub
+                        </a>
+                        <a href="{{ url_for('admin_panel.season_wizard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-wand text-gray-400"></i>Season Wizard
+                        </a>
+                        <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-calendar-stats text-gray-400"></i>All Seasons
+                        </a>
+                        <a href="{{ url_for('admin_panel.league_management_teams') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-shirt-sport text-gray-400"></i>All Teams
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Match Management</div>
+                        <a href="{{ url_for('admin_panel.match_operations') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-dashboard text-gray-400"></i>Match Dashboard
+                        </a>
+                        <a href="{{ url_for('admin_panel.manage_leagues') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-trophy text-gray-400"></i>Leagues
+                        </a>
+                        <a href="{{ url_for('admin_panel.match_verification') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-check text-gray-400"></i>Match Verification
+                        </a>
+                        <a href="{{ url_for('admin_panel.live_reporting_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-live-view text-gray-400"></i>Live Reporting
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Substitutes</div>
+                        <a href="{{ url_for('admin_panel.substitute_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-user-plus text-gray-400"></i>Manage Substitutes
+                        </a>
+                        <a href="{{ url_for('admin_panel.substitute_pools') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-users text-gray-400"></i>Substitute Pools
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Draft</div>
+                        <a href="{{ url_for('admin_panel.draft_overview') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-layout-grid text-gray-400"></i>Draft Overview
+                        </a>
+                        <a href="{{ url_for('admin_panel.draft_history') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-history text-gray-400"></i>Draft History
+                        </a>
+                        <a href="{{ url_for('draft_predictions.admin_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-chart-dots text-gray-400"></i>Draft Predictions
+                        </a>
+                    </div>
+                </div>
+            </li>
+
+            {# MLS #}
+            <li class="relative" data-dropdown-wrapper>
+                <button type="button" data-dropdown-toggle="dropdown-mls-nav"
+                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                    <i class="ti ti-soccer-field"></i>
+                    <span>MLS</span>
+                    <i class="ti ti-chevron-down text-xs"></i>
+                </button>
+                <div id="dropdown-mls-nav" class="hidden absolute left-0 z-50 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2">
+                        <a href="{{ url_for('admin_panel.mls_overview') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-dashboard text-gray-400"></i>MLS Overview
+                        </a>
+                        <a href="{{ url_for('admin_panel.mls_matches') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-list text-gray-400"></i>MLS Matches
+                        </a>
+                        <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-list-check text-gray-400"></i>Task Monitoring
+                        </a>
+                    </div>
+                </div>
+            </li>
+
+            {# ECS FC #}
+            <li class="relative" data-dropdown-wrapper>
+                <button type="button" data-dropdown-toggle="dropdown-ecsfc-nav"
+                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                    <i class="ti ti-shield"></i>
+                    <span>ECS FC</span>
+                    <i class="ti ti-chevron-down text-xs"></i>
+                </button>
+                <div id="dropdown-ecsfc-nav" class="hidden absolute left-0 z-50 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2">
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Overview</div>
+                        <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-dashboard text-gray-400"></i>ECS FC Hub
+                        </a>
+                        {% if ecs_fc_teams %}
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Team Schedules</div>
+                        {% for team in ecs_fc_teams %}
+                        <a href="{{ url_for('admin_panel.ecs_fc_team_schedule', team_id=team.id) }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-calendar text-gray-400"></i>{{ team.name }}
+                        </a>
+                        {% endfor %}
+                        {% endif %}
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Management</div>
+                        <a href="{{ url_for('admin_panel.ecs_fc_matches') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-list text-gray-400"></i>All Matches
+                        </a>
+                        <a href="{{ url_for('admin_panel.ecs_fc_opponents') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-users-group text-gray-400"></i>Opponents Library
+                        </a>
+                        <a href="{{ url_for('admin_panel.ecs_fc_import') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-file-import text-gray-400"></i>Import Schedule
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <a href="{{ url_for('admin_panel.ecs_fc_sub_pool') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-user-plus text-gray-400"></i>Substitute Pool
+                        </a>
+                    </div>
+                </div>
+            </li>
+
+            {# Discord #}
+            <li class="relative" data-dropdown-wrapper>
+                <button type="button" data-dropdown-toggle="dropdown-discord-nav"
+                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                    <i class="ti ti-brand-discord"></i>
+                    <span>Discord</span>
+                    <i class="ti ti-chevron-down text-xs"></i>
+                </button>
+                <div id="dropdown-discord-nav" class="hidden absolute left-0 z-50 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2">
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Overview</div>
+                        <a href="{{ url_for('admin_panel.discord_overview') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-dashboard text-gray-400"></i>Discord Hub
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Members</div>
+                        <a href="{{ url_for('admin_panel.discord_players') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-users text-gray-400"></i>Discord Players
+                        </a>
+                        <a href="{{ url_for('admin_panel.discord_onboarding') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-user-plus text-gray-400"></i>Onboarding
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Roles & Sync</div>
+                        <a href="{{ url_for('admin_panel.discord_roles') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-refresh text-gray-400"></i>Role Sync
+                        </a>
+                        <a href="{{ url_for('admin_panel.discord_role_mapping') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-link text-gray-400"></i>Role Mapping
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <a href="{{ url_for('admin_panel.discord_bot_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-robot text-gray-400"></i>Bot Management
+                        </a>
+                    </div>
+                </div>
+            </li>
+
+            {# Members #}
+            <li class="relative" data-dropdown-wrapper>
+                <button type="button" data-dropdown-toggle="dropdown-members-nav"
+                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                    <i class="ti ti-heart-handshake"></i>
+                    <span>Members</span>
+                    <i class="ti ti-chevron-down text-xs"></i>
+                </button>
+                <div id="dropdown-members-nav" class="hidden absolute left-0 z-50 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2">
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Mobile App</div>
+                        <a href="{{ url_for('admin_panel.mobile_features') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-device-mobile text-gray-400"></i>Mobile Features
+                        </a>
+                        <a href="{{ url_for('admin_panel.mobile_analytics') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-chart-line text-gray-400"></i>Mobile Analytics
+                        </a>
+                        <a href="{{ url_for('admin_panel.mobile_users') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-users text-gray-400"></i>Mobile Users
+                        </a>
+                        <a href="{{ url_for('admin_panel.mobile_error_analytics') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-bug text-gray-400"></i>Error Analytics
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Store</div>
+                        <a href="{{ url_for('admin_panel.store_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-shopping-cart text-gray-400"></i>Store Management
+                        </a>
+                        <a href="{{ url_for('admin_panel.store_items') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-package text-gray-400"></i>Items
+                        </a>
+                        <a href="{{ url_for('admin_panel.store_orders') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-list text-gray-400"></i>Orders
+                        </a>
+                        <a href="{{ url_for('admin_panel.store_analytics') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-chart-bar text-gray-400"></i>Store Analytics
+                        </a>
+                    </div>
+                </div>
+            </li>
+
+            {# Communications #}
+            <li class="relative" data-dropdown-wrapper>
+                <button type="button" data-dropdown-toggle="dropdown-comms-nav"
+                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                    <i class="ti ti-message-circle"></i>
+                    <span>Comms</span>
+                    <i class="ti ti-chevron-down text-xs"></i>
+                </button>
+                <div id="dropdown-comms-nav" class="hidden absolute left-0 z-50 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2">
+                        <a href="{{ url_for('admin_panel.communication_hub') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-message-circle text-gray-400"></i>Communication Hub
+                        </a>
+                        <a href="{{ url_for('admin_panel.message_templates') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-template text-gray-400"></i>Message Templates
+                        </a>
+                        <a href="{{ url_for('admin_panel.push_notifications') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-bell text-gray-400"></i>Push Notifications
+                        </a>
+                        <a href="{{ url_for('admin_panel.announcements') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-speakerphone text-gray-400"></i>Announcements
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-clock text-gray-400"></i>Scheduled Messages
+                        </a>
+                        <a href="{{ url_for('admin_panel.campaigns_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-broadcast text-gray-400"></i>Campaigns
+                        </a>
+                        <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-users-group text-gray-400"></i>Notification Groups
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <a href="{{ url_for('admin_panel.messaging_settings') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-settings text-gray-400"></i>Messaging Settings
+                        </a>
+                    </div>
+                </div>
+            </li>
+
+            {# Users #}
+            <li class="relative" data-dropdown-wrapper>
+                <button type="button" data-dropdown-toggle="dropdown-users-nav"
+                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                    <i class="ti ti-users"></i>
+                    <span>Users</span>
+                    <i class="ti ti-chevron-down text-xs"></i>
+                </button>
+                <div id="dropdown-users-nav" class="hidden absolute left-0 z-50 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2">
+                        <a href="{{ url_for('admin_panel.user_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-users text-gray-400"></i>User Management
+                        </a>
+                        <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-user-search text-gray-400"></i>User Search
+                        </a>
+                        <a href="{{ url_for('admin_panel.user_approvals') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-user-check text-gray-400"></i>User Approvals
+                        </a>
+                        <a href="{{ url_for('admin_panel.user_waitlist') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-user-plus text-gray-400"></i>Waitlist
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-shield text-gray-400"></i>Roles Management
+                        </a>
+                        <a href="{{ url_for('admin_panel.bulk_operations') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-list text-gray-400"></i>Bulk Operations
+                        </a>
+                    </div>
+                </div>
+            </li>
+
+            {# Admin/System #}
+            <li class="relative" data-dropdown-wrapper>
+                <button type="button" data-dropdown-toggle="dropdown-admin-nav"
+                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                    <i class="ti ti-settings"></i>
+                    <span>Admin</span>
+                    <i class="ti ti-chevron-down text-xs"></i>
+                </button>
+                <div id="dropdown-admin-nav" class="hidden absolute right-0 z-50 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2 max-h-96 overflow-y-auto">
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Reports</div>
+                        <a href="{{ url_for('admin_panel.reports_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-file-analytics text-gray-400"></i>Reports Dashboard
+                        </a>
+                        <a href="{{ url_for('admin_panel.feedback_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-message text-gray-400"></i>Feedback
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Appearance</div>
+                        <a href="{{ url_for('admin_panel.appearance') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-palette text-gray-400"></i>Theme Settings
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">System</div>
+                        <a href="{{ url_for('admin_panel.feature_toggles') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-toggle-left text-gray-400"></i>Feature Toggles
+                        </a>
+                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-activity text-gray-400"></i>System Monitoring
+                        </a>
+                        <a href="{{ url_for('admin_panel.cache_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-database text-gray-400"></i>Cache Management
+                        </a>
+                        <a href="{{ url_for('admin_panel.api_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-api text-gray-400"></i>API Management
+                        </a>
+                        <a href="{{ url_for('admin_panel.health_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-heartbeat text-gray-400"></i>System Health
+                        </a>
+                        <a href="{{ url_for('admin_panel.redis_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-database text-gray-400"></i>Redis Management
+                        </a>
+                        <a href="{{ url_for('admin_panel.docker_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-box text-gray-400"></i>Docker Management
+                        </a>
+                        <a href="{{ url_for('admin_panel.performance_monitoring') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-chart-line text-gray-400"></i>Performance Monitor
+                        </a>
+                        <a href="{{ url_for('admin_panel.security_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-shield-check text-gray-400"></i>Security Dashboard
+                        </a>
+                        <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-list-check text-gray-400"></i>Task Monitor
+                        </a>
+                        <a href="{{ url_for('admin_panel.audit_logs') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-file-text text-gray-400"></i>Audit Logs
+                        </a>
+                    </div>
+                </div>
+            </li>
+        </ul>
+    </div>
+</nav>
