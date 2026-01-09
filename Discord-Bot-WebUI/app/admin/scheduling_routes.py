@@ -228,8 +228,8 @@ def view_scheduled_messages():
         if msg_type[0] and msg_type[0] not in ['standard', 'ecs_fc_rsvp']:
             available_types.append(msg_type[0])
     
-    return render_template('admin/scheduled_messages.html', 
-                         title='Discord Scheduled Messages', 
+    return render_template('admin/scheduled_messages_flowbite.html',
+                         title='Discord Scheduled Messages',
                          messages=messages,
                          stats=stats,
                          available_types=available_types,
@@ -627,6 +627,6 @@ def validate_scheduled_messages():
     if request.headers.get('Accept') == 'application/json':
         return jsonify(validation_data)
     
-    return render_template('admin/scheduled_message_validation.html',
+    return render_template('admin/scheduled_message_validation_flowbite.html',
                          title='Scheduled Message System Validation',
                          validation=validation_data)

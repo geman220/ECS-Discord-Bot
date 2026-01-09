@@ -50,7 +50,7 @@ def api_management():
             user_agent=request.headers.get('User-Agent')
         )
         
-        return render_template('admin_panel/api/management.html',
+        return render_template('admin_panel/api/management_flowbite.html',
                              stats=stats,
                              recent_activity=recent_activity,
                              endpoints=endpoints[:10])  # Show top 10 endpoints
@@ -126,7 +126,7 @@ def api_endpoints():
             user_agent=request.headers.get('User-Agent')
         )
         
-        return render_template('admin_panel/api/endpoints.html',
+        return render_template('admin_panel/api/endpoints_flowbite.html',
                              endpoints=endpoints_page,
                              pagination=pagination,
                              blueprints=blueprints,
@@ -171,7 +171,7 @@ def api_analytics():
             user_agent=request.headers.get('User-Agent')
         )
         
-        return render_template('admin_panel/api/analytics.html',
+        return render_template('admin_panel/api/analytics_flowbite.html',
                              analytics=analytics,
                              endpoint_performance=endpoint_performance,
                              error_analysis=error_analysis,

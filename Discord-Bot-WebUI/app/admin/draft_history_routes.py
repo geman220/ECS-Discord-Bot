@@ -80,7 +80,7 @@ def draft_history():
             grouped_history[season_key][league_key].append(pick)
         
         return render_template(
-            'admin/draft_history.html',
+            'admin/draft_history_flowbite.html',
             draft_history=grouped_history,
             seasons=seasons,
             leagues=leagues,

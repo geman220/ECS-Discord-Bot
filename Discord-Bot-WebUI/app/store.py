@@ -70,7 +70,7 @@ def store_index():
         ).order_by(StoreOrder.order_date.desc()).limit(5).all()
         
         return render_template(
-            'store/index.html',
+            'store/index_flowbite.html',
             title='League Store',
             items=items,
             recent_orders=recent_orders,
@@ -109,7 +109,7 @@ def store_admin():
         ).order_by(StoreOrder.order_date.desc()).all()
         
         return render_template(
-            'store/admin.html',
+            'store/admin_flowbite.html',
             title='Store Administration',
             items=items,
             orders=orders
@@ -258,7 +258,7 @@ def edit_item(item_id):
             return redirect(url_for('store.edit_item', item_id=item_id))
     
     return render_template(
-        'store/edit_item.html',
+        'store/edit_item_flowbite.html',
         title='Edit Store Item',
         item=item
     )
@@ -449,7 +449,7 @@ def my_orders():
         ).order_by(StoreOrder.order_date.desc()).all()
         
         return render_template(
-            'store/my_orders.html',
+            'store/my_orders_flowbite.html',
             title='My Orders',
             orders=orders
         )

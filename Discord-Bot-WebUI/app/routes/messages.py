@@ -710,7 +710,7 @@ def messages_inbox():
     settings = MessagingSettings.get_settings()
 
     return render_template(
-        'messages/inbox.html',
+        'messages/inbox_flowbite.html',
         title='Messages',
         initial_user=_user_to_dict(initial_user) if initial_user else None,
         settings={

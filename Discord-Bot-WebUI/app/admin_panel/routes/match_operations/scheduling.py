@@ -104,7 +104,7 @@ def schedule_matches():
             weeks = sorted([w[0] for w in week_results if w[0]], key=lambda x: int(x) if str(x).isdigit() else 0)
 
         return render_template(
-            'admin_panel/match_operations/schedule_matches.html',
+            'admin_panel/match_operations/schedule_matches_flowbite.html',
             current_season=current_season,
             leagues=leagues,
             teams=teams,

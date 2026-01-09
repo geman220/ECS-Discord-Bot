@@ -70,8 +70,8 @@ def store_management_overview():
             'revenue_total': 0  # StoreOrder doesn't have total field - would need price * quantity calculation
         }
         
-        return render_template('admin_panel/store_management.html', 
-                             stats=stats, 
+        return render_template('admin_panel/store_management_flowbite.html',
+                             stats=stats,
                              recent_orders=recent_orders)
     except Exception as e:
         logger.error(f"Error loading store management: {e}")
@@ -191,7 +191,7 @@ def cache_management():
             'redis_info': redis_info if redis_status == 'connected' else {}
         }
         
-        return render_template('admin_panel/cache_management.html', stats=stats)
+        return render_template('admin_panel/cache_management_flowbite.html', stats=stats)
     except Exception as e:
         logger.error(f"Error loading cache management: {e}")
         flash('Cache management unavailable. Verify Redis connection and cache configuration.', 'error')
@@ -1004,9 +1004,9 @@ def message_template_management():
             'total_categories': len(categories)
         }
         
-        return render_template('admin_panel/message_template_management.html',
+        return render_template('admin_panel/message_template_management_flowbite.html',
                              templates=templates,
-                             categories=categories, 
+                             categories=categories,
                              stats=stats)
     except Exception as e:
         logger.error(f"Error loading message template management: {e}")
@@ -1030,8 +1030,8 @@ def discord_bot_management():
         guild_info = bot_data.get('guild_info', {})
         recent_logs = bot_data.get('recent_logs', [])
         
-        return render_template('admin_panel/discord_bot_management.html', 
-                             stats=stats, 
+        return render_template('admin_panel/discord_bot_management_flowbite.html',
+                             stats=stats,
                              commands=commands,
                              command_usage=command_usage,
                              guild_info=guild_info,
@@ -1052,7 +1052,7 @@ def playoff_management():
         # Get real playoff statistics from helper function
         stats = get_playoff_stats()
 
-        return render_template('admin_panel/playoff_management.html', stats=stats)
+        return render_template('admin_panel/playoff_management_flowbite.html', stats=stats)
     except Exception as e:
         logger.error(f"Error loading playoff management: {e}")
         flash('Playoff management unavailable. Check database connectivity and playoff data.', 'error')
@@ -1130,8 +1130,8 @@ def api_integrations():
             'uptime_percentage': round((active_integrations / len(integrations)) * 100, 1) if integrations else 0
         }
         
-        return render_template('admin_panel/api_management.html', 
-                             stats=stats, 
+        return render_template('admin_panel/api_management_flowbite.html',
+                             stats=stats,
                              integrations=integrations)
     except Exception as e:
         logger.error(f"Error loading API management: {e}")
@@ -1214,7 +1214,7 @@ def quick_actions():
             }
         ]
         
-        return render_template('admin_panel/quick_actions.html', actions=actions, stats=stats)
+        return render_template('admin_panel/quick_actions_flowbite.html', actions=actions, stats=stats)
     except Exception as e:
         logger.error(f"Error loading quick actions: {e}")
         flash('Quick actions unavailable. Check system configuration and permissions.', 'error')

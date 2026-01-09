@@ -89,12 +89,12 @@ def dashboard():
             'active_patterns': [pattern.to_dict() for pattern in active_patterns]
         }
         
-        return render_template('admin/mobile_analytics_dashboard.html', stats=stats)
-        
+        return render_template('admin/mobile_analytics_dashboard_flowbite.html', stats=stats)
+
     except Exception as e:
         logger.error(f"Error loading mobile analytics dashboard: {str(e)}", exc_info=True)
         flash('Error loading dashboard data', 'error')
-        return render_template('admin/mobile_analytics_dashboard.html', stats={})
+        return render_template('admin/mobile_analytics_dashboard_flowbite.html', stats={})
 
 
 @mobile_analytics_admin_bp.route('/errors')
@@ -179,7 +179,7 @@ def view_patterns():
             desc(MobileErrorPatterns.last_seen)
         ).all()
         
-        return render_template('admin/mobile_patterns.html', patterns=patterns)
+        return render_template('admin/mobile_patterns_flowbite.html', patterns=patterns)
         
     except Exception as e:
         logger.error(f"Error loading mobile patterns: {str(e)}", exc_info=True)

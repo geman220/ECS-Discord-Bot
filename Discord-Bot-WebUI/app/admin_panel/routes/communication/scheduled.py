@@ -36,7 +36,7 @@ def scheduled_messages():
         sent_messages = ScheduledMessage.query.filter_by(status='SENT').count()
         failed_messages = ScheduledMessage.query.filter_by(status='FAILED').count()
 
-        return render_template('admin_panel/communication/scheduled_messages.html',
+        return render_template('admin_panel/communication/scheduled_messages_flowbite.html',
                              scheduled_messages=scheduled_messages,
                              pending_messages=pending_messages,
                              sent_messages=sent_messages,
@@ -119,7 +119,7 @@ def scheduled_messages_queue():
             'next_message': pending_messages[0] if pending_messages else None
         }
 
-        return render_template('admin_panel/communication/scheduled_messages_queue.html',
+        return render_template('admin_panel/communication/scheduled_messages_queue_flowbite.html',
                              pending_messages=pending_messages,
                              **stats)
     except Exception as e:
@@ -135,7 +135,7 @@ def schedule_new_message():
     """Create/schedule a new message."""
     if request.method == 'GET':
         # Show form for creating new scheduled message
-        return render_template('admin_panel/communication/schedule_new_message.html')
+        return render_template('admin_panel/communication/schedule_new_message_flowbite.html')
 
     try:
         # Handle form submission
@@ -154,14 +154,14 @@ def schedule_new_message():
         # Validate inputs
         if not title or not content or not scheduled_time:
             flash('Title, content, and scheduled time are required.', 'error')
-            return render_template('admin_panel/communication/schedule_new_message.html')
+            return render_template('admin_panel/communication/schedule_new_message_flowbite.html')
 
         # Parse scheduled time
         try:
             scheduled_datetime = datetime.strptime(scheduled_time, '%Y-%m-%dT%H:%M')
         except ValueError:
             flash('Invalid scheduled time format.', 'error')
-            return render_template('admin_panel/communication/schedule_new_message.html')
+            return render_template('admin_panel/communication/schedule_new_message_flowbite.html')
 
         # Create message metadata based on type
         message_metadata = {}
@@ -206,7 +206,7 @@ def schedule_new_message():
     except Exception as e:
         logger.error(f"Error scheduling message: {e}")
         flash('Failed to schedule message. Check database connectivity.', 'error')
-        return render_template('admin_panel/communication/schedule_new_message.html')
+        return render_template('admin_panel/communication/schedule_new_message_flowbite.html')
 
 
 @admin_panel_bp.route('/communication/scheduled-messages/history')
@@ -235,7 +235,7 @@ def scheduled_messages_history():
         if total_processed > 0:
             stats['success_rate'] = round((stats['total_sent'] / total_processed) * 100, 1)
 
-        return render_template('admin_panel/communication/scheduled_messages_history.html',
+        return render_template('admin_panel/communication/scheduled_messages_history_flowbite.html',
                              sent_messages=sent_messages,
                              failed_messages=failed_messages,
                              **stats)

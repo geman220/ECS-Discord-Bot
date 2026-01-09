@@ -791,7 +791,7 @@ def index():
         is_coach = getattr(player, '_temp_is_coach', player.is_coach if player else False)
         
         return render_template(
-            'index.html',
+            'index_flowbite.html',
             title='Home',
             report_form=report_form,
             matches=matches,
@@ -832,7 +832,7 @@ def privacy_policy():
     Returns:
         Rendered privacy policy template using unauthenticated base.
     """
-    return render_template('privacy_policy.html', title='Privacy Policy')
+    return render_template('privacy_policy_flowbite.html', title='Privacy Policy')
 
 
 @main.route('/notifications', endpoint='notifications', methods=['GET'])
@@ -851,7 +851,7 @@ def notifications():
         .order_by(Notification.created_at.desc())
         .all()
     )
-    return render_template('notifications.html', notifications=notifications)
+    return render_template('notifications_flowbite.html', notifications=notifications)
 
 
 @main.route('/notifications/mark_as_read/<int:notification_id>', endpoint='mark_as_read', methods=['POST'])
@@ -1013,7 +1013,7 @@ def onboarding():
     
     # Render the template
     return render_template(
-        'onboarding.html',
+        'onboarding_flowbite.html',
         title='Complete Your Profile',
         onboarding_form=onboarding_form,
         player=player,

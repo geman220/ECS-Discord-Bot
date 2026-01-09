@@ -504,7 +504,7 @@ def team_details(team_id):
                 })
 
     return render_template(
-        'team_details.html',
+        'team_details_flowbite.html',
         report_form=report_form,
         team=team,
         league=league,
@@ -580,7 +580,7 @@ def teams_overview():
     team_ids = [team.id for team in teams]
     preload_team_stats_for_request(team_ids)
     
-    return render_template('teams_overview.html', title='Teams Overview', teams=teams)
+    return render_template('teams_overview_flowbite.html', title='Teams Overview', teams=teams)
 
 
 @teams_bp.route('/report_match/<int:match_id>', endpoint='report_match', methods=['GET', 'POST'])
@@ -982,7 +982,7 @@ def view_standings():
         set_standings_cache(standings_data, league_id=None, ttl=300)  # Cache for 5 minutes
 
     return render_template(
-        'view_standings.html',
+        'view_standings_flowbite.html',
         title='Standings',
         premier_standings=premier_standings,
         classic_standings=classic_standings,
@@ -1284,7 +1284,7 @@ def season_overview():
     classic_team_stats = {s.team.id: populate_team_stats(s.team, season) for s in classic_standings}
     
     return render_template(
-        'season_overview.html',
+        'season_overview_flowbite.html',
         title='Season Overview',
         season=season,
         premier_standings=premier_standings,
@@ -1785,7 +1785,7 @@ def coach_dashboard():
 
     if not player:
         # Allow admins to see the page with a message
-        return render_template('coach_dashboard.html',
+        return render_template('coach_dashboard_flowbite.html',
                              coached_teams=[],
                              team_stats={},
                              current_match=None,
@@ -1805,7 +1805,7 @@ def coach_dashboard():
 
     if not coached_teams:
         # Allow admins to see the page with a message
-        return render_template('coach_dashboard.html',
+        return render_template('coach_dashboard_flowbite.html',
                              coached_teams=[],
                              team_stats={},
                              current_match=None,
@@ -2237,7 +2237,7 @@ def coach_dashboard():
                 'season_id': None
             }
 
-    return render_template('coach_dashboard.html',
+    return render_template('coach_dashboard_flowbite.html',
                          coached_teams=coached_teams,
                          team_stats=team_stats,
                          team_league_types=team_league_types,

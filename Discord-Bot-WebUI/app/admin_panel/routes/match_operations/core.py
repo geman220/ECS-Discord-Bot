@@ -81,7 +81,7 @@ def match_operations():
             'pending_transfers': 0  # Would need transfer model implementation
         }
 
-        return render_template('admin_panel/match_operations.html', stats=stats)
+        return render_template('admin_panel/match_operations_flowbite.html', stats=stats)
     except Exception as e:
         logger.error(f"Error loading match operations: {e}")
         flash('Match operations unavailable. Check database connectivity and model imports.', 'error')

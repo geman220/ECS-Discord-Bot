@@ -45,7 +45,7 @@ def duplicate_registrations():
             'by_discord': len([g for g in duplicate_groups if g['match_type'] == 'discord'])
         }
 
-        return render_template('admin_panel/users/duplicates.html',
+        return render_template('admin_panel/users/duplicate_registrations_flowbite.html',
                                duplicate_groups=duplicate_groups,
                                stats=stats)
     except Exception as e:

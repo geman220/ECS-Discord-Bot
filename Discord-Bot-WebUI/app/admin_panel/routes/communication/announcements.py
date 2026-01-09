@@ -41,7 +41,7 @@ def announcements():
                 pass
         announcement_types = []
 
-        return render_template('admin_panel/communication/announcements.html',
+        return render_template('admin_panel/communication/announcements_flowbite.html',
                              announcements=announcements_list,
                              active_announcements=active_announcements,
                              recent_announcements=recent_announcements,
@@ -99,7 +99,7 @@ def create_announcement():
             flash('Announcement creation failed. Check database connectivity and input validation.', 'error')
             return redirect(url_for('admin_panel.announcements'))
 
-    return render_template('admin_panel/communication/announcement_form.html',
+    return render_template('admin_panel/communication/announcement_form_flowbite.html',
                          title='Create Announcement',
                          announcement=None)
 
@@ -142,7 +142,7 @@ def edit_announcement(announcement_id):
             flash('Announcement update failed. Check database connectivity and permissions.', 'error')
             return redirect(url_for('admin_panel.announcements'))
 
-    return render_template('admin_panel/communication/announcement_form.html',
+    return render_template('admin_panel/communication/announcement_form_flowbite.html',
                          title='Edit Announcement',
                          announcement=announcement)
 

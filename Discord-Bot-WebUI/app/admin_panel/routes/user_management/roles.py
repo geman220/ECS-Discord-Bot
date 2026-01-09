@@ -43,7 +43,7 @@ def roles_management():
         users_with_roles = User.query.join(User.roles).distinct().count()
         admin_roles = len([r for r in roles if 'Admin' in r.name])
 
-        return render_template('admin_panel/users/roles.html',
+        return render_template('admin_panel/users/roles_flowbite.html',
                                roles=roles,
                                users=users,
                                permissions=permissions,
@@ -207,7 +207,7 @@ def search_users_by_role():
         users_with_roles = User.query.join(User.roles).distinct().count()
         admin_roles = len([r for r in roles if 'Admin' in r.name])
 
-        return render_template('admin_panel/users/roles.html',
+        return render_template('admin_panel/users/roles_flowbite.html',
                                roles=roles,
                                users=users,
                                permissions=[],

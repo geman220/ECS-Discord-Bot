@@ -35,7 +35,7 @@ def session_monitoring():
     active_sessions = monitor.get_active_sessions()
     long_running_sessions = monitor.get_long_running_sessions()
 
-    return render_template('monitoring/sessions.html',
+    return render_template('monitoring/sessions_flowbite.html',
                          stats=stats,
                          active_sessions=active_sessions,
                          long_running_sessions=long_running_sessions,

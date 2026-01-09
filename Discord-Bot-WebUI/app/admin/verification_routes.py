@@ -50,9 +50,9 @@ def match_verification_dashboard():
         if not current_season:
             logger.warning("No current Pub League season found")
             show_warning("No current Pub League season found. Contact an administrator.")
-            return render_template('admin/match_verification.html', 
+            return render_template('admin/match_verification_flowbite.html',
                                   title='Match Verification Dashboard',
-                                  matches=[], 
+                                  matches=[],
                                   is_coach=False)
         
         logger.info(f"Current season: {current_season.name} (ID: {current_season.id})")
@@ -271,7 +271,7 @@ def match_verification_dashboard():
         
         logger.info("Rendering match verification template")
         return render_template(
-            'admin/match_verification.html',
+            'admin/match_verification_flowbite.html',
             title='Match Verification Dashboard',
             matches=matches,
             weeks=weeks,

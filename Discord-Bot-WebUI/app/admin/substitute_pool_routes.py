@@ -97,7 +97,7 @@ def manage_substitute_pools():
                 'total_active': len(active_pools)
             }
         
-        return render_template('admin/substitute_pools.html',
+        return render_template('admin/substitute_pools_flowbite.html',
                              pools_data=pools_data,
                              league_types=LEAGUE_TYPES)
         
@@ -164,7 +164,7 @@ def manage_league_pool(league_type: str):
             'total_matches_played': sum(pool.matches_played for pool in active_pools)
         }
         
-        return render_template('admin/league_substitute_pool.html',
+        return render_template('admin/league_substitute_pool_flowbite.html',
                              league_type=league_type,
                              league_config=LEAGUE_TYPES[league_type],
                              active_pools=active_pools,

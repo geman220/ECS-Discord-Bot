@@ -42,7 +42,7 @@ def direct_messaging():
         recent_players = Player.query.order_by(Player.id.desc()).limit(20).all()
 
         return render_template(
-            'admin_panel/communication/direct_messaging.html',
+            'admin_panel/communication/direct_messaging_flowbite.html',
             stats=stats,
             recent_players=recent_players
         )

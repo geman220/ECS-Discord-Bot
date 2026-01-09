@@ -570,7 +570,7 @@ def create_app(config_object='web_config.Config'):
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):
         app.logger.error(f"Unhandled Exception: {error}", exc_info=True)
-        return render_template("500.html"), 500
+        return render_template("500_flowbite.html"), 500
 
     @app.errorhandler(401)
     def unauthorized(error):
@@ -588,7 +588,7 @@ def create_app(config_object='web_config.Config'):
     @app.errorhandler(404)
     def not_found(error):
         logger.warning(f"404 error: {request.path}")
-        return render_template("404.html"), 404
+        return render_template("404_flowbite.html"), 404
 
     @app.errorhandler(BuildError)
     def handle_url_build_error(error):
@@ -649,14 +649,14 @@ def create_app(config_object='web_config.Config'):
                             # Set a flag to indicate degraded mode
                             g._session_creation_failed = True
                             # Return 503 Service Unavailable when database is unavailable
-                            return render_template('errors/503.html', 
+                            return render_template('errors/503_flowbite.html',
                                                  error="Database connection pool exhausted. Please try again in a moment."), 503
                     else:
                         # Non-pool related error, don't retry
                         logger.error(f"Session creation failed with non-pool error: {e}", exc_info=True)
                         g._session_creation_failed = True
                         # Return 503 for database errors
-                        return render_template('errors/503.html',
+                        return render_template('errors/503_flowbite.html',
                                              error="Database temporarily unavailable. Please try again."), 503
             
             # Only proceed with connection tracking if session was created

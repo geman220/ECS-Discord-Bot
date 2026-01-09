@@ -64,7 +64,7 @@ def league_management_dashboard():
         stats = service.get_dashboard_stats()
 
         return render_template(
-            'admin_panel/league_management/dashboard.html',
+            'admin_panel/league_management/dashboard_flowbite.html',
             stats=stats,
             page_title='League Management Hub'
         )
@@ -132,7 +132,7 @@ def _render_dashboard_fallback():
             ).count()
 
     return render_template(
-        'admin_panel/league_management/dashboard.html',
+        'admin_panel/league_management/dashboard_flowbite.html',
         stats=stats,
         page_title='League Management Hub'
     )
@@ -214,7 +214,7 @@ def season_wizard():
         ).first()
 
         return render_template(
-            'admin_panel/league_management/season_wizard/wizard.html',
+            'admin_panel/league_management/season_wizard/wizard_flowbite.html',
             existing_seasons=existing_seasons,
             current_pub_league=current_pub_league,
             current_ecs_fc=current_ecs_fc,
@@ -534,7 +534,7 @@ def league_management_teams():
                 stats['teams_by_league_type'][lt] += 1
 
         return render_template(
-            'admin_panel/league_management/teams/index.html',
+            'admin_panel/league_management/teams/index_flowbite.html',
             teams=teams,
             seasons=seasons,
             stats=stats,
@@ -567,7 +567,7 @@ def league_management_team_detail(team_id):
         ).get_or_404(team_id)
 
         return render_template(
-            'admin_panel/league_management/teams/team_detail.html',
+            'admin_panel/league_management/teams/team_detail_flowbite.html',
             team=team,
             page_title=f'Team: {team.name}'
         )
@@ -793,7 +793,7 @@ def league_management_seasons():
             season.league_count = len(season.leagues)
 
         return render_template(
-            'admin_panel/league_management/seasons/index.html',
+            'admin_panel/league_management/seasons/index_flowbite.html',
             seasons=seasons,
             current_league_type=league_type,
             show_current_only=show_current_only,
@@ -825,7 +825,7 @@ def league_management_season_detail(season_id):
         summary = service.get_season_summary(season_id)
 
         return render_template(
-            'admin_panel/league_management/seasons/season_detail.html',
+            'admin_panel/league_management/seasons/season_detail_flowbite.html',
             season=season,
             summary=summary,
             page_title=f'Season: {season.name}'
@@ -838,7 +838,7 @@ def league_management_season_detail(season_id):
         ).get_or_404(season_id)
 
         return render_template(
-            'admin_panel/league_management/seasons/season_detail.html',
+            'admin_panel/league_management/seasons/season_detail_flowbite.html',
             season=season,
             summary={},
             page_title=f'Season: {season.name}'
@@ -1014,7 +1014,7 @@ def league_management_history():
         history = service.get_season_history()
 
         return render_template(
-            'admin_panel/league_management/history.html',
+            'admin_panel/league_management/history_flowbite.html',
             history=history,
             page_title='League History'
         )

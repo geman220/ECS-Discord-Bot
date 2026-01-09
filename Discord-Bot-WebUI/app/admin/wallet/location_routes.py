@@ -35,7 +35,7 @@ def locations():
         ).all()
 
         return render_template(
-            'admin/wallet_config/locations.html',
+            'admin/wallet_config/locations_flowbite.html',
             locations=all_locations
         )
 
@@ -160,7 +160,7 @@ def subgroups():
         ).all()
 
         return render_template(
-            'admin/wallet_config/subgroups.html',
+            'admin/wallet_config/subgroups_flowbite.html',
             subgroups=all_subgroups
         )
 

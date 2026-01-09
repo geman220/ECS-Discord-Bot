@@ -92,7 +92,7 @@ def match_operations():
             'pending_transfers': 0  # Would need transfer model implementation
         }
         
-        return render_template('admin_panel/match_operations.html', stats=stats)
+        return render_template('admin_panel/match_operations_flowbite.html', stats=stats)
     except Exception as e:
         logger.error(f"Error loading match operations: {e}")
         flash('Match operations unavailable. Check database connectivity and model imports.', 'error')
@@ -178,7 +178,7 @@ def schedule_matches():
             weeks = sorted([w[0] for w in week_results if w[0]], key=lambda x: int(x) if str(x).isdigit() else 0)
 
         return render_template(
-            'admin_panel/match_operations/schedule_matches.html',
+            'admin_panel/match_operations/schedule_matches_flowbite.html',
             current_season=current_season,
             leagues=leagues,
             teams=teams,
@@ -542,7 +542,7 @@ def view_matches():
             weeks = sorted([w[0] for w in week_results if w[0]], key=lambda x: int(x) if x.isdigit() else 0)
 
         return render_template(
-            'admin_panel/match_operations/view_matches.html',
+            'admin_panel/match_operations/view_matches_flowbite.html',
             matches=matches,
             leagues=leagues,
             weeks=weeks,
@@ -588,7 +588,7 @@ def upcoming_matches():
             'this_month': len([m for m in upcoming if m.date <= datetime.utcnow().date() + timedelta(days=30)])
         }
         
-        return render_template('admin_panel/match_operations/upcoming_matches.html', 
+        return render_template('admin_panel/match_operations/upcoming_matches_flowbite.html',
                              matches=upcoming, stats=stats)
     except Exception as e:
         logger.error(f"Error loading upcoming matches: {e}")
@@ -633,7 +633,7 @@ def match_results():
         }
         
         return render_template(
-            'admin_panel/match_operations/match_results.html',
+            'admin_panel/match_operations/match_results_flowbite.html',
             completed_matches=completed_matches,
             pending_results=pending_results,
             stats=stats
@@ -699,7 +699,7 @@ def live_matches():
             'completed_today': len(completed_today)
         }
         
-        return render_template('admin_panel/match_operations/live_matches.html',
+        return render_template('admin_panel/match_operations/live_matches_flowbite.html',
                              in_progress=in_progress,
                              upcoming_today=upcoming_today,
                              completed_today=completed_today,
@@ -751,7 +751,7 @@ def match_reports():
             'teams': teams
         }
         
-        return render_template('admin_panel/match_operations/match_reports.html',
+        return render_template('admin_panel/match_operations/match_reports_flowbite.html',
                              reports_data=reports_data)
     except Exception as e:
         logger.error(f"Error loading match reports: {e}")
@@ -804,7 +804,7 @@ def manage_leagues():
             # Set league status (all leagues are considered active)
             league.status = 'active'
         
-        return render_template('admin_panel/match_operations/manage_leagues.html',
+        return render_template('admin_panel/match_operations/manage_leagues_flowbite.html',
                              leagues=leagues, stats=stats)
     except Exception as e:
         logger.error(f"Error loading manage leagues: {e}")
@@ -889,7 +889,7 @@ def league_standings():
             'total_teams': len(teams)
         }
         
-        return render_template('admin_panel/match_operations/league_standings.html',
+        return render_template('admin_panel/match_operations/league_standings_flowbite.html',
                              standings_data=standings_data)
     except Exception as e:
         logger.error(f"Error loading league standings: {e}")
@@ -942,7 +942,7 @@ def _seasons_deprecated():
             else:
                 season.status = 'active' if season.is_current else 'unknown'
         
-        return render_template('admin_panel/match_operations/seasons.html',
+        return render_template('admin_panel/match_operations/seasons_flowbite.html',
                              seasons=seasons, stats=stats)
     except Exception as e:
         logger.error(f"Error loading seasons: {e}")
@@ -1013,7 +1013,7 @@ def _manage_teams_deprecated():
                 stats['teams_with_players'] += 1
 
         return render_template(
-            'admin_panel/match_operations/manage_teams.html',
+            'admin_panel/match_operations/manage_teams_flowbite.html',
             teams=teams,
             leagues=leagues,
             stats=stats,
@@ -1083,7 +1083,7 @@ def team_rosters():
         }
         
         return render_template(
-            'admin_panel/match_operations/team_rosters.html',
+            'admin_panel/match_operations/team_rosters_flowbite.html',
             teams=teams_with_rosters,
             teams_without_players=teams_without_players[:10],  # Show first 10
             stats=roster_stats
@@ -1142,7 +1142,7 @@ def player_transfers():
             'pending_count': len(pending_requests)
         }
         
-        return render_template('admin_panel/match_operations/player_transfers.html',
+        return render_template('admin_panel/match_operations/player_transfers_flowbite.html',
                              transfers_data=transfers_data)
     except Exception as e:
         logger.error(f"Error loading player transfers: {e}")
@@ -1392,7 +1392,7 @@ def substitute_management():
         current_week = week_filter or 1
         
         return render_template(
-            'admin_panel/substitute_management.html',
+            'admin_panel/substitute_management_flowbite.html',
             stats=stats,
             sub_requests=sub_requests,
             upcoming_matches=upcoming_matches,
@@ -1493,7 +1493,7 @@ def match_verification():
         if not current_season:
             flash('No current season found. Contact an administrator.', 'warning')
             return render_template(
-                'admin_panel/match_verification.html',
+                'admin_panel/match_verification_flowbite.html',
                 matches=[],
                 weeks=[],
                 leagues=[],
@@ -1645,7 +1645,7 @@ def match_verification():
         leagues = League.query.filter_by(season_id=current_season.id).all()
 
         return render_template(
-            'admin_panel/match_verification.html',
+            'admin_panel/match_verification_flowbite.html',
             matches=matches,
             weeks=weeks,
             leagues=leagues,
@@ -1881,7 +1881,7 @@ def substitute_pools():
                 }
 
         return render_template(
-            'admin_panel/match_operations/substitute_pools.html',
+            'admin_panel/match_operations/substitute_pools_flowbite.html',
             pools_data=pools_data,
             league_types=LEAGUE_TYPES
         )
@@ -1966,7 +1966,7 @@ def substitute_pool_detail(league_type):
         }
 
         return render_template(
-            'admin_panel/match_operations/substitute_pool_detail.html',
+            'admin_panel/match_operations/substitute_pool_detail_flowbite.html',
             league_type=league_type,
             league_config=LEAGUE_TYPES[league_type],
             active_pools=active_pools,

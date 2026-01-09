@@ -246,7 +246,7 @@ def monitor_dashboard():
     
     Accessible only to Global Admin users.
     """
-    return render_template('monitoring.html', title='Monitoring Dashboard')
+    return render_template('monitoring_flowbite.html', title='Monitoring Dashboard')
 
 
 @monitoring_bp.route('/tasks/all', endpoint='get_all_tasks')
@@ -1736,7 +1736,7 @@ def db_monitoring():
     """
     Render the database monitoring page.
     """
-    return render_template('db_monitoring.html', title='DB Monitoring')
+    return render_template('db_monitoring_flowbite.html', title='DB Monitoring')
 
 
 @monitoring_bp.route('/db/connections', endpoint='check_connections')
@@ -2485,7 +2485,7 @@ def session_monitoring():
     active_sessions = monitor.get_active_sessions()
     long_running_sessions = monitor.get_long_running_sessions()
     
-    return render_template('monitoring/sessions.html',
+    return render_template('monitoring/sessions_flowbite.html',
                          stats=stats,
                          active_sessions=active_sessions,
                          long_running_sessions=long_running_sessions,

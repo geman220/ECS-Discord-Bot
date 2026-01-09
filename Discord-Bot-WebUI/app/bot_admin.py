@@ -95,7 +95,7 @@ def bot_management():
     """
     Render the Bot Management dashboard.
     """
-    return render_template('bot_management.html', title='Bot Management')
+    return render_template('bot_management_flowbite.html', title='Bot Management')
 
 
 @bot_admin_bp.route('/roles')
@@ -104,7 +104,7 @@ def roles():
     """
     Render a page displaying current roles.
     """
-    return render_template('roles.html', title='Current Roles')
+    return render_template('roles_flowbite.html', title='Current Roles')
 
 
 # DEPRECATED ROUTE - MARKED FOR DELETION

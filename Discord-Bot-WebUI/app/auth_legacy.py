@@ -557,7 +557,7 @@ def register_with_discord():
         return redirect(url_for('auth.login'))
     
     if request.method == 'GET':
-        return render_template('register_discord.html', 
+        return render_template('register_discord_flowbite.html',
                               title='Complete Registration',
                               discord_email=discord_email,
                               discord_username=discord_username)
@@ -709,7 +709,7 @@ def verify_purchase():
     """
     discord_email = request.args.get('discord_email', 'your Discord email')
     discord_username = request.args.get('discord_username', 'Discord User')
-    return render_template('verify_purchase.html',
+    return render_template('verify_purchase_flowbite.html',
                            title='Discord Error',
                            discord_email=discord_email,
                            discord_username=discord_username)
@@ -748,13 +748,13 @@ def login():
 
         if request.method == 'GET':
             logger.debug("GET request - rendering login form")
-            return render_template('login.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form)
 
         logger.debug("Processing login POST request")
         if not form.validate_on_submit():
             logger.debug(f"Form validation failed: {form.errors}")
             show_error('Please check your form inputs.')
-            return render_template('login.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form)
 
         email = form.email.data.lower()
         logger.debug(f"Attempting login for email: {email}")
@@ -763,7 +763,7 @@ def login():
         if not users:
             logger.debug("No user found with provided email")
             show_error('Invalid email or password')
-            return render_template('login.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form)
 
         if len(users) > 1:
             logger.debug(f"Multiple users found for email {email}")
@@ -771,7 +771,7 @@ def login():
             problematic_players = [p for p in players if p.needs_manual_review]
             if problematic_players:
                 show_warning('Multiple profiles found. Please contact an admin.')
-                return render_template('login.html', title='Login', form=form)
+                return render_template('login_flowbite.html', title='Login', form=form)
 
         user = users[0]
         logger.debug(f"Found user: {user.id}")
@@ -779,12 +779,12 @@ def login():
         if not user.check_password(form.password.data):
             logger.debug("Invalid password")
             show_error('Invalid email or password')
-            return render_template('login.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form)
 
         if not user.is_approved:
             logger.debug("User not approved")
             show_info('Your account is not approved yet.')
-            return render_template('login.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form)
 
         # If 2FA is enabled, redirect to 2FA verification.
         if user.is_2fa_enabled:
@@ -832,17 +832,17 @@ def login():
             else:
                 logger.error("Failed to update last login")
                 show_error('Login failed. Please try again.')
-                return render_template('login.html', title='Login', form=form)
+                return render_template('login_flowbite.html', title='Login', form=form)
 
         except Exception as e:
             logger.error(f"Error during login: {str(e)}", exc_info=True)
             show_error('Login failed. Please try again.')
-            return render_template('login.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form)
 
     except Exception as e:
         logger.error(f"Unexpected error in login route: {str(e)}", exc_info=True)
         show_error('An unexpected error occurred. Please try again.')
-        return render_template('login.html', title='Login', form=form)
+        return render_template('login_flowbite.html', title='Login', form=form)
 
 
 # ----------------------------------------------------------------------
@@ -967,7 +967,7 @@ def verify_2fa_login():
         return redirect(url_for('auth.login'))
 
     # Add csrf_token to template context
-    return render_template('verify_2fa.html', title='Verify 2FA', form=form, user_id=user.id)
+    return render_template('verify_2fa_flowbite.html', title='Verify 2FA', form=form, user_id=user.id)
 
 
 # ----------------------------------------------------------------------
@@ -1030,7 +1030,7 @@ def register():
             logger.error(f"Registration error: {str(e)}")
             show_error('Registration failed. Please try again.')
 
-    return render_template('register.html', title='Register', form=form)
+    return render_template('register_flowbite.html', title='Register', form=form)
 
 
 @auth.route('/forgot_password', methods=['GET'])
@@ -1048,7 +1048,7 @@ def forgot_password():
     from flask_wtf import FlaskForm
     dummy_form = FlaskForm()
     
-    return render_template('forgot_password.html', title='Login Help', form=dummy_form)
+    return render_template('forgot_password_flowbite.html', title='Login Help', form=dummy_form)
 
 
 @auth.route('/reset_password/<token>', methods=['GET', 'POST'])
@@ -1083,7 +1083,7 @@ def reset_password_token(token):
             logger.error(f"Password reset error: {str(e)}")
             show_error('Password reset failed. Please try again.')
 
-    return render_template('reset_password.html', title='Reset Password', form=form, token=token)
+    return render_template('reset_password_flowbite.html', title='Reset Password', form=form, token=token)
 
 
 @auth.route('/logout', methods=['POST'])
@@ -1126,13 +1126,13 @@ def sync_discord_roles():
 @auth.errorhandler(404)
 def not_found_error(error):
     logger.error(f"404 error: {error}")
-    return render_template('404.html', title='404',), 404
+    return render_template('404_flowbite.html', title='404',), 404
 
 
 @auth.errorhandler(500)
 def internal_error(error):
     logger.error(f"500 error: {error}")
-    return render_template('500.html', title='500',), 500
+    return render_template('500_flowbite.html', title='500',), 500
 
 
 # ----------------------------------------------------------------------
@@ -1203,7 +1203,7 @@ def waitlist_register():
         if 'sweet_alert' in session:
             session.pop('sweet_alert', None)
         
-        return render_template('waitlist_register_authenticated.html', 
+        return render_template('waitlist_register_authenticated_flowbite.html',
                               title='Join the Waitlist',
                               user=current_user,
                               player=player,
@@ -1222,7 +1222,7 @@ def waitlist_register():
         if 'sweet_alert' in session:
             session.pop('sweet_alert', None)
         
-        return render_template('waitlist_login_register.html', 
+        return render_template('waitlist_login_register_flowbite.html',
                               title='Join the Waitlist')
 
 
@@ -1395,7 +1395,7 @@ def waitlist_register_with_discord():
                 })
         
         # Use the new carousel template
-        return render_template('waitlist_register_discord_carousel.html', 
+        return render_template('waitlist_register_discord_carousel_flowbite.html',
                               title='Complete Waitlist Registration',
                               discord_email=discord_email,
                               discord_username=discord_username,
@@ -1858,7 +1858,7 @@ def waitlist_confirmation():
                 discord_error = f"Error checking Discord membership: {str(e)}"
                 logger.error(f"Discord membership check error for user {safe_current_user.id}: {discord_error}")
     
-    return render_template('waitlist_confirmation.html', 
+    return render_template('waitlist_confirmation_flowbite.html',
                            discord_membership_status=discord_membership_status,
                            discord_error=discord_error)
 
@@ -1926,7 +1926,7 @@ def check_duplicate():
                 return redirect(url_for('auth.register_with_discord'))
     
     duplicates = session.get('potential_duplicates', [])
-    return render_template('auth/check_duplicate.html', 
+    return render_template('auth/check_duplicate_flowbite.html',
                          duplicates=duplicates,
                          title="Account Verification - ECS FC")
 
@@ -1949,12 +1949,12 @@ def verify_merge(token=None):
                 'text': message,
                 'icon': 'error'
             }
-            return render_template('auth/verify_merge.html', 
+            return render_template('auth/verify_merge_flowbite.html',
                                  verification_token=None,
                                  title="Verification Failed - ECS FC")
     
     # Show verification page
-    return render_template('auth/verify_merge.html',
+    return render_template('auth/verify_merge_flowbite.html',
                          verification_token=token,
                          title="Verify Account Merge - ECS FC")
 

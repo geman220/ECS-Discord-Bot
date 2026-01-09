@@ -65,7 +65,7 @@ def communication_hub():
             'active_channels': 3  # Discord, Email, Push
         }
         
-        return render_template('admin_panel/communication.html', stats=stats)
+        return render_template('admin_panel/communication_flowbite.html', stats=stats)
     except Exception as e:
         logger.error(f"Error loading communication hub: {e}")
         flash('Communication hub unavailable. Check database connectivity and message models.', 'error')
@@ -85,7 +85,7 @@ def message_templates():
         total_templates = sum(len(category.templates) for category in categories)
         active_templates = sum(len([t for t in category.templates if t.is_active]) for category in categories)
         
-        return render_template('admin_panel/communication/messages.html', 
+        return render_template('admin_panel/communication/messages_flowbite.html',
                              categories=categories,
                              recent_announcements=recent_announcements,
                              total_templates=total_templates,
@@ -105,7 +105,7 @@ def message_category(category_id):
         category = MessageCategory.query.get_or_404(category_id)
         templates = MessageTemplate.query.filter_by(category_id=category_id).order_by(MessageTemplate.name).all()
         
-        return render_template('admin_panel/communication/category_detail.html',
+        return render_template('admin_panel/communication/category_detail_flowbite.html',
                              category=category,
                              templates=templates)
     except Exception as e:
@@ -392,7 +392,7 @@ def announcements():
         recent_announcements = len([a for a in announcements if a.created_at and (datetime.utcnow() - a.created_at).days <= 7])
         announcement_types = []  # No announcement_type field in the model
         
-        return render_template('admin_panel/communication/announcements.html',
+        return render_template('admin_panel/communication/announcements_flowbite.html',
                              announcements=announcements,
                              active_announcements=active_announcements,
                              recent_announcements=recent_announcements,
@@ -419,7 +419,7 @@ def scheduled_messages():
         sent_messages = ScheduledMessage.query.filter_by(status='SENT').count()
         failed_messages = ScheduledMessage.query.filter_by(status='FAILED').count()
         
-        return render_template('admin_panel/communication/scheduled_messages.html',
+        return render_template('admin_panel/communication/scheduled_messages_flowbite.html',
                              scheduled_messages=scheduled_messages,
                              pending_messages=pending_messages,
                              sent_messages=sent_messages,
@@ -537,7 +537,7 @@ def push_notifications():
             'unsubscribed_count': unsubscribed_count
         }
         
-        return render_template('admin_panel/push_notifications.html',
+        return render_template('admin_panel/push_notifications_flowbite.html',
                              notification_history=notification_history,
                              **stats)
     except Exception as e:
@@ -723,7 +723,7 @@ def scheduled_messages_queue():
             'next_message': pending_messages[0] if pending_messages else None
         }
         
-        return render_template('admin_panel/communication/scheduled_messages_queue.html',
+        return render_template('admin_panel/communication/scheduled_messages_queue_flowbite.html',
                              pending_messages=pending_messages,
                              **stats)
     except Exception as e:
@@ -739,7 +739,7 @@ def schedule_new_message():
     """Create/schedule a new message."""
     if request.method == 'GET':
         # Show form for creating new scheduled message
-        return render_template('admin_panel/communication/schedule_new_message.html')
+        return render_template('admin_panel/communication/schedule_new_message_flowbite.html')
     
     try:
         # Handle form submission
@@ -758,14 +758,14 @@ def schedule_new_message():
         # Validate inputs
         if not title or not content or not scheduled_time:
             flash('Title, content, and scheduled time are required.', 'error')
-            return render_template('admin_panel/communication/schedule_new_message.html')
+            return render_template('admin_panel/communication/schedule_new_message_flowbite.html')
         
         # Parse scheduled time
         try:
             scheduled_datetime = datetime.strptime(scheduled_time, '%Y-%m-%dT%H:%M')
         except ValueError:
             flash('Invalid scheduled time format.', 'error')
-            return render_template('admin_panel/communication/schedule_new_message.html')
+            return render_template('admin_panel/communication/schedule_new_message_flowbite.html')
         
         # Create message metadata based on type
         message_metadata = {}
@@ -810,7 +810,7 @@ def schedule_new_message():
     except Exception as e:
         logger.error(f"Error scheduling message: {e}")
         flash('Failed to schedule message. Check database connectivity.', 'error')
-        return render_template('admin_panel/communication/schedule_new_message.html')
+        return render_template('admin_panel/communication/schedule_new_message_flowbite.html')
 
 
 @admin_panel_bp.route('/communication/scheduled-messages/history')
@@ -839,7 +839,7 @@ def scheduled_messages_history():
         if total_processed > 0:
             stats['success_rate'] = round((stats['total_sent'] / total_processed) * 100, 1)
         
-        return render_template('admin_panel/communication/scheduled_messages_history.html',
+        return render_template('admin_panel/communication/scheduled_messages_history_flowbite.html',
                              sent_messages=sent_messages,
                              failed_messages=failed_messages,
                              **stats)
@@ -897,7 +897,7 @@ def push_notifications_dashboard():
             'avg_engagement': '12%' if notifications_sent_week > 0 else '0%'
         }
         
-        return render_template('admin_panel/communication/push_notifications_dashboard.html',
+        return render_template('admin_panel/communication/push_notifications_dashboard_flowbite.html',
                              recent_notifications=recent_notifications,
                              **stats)
     except Exception as e:
@@ -913,7 +913,7 @@ def send_push_notification_form():
     """Send push notification form and handler."""
     if request.method == 'GET':
         # Show send form
-        return render_template('admin_panel/communication/send_push_notification.html')
+        return render_template('admin_panel/communication/send_push_notification_flowbite.html')
     
     try:
         # Handle form submission
@@ -931,7 +931,7 @@ def send_push_notification_form():
         # Validate inputs
         if not title or not body:
             flash('Title and body are required.', 'error')
-            return render_template('admin_panel/communication/send_push_notification.html')
+            return render_template('admin_panel/communication/send_push_notification_flowbite.html')
         
         # Get target users based on selection
         if target_type == 'all':
@@ -1011,7 +1011,7 @@ def send_push_notification_form():
     except Exception as e:
         logger.error(f"Error sending push notification: {e}")
         flash('Failed to send notification. Check push service connectivity.', 'error')
-        return render_template('admin_panel/communication/send_push_notification.html')
+        return render_template('admin_panel/communication/send_push_notification_flowbite.html')
 
 
 @admin_panel_bp.route('/communication/push-notifications/settings', methods=['GET', 'POST'])
@@ -1031,7 +1031,7 @@ def push_notifications_settings():
             'notification_rate_limit': AdminConfig.get_setting('notification_rate_limit', 5)
         }
         
-        return render_template('admin_panel/communication/push_notifications_settings.html',
+        return render_template('admin_panel/communication/push_notifications_settings_flowbite.html',
                              **settings)
     
     try:
@@ -1306,7 +1306,7 @@ def create_announcement():
             flash('Announcement creation failed. Check database connectivity and input validation.', 'error')
             return redirect(url_for('admin_panel.announcements'))
     
-    return render_template('admin_panel/communication/announcement_form.html', 
+    return render_template('admin_panel/communication/announcement_form_flowbite.html',
                          title='Create Announcement',
                          announcement=None)
 
@@ -1349,7 +1349,7 @@ def edit_announcement(announcement_id):
             flash('Announcement update failed. Check database connectivity and permissions.', 'error')
             return redirect(url_for('admin_panel.announcements'))
     
-    return render_template('admin_panel/communication/announcement_form.html', 
+    return render_template('admin_panel/communication/announcement_form_flowbite.html',
                          title='Edit Announcement',
                          announcement=announcement)
 
@@ -1666,7 +1666,7 @@ def direct_messaging():
         recent_players = Player.query.order_by(Player.id.desc()).limit(20).all()
 
         return render_template(
-            'admin_panel/communication/direct_messaging.html',
+            'admin_panel/communication/direct_messaging_flowbite.html',
             stats=stats,
             recent_players=recent_players
         )

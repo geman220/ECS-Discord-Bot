@@ -51,7 +51,7 @@ def notification_groups_list():
         roles = Role.query.order_by(Role.name).all()
 
         return render_template(
-            'admin_panel/communication/notification_groups.html',
+            'admin_panel/communication/notification_groups_flowbite.html',
             groups=groups,
             dynamic_groups=dynamic_groups,
             static_groups=static_groups,

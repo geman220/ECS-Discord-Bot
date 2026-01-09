@@ -212,7 +212,7 @@ def admin_dashboard():
     # the database transaction open during template rendering
     session.commit()
 
-    return render_template('admin_dashboard.html', **template_data)
+    return render_template('admin_dashboard_flowbite.html', **template_data)
 
 
 # -----------------------------------------------------------
@@ -295,7 +295,7 @@ def manage_announcements():
     permissions = session.query(Permission).all()
 
     return render_template(
-        'admin_dashboard.html',
+        'admin_dashboard_flowbite.html',
         announcements=announcements,
         announcement_form=announcement_form,
         users=users,
@@ -430,7 +430,7 @@ def manage_polls():
     # the database transaction open during template rendering
     session.commit()
     
-    return render_template('admin/manage_polls.html', polls=polls)
+    return render_template('admin/manage_polls_flowbite.html', polls=polls)
 
 
 @admin_bp.route('/admin/polls/create', methods=['GET', 'POST'])
@@ -461,7 +461,7 @@ def create_poll():
         
         if not title or not question:
             show_error('Title and question are required.')
-            return render_template('admin/create_poll.html', team_count=team_count, current_season=current_season)
+            return render_template('admin/create_poll_flowbite.html', team_count=team_count, current_season=current_season)
         
         try:
             # Create the poll
@@ -482,7 +482,7 @@ def create_poll():
             
             if not current_season_post:
                 show_error('No active Pub League season found.')
-                return render_template('admin/create_poll.html', team_count=0, current_season=None)
+                return render_template('admin/create_poll_flowbite.html', team_count=0, current_season=None)
             
             # Get teams from current season only
             teams = session.query(Team).join(
@@ -551,7 +551,7 @@ def create_poll():
             show_error(f'Error creating poll: {str(e)}')
             session.rollback()
     
-    return render_template('admin/create_poll.html', team_count=team_count, current_season=current_season)
+    return render_template('admin/create_poll_flowbite.html', team_count=team_count, current_season=current_season)
 
 
 @admin_bp.route('/admin/polls/<int:poll_id>/results', methods=['GET'])
@@ -595,7 +595,7 @@ def poll_results(poll_id):
         LeaguePollResponse.poll_id == poll_id
     ).order_by(Team.name, Player.name).all()
     
-    return render_template('admin/poll_results.html', 
+    return render_template('admin/poll_results_flowbite.html', 
                          poll=poll, 
                          response_counts=response_counts,
                          total_responses=total_responses,

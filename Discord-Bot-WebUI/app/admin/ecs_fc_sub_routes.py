@@ -331,7 +331,7 @@ def manage_sub_pool():
             pool_player_ids = {entry.player_id for entry in sub_pool_entries}
             eligible_players = [p for p in players_with_role if p.id not in pool_player_ids]
         
-        return render_template('admin/ecs_fc_sub_pool.html',
+        return render_template('admin/ecs_fc_sub_pool_flowbite.html',
                              sub_pool_entries=sub_pool_entries,
                              eligible_players=eligible_players)
         

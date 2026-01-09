@@ -137,7 +137,7 @@ def view_matches():
             weeks = sorted([w[0] for w in week_results if w[0]], key=lambda x: int(x) if x.isdigit() else 0)
 
         return render_template(
-            'admin_panel/match_operations/view_matches.html',
+            'admin_panel/match_operations/view_matches_flowbite.html',
             matches=matches,
             leagues=leagues,
             weeks=weeks,
@@ -183,7 +183,7 @@ def upcoming_matches():
             'this_month': len([m for m in upcoming if m.date <= datetime.utcnow().date() + timedelta(days=30)])
         }
 
-        return render_template('admin_panel/match_operations/upcoming_matches.html',
+        return render_template('admin_panel/match_operations/upcoming_matches_flowbite.html',
                                matches=upcoming, stats=stats)
     except Exception as e:
         logger.error(f"Error loading upcoming matches: {e}")
@@ -230,7 +230,7 @@ def match_results():
         }
 
         return render_template(
-            'admin_panel/match_operations/match_results.html',
+            'admin_panel/match_operations/match_results_flowbite.html',
             completed_matches=completed_matches,
             pending_results=pending_results,
             stats=stats
@@ -296,7 +296,7 @@ def live_matches():
             'completed_today': len(completed_today)
         }
 
-        return render_template('admin_panel/match_operations/live_matches.html',
+        return render_template('admin_panel/match_operations/live_matches_flowbite.html',
                                in_progress=in_progress,
                                upcoming_today=upcoming_today,
                                completed_today=completed_today,
@@ -348,7 +348,7 @@ def match_reports():
             'teams': teams
         }
 
-        return render_template('admin_panel/match_operations/match_reports.html',
+        return render_template('admin_panel/match_operations/match_reports_flowbite.html',
                                reports_data=reports_data)
     except Exception as e:
         logger.error(f"Error loading match reports: {e}")

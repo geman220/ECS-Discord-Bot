@@ -241,7 +241,7 @@ def appearance():
     has_custom_tokens = tokens is not None
 
     return render_template(
-        'admin_panel/appearance.html',
+        'admin_panel/appearance_flowbite.html',
         colors=colors,
         default_colors=DEFAULT_COLORS,
         has_custom_colors=custom_colors is not None,
@@ -364,7 +364,7 @@ def typography():
     current_typography = tokens['typography'] if tokens else DEFAULT_DESIGN_TOKENS['typography']
 
     return render_template(
-        'admin_panel/appearance_typography.html',
+        'admin_panel/appearance_typography_flowbite.html',
         typography=current_typography,
         default_typography=DEFAULT_DESIGN_TOKENS['typography']
     )
@@ -431,7 +431,7 @@ def spacing():
     current_spacing = tokens['spacing'] if tokens else DEFAULT_DESIGN_TOKENS['spacing']
 
     return render_template(
-        'admin_panel/appearance_spacing.html',
+        'admin_panel/appearance_spacing_flowbite.html',
         spacing=current_spacing,
         default_spacing=DEFAULT_DESIGN_TOKENS['spacing']
     )
@@ -487,7 +487,7 @@ def components():
     current_components = tokens['components'] if tokens else DEFAULT_DESIGN_TOKENS['components']
 
     return render_template(
-        'admin_panel/appearance_components.html',
+        'admin_panel/appearance_components_flowbite.html',
         components=current_components,
         default_components=DEFAULT_DESIGN_TOKENS['components']
     )
@@ -554,7 +554,7 @@ def animations():
     current_animations = tokens['animations'] if tokens else DEFAULT_DESIGN_TOKENS['animations']
 
     return render_template(
-        'admin_panel/appearance_animations.html',
+        'admin_panel/appearance_animations_flowbite.html',
         animations=current_animations,
         default_animations=DEFAULT_DESIGN_TOKENS['animations']
     )
@@ -617,7 +617,7 @@ def theme_variant():
     current_variant = tokens.get('theme_variant', 'modern') if tokens else 'modern'
 
     return render_template(
-        'admin_panel/appearance_theme_variant.html',
+        'admin_panel/appearance_theme_variant_flowbite.html',
         current_variant=current_variant,
         available_variants=['modern', 'modern-v2']
     )

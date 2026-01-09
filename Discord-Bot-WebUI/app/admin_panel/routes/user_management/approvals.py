@@ -65,7 +65,7 @@ def user_management():
             'recent_actions': len(recent_actions)
         }
 
-        return render_template('admin_panel/users/management.html',
+        return render_template('admin_panel/users/management_flowbite.html',
                                stats=stats,
                                recent_actions=recent_actions)
     except Exception as e:
@@ -157,7 +157,7 @@ def user_approvals():
         }
 
         return render_template(
-            'admin_panel/users/approvals.html',
+            'admin_panel/users/user_approvals_flowbite.html',
             pending_users=pending_users,
             recent_actions=recent_actions,
             stats=stats,

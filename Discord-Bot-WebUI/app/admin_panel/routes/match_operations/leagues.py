@@ -67,7 +67,7 @@ def manage_leagues():
             # Set league status (all leagues are considered active)
             league.status = 'active'
 
-        return render_template('admin_panel/match_operations/manage_leagues.html',
+        return render_template('admin_panel/match_operations/manage_leagues_flowbite.html',
                                leagues=leagues, stats=stats)
     except Exception as e:
         logger.error(f"Error loading manage leagues: {e}")
@@ -151,7 +151,7 @@ def league_standings():
             'total_teams': len(teams)
         }
 
-        return render_template('admin_panel/match_operations/league_standings.html',
+        return render_template('admin_panel/match_operations/league_standings_flowbite.html',
                                standings_data=standings_data)
     except Exception as e:
         logger.error(f"Error loading league standings: {e}")

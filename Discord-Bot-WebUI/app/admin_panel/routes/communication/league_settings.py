@@ -32,7 +32,7 @@ def league_settings():
         settings = LeagueSetting.query.order_by(LeagueSetting.sort_order).all()
 
         return render_template(
-            'admin_panel/communication/league_settings.html',
+            'admin_panel/communication/league_settings_flowbite.html',
             settings=settings
         )
     except Exception as e:

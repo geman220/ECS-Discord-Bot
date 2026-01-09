@@ -69,10 +69,10 @@ def discord_overview():
             'needs_sync': players_needing_sync
         }
 
-        return render_template('admin_panel/discord/overview.html', stats=stats)
+        return render_template('admin_panel/discord/overview_flowbite.html', stats=stats)
     except Exception as e:
         logger.error(f"Error loading Discord overview: {e}")
-        return render_template('admin_panel/discord/overview.html',
+        return render_template('admin_panel/discord/overview_flowbite.html',
                              stats={'total_players': 0, 'in_server': 0, 'not_in_server': 0,
                                    'unknown_status': 0, 'needs_sync': 0},
                              error=str(e))
@@ -168,7 +168,7 @@ def discord_players():
             'per_page': per_page
         }
 
-        return render_template('admin_panel/discord/players.html',
+        return render_template('admin_panel/discord/players_flowbite.html',
                              stats=stats,
                              players=players,
                              pagination=pagination,
@@ -179,7 +179,7 @@ def discord_players():
 
     except Exception as e:
         logger.error(f"Error loading Discord players page: {e}")
-        return render_template('admin_panel/discord/players.html',
+        return render_template('admin_panel/discord/players_flowbite.html',
                              stats={'total_players': 0, 'in_server': 0, 'not_in_server': 0, 'unknown_status': 0},
                              players=[],
                              pagination={'has_prev': False, 'prev_num': None, 'page': 1,
@@ -214,12 +214,12 @@ def discord_roles():
             Player.discord_needs_update == True
         ).count()
 
-        return render_template('admin_panel/discord/roles.html',
+        return render_template('admin_panel/discord/roles_flowbite.html',
                              players_needing_sync=players_needing_sync,
                              players_needs_update=players_needs_update)
     except Exception as e:
         logger.error(f"Error loading Discord roles page: {e}")
-        return render_template('admin_panel/discord/roles.html',
+        return render_template('admin_panel/discord/roles_flowbite.html',
                              players_needing_sync=0,
                              players_needs_update=0,
                              error=str(e))
@@ -496,12 +496,12 @@ def discord_onboarding():
                 'last_bot_contact_at': getattr(u, 'last_bot_contact_at', None)
             })
 
-        return render_template('admin_panel/discord/onboarding.html',
+        return render_template('admin_panel/discord/onboarding_flowbite.html',
                              overview_data=overview_data,
                              stats=stats)
     except Exception as e:
         logger.error(f"Error loading onboarding page: {e}", exc_info=True)
-        return render_template('admin_panel/discord/onboarding.html',
+        return render_template('admin_panel/discord/onboarding_flowbite.html',
                              overview_data=[],
                              stats={'completed': 0, 'pending_discord': 0, 'pending_approval': 0},
                              error=str(e))

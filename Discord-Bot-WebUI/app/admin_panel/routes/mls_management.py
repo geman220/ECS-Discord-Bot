@@ -107,13 +107,13 @@ def mls_overview():
             'finished_matches': finished_matches
         }
 
-        return render_template('admin_panel/mls/overview.html',
+        return render_template('admin_panel/mls/overview_flowbite.html',
                              stats=stats,
                              matches=visible_matches,
                              competition_mappings=COMPETITION_MAPPINGS)
     except Exception as e:
         logger.error(f"Error loading MLS overview: {e}")
-        return render_template('admin_panel/mls/overview.html',
+        return render_template('admin_panel/mls/overview_flowbite.html',
                              stats={'total_matches': 0, 'upcoming_matches': 0,
                                    'live_matches': 0, 'finished_matches': 0},
                              matches=[],
@@ -182,7 +182,7 @@ def live_reporting_dashboard():
             user_agent=request.headers.get('User-Agent')
         )
 
-        return render_template('admin_panel/mls/live_reporting_dashboard.html',
+        return render_template('admin_panel/mls/live_reporting_dashboard_flowbite.html',
                              realtime_health=realtime_health,
                              coordination_status=coordination_status,
                              active_sessions=active_sessions,
@@ -192,7 +192,7 @@ def live_reporting_dashboard():
 
     except Exception as e:
         logger.error(f"Error loading live reporting dashboard: {e}")
-        return render_template('admin_panel/mls/live_reporting_dashboard.html',
+        return render_template('admin_panel/mls/live_reporting_dashboard_flowbite.html',
                              realtime_health={'health': 'unknown', 'heartbeat_age_seconds': None},
                              coordination_status={},
                              active_sessions=[],
@@ -243,7 +243,7 @@ def mls_matches():
             match.task_details = {'status': 'HISTORICAL'}
 
         return render_template(
-            'admin_panel/mls/matches.html',
+            'admin_panel/mls/matches_flowbite.html',
             matches=visible_matches,
             historical_matches=historical_matches,
             historical_count=len(historical_matches),
@@ -253,7 +253,7 @@ def mls_matches():
         )
     except Exception as e:
         logger.error(f"Error loading MLS matches: {e}")
-        return render_template('admin_panel/mls/matches.html',
+        return render_template('admin_panel/mls/matches_flowbite.html',
                              matches=[],
                              historical_matches=[],
                              historical_count=0,
@@ -870,7 +870,7 @@ def mls_task_monitoring():
     }
 
     return render_template(
-        'admin_panel/mls/task_monitoring.html',
+        'admin_panel/mls/task_monitoring_flowbite.html',
         tasks=task_list,
         stats=stats,
         task_types=[t.value for t in TaskType],

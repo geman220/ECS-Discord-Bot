@@ -18,7 +18,7 @@ notification_admin_bp = Blueprint('notification_admin', __name__, url_prefix='/a
 @role_required(['Global Admin', 'Pub League Admin'])
 def notification_dashboard():
     """Main notification management dashboard"""
-    return render_template('admin/push_notifications.html')
+    return render_template('admin/push_notifications_flowbite.html')
 
 @notification_admin_bp.route('/status')
 @login_required

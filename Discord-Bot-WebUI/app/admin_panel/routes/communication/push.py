@@ -91,7 +91,7 @@ def push_notifications():
             'push_notifications_enabled': push_notifications_enabled
         }
 
-        return render_template('admin_panel/push_notifications.html',
+        return render_template('admin_panel/push_notifications_flowbite.html',
                              notification_history=notification_history,
                              teams=teams,
                              leagues=leagues,
@@ -290,7 +290,7 @@ def push_notifications_dashboard():
             'avg_engagement': '12%' if notifications_sent_week > 0 else '0%'
         }
 
-        return render_template('admin_panel/communication/push_notifications_dashboard.html',
+        return render_template('admin_panel/communication/push_notifications_dashboard_flowbite.html',
                              recent_notifications=recent_notifications,
                              **stats)
     except Exception as e:
@@ -306,7 +306,7 @@ def send_push_notification_form():
     """Send push notification form and handler."""
     if request.method == 'GET':
         # Show send form
-        return render_template('admin_panel/communication/send_push_notification.html')
+        return render_template('admin_panel/communication/send_push_notification_flowbite.html')
 
     try:
         # Handle form submission
@@ -324,7 +324,7 @@ def send_push_notification_form():
         # Validate inputs
         if not title or not body:
             flash('Title and body are required.', 'error')
-            return render_template('admin_panel/communication/send_push_notification.html')
+            return render_template('admin_panel/communication/send_push_notification_flowbite.html')
 
         # Get target users based on selection
         if target_type == 'all':
@@ -406,7 +406,7 @@ def send_push_notification_form():
     except Exception as e:
         logger.error(f"Error sending push notification: {e}")
         flash('Failed to send notification. Check push service connectivity.', 'error')
-        return render_template('admin_panel/communication/send_push_notification.html')
+        return render_template('admin_panel/communication/send_push_notification_flowbite.html')
 
 
 @admin_panel_bp.route('/communication/push-notifications/settings', methods=['GET', 'POST'])
@@ -428,7 +428,7 @@ def push_notifications_settings():
             'notification_rate_limit': AdminConfig.get_setting('notification_rate_limit', 5)
         }
 
-        return render_template('admin_panel/communication/push_notifications_settings.html',
+        return render_template('admin_panel/communication/push_notifications_settings_flowbite.html',
                              **settings)
 
     try:

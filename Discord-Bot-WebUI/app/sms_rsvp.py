@@ -227,12 +227,12 @@ def rsvp_page(token):
             # Invalidate the token after a successful RSVP.
             token_obj.invalidate()
 
-            return render_template('rsvp_success.html')
+            return render_template('rsvp_success_flowbite.html')
 
         # Create a minimal form for CSRF protection.
         form = FlaskForm()
         return render_template(
-            'sms_rsvp_form.html',
+            'sms_rsvp_form_flowbite.html',
             title='RSVP',
             form=form,
             player=player,

@@ -88,7 +88,7 @@ def mobile_features():
             'last_updated': _get_mobile_features_last_updated()
         }
         
-        return render_template('admin_panel/mobile_features.html', stats=stats)
+        return render_template('admin_panel/mobile_features_flowbite.html', stats=stats)
     except Exception as e:
         logger.error(f"Error loading mobile features: {e}")
         flash('Mobile features dashboard unavailable. Check database connectivity.', 'error')
@@ -136,7 +136,7 @@ def mobile_user_management():
             ).count() if hasattr(User, 'created_at') else 0
         }
         
-        return render_template('admin_panel/mobile_features/user_management.html',
+        return render_template('admin_panel/mobile_features/user_management_flowbite.html',
                              mobile_users=mobile_users,
                              stats=stats)
     except Exception as e:
@@ -178,7 +178,7 @@ def mobile_app_distribution():
                 'beta_testing_enabled': AdminConfig.get_value('mobile_beta_testing', 'false') == 'true'
             }
             
-            return render_template('admin_panel/mobile_features/app_distribution.html',
+            return render_template('admin_panel/mobile_features/app_distribution_flowbite.html',
                                  config_data=config_data)
         except Exception as config_error:
             logger.error(f"Error loading app distribution config: {config_error}")
@@ -248,7 +248,7 @@ def mobile_app_analytics():
             'retention_rate': f'{(mobile_users_30d / mobile_users_total * 100):.1f}%' if mobile_users_total > 0 else '0%'
         }
         
-        return render_template('admin_panel/mobile_features/app_analytics.html',
+        return render_template('admin_panel/mobile_features/app_analytics_flowbite.html',
                              analytics_data=analytics_data)
     except Exception as e:
         logger.error(f"Error loading mobile app analytics: {e}")
@@ -294,7 +294,7 @@ def mobile_config():
             user_agent=request.headers.get('User-Agent')
         )
         
-        return render_template('admin_panel/mobile_features/mobile_config.html',
+        return render_template('admin_panel/mobile_features/mobile_config_flowbite.html',
                              mobile_settings=mobile_settings)
     except Exception as e:
         logger.error(f"Error loading mobile config: {e}")
@@ -340,7 +340,7 @@ def mobile_features_toggle():
             user_agent=request.headers.get('User-Agent')
         )
         
-        return render_template('admin_panel/mobile_features/feature_toggles.html',
+        return render_template('admin_panel/mobile_features/feature_toggles_flowbite.html',
                              mobile_features=mobile_features)
     except Exception as e:
         logger.error(f"Error loading mobile feature toggles: {e}")
@@ -388,7 +388,7 @@ def mobile_users():
             ).count()
         }
         
-        return render_template('admin_panel/mobile_features/mobile_users.html',
+        return render_template('admin_panel/mobile_features/mobile_users_flowbite.html',
                              mobile_users=mobile_users,
                              stats=stats)
     except Exception as e:
@@ -467,7 +467,7 @@ def push_campaigns():
             'avg_open_rate': '78%'  # Would need calculation
         }
         
-        return render_template('admin_panel/mobile_features/push_campaigns.html',
+        return render_template('admin_panel/mobile_features/push_campaigns_flowbite.html',
                              campaign_data=campaign_data)
     except Exception as e:
         logger.error(f"Error loading push campaigns: {e}")
@@ -502,7 +502,7 @@ def push_subscriptions():
             'total_subscriptions': active_subscriptions + inactive_subscriptions
         }
         
-        return render_template('admin_panel/mobile_features/push_subscriptions.html',
+        return render_template('admin_panel/mobile_features/push_subscriptions_flowbite.html',
                              device_tokens=device_tokens,
                              stats=stats)
     except Exception as e:
@@ -538,7 +538,7 @@ def push_history():
             'avg_per_day': round(sent_this_week / 7, 1) if sent_this_week > 0 else 0
         }
         
-        return render_template('admin_panel/mobile_features/push_history.html',
+        return render_template('admin_panel/mobile_features/push_history_flowbite.html',
                              push_notifications=push_notifications,
                              stats=stats)
     except Exception as e:
@@ -571,7 +571,7 @@ def mobile_analytics():
         # Usage analytics (real data based on device token activity)
         analytics_data = _calculate_mobile_analytics(mobile_users_count, platform_stats)
         
-        return render_template('admin_panel/mobile_features/mobile_analytics.html',
+        return render_template('admin_panel/mobile_features/mobile_analytics_flowbite.html',
                              analytics_data=analytics_data)
     except Exception as e:
         logger.error(f"Error loading mobile analytics: {e}")
@@ -960,7 +960,7 @@ def mobile_error_analytics():
             'active_patterns': [pattern.to_dict() for pattern in active_patterns]
         }
 
-        return render_template('admin_panel/mobile_features/error_analytics.html', stats=stats)
+        return render_template('admin_panel/mobile_features/error_analytics_flowbite.html', stats=stats)
 
     except Exception as e:
         logger.error(f"Error loading mobile error analytics: {str(e)}", exc_info=True)
@@ -1026,7 +1026,7 @@ def mobile_error_list():
         error_type_options = [e[0] for e in error_type_options]
 
         return render_template(
-            'admin_panel/mobile_features/error_list.html',
+            'admin_panel/mobile_features/error_list_flowbite.html',
             errors=errors,
             severity_options=severity_options,
             error_type_options=error_type_options,
@@ -1085,7 +1085,7 @@ def mobile_error_cleanup():
         storage_stats = get_analytics_storage_stats()
 
         return render_template(
-            'admin_panel/mobile_features/error_cleanup.html',
+            'admin_panel/mobile_features/error_cleanup_flowbite.html',
             preview=preview,
             storage_stats=storage_stats
         )

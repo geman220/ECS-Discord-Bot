@@ -66,7 +66,7 @@ def messaging_settings():
         }
 
         return render_template(
-            'admin_panel/communication/messaging_settings.html',
+            'admin_panel/communication/messaging_settings_flowbite.html',
             settings=settings,
             roles=roles,
             permissions=permissions,

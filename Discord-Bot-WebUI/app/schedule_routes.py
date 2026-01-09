@@ -341,7 +341,7 @@ def manage_publeague_schedule(season_id):
         schedule_data[league.name] = manager.format_week_schedule(schedules)
 
     return render_template(
-        'manage_publeague_schedule.html',
+        'manage_publeague_schedule_flowbite.html',
         season=season,
         leagues=[{'id': league.id, 'name': league.name, 'teams': manager.get_teams_by_league(league.id)}
                  for league in leagues],
@@ -462,7 +462,7 @@ def manage_ecsfc_schedule(season_id):
         schedule_data[league.name] = manager.format_week_schedule(schedules)
 
     return render_template(
-        'manage_ecsfc_schedule.html',
+        'manage_ecsfc_schedule_flowbite.html',
         season=season,
         leagues=[{'id': league.id, 'name': league.name, 'teams': manager.get_teams_by_league(league.id)}
                  for league in leagues],
@@ -568,7 +568,7 @@ def schedule_wizard(season_id):
 
             placeholders = generate_placeholders(start_date_str, num_weeks, timeslot_list)
             return render_template(
-                'schedule_wizard.html',
+                'schedule_wizard_flowbite.html',
                 season=season,
                 leagues=leagues,
                 placeholders=placeholders
@@ -580,7 +580,7 @@ def schedule_wizard(season_id):
             return redirect(url_for('schedule.manage_publeague_schedule', season_id=season.id))
 
     return render_template(
-        'schedule_wizard.html',
+        'schedule_wizard_flowbite.html',
         season=season,
         leagues=leagues,
         placeholders=placeholders

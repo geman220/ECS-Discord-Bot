@@ -66,7 +66,7 @@ def player_transfers():
             'pending_count': len(pending_requests)
         }
 
-        return render_template('admin_panel/match_operations/player_transfers.html',
+        return render_template('admin_panel/match_operations/player_transfers_flowbite.html',
                                transfers_data=transfers_data)
     except Exception as e:
         logger.error(f"Error loading player transfers: {e}")

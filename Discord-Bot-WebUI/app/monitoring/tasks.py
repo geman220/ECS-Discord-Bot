@@ -41,7 +41,7 @@ def monitor_dashboard():
 
     Accessible only to Global Admin users.
     """
-    return render_template('monitoring.html', title='Monitoring Dashboard')
+    return render_template('monitoring_flowbite.html', title='Monitoring Dashboard')
 
 
 @monitoring_bp.route('/tasks/all', endpoint='get_all_tasks')

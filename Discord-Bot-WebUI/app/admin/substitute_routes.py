@@ -150,7 +150,7 @@ def manage_sub_requests():
     available_subs = get_available_subs(session=session)
     
     return render_template(
-        'admin/manage_sub_requests.html',
+        'admin/manage_sub_requests_flowbite.html',
         title='Manage Sub Requests',
         sub_requests=sub_requests,
         upcoming_matches=upcoming_matches,
@@ -468,7 +468,7 @@ def manage_subs():
     teams = session.query(Team).all()
     
     return render_template(
-        'admin/manage_subs.html',
+        'admin/manage_subs_flowbite.html',
         title='Manage Substitutes',
         subs=subs,
         upcoming_matches=upcoming_matches,

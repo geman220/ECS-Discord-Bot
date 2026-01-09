@@ -169,7 +169,7 @@ def settings():
         player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
         is_referee = player is not None
 
-    return render_template('settings.html',
+    return render_template('settings_flowbite.html',
                            notification_form=notification_form,
                            password_form=password_form,
                            enable_2fa_form=enable_2fa_form,

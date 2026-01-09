@@ -149,7 +149,7 @@ def index():
     else:
         can_access_admin = 'Global Admin' in [role.name for role in safe_current_user.roles]
     
-    return render_template('help/index.html', topics=topics, title="Help Topics", can_access_admin=can_access_admin)
+    return render_template('help/index_flowbite.html', topics=topics, title="Help Topics", can_access_admin=can_access_admin)
 
 @help_bp.route('/<int:topic_id>')
 @login_required
@@ -210,7 +210,7 @@ def view_topic(topic_id):
     # Process Discord channel links
     html_content = process_discord_links(html_content)
     
-    return render_template('help/view_topic.html', topic=topic, content=html_content, title=topic.title)
+    return render_template('help/view_topic_flowbite.html', topic=topic, content=html_content, title=topic.title)
 
 @help_bp.route('/search_topics', methods=['GET'])
 @login_required
@@ -261,7 +261,7 @@ def admin_help_topics():
         Rendered template of the admin help topics list.
     """
     topics = g.db_session.query(HelpTopic).all()
-    return render_template('help/admin/list_help_topics.html', topics=topics, title="Admin - Help Topics")
+    return render_template('help/admin/list_help_topics_flowbite.html', topics=topics, title="Admin - Help Topics")
 
 @help_bp.route('/admin/new', methods=['GET', 'POST'])
 @login_required
@@ -287,7 +287,7 @@ def new_help_topic():
         g.db_session.commit()
         show_success('Help topic created successfully!')
         return redirect(url_for('help.admin_help_topics'))
-    return render_template('help/admin/new_help_topic.html', form=form, title="Create New Help Topic")
+    return render_template('help/admin/new_help_topic_flowbite.html', form=form, title="Create New Help Topic")
 
 @help_bp.route('/admin/edit/<int:topic_id>', methods=['GET', 'POST'])
 @login_required
@@ -318,7 +318,7 @@ def edit_help_topic(topic_id):
         g.db_session.commit()
         show_success('Help topic updated successfully!')
         return redirect(url_for('help.admin_help_topics'))
-    return render_template('help/admin/edit_help_topic.html', form=form, topic=topic, title="Edit Help Topic")
+    return render_template('help/admin/edit_help_topic_flowbite.html', form=form, topic=topic, title="Edit Help Topic")
 
 @help_bp.route('/admin/delete/<int:topic_id>', methods=['POST'])
 @login_required
@@ -378,7 +378,7 @@ def bulk_upload_help_topics():
         POST: Processes uploaded files and creates help topics
     """
     if request.method == 'GET':
-        return render_template('help/admin/bulk_upload.html', title="Bulk Upload Help Topics")
+        return render_template('help/admin/bulk_upload_flowbite.html', title="Bulk Upload Help Topics")
     
     if 'files' not in request.files:
         show_error('No files selected for upload')

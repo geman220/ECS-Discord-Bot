@@ -70,7 +70,7 @@ def match_details(match_id: int):
             rsvp_responses[availability.player_id] = availability
         
         return render_template(
-            'ecs_fc_match_details.html',
+            'ecs_fc_match_details_flowbite.html',
             match=match,
             rsvp_summary=rsvp_summary,
             rsvp_responses=rsvp_responses,

@@ -99,7 +99,7 @@ def store_management():
             'popular_items': [{'name': name, 'count': count} for name, count in popular_items]
         }
         
-        return render_template('admin_panel/store/management.html',
+        return render_template('admin_panel/store/management_flowbite.html',
                              stats=stats,
                              recent_activity=recent_activity)
     except Exception as e:
@@ -162,7 +162,7 @@ def store_items():
         ).distinct().all()
         categories = [cat[0] for cat in categories if cat[0]]
         
-        return render_template('admin_panel/store/items.html',
+        return render_template('admin_panel/store/items_flowbite.html',
                              items=items,
                              categories=categories,
                              current_filters={
@@ -203,13 +203,13 @@ def create_store_item():
             # Validation
             if not name:
                 flash('Item name is required.', 'error')
-                return render_template('admin_panel/store/item_form.html', 
+                return render_template('admin_panel/store/item_form_flowbite.html', 
                                      action='create', item=None)
             
             # Check for duplicate name
             if StoreItem.query.filter_by(name=name).first():
                 flash('An item with this name already exists.', 'error')
-                return render_template('admin_panel/store/item_form.html', 
+                return render_template('admin_panel/store/item_form_flowbite.html', 
                                      action='create', item=None)
             
             # Create item
@@ -244,17 +244,17 @@ def create_store_item():
             
         except ValueError as e:
             flash('Invalid price format.', 'error')
-            return render_template('admin_panel/store/item_form.html', 
+            return render_template('admin_panel/store/item_form_flowbite.html', 
                                  action='create', item=None)
         except Exception as e:
             logger.error(f"Error creating store item: {e}")
             db.session.rollback()
             flash('Store item creation failed. Check database connectivity and input validation.', 'error')
-            return render_template('admin_panel/store/item_form.html', 
+            return render_template('admin_panel/store/item_form_flowbite.html', 
                                  action='create', item=None)
     
     # GET request - show form
-    return render_template('admin_panel/store/item_form.html', 
+    return render_template('admin_panel/store/item_form_flowbite.html', 
                          action='create', item=None)
 
 
@@ -300,7 +300,7 @@ def edit_store_item(item_id):
             # Validation
             if not item.name:
                 flash('Item name is required.', 'error')
-                return render_template('admin_panel/store/item_form.html', 
+                return render_template('admin_panel/store/item_form_flowbite.html', 
                                      action='edit', item=item)
             
             # Check for duplicate name (excluding current item)
@@ -309,7 +309,7 @@ def edit_store_item(item_id):
             ).first()
             if duplicate:
                 flash('An item with this name already exists.', 'error')
-                return render_template('admin_panel/store/item_form.html', 
+                return render_template('admin_panel/store/item_form_flowbite.html', 
                                      action='edit', item=item)
             
             db.session.commit()
@@ -338,17 +338,17 @@ def edit_store_item(item_id):
             
         except ValueError as e:
             flash('Invalid price format.', 'error')
-            return render_template('admin_panel/store/item_form.html', 
+            return render_template('admin_panel/store/item_form_flowbite.html', 
                                  action='edit', item=item)
         except Exception as e:
             logger.error(f"Error updating store item: {e}")
             db.session.rollback()
             flash('Store item update failed. Check database connectivity and permissions.', 'error')
-            return render_template('admin_panel/store/item_form.html', 
+            return render_template('admin_panel/store/item_form_flowbite.html', 
                                  action='edit', item=item)
     
     # GET request - show form
-    return render_template('admin_panel/store/item_form.html', 
+    return render_template('admin_panel/store/item_form_flowbite.html', 
                          action='edit', item=item)
 
 
@@ -457,7 +457,7 @@ def store_orders():
         # Get order statuses for filter dropdown
         order_statuses = ['PENDING', 'PROCESSING', 'ORDERED', 'DELIVERED', 'CANCELLED']
         
-        return render_template('admin_panel/store/orders.html',
+        return render_template('admin_panel/store/orders_flowbite.html',
                              orders=orders,
                              order_statuses=order_statuses,
                              current_filters={
@@ -667,7 +667,7 @@ def store_analytics():
             ]
         }
         
-        return render_template('admin_panel/store/analytics.html',
+        return render_template('admin_panel/store/analytics_flowbite.html',
                              analytics=analytics_data)
         
     except Exception as e:

@@ -124,7 +124,7 @@ def index():
         config = get_config_status()
 
         return render_template(
-            'admin/pass_studio/index.html',
+            'admin/pass_studio/index_flowbite.html',
             ecs_type=ecs_type,
             pub_type=pub_type,
             wallet_config=config
@@ -262,7 +262,7 @@ def studio(pass_type_code):
             }
 
         return render_template(
-            'admin/pass_studio/studio.html',
+            'admin/pass_studio/studio_flowbite.html',
             pass_type=pass_type,
             pass_type_code=pass_type_code,
             other_type=other_type,

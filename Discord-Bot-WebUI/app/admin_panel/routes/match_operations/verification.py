@@ -58,7 +58,7 @@ def match_verification():
         if not current_season:
             flash('No current season found. Contact an administrator.', 'warning')
             return render_template(
-                'admin_panel/match_verification.html',
+                'admin_panel/match_verification_flowbite.html',
                 matches=[],
                 weeks=[],
                 leagues=[],
@@ -210,7 +210,7 @@ def match_verification():
         leagues = League.query.filter_by(season_id=current_season.id).all()
 
         return render_template(
-            'admin_panel/match_verification.html',
+            'admin_panel/match_verification_flowbite.html',
             matches=matches,
             weeks=weeks,
             leagues=leagues,

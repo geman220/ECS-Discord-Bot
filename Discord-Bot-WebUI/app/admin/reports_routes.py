@@ -87,7 +87,7 @@ def admin_reports():
     total = query.count()
     feedbacks = query.offset((page - 1) * per_page).limit(per_page).all()
 
-    return render_template('admin_reports.html', title='Admin Reports', feedbacks=feedbacks, page=page, total=total, per_page=per_page)
+    return render_template('admin_reports_flowbite.html', title='Admin Reports', feedbacks=feedbacks, page=page, total=total, per_page=per_page)
 
 
 @admin_bp.route('/admin/rsvp_status/<match_id>', endpoint='rsvp_status')
@@ -137,12 +137,12 @@ def rsvp_status(match_id):
         ecs_match = None
         ecs_sub_request = None
     
-    return render_template('admin/rsvp_status.html', 
-                         title='RSVP Status', 
-                         match=match, 
+    return render_template('admin/rsvp_status_flowbite.html',
+                         title='RSVP Status',
+                         match=match,
                          ecs_match=ecs_match,
                          ecs_sub_request=ecs_sub_request,
-                         rsvps=rsvp_data, 
+                         rsvps=rsvp_data,
                          is_ecs_fc_match=is_ecs_fc_match)
 
 

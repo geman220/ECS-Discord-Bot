@@ -97,7 +97,7 @@ def substitute_management():
         current_week = week_filter or 1
 
         return render_template(
-            'admin_panel/substitute_management.html',
+            'admin_panel/substitute_management_flowbite.html',
             stats=stats,
             sub_requests=sub_requests,
             upcoming_matches=upcoming_matches,

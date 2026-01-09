@@ -35,7 +35,7 @@ def view_rsvp(token):
             # Already responded - show the result
             details = rsvp_service.get_request_details(response)
             return render_template(
-                'substitute_rsvp.html',
+                'substitute_rsvp_flowbite.html',
                 already_responded=True,
                 response=response,
                 details=details,
@@ -54,7 +54,7 @@ def view_rsvp(token):
     details = rsvp_service.get_request_details(response)
 
     return render_template(
-        'substitute_rsvp.html',
+        'substitute_rsvp_flowbite.html',
         token=token,
         response=response,
         details=details,

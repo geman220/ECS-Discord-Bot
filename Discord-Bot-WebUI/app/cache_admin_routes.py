@@ -25,7 +25,7 @@ def cache_stats():
     """Display cache statistics and performance metrics."""
     try:
         stats = get_cache_stats()
-        return render_template('admin/cache_stats.html', 
+        return render_template('admin/cache_stats_flowbite.html',
                              title='Cache Statistics',
                              stats=stats)
     except Exception as e:

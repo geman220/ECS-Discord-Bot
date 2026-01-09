@@ -34,7 +34,7 @@ def db_monitoring():
     """
     Render the database monitoring page.
     """
-    return render_template('db_monitoring.html', title='DB Monitoring')
+    return render_template('db_monitoring_flowbite.html', title='DB Monitoring')
 
 
 @monitoring_bp.route('/db/connections', endpoint='check_connections')

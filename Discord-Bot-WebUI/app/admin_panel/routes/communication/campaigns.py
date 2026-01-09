@@ -67,7 +67,7 @@ def campaigns_list():
         }
 
         return render_template(
-            'admin_panel/communication/campaigns.html',
+            'admin_panel/communication/campaigns_flowbite.html',
             campaigns=campaigns,
             teams=teams,
             leagues=leagues,

@@ -52,7 +52,7 @@ def redis_stats():
         except Exception as e:
             server_info = {'error': f'Could not get server info: {e}'}
         
-        return render_template('admin/redis_stats.html',
+        return render_template('admin/redis_stats_flowbite.html',
                              stats=stats,
                              connection_health=connection_health,
                              server_info=server_info)
@@ -206,7 +206,7 @@ def draft_cache_stats():
         for league in leagues:
             league_cache_status[league.name] = DraftCacheService.warm_cache_for_league(league.name)
         
-        return render_template('admin/draft_cache_stats.html',
+        return render_template('admin/draft_cache_stats_flowbite.html',
                              cache_stats=cache_stats,
                              league_cache_status=league_cache_status,
                              leagues=[l.name for l in leagues])

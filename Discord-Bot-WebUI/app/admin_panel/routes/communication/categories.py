@@ -30,7 +30,7 @@ def message_category(category_id):
         category = MessageCategory.query.get_or_404(category_id)
         templates = MessageTemplate.query.filter_by(category_id=category_id).order_by(MessageTemplate.name).all()
 
-        return render_template('admin_panel/communication/category_detail.html',
+        return render_template('admin_panel/communication/category_detail_flowbite.html',
                              category=category,
                              templates=templates)
     except Exception as e:

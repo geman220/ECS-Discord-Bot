@@ -101,7 +101,7 @@ def system_monitoring():
             elif service['name'] == 'Database':
                 services_dict['database'] = service
         
-        return render_template('admin_panel/monitoring/system_monitoring.html',
+        return render_template('admin_panel/monitoring/system_monitoring_flowbite.html',
                              services=services_dict,
                              services_list=services,
                              stats=stats)
@@ -258,7 +258,7 @@ def task_monitoring_page():
         
         recent_completed = []
         
-        return render_template('admin_panel/monitoring/task_monitor.html',
+        return render_template('admin_panel/monitoring/task_monitor_flowbite.html',
                              active_tasks=active_tasks,
                              queued_tasks_list=queued_tasks_list,
                              recent_completed=recent_completed,
@@ -284,7 +284,7 @@ def database_monitor():
         slow_queries = _get_slow_queries()
         recent_activity = _get_database_activity()
 
-        return render_template('admin_panel/monitoring/database_monitor.html',
+        return render_template('admin_panel/monitoring/database_monitor_flowbite.html',
                              db_stats=db_stats,
                              db_info=db_info,
                              query_stats=query_stats,
@@ -323,7 +323,7 @@ def task_history():
             'task_breakdown': stats_24h['by_name']
         }
         
-        return render_template('admin_panel/monitoring/task_history.html',
+        return render_template('admin_panel/monitoring/task_history_flowbite.html',
                              history_data=history_data,
                              zombie_tasks=zombie_tasks)
     except Exception as e:
@@ -585,7 +585,7 @@ def system_performance():
             'response_time': [100, 110, 115, 120, 118, 112, 120]
         }
         
-        return render_template('admin_panel/monitoring/system_performance.html',
+        return render_template('admin_panel/monitoring/system_performance_flowbite.html',
                              performance_metrics=performance_metrics,
                              historical_data=historical_data)
     except Exception as e:
@@ -635,7 +635,7 @@ def system_logs():
         if search_term:
             logs = [log for log in logs if search_term.lower() in log['message'].lower()]
         
-        return render_template('admin_panel/monitoring/system_logs.html',
+        return render_template('admin_panel/monitoring/system_logs_flowbite.html',
                              logs=logs,
                              current_filters={
                                  'level': log_level,
@@ -694,7 +694,7 @@ def system_alerts():
             'total_alerts': len(active_alerts) + len(resolved_alerts)
         }
         
-        return render_template('admin_panel/monitoring/system_alerts.html',
+        return render_template('admin_panel/monitoring/system_alerts_flowbite.html',
                              active_alerts=active_alerts,
                              resolved_alerts=resolved_alerts,
                              alert_stats=alert_stats)

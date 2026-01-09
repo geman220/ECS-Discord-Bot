@@ -102,7 +102,7 @@ def waitlist_register():
         if 'sweet_alert' in session:
             session.pop('sweet_alert', None)
 
-        return render_template('waitlist_register_authenticated.html',
+        return render_template('waitlist_register_authenticated_flowbite.html',
                               title='Join the Waitlist',
                               user=current_user,
                               player=player,
@@ -121,7 +121,7 @@ def waitlist_register():
         if 'sweet_alert' in session:
             session.pop('sweet_alert', None)
 
-        return render_template('waitlist_login_register.html',
+        return render_template('waitlist_login_register_flowbite.html',
                               title='Join the Waitlist')
 
 
@@ -153,7 +153,7 @@ def waitlist_status():
     # Get Discord server info
     discord_server_url = current_app.config.get('DISCORD_SERVER_URL', 'https://discord.gg/weareecs')
 
-    return render_template('waitlist_status.html',
+    return render_template('waitlist_status_flowbite.html',
         title='Waitlist Status',
         user=user,
         player=player,
@@ -333,7 +333,7 @@ def waitlist_register_with_discord():
                 })
 
         # Use the new carousel template
-        return render_template('waitlist_register_discord_carousel.html',
+        return render_template('waitlist_register_discord_carousel_flowbite.html',
                               title='Complete Waitlist Registration',
                               discord_email=discord_email,
                               discord_username=discord_username,
@@ -688,6 +688,6 @@ def waitlist_confirmation():
                 discord_error = f"Error checking Discord membership: {str(e)}"
                 logger.error(f"Discord membership check error for user {safe_current_user.id}: {discord_error}")
 
-    return render_template('waitlist_confirmation.html',
+    return render_template('waitlist_confirmation_flowbite.html',
                            discord_membership_status=discord_membership_status,
                            discord_error=discord_error)

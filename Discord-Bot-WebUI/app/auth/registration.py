@@ -55,7 +55,7 @@ def register():
             logger.error(f"Registration error: {str(e)}")
             show_error('Registration failed. Please try again.')
 
-    return render_template('register.html', title='Register', form=form)
+    return render_template('register_flowbite.html', title='Register', form=form)
 
 
 @auth.route('/register_with_discord', methods=['GET', 'POST'])
@@ -80,7 +80,7 @@ def register_with_discord():
         return redirect(url_for('auth.login'))
 
     if request.method == 'GET':
-        return render_template('register_discord.html',
+        return render_template('register_discord_flowbite.html',
                               title='Complete Registration',
                               discord_email=discord_email,
                               discord_username=discord_username)

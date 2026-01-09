@@ -393,7 +393,7 @@ def manage_users():
     
     # Regular page load
     return render_template(
-        'manage_users.html',
+        'manage_users_flowbite.html',
         title='User Management',
         users=users_data,
         roles=roles_query,
@@ -457,7 +457,7 @@ def create_user():
         show_success(f'User {user.username} created successfully.')
         return redirect(url_for('user_management.manage_users'))
 
-    return render_template('create_user.html', title='Create User', form=form)
+    return render_template('create_user_flowbite.html', title='Create User', form=form)
 
 
 @user_management_bp.route('/edit_user/<int:user_id>', methods=['POST'])
@@ -1673,7 +1673,7 @@ def sync_review(task_id):
         sync_data.setdefault('flagged_multi_orders', [])
         sync_data.setdefault('email_mismatch_players', [])
         
-        return render_template('sync_review.html', 
+        return render_template('sync_review_flowbite.html', 
                              sync_data=sync_data, 
                              task_id=task_id,
                              title='WooCommerce Sync Review')

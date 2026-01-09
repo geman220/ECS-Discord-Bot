@@ -1054,7 +1054,7 @@ def draft_league(league_name: str):
     analytics = DraftService.get_draft_analytics(db_league_name)
     
     return render_template(
-        'draft_enhanced.html',
+        'draft_enhanced_flowbite.html',
         title=f'{db_league_name} League Draft',
         league_name=league_name,
         db_league_name=db_league_name,
@@ -1189,7 +1189,7 @@ def draft_league_pitch_view(league_name: str):
     teams_json = [{'id': team.id, 'name': team.name} for team in teams]
     
     return render_template(
-        'draft_pitch_view.html',
+        'draft_pitch_view_flowbite.html',
         title=f'{db_league_name} League Draft',
         league_name=league_name,
         db_league_name=db_league_name,

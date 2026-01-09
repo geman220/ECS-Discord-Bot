@@ -82,7 +82,7 @@ def check_duplicate():
                 return redirect(url_for('auth.register_with_discord'))
 
     duplicates = session.get('potential_duplicates', [])
-    return render_template('auth/check_duplicate.html',
+    return render_template('auth/check_duplicate_flowbite.html',
                          duplicates=duplicates,
                          title="Account Verification - ECS FC")
 
@@ -105,12 +105,12 @@ def verify_merge(token=None):
                 'text': message,
                 'icon': 'error'
             }
-            return render_template('auth/verify_merge.html',
+            return render_template('auth/verify_merge_flowbite.html',
                                  verification_token=None,
                                  title="Verification Failed - ECS FC")
 
     # Show verification page
-    return render_template('auth/verify_merge.html',
+    return render_template('auth/verify_merge_flowbite.html',
                          verification_token=token,
                          title="Verify Account Merge - ECS FC")
 

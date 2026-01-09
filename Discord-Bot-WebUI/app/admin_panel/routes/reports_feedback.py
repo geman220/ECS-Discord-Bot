@@ -99,7 +99,7 @@ def rsvp_status(match_id):
         ecs_match = None
         ecs_sub_request = None
 
-    return render_template('admin_panel/reports/rsvp_status.html',
+    return render_template('admin_panel/reports/rsvp_status_flowbite.html',
                          match=match,
                          ecs_match=ecs_match,
                          ecs_sub_request=ecs_sub_request,
@@ -292,7 +292,7 @@ def feedback_list():
         'per_page': per_page
     }
 
-    return render_template('admin_panel/reports/feedback_list.html',
+    return render_template('admin_panel/reports/feedback_list_flowbite.html',
                          feedbacks=feedbacks,
                          pagination=pagination,
                          status_filter=status_filter,
@@ -370,7 +370,7 @@ def view_feedback(feedback_id):
             session.commit()
             return redirect(url_for('admin_panel.view_feedback', feedback_id=feedback.id))
 
-    return render_template('admin_panel/reports/feedback_detail.html',
+    return render_template('admin_panel/reports/feedback_detail_flowbite.html',
                          feedback=feedback,
                          form=form,
                          reply_form=reply_form,

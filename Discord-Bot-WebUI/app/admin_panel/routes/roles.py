@@ -58,7 +58,7 @@ def roles_comprehensive():
             User.created_at >= datetime.utcnow().replace(day=1)
         ).order_by(User.created_at.desc()).limit(10).all()
         
-        return render_template('admin_panel/roles/manage_roles.html',
+        return render_template('admin_panel/roles/manage_roles_flowbite.html',
                              roles_data=roles_data,
                              stats=stats,
                              recent_assignments=recent_assignments)
@@ -279,7 +279,7 @@ def role_comprehensive_users(role_id):
             page=page, per_page=per_page, error_out=False
         )
         
-        return render_template('admin_panel/roles/role_users.html',
+        return render_template('admin_panel/roles/role_users_flowbite.html',
                              role=role,
                              users=users_pagination.items,
                              pagination=users_pagination)

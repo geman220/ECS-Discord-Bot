@@ -33,8 +33,8 @@ def list_categories():
         categories = MessageCategory.query.order_by(MessageCategory.name).all()
         # Get recent announcements for the dashboard
         announcements = Announcement.query.order_by(Announcement.created_at.desc()).limit(5).all()
-        return render_template('admin/message_categories.html', 
-                             categories=categories, 
+        return render_template('admin/message_categories_flowbite.html',
+                             categories=categories,
                              announcements=announcements)
     except Exception as e:
         logger.error(f"Error listing message categories: {e}")
@@ -51,8 +51,8 @@ def view_category(category_id: int):
         category = MessageCategory.query.get_or_404(category_id)
         templates = MessageTemplate.query.filter_by(category_id=category_id).order_by(MessageTemplate.key).all()
         
-        return render_template('admin/message_templates.html', 
-                             category=category, 
+        return render_template('admin/message_templates_flowbite.html',
+                             category=category,
                              templates=templates)
     except Exception as e:
         logger.error(f"Error viewing category {category_id}: {e}")
@@ -83,7 +83,7 @@ def edit_template(template_id: int):
             flash(f'Template "{template.name}" updated successfully', 'success')
             return redirect(url_for('admin.message_config.view_category', category_id=template.category_id))
         
-        return render_template('admin/edit_message_template.html', template=template)
+        return render_template('admin/edit_message_template_flowbite.html', template=template)
         
     except Exception as e:
         logger.error(f"Error editing template {template_id}: {e}")

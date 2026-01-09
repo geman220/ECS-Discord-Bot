@@ -82,7 +82,7 @@ def ispy_management():
                 'recent_activity': 0
             }
             flash('I-Spy tables not found. Run database migrations to enable this feature.', 'info')
-            return render_template('admin_panel/ispy/management.html',
+            return render_template('admin_panel/ispy/management_flowbite.html',
                                  stats=mock_stats,
                                  seasons=[],
                                  categories=[],
@@ -113,7 +113,7 @@ def ispy_management():
             user_agent=request.headers.get('User-Agent')
         )
         
-        return render_template('admin_panel/ispy/management.html',
+        return render_template('admin_panel/ispy/management_flowbite.html',
                              stats=stats,
                              seasons=active_seasons,
                              categories=categories,
@@ -146,7 +146,7 @@ def ispy_seasons():
                 'completion_rate': _get_season_completion_rate(season.id)
             }
         
-        return render_template('admin_panel/ispy/seasons.html',
+        return render_template('admin_panel/ispy/seasons_flowbite.html',
                              seasons=seasons,
                              season_stats=season_stats)
         
@@ -215,7 +215,7 @@ def create_ispy_season():
             })
         
         # GET request - return form
-        return render_template('admin_panel/ispy/season_form.html')
+        return render_template('admin_panel/ispy/season_form_flowbite.html')
         
     except Exception as e:
         logger.error(f"Error creating I-Spy season: {e}")
@@ -247,7 +247,7 @@ def ispy_categories():
                 'usage_count': _get_category_usage_count(category.id)
             }
         
-        return render_template('admin_panel/ispy/categories.html',
+        return render_template('admin_panel/ispy/categories_flowbite.html',
                              categories=categories,
                              category_stats=category_stats)
         
@@ -326,7 +326,7 @@ def ispy_shots():
         if not ISPY_TABLES_AVAILABLE:
             # Return mock data
             mock_shots = []
-            return render_template('admin_panel/ispy/shots.html',
+            return render_template('admin_panel/ispy/shots_flowbite.html',
                                  shots=mock_shots,
                                  categories=[],
                                  shot_stats={})
@@ -359,7 +359,7 @@ def ispy_shots():
             'avg_difficulty': db.session.query(func.avg(ISpyShot.difficulty)).scalar() or 0
         }
         
-        return render_template('admin_panel/ispy/shots.html',
+        return render_template('admin_panel/ispy/shots_flowbite.html',
                              shots=shots,
                              categories=categories,
                              shot_stats=shot_stats,
@@ -382,7 +382,7 @@ def ispy_players():
             # Return mock data
             mock_players = []
             mock_leaderboard = []
-            return render_template('admin_panel/ispy/players.html',
+            return render_template('admin_panel/ispy/players_flowbite.html',
                                  players=mock_players,
                                  leaderboard=mock_leaderboard,
                                  player_stats={})
@@ -406,7 +406,7 @@ def ispy_players():
             'top_score': db.session.query(func.max(ISpyUserStats.total_score)).scalar() or 0
         }
         
-        return render_template('admin_panel/ispy/players.html',
+        return render_template('admin_panel/ispy/players_flowbite.html',
                              players=players,
                              leaderboard=leaderboard,
                              player_stats=player_stats)
@@ -523,13 +523,13 @@ def ispy_analytics():
                 }
             }
             
-            return render_template('admin_panel/ispy/analytics.html',
+            return render_template('admin_panel/ispy/analytics_flowbite.html',
                                  analytics_data=mock_analytics)
         
         # Get comprehensive analytics
         analytics_data = _get_ispy_analytics()
         
-        return render_template('admin_panel/ispy/analytics.html',
+        return render_template('admin_panel/ispy/analytics_flowbite.html',
                              analytics_data=analytics_data)
         
     except Exception as e:

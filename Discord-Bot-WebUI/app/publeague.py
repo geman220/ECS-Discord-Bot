@@ -259,7 +259,7 @@ def manage_teams():
                 first_league = False
 
         session.commit()
-        return render_template('manage_teams.html', seasons=seasons)
+        return render_template('manage_teams_flowbite.html', seasons=seasons)
     except Exception as e:
         session.rollback()
         logger.error(f"Error in manage_teams: {str(e)}")

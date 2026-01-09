@@ -103,8 +103,8 @@ def season_config(league_id: int):
         league_type = 'PREMIER' if league.name.upper() == 'PREMIER' else 'CLASSIC' if league.name.upper() == 'CLASSIC' else 'ECS_FC'
         season_config = AutoScheduleGenerator.create_default_season_configuration(league_id, league_type)
     
-    return render_template('season_config.html', 
-                         league=league, 
+    return render_template('season_config_flowbite.html',
+                         league=league,
                          season_config=season_config)
 
 
@@ -188,7 +188,7 @@ def view_seasonal_schedule(season_id):
         schedule_by_week[week_num]['matches'].append(match)
     
     return render_template(
-        'seasonal_schedule_view.html',
+        'seasonal_schedule_view_flowbite.html',
         season=season,
         leagues=leagues,
         schedule_by_week=schedule_by_week
@@ -261,7 +261,7 @@ def manage_league_season(league_id):
         existing_weeks[week_num]['matches'].append(match)
     
     return render_template(
-        'season_management.html',
+        'season_management_flowbite.html',
         league=league,
         season=season,
         teams=teams,  # JSON serializable
@@ -814,7 +814,7 @@ def schedule_manager():
         league_type='ECS FC', is_current=True
     ).first()
     
-    return render_template('auto_schedule_manager.html',
+    return render_template('auto_schedule_manager_flowbite.html',
                          pub_league_seasons=pub_league_seasons,
                          ecs_fc_seasons=ecs_fc_seasons,
                          current_pub_season=current_pub_season,
@@ -850,7 +850,7 @@ def league_overview(league_id: int):
         Schedule.team_id.in_(team_ids)
     ).first() if team_ids else None
     
-    return render_template('auto_schedule_league_overview.html',
+    return render_template('auto_schedule_league_overview_flowbite.html',
                          league=league,
                          config=config,
                          templates_count=templates_count,
@@ -1530,8 +1530,8 @@ def auto_schedule_config(league_id: int):
             show_error('An error occurred while generating the schedule')
             session.rollback()
     
-    return render_template('auto_schedule_config.html', 
-                         league=league, 
+    return render_template('auto_schedule_config_flowbite.html',
+                         league=league,
                          config=existing_config,
                          team_count=team_count,
                          title=f'Auto Schedule - {league.name}')
@@ -1566,7 +1566,7 @@ def preview_schedule(league_id: int):
         show_info('No schedule templates found. Please generate a schedule first.')
         return redirect(url_for('auto_schedule.auto_schedule_config', league_id=league_id))
     
-    return render_template('preview_schedule.html',
+    return render_template('preview_schedule_flowbite.html',
                          league=league,
                          schedule_preview=schedule_preview,
                          config=config,

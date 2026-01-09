@@ -140,7 +140,7 @@ def ecs_fc_dashboard():
             match.rsvp_counts = get_rsvp_counts(match)
 
         return render_template(
-            'admin_panel/ecs_fc/dashboard.html',
+            'admin_panel/ecs_fc/dashboard_flowbite.html',
             teams=teams,
             team_stats=team_stats,
             upcoming_matches=upcoming_matches
@@ -196,7 +196,7 @@ def ecs_fc_team_schedule(team_id):
         ).order_by(ExternalOpponent.name).all()
 
         return render_template(
-            'admin_panel/ecs_fc/team_schedule.html',
+            'admin_panel/ecs_fc/team_schedule_flowbite.html',
             team=team,
             matches=matches,
             opponents=opponents,
@@ -241,7 +241,7 @@ def ecs_fc_matches():
         teams = get_ecs_fc_teams()
 
         return render_template(
-            'admin_panel/ecs_fc/matches.html',
+            'admin_panel/ecs_fc/matches_flowbite.html',
             matches=matches,
             teams=teams,
             show_past=show_past,
@@ -348,7 +348,7 @@ def ecs_fc_match_create():
     preselect_team_id = request.args.get('team_id', type=int)
 
     return render_template(
-        'admin_panel/ecs_fc/match_form.html',
+        'admin_panel/ecs_fc/match_form_flowbite.html',
         match=None,
         teams=teams,
         opponents=opponents,
@@ -430,7 +430,7 @@ def ecs_fc_match_edit(match_id):
     ).order_by(ExternalOpponent.name).all()
 
     return render_template(
-        'admin_panel/ecs_fc/match_form.html',
+        'admin_panel/ecs_fc/match_form_flowbite.html',
         match=match,
         teams=teams,
         opponents=opponents,
@@ -489,7 +489,7 @@ def ecs_fc_opponents():
     opponents = query.order_by(ExternalOpponent.name).all()
 
     return render_template(
-        'admin_panel/ecs_fc/opponents.html',
+        'admin_panel/ecs_fc/opponents_flowbite.html',
         opponents=opponents,
         show_inactive=show_inactive
     )
@@ -688,7 +688,7 @@ def ecs_fc_import():
     preselect_team_id = request.args.get('team_id', type=int)
 
     return render_template(
-        'admin_panel/ecs_fc/import.html',
+        'admin_panel/ecs_fc/import_flowbite.html',
         teams=teams,
         preselect_team_id=preselect_team_id
     )
@@ -755,7 +755,7 @@ def ecs_fc_rsvp_status(match_id):
             responses[response_type].append(availability)
 
     return render_template(
-        'admin_panel/ecs_fc/rsvp_status.html',
+        'admin_panel/ecs_fc/rsvp_status_flowbite.html',
         match=match,
         responses=responses,
         rsvp_counts=get_rsvp_counts(match)

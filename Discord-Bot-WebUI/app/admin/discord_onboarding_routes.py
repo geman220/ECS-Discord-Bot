@@ -688,9 +688,9 @@ def admin_test_onboarding():
             except Exception as e:
                 results.append(f"Error: {e}")
         
-        return render_template('admin/test_onboarding.html', results=results, user_discord_id=user_discord_id)
-    
-    return render_template('admin/test_onboarding.html', user_discord_id=user_discord_id)
+        return render_template('admin/test_onboarding_flowbite.html', results=results, user_discord_id=user_discord_id)
+
+    return render_template('admin/test_onboarding_flowbite.html', user_discord_id=user_discord_id)
 
 
 @discord_onboarding.route('/message-template/<category>/<key>', methods=['GET'])

@@ -505,7 +505,7 @@ def verify_purchase():
     """
     discord_email = request.args.get('discord_email', 'your Discord email')
     discord_username = request.args.get('discord_username', 'Discord User')
-    return render_template('verify_purchase.html',
+    return render_template('verify_purchase_flowbite.html',
                            title='Discord Error',
                            discord_email=discord_email,
                            discord_username=discord_username)

@@ -258,7 +258,7 @@ def setup_wizard(step='certificates'):
             }
 
         return render_template(
-            'admin/wallet_config/wizard.html',
+            'admin/wallet_config/wizard_flowbite.html',
             current_step=step,
             wallet_config=config,
             ecs_type=ecs_type,
@@ -332,7 +332,7 @@ def certificates():
         google_complete = WalletCertificate.has_complete_google_config()
 
         return render_template(
-            'admin/wallet_config/certificates.html',
+            'admin/wallet_config/certificates_flowbite.html',
             certificates=certificates,
             cert_types=CERT_TYPES,
             apple_complete=apple_complete,
@@ -481,7 +481,7 @@ def assets():
             pub_assets = {a.asset_type: a for a in WalletAsset.get_assets_by_pass_type(pub_type.id)}
 
         return render_template(
-            'admin/wallet_config/assets.html',
+            'admin/wallet_config/assets_flowbite.html',
             asset_types=ASSET_TYPES,
             ecs_type=ecs_type,
             pub_type=pub_type,
@@ -615,7 +615,7 @@ def templates():
         pub_templates = WalletTemplate.query.filter_by(pass_type_id=pub_type.id).all() if pub_type else []
 
         return render_template(
-            'admin/wallet_config/templates.html',
+            'admin/wallet_config/templates_flowbite.html',
             ecs_type=ecs_type,
             pub_type=pub_type,
             ecs_templates=ecs_templates,
@@ -892,7 +892,7 @@ def test_config():
             })
 
         return render_template(
-            'admin/wallet_config/test_results.html',
+            'admin/wallet_config/test_results_flowbite.html',
             test_results=test_results,
             now=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
         )
@@ -1023,7 +1023,7 @@ def diagnostics():
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify(diagnostics_data)
         else:
-            return render_template('admin/wallet_config/diagnostics.html', diagnostics=diagnostics_data)
+            return render_template('admin/wallet_config/diagnostics_flowbite.html', diagnostics=diagnostics_data)
 
     except Exception as e:
         logger.error(f"Error running wallet diagnostics: {str(e)}", exc_info=True)
@@ -1142,7 +1142,7 @@ def setup_wizard_legacy():
 @role_required(['Global Admin'])
 def certificates_help():
     """Help page for certificates"""
-    return render_template('admin/wallet_config/certificates_help.html')
+    return render_template('admin/wallet_config/certificates_help_flowbite.html')
 
 
 @wallet_config_bp.route('/assets/serve/<int:asset_id>')
@@ -1197,7 +1197,7 @@ def set_default_template_legacy(template_id):
 @role_required(['Global Admin'])
 def help_page():
     """Help documentation page"""
-    return render_template('admin/wallet_config/help.html')
+    return render_template('admin/wallet_config/help_flowbite.html')
 
 
 @wallet_config_bp.route('/download-woo-plugin')

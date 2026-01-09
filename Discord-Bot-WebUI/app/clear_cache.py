@@ -22,4 +22,4 @@ def clear_cache():
     Returns:
         The rendered clear_cache.html template
     """
-    return render_template('clear_cache.html', title='Updating Mobile Experience')
+    return render_template('clear_cache_flowbite.html', title='Updating Mobile Experience')

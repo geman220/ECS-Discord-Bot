@@ -51,7 +51,7 @@ def manage_playoffs(league_id: int):
     # Get current standings
     standings = get_league_standings(session, league_id)
 
-    return render_template('admin/playoff_management.html',
+    return render_template('admin/playoff_management_flowbite.html',
                          league=league,
                          playoff_matches=playoff_matches,
                          teams=teams,
@@ -129,7 +129,7 @@ def playoff_generator(league_id: int):
             'goal_difference': team.goal_difference if hasattr(team, 'goal_difference') else 0
         })
 
-    return render_template('admin/playoff_generator.html',
+    return render_template('admin/playoff_generator_flowbite.html',
                          league=league,
                          standings=standings,
                          title=f'Playoff Generator - {league.name}')
@@ -246,7 +246,7 @@ def view_bracket(league_id: int):
             event_type=PlayerEventType.RED_CARD
         ).all()
 
-    return render_template('playoff_bracket_view.html',
+    return render_template('playoff_bracket_view_flowbite.html',
                          league=league,
                          season=league.season,
                          playoff_matches=playoff_matches,

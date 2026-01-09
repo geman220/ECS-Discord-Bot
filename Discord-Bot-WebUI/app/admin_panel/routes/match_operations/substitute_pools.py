@@ -96,7 +96,7 @@ def substitute_pools():
                 }
 
         return render_template(
-            'admin_panel/match_operations/substitute_pools.html',
+            'admin_panel/match_operations/substitute_pools_flowbite.html',
             pools_data=pools_data,
             league_types=LEAGUE_TYPES
         )
@@ -180,7 +180,7 @@ def substitute_pool_detail(league_type):
         }
 
         return render_template(
-            'admin_panel/match_operations/substitute_pool_detail.html',
+            'admin_panel/match_operations/substitute_pool_detail_flowbite.html',
             league_type=league_type,
             league_config=LEAGUE_TYPES[league_type],
             active_pools=active_pools,

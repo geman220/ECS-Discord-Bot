@@ -98,7 +98,7 @@ def dashboard():
             pending_approvals = 0
 
         return render_template(
-            'admin_panel/dashboard.html',
+            'admin_panel/dashboard_flowbite.html',
             stats=stats,
             recent_actions=recent_actions,
             navigation_settings=navigation_settings,
@@ -591,7 +591,7 @@ def performance_monitoring():
     try:
         performance_report = get_performance_report()
         
-        return render_template('admin_panel/performance.html', 
+        return render_template('admin_panel/performance_flowbite.html',
                              report=performance_report,
                              title='Performance Monitoring')
     except Exception as e:
@@ -1008,7 +1008,7 @@ def navigation_settings():
                     'created_at': change.timestamp
                 })
 
-            return render_template('admin_panel/dashboard/navigation_settings.html',
+            return render_template('admin_panel/dashboard/navigation_settings_flowbite.html',
                                  nav_items=nav_items,
                                  recent_changes=recent_changes_data)
         

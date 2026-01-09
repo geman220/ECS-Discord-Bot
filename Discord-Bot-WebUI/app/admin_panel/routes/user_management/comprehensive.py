@@ -142,7 +142,7 @@ def users_comprehensive():
             'total_roles': len(all_roles)
         }
 
-        return render_template('admin_panel/users/manage_users_comprehensive.html',
+        return render_template('admin_panel/users/manage_users_comprehensive_flowbite.html',
                                users=users,
                                roles=all_roles,
                                Role=Role,  # Pass Role model for template

@@ -103,7 +103,7 @@ def draft_history():
             'filtered_picks': len(draft_history_list)
         }
 
-        return render_template('admin_panel/draft/history.html',
+        return render_template('admin_panel/draft/history_flowbite.html',
                              draft_history=grouped_history,
                              seasons=seasons,
                              leagues=leagues,
@@ -115,7 +115,7 @@ def draft_history():
 
     except Exception as e:
         logger.error(f"Error loading draft history: {e}", exc_info=True)
-        return render_template('admin_panel/draft/history.html',
+        return render_template('admin_panel/draft/history_flowbite.html',
                              draft_history={},
                              seasons=[],
                              leagues=[],

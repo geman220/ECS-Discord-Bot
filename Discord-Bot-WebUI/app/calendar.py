@@ -559,7 +559,7 @@ def calendar_view():
     can_view_available_referees = is_admin
     can_edit_events = is_admin  # Only admins can create/edit league events
 
-    return render_template('calendar.html',
+    return render_template('calendar_flowbite.html',
                          title='Pub League Calendar',
                          is_referee=is_referee,
                          can_assign_referee=can_assign_referee,

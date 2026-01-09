@@ -33,7 +33,7 @@ def user_analytics():
         # Get comprehensive analytics data
         analytics_data = get_user_analytics()
 
-        return render_template('admin_panel/users/analytics.html',
+        return render_template('admin_panel/users/analytics_flowbite.html',
                                analytics_data=analytics_data)
     except Exception as e:
         logger.error(f"Error loading user analytics: {e}")

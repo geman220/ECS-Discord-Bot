@@ -58,13 +58,13 @@ def login():
 
         if request.method == 'GET':
             logger.debug("GET request - rendering login form")
-            return render_template('login.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form)
 
         logger.debug("Processing login POST request")
         if not form.validate_on_submit():
             logger.debug(f"Form validation failed: {form.errors}")
             show_error('Please check your form inputs.')
-            return render_template('login.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form)
 
         email = form.email.data.lower()
         logger.debug(f"Attempting login for email: {email}")
@@ -73,7 +73,7 @@ def login():
         if not users:
             logger.debug("No user found with provided email")
             show_error('Invalid email or password')
-            return render_template('login.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form)
 
         if len(users) > 1:
             logger.debug(f"Multiple users found for email {email}")
@@ -81,7 +81,7 @@ def login():
             problematic_players = [p for p in players if p.needs_manual_review]
             if problematic_players:
                 show_warning('Multiple profiles found. Please contact an admin.')
-                return render_template('login.html', title='Login', form=form)
+                return render_template('login_flowbite.html', title='Login', form=form)
 
         user = users[0]
         logger.debug(f"Found user: {user.id}")
@@ -89,12 +89,12 @@ def login():
         if not user.check_password(form.password.data):
             logger.debug("Invalid password")
             show_error('Invalid email or password')
-            return render_template('login.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form)
 
         if not user.is_approved:
             logger.debug("User not approved")
             show_info('Your account is not approved yet.')
-            return render_template('login.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form)
 
         # If 2FA is enabled, redirect to 2FA verification.
         if user.is_2fa_enabled:
@@ -142,17 +142,17 @@ def login():
             else:
                 logger.error("Failed to update last login")
                 show_error('Login failed. Please try again.')
-                return render_template('login.html', title='Login', form=form)
+                return render_template('login_flowbite.html', title='Login', form=form)
 
         except Exception as e:
             logger.error(f"Error during login: {str(e)}", exc_info=True)
             show_error('Login failed. Please try again.')
-            return render_template('login.html', title='Login', form=form)
+            return render_template('login_flowbite.html', title='Login', form=form)
 
     except Exception as e:
         logger.error(f"Unexpected error in login route: {str(e)}", exc_info=True)
         show_error('An unexpected error occurred. Please try again.')
-        return render_template('login.html', title='Login', form=form)
+        return render_template('login_flowbite.html', title='Login', form=form)
 
 
 @auth.route('/auth-check')

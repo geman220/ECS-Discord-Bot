@@ -58,7 +58,7 @@ def list_prompts():
                 })
             
             # Otherwise render template
-            return render_template('ai_prompts/list_prompts.html', prompts=prompts, templates=templates)
+            return render_template('ai_prompts/list_prompts_flowbite.html', prompts=prompts, templates=templates)
             
     except Exception as e:
         logger.error(f"Error listing AI prompts: {e}", exc_info=True)
@@ -77,7 +77,7 @@ def create_prompt():
         # Load templates for the form
         with managed_session() as session:
             templates = session.query(AIPromptTemplate).all()
-            return render_template('ai_prompts/create_prompt.html', templates=templates)
+            return render_template('ai_prompts/create_prompt_flowbite.html', templates=templates)
     
     try:
         data = request.get_json() if request.is_json else request.form.to_dict()
@@ -147,7 +147,7 @@ def get_prompt(prompt_id: int):
                     'prompt': prompt_config.to_dict()
                 })
             
-            return render_template('ai_prompts/view_prompt.html', prompt=prompt_config)
+            return render_template('ai_prompts/view_prompt_flowbite.html', prompt=prompt_config)
             
     except Exception as e:
         logger.error(f"Error getting AI prompt {prompt_id}: {e}", exc_info=True)
@@ -173,7 +173,7 @@ def edit_prompt(prompt_id: int):
                 return redirect(url_for('ai_prompts.list_prompts'))
             
             if request.method == 'GET':
-                return render_template('ai_prompts/create_prompt.html', prompt=prompt_config)
+                return render_template('ai_prompts/create_prompt_flowbite.html', prompt=prompt_config)
             
             # Create new version with updates
             data = request.get_json() if request.is_json else request.form.to_dict()
@@ -318,7 +318,7 @@ def manage_templates():
                     'templates': [t.to_dict() for t in templates]
                 })
             
-            return render_template('ai_prompts/templates.html', templates=templates)
+            return render_template('ai_prompts/templates_flowbite.html', templates=templates)
     
     # POST - Create new template
     try:

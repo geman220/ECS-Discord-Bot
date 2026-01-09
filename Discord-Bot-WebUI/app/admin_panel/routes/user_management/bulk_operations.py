@@ -61,7 +61,7 @@ def bulk_operations():
             'recent_operations': len(recent_bulk_ops)
         }
 
-        return render_template('admin_panel/users/bulk_operations.html',
+        return render_template('admin_panel/users/bulk_operations_flowbite.html',
                                bulk_stats=bulk_stats,
                                roles=roles,
                                role_stats=role_stats,

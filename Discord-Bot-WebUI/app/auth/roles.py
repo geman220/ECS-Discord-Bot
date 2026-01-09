@@ -45,10 +45,10 @@ def sync_discord_roles():
 @auth.errorhandler(404)
 def not_found_error(error):
     logger.error(f"404 error: {error}")
-    return render_template('404.html', title='404',), 404
+    return render_template('404_flowbite.html', title='404',), 404
 
 
 @auth.errorhandler(500)
 def internal_error(error):
     logger.error(f"500 error: {error}")
-    return render_template('500.html', title='500',), 500
+    return render_template('500_flowbite.html', title='500',), 500

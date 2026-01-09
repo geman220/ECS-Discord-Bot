@@ -41,7 +41,7 @@ def download_pass_by_token():
         if not token:
             logger.warning(f"Pass download attempted without token, order: {order_id}")
             return render_template(
-                'wallet/download_error.html',
+                'wallet/download_error_flowbite.html',
                 error='Missing download token',
                 message='Please use the download link from your order confirmation email.'
             ), 400
@@ -52,7 +52,7 @@ def download_pass_by_token():
         if not wallet_pass:
             logger.warning(f"Pass not found for token: {token[:8]}...")
             return render_template(
-                'wallet/download_error.html',
+                'wallet/download_error_flowbite.html',
                 error='Pass not found',
                 message='This download link may be invalid or expired.'
             ), 404
@@ -66,7 +66,7 @@ def download_pass_by_token():
                         f"expected {wallet_pass.woo_order_id}"
                     )
                     return render_template(
-                        'wallet/download_error.html',
+                        'wallet/download_error_flowbite.html',
                         error='Invalid order',
                         message='This download link does not match the provided order.'
                     ), 403
@@ -76,7 +76,7 @@ def download_pass_by_token():
         # Check if pass is still valid
         if wallet_pass.status == 'voided':
             return render_template(
-                'wallet/download_error.html',
+                'wallet/download_error_flowbite.html',
                 error='Pass voided',
                 message='This membership pass has been voided and is no longer available.'
             ), 410
@@ -114,7 +114,7 @@ def download_pass_by_token():
             except Exception as e:
                 logger.error(f"Error generating Apple pass: {e}")
                 return render_template(
-                    'wallet/download_error.html',
+                    'wallet/download_error_flowbite.html',
                     error='Generation failed',
                     message='Unable to generate your wallet pass. Please try again later.'
                 ), 500
@@ -129,21 +129,21 @@ def download_pass_by_token():
                 return redirect(url)
             except NotImplementedError:
                 return render_template(
-                    'wallet/download_error.html',
+                    'wallet/download_error_flowbite.html',
                     error='Coming soon',
                     message='Google Wallet passes are coming soon. Please use Apple Wallet for now.'
                 ), 501
             except Exception as e:
                 logger.error(f"Error generating Google pass URL: {e}")
                 return render_template(
-                    'wallet/download_error.html',
+                    'wallet/download_error_flowbite.html',
                     error='Generation failed',
                     message='Unable to generate your wallet pass. Please try again later.'
                 ), 500
 
         else:
             return render_template(
-                'wallet/download_error.html',
+                'wallet/download_error_flowbite.html',
                 error='Invalid platform',
                 message='Please specify a valid wallet platform (apple or google).'
             ), 400
@@ -151,7 +151,7 @@ def download_pass_by_token():
     except Exception as e:
         logger.error(f"Unexpected error in pass download: {e}")
         return render_template(
-            'wallet/download_error.html',
+            'wallet/download_error_flowbite.html',
             error='Server error',
             message='An unexpected error occurred. Please try again later.'
         ), 500
@@ -170,7 +170,7 @@ def pass_info():
 
     if not token:
         return render_template(
-            'wallet/download_error.html',
+            'wallet/download_error_flowbite.html',
             error='Missing token',
             message='Please use the link from your order confirmation.'
         ), 400
@@ -179,13 +179,13 @@ def pass_info():
 
     if not wallet_pass:
         return render_template(
-            'wallet/download_error.html',
+            'wallet/download_error_flowbite.html',
             error='Pass not found',
             message='This download link may be invalid or expired.'
         ), 404
 
     return render_template(
-        'wallet/pass_info.html',
+        'wallet/pass_info_flowbite.html',
         wallet_pass=wallet_pass,
         download_token=token
     )

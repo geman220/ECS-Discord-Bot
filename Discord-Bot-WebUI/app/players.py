@@ -478,7 +478,7 @@ def player_profile(player_id):
                 logger.warning(f"Could not check online status for user {player.user_id}: {e}")
 
         return render_template(
-            'player_profile.html',
+            'player_profile_flowbite.html',
             title='Player Profile',
             player=player,
             user=user,
@@ -617,7 +617,7 @@ def mobile_profile_update(player_id):
     session.commit()
     
     return render_template(
-        'player_profile_mobile.html',
+        'player_profile_mobile_flowbite.html',
         title='Update Your Profile',
         player=player,
         user=user,
@@ -693,7 +693,7 @@ def desktop_profile_update(player_id):
     session.commit()
     
     return render_template(
-        'player_profile_desktop.html',
+        'player_profile_desktop_flowbite.html',
         title='Update Your Profile',
         player=player,
         user=user,
@@ -725,7 +725,7 @@ def mobile_profile_success(player_id):
     session.commit()
     
     return render_template(
-        'player_profile_mobile_success.html',
+        'player_profile_mobile_success_flowbite.html',
         title='Profile Complete!',
         player=player,
         action_type=action_type
@@ -789,7 +789,7 @@ def profile_wizard():
     session.commit()
 
     return render_template(
-        'player_profile_wizard.html',
+        'player_profile_wizard_flowbite.html',
         title='Profile Verification',
         player=player,
         user=user,
@@ -900,7 +900,7 @@ def wizard_profile(player_id):
     session.commit()
 
     return render_template(
-        'player_profile_wizard.html',
+        'player_profile_wizard_flowbite.html',
         title='Profile Verification',
         player=player,
         user=user,
@@ -1158,7 +1158,7 @@ def admin_review():
         )
         session.add(notification)
 
-    return render_template('admin_review.html', title='Admin Review', players=players_needing_review)
+    return render_template('admin_review_flowbite.html', title='Admin Review', players=players_needing_review)
 
 
 @players_bp.route('/create-profile', endpoint='create_profile', methods=['POST'])
@@ -1359,7 +1359,7 @@ def edit_player(player_id):
     form = EditPlayerForm(obj=player)
 
     if request.method == 'GET':
-        return render_template('edit_player.html', title='Edit Player', form=form, player=player)
+        return render_template('edit_player_flowbite.html', title='Edit Player', form=form, player=player)
 
     if form.validate_on_submit():
         try:
@@ -1371,7 +1371,7 @@ def edit_player(player_id):
             show_error('An error occurred while updating the player. Please try again.')
             raise
 
-    return render_template('edit_player.html', title='Edit Player', form=form, player=player)
+    return render_template('edit_player_flowbite.html', title='Edit Player', form=form, player=player)
 
 
 @players_bp.route('/contact_player_discord/<int:player_id>', methods=['POST'])

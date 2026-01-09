@@ -220,7 +220,7 @@ def dashboard():
         stats = pass_service.get_statistics()
         
         return render_template(
-            'admin/wallet_config/dashboard.html',
+            'admin/wallet_config/dashboard_flowbite.html',
             status=status,
             progress=progress,
             details=details,
@@ -330,7 +330,7 @@ def setup_wizard():
             }
 
         return render_template(
-            'admin/wallet_config/wizard.html',
+            'admin/wallet_config/wizard_flowbite.html',
             wallet_config=config_info,
             current_step=current_step,
             ecs_type=ecs_type,
@@ -360,7 +360,7 @@ def certificates():
         
         # Get certificate types for upload form
         return render_template(
-            'admin/wallet_config/certificates.html',
+            'admin/wallet_config/certificates_flowbite.html',
             apple_certs=apple_certs,
             google_certs=google_certs,
             cert_types=CERT_TYPES,
@@ -504,7 +504,7 @@ def certificate_help():
     
     Provides detailed instructions for obtaining and setting up certificates
     """
-    return render_template('admin/wallet_config/certificate_help.html')
+    return render_template('admin/wallet_config/certificate_help_flowbite.html')
 
 
 @wallet_config_bp.route('/assets')
@@ -533,7 +533,7 @@ def assets():
             pub_assets = {a.asset_type: a for a in WalletAsset.get_assets_by_pass_type(pub_type.id)}
 
         return render_template(
-            'admin/wallet_config/assets.html',
+            'admin/wallet_config/assets_flowbite.html',
             asset_types=ASSET_TYPES,
             ecs_type=ecs_type,
             pub_type=pub_type,
@@ -732,7 +732,7 @@ def templates():
             pub_default_apple = WalletTemplate.get_default(pub_type.id, 'apple')
 
         return render_template(
-            'admin/wallet_config/templates.html',
+            'admin/wallet_config/templates_flowbite.html',
             ecs_type=ecs_type,
             pub_type=pub_type,
             ecs_templates=ecs_templates,
@@ -1112,7 +1112,7 @@ def test_config():
             return jsonify(test_results)
         else:
             return render_template(
-                'admin/wallet_config/test_results.html',
+                'admin/wallet_config/test_results_flowbite.html',
                 test_results=test_results
             )
     
@@ -1233,7 +1233,7 @@ def diagnostics():
             return jsonify(diagnostics)
         else:
             return render_template(
-                'admin/wallet_config/diagnostics.html',
+                'admin/wallet_config/diagnostics_flowbite.html',
                 diagnostics=diagnostics
             )
     
@@ -1353,7 +1353,7 @@ def help_page():
 
     Provides comprehensive help on wallet pass configuration
     """
-    return render_template('admin/wallet_config/help.html')
+    return render_template('admin/wallet_config/help_flowbite.html')
 
 
 @wallet_config_bp.route('/download-woo-plugin')
@@ -1423,7 +1423,7 @@ def visual_editor(pass_type):
         assets_dict = {a.asset_type: a for a in assets}
         
         return render_template(
-            'admin/wallet_config/visual_editor.html',
+            'admin/wallet_config/visual_editor_flowbite.html',
             pass_type=pass_obj,
             template=template,
             template_content=template_content,
@@ -1531,7 +1531,7 @@ def locations():
         ).all()
 
         return render_template(
-            'admin/wallet_config/locations.html',
+            'admin/wallet_config/locations_flowbite.html',
             locations=all_locations
         )
 
@@ -1666,7 +1666,7 @@ def sponsors():
         ).all()
 
         return render_template(
-            'admin/wallet_config/sponsors.html',
+            'admin/wallet_config/sponsors_flowbite.html',
             sponsors=all_sponsors
         )
 
@@ -1745,7 +1745,7 @@ def subgroups():
         ).all()
 
         return render_template(
-            'admin/wallet_config/subgroups.html',
+            'admin/wallet_config/subgroups_flowbite.html',
             subgroups=all_subgroups
         )
 
@@ -1843,7 +1843,7 @@ def pass_fields(pass_type):
         ).order_by(WalletBackField.display_order).all()
 
         return render_template(
-            'admin/wallet_config/pass_fields.html',
+            'admin/wallet_config/pass_fields_flowbite.html',
             pass_type=pass_obj,
             pass_type_code=pass_type,
             front_fields=front_fields,
@@ -2029,7 +2029,7 @@ def pass_design(pass_type):
         template_content = json.loads(template.content) if template else None
 
         return render_template(
-            'admin/wallet_config/pass_design.html',
+            'admin/wallet_config/pass_design_flowbite.html',
             pass_type=pass_obj,
             pass_type_code=pass_type,
             front_fields=front_fields,

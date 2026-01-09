@@ -143,4 +143,4 @@ def verify_2fa_login():
         return redirect(url_for('auth.login'))
 
     # Add csrf_token to template context
-    return render_template('verify_2fa.html', title='Verify 2FA', form=form, user_id=user.id)
+    return render_template('verify_2fa_flowbite.html', title='Verify 2FA', form=form, user_id=user.id)

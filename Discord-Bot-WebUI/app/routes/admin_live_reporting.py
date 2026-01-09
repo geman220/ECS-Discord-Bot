@@ -52,7 +52,7 @@ def dashboard():
                 MLSMatch.date_time < datetime.utcnow() + timedelta(days=14)
             ).order_by(MLSMatch.date_time).limit(10).all()
 
-            return render_template('admin/live_reporting_dashboard.html',
+            return render_template('admin/live_reporting_dashboard_flowbite.html',
                                    realtime_health=realtime_health,
                                    coordination_status=coordination_status,
                                    active_sessions=active_sessions,
@@ -62,7 +62,7 @@ def dashboard():
     except Exception as e:
         logger.error(f"Error loading live reporting dashboard: {e}")
         flash(f"Error loading dashboard: {e}", 'error')
-        return render_template('500.html', error=str(e)), 500
+        return render_template('500_flowbite.html', error=str(e)), 500
 
 
 @admin_live_bp.route('/schedule-season', methods=['GET', 'POST'])
@@ -95,7 +95,7 @@ def schedule_season():
         with task_session() as session:
             seasons = session.query(Season).join(League).order_by(Season.year.desc()).all()
 
-            return render_template('admin/schedule_season.html', seasons=seasons)
+            return render_template('admin/schedule_season_flowbite.html', seasons=seasons)
 
     except Exception as e:
         logger.error(f"Error loading season scheduling form: {e}")
@@ -133,7 +133,7 @@ def matches():
             # Create sessions lookup
             sessions_by_match = {s.match_id: s for s in sessions}
 
-            return render_template('admin/matches.html',
+            return render_template('admin/matches_flowbite.html',
                                    matches=matches_list,
                                    sessions_by_match=sessions_by_match,
                                    page=page,
@@ -176,7 +176,7 @@ def match_detail(match_id):
                         match_scheduling['category'] = category
                         break
 
-            return render_template('admin/match_detail.html',
+            return render_template('admin/match_detail_flowbite.html',
                                    match=match,
                                    live_session=live_session,
                                    match_scheduling=match_scheduling)
@@ -207,7 +207,7 @@ def sessions():
 
             sessions_list = query.order_by(LiveReportingSession.created_at.desc()).limit(50).all()
 
-            return render_template('admin/sessions.html',
+            return render_template('admin/sessions_flowbite.html',
                                    sessions=sessions_list,
                                    status_filter=status_filter)
 
@@ -228,7 +228,7 @@ def realtime_status():
         health = check_realtime_health()
         coordination = get_coordination_status()
 
-        return render_template('admin/realtime_status.html',
+        return render_template('admin/realtime_status_flowbite.html',
                                health=health,
                                coordination=coordination)
 

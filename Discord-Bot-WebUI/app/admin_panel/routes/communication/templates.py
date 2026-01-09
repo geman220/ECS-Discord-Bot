@@ -33,7 +33,7 @@ def message_templates():
         total_templates = sum(len(category.templates) for category in categories)
         active_templates = sum(len([t for t in category.templates if t.is_active]) for category in categories)
 
-        return render_template('admin_panel/communication/messages.html',
+        return render_template('admin_panel/communication/messages_flowbite.html',
                              categories=categories,
                              recent_announcements=recent_announcements,
                              total_templates=total_templates,

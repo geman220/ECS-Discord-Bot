@@ -401,7 +401,7 @@ def view_match(match_id):
                 }
 
         return render_template(
-            'view_match.html',
+            'view_match_flowbite.html',
             match=match if not is_ecs_fc_match else None,
             ecs_match=ecs_match if is_ecs_fc_match else None,
             team=team if is_ecs_fc_match else None,
@@ -782,7 +782,7 @@ def live_report_match(match_id):
     logger.info(f"User {safe_current_user.id} reporting match {match_id} for team {reporting_team_id}")
     
     return render_template(
-        'live_reporting.html',
+        'live_reporting_flowbite.html',
         match=match,
         home_players=home_players,
         away_players=away_players,

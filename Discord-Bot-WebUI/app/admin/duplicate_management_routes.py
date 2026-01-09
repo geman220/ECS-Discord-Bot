@@ -51,7 +51,7 @@ def duplicate_registrations():
         ).limit(20).all()
         
         return render_template(
-            'admin/duplicate_registrations.html',
+            'admin/duplicate_registrations_flowbite.html',
             title='Duplicate Registration Management',
             pending_alerts=pending_alerts,
             resolved_alerts=resolved_alerts
@@ -83,7 +83,7 @@ def duplicate_registration_detail(alert_id):
                 logger.warning(f"Failed to parse details for alert {alert_id}")
         
         return render_template(
-            'admin/duplicate_registration_detail.html',
+            'admin/duplicate_registration_detail_flowbite.html',
             title=f'Duplicate Alert #{alert.id}',
             alert=alert,
             details=details
@@ -181,7 +181,7 @@ def merge_profiles(alert_id):
         }
         
         return render_template(
-            'admin/merge_profiles.html',
+            'admin/merge_profiles_flowbite.html',
             title=f'Merge Profiles - Alert #{alert.id}',
             **merge_data
         )

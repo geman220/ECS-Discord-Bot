@@ -68,8 +68,8 @@ def user_management():
             'recent_actions': len(recent_actions)
         }
         
-        return render_template('admin_panel/users/management.html', 
-                             stats=stats, 
+        return render_template('admin_panel/users/management_flowbite.html',
+                             stats=stats,
                              recent_actions=recent_actions)
     except Exception as e:
         logger.error(f"Error loading user management: {e}")
@@ -160,7 +160,7 @@ def user_approvals():
         }
 
         return render_template(
-            'admin_panel/users/approvals.html',
+            'admin_panel/users/approvals_flowbite.html',
             pending_users=pending_users,
             recent_actions=recent_actions,
             stats=stats,
@@ -624,7 +624,7 @@ def users_comprehensive():
             'total_roles': len(all_roles)
         }
 
-        return render_template('admin_panel/users/manage_users_comprehensive.html',
+        return render_template('admin_panel/users/manage_users_comprehensive_flowbite.html',
                              users=users,
                              roles=all_roles,
                              Role=Role,  # Pass Role model for template
@@ -655,7 +655,7 @@ def roles_management():
         users_with_roles = User.query.join(User.roles).distinct().count()
         admin_roles = len([r for r in roles if 'Admin' in r.name])
         
-        return render_template('admin_panel/users/roles.html',
+        return render_template('admin_panel/users/roles_flowbite.html',
                              roles=roles,
                              users=users,
                              permissions=[],  # TODO: Get from permissions if available
@@ -770,7 +770,7 @@ def user_waitlist():
         }
         
         return render_template(
-            'admin_panel/users/waitlist.html',
+            'admin_panel/users/waitlist_flowbite.html',
             waitlist_users=waitlist_users,
             recent_actions=recent_actions,
             now=datetime.utcnow(),
@@ -1095,7 +1095,7 @@ def search_users_by_role():
         users_with_roles = User.query.join(User.roles).distinct().count()
         admin_roles = len([r for r in roles if 'Admin' in r.name])
         
-        return render_template('admin_panel/users/roles.html',
+        return render_template('admin_panel/users/roles_flowbite.html',
                              roles=roles,
                              users=users,
                              permissions=[],
@@ -1142,7 +1142,7 @@ def bulk_operations():
             'recent_operations': len(recent_bulk_ops)
         }
         
-        return render_template('admin_panel/users/bulk_operations.html',
+        return render_template('admin_panel/users/bulk_operations_flowbite.html',
                              bulk_stats=bulk_stats,
                              roles=roles,
                              role_stats=role_stats,
@@ -1456,7 +1456,7 @@ def user_analytics():
         # Get comprehensive analytics data
         analytics_data = _get_user_analytics()
         
-        return render_template('admin_panel/users/analytics.html',
+        return render_template('admin_panel/users/analytics_flowbite.html',
                              analytics_data=analytics_data)
     except Exception as e:
         logger.error(f"Error loading user analytics: {e}")
@@ -2088,7 +2088,7 @@ def duplicate_registrations():
             'by_discord': len([g for g in duplicate_groups if g['match_type'] == 'discord'])
         }
 
-        return render_template('admin_panel/users/duplicates.html',
+        return render_template('admin_panel/users/duplicates_flowbite.html',
                              duplicate_groups=duplicate_groups,
                              stats=stats)
     except Exception as e:

@@ -247,7 +247,7 @@ def discord_management():
                 'per_page': per_page
             }
 
-        return render_template('admin/discord_management.html',
+        return render_template('admin/discord_management_flowbite.html',
                                stats=stats,
                                players=players,
                                pagination=pagination,
@@ -258,7 +258,7 @@ def discord_management():
 
     except Exception as e:
         logger.error(f"Error loading Discord management page: {str(e)}")
-        return render_template('admin/discord_management.html',
+        return render_template('admin/discord_management_flowbite.html',
                                stats={'total_players': 0, 'in_server': 0, 'not_in_server': 0, 'unknown_status': 0},
                                players=[],
                                pagination={'has_prev': False, 'prev_num': None, 'page': 1, 'has_next': False, 'next_num': None, 'pages': 1, 'total': 0, 'per_page': 20},

@@ -286,7 +286,7 @@ def user_approvals():
     }
     
     return render_template(
-        'admin/user_approvals.html',
+        'admin/user_approvals_flowbite.html',
         pending_users=pending_users,
         recent_actions=recent_actions,
         stats=stats

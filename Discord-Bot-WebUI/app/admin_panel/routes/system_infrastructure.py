@@ -45,7 +45,7 @@ def health_dashboard():
             'debug_mode': current_app.debug
         }
 
-        return render_template('admin_panel/system/health_dashboard.html',
+        return render_template('admin_panel/system/health_dashboard_flowbite.html',
                              health_status=health_status,
                              diagnostics=diagnostics)
     except Exception as e:
@@ -240,7 +240,7 @@ def redis_management():
         except Exception as e:
             server_info = {'error': f'Could not get server info: {e}'}
 
-        return render_template('admin_panel/system/redis_management.html',
+        return render_template('admin_panel/system/redis_management_flowbite.html',
                              stats=stats,
                              connection_health=connection_health,
                              server_info=server_info)
@@ -459,7 +459,7 @@ def redis_draft_cache_stats():
         for league in leagues:
             league_cache_status[league.name] = DraftCacheService.warm_cache_for_league(league.name)
 
-        return render_template('admin_panel/system/draft_cache_stats.html',
+        return render_template('admin_panel/system/draft_cache_stats_flowbite.html',
                              cache_stats=cache_stats,
                              league_cache_status=league_cache_status,
                              leagues=[l.name for l in leagues])
@@ -537,7 +537,7 @@ def docker_management():
 
         containers = get_container_data() or []
 
-        return render_template('admin_panel/system/docker_management.html',
+        return render_template('admin_panel/system/docker_management_flowbite.html',
                              containers=containers)
     except Exception as e:
         logger.error(f"Error loading Docker management: {e}")
@@ -862,7 +862,7 @@ def security_dashboard():
 
         current_time = datetime.now().strftime('%H:%M:%S')
 
-        return render_template('admin_panel/system/security_dashboard.html',
+        return render_template('admin_panel/system/security_dashboard_flowbite.html',
                              stats=stats,
                              blacklisted_ips=blacklisted_ips,
                              current_time=current_time)

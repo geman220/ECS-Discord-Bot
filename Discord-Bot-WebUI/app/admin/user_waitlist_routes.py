@@ -65,7 +65,7 @@ def user_waitlist():
     }
     
     return render_template(
-        'admin/user_waitlist.html',
+        'admin/user_waitlist_flowbite.html',
         waitlist_users=waitlist_users,
         recent_actions=recent_actions,
         stats=stats

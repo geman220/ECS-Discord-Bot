@@ -54,7 +54,7 @@ def communication_hub():
             'active_channels': 3  # Discord, Email, Push
         }
 
-        return render_template('admin_panel/communication.html', stats=stats)
+        return render_template('admin_panel/communication_flowbite.html', stats=stats)
     except Exception as e:
         logger.error(f"Error loading communication hub: {e}")
         flash('Communication hub unavailable. Check database connectivity and message models.', 'error')

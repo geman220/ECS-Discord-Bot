@@ -66,7 +66,7 @@ def seasons():
             else:
                 season.status = 'active' if season.is_current else 'unknown'
 
-        return render_template('admin_panel/match_operations/seasons.html',
+        return render_template('admin_panel/match_operations/seasons_flowbite.html',
                                seasons=seasons, stats=stats)
     except Exception as e:
         logger.error(f"Error loading seasons: {e}")

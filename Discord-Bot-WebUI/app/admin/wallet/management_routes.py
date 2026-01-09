@@ -99,7 +99,7 @@ def wallet_management():
         }
 
         return render_template(
-            'admin/wallet_management.html',
+            'admin/wallet_management_flowbite.html',
             config_status=config_status,
             eligible_players=eligible_players,
             pub_league_season=pub_league_season,
@@ -167,7 +167,7 @@ def passes_list():
         passes = query.paginate(page=page, per_page=per_page)
 
         return render_template(
-            'admin/wallet_passes.html',
+            'admin/wallet_passes_flowbite.html',
             passes=passes,
             pass_types=pass_types,
             stats=stats,
@@ -198,7 +198,7 @@ def pass_detail(pass_id):
         ).order_by(desc(WalletPassCheckin.checked_in_at)).limit(50).all()
 
         return render_template(
-            'admin/wallet_pass_detail.html',
+            'admin/wallet_pass_detail_flowbite.html',
             wallet_pass=wallet_pass,
             checkins=checkins
         )
@@ -256,7 +256,7 @@ def wallet_players():
             return url_for(request.endpoint, **args)
 
         return render_template(
-            'admin/wallet_players.html',
+            'admin/wallet_players_flowbite.html',
             players=players,
             teams=teams,
             current_filters={
@@ -382,7 +382,7 @@ def create_ecs_pass():
                 icon_asset = asset
 
     return render_template(
-        'admin/wallet_create_ecs.html',
+        'admin/wallet_create_ecs_flowbite.html',
         current_year=datetime.now().year,
         pass_type_ready=ecs_status['ready'],
         pass_type_issues=ecs_status['issues'],
@@ -453,7 +453,7 @@ def create_pub_league_pass():
                 icon_asset = asset
 
     return render_template(
-        'admin/wallet_create_pub_league.html',
+        'admin/wallet_create_pub_league_flowbite.html',
         current_season=current_season,
         teams=teams,
         pass_type_ready=pub_status['ready'],
@@ -916,7 +916,7 @@ def checkins_list():
         ).paginate(page=page, per_page=per_page, error_out=False)
 
         return render_template(
-            'admin/wallet_checkins.html',
+            'admin/wallet_checkins_flowbite.html',
             checkins=checkins,
             pass_type_filter=pass_type
         )
@@ -1003,7 +1003,7 @@ def export_checkins():
 @role_required(['Global Admin', 'Pub League Admin'])
 def scanner():
     """QR code scanner for check-ins"""
-    return render_template('admin/wallet_scanner.html')
+    return render_template('admin/wallet_scanner_flowbite.html')
 
 
 # =============================================================================

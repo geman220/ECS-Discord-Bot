@@ -35,7 +35,7 @@ def install_error_handlers(app):
     def handle_unexpected_error(error):
         """Handle unexpected exceptions."""
         app.logger.error(f"Unhandled Exception: {error}", exc_info=True)
-        return render_template("500.html"), 500
+        return render_template("500_flowbite.html"), 500
 
     @app.errorhandler(401)
     def unauthorized(error):
@@ -49,7 +49,7 @@ def install_error_handlers(app):
     def not_found(error):
         """Handle 404 not found errors."""
         logger.warning(f"404 error: {request.path}")
-        return render_template("404.html"), 404
+        return render_template("404_flowbite.html"), 404
 
     @app.errorhandler(BuildError)
     def handle_url_build_error(error):

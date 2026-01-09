@@ -36,7 +36,7 @@ def forgot_password():
     # Create a blank form just to satisfy the template structure
     dummy_form = FlaskForm()
 
-    return render_template('forgot_password.html', title='Login Help', form=dummy_form)
+    return render_template('forgot_password_flowbite.html', title='Login Help', form=dummy_form)
 
 
 @auth.route('/reset_password/<token>', methods=['GET', 'POST'])
@@ -71,4 +71,4 @@ def reset_password_token(token):
             logger.error(f"Password reset error: {str(e)}")
             show_error('Password reset failed. Please try again.')
 
-    return render_template('reset_password.html', title='Reset Password', form=form, token=token)
+    return render_template('reset_password_flowbite.html', title='Reset Password', form=form, token=token)

@@ -120,7 +120,7 @@ def manage_teams():
                 stats['teams_with_players'] += 1
 
         return render_template(
-            'admin_panel/match_operations/manage_teams.html',
+            'admin_panel/match_operations/manage_teams_flowbite.html',
             teams=teams,
             leagues=leagues,
             stats=stats,
@@ -190,7 +190,7 @@ def team_rosters():
         }
 
         return render_template(
-            'admin_panel/match_operations/team_rosters.html',
+            'admin_panel/match_operations/team_rosters_flowbite.html',
             teams=teams_with_rosters,
             teams_without_players=teams_without_players[:10],  # Show first 10
             stats=roster_stats
