@@ -1,0 +1,361 @@
+{% extends "base_flowbite.html" %}
+{% block title %}Season Management{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Season Management</h1>
+        <p class="text-gray-500 dark:text-gray-400">Create and manage seasons for Pub League and ECS FC</p>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="mb-6">
+        <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700">
+            <button type="button" id="pub-league-tab"
+                    class="season-tab px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 border-ecs-green text-ecs-green bg-ecs-green/10"
+                    data-tab="pub-league">
+                Pub League Seasons
+            </button>
+            <button type="button" id="ecs-fc-tab"
+                    class="season-tab px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    data-tab="ecs-fc">
+                ECS FC Seasons
+            </button>
+        </div>
+    </div>
+
+    <!-- Pub League Tab Content -->
+    <div id="pub-league-content" class="season-content">
+        <!-- Create Season -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+            <details class="group" open>
+                <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-plus text-ecs-green"></i>
+                        Create Pub League Season
+                    </h3>
+                    <i class="ti ti-chevron-down transition-transform group-open:rotate-180 text-gray-400"></i>
+                </summary>
+                <div class="p-4 pt-0 border-t border-gray-200 dark:border-gray-700">
+                    <form method="POST" action="{{ url_for('publeague.season.manage_seasons') }}" id="pubLeagueSeasonForm" class="space-y-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div>
+                            <label for="season_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Season Name
+                            </label>
+                            <input type="text" id="season_name" name="season_name"
+                                   placeholder="Enter season name YYYY Season (e.g., 2024 Spring)"
+                                   required
+                                   class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                            <i class="ti ti-plus"></i>
+                            Create Pub League Season
+                        </button>
+                    </form>
+                </div>
+            </details>
+        </div>
+
+        <!-- Existing Seasons -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <details class="group">
+                <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-list text-blue-500"></i>
+                        Existing Pub League Seasons
+                    </h3>
+                    <i class="ti ti-chevron-down transition-transform group-open:rotate-180 text-gray-400"></i>
+                </summary>
+                <div class="border-t border-gray-200 dark:border-gray-700">
+                    {% if pub_league_seasons %}
+                    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for season in pub_league_seasons %}
+                        <div class="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                                <span class="font-medium text-gray-900 dark:text-white">Pub League - {{ season.name }}</span>
+                                {% if season.is_current %}
+                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                                    Current Season
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <a href="{{ url_for('publeague.manage_teams', season_id=season.id) }}"
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors">
+                                    <i class="ti ti-users"></i>
+                                    Manage Teams
+                                </a>
+                                {% if not season.is_current %}
+                                <form method="POST" action="{{ url_for('publeague.season.set_current_season', season_id=season.id) }}" class="inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 transition-colors">
+                                        <i class="ti ti-star"></i>
+                                        Set Current
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <button type="button"
+                                        class="delete-season-btn inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+                                        data-season-id="{{ season.id }}"
+                                        data-season-name="{{ season.name }}"
+                                        data-season-type="Pub League">
+                                    <i class="ti ti-trash"></i>
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-8 text-center">
+                        <div class="w-12 h-12 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                            <i class="ti ti-calendar-off text-xl text-gray-400"></i>
+                        </div>
+                        <p class="text-gray-500 dark:text-gray-400">No Pub League seasons created yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <!-- ECS FC Tab Content -->
+    <div id="ecs-fc-content" class="season-content hidden">
+        <!-- Create Season -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+            <details class="group" open>
+                <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-plus text-ecs-green"></i>
+                        Create ECS FC Season
+                    </h3>
+                    <i class="ti ti-chevron-down transition-transform group-open:rotate-180 text-gray-400"></i>
+                </summary>
+                <div class="p-4 pt-0 border-t border-gray-200 dark:border-gray-700">
+                    <form method="POST" action="{{ url_for('publeague.season.manage_seasons') }}" id="ecsSeasonForm" class="space-y-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div>
+                            <label for="ecs_fc_season_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Season Name
+                            </label>
+                            <input type="text" id="ecs_fc_season_name" name="ecs_fc_season_name"
+                                   placeholder="Enter ECS FC season name YYYY Season (e.g., 2024 Spring)"
+                                   required
+                                   class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                            <i class="ti ti-plus"></i>
+                            Create ECS FC Season
+                        </button>
+                    </form>
+                </div>
+            </details>
+        </div>
+
+        <!-- Existing Seasons -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <details class="group">
+                <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-list text-blue-500"></i>
+                        Existing ECS FC Seasons
+                    </h3>
+                    <i class="ti ti-chevron-down transition-transform group-open:rotate-180 text-gray-400"></i>
+                </summary>
+                <div class="border-t border-gray-200 dark:border-gray-700">
+                    {% if ecs_fc_seasons %}
+                    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for season in ecs_fc_seasons %}
+                        <div class="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                                <span class="font-medium text-gray-900 dark:text-white">ECS FC - {{ season.name }}</span>
+                                {% if season.is_current %}
+                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+                                    Current Season
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <a href="{{ url_for('publeague.manage_teams', season_id=season.id) }}"
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors">
+                                    <i class="ti ti-users"></i>
+                                    Manage Teams
+                                </a>
+                                {% if not season.is_current %}
+                                <form method="POST" action="{{ url_for('publeague.season.set_current_season', season_id=season.id) }}" class="inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 transition-colors">
+                                        <i class="ti ti-star"></i>
+                                        Set Current
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <button type="button"
+                                        class="delete-season-btn inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+                                        data-season-id="{{ season.id }}"
+                                        data-season-name="{{ season.name }}"
+                                        data-season-type="ECS FC">
+                                    <i class="ti ti-trash"></i>
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-8 text-center">
+                        <div class="w-12 h-12 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                            <i class="ti ti-calendar-off text-xl text-gray-400"></i>
+                        </div>
+                        <p class="text-gray-500 dark:text-gray-400">No ECS FC seasons created yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </details>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden form for season deletion -->
+<form id="deleteSeasonForm" method="POST" class="hidden">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+
+<!-- Confirm Delete Modal -->
+<div id="confirmDeleteModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="confirm-modal-overlay"></div>
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="px-4 pt-5 pb-4 sm:p-6">
+                <div class="flex items-center justify-center w-12 h-12 mx-auto rounded-full bg-red-100 dark:bg-red-900/50 mb-4">
+                    <i class="ti ti-alert-triangle text-xl text-red-600 dark:text-red-400"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white text-center mb-2">Confirm Season Deletion</h3>
+                <p class="text-center text-gray-500 dark:text-gray-400 mb-4"><strong>Are you sure you want to delete this season?</strong></p>
+
+                <div class="flex items-start gap-3 p-4 mb-4 text-yellow-800 dark:text-yellow-200 bg-yellow-50 dark:bg-yellow-900/50 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <i class="ti ti-info-circle text-xl flex-shrink-0 mt-0.5"></i>
+                    <div>
+                        <h6 class="font-semibold mb-1">This action will:</h6>
+                        <ul class="text-sm list-disc pl-4 space-y-1">
+                            <li>Delete all teams and their Discord channels/roles</li>
+                            <li>Remove all matches and schedules</li>
+                            <li>Clear all player team assignments</li>
+                            <li>Restore the previous season as current</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <p class="text-center text-gray-600 dark:text-gray-300 mb-2" id="seasonToDelete"></p>
+                <p class="text-center text-red-600 dark:text-red-400 font-bold">This action cannot be undone!</p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 flex flex-col sm:flex-row-reverse gap-3">
+                <button type="button" id="confirmDeleteBtn"
+                        class="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700">
+                    <i class="ti ti-trash"></i>
+                    Delete Season
+                </button>
+                <button type="button" id="cancelDeleteBtn"
+                        class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching
+    const tabs = document.querySelectorAll('.season-tab');
+    const contents = document.querySelectorAll('.season-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetId = tab.dataset.tab + '-content';
+
+            tabs.forEach(t => {
+                t.classList.remove('border-ecs-green', 'text-ecs-green', 'bg-ecs-green/10');
+                t.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            });
+            tab.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            tab.classList.add('border-ecs-green', 'text-ecs-green', 'bg-ecs-green/10');
+
+            contents.forEach(c => c.classList.add('hidden'));
+            document.getElementById(targetId)?.classList.remove('hidden');
+        });
+    });
+
+    // Delete season
+    let currentSeasonId = null;
+    let currentSeasonName = null;
+    let currentSeasonType = null;
+    const confirmModal = document.getElementById('confirmDeleteModal');
+    const isDark = document.documentElement.classList.contains('dark');
+
+    document.querySelectorAll('.delete-season-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentSeasonId = this.dataset.seasonId;
+            currentSeasonName = this.dataset.seasonName;
+            currentSeasonType = this.dataset.seasonType;
+            document.getElementById('seasonToDelete').textContent = `${currentSeasonType} - ${currentSeasonName}`;
+            confirmModal.classList.remove('hidden');
+        });
+    });
+
+    document.getElementById('cancelDeleteBtn')?.addEventListener('click', () => confirmModal.classList.add('hidden'));
+    document.getElementById('confirm-modal-overlay')?.addEventListener('click', () => confirmModal.classList.add('hidden'));
+
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', function() {
+        if (!currentSeasonId) return;
+        confirmModal.classList.add('hidden');
+
+        Swal.fire({
+            title: 'Deleting Season...',
+            text: 'Please wait while we clean up Discord resources',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+
+        const form = document.getElementById('deleteSeasonForm');
+        form.action = `/publeague/season/delete/${currentSeasonId}`;
+        const formData = new FormData(form);
+
+        fetch(form.action, { method: 'POST', body: formData })
+            .then(response => {
+                if (response.ok) return response.text();
+                throw new Error('Failed to delete');
+            })
+            .then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Season Deleted',
+                    text: `The ${currentSeasonType} season "${currentSeasonName}" has been deleted.`,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => window.location.reload());
+            })
+            .catch(() => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: `Failed to delete the season. Please try again.`,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            });
+    });
+});
+</script>
+{% endblock %}
