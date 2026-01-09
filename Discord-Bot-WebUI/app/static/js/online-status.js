@@ -62,6 +62,22 @@ class OnlineStatusManager {
   async fetchOnlineUsers() {
     try {
       const response = await fetch('/api/notifications/presence/online-users');
+
+      // Check if response is OK and is JSON before parsing
+      if (!response.ok) {
+        // Don't log warning for auth redirects
+        if (response.status !== 401 && response.status !== 302) {
+          console.warn('Online users API returned status:', response.status);
+        }
+        return;
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        // Response is not JSON (likely a redirect to login page)
+        return;
+      }
+
       const data = await response.json();
 
       if (data.success && data.online_user_ids) {
@@ -69,7 +85,8 @@ class OnlineStatusManager {
         this.updateAllIndicators();
       }
     } catch (error) {
-      console.warn('Failed to fetch online users:', error);
+      // Silently ignore errors - online status is not critical
+      console.debug('Failed to fetch online users:', error);
     }
   }
 

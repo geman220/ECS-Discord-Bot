@@ -189,12 +189,27 @@ class MessengerWidget {
   // ========================================================================
 
   /**
+   * Safely parse JSON from a response, handling auth redirects
+   */
+  async safeJsonParse(response) {
+    if (!response.ok) {
+      return null;
+    }
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return null;
+    }
+    return response.json();
+  }
+
+  /**
    * Load online users
    */
   async loadOnlineUsers() {
     try {
       const response = await fetch('/api/notifications/presence/online-users?details=true&limit=8');
-      const data = await response.json();
+      const data = await this.safeJsonParse(response);
+      if (!data) return;
 
       if (data.success) {
         this.onlineUsers = data.online_users || [];
@@ -202,7 +217,7 @@ class MessengerWidget {
         this.updateOnlineCount(data.count || this.onlineUsers.length);
       }
     } catch (error) {
-      console.warn('[Messenger] Failed to load online users:', error);
+      console.debug('[Messenger] Failed to load online users:', error);
     }
   }
 
@@ -268,16 +283,16 @@ class MessengerWidget {
 
     try {
       const response = await fetch('/api/messages');
-      const data = await response.json();
+      const data = await this.safeJsonParse(response);
 
       if (loading) loading.classList.add('u-hidden');
 
-      if (data.success) {
+      if (data && data.success) {
         this.conversations = data.conversations || [];
         this.renderConversations();
       }
     } catch (error) {
-      console.error('[Messenger] Failed to load conversations:', error);
+      console.debug('[Messenger] Failed to load conversations:', error);
       if (loading) loading.classList.add('u-hidden');
     }
   }
@@ -714,12 +729,12 @@ class MessengerWidget {
   async loadUnreadCount() {
     try {
       const response = await fetch('/api/messages/unread-count');
-      const data = await response.json();
-      if (data.success) {
+      const data = await this.safeJsonParse(response);
+      if (data && data.success) {
         this.updateBadge(data.count);
       }
     } catch (error) {
-      console.warn('[Messenger] Failed to load unread count:', error);
+      console.debug('[Messenger] Failed to load unread count:', error);
     }
   }
 
