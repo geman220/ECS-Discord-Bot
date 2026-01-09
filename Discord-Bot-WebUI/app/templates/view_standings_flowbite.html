@@ -1,0 +1,299 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}League Standings{% endblock %}
+
+{% block main_content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">League Standings</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Current team rankings and statistics</p>
+        </div>
+        <div>
+            <select id="seasonSelector" class="block w-full sm:w-auto rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                <option selected>Current Season</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- League Tabs -->
+    <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="flex flex-wrap gap-2" role="tablist">
+            <button type="button" class="league-tab inline-flex items-center gap-2 px-4 py-2 border-b-2 border-ecs-green text-ecs-green dark:text-ecs-gold dark:border-ecs-gold font-medium"
+                    data-tab="premier" aria-selected="true">
+                <i class="ti ti-trophy"></i>Premier Division
+            </button>
+            <button type="button" class="league-tab inline-flex items-center gap-2 px-4 py-2 border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium"
+                    data-tab="classic" aria-selected="false">
+                <i class="ti ti-ball-football"></i>Classic Division
+            </button>
+            {% if ecsfc_standings %}
+            <button type="button" class="league-tab inline-flex items-center gap-2 px-4 py-2 border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium"
+                    data-tab="ecsfc" aria-selected="false">
+                <i class="ti ti-shield"></i>ECS FC Division
+            </button>
+            {% endif %}
+        </nav>
+    </div>
+
+    <!-- Premier Division Standings -->
+    <div id="premier-content" class="league-content bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Premier Division Standings</h5>
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400"
+                  title="Teams are ranked by points, then goal difference, then goals scored">
+                <i class="ti ti-info-circle"></i> Ranking Info
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase">
+                    <tr>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">#</th>
+                        <th class="px-3 py-3 text-left text-gray-500 dark:text-gray-400">Team</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">P</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">W</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">D</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">L</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400 hidden sm:table-cell">GF</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400 hidden sm:table-cell">GA</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">GD</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400 font-bold">Pts</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for standing in premier_standings %}
+                    {% set stats = premier_stats.get(standing.team.id, {'top_scorer_name': 'N/A', 'top_scorer_goals': 0, 'top_assister_name': 'N/A', 'top_assister_assists': 0, 'recent_form': 'N/A', 'avg_goals_per_match': 0}) %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td class="px-3 py-3 text-center font-bold text-gray-900 dark:text-white">{{ loop.index }}</td>
+                        <td class="px-3 py-3">
+                            <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
+                               class="flex items-center gap-2 text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-gold">
+                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                                    <span class="text-sm font-medium text-green-600 dark:text-green-400">{{ standing.team.name[0] }}</span>
+                                </div>
+                                <span class="font-medium truncate">{{ standing.team.name }}</span>
+                            </a>
+                        </td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.played }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.wins }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.draws }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.losses }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300 hidden sm:table-cell">{{ standing.goals_for }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300 hidden sm:table-cell">{{ standing.goals_against }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.goal_difference }}</td>
+                        <td class="px-3 py-3 text-center font-bold text-gray-900 dark:text-white">{{ standing.points }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if premier_standings|length == 0 %}
+                    <tr>
+                        <td colspan="10" class="px-4 py-8 text-center">
+                            <div class="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400">
+                                <i class="ti ti-trophy text-4xl"></i>
+                                <p>No standings data available for Premier Division.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Classic Division Standings -->
+    <div id="classic-content" class="league-content bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hidden">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Classic Division Standings</h5>
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
+                <i class="ti ti-info-circle"></i> Ranking Info
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase">
+                    <tr>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">#</th>
+                        <th class="px-3 py-3 text-left text-gray-500 dark:text-gray-400">Team</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">P</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">W</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">D</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">L</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400 hidden sm:table-cell">GF</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400 hidden sm:table-cell">GA</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">GD</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400 font-bold">Pts</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for standing in classic_standings %}
+                    {% set stats = classic_stats.get(standing.team.id, {'top_scorer_name': 'N/A', 'top_scorer_goals': 0, 'top_assister_name': 'N/A', 'top_assister_assists': 0, 'recent_form': 'N/A', 'avg_goals_per_match': 0}) %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td class="px-3 py-3 text-center font-bold text-gray-900 dark:text-white">{{ loop.index }}</td>
+                        <td class="px-3 py-3">
+                            <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
+                               class="flex items-center gap-2 text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-gold">
+                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                                    <span class="text-sm font-medium text-blue-600 dark:text-blue-400">{{ standing.team.name[0] }}</span>
+                                </div>
+                                <span class="font-medium truncate">{{ standing.team.name }}</span>
+                            </a>
+                        </td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.played }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.wins }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.draws }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.losses }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300 hidden sm:table-cell">{{ standing.goals_for }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300 hidden sm:table-cell">{{ standing.goals_against }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.goal_difference }}</td>
+                        <td class="px-3 py-3 text-center font-bold text-gray-900 dark:text-white">{{ standing.points }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if classic_standings|length == 0 %}
+                    <tr>
+                        <td colspan="10" class="px-4 py-8 text-center">
+                            <div class="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400">
+                                <i class="ti ti-ball-football text-4xl"></i>
+                                <p>No standings data available for Classic Division.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if ecsfc_standings %}
+    <!-- ECS FC Division Standings -->
+    <div id="ecsfc-content" class="league-content bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hidden">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h5 class="font-semibold text-gray-900 dark:text-white">ECS FC Division Standings</h5>
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
+                <i class="ti ti-info-circle"></i> Ranking Info
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase">
+                    <tr>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">#</th>
+                        <th class="px-3 py-3 text-left text-gray-500 dark:text-gray-400">Team</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">P</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">W</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">D</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">L</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400 hidden sm:table-cell">GF</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400 hidden sm:table-cell">GA</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400">GD</th>
+                        <th class="px-3 py-3 text-center text-gray-500 dark:text-gray-400 font-bold">Pts</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for standing in ecsfc_standings %}
+                    {% set stats = ecsfc_stats.get(standing.team.id, {'top_scorer_name': 'N/A', 'top_scorer_goals': 0, 'top_assister_name': 'N/A', 'top_assister_assists': 0, 'recent_form': 'N/A', 'avg_goals_per_match': 0}) %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td class="px-3 py-3 text-center font-bold text-gray-900 dark:text-white">{{ loop.index }}</td>
+                        <td class="px-3 py-3">
+                            <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
+                               class="flex items-center gap-2 text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-gold">
+                                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                                    <span class="text-sm font-medium text-amber-600 dark:text-amber-400">{{ standing.team.name[0] }}</span>
+                                </div>
+                                <span class="font-medium truncate">{{ standing.team.name }}</span>
+                            </a>
+                        </td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.played }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.wins }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.draws }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.losses }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300 hidden sm:table-cell">{{ standing.goals_for }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300 hidden sm:table-cell">{{ standing.goals_against }}</td>
+                        <td class="px-3 py-3 text-center text-gray-600 dark:text-gray-300">{{ standing.goal_difference }}</td>
+                        <td class="px-3 py-3 text-center font-bold text-gray-900 dark:text-white">{{ standing.points }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if ecsfc_standings|length == 0 %}
+                    <tr>
+                        <td colspan="10" class="px-4 py-8 text-center">
+                            <div class="flex flex-col items-center gap-2 text-gray-500 dark:text-gray-400">
+                                <i class="ti ti-shield text-4xl"></i>
+                                <p>No standings data available for ECS FC Division.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Legend -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Legend</h6>
+        <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            <div class="flex items-center gap-1">
+                <span class="font-medium text-gray-900 dark:text-white">P:</span>
+                <span class="text-gray-500 dark:text-gray-400">Played</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <span class="font-medium text-gray-900 dark:text-white">W:</span>
+                <span class="text-gray-500 dark:text-gray-400">Won</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <span class="font-medium text-gray-900 dark:text-white">D:</span>
+                <span class="text-gray-500 dark:text-gray-400">Drawn</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <span class="font-medium text-gray-900 dark:text-white">L:</span>
+                <span class="text-gray-500 dark:text-gray-400">Lost</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <span class="font-medium text-gray-900 dark:text-white">GF:</span>
+                <span class="text-gray-500 dark:text-gray-400">Goals For</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <span class="font-medium text-gray-900 dark:text-white">GA:</span>
+                <span class="text-gray-500 dark:text-gray-400">Goals Against</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <span class="font-medium text-gray-900 dark:text-white">GD:</span>
+                <span class="text-gray-500 dark:text-gray-400">Goal Difference</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <span class="font-medium text-gray-900 dark:text-white">Pts:</span>
+                <span class="text-gray-500 dark:text-gray-400">Points</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+// League tab switching
+document.querySelectorAll('.league-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+
+        // Update tabs
+        document.querySelectorAll('.league-tab').forEach(t => {
+            t.classList.remove('border-ecs-green', 'text-ecs-green', 'dark:text-ecs-gold', 'dark:border-ecs-gold');
+            t.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            t.setAttribute('aria-selected', 'false');
+        });
+        tab.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+        tab.classList.add('border-ecs-green', 'text-ecs-green', 'dark:text-ecs-gold', 'dark:border-ecs-gold');
+        tab.setAttribute('aria-selected', 'true');
+
+        // Update content
+        document.querySelectorAll('.league-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        document.getElementById(target + '-content').classList.remove('hidden');
+    });
+});
+</script>
+{% endblock %}
