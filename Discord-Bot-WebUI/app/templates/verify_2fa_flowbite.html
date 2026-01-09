@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Factor Authentication - ECS Soccer League</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='vite-dist/css/tailwind.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <!-- 2FA Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <!-- Top Accent -->
+            <div class="h-1 bg-gradient-to-r from-ecs-green to-ecs-green/60"></div>
+
+            <div class="p-8">
+                <!-- Icon -->
+                <div class="w-16 h-16 mx-auto rounded-full bg-ecs-green/10 flex items-center justify-center mb-6">
+                    <i class="ti ti-shield-lock text-3xl text-ecs-green"></i>
+                </div>
+
+                <!-- Header -->
+                <div class="text-center mb-8">
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Two-Factor Authentication</h1>
+                    <p class="text-gray-500 dark:text-gray-400 mt-2">Please enter the 6-digit code from your authenticator app to verify your identity</p>
+                </div>
+
+                <!-- Form -->
+                <form method="POST" action="{{ url_for('auth.verify_2fa_login', user_id=user_id) }}" id="twoFactorForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="user_id" value="{{ user_id }}">
+
+                    <div class="mb-6">
+                        <label for="token" class="sr-only">Authentication Code</label>
+                        <input type="text"
+                               id="token"
+                               name="token"
+                               class="block w-full text-center text-2xl tracking-[0.5em] font-mono rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green py-4"
+                               placeholder="• • • • • •"
+                               maxlength="6"
+                               autocomplete="off"
+                               inputmode="numeric"
+                               autofocus
+                               pattern="[0-9]{6}"
+                               required>
+                        <p class="mt-2 text-sm text-red-600 dark:text-red-400 hidden" id="errorMessage">Please enter a valid 6-digit code</p>
+                    </div>
+
+                    <button type="submit"
+                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                        <i class="ti ti-check"></i>
+                        Verify and Continue
+                    </button>
+                </form>
+
+                <!-- Help Text -->
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Having trouble?
+                        <a href="{{ url_for('auth.login') }}" class="text-ecs-green hover:text-ecs-green/80">Return to login</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
+            ECS Soccer League - Emerald City Supporters
+        </p>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Dark mode detection
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+
+        // Auto-focus and validation
+        const tokenInput = document.getElementById('token');
+        const errorMessage = document.getElementById('errorMessage');
+
+        tokenInput?.addEventListener('input', function(e) {
+            // Only allow numbers
+            this.value = this.value.replace(/[^0-9]/g, '');
+
+            // Hide error when user types
+            errorMessage?.classList.add('hidden');
+        });
+
+        // Form validation
+        document.getElementById('twoFactorForm')?.addEventListener('submit', function(e) {
+            const token = tokenInput.value;
+            if (!/^[0-9]{6}$/.test(token)) {
+                e.preventDefault();
+                errorMessage?.classList.remove('hidden');
+                tokenInput.focus();
+            }
+        });
+    });
+    </script>
+</body>
+</html>
