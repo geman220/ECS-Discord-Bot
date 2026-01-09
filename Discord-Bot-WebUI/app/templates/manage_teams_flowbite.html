@@ -1,0 +1,285 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Manage Teams{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Manage Teams for Seasons</h1>
+        <p class="text-gray-500 dark:text-gray-400">Create, edit, and organize teams across all leagues and seasons</p>
+    </div>
+
+    {% if seasons %}
+    <!-- Season Sections -->
+    <div class="space-y-8">
+        {% for season in seasons %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <!-- Season Header -->
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green to-ecs-green/80">
+                <h2 class="text-lg font-bold text-white">{{ season.name }}</h2>
+            </div>
+
+            {% if season.leagues %}
+            <!-- League Tabs -->
+            <div class="border-b border-gray-200 dark:border-gray-700">
+                <div class="flex flex-wrap gap-1 p-2">
+                    {% for league in season.leagues %}
+                    <button type="button"
+                            class="league-tab-{{ season.id }} px-4 py-2 text-sm font-medium rounded-lg transition-colors
+                                   {% if league.is_first %}bg-ecs-green text-white{% else %}text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700{% endif %}"
+                            data-tab="league-{{ league.name|replace(' ', '-')|lower }}-{{ season.id }}">
+                        {{ league.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- League Content -->
+            {% for league in season.leagues %}
+            <div class="league-content-{{ season.id }} {% if not league.is_first %}hidden{% endif %} p-4"
+                 id="league-{{ league.name|replace(' ', '-')|lower }}-{{ season.id }}-content">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold text-gray-900 dark:text-white">
+                        {{ league.name }} Teams ({{ season.name }})
+                    </h3>
+                    <button type="button"
+                            class="add-team-btn inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
+                            data-league-name="{{ league.name }}"
+                            data-season-id="{{ season.id }}"
+                            data-season-name="{{ season.name }}">
+                        <i class="ti ti-plus"></i>
+                        Add Team
+                    </button>
+                </div>
+
+                <!-- Team List -->
+                {% if league.teams and league.teams|length > 0 %}
+                <div class="space-y-2">
+                    {% for team in league.teams %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <span class="font-medium text-gray-900 dark:text-white">{{ team.name }}</span>
+                        <div class="flex items-center gap-2">
+                            <button type="button"
+                                    class="edit-team-btn inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                                    data-team-id="{{ team.id }}"
+                                    data-team-name="{{ team.name }}"
+                                    data-league-name="{{ league.name }}"
+                                    data-season-id="{{ season.id }}">
+                                <i class="ti ti-edit"></i>
+                                Edit
+                            </button>
+                            <button type="button"
+                                    class="delete-team-btn inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+                                    data-team-id="{{ team.id }}"
+                                    data-team-name="{{ team.name }}">
+                                <i class="ti ti-trash"></i>
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <div class="w-12 h-12 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                        <i class="ti ti-users-off text-xl text-gray-400"></i>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No teams yet. Click 'Add Team' to create one.</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="p-8 text-center">
+                <div class="w-12 h-12 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                    <i class="ti ti-trophy-off text-xl text-gray-400"></i>
+                </div>
+                <p class="text-gray-500 dark:text-gray-400">No leagues for this season yet.</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+        <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+            <i class="ti ti-calendar-off text-2xl text-gray-400"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Active Leagues Found</h3>
+        <p class="text-gray-500 dark:text-gray-400">Create a season and league to get started with team management.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add Team Modal -->
+<div id="addTeamModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="add-modal-overlay"></div>
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+            <form method="POST" action="{{ url_for('publeague.add_team') }}" id="addTeamForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" id="modal_league_name" name="league_name" value="">
+                <input type="hidden" id="modal_season_id" name="season_id" value="">
+
+                <div class="px-4 pt-5 pb-4 sm:p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="addTeamModalLabel">Add Team</h3>
+                        <button type="button" id="close-add-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                            <i class="ti ti-x text-xl"></i>
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Name</label>
+                        <input type="text" id="team_name" name="team_name" required
+                               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
+                    <button type="submit"
+                            class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90">
+                        Add Team
+                    </button>
+                    <button type="button" id="cancel-add-modal"
+                            class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+                        Close
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Team Modal -->
+<div id="editTeamModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="edit-modal-overlay"></div>
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+            <form method="POST" action="{{ url_for('publeague.edit_team') }}" id="editTeamForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" id="modal_team_id" name="team_id" value="">
+                <input type="hidden" id="edit_modal_league_name" name="league_name" value="">
+                <input type="hidden" id="edit_modal_season_id" name="season_id" value="">
+
+                <div class="px-4 pt-5 pb-4 sm:p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Team</h3>
+                        <button type="button" id="close-edit-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                            <i class="ti ti-x text-xl"></i>
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Name</label>
+                        <input type="text" id="edit_team_name" name="team_name" required
+                               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
+                    <button type="submit"
+                            class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90">
+                        Save Changes
+                    </button>
+                    <button type="button" id="cancel-edit-modal"
+                            class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+                        Close
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // League tabs for each season
+    {% for season in seasons %}
+    const tabs{{ season.id }} = document.querySelectorAll('.league-tab-{{ season.id }}');
+    const contents{{ season.id }} = document.querySelectorAll('.league-content-{{ season.id }}');
+
+    tabs{{ season.id }}.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetId = tab.dataset.tab + '-content';
+
+            tabs{{ season.id }}.forEach(t => {
+                t.classList.remove('bg-ecs-green', 'text-white');
+                t.classList.add('text-gray-500', 'dark:text-gray-400');
+            });
+            tab.classList.remove('text-gray-500', 'dark:text-gray-400');
+            tab.classList.add('bg-ecs-green', 'text-white');
+
+            contents{{ season.id }}.forEach(c => c.classList.add('hidden'));
+            document.getElementById(targetId)?.classList.remove('hidden');
+        });
+    });
+    {% endfor %}
+
+    // Add Team Modal
+    const addModal = document.getElementById('addTeamModal');
+    const closeAdd = document.getElementById('close-add-modal');
+    const cancelAdd = document.getElementById('cancel-add-modal');
+    const addOverlay = document.getElementById('add-modal-overlay');
+
+    document.querySelectorAll('.add-team-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('modal_league_name').value = btn.dataset.leagueName;
+            document.getElementById('modal_season_id').value = btn.dataset.seasonId;
+            document.getElementById('addTeamModalLabel').textContent = `Add Team to ${btn.dataset.leagueName}`;
+            addModal.classList.remove('hidden');
+        });
+    });
+
+    closeAdd?.addEventListener('click', () => addModal.classList.add('hidden'));
+    cancelAdd?.addEventListener('click', () => addModal.classList.add('hidden'));
+    addOverlay?.addEventListener('click', () => addModal.classList.add('hidden'));
+
+    // Edit Team Modal
+    const editModal = document.getElementById('editTeamModal');
+    const closeEdit = document.getElementById('close-edit-modal');
+    const cancelEdit = document.getElementById('cancel-edit-modal');
+    const editOverlay = document.getElementById('edit-modal-overlay');
+
+    document.querySelectorAll('.edit-team-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('modal_team_id').value = btn.dataset.teamId;
+            document.getElementById('edit_team_name').value = btn.dataset.teamName;
+            document.getElementById('edit_modal_league_name').value = btn.dataset.leagueName;
+            document.getElementById('edit_modal_season_id').value = btn.dataset.seasonId;
+            editModal.classList.remove('hidden');
+        });
+    });
+
+    closeEdit?.addEventListener('click', () => editModal.classList.add('hidden'));
+    cancelEdit?.addEventListener('click', () => editModal.classList.add('hidden'));
+    editOverlay?.addEventListener('click', () => editModal.classList.add('hidden'));
+
+    // Delete Team
+    document.querySelectorAll('.delete-team-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const teamId = btn.dataset.teamId;
+            const teamName = btn.dataset.teamName;
+            const isDark = document.documentElement.classList.contains('dark');
+
+            Swal.fire({
+                title: 'Delete Team?',
+                text: `Are you sure you want to delete "${teamName}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, delete',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = `/publeague/team/${teamId}/delete`;
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

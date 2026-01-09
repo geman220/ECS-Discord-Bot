@@ -1,0 +1,239 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Pub League Management{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Pub League Management</h1>
+        <p class="text-gray-500 dark:text-gray-400">Manage schedules and teams for all leagues</p>
+    </div>
+
+    <!-- League Tabs -->
+    <div class="mb-6">
+        <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700">
+            {% for league in leagues %}
+            <button type="button"
+                    class="league-tab px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 {% if loop.first %}border-ecs-green text-ecs-green bg-ecs-green/10{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300{% endif %}"
+                    data-tab="{{ league.name|replace(' ', '-')|lower }}">
+                {{ league.name }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    {% for league in leagues %}
+    <div class="league-content {% if not loop.first %}hidden{% endif %}" id="{{ league.name|replace(' ', '-')|lower }}-content">
+        <!-- Add Match Form -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+            <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Add New Match</h3>
+            <form method="POST" action="{{ url_for('publeague.add_publeague_match') }}" class="flex flex-wrap gap-3">
+                <input type="hidden" name="league_name" value="{{ league.name }}">
+                <input type="text" name="teamA" placeholder="Team A" required
+                       class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                <input type="text" name="teamB" placeholder="Team B" required
+                       class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                <input type="text" name="time" placeholder="Time (e.g., 9:40 AM)" required
+                       class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                <input type="date" name="date" required
+                       class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                <select name="location" required
+                        class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                    <option value="North">North</option>
+                    <option value="South">South</option>
+                </select>
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                    <i class="ti ti-plus"></i>
+                    Add Match
+                </button>
+            </form>
+        </div>
+
+        <!-- Schedule Timeline -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+            <h3 class="font-semibold text-gray-900 dark:text-white mb-4">{{ league.name }} Schedule - Sundays</h3>
+            {% if league.schedule %}
+            <div class="flex flex-wrap gap-4">
+                {% for match in league.schedule %}
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 min-w-[200px]">
+                    <div class="text-sm font-medium text-ecs-green mb-2">{{ match.date }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ match.time }}</div>
+                    <div class="font-medium text-gray-900 dark:text-white">{{ match.teamA }} vs {{ match.teamB }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 dark:text-gray-400 text-center py-8">No matches scheduled yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Teams -->
+        <div class="space-y-4">
+            {% for team in league.teams %}
+            <details class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden group">
+                <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <h3 class="font-semibold text-gray-900 dark:text-white">{{ team.name }}</h3>
+                    <div class="flex items-center gap-2">
+                        <button type="button"
+                                class="edit-team-btn inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors"
+                                data-team-id="{{ team.name|replace(' ', '_') }}">
+                            <i class="ti ti-edit"></i>
+                            Edit
+                        </button>
+                        <i class="ti ti-chevron-down transition-transform group-open:rotate-180 text-gray-400"></i>
+                    </div>
+                </summary>
+                <div class="p-4 pt-0">
+                    <!-- Team Name Edit Form -->
+                    <form method="POST" action="{{ url_for('publeague.update_publeague_team_name', league_name=league.name, team_name=team.name) }}" class="mb-4">
+                        <div class="flex gap-2">
+                            <input type="text" name="team_name" value="{{ team.name }}"
+                                   id="input-{{ team.name|replace(' ', '_') }}-name"
+                                   readonly
+                                   class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green read-only:bg-gray-50 dark:read-only:bg-gray-600">
+                            <button type="submit"
+                                    id="btn-{{ team.name|replace(' ', '_') }}-save"
+                                    class="hidden inline-flex items-center gap-1 px-3 py-2 text-sm rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors">
+                                <i class="ti ti-check"></i>
+                                Save
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Team Schedule -->
+                    {% if team.schedule %}
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Week</th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Date</th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Time</th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Opponent</th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Location</th>
+                                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% for match in team.schedule %}
+                                <tr>
+                                    <td class="px-3 py-2 text-gray-900 dark:text-white">{{ match.week }}</td>
+                                    <td class="px-3 py-2">
+                                        <input type="date" name="date" value="{{ match.date }}"
+                                               id="input-{{ team.name|replace(' ', '_') }}-date-{{ loop.index0 }}"
+                                               readonly
+                                               class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm read-only:bg-transparent read-only:border-transparent">
+                                    </td>
+                                    <td class="px-3 py-2">
+                                        <input type="text" name="time" value="{{ match.time }}"
+                                               id="input-{{ team.name|replace(' ', '_') }}-time-{{ loop.index0 }}"
+                                               readonly
+                                               class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm w-24 read-only:bg-transparent read-only:border-transparent">
+                                    </td>
+                                    <td class="px-3 py-2">
+                                        <input type="text" name="opponent" value="{{ match.opponent }}"
+                                               id="input-{{ team.name|replace(' ', '_') }}-opponent-{{ loop.index0 }}"
+                                               readonly
+                                               class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm read-only:bg-transparent read-only:border-transparent">
+                                    </td>
+                                    <td class="px-3 py-2">
+                                        <input type="text" name="location" value="{{ match.location }}"
+                                               id="input-{{ team.name|replace(' ', '_') }}-location-{{ loop.index0 }}"
+                                               readonly
+                                               class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm w-20 read-only:bg-transparent read-only:border-transparent">
+                                    </td>
+                                    <td class="px-3 py-2 text-right">
+                                        <button type="button"
+                                                id="btn-{{ team.name|replace(' ', '_') }}-save-match-{{ loop.index0 }}"
+                                                class="hidden inline-flex items-center px-2 py-1 text-xs rounded bg-ecs-green text-white hover:bg-ecs-green/90 mr-1">
+                                            Save
+                                        </button>
+                                        <button type="button"
+                                                class="inline-flex items-center px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700">
+                                            Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500 dark:text-gray-400 text-center py-4">No matches scheduled for this team.</p>
+                    {% endif %}
+
+                    <button type="button"
+                            class="mt-4 inline-flex items-center gap-1 px-3 py-2 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">
+                        <i class="ti ti-plus"></i>
+                        Add Match
+                    </button>
+                </div>
+            </details>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // League tabs
+    const tabs = document.querySelectorAll('.league-tab');
+    const contents = document.querySelectorAll('.league-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetId = tab.dataset.tab + '-content';
+
+            // Update tab styles
+            tabs.forEach(t => {
+                t.classList.remove('border-ecs-green', 'text-ecs-green', 'bg-ecs-green/10');
+                t.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            });
+            tab.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+            tab.classList.add('border-ecs-green', 'text-ecs-green', 'bg-ecs-green/10');
+
+            // Show/hide content
+            contents.forEach(c => c.classList.add('hidden'));
+            document.getElementById(targetId)?.classList.remove('hidden');
+        });
+    });
+
+    // Edit team buttons
+    document.querySelectorAll('.edit-team-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const teamId = btn.dataset.teamId;
+            toggleEdit(teamId);
+        });
+    });
+
+    function toggleEdit(teamId) {
+        const teamNameInput = document.getElementById(`input-${teamId}-name`);
+        if (teamNameInput) {
+            teamNameInput.toggleAttribute('readonly');
+        }
+
+        const saveButton = document.getElementById(`btn-${teamId}-save`);
+        if (saveButton) {
+            saveButton.classList.toggle('hidden');
+        }
+
+        document.querySelectorAll(`[id^="input-${teamId}-"]`).forEach(input => {
+            input.toggleAttribute('readonly');
+        });
+
+        document.querySelectorAll(`[id^="btn-${teamId}-save-match-"]`).forEach(btn => {
+            btn.classList.toggle('hidden');
+        });
+    }
+});
+</script>
+{% endblock %}

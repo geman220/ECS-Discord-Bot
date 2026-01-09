@@ -1,0 +1,142 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Manage Roles and Permissions{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Manage Roles and Permissions</h1>
+        <p class="text-gray-500 dark:text-gray-400">Configure role-based access control for your application</p>
+    </div>
+
+    <!-- Roles Management Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Role Permissions</h2>
+        </div>
+        <div class="p-6">
+            <form method="POST" action="{{ url_for('admin.manage_roles') }}" class="space-y-6">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- Role Selection -->
+                <div>
+                    <label for="role_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Select Role
+                    </label>
+                    <select name="role_id" id="role_id" required
+                            class="block w-full md:w-1/2 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                        <option value="" disabled selected>Select a role...</option>
+                        {% for role in roles %}
+                        <option value="{{ role.id }}">{{ role.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Permissions Selection -->
+                <div>
+                    <label for="permissions" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Select Permissions
+                    </label>
+                    <div class="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                        <div class="max-h-64 overflow-y-auto p-2 space-y-1">
+                            {% for permission in permissions %}
+                            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+                                <input type="checkbox" name="permissions" value="{{ permission.id }}"
+                                       class="permission-checkbox rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                <span class="text-sm text-gray-700 dark:text-gray-300">{{ permission.name }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        Select a role above to see its current permissions
+                    </p>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="flex items-center gap-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" id="select-all-btn"
+                            class="text-sm text-ecs-green hover:text-ecs-green/80">
+                        Select All
+                    </button>
+                    <button type="button" id="clear-all-btn"
+                            class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                        Clear All
+                    </button>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                    <i class="ti ti-check"></i>
+                    Update Permissions
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Roles Overview -->
+    <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Roles Overview</h2>
+        </div>
+        <div class="p-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for role in roles %}
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center">
+                            <i class="ti ti-shield text-ecs-green"></i>
+                        </div>
+                        <h3 class="font-medium text-gray-900 dark:text-white">{{ role.name }}</h3>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ role.permissions|length if role.permissions else 0 }} permission(s)
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roleSelect = document.getElementById('role_id');
+    const checkboxes = document.querySelectorAll('.permission-checkbox');
+    const selectAllBtn = document.getElementById('select-all-btn');
+    const clearAllBtn = document.getElementById('clear-all-btn');
+
+    // Role permissions data
+    const rolePermissions = {
+        {% for role in roles %}
+        {{ role.id }}: [{% for perm in role.permissions %}"{{ perm.id }}"{% if not loop.last %}, {% endif %}{% endfor %}]{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    // Load permissions when role is selected
+    roleSelect.addEventListener('change', function() {
+        const roleId = this.value;
+        const permissions = rolePermissions[roleId] || [];
+
+        checkboxes.forEach(cb => {
+            cb.checked = permissions.includes(cb.value);
+        });
+    });
+
+    // Select all
+    selectAllBtn.addEventListener('click', function() {
+        checkboxes.forEach(cb => cb.checked = true);
+    });
+
+    // Clear all
+    clearAllBtn.addEventListener('click', function() {
+        checkboxes.forEach(cb => cb.checked = false);
+    });
+});
+</script>
+{% endblock %}
