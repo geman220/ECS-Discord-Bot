@@ -1,0 +1,314 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Message Management - ECS Portal{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">Admin</a>
+            <span>/</span>
+            <span>Message Management</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-message-2 text-blue-600"></i>Message Management
+        </h1>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                    <i class="ti ti-message-2 text-xl"></i>
+                </div>
+                <div>
+                    <h5 class="text-xl font-bold text-gray-900 dark:text-white">{{ categories|length }}</h5>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Message Categories</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
+                    <i class="ti ti-file-text text-xl"></i>
+                </div>
+                <div>
+                    <h5 class="text-xl font-bold text-gray-900 dark:text-white">{{ categories|map(attribute='templates')|map('length')|sum }}</h5>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total Templates</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-lg">
+                    <i class="ti ti-speakerphone text-xl"></i>
+                </div>
+                <div>
+                    <h5 class="text-xl font-bold text-gray-900 dark:text-white">{{ announcements|length }}</h5>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Active Announcements</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 flex items-center justify-center bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
+                    <i class="ti ti-brand-discord text-xl"></i>
+                </div>
+                <div>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Discord Bot</h5>
+                    <a href="{{ url_for('admin.discord_onboarding.admin_test_onboarding') }}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">Test messaging</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not categories %}
+    <!-- Setup Action Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h5 class="font-semibold text-gray-900 dark:text-white mb-1">Setup Discord Message System</h5>
+                <p class="text-gray-500 dark:text-gray-400">Initialize message templates for automated Discord bot communications</p>
+            </div>
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" data-modal-toggle="setupModal">
+                <i class="ti ti-settings mr-2"></i>Initialize System
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Message Categories -->
+        <div class="lg:col-span-2 space-y-6">
+            {% for category in categories %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 text-white {% if 'ecs' in category.name.lower() or 'fc' in category.name.lower() %}bg-gradient-to-r from-blue-600 to-blue-700{% elif 'premier' in category.name.lower() or 'pub' in category.name.lower() %}bg-gradient-to-r from-green-600 to-green-700{% elif 'classic' in category.name.lower() %}bg-gradient-to-r from-yellow-600 to-yellow-700{% else %}bg-gradient-to-r from-cyan-600 to-cyan-700{% endif %}">
+                    <div class="flex items-center justify-between">
+                        <h5 class="font-semibold flex items-center gap-2">
+                            {% if 'ecs' in category.name.lower() or 'fc' in category.name.lower() %}<i class="ti ti-shield"></i>
+                            {% elif 'premier' in category.name.lower() or 'pub' in category.name.lower() %}<i class="ti ti-star"></i>
+                            {% elif 'classic' in category.name.lower() %}<i class="ti ti-heart"></i>
+                            {% else %}<i class="ti ti-world"></i>{% endif %}
+                            {{ category.name }}
+                        </h5>
+                        <button type="button" class="js-create-template inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-900 bg-white hover:bg-gray-100 rounded-lg transition-colors"
+                                data-category-id="{{ category.id }}" data-category-name="{{ category.name }}">
+                            <i class="ti ti-plus mr-1"></i>New Template
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4">
+                    {% include 'admin/partials/template_section.html' %}
+
+                    <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border-l-4 {% if 'ecs' in category.name.lower() or 'fc' in category.name.lower() %}border-blue-500{% elif 'premier' in category.name.lower() %}border-green-500{% elif 'classic' in category.name.lower() %}border-yellow-500{% else %}border-cyan-500{% endif %} rounded-r-lg">
+                        <p class="text-sm text-blue-700 dark:text-blue-400">
+                            <strong>Context:</strong>
+                            {% if 'ecs' in category.name.lower() or 'fc' in category.name.lower() %}ECS FC division messages for competitive league players.
+                            {% elif 'premier' in category.name.lower() %}Premier division messages for competitive recreational players.
+                            {% elif 'classic' in category.name.lower() %}Classic division messages for casual recreational players.
+                            {% else %}System-wide messages used across all leagues.{% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% if not categories %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-12 text-center">
+                <i class="ti ti-message-off text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                <h5 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Message Templates Found</h5>
+                <p class="text-gray-500 dark:text-gray-400 mb-4">Initialize the message system to get started with Discord bot communications.</p>
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" data-modal-toggle="setupModal">
+                    <i class="ti ti-settings mr-2"></i>Initialize System
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Announcements -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-speakerphone text-gray-500"></i>Website Announcements
+                    </h5>
+                    <button type="button" class="js-create-announcement p-1.5 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                        <i class="ti ti-plus"></i>
+                    </button>
+                </div>
+                <div class="p-4">
+                    {% if announcements %}
+                    <div class="space-y-3">
+                        {% for announcement in announcements[:3] %}
+                        <div class="pb-3 {% if not loop.last %}border-b border-gray-100 dark:border-gray-700{% endif %}">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-grow">
+                                    <h6 class="font-medium text-gray-900 dark:text-white">{{ announcement.title }}</h6>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ announcement.content[:60] }}{% if announcement.content|length > 60 %}...{% endif %}</p>
+                                    <span class="text-xs text-gray-400">{{ announcement.created_at.strftime('%b %d, %Y') }}</span>
+                                </div>
+                                <div class="flex gap-1 ml-2">
+                                    <button type="button" class="js-edit-announcement p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400" data-announcement-id="{{ announcement.id }}">
+                                        <i class="ti ti-edit text-sm"></i>
+                                    </button>
+                                    <button type="button" class="js-delete-announcement p-1 text-red-600 hover:text-red-800 dark:text-red-400" data-announcement-id="{{ announcement.id }}">
+                                        <i class="ti ti-trash text-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if announcements|length > 3 %}
+                    <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">Showing 3 of {{ announcements|length }} announcements</p>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-6">
+                        <i class="ti ti-speakerphone text-3xl text-gray-300 dark:text-gray-600 mb-2"></i>
+                        <p class="text-gray-500 dark:text-gray-400 mb-3">No announcements yet</p>
+                        <button type="button" class="js-create-announcement inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                            <i class="ti ti-plus mr-1"></i>Create Announcement
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-bolt text-gray-500"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="p-4 space-y-2">
+                    {% if categories %}
+                    <a href="{{ url_for('admin.discord_onboarding.admin_test_onboarding') }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 border border-cyan-200 dark:border-cyan-800 rounded-lg transition-colors">
+                        <i class="ti ti-test-pipe mr-2"></i>Test Welcome Message
+                    </a>
+                    {% endif %}
+                    <button type="button" class="js-create-announcement w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors">
+                        <i class="ti ti-plus mr-2"></i>Create Announcement
+                    </button>
+                </div>
+            </div>
+
+            <!-- Help Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-help-circle text-gray-500"></i>Message System Guide
+                    </h6>
+                </div>
+                <div class="p-4">
+                    <div class="mb-3">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white mb-1">Discord Templates</p>
+                        <ul class="text-sm text-gray-500 dark:text-gray-400 list-disc list-inside space-y-1">
+                            <li>Automated welcome messages for new users</li>
+                            <li>League-specific communication templates</li>
+                            <li>System error and notification messages</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white mb-1">Template Variables</p>
+                        <ul class="text-sm text-gray-500 dark:text-gray-400 list-disc list-inside space-y-1">
+                            <li><code class="text-blue-600 dark:text-blue-400">{username}</code> - User's Discord name</li>
+                            <li><code class="text-blue-600 dark:text-blue-400">{league_display_name}</code> - League name</li>
+                            <li><code class="text-blue-600 dark:text-blue-400">{team_name}</code> - Team name</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Setup Modal -->
+<div id="setupModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-settings text-blue-600"></i>Setup Message System
+                </h3>
+                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="setupModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <div class="p-4 mb-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-2">Initialize Message Templates</h6>
+                    <p class="text-sm text-blue-700 dark:text-blue-400">To set up the Discord bot message system, you need to run the initialization script.</p>
+                </div>
+                <div class="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg mb-4">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white mb-1">Run this command:</p>
+                    <code class="text-blue-600 dark:text-blue-400">python initialize_message_config.py</code>
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">This will create:</p>
+                <ul class="text-sm text-gray-500 dark:text-gray-400 list-disc list-inside space-y-1">
+                    <li>Default message categories (Onboarding, League, System)</li>
+                    <li>Template messages for common scenarios</li>
+                    <li>Database tables for message management</li>
+                </ul>
+            </div>
+            <div class="flex justify-end p-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" data-modal-hide="setupModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/message-management.js') }}" type="module"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    // Create template button handlers
+    document.querySelectorAll('.js-create-template').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const categoryId = this.dataset.categoryId;
+            const categoryName = this.dataset.categoryName;
+            if (window.createTemplate) {
+                window.createTemplate(categoryId, categoryName);
+            }
+        });
+    });
+
+    // Create announcement button handlers
+    document.querySelectorAll('.js-create-announcement').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (window.createAnnouncement) {
+                window.createAnnouncement();
+            }
+        });
+    });
+
+    // Edit announcement button handlers
+    document.querySelectorAll('.js-edit-announcement').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const announcementId = this.dataset.announcementId;
+            if (window.editAnnouncement) {
+                window.editAnnouncement(announcementId);
+            }
+        });
+    });
+
+    // Delete announcement button handlers
+    document.querySelectorAll('.js-delete-announcement').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const announcementId = this.dataset.announcementId;
+            if (window.deleteAnnouncement) {
+                window.deleteAnnouncement(announcementId);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
