@@ -1,0 +1,318 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Join the Waitlist - ECS Soccer League{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <!-- Waitlist Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-xs text-white/80 font-medium uppercase tracking-wider">ECS FC Pub League</span>
+                    <h1 class="text-xl font-bold text-white mt-1">Join the Waitlist</h1>
+                    <p class="text-white/80 text-sm">Welcome back, {{ user.username }}! The current season is full, but you can join our waitlist.</p>
+                </div>
+                <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}"
+                     alt="ECS FC Pub League Logo"
+                     class="w-14 h-14 hidden sm:block">
+            </div>
+        </div>
+
+        <div class="p-6">
+            {% if already_on_waitlist %}
+            <!-- Already on waitlist -->
+            <div class="flex items-start gap-3 p-4 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
+                <i class="ti ti-check-circle text-xl flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h5 class="font-semibold">You're Already on the Waitlist!</h5>
+                    <p class="text-sm mb-4">Great news! You're already on our waitlist for the current season. We'll notify you as soon as spots become available.</p>
+                    <a href="{{ url_for('main.index') }}"
+                       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">
+                        <i class="ti ti-arrow-left"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+
+            {% else %}
+            <!-- Join waitlist form -->
+            <div class="flex items-start gap-3 p-4 mb-6 text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/50 rounded-lg border border-amber-200 dark:border-amber-800">
+                <i class="ti ti-clock text-xl flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h6 class="font-semibold">Season Full</h6>
+                    <p class="text-sm">All spots for the current season have been filled. Join our waitlist to be first in line for future openings!</p>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('auth.waitlist_register') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- Profile Card -->
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6">
+                    <div class="flex items-center gap-4">
+                        {% if player and player.profile_picture_url %}
+                        <img src="{{ player.profile_picture_url }}" alt="{{ user.username }}"
+                             class="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600">
+                        {% else %}
+                        <div class="w-16 h-16 rounded-full bg-ecs-green flex items-center justify-center">
+                            <span class="text-2xl font-bold text-white">{{ user.username[0].upper() }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="flex-1">
+                            <h6 class="font-semibold text-gray-900 dark:text-white">{{ user.username }}</h6>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</p>
+                            {% if user.preferred_league %}
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                Preferred League:
+                                {% if user.preferred_league == 'pub_league_classic' %}Pub League Classic
+                                {% elif user.preferred_league == 'pub_league_premier' %}Pub League Premier
+                                {% elif user.preferred_league == 'ecs_fc' %}ECS FC
+                                {% else %}{{ user.preferred_league }}{% endif %}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <button type="button" id="review-profile-btn"
+                                class="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                            <i class="ti ti-edit"></i>
+                            Review Profile
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Profile Verification Encouragement -->
+                <div class="flex items-start gap-3 p-4 mb-6 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <i class="ti ti-user-check text-xl flex-shrink-0 mt-0.5"></i>
+                    <div>
+                        <h6 class="font-semibold">Welcome Back!</h6>
+                        <p class="text-sm">Before joining the waitlist, we encourage you to review and update your profile information to ensure we have your current details.</p>
+                    </div>
+                </div>
+
+                <button type="submit"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors">
+                    <i class="ti ti-clock"></i>
+                    Join the Waitlist
+                </button>
+            </form>
+            {% endif %}
+
+            {% if not already_on_waitlist %}
+            <!-- Benefits section -->
+            <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h6 class="text-center text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">Benefits of Joining</h6>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+                            <i class="ti ti-bell text-ecs-green"></i>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">Priority notifications when spots open</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+                            <i class="ti ti-calendar text-ecs-green"></i>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">Early access to more information</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+                            <i class="ti ti-users text-ecs-green"></i>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">Stay connected with ECS community</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Footer -->
+            <div class="text-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <a href="{{ url_for('main.index') }}" class="text-sm text-ecs-green dark:text-ecs-gold hover:underline inline-flex items-center gap-1">
+                    <i class="ti ti-chevron-left"></i>
+                    Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Review Modal -->
+<div id="profileModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="modal-overlay"></div>
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-user-check"></i>
+                        Review Your Profile
+                    </h3>
+                    <button type="button" id="close-modal-btn" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                        <i class="ti ti-x text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- Info Alert -->
+                <div class="flex items-start gap-3 p-4 mb-6 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <i class="ti ti-info-circle text-xl flex-shrink-0 mt-0.5"></i>
+                    <div class="text-sm">
+                        <h6 class="font-semibold mb-1">Review Your Profile</h6>
+                        <p class="mb-2">Before joining the waitlist, please review and update your profile information to ensure it's current and accurate.</p>
+                        <ul class="list-disc list-inside space-y-1 text-xs">
+                            <li>Verify your contact information is up to date</li>
+                            <li>Review your playing preferences and availability</li>
+                            <li>Ensure you get the correct jersey size</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Profile Form (Read-only) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Basic Information -->
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h6>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Name</label>
+                                <input type="text" value="{{ user.username if user else '' }}" readonly
+                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Email</label>
+                                <input type="email" value="{{ user.email if user else '' }}" readonly
+                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Phone</label>
+                                <input type="text" value="{{ player.phone if player and player.phone else '' }}" readonly
+                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Pronouns</label>
+                                <input type="text" value="{{ player.pronouns if player and player.pronouns else '' }}" readonly
+                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Jersey Size</label>
+                                <input type="text" value="{{ player.jersey_size if player and player.jersey_size else '' }}" readonly
+                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Availability & Preferences -->
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-4">Availability & Preferences</h6>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Expected Weeks Available</label>
+                                <input type="text" value="{{ player.expected_weeks_available if player and player.expected_weeks_available else '' }}" readonly
+                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Unavailable Dates</label>
+                                <input type="text" value="{{ player.unavailable_dates if player and player.unavailable_dates else '' }}" readonly
+                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Favorite Position</label>
+                                <input type="text" value="{{ player.favorite_position if player and player.favorite_position else '' }}" readonly
+                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Player Notes</label>
+                                <textarea readonly rows="3"
+                                          class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">{{ player.player_notes if player and player.player_notes else '' }}</textarea>
+                            </div>
+
+                            <!-- Profile Status -->
+                            {% if player and player.profile_last_updated %}
+                            <div class="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-300 text-sm">
+                                <i class="ti ti-check-circle"></i>
+                                <span>Profile updated {{ player.profile_last_updated.strftime('%Y-%m-%d') }}. Looks current!</span>
+                            </div>
+                            {% else %}
+                            <div class="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg text-amber-700 dark:text-amber-300 text-sm">
+                                <i class="ti ti-alert-circle"></i>
+                                <span>Profile has never been verified. Please review.</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 flex flex-col sm:flex-row-reverse gap-3">
+                {% if player %}
+                <a href="{{ url_for('players.player_profile_wizard', player_id=player.id) }}"
+                   class="inline-flex justify-center items-center px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90">
+                    <i class="ti ti-edit mr-2"></i>
+                    Edit Profile
+                </a>
+                {% endif %}
+                <button type="button" id="confirm-profile-btn"
+                        class="inline-flex justify-center items-center px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700">
+                    <i class="ti ti-check mr-2"></i>
+                    Confirm Profile is Accurate
+                </button>
+                <button type="button" id="skip-btn"
+                        class="inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600">
+                    Skip for Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reviewBtn = document.getElementById('review-profile-btn');
+    const modal = document.getElementById('profileModal');
+    const closeBtn = document.getElementById('close-modal-btn');
+    const skipBtn = document.getElementById('skip-btn');
+    const confirmBtn = document.getElementById('confirm-profile-btn');
+    const overlay = document.getElementById('modal-overlay');
+
+    if (reviewBtn) {
+        reviewBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+    }
+
+    if (skipBtn) {
+        skipBtn.addEventListener('click', () => modal.classList.add('hidden'));
+    }
+
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', () => {
+            // Could add an AJAX call here to verify profile
+            modal.classList.add('hidden');
+            const isDark = document.documentElement.classList.contains('dark');
+            Swal.fire({
+                icon: 'success',
+                title: 'Profile Confirmed',
+                text: 'Thank you for verifying your profile information!',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827',
+                confirmButtonColor: '#1a472a'
+            });
+        });
+    }
+
+    if (overlay) {
+        overlay.addEventListener('click', () => modal.classList.add('hidden'));
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            modal.classList.add('hidden');
+        }
+    });
+});
+</script>
+{% endblock %}

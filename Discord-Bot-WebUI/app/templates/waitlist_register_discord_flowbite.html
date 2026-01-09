@@ -1,0 +1,439 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Complete Waitlist Registration - ECS FC Pub League{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
+{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen py-8 px-4 bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-3xl mx-auto">
+        <!-- Header Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-xl font-bold text-white">Complete Waitlist Registration</h1>
+                        <p class="text-white/80 text-sm">Join the waitlist for ECS FC Pub League</p>
+                    </div>
+                    <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}"
+                         alt="ECS FC Pub League Logo"
+                         class="w-14 h-14 hidden sm:block">
+                </div>
+            </div>
+
+            <div class="p-6">
+                <!-- Waitlist Alert -->
+                <div class="flex items-start gap-3 p-4 mb-6 text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/50 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <i class="ti ti-clock text-xl flex-shrink-0 mt-0.5"></i>
+                    <div>
+                        <h6 class="font-semibold">You're Joining the Waitlist</h6>
+                        <p class="text-sm">All spots for the current season are filled, but you'll be first in line for future openings and substitute opportunities!</p>
+                    </div>
+                </div>
+
+                <!-- Discord Info -->
+                <div class="flex items-start gap-3 p-4 mb-6 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <i class="ti ti-brand-discord text-xl flex-shrink-0 mt-0.5"></i>
+                    <div>
+                        <h6 class="font-semibold">Discord Account Connected</h6>
+                        <p class="font-medium">{{ discord_username }}</p>
+                        <p class="text-sm opacity-80">{{ discord_email }}</p>
+                    </div>
+                </div>
+
+                <!-- Registration Form -->
+                <form method="POST" action="{{ url_for('auth.waitlist_register_with_discord') }}" class="space-y-6">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" id="cropped_image_data_main" name="cropped_image_data">
+
+                    <!-- Personal Information Section -->
+                    <div>
+                        <h6 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Personal Information</h6>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Full Name <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" name="name" value="{{ discord_username }}" required
+                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                                <input type="email" name="email" value="{{ discord_email }}" readonly
+                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm bg-gray-50 dark:bg-gray-600">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                                <input type="tel" name="phone" placeholder="Your phone number"
+                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preferred Pronouns</label>
+                                <select name="pronouns"
+                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                    <option value="">Select pronouns</option>
+                                    <option value="he/him">He/Him</option>
+                                    <option value="she/her">She/Her</option>
+                                    <option value="they/them">They/Them</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jersey Size</label>
+                                <select name="jersey_size"
+                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                    <option value="">Select size</option>
+                                    <option value="WXS">WXS</option>
+                                    <option value="WS">WS</option>
+                                    <option value="WM">WM</option>
+                                    <option value="WL">WL</option>
+                                    <option value="WXL">WXL</option>
+                                    <option value="AS">AS</option>
+                                    <option value="AM">AM</option>
+                                    <option value="AL">AL</option>
+                                    <option value="AXL">AXL</option>
+                                    <option value="AXXL">AXXL</option>
+                                    <option value="A3XL">A3XL</option>
+                                    <option value="N/A">N/A</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preferred Jersey Number</label>
+                                <input type="number" name="jersey_number" min="1" max="99" placeholder="Optional"
+                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Picture Section -->
+                    <div>
+                        <h6 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Profile Picture</h6>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="text-center">
+                                <img id="current-profile-image" src="/static/img/default_player.png" alt="Profile Picture"
+                                     class="w-24 h-24 rounded-full mx-auto mb-3 object-cover border-2 border-gray-200 dark:border-gray-600">
+                                <button type="button" id="upload-photo-btn"
+                                        class="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <i class="ti ti-camera"></i>
+                                    Upload Photo
+                                </button>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Optional: Add a profile picture</p>
+                            </div>
+                            <div class="flex items-start gap-3 p-4 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
+                                <i class="ti ti-info-circle text-lg flex-shrink-0 mt-0.5"></i>
+                                <div class="text-sm">
+                                    <h6 class="font-semibold mb-1">Photo Guidelines</h6>
+                                    <ul class="list-disc list-inside space-y-0.5 text-xs">
+                                        <li>Use a clear, recent photo of yourself</li>
+                                        <li>Photos will be cropped to a square format</li>
+                                        <li>Supported formats: JPG, PNG, GIF</li>
+                                        <li>Maximum file size: 10MB</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- League Selection Section -->
+                    <div>
+                        <h6 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">League Preference</h6>
+                        <div class="flex items-start gap-3 p-4 mb-4 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <i class="ti ti-trophy text-lg flex-shrink-0 mt-0.5"></i>
+                            <div class="text-sm">
+                                <h6 class="font-semibold">Which league are you interested in?</h6>
+                                <p>Select the league that best matches your skill level and playing style:</p>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="relative cursor-pointer block">
+                                <input type="radio" name="preferred_league" value="pub_league_classic" required class="peer sr-only">
+                                <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 transition-colors">
+                                    <div class="flex items-start gap-3">
+                                        <span class="text-2xl">🏆</span>
+                                        <div>
+                                            <h6 class="font-semibold text-gray-900 dark:text-white">Pub League Classic</h6>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Our beginner-friendly classic division - it's all about having fun and improving your game. No experience necessary.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="relative cursor-pointer block">
+                                <input type="radio" name="preferred_league" value="pub_league_premier" required class="peer sr-only">
+                                <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 transition-colors">
+                                    <div class="flex items-start gap-3">
+                                        <span class="text-2xl">🌟</span>
+                                        <div>
+                                            <h6 class="font-semibold text-gray-900 dark:text-white">Pub League Premier</h6>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Our Premier Division for low to intermediate recreational players. Bring your C game!</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="relative cursor-pointer block">
+                                <input type="radio" name="preferred_league" value="not_sure" required class="peer sr-only">
+                                <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 transition-colors">
+                                    <div class="flex items-start gap-3">
+                                        <span class="text-2xl">🤔</span>
+                                        <div>
+                                            <h6 class="font-semibold text-gray-900 dark:text-white">Not Sure</h6>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">We'll help you find the right league based on your experience and preferences.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Playing Preferences Section -->
+                    <div>
+                        <h6 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Playing Preferences</h6>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Favorite Position</label>
+                                <select name="favorite_position"
+                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                    <option value="">Select position</option>
+                                    <option value="goalkeeper">Goalkeeper</option>
+                                    <option value="defender">Defender</option>
+                                    <option value="midfielder">Midfielder</option>
+                                    <option value="forward">Forward</option>
+                                    <option value="winger">Winger</option>
+                                    <option value="striker">Striker</option>
+                                    <option value="center_back">Center Back</option>
+                                    <option value="full_back">Full Back</option>
+                                    <option value="wing_back">Wing Back</option>
+                                    <option value="attacking_midfielder">Attacking Midfielder</option>
+                                    <option value="defensive_midfielder">Defensive Midfielder</option>
+                                    <option value="central_midfielder">Central Midfielder</option>
+                                    <option value="no_preference">No Preference</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Willingness to Play Goal</label>
+                                <select name="frequency_play_goal"
+                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                    <option value="">Select frequency</option>
+                                    <option value="0">Never</option>
+                                    <option value="1">Only if our normal GK is unavailable</option>
+                                    <option value="2">I will fill in as much as needed</option>
+                                    <option value="3">Half of the time</option>
+                                    <option value="4">Every Game</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Availability Section -->
+                    <div>
+                        <h6 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Availability & Preferences</h6>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expected Availability</label>
+                                <select name="expected_weeks_available"
+                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                    <option value="">Select availability</option>
+                                    <option value="1-2">1-2 weeks</option>
+                                    <option value="3-4">3-4 weeks</option>
+                                    <option value="5-6">5-6 weeks</option>
+                                    <option value="7-8">7-8 weeks</option>
+                                    <option value="9-10">9-10 weeks</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Interested in Refereeing?</label>
+                                <select name="willing_to_referee"
+                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                    <option value="">Select option</option>
+                                    <option value="No">No</option>
+                                    <option value="Yes - I'll ref in Classic only">Yes - Classic only</option>
+                                    <option value="Yes - I'll ref in Premier only">Yes - Premier only</option>
+                                    <option value="Yes - I'll ref in Premier or Classic">Yes - Either division</option>
+                                    <option value="I am interested in receiving ref training only">Interested in training only</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unavailable Dates</label>
+                                <input type="text" name="unavailable_dates" placeholder="e.g., June 15-20, July 4"
+                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">List any dates you won't be available.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Substitute Interest Section -->
+                    <div>
+                        <h6 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Substitute Opportunities</h6>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" name="available_for_subbing" value="true" checked
+                                   class="mt-1 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                            <div>
+                                <span class="font-medium text-gray-900 dark:text-white">Yes, I'm interested in substitute opportunities while on the waitlist</span>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">This helps us connect you with teams that need temporary players while you wait for a permanent spot.</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Player Notes Section -->
+                    <div>
+                        <h6 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Player Notes</h6>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes for Coaches/Admins</label>
+                        <textarea name="player_notes" rows="3" placeholder="Any specific notes or requests (optional)"
+                                  class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"></textarea>
+                    </div>
+
+                    <!-- Waiver Section -->
+                    <div>
+                        <div class="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-t-lg border border-amber-200 dark:border-amber-800">
+                            <i class="ti ti-alert-triangle text-amber-600 dark:text-amber-400 mt-0.5"></i>
+                            <div>
+                                <h6 class="font-semibold text-amber-800 dark:text-amber-200">Please Read Before Completing Registration</h6>
+                                <p class="text-sm text-amber-700 dark:text-amber-300">Registration requires acceptance of our liability waiver and code of conduct.</p>
+                            </div>
+                        </div>
+                        <div id="waiver-content" class="h-48 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-700/50 border-x border-b border-gray-200 dark:border-gray-700 rounded-b-lg text-sm text-gray-600 dark:text-gray-300 space-y-3">
+                            <h6 class="font-bold text-gray-900 dark:text-white">Waiver of Liability and Hold Harmless Agreement</h6>
+                            <p class="text-xs">"Participant" hereby releases, waives, discharges and covenants not to sue ECS Pub League, a Washington nonprofit organization, and its affiliated associations, officers, directors, employees, agents, and contractors (collectively, the "Released Parties") from any and all liability, claims, demands, actions and causes of action whatsoever arising out of or related to any loss, damage, or injury, including death, that may be sustained by Participant, or to any property belonging to Participant, whether caused by the negligence of the Released Parties, or otherwise, while participating in such athletic and related event activities, or while in, on or upon the premises where the activities are being conducted.</p>
+                            <p class="text-xs">Participant is fully aware of risks and hazards connected with the proposed soccer activity, including the risk of injury to a participant's neck, back, spine, knees or other parts of their body, and Participant hereby elects to participate as a voluntary participant in said activity, and to enter the premises of the various fields used to conduct soccer games or training and engage in such activity knowing that the activity may be hazardous to Participant or Participant's property. PARTICIPANT VOLUNTARILY ASSUMES FULL RESPONSIBILITY FOR ANY RISKS OF LOSS, PROPERTY DAMAGE OR PERSONAL INJURY, INCLUDING DEATH, that may be sustained by any of its players, coaches, opponents, or fans, or any loss or damage to property owned by Participant, as a result of being engaged in such an activity, whether caused by the negligence of the Released Parties or otherwise.</p>
+                            <p class="text-xs">Participant acknowledges that ECS Pub League does not carry insurance on behalf of the Participant. Participant further hereby agrees to indemnify and hold harmless the Released Parties from and against any loss, liability, damage or costs, including court costs and attorney's fees, that they may incur due to Participant's participation in the proposed league activities, whether caused by the negligence of the Released Parties or otherwise.</p>
+                            <h6 class="font-bold text-gray-900 dark:text-white pt-2">ECS Pub League Code of Conduct</h6>
+                            <p class="text-xs">Participant further acknowledges and accepts as a condition of participation that ECS Pub League is a 21+ adult recreational league for very casual no/low contact soccer for beginners and beginner-friendly low-intermediate recreational players.</p>
+                            <p class="text-xs font-bold text-gray-900 dark:text-white pt-2">PARTICIPANT HAS READ THIS WAIVER OF LIABILITY AND CODE OF CONDUCT AND FULLY UNDERSTANDS ITS TERMS, UNDERSTANDS THAT THEY HAVE GIVEN UP SUBSTANTIAL RIGHTS AND AGREES TO IT BY REGISTERING TO PLAY IN THE LEAGUE, DOING SO FREELY AND VOLUNTARILY WITHOUT ANY INDUCEMENT.</p>
+                        </div>
+                    </div>
+
+                    <!-- Terms Agreement -->
+                    <div>
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" id="terms-agreement-waitlist" name="terms_agreement" required
+                                   class="mt-1 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                            <span class="text-sm text-gray-700 dark:text-gray-300">
+                                I agree to the ECS FC terms and conditions, liability waiver, and code of conduct
+                            </span>
+                        </label>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="complete-waitlist-btn" disabled
+                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="ti ti-user-plus"></i>
+                        Join Waitlist
+                    </button>
+                </form>
+
+                <!-- Next Steps -->
+                <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <h6 class="text-center text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">What Happens Next?</h6>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <div class="w-8 h-8 mx-auto rounded-full bg-ecs-green text-white flex items-center justify-center text-sm font-bold mb-2">1</div>
+                            <p class="text-xs text-gray-600 dark:text-gray-300">You'll receive a confirmation email and Discord role</p>
+                        </div>
+                        <div>
+                            <div class="w-8 h-8 mx-auto rounded-full bg-ecs-green text-white flex items-center justify-center text-sm font-bold mb-2">2</div>
+                            <p class="text-xs text-gray-600 dark:text-gray-300">We'll notify you when spots open up</p>
+                        </div>
+                        <div>
+                            <div class="w-8 h-8 mx-auto rounded-full bg-ecs-green text-white flex items-center justify-center text-sm font-bold mb-2">3</div>
+                            <p class="text-xs text-gray-600 dark:text-gray-300">You'll get priority access to register</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="text-center mt-6">
+                    <a href="{{ url_for('auth.login') }}" class="text-sm text-ecs-green dark:text-ecs-gold hover:underline inline-flex items-center gap-1">
+                        <i class="ti ti-chevron-left"></i>
+                        Back to login
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Image Modal -->
+<div id="profileImageModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="modal-overlay"></div>
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Upload and Crop Profile Picture</h3>
+                    <button type="button" id="close-modal-btn" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                        <i class="ti ti-x text-xl"></i>
+                    </button>
+                </div>
+                <div class="mb-4">
+                    <input type="file" id="imageInput" accept="image/*"
+                           class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-ecs-green file:text-white hover:file:bg-ecs-green/90">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Supported formats: JPG, PNG, GIF. Maximum size: 10MB</p>
+                </div>
+                <div id="imageEditor" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-2">
+                            <canvas id="imageCanvas" class="max-w-full border border-gray-200 dark:border-gray-600 rounded-lg"></canvas>
+                        </div>
+                        <div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Crop Size:</label>
+                                <input type="range" id="cropSize" min="100" max="300" value="200"
+                                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+                                <span id="cropSizeValue" class="text-sm text-gray-500 dark:text-gray-400">200px</span>
+                            </div>
+                            <div class="mb-4">
+                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Preview:</p>
+                                <canvas id="previewCanvas" width="150" height="150" class="border border-gray-200 dark:border-gray-600 rounded-lg"></canvas>
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                                <p>Click and drag to position the crop area</p>
+                                <p>Use the slider to adjust size</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
+                <button type="button" id="applyCropBtn" disabled
+                        class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Apply Changes
+                </button>
+                <button type="button" id="cancel-modal-btn"
+                        class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const termsCheckbox = document.getElementById('terms-agreement-waitlist');
+    const submitBtn = document.getElementById('complete-waitlist-btn');
+    const uploadBtn = document.getElementById('upload-photo-btn');
+    const modal = document.getElementById('profileImageModal');
+    const closeBtn = document.getElementById('close-modal-btn');
+    const cancelBtn = document.getElementById('cancel-modal-btn');
+    const overlay = document.getElementById('modal-overlay');
+
+    // Enable submit button when terms are checked
+    termsCheckbox.addEventListener('change', function() {
+        submitBtn.disabled = !this.checked;
+    });
+
+    // Modal open/close
+    uploadBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+    closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+    cancelBtn.addEventListener('click', () => modal.classList.add('hidden'));
+    overlay.addEventListener('click', () => modal.classList.add('hidden'));
+});
+</script>
+<script src="{{ url_for('static', filename='custom_js/waitlist-discord-cropper.js') }}"></script>
+{% endblock %}

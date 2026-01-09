@@ -1,0 +1,112 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Join the Waitlist - ECS Soccer League{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <div class="w-full max-w-lg">
+        <!-- Logos -->
+        <div class="flex items-center justify-center gap-4 mb-8">
+            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}"
+                 alt="ECS Logo" class="w-16 h-16">
+            <div class="w-px h-12 bg-gray-300 dark:bg-gray-600"></div>
+            <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}"
+                 alt="ECS FC Pub League Logo" class="w-16 h-16">
+        </div>
+
+        <!-- Waitlist Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Join the Waitlist</h1>
+                <p class="text-gray-500 dark:text-gray-400">We're at capacity this season, but you can join our waitlist!</p>
+            </div>
+
+            <!-- Season Full Alert -->
+            <div class="flex items-start gap-3 p-4 mb-6 text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/50 rounded-lg border border-amber-200 dark:border-amber-800">
+                <i class="ti ti-clock text-xl flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h6 class="font-semibold">Season Full</h6>
+                    <p class="text-sm">All spots for the current season have been filled. Join our waitlist to be first in line for future openings or next season!</p>
+                </div>
+            </div>
+
+            <!-- Discord Registration Button -->
+            <a href="{{ url_for('auth.waitlist_discord_register') }}"
+               class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[#5865F2] text-white font-medium hover:bg-[#4752c4] transition-colors mb-4">
+                <i class="ti ti-brand-discord text-xl"></i>
+                Join Waitlist with Discord
+            </a>
+
+            <!-- Encouragement Text -->
+            <div class="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">
+                <p class="mb-2">We highly encourage you to register with Discord for a seamless experience and access to exclusive ECS content.</p>
+                <p>
+                    Don't have Discord?
+                    <a href="https://discord.com/register" target="_blank" rel="noopener noreferrer" class="text-ecs-green dark:text-ecs-gold hover:underline">Create an account</a>
+                    and join the
+                    <a href="https://discord.gg/weareecs" target="_blank" rel="noopener noreferrer" class="text-ecs-green dark:text-ecs-gold hover:underline">ECS Discord</a>!
+                </p>
+            </div>
+
+            <!-- Divider -->
+            <div class="relative my-6">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-200 dark:border-gray-700"></div>
+                </div>
+                <div class="relative flex justify-center">
+                    <span class="px-3 text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800">Already have an account?</span>
+                </div>
+            </div>
+
+            <!-- Login Notice -->
+            <p class="text-sm text-gray-500 dark:text-gray-400 text-center mb-4">
+                If you already have an ECS account, please login first to join the waitlist.
+            </p>
+
+            <a href="{{ url_for('auth.login') }}"
+               class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors mb-6">
+                <i class="ti ti-login"></i>
+                Login to Join Waitlist
+            </a>
+
+            <!-- Benefits Section -->
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-3 text-center">Benefits of Joining</h3>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="text-center">
+                        <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+                            <i class="ti ti-bell text-ecs-green"></i>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">Priority notifications when spots open</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+                            <i class="ti ti-calendar text-ecs-green"></i>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">Early access to more information</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+                            <i class="ti ti-users text-ecs-green"></i>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">Stay connected with ECS community</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <a href="{{ url_for('auth.login') }}" class="text-sm text-ecs-green dark:text-ecs-gold hover:underline inline-flex items-center gap-1">
+                    <i class="ti ti-chevron-left"></i>
+                    Back to login
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script src="{{ url_for('static', filename='custom_js/discord-membership-check.js') }}"></script>
+{% endblock %}

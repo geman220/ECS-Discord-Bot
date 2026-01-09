@@ -1,0 +1,190 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Waitlist Status - ECS FC Pub League{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <div class="w-full max-w-lg">
+        <!-- Logos -->
+        <div class="flex items-center justify-center gap-4 mb-8">
+            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}"
+                 alt="ECS Logo" class="w-16 h-16">
+            <div class="w-px h-12 bg-gray-300 dark:bg-gray-600"></div>
+            <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}"
+                 alt="ECS FC Pub League Logo" class="w-16 h-16">
+        </div>
+
+        <!-- Status Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="text-center mb-6">
+                {% if is_returning_player %}
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Waiting for Spot</h1>
+                <p class="text-gray-500 dark:text-gray-400">You're on the waitlist for {{ approval_league|replace('_', ' ')|title if approval_league else 'the league' }}</p>
+                {% else %}
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Application Under Review</h1>
+                <p class="text-gray-500 dark:text-gray-400">Thanks for joining the waitlist!</p>
+                {% endif %}
+            </div>
+
+            <!-- Status Alert -->
+            {% if is_returning_player %}
+            <div class="flex items-start gap-3 p-4 mb-6 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
+                <i class="ti ti-clock text-xl flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h6 class="font-semibold">League Currently Full</h6>
+                    <p class="text-sm">The current season is at capacity. We'll notify you as soon as a spot opens up!</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="flex items-start gap-3 p-4 mb-6 text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/50 rounded-lg border border-amber-200 dark:border-amber-800">
+                <i class="ti ti-hourglass text-xl flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h6 class="font-semibold">Pending Review</h6>
+                    <p class="text-sm">A league admin will review your application and reach out with more information.</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Waitlist Details -->
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Waitlist Details</h6>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">Joined:</span>
+                        <span class="text-gray-900 dark:text-white font-medium">{{ waitlist_date.strftime('%B %d, %Y') if waitlist_date else 'Unknown' }}</span>
+                    </div>
+                    {% if approval_league %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">League:</span>
+                        <span class="text-gray-900 dark:text-white font-medium">
+                            {% if approval_league == 'classic' %}Pub League Classic
+                            {% elif approval_league == 'premier' %}Pub League Premier
+                            {% elif approval_league == 'ecs-fc' %}ECS FC
+                            {% else %}{{ approval_league|replace('_', ' ')|title }}{% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">Status:</span>
+                        {% if is_returning_player %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200">
+                            Waiting for Spot
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">
+                            Under Review
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Summary -->
+            {% if player %}
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Your Profile</h6>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">Name:</span>
+                        <span class="text-gray-900 dark:text-white">{{ player.name if player.name else user.username }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">Email:</span>
+                        <span class="text-gray-900 dark:text-white">{{ user.email }}</span>
+                    </div>
+                    {% if player.phone %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">Phone:</span>
+                        <span class="text-gray-900 dark:text-white">{{ player.phone }}</span>
+                    </div>
+                    {% endif %}
+                    {% if player.favorite_position %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">Position:</span>
+                        <span class="text-gray-900 dark:text-white">{{ player.favorite_position }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <a href="{{ url_for('players.player_profile_wizard', player_id=player.id) }}"
+               class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors mb-6">
+                <i class="ti ti-edit"></i>
+                Update Profile
+            </a>
+            {% endif %}
+
+            <!-- Discord CTA -->
+            <div class="flex items-start gap-3 p-4 mb-4 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
+                <i class="ti ti-brand-discord text-xl flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h6 class="font-semibold">Join Our Discord</h6>
+                    <p class="text-sm">Stay connected with the ECS community! Join our Discord server for updates, announcements, and to chat with other players.</p>
+                </div>
+            </div>
+
+            <a href="{{ discord_server_url }}"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[#5865F2] text-white font-medium hover:bg-[#4752c4] transition-colors mb-6">
+                <i class="ti ti-brand-discord text-xl"></i>
+                Join ECS Discord
+            </a>
+
+            <!-- What Happens Next -->
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-3 text-center">What Happens Next?</h3>
+                <div class="grid grid-cols-3 gap-3">
+                    {% if is_returning_player %}
+                    <div class="text-center">
+                        <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+                            <i class="ti ti-bell text-ecs-green"></i>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">We'll notify you when a spot opens</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+                            <i class="ti ti-mail text-ecs-green"></i>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">Check your email for updates</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+                            <i class="ti ti-users text-ecs-green"></i>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">Sub opportunities may be available</p>
+                    </div>
+                    {% else %}
+                    <div class="text-center">
+                        <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+                            <i class="ti ti-user-search text-ecs-green"></i>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">Admin reviews your application</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+                            <i class="ti ti-message text-ecs-green"></i>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">We'll reach out with more info</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+                            <i class="ti ti-calendar-event text-ecs-green"></i>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">Get notified when spots open</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <a href="{{ url_for('main.index') }}" class="text-sm text-ecs-green dark:text-ecs-gold hover:underline inline-flex items-center gap-1">
+                    <i class="ti ti-chevron-left"></i>
+                    Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

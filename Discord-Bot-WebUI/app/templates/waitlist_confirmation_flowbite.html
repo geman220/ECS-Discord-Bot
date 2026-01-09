@@ -1,0 +1,175 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Waitlist Registration Confirmed - ECS FC Pub League{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+    <!-- Confirmation Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-white">Waitlist Registration Confirmed</h1>
+                    <p class="text-white/80">You're all set!</p>
+                </div>
+                <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}"
+                     alt="ECS FC Pub League Logo"
+                     class="w-16 h-16 hidden md:block">
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6">
+            <!-- Success Message -->
+            <div class="flex items-center gap-4 p-4 mb-6 bg-green-50 dark:bg-green-900/30 rounded-xl border border-green-200 dark:border-green-800">
+                <div class="flex-shrink-0 w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                    <i class="ti ti-check-circle text-2xl text-green-600 dark:text-green-400"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-green-800 dark:text-green-200">Registration Complete!</h2>
+                    <p class="text-sm text-green-700 dark:text-green-300">You have been successfully added to the ECS FC Pub League waitlist.</p>
+                </div>
+            </div>
+
+            <!-- What Happens Next -->
+            <div class="mb-6">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-4">What Happens Next?</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                            <i class="ti ti-bell text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900 dark:text-white">We'll Notify You</h4>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">When spots become available, we'll reach out immediately</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                            <i class="ti ti-clock text-purple-600 dark:text-purple-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900 dark:text-white">Priority Access</h4>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">You'll get first dibs on any openings that come up</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                            <i class="ti ti-user-plus text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900 dark:text-white">Sub Opportunities</h4>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">You may be contacted for substitute opportunities</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Discord CTA -->
+            <div id="discord-info-card" class="bg-[#5865F2]/10 dark:bg-[#5865F2]/20 rounded-xl p-6 mb-6 border border-[#5865F2]/30">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-12 h-12 rounded-full bg-[#5865F2] flex items-center justify-center">
+                        <i class="ti ti-brand-discord text-2xl text-white"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 id="discord-status-title" class="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                            Important: Join Our Discord Server
+                        </h3>
+                        <p id="discord-status-message" class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                            If you haven't already, please join our Discord server! This is where we:
+                        </p>
+                        <ul id="discord-benefits" class="text-sm text-gray-600 dark:text-gray-300 space-y-1 mb-4">
+                            <li class="flex items-center gap-2">
+                                <i class="ti ti-check text-green-500"></i>
+                                Send waitlist notifications when spots open up
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="ti ti-check text-green-500"></i>
+                                Post match announcements and schedule updates
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="ti ti-check text-green-500"></i>
+                                Coordinate substitution requests
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="ti ti-check text-green-500"></i>
+                                Share important league information
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <i class="ti ti-check text-green-500"></i>
+                                Connect with other players in the community
+                            </li>
+                        </ul>
+                        <p id="discord-status-footer" class="text-sm font-semibold text-gray-900 dark:text-white">
+                            Don't miss out on opportunities!
+                        </p>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <a href="https://discord.gg/weareecs"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       id="discord-join-btn"
+                       class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[#5865F2] text-white font-medium hover:bg-[#4752c4] transition-colors">
+                        <i class="ti ti-brand-discord text-xl"></i>
+                        Join Discord Server
+                    </a>
+                </div>
+            </div>
+
+            <!-- Help Section -->
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Need Help?</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-[#5865F2]/20 flex items-center justify-center">
+                            <i class="ti ti-brand-discord text-[#5865F2]"></i>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">Reach out on Discord for questions</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                            <i class="ti ti-mail text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">Check your email for updates</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a href="{{ url_for('main.index') }}"
+                   class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                    <i class="ti ti-home"></i>
+                    Go to Dashboard
+                </a>
+                <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}"
+                   class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <i class="ti ti-user"></i>
+                    View Profile
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+{% if discord_membership_status %}
+    window.discordMembershipStatus = {{ discord_membership_status|tojson }};
+{% endif %}
+
+{% if discord_error %}
+    window.discordError = {{ discord_error|tojson }};
+{% endif %}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof DiscordMembershipChecker !== 'undefined') {
+        window.discordChecker = new DiscordMembershipChecker({
+            showUrgentPopup: true,
+            showSuccessMessage: false
+        });
+    }
+});
+</script>
+{% endblock %}
