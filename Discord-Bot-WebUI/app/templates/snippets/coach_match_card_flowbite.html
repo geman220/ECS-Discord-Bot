@@ -71,7 +71,8 @@
 
             {# Match Reporting Button #}
             <button class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors"
-                    data-bs-toggle="modal" data-bs-target="#reportMatchModal-{{ match.id }}">
+                    data-modal-target="reportMatchModal-{{ match.id }}"
+                    data-modal-toggle="reportMatchModal-{{ match.id }}">
                 <i class="ti ti-pencil"></i>{% if match.home_team_score is not none %}Edit{% else %}Report{% endif %}
             </button>
 

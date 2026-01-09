@@ -1,6 +1,6 @@
 {% extends "base_flowbite.html" %}
 {% from 'playoff_bracket_macro.html' import render_playoff_bracket %}
-{% from 'macros.html' import render_report_match_modal %}
+{% from 'macros/flowbite.html' import render_report_match_modal_flowbite %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -71,7 +71,7 @@
 {% if playoff_matches %}
     {% for match in playoff_matches %}
         {% if match.home_team and match.away_team %}
-            {{ render_report_match_modal(match, player_choices) }}
+            {{ render_report_match_modal_flowbite(match, player_choices) }}
         {% endif %}
     {% endfor %}
 {% endif %}
@@ -79,6 +79,20 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
+
+    // Store Flowbite modal instances
+    const modalInstances = {};
+
+    // Initialize Flowbite modals
+    document.querySelectorAll('[id^="reportMatchModal-"]').forEach(modalEl => {
+        const modalId = modalEl.id;
+        if (typeof Modal !== 'undefined') {
+            modalInstances[modalId] = new Modal(modalEl, {
+                backdrop: 'static',
+                closable: true
+            });
+        }
+    });
 
     // Wait for playoff bracket to initialize
     setTimeout(function() {
@@ -88,10 +102,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const modalElement = document.getElementById(modalId);
 
                 if (modalElement) {
-                    if (typeof ModalManager !== 'undefined') {
-                        ModalManager.show(modalId);
+                    // Use Flowbite Modal instance if available
+                    if (modalInstances[modalId]) {
+                        modalInstances[modalId].show();
                     } else {
+                        // Fallback: manually toggle visibility
                         modalElement.classList.remove('hidden');
+                        modalElement.setAttribute('aria-hidden', 'false');
                     }
                 } else {
                     console.error('Match report modal not found:', modalId);
@@ -126,10 +143,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
 
                 if (data.success) {
-                    // Close modal
-                    const modalEl = document.getElementById(`reportMatchModal-${matchId}`);
-                    if (modalEl) {
-                        modalEl.classList.add('hidden');
+                    // Close modal using Flowbite instance
+                    const modalId = `reportMatchModal-${matchId}`;
+                    if (modalInstances[modalId]) {
+                        modalInstances[modalId].hide();
+                    } else {
+                        const modalEl = document.getElementById(modalId);
+                        if (modalEl) {
+                            modalEl.classList.add('hidden');
+                            modalEl.setAttribute('aria-hidden', 'true');
+                        }
                     }
 
                     // Show success message
@@ -163,6 +186,22 @@ document.addEventListener('DOMContentLoaded', function() {
                         background: isDark ? '#1f2937' : '#ffffff',
                         color: isDark ? '#f3f4f6' : '#111827'
                     });
+                }
+            }
+        });
+    });
+
+    // Handle modal close buttons and backdrop clicks
+    document.querySelectorAll('[data-modal-hide]').forEach(button => {
+        button.addEventListener('click', function() {
+            const modalId = this.getAttribute('data-modal-hide');
+            if (modalInstances[modalId]) {
+                modalInstances[modalId].hide();
+            } else {
+                const modalEl = document.getElementById(modalId);
+                if (modalEl) {
+                    modalEl.classList.add('hidden');
+                    modalEl.setAttribute('aria-hidden', 'true');
                 }
             }
         });
