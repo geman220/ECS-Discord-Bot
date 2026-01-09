@@ -1,0 +1,333 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}ECS FC Management{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">ECS FC Management</h1>
+        <p class="text-gray-500 dark:text-gray-400">Manage ECS FC schedules and matches</p>
+    </div>
+
+    <!-- League Tabs -->
+    <div class="mb-6">
+        <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700" id="league-tabs">
+            {% for league in leagues %}
+            <button type="button" class="league-tab px-4 py-3 text-sm font-medium {{ 'border-b-2 border-ecs-green text-ecs-green' if loop.first else 'text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200' }}"
+                    data-tab="league-{{ league.id }}">
+                {{ league.name }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        {% for league in leagues %}
+        <div class="league-pane {{ 'hidden' if not loop.first else '' }}" id="league-{{ league.id }}">
+            <!-- Bulk Match Creation Form -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                    <h2 class="font-semibold text-gray-900 dark:text-white">Bulk Match Creation for {{ league.name }}</h2>
+                    <button type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90"
+                            data-action="generate-form" data-league-name="{{ league.name }}">
+                        <i class="ti ti-wand"></i> Generate Input Form
+                    </button>
+                </div>
+                <div class="p-6">
+                    <form method="POST" id="bulkCreationForm-{{ league.name }}"
+                          action="{{ url_for('publeague.schedule.bulk_create_ecsfc_matches', season_id=season.id, league_name=league.name) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Total Weeks</label>
+                                <input type="number" name="total_weeks" value="11" required
+                                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Matches per Week</label>
+                                <input type="number" name="matches_per_week" value="8" required
+                                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Time</label>
+                                <input type="time" name="start_time" required
+                                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fun Week</label>
+                                <input type="number" name="fun_week" value="9"
+                                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">TST Week</label>
+                                <input type="number" name="tst_week" value="11"
+                                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Location</label>
+                                <select name="location"
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                    <option value="North">North</option>
+                                    <option value="South">South</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                    <button type="button" class="mt-4 inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                            data-action="add-single-week" data-league-name="{{ league.name }}">
+                        <i class="ti ti-plus"></i> Add Single Week
+                    </button>
+                </div>
+            </div>
+
+            <!-- Detailed Input Form for Bulk Matches -->
+            <div id="detailedInputForm-{{ league.name }}" class="mb-6"></div>
+
+            <!-- Current Schedule Display -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="font-semibold text-gray-900 dark:text-white">Current Schedule for {{ league.name }}</h2>
+                </div>
+                <div class="p-6">
+                    {% if schedule[league.name] %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {% for week, data in schedule[league.name].items() %}
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
+                            <div class="p-3 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
+                                <h3 class="font-medium text-gray-900 dark:text-white">Week {{ week }} - {{ data.date }}</h3>
+                                <form method="POST" action="{{ url_for('ecsfc.schedule.delete_week', league_type='ecsfc', season_id=season.id, week_number=week) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="p-3 space-y-2">
+                                {% set sorted_matches = data.matches | sort(attribute='time') %}
+                                {% for match in sorted_matches %}
+                                <div class="flex justify-between items-center p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ match.team_a }} vs {{ match.team_b }}</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ match.time }} - {{ match.location }}</p>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <button type="button" class="p-1 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded"
+                                                data-action="edit-match"
+                                                data-match-id="{{ match.match_id }}"
+                                                data-team-a="{{ match.team_a }}"
+                                                data-team-b="{{ match.team_b }}"
+                                                data-time="{{ match.time }}"
+                                                data-location="{{ match.location }}"
+                                                data-date="{{ match.date }}"
+                                                data-league-name="{{ league.name }}">
+                                            <i class="ti ti-edit"></i>
+                                        </button>
+                                        <form action="{{ url_for('ecsfc.schedule.delete_match', match_id=match.match_id) }}" method="POST" class="inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <i class="ti ti-calendar-off text-4xl text-gray-300 dark:text-gray-600"></i>
+                        <p class="text-gray-500 dark:text-gray-400 mt-2">No matches scheduled yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Add Week Modal -->
+<div id="addWeekModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/50" data-modal-backdrop></div>
+    <div class="relative min-h-screen flex items-center justify-center p-4">
+        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add New Week</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" data-modal-close>
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('publeague.schedule.manage_ecsfc_schedule', season_id=season.id) }}">
+                <input type="hidden" name="action" value="add">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" id="modal_league_name" name="league_name" value="">
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Week Number</label>
+                        <input type="number" name="week" required
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                        <input type="date" name="date" required
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team A</label>
+                            <select name="teamA" id="teamA" required
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team B</label>
+                            <select name="teamB" id="teamB" required
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+                            <input type="time" name="time" required
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+                            <select name="location" required
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="North">North</option>
+                                <option value="South">South</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                            data-modal-close>Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90">Add Week</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Match Modal -->
+<div id="editMatchModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/50" data-modal-backdrop></div>
+    <div class="relative min-h-screen flex items-center justify-center p-4">
+        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Match</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" data-modal-close>
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form method="POST" action="#" id="editMatchForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team A</label>
+                            <select id="edit_team_a" name="teamA" required
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team B</label>
+                            <select id="edit_team_b" name="teamB" required
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+                            <input type="time" id="edit_time" name="time" required
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+                            <select id="edit_location" name="location" required
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="North">North</option>
+                                <option value="South">South</option>
+                            </select>
+                        </div>
+                    </div>
+                    <input type="hidden" id="edit_date" name="date">
+                </div>
+                <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                            data-modal-close>Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+    window.leagues = {{ leagues | tojson | safe }};
+    window.seasonId = {{ season.id }};
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching
+    document.querySelectorAll('.league-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetId = this.dataset.tab;
+
+            document.querySelectorAll('.league-tab').forEach(t => {
+                t.classList.remove('border-ecs-green', 'text-ecs-green');
+                t.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+            });
+            this.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+            this.classList.add('border-ecs-green', 'text-ecs-green');
+
+            document.querySelectorAll('.league-pane').forEach(pane => {
+                pane.classList.add('hidden');
+            });
+            document.getElementById(targetId).classList.remove('hidden');
+        });
+    });
+
+    // Modal handling
+    function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    document.querySelectorAll('[data-modal-backdrop]').forEach(el => {
+        el.addEventListener('click', () => el.closest('[id]').classList.add('hidden'));
+    });
+    document.querySelectorAll('[data-modal-close]').forEach(el => {
+        el.addEventListener('click', () => el.closest('[id]').classList.add('hidden'));
+    });
+
+    // Event delegation
+    document.addEventListener('click', function(e) {
+        const action = e.target.closest('[data-action]')?.dataset;
+        if (!action) return;
+
+        if (action.action === 'add-single-week') {
+            document.getElementById('modal_league_name').value = action.leagueName;
+            showModal('addWeekModal');
+        } else if (action.action === 'edit-match') {
+            const btn = e.target.closest('[data-action]');
+            document.getElementById('edit_time').value = btn.dataset.time;
+            document.getElementById('edit_location').value = btn.dataset.location;
+            document.getElementById('edit_date').value = btn.dataset.date;
+            showModal('editMatchModal');
+        }
+    });
+});
+</script>
+<script src="{{ url_for('static', filename='custom_js/ecs-fc-bulk-admin.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/schedule-management.js') }}"></script>
+{% endblock %}
