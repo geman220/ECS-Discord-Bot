@@ -1,0 +1,164 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Schedule Wizard{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Schedule Wizard</h1>
+        <p class="text-gray-500 dark:text-gray-400">Season: {{ season.name }}</p>
+    </div>
+
+    {% if not placeholders %}
+    <!-- STEP 1: Generate placeholders -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Step 1: Configure Schedule Parameters</h2>
+        </div>
+        <div class="p-6">
+            <form method="POST" class="space-y-6">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="wizard_step" value="step1">
+                <input type="hidden" name="season_id" value="{{ season.id }}">
+
+                <div>
+                    <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Start Date (First Sunday) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date"
+                           id="start_date"
+                           name="start_date"
+                           required
+                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                </div>
+
+                <div>
+                    <label for="num_weeks" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Number of Weeks <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number"
+                           id="num_weeks"
+                           name="num_weeks"
+                           required
+                           min="1"
+                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                </div>
+
+                <div>
+                    <label for="timeslots" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Timeslots (comma separated) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text"
+                           id="timeslots"
+                           name="timeslots"
+                           placeholder="e.g. 09:00 North,09:00 South"
+                           required
+                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Format: "HH:MM FieldName"</p>
+                </div>
+
+                <!-- Week Type Options -->
+                <div class="space-y-3">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" name="fun_week" value="1"
+                               class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                        <span class="text-gray-700 dark:text-gray-300">Mark entire day as FUN WEEK</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer">
+                        <input type="checkbox" name="bye_week" value="1"
+                               class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                        <span class="text-gray-700 dark:text-gray-300">Mark entire day as BYE WEEK</span>
+                    </label>
+                </div>
+
+                <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 px-6 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                        <i class="ti ti-calendar-plus"></i>
+                        Generate Placeholders
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- STEP 2: Show placeholders + assign teams -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Step 2: Assign Teams to Matches</h2>
+            <p class="text-gray-500 dark:text-gray-400 mt-1">Please assign Team A and Team B for each row, then click "Create Matches".</p>
+        </div>
+        <div class="p-6">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="wizard_step" value="step2">
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Time</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Field</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Team A</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Team B</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            {% for row in placeholders %}
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                <td class="px-4 py-3 text-gray-900 dark:text-white">
+                                    {{ row.date }}
+                                    <input type="hidden" name="date_{{ loop.index0 }}" value="{{ row.date }}">
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    {{ row.time }}
+                                    <input type="hidden" name="time_{{ loop.index0 }}" value="{{ row.time }}">
+                                </td>
+                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    {{ row.location }}
+                                    <input type="hidden" name="location_{{ loop.index0 }}" value="{{ row.location }}">
+                                </td>
+                                <td class="px-4 py-3">
+                                    <select name="team_a_{{ loop.index0 }}"
+                                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                                        <option value="">-- Select --</option>
+                                        {% for league in leagues %}
+                                        {% for t in league.teams %}
+                                        <option value="{{ t.id }}">{{ t.name }}</option>
+                                        {% endfor %}
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <select name="team_b_{{ loop.index0 }}"
+                                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                                        <option value="">-- Select --</option>
+                                        {% for league in leagues %}
+                                        {% for t in league.teams %}
+                                        <option value="{{ t.id }}">{{ t.name }}</option>
+                                        {% endfor %}
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 px-6 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors">
+                        <i class="ti ti-check"></i>
+                        Create Matches
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

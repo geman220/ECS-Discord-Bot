@@ -1,0 +1,331 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Schedule Preview - {{ league.name }}{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+        <div class="p-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Schedule Preview - {{ league.name }}</h1>
+                    <p class="text-gray-500 dark:text-gray-400">Review and modify the generated schedule before committing</p>
+                </div>
+                <button id="toggleSettingsBtn" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors">
+                    <i class="ti ti-settings"></i>
+                    Settings
+                </button>
+            </div>
+
+            <!-- Schedule Settings Panel (Hidden by default) -->
+            <div id="scheduleSettings" class="hidden mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Schedule Configuration</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                        <span class="font-medium text-gray-700 dark:text-gray-300">Start Time:</span>
+                        <span class="text-gray-600 dark:text-gray-400 ml-1">{{ config.start_time.strftime('%H:%M') }}</span>
+                    </div>
+                    <div>
+                        <span class="font-medium text-gray-700 dark:text-gray-300">Duration:</span>
+                        <span class="text-gray-600 dark:text-gray-400 ml-1">{{ config.match_duration_minutes }} min</span>
+                    </div>
+                    <div>
+                        <span class="font-medium text-gray-700 dark:text-gray-300">Weeks:</span>
+                        <span class="text-gray-600 dark:text-gray-400 ml-1">{{ config.weeks_count }}</span>
+                    </div>
+                    <div>
+                        <span class="font-medium text-gray-700 dark:text-gray-300">Fields:</span>
+                        <span class="text-gray-600 dark:text-gray-400 ml-1">{{ config.fields }}</span>
+                    </div>
+                </div>
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <form method="POST" action="{{ url_for('auto_schedule.regenerate_schedule', league_id=league.id) }}" class="flex items-center gap-2">
+                        <input type="date" name="start_date" id="regenerate_start_date" required
+                               class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                        <button type="submit" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-yellow-500 text-white text-sm hover:bg-yellow-600 transition-colors">
+                            <i class="ti ti-refresh"></i>
+                            Regenerate
+                        </button>
+                    </form>
+                    <button id="deleteScheduleBtn" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500 text-white text-sm hover:bg-red-600 transition-colors">
+                        <i class="ti ti-trash"></i>
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-wrap gap-3 mb-6">
+        <button id="commitScheduleBtn" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors">
+            <i class="ti ti-check"></i>
+            Commit Schedule
+        </button>
+        <a href="{{ url_for('auto_schedule.auto_schedule_config', league_id=league.id) }}"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <i class="ti ti-edit"></i>
+            Modify Configuration
+        </a>
+        <a href="{{ url_for('auto_schedule.schedule_manager') }}"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <i class="ti ti-arrow-left"></i>
+            Back to Season Builder
+        </a>
+    </div>
+
+    <!-- Schedule Preview -->
+    <div class="space-y-6">
+        {% for week, matches in schedule_preview.items() %}
+        {% set week_type = matches[0].week_type if matches else 'REGULAR' %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-900 dark:text-white">{{ week }}</h3>
+                {% if week_type == 'FUN' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300">FUN WEEK</span>
+                {% elif week_type == 'TST' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300">TST WEEK</span>
+                {% elif week_type == 'BYE' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-300">BYE WEEK</span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300">REGULAR</span>
+                {% endif %}
+            </div>
+
+            {% if week_type == 'BYE' %}
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50">
+                <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                    <i class="ti ti-moon"></i>
+                    <span><strong>BYE Week</strong> - No games scheduled. Teams have the week off.</span>
+                </div>
+            </div>
+            {% elif week_type == 'FUN' %}
+            <div class="p-4 bg-yellow-50 dark:bg-yellow-900/30">
+                <div class="flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
+                    <i class="ti ti-ball-football"></i>
+                    <span><strong>FUN Week</strong> - Special activities and fun games.</span>
+                </div>
+            </div>
+            {% elif week_type == 'TST' %}
+            <div class="p-4 bg-blue-50 dark:bg-blue-900/30">
+                <div class="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                    <i class="ti ti-trophy"></i>
+                    <span><strong>TST Week</strong> - The Soccer Tournament week.</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Time</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Field</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Home Team</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Away Team</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Order</th>
+                            {% if week_type == 'REGULAR' %}
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        {% for match in matches %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 {% if match.week_type != 'REGULAR' %}bg-gray-50 dark:bg-gray-700/30{% endif %}"
+                            data-template-id="{{ match.id }}">
+                            <td class="px-4 py-3 text-gray-900 dark:text-white">{{ match.time }}</td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
+                                    {{ match.field }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-gray-900 dark:text-white">
+                                {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                <span class="text-gray-500 dark:text-gray-400 italic">
+                                    {{ match.week_type }} Week
+                                </span>
+                                {% else %}
+                                {{ match.home_team }}
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                <span class="text-gray-400 dark:text-gray-500">-</span>
+                                {% else %}
+                                {{ match.away_team }}
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-ecs-green/10 text-ecs-green' if match.match_order == 1 else 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300' }}">
+                                    {{ match.match_order }}{{ 'st' if match.match_order == 1 else 'nd' if match.match_order == 2 else 'rd' if match.match_order == 3 else 'th' }}
+                                </span>
+                            </td>
+                            {% if week_type == 'REGULAR' %}
+                            <td class="px-4 py-3">
+                                <button class="px-2 py-1 text-xs rounded border border-ecs-green text-ecs-green hover:bg-ecs-green/10 transition-colors js-select-swap"
+                                        data-match-id="{{ match.id }}"
+                                        data-match-desc="{{ match.home_team }} vs {{ match.away_team }}">
+                                    <i class="ti ti-arrows-exchange mr-1"></i>Swap
+                                </button>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Swap Teams Modal -->
+<div id="swapTeamsModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-black/50" onclick="document.getElementById('swapTeamsModal').classList.add('hidden')"></div>
+        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Swap Teams</h3>
+            </div>
+            <div class="p-4">
+                <p class="text-gray-600 dark:text-gray-300 mb-4">Select two matches to swap teams:</p>
+                <div id="selectedMatches" class="space-y-2"></div>
+            </div>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+                <button onclick="document.getElementById('swapTeamsModal').classList.add('hidden')"
+                        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    Cancel
+                </button>
+                <button id="executeSwapBtn" disabled
+                        class="px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="ti ti-arrows-exchange mr-1"></i>Swap Teams
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+const isDark = document.documentElement.classList.contains('dark');
+let selectedMatches = [];
+
+// Toggle settings
+document.getElementById('toggleSettingsBtn')?.addEventListener('click', () => {
+    document.getElementById('scheduleSettings').classList.toggle('hidden');
+});
+
+// Delete schedule
+document.getElementById('deleteScheduleBtn')?.addEventListener('click', () => {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'Delete Schedule?',
+            text: 'This will remove all generated templates.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            confirmButtonText: 'Delete',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('{{ url_for("auto_schedule.delete_schedule", league_id=league.id) }}', { method: 'POST' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = '{{ url_for("auto_schedule.auto_schedule_config", league_id=league.id) }}';
+                        }
+                    });
+            }
+        });
+    }
+});
+
+// Commit schedule
+document.getElementById('commitScheduleBtn')?.addEventListener('click', () => {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'Commit Schedule?',
+            text: 'This will create actual matches and cannot be easily undone.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#1a472a',
+            confirmButtonText: 'Commit',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('{{ url_for("auto_schedule.commit_schedule", league_id=league.id) }}', { method: 'POST' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Schedule committed successfully!',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => {
+                                window.location.href = '{{ url_for("publeague.season.manage_seasons") }}';
+                            });
+                        }
+                    });
+            }
+        });
+    }
+});
+
+// Swap functionality
+document.querySelectorAll('.js-select-swap').forEach(btn => {
+    btn.addEventListener('click', () => {
+        if (selectedMatches.length >= 2) {
+            selectedMatches = [];
+            document.querySelectorAll('.ring-2').forEach(el => el.classList.remove('ring-2', 'ring-ecs-green'));
+        }
+        selectedMatches.push({ id: btn.dataset.matchId, description: btn.dataset.matchDesc });
+        btn.closest('tr').classList.add('ring-2', 'ring-ecs-green');
+        updateSwapModal();
+        if (selectedMatches.length === 2) {
+            document.getElementById('swapTeamsModal').classList.remove('hidden');
+        }
+    });
+});
+
+function updateSwapModal() {
+    const container = document.getElementById('selectedMatches');
+    container.innerHTML = selectedMatches.map((m, i) => `
+        <div class="p-2 bg-gray-50 dark:bg-gray-700 rounded flex justify-between items-center">
+            <span class="text-gray-900 dark:text-white"><strong>Match ${i+1}:</strong> ${m.description}</span>
+            <button onclick="removeFromSwap(${i})" class="text-red-500 hover:text-red-600"><i class="ti ti-x"></i></button>
+        </div>
+    `).join('');
+    document.getElementById('executeSwapBtn').disabled = selectedMatches.length !== 2;
+}
+
+function removeFromSwap(index) {
+    selectedMatches.splice(index, 1);
+    updateSwapModal();
+    if (selectedMatches.length === 0) {
+        document.getElementById('swapTeamsModal').classList.add('hidden');
+    }
+}
+
+document.getElementById('executeSwapBtn')?.addEventListener('click', () => {
+    const formData = new FormData();
+    formData.append('template_id_1', selectedMatches[0].id);
+    formData.append('template_id_2', selectedMatches[1].id);
+    fetch('{{ url_for("auto_schedule.swap_teams", league_id=league.id) }}', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => { if (data.success) location.reload(); });
+});
+
+// Set default regenerate date
+const today = new Date();
+const nextSunday = new Date(today);
+nextSunday.setDate(today.getDate() + (7 - today.getDay()) % 7);
+document.getElementById('regenerate_start_date').value = nextSunday.toISOString().split('T')[0];
+</script>
+{% endblock %}
