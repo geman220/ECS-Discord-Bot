@@ -1,0 +1,157 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Complete Registration{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <div class="w-full max-w-2xl">
+        <!-- ECS Logo -->
+        <div class="text-center mb-6">
+            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}"
+                 alt="ECS Logo" class="w-20 h-20 mx-auto">
+        </div>
+
+        <!-- Registration Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Complete Registration</h1>
+                <p class="text-gray-500 dark:text-gray-400">Finish setting up your account with Discord</p>
+            </div>
+
+            <!-- Welcome Alert -->
+            <div class="flex items-start gap-3 p-4 mb-6 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
+                <i class="ti ti-info-circle text-xl flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <h6 class="font-semibold">Welcome, {{ discord_username }}!</h6>
+                    <p class="text-sm">Complete your registration for ECS FC. Please read and accept the terms below to create your account.</p>
+                </div>
+            </div>
+
+            <!-- Account Info -->
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6">
+                <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Account Information</h6>
+                <div class="space-y-1 text-sm">
+                    <div><strong class="text-gray-700 dark:text-gray-300">Email:</strong> <span class="text-gray-600 dark:text-gray-400">{{ discord_email }}</span></div>
+                    <div><strong class="text-gray-700 dark:text-gray-300">Username:</strong> <span class="text-gray-600 dark:text-gray-400">{{ discord_username }}</span></div>
+                </div>
+            </div>
+
+            <!-- Waiver Section -->
+            <div class="mb-6">
+                <div class="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-t-lg border border-amber-200 dark:border-amber-800">
+                    <i class="ti ti-alert-triangle text-amber-600 dark:text-amber-400 mt-0.5"></i>
+                    <div>
+                        <h6 class="font-semibold text-amber-800 dark:text-amber-200">Please Read Before Completing Registration</h6>
+                        <p class="text-sm text-amber-700 dark:text-amber-300">Registration requires acceptance of our liability waiver and code of conduct.</p>
+                        <p class="text-xs text-amber-600 dark:text-amber-400 mt-1" id="scroll-hint">
+                            <i class="ti ti-arrow-down"></i> Please scroll to read the entire document
+                        </p>
+                    </div>
+                </div>
+
+                <div id="waiver-content" class="h-64 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-700/50 border-x border-b border-gray-200 dark:border-gray-700 rounded-b-lg text-sm text-gray-600 dark:text-gray-300 space-y-4">
+                    <h6 class="font-bold text-gray-900 dark:text-white">Waiver of Liability and Hold Harmless Agreement</h6>
+                    <p>"Participant" hereby releases, waives, discharges and covenants not to sue ECS Pub League, a Washington nonprofit organization, and its affiliated associations, officers, directors, employees, agents, and contractors (collectively, the "Released Parties") from any and all liability, claims, demands, actions and causes of action whatsoever arising out of or related to any loss, damage, or injury, including death, that may be sustained by Participant, or to any property belonging to Participant, whether caused by the negligence of the Released Parties, or otherwise, while participating in such athletic and related event activities, or while in, on or upon the premises where the activities are being conducted.</p>
+
+                    <p>Participant is fully aware of risks and hazards connected with the proposed soccer activity, including the risk of injury to a participant's neck, back, spine, knees or other parts of their body, and Participant hereby elects to participate as a voluntary participant in said activity, and to enter the premises of the various fields used to conduct soccer games or training and engage in such activity knowing that the activity may be hazardous to Participant or Participant's property. PARTICIPANT VOLUNTARILY ASSUMES FULL RESPONSIBILITY FOR ANY RISKS OF LOSS, PROPERTY DAMAGE OR PERSONAL INJURY, INCLUDING DEATH, that may be sustained by any of its players, coaches, opponents, or fans, or any loss or damage to property owned by Participant, as a result of being engaged in such an activity, whether caused by the negligence of the Released Parties or otherwise.</p>
+
+                    <p>Participant acknowledges that ECS Pub League does not carry insurance on behalf of the Participant. Participant further hereby agrees to indemnify and hold harmless the Released Parties from and against any loss, liability, damage or costs, including court costs and attorney's fees, that they may incur due to Participant's participation in the proposed league activities, whether caused by the negligence of the Released Parties or otherwise. Participant agrees that this Waiver of Liability and Hold Harmless Agreement shall be construed in accordance with the laws of the State of Washington. Participant acknowledges full, adequate and complete consideration and intends to be bound by the terms contained herein.</p>
+
+                    <h6 class="font-bold text-gray-900 dark:text-white pt-2">ECS Pub League Code of Conduct</h6>
+                    <p>Participant further acknowledges and accepts as a condition of participation that ECS Pub League is a 21+ adult recreational league for very casual no/low contact soccer for beginners and beginner-friendly low-intermediate recreational players. We're not for everyone. Our level of skill, physicality, and competitiveness is typically well below even the lowest divisions of other leagues.</p>
+
+                    <p>We do not discriminate based on race, color, religion, gender, gender expression, age, national origin, ancestry, disability, marital status, sexual orientation, or military status, in any of our activities or operations.</p>
+
+                    <p>We do, however, reserve the right to deny play at any time for anyone who is deemed a poor fit for the league's mission and the culture of the unique community we serve because of skill, experience, physicality, competitiveness, or similar reasons.</p>
+
+                    <p class="font-medium text-gray-900 dark:text-white">More serious infractions may result in yellow cards, red cards, suspensions, or expulsion from the league:</p>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li>Excessive physical play and tackling, whether called as fouls or not.</li>
+                        <li>Repeated dissent and/or unsporting behavior by words or action.</li>
+                        <li>Playing in a dangerous manner that causes or threatens to cause injury.</li>
+                    </ul>
+
+                    <p class="font-medium text-gray-900 dark:text-white">Less serious infractions will be handled in private conversations:</p>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li>Regularly ball hogging and excessive dribbling rather than passing.</li>
+                        <li>Regularly playing out of position to get more involved in play.</li>
+                        <li>Regularly dribbling through multiple opponents, especially less skilled ones.</li>
+                        <li>Regularly passing to only more talented players.</li>
+                        <li>Excessive shooting when passing was a better decision.</li>
+                        <li>Running up the score or excessive celebration.</li>
+                    </ul>
+
+                    <p class="font-bold text-gray-900 dark:text-white pt-2">PARTICIPANT HAS READ THIS WAIVER OF LIABILITY AND CODE OF CONDUCT AND FULLY UNDERSTANDS ITS TERMS, UNDERSTANDS THAT THEY HAVE GIVEN UP SUBSTANTIAL RIGHTS AND AGREES TO IT BY REGISTERING TO PLAY IN THE LEAGUE, DOING SO FREELY AND VOLUNTARILY WITHOUT ANY INDUCEMENT.</p>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <form method="post" action="{{ url_for('auth.register_with_discord') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- Terms Agreement -->
+                <div class="mb-6" id="terms-checkbox-wrapper">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" id="terms-agreement" name="terms_agreement" required disabled
+                               class="mt-1 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green disabled:opacity-50">
+                        <span class="text-sm text-gray-500 dark:text-gray-400" id="terms-label">
+                            I agree to the ECS FC terms and conditions, liability waiver, and code of conduct
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex gap-3">
+                    <button type="submit" id="complete-registration-btn" disabled
+                            class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Register
+                    </button>
+                    <a href="{{ url_for('auth.login') }}"
+                       class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const waiverContent = document.getElementById('waiver-content');
+    const termsCheckbox = document.getElementById('terms-agreement');
+    const termsLabel = document.getElementById('terms-label');
+    const scrollHint = document.getElementById('scroll-hint');
+    const submitBtn = document.getElementById('complete-registration-btn');
+    let hasScrolledToBottom = false;
+
+    function checkScrollPosition() {
+        if (hasScrolledToBottom) return;
+
+        const scrolledToBottom = waiverContent.scrollHeight - waiverContent.scrollTop - waiverContent.clientHeight < 20;
+
+        if (scrolledToBottom) {
+            hasScrolledToBottom = true;
+            termsCheckbox.disabled = false;
+            termsLabel.classList.remove('text-gray-500', 'dark:text-gray-400');
+            termsLabel.classList.add('text-gray-700', 'dark:text-gray-300');
+            if (scrollHint) {
+                scrollHint.classList.add('hidden');
+            }
+        }
+    }
+
+    if (waiverContent) {
+        waiverContent.addEventListener('scroll', checkScrollPosition);
+        checkScrollPosition();
+    }
+
+    termsCheckbox.addEventListener('change', function() {
+        submitBtn.disabled = !this.checked;
+    });
+});
+</script>
+{% endblock %}

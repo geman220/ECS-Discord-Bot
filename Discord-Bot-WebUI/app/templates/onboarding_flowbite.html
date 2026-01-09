@@ -1,0 +1,356 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Complete Your Profile{% endblock %}
+
+{% block main_content %}
+<div class="p-4">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-xl p-6 text-white mb-6">
+            <h1 class="text-2xl font-bold mb-2">Complete Your Profile</h1>
+            <p class="text-white/80">Please complete your profile information below to help us get to know you better.</p>
+        </div>
+
+        <!-- Welcome Alert -->
+        <div class="flex items-start gap-3 p-4 mb-6 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-xl border border-blue-200 dark:border-blue-800">
+            <i class="ti ti-info-circle text-xl flex-shrink-0 mt-0.5"></i>
+            <div>
+                <h6 class="font-semibold">Welcome to ECS FC!</h6>
+                <p class="text-sm">Please complete your profile information below to help us get to know you better.</p>
+            </div>
+        </div>
+
+        {% if needs_discord_join %}
+        <!-- Discord Join Prompt -->
+        <div class="bg-[#5865F2]/10 dark:bg-[#5865F2]/20 border border-[#5865F2]/30 rounded-xl p-6 mb-6 text-center">
+            <i class="ti ti-brand-discord text-5xl text-[#5865F2] mb-3"></i>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Join our Discord Server!</h6>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                To fully participate in ECS FC, you need to join our Discord server. This is where match announcements, team discussions, and important notifications take place.
+            </p>
+            <a href="{{ discord_invite_link }}" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#5865F2] text-white font-medium hover:bg-[#4752c4] transition-colors">
+                <i class="ti ti-brand-discord"></i>Join Discord Server
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Onboarding Form -->
+        <form method="post" action="{{ url_for('main.onboarding') }}" enctype="multipart/form-data" class="space-y-6" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="form_action" value="create_profile" id="form_action">
+            {% if player %}
+            <input type="hidden" name="playerId" id="playerId" value="{{ player.id }}">
+            {% endif %}
+
+            <!-- Personal Information Section -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                    <i class="ti ti-user text-ecs-green dark:text-ecs-gold"></i>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Personal Information</h5>
+                </div>
+                <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name <span class="text-red-500">*</span></label>
+                        {{ onboarding_form.name(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", placeholder="Your full name", required=True) }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email <span class="text-red-500">*</span></label>
+                        {{ onboarding_form.email(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", placeholder="Your email", required=True) }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                        {{ onboarding_form.phone(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", placeholder="Your phone number") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jersey Size</label>
+                        {{ onboarding_form.jersey_size(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preferred Jersey Number</label>
+                        {{ onboarding_form.jersey_number(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", placeholder="Jersey number") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preferred Pronouns</label>
+                        {{ onboarding_form.pronouns(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- League Selection Section -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                    <i class="ti ti-trophy text-ecs-gold"></i>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">League Selection</h5>
+                </div>
+                <div class="p-4">
+                    <div class="flex items-start gap-3 p-4 mb-4 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg">
+                        <i class="ti ti-trophy text-xl flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <h6 class="font-semibold">Which league are you interested in joining?</h6>
+                            <p class="text-sm">Please select the league that best matches your skill level and availability:</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="preferred_league" value="pub_league_classic" required
+                                   class="peer sr-only">
+                            <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-colors">
+                                <div class="text-2xl mb-2">&#x1F3C6;</div>
+                                <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Pub League Classic</h6>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Our beginner-friendly classic division - it's all about having fun and improving your game.</p>
+                            </div>
+                        </label>
+
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="preferred_league" value="pub_league_premier" required
+                                   class="peer sr-only">
+                            <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-colors">
+                                <div class="text-2xl mb-2">&#x1F31F;</div>
+                                <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Pub League Premier</h6>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Our Premier Division for low to intermediate recreational players. Bring your C game!</p>
+                            </div>
+                        </label>
+
+                        <label class="relative cursor-pointer">
+                            <input type="radio" name="preferred_league" value="ecs_fc" required
+                                   class="peer sr-only">
+                            <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-colors">
+                                <div class="text-2xl mb-2">&#x26BD;</div>
+                                <h6 class="font-semibold text-gray-900 dark:text-white mb-1">ECS FC</h6>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Our club team for dedicated players who want to represent ECS in organized competition.</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Playing Preferences Section -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                    <i class="ti ti-ball-football text-ecs-green dark:text-ecs-gold"></i>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Playing Preferences</h5>
+                </div>
+                <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Favorite Position</label>
+                        {{ onboarding_form.favorite_position(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Other Positions You Enjoy</label>
+                        {{ onboarding_form.other_positions(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green h-24", multiple="multiple") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Positions to Avoid</label>
+                        {{ onboarding_form.positions_not_to_play(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green h-24", multiple="multiple") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Willingness to Play Goal</label>
+                        {{ onboarding_form.frequency_play_goal(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Availability Section -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                    <i class="ti ti-calendar text-ecs-green dark:text-ecs-gold"></i>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Availability</h5>
+                </div>
+                <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expected Availability (# of weeks)</label>
+                        {{ onboarding_form.expected_weeks_available(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Willing to Switch Teams if Needed?</label>
+                        {{ onboarding_form.team_swap(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unavailable Dates</label>
+                        {{ onboarding_form.unavailable_dates(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", placeholder="List any dates you're unavailable") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Interested in Refereeing?</label>
+                        {{ onboarding_form.willing_to_referee(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Picture Section -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                    <i class="ti ti-camera text-ecs-green dark:text-ecs-gold"></i>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Profile Picture</h5>
+                </div>
+                <div class="p-4">
+                    <div class="flex flex-col md:flex-row gap-4 items-start">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Upload Profile Picture</label>
+                            {{ onboarding_form.profile_picture(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", id="image") }}
+                            <input type="hidden" name="cropped_image_data" id="cropped_image_data">
+                        </div>
+                        <div class="flex-shrink-0">
+                            <div id="currentProfilePicture" class="w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600">
+                                <img src="{{ player.profile_picture_url if player and player.profile_picture_url else url_for('static', filename='img/default_player.png') }}"
+                                     alt="Profile Picture" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="cropperContainer" class="hidden mt-4">
+                        <img id="imagecan" src="" alt="Preview" class="max-w-full rounded-lg">
+                        <button type="button" id="cropAndSaveButton"
+                                class="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                            <i class="ti ti-crop"></i>Crop and Save
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Information Section -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                    <i class="ti ti-notes text-ecs-green dark:text-ecs-gold"></i>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Additional Information</h5>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Additional Information</label>
+                        {{ onboarding_form.additional_info(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", rows="3", placeholder="Any additional information we should know") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Player Notes</label>
+                        {{ onboarding_form.player_notes(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", rows="3", placeholder="Any notes about your playing style or preferences") }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notification Preferences Section -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                    <i class="ti ti-bell text-ecs-green dark:text-ecs-gold"></i>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Notification Preferences</h5>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            {{ onboarding_form.email_notifications(class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green", id="emailNotifications") }}
+                            <span class="text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            {{ onboarding_form.sms_notifications(class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green", id="smsNotifications") }}
+                            <span class="text-sm text-gray-700 dark:text-gray-300">SMS Notifications</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            {{ onboarding_form.discord_notifications(class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green", id="discordNotifications") }}
+                            <span class="text-sm text-gray-700 dark:text-gray-300">Discord Notifications</span>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Profile Visibility</label>
+                        {{ onboarding_form.profile_visibility(class="block w-full md:w-1/2 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                    </div>
+
+                    <!-- SMS Verification (hidden by default) -->
+                    <div id="smsOptInSection" class="hidden p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <label class="flex items-start gap-3 cursor-pointer mb-4">
+                            <input type="checkbox" id="smsConsent" name="sms_consent"
+                                   class="mt-0.5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                            <span class="text-sm text-gray-600 dark:text-gray-300">
+                                I consent to receive text messages from ECS FC about team updates, schedule changes, and important announcements.
+                                Standard message and data rates may apply. You can opt out at any time.
+                            </span>
+                        </label>
+
+                        <div id="smsVerificationSection" class="hidden">
+                            <h6 class="font-medium text-gray-900 dark:text-white mb-2">Verify Your Phone Number</h6>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">We'll send a verification code to confirm your phone number.</p>
+
+                            <button type="button" id="sendVerificationBtn"
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                                <i class="ti ti-send"></i>Send Verification Code
+                            </button>
+
+                            <div id="verificationCodeInput" class="hidden mt-4">
+                                <div class="flex gap-2">
+                                    <input type="text" id="verificationCode" placeholder="Enter 6-digit code"
+                                           class="block w-40 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                    <button type="button" id="verifyCodeBtn"
+                                            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors">
+                                        <i class="ti ti-check"></i>Verify
+                                    </button>
+                                </div>
+                            </div>
+
+                            <input type="hidden" id="smsVerified" name="sms_verified" value="{{ 'true' if player and player.is_phone_verified else 'false' }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                    <i class="ti ti-check"></i>Save Profile
+                </button>
+                <a href="{{ url_for('main.index') }}"
+                   class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script src="{{ url_for('static', filename='custom_js/simple-cropper.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // SMS notification toggle
+    const smsToggle = document.getElementById('smsNotifications');
+    const smsOptIn = document.getElementById('smsOptInSection');
+    const smsConsent = document.getElementById('smsConsent');
+    const smsVerification = document.getElementById('smsVerificationSection');
+
+    if (smsToggle && smsOptIn) {
+        smsToggle.addEventListener('change', function() {
+            smsOptIn.classList.toggle('hidden', !this.checked);
+        });
+    }
+
+    if (smsConsent && smsVerification) {
+        smsConsent.addEventListener('change', function() {
+            smsVerification.classList.toggle('hidden', !this.checked);
+        });
+    }
+});
+</script>
+{% if needs_discord_join %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    setTimeout(function() {
+        Swal.fire({
+            title: 'Join our Discord Server',
+            html: '<p>To fully participate in ECS FC, you need to join our Discord server!</p><ul class="text-left text-sm mt-2"><li>Match announcements</li><li>Team discussions</li><li>Important notifications</li></ul>',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Join Discord',
+            cancelButtonText: 'Later',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827',
+            confirmButtonColor: '#5865F2'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.open('{{ discord_invite_link }}', '_blank');
+            }
+        });
+    }, 500);
+});
+</script>
+{% endif %}
+{% endblock %}
