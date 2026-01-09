@@ -1,0 +1,335 @@
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button %}
+
+{% block title %}Create New Help Topic{% endblock %}
+{% block page_title %}Create New Help Topic{% endblock %}
+
+{% block head_extra %}
+{{ super() }}
+<link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<style>
+    /* Modal overlay */
+    .markdown-editor-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+    }
+    .markdown-editor-modal.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .markdown-editor-modal__content {
+        width: 95%;
+        max-width: 1200px;
+        height: 90vh;
+        display: flex;
+        flex-direction: column;
+    }
+    .markdown-editor-modal__editor {
+        flex: 1;
+        overflow: hidden;
+    }
+    .markdown-editor-modal__editor .EasyMDEContainer {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .markdown-editor-modal__editor .CodeMirror {
+        flex: 1;
+    }
+
+    /* Dark mode styles for EasyMDE */
+    .dark .EasyMDEContainer .CodeMirror {
+        background-color: rgb(55, 65, 81);
+        color: rgb(229, 231, 235);
+        border-color: rgb(75, 85, 99);
+    }
+    .dark .EasyMDEContainer .editor-toolbar {
+        background-color: rgb(31, 41, 55);
+        border-color: rgb(75, 85, 99);
+    }
+    .dark .EasyMDEContainer .editor-toolbar button {
+        color: rgb(156, 163, 175);
+    }
+    .dark .EasyMDEContainer .editor-toolbar button:hover {
+        background-color: rgb(55, 65, 81);
+    }
+    .dark .EasyMDEContainer .editor-toolbar button.active {
+        background-color: rgb(55, 65, 81);
+    }
+    .dark .EasyMDEContainer .editor-statusbar {
+        color: rgb(156, 163, 175);
+    }
+    .dark .EasyMDEContainer .CodeMirror-cursor {
+        border-left-color: rgb(229, 231, 235);
+    }
+    .dark .EasyMDEContainer .editor-preview {
+        background-color: rgb(31, 41, 55);
+        color: rgb(229, 231, 235);
+    }
+    .dark .EasyMDEContainer .editor-preview-side {
+        background-color: rgb(31, 41, 55);
+        color: rgb(229, 231, 235);
+        border-color: rgb(75, 85, 99);
+    }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{{ url_for('help.admin_help_topics') }}" class="inline-flex items-center text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green">
+                    <i class="ti ti-settings mr-2"></i>
+                    Admin - Help Topics
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="ti ti-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-900 dark:text-white">Create New Topic</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Create New Help Topic</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Add a new help article for users</p>
+        </div>
+    </div>
+
+    <!-- Create Form Card -->
+    {% call card() %}
+    <form method="POST"
+          enctype="multipart/form-data"
+          class="space-y-6"
+          data-component="help-editor-form">
+        {{ form.hidden_tag() }}
+
+        <!-- Title Field -->
+        <div>
+            <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ form.title.label.text }}
+                <span class="text-red-500">*</span>
+            </label>
+            {{ form.title(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", placeholder="Enter help topic title") }}
+        </div>
+
+        <!-- Markdown Content Field with Inline Editor -->
+        <div>
+            <label for="markdown_editor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ form.markdown_content.label.text }}
+                <span class="text-red-500">*</span>
+            </label>
+            {{ form.markdown_content(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", id="markdown_editor", placeholder="Start typing your help content here...") }}
+            <button type="button"
+                    class="mt-2 inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
+                    data-action="open-markdown-editor">
+                <i class="ti ti-maximize mr-2"></i>
+                Open Full Editor
+            </button>
+        </div>
+
+        <!-- File Upload Field -->
+        <div>
+            <label for="markdown_file" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Upload Markdown File (Optional)
+            </label>
+            <input type="file"
+                   id="markdown_file"
+                   accept=".md,.markdown"
+                   class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-medium file:bg-ecs-green file:text-white hover:file:bg-ecs-green-700"
+                   data-form-control>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Upload a .md file to populate the content field
+            </p>
+        </div>
+
+        <!-- Roles Field -->
+        <div>
+            <label for="roles" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ form.roles.label.text }}
+            </label>
+            {{ form.roles(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", multiple="multiple", size="5") }}
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Hold Ctrl/Cmd to select multiple roles. Leave empty or select "Public" for all users.
+            </p>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            {{ button(form.submit.label.text, variant="primary", type="submit", icon="plus") }}
+            {{ button("Cancel", variant="outline", href=url_for('help.admin_help_topics'), icon="x") }}
+        </div>
+    </form>
+    {% endcall %}
+</div>
+
+<!-- Modal for pop-out Markdown editor -->
+<div id="markdown-editor-modal"
+     class="markdown-editor-modal"
+     data-component="markdown-editor-modal">
+    <div class="markdown-editor-modal__content bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Markdown Editor</h3>
+            <button type="button"
+                    class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                    data-action="close-markdown-editor"
+                    title="Close">
+                <i class="ti ti-x text-lg"></i>
+            </button>
+        </div>
+        <!-- Modal Body -->
+        <div id="modal-editor-container" class="markdown-editor-modal__editor p-4"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<!-- Load EasyMDE library -->
+<script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+<!-- Help Topic Editor Module loaded via Vite in production, or directly in development -->
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+<script type="module" src="{{ url_for('static', filename='custom_js/help-topic-editor.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let inlineEditor = null;
+    let modalEditor = null;
+    const modal = document.getElementById('markdown-editor-modal');
+    const inlineEditorElement = document.getElementById('markdown_editor');
+    const modalEditorContainer = document.getElementById('modal-editor-container');
+    const fileInput = document.getElementById('markdown_file');
+
+    // Initialize inline editor
+    if (inlineEditorElement && typeof EasyMDE !== 'undefined') {
+        inlineEditor = new EasyMDE({
+            element: inlineEditorElement,
+            spellChecker: false,
+            toolbar: ["bold", "italic", "heading", "|", "quote", "code", "table", "|", "preview"],
+            status: false,
+            minHeight: "200px",
+        });
+    }
+
+    // Open modal editor
+    document.addEventListener('click', function(e) {
+        const openBtn = e.target.closest('[data-action="open-markdown-editor"]');
+        if (openBtn && modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            // Create modal editor if not exists
+            if (!modalEditor && modalEditorContainer) {
+                const textarea = document.createElement('textarea');
+                textarea.id = 'modal-markdown-editor';
+                modalEditorContainer.appendChild(textarea);
+
+                modalEditor = new EasyMDE({
+                    element: textarea,
+                    spellChecker: false,
+                    toolbar: ["bold", "italic", "heading", "|", "quote", "code", "table", "image", "|", "preview", "side-by-side", "fullscreen", "|", {
+                        name: "save",
+                        action: function(editor) {
+                            // Sync content back to inline editor
+                            if (inlineEditor) {
+                                inlineEditor.value(editor.value());
+                            }
+                            modal.classList.remove('active');
+                            document.body.style.overflow = '';
+                        },
+                        className: "fa fa-check",
+                        title: "Save & Close",
+                    }],
+                    status: ["lines", "words"],
+                    minHeight: "400px",
+                });
+            }
+
+            // Sync content from inline to modal
+            if (modalEditor && inlineEditor) {
+                modalEditor.value(inlineEditor.value());
+            }
+        }
+    });
+
+    // Close modal editor
+    document.addEventListener('click', function(e) {
+        const closeBtn = e.target.closest('[data-action="close-markdown-editor"]');
+        if (closeBtn && modal) {
+            // Sync content back before closing
+            if (modalEditor && inlineEditor) {
+                inlineEditor.value(modalEditor.value());
+            }
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+
+    // Close on backdrop click
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                if (modalEditor && inlineEditor) {
+                    inlineEditor.value(modalEditor.value());
+                }
+                modal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+    }
+
+    // Handle file upload
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const content = event.target.result;
+                    if (inlineEditor) {
+                        inlineEditor.value(content);
+                    }
+                    // Also extract title from first line if it's a heading
+                    const lines = content.split('\n');
+                    if (lines[0] && lines[0].startsWith('#')) {
+                        const title = lines[0].replace(/^#+\s*/, '').trim();
+                        const titleInput = document.getElementById('title');
+                        if (titleInput && !titleInput.value) {
+                            titleInput.value = title;
+                        }
+                    }
+                };
+                reader.readAsText(file);
+            }
+        });
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
+            if (modalEditor && inlineEditor) {
+                inlineEditor.value(modalEditor.value());
+            }
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

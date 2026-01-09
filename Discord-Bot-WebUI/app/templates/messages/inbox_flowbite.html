@@ -1,0 +1,269 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Messages{% endblock %}
+
+{% block page_title %}Messages{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Typing indicator animation */
+    .typing-dot {
+        animation: typing-bounce 1.4s infinite ease-in-out both;
+    }
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+    .typing-dot:nth-child(3) { animation-delay: 0s; }
+    @keyframes typing-bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+    }
+
+    /* Message spinner */
+    .message-spinner {
+        width: 24px;
+        height: 24px;
+        border: 2px solid #e5e7eb;
+        border-top-color: #1a472a;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    .dark .message-spinner {
+        border-color: #374151;
+        border-top-color: #22c55e;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="flex flex-col h-[calc(100vh-180px)]" data-component="messages-inbox">
+
+    {# Page Header #}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
+        <div class="flex items-center gap-3">
+            <i class="ti ti-messages text-2xl text-ecs-green" aria-hidden="true"></i>
+            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Messages</h1>
+        </div>
+        <button class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-colors" data-action="new-conversation">
+            <i class="ti ti-plus" aria-hidden="true"></i>
+            New Message
+        </button>
+    </div>
+
+    {# Main Messages Container #}
+    <div class="flex flex-1 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+
+        {# Sidebar - Conversation List #}
+        <aside class="w-full md:w-80 lg:w-96 flex flex-col border-r border-gray-200 dark:border-gray-700" id="conversations-sidebar">
+
+            {# Search Bar #}
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="relative">
+                    <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                    <input type="text"
+                           class="w-full pl-10 pr-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green"
+                           data-input="search-conversations"
+                           placeholder="Search conversations..."
+                           autocomplete="off"
+                           aria-label="Search conversations">
+                </div>
+            </div>
+
+            {# Conversation List #}
+            <div class="flex-1 overflow-y-auto" data-list="conversations">
+
+                {# Loading State #}
+                <div class="flex flex-col items-center justify-center py-12 px-4" data-state="loading">
+                    <div class="message-spinner mb-3"></div>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Loading conversations...</span>
+                </div>
+
+                {# Empty State #}
+                <div class="hidden flex-col items-center justify-center py-12 px-4 text-center" data-state="empty">
+                    <i class="ti ti-message-off text-5xl text-gray-300 dark:text-gray-600 mb-4" aria-hidden="true"></i>
+                    <p class="text-lg font-medium text-gray-900 dark:text-white mb-2">No conversations yet</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Start a new conversation to connect with other players and coaches</p>
+                    <button class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-colors" data-action="new-conversation">
+                        <i class="ti ti-plus" aria-hidden="true"></i>
+                        Start Conversation
+                    </button>
+                </div>
+
+                {# Conversations will be populated here #}
+
+            </div>
+
+            {# Mark All Read Button #}
+            <div class="hidden p-4 border-t border-gray-200 dark:border-gray-700" data-footer="sidebar">
+                <button class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700 transition-colors" data-action="mark-all-read">
+                    <i class="ti ti-checks" aria-hidden="true"></i>
+                    Mark All as Read
+                </button>
+            </div>
+
+        </aside>
+
+        {# Main Chat Area #}
+        <main class="flex-1 flex flex-col hidden md:flex">
+
+            {# Empty/Welcome State #}
+            <div class="flex-1 flex items-center justify-center" data-state="welcome">
+                <div class="text-center px-4">
+                    <div class="w-20 h-20 mx-auto mb-6 flex items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                        <i class="ti ti-message-circle text-4xl text-ecs-green" aria-hidden="true"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Welcome to Messages</h2>
+                    <p class="text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
+                        Select a conversation from the sidebar or start a new one to begin messaging.
+                    </p>
+                    <button class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-colors" data-action="new-conversation">
+                        <i class="ti ti-plus" aria-hidden="true"></i>
+                        Start New Conversation
+                    </button>
+                </div>
+            </div>
+
+            {# Active Conversation View #}
+            <div class="hidden flex-1 flex-col" data-view="chat">
+
+                {# Chat Header #}
+                <div class="flex items-center gap-4 px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                    <button class="md:hidden p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                            data-action="back-to-list"
+                            aria-label="Back to conversations">
+                        <i class="ti ti-arrow-left text-xl" aria-hidden="true"></i>
+                    </button>
+                    <div class="flex items-center gap-3 flex-1">
+                        <div class="relative">
+                            <img src="" alt="" class="w-10 h-10 rounded-full object-cover" data-chat-avatar>
+                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-gray-800" data-chat-status></span>
+                        </div>
+                        <div class="min-w-0">
+                            <a href="#" class="font-medium text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-green-400 truncate block" data-chat-name></a>
+                            <span class="text-sm text-gray-500 dark:text-gray-400" data-chat-online-text></span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="#"
+                           class="p-2 text-gray-500 rounded-lg border border-gray-300 hover:bg-gray-100 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700"
+                           data-chat-profile-link
+                           title="View Profile">
+                            <i class="ti ti-user" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                </div>
+
+                {# Messages Container #}
+                <div class="flex-1 overflow-y-auto p-4 space-y-4" data-messages>
+
+                    {# Messages Loading #}
+                    <div class="flex items-center justify-center py-8" data-state="messages-loading">
+                        <div class="message-spinner"></div>
+                    </div>
+
+                    {# Messages will be populated here #}
+
+                </div>
+
+                {# Typing Indicator #}
+                <div class="hidden px-4 py-2" data-typing-indicator>
+                    <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                        <span data-typing-name></span>
+                        <span class="flex gap-1">
+                            <span class="typing-dot w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full"></span>
+                            <span class="typing-dot w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full"></span>
+                            <span class="typing-dot w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full"></span>
+                        </span>
+                    </div>
+                </div>
+
+                {# Message Input #}
+                <div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                    <div class="flex flex-col gap-2">
+                        <textarea class="w-full px-4 py-2.5 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green resize-none"
+                                  data-input="message"
+                                  placeholder="Type a message..."
+                                  rows="1"
+                                  maxlength="{{ settings.max_message_length }}"></textarea>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500 dark:text-gray-400" data-char-count>
+                                0/{{ settings.max_message_length }}
+                            </span>
+                            <button class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    data-action="send-message"
+                                    disabled
+                                    aria-label="Send message">
+                                <i class="ti ti-send" aria-hidden="true"></i>
+                                <span class="hidden sm:inline">Send</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+</div>
+
+{# New Conversation Modal #}
+<div id="newConversationModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full" data-modal>
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            {# Modal Header #}
+            <div class="flex items-center justify-between p-4 md:p-5 border-b border-gray-200 dark:border-gray-700 rounded-t">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2" id="newConversationModalLabel">
+                    <i class="ti ti-message-plus text-ecs-green" aria-hidden="true"></i>
+                    <span>New Conversation</span>
+                </h3>
+                <button type="button"
+                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                        data-modal-hide="newConversationModal"
+                        data-action="close-modal"
+                        aria-label="Close">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            {# Modal Body #}
+            <div class="p-4 md:p-5">
+                <div class="mb-4">
+                    <label for="userSearchInput" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search for a user</label>
+                    <input type="text"
+                           class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green"
+                           id="userSearchInput"
+                           data-input="user-search"
+                           placeholder="Type a name to search..."
+                           autocomplete="off">
+                </div>
+                <div class="max-h-64 overflow-y-auto" data-list="user-results">
+                    <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 py-4 justify-center">
+                        <i class="ti ti-info-circle" aria-hidden="true"></i>
+                        Type at least 2 characters to search
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+    // Dark mode detection for SweetAlert2
+    const isDark = () => document.documentElement.classList.contains('dark');
+
+    // Pass initial data to JavaScript
+    window.MessagesInboxConfig = {
+        initialUser: {{ initial_user | tojson | safe if initial_user else 'null' }},
+        settings: {{ settings | tojson | safe }},
+        currentUserId: {{ current_user.id }},
+        apiBase: '/api/messages'
+    };
+</script>
+<script type="module" src="{{ url_for('static', filename='js/messages-inbox.js') }}?v=2"></script>
+{% endblock %}

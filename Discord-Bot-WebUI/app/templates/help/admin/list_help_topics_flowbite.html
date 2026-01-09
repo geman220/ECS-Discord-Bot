@@ -1,0 +1,116 @@
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, empty_state %}
+
+{% block title %}Admin - Help Topics{% endblock %}
+{% block page_title %}Admin - Help Topics{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Admin - Help Topics</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage help documentation for users</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            {{ button("Bulk Upload", variant="secondary", href=url_for('help.bulk_upload_help_topics'), icon="upload") }}
+            {{ button("Create New Help Topic", variant="primary", href=url_for('help.new_help_topic'), icon="plus") }}
+        </div>
+    </div>
+
+    <!-- Help Topics Card -->
+    {% call card() %}
+    {% if topics %}
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for topic in topics %}
+        <li class="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-ecs-green/10 rounded-lg">
+                    <i class="ti ti-book text-ecs-green text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-gray-900 dark:text-white font-medium block">{{ topic.title }}</span>
+                    {% if topic.roles %}
+                    <div class="flex flex-wrap gap-1 mt-1">
+                        {% for role in topic.roles[:3] %}
+                        {{ badge(role.name, variant="default", size="sm") }}
+                        {% endfor %}
+                        {% if topic.roles|length > 3 %}
+                        {{ badge("+" ~ (topic.roles|length - 3) ~ " more", variant="default", size="sm") }}
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Public access</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="flex items-center gap-2 sm:flex-shrink-0">
+                {{ button("Edit", variant="warning", size="sm", href=url_for('help.edit_help_topic', topic_id=topic.id), icon="edit") }}
+                <button type="button"
+                        class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed bg-red-600 hover:bg-red-700 text-white focus:ring-red-500/50 px-3 py-1.5 text-sm"
+                        data-action="confirm-delete"
+                        data-topic-id="{{ topic.id }}">
+                    <i class="ti ti-trash mr-2"></i>
+                    Delete
+                </button>
+                <form class="js-delete-form hidden"
+                      action="{{ url_for('help.delete_help_topic', topic_id=topic.id) }}"
+                      method="post"
+                      data-form-id="{{ topic.id }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                </form>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    {{ empty_state(
+        title="No help topics found",
+        description="Get started by creating your first help topic.",
+        icon="book-off",
+        action_text="Create Help Topic",
+        action_href=url_for('help.new_help_topic')
+    ) }}
+    {% endif %}
+    {% endcall %}
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Delete confirmation handler using event delegation
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-action="confirm-delete"]');
+        if (!btn) return;
+
+        e.preventDefault();
+        const topicId = btn.dataset.topicId;
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This will permanently delete the help topic.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            customClass: {
+                confirmButton: 'bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg',
+                cancelButton: 'bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg ml-2'
+            },
+            buttonsStyling: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.querySelector(`[data-form-id="${topicId}"]`);
+                if (form) form.submit();
+            }
+        });
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

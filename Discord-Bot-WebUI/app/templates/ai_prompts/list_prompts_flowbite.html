@@ -1,0 +1,271 @@
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, empty_state %}
+
+{% block title %}AI Prompt Management{% endblock %}
+
+{% block page_title %}AI Prompt Management{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{{ url_for('main.index') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">
+                    <i class="ti ti-home w-4 h-4 mr-2"></i>
+                    Admin
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+                    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Live Reporting</span>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+                    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">AI Prompt Management</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Action Bar -->
+    {% call card() %}
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white">AI Prompts Configuration</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Manage AI prompts for live match commentary and reactions</p>
+        </div>
+        <a href="{{ url_for('ai_prompts.create_prompt') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50">
+            <i class="ti ti-plus mr-1"></i> Create New Prompt
+        </a>
+    </div>
+    {% endcall %}
+
+    <!-- Prompts List -->
+    {% call card(title="Active Prompt Configurations", no_padding=true) %}
+    {% if prompts %}
+    <div class="overflow-x-auto">
+        <table id="promptsTable" class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Name</th>
+                    <th scope="col" class="px-6 py-3">Type</th>
+                    <th scope="col" class="px-6 py-3">Competition</th>
+                    <th scope="col" class="px-6 py-3">Temperature</th>
+                    <th scope="col" class="px-6 py-3">Status</th>
+                    <th scope="col" class="px-6 py-3">Version</th>
+                    <th scope="col" class="px-6 py-3">Created</th>
+                    <th scope="col" class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prompt in prompts %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                    <td class="px-6 py-4">
+                        <div>
+                            <div class="font-medium text-gray-900 dark:text-white">{{ prompt.name }}</div>
+                            {% if prompt.description %}
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ prompt.description[:50] }}{% if prompt.description|length > 50 %}...{% endif %}</div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-1">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                {{ prompt.prompt_type }}
+                            </span>
+                            {% if prompt.rivalry_intensity and prompt.rivalry_intensity > 7 %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                                Rivalry
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-xs">{{ prompt.competition_filter or 'All' }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-16 h-2 bg-gray-200 rounded-full dark:bg-gray-700">
+                                <div class="h-2 rounded-full {{ 'bg-red-500' if prompt.temperature and prompt.temperature > 0.8 else 'bg-yellow-500' if prompt.temperature and prompt.temperature > 0.5 else 'bg-green-500' }}"
+                                     style="width: {{ (prompt.temperature or 0) * 100 }}%"></div>
+                            </div>
+                            <span class="text-xs">{{ prompt.temperature or 'N/A' }}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if prompt.is_active %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
+                            Active
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            <span class="w-1.5 h-1.5 rounded-full bg-gray-500 mr-1.5"></span>
+                            Inactive
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            v{{ prompt.version }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div>
+                            <span class="text-xs">{{ prompt.created_at.strftime('%Y-%m-%d %H:%M') if prompt.created_at else 'Unknown' }}</span>
+                            <div class="text-xs text-gray-400 dark:text-gray-500">by {{ prompt.created_by or 'Unknown' }}</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button id="dropdown-btn-{{ prompt.id }}" data-dropdown-toggle="dropdown-{{ prompt.id }}"
+                                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
+                            Actions
+                            <i class="ti ti-chevron-down ml-1 w-4 h-4"></i>
+                        </button>
+                        <div id="dropdown-{{ prompt.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600">
+                            <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                                <li>
+                                    <a href="{{ url_for('ai_prompts.view_prompt', prompt_id=prompt.id) }}" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
+                                        <i class="ti ti-eye mr-2"></i> View Details
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ url_for('ai_prompts.edit_prompt', prompt_id=prompt.id) }}" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
+                                        <i class="ti ti-edit mr-2"></i> Edit
+                                    </a>
+                                </li>
+                                <li>
+                                    <form method="POST" action="{{ url_for('ai_prompts.duplicate_prompt', prompt_id=prompt.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="flex w-full items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
+                                            <i class="ti ti-copy mr-2"></i> Duplicate
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                            <div class="py-2">
+                                {% if prompt.is_active %}
+                                <form method="POST" action="{{ url_for('ai_prompts.toggle_prompt', prompt_id=prompt.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="flex w-full items-center px-4 py-2 text-yellow-600 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-yellow-400">
+                                        <i class="ti ti-power mr-2"></i> Deactivate
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="POST" action="{{ url_for('ai_prompts.toggle_prompt', prompt_id=prompt.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="flex w-full items-center px-4 py-2 text-green-600 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-green-400">
+                                        <i class="ti ti-power mr-2"></i> Activate
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            <div class="py-2">
+                                <form method="POST" action="{{ url_for('ai_prompts.delete_prompt', prompt_id=prompt.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="flex w-full items-center px-4 py-2 text-red-600 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-red-400" data-action="delete-prompt">
+                                        <i class="ti ti-trash mr-2"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="p-6">
+        <div class="flex flex-col items-center justify-center py-12 text-center">
+            <i class="ti ti-brain w-16 h-16 text-gray-400 dark:text-gray-600 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">No AI Prompts Configured</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Create your first AI prompt configuration to enable intelligent match commentary!</p>
+            <a href="{{ url_for('ai_prompts.create_prompt') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700">
+                <i class="ti ti-plus mr-1"></i> Create Prompt
+            </a>
+        </div>
+    </div>
+    {% endif %}
+    {% endcall %}
+
+    <!-- Template Library -->
+    {% call card(title="Prompt Templates") %}
+    {% if templates %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for template in templates %}
+        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
+            <div class="flex items-start justify-between mb-2">
+                <h4 class="font-medium text-gray-900 dark:text-white">{{ template.name }}</h4>
+                {% if template.is_default %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green">
+                    Default
+                </span>
+                {% endif %}
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ template.description }}</p>
+            <div class="flex items-center justify-between">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">
+                    {{ template.category }}
+                </span>
+                <button class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-ecs-green bg-white border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white dark:bg-gray-700 dark:hover:bg-ecs-green transition-colors"
+                        data-action="use-ai-template"
+                        data-template-id="{{ template.id }}">
+                    <i class="ti ti-copy mr-1"></i> Use Template
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-6">
+        <p class="text-gray-500 dark:text-gray-400">No prompt templates available</p>
+    </div>
+    {% endif %}
+    {% endcall %}
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    // Delete confirmation
+    document.querySelectorAll('[data-action="delete-prompt"]').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const form = this.closest('form');
+
+            Swal.fire({
+                title: 'Delete Prompt?',
+                text: 'This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, delete it!',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    // Use template action
+    document.querySelectorAll('[data-action="use-ai-template"]').forEach(button => {
+        button.addEventListener('click', function() {
+            const templateId = this.dataset.templateId;
+            window.location.href = `{{ url_for('ai_prompts.create_prompt') }}?template=${templateId}`;
+        });
+    });
+});
+</script>
+{% endblock %}

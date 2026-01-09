@@ -1,0 +1,347 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}{{ league_type }} Draft Predictions{% endblock %}
+
+{% block page_title %}{{ league_type }} League Predictions{% endblock %}
+
+{% block main_content %}
+<div class="max-w-7xl mx-auto">
+
+    <!-- Header Section -->
+    <div class="mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="p-6">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    <div>
+                        <!-- Breadcrumb -->
+                        <nav class="flex mb-3" aria-label="Breadcrumb">
+                            <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                                <li class="inline-flex items-center">
+                                    <a href="{{ url_for('draft_predictions.index') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">
+                                        Draft Predictions
+                                    </a>
+                                </li>
+                                <li>
+                                    <div class="flex items-center">
+                                        <i class="ti ti-chevron-right text-gray-400 mx-1"></i>
+                                        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ league_type }}</span>
+                                    </div>
+                                </li>
+                            </ol>
+                        </nav>
+                        <h1 class="text-2xl font-semibold mb-2 {{ 'text-green-600 dark:text-green-400' if league_type == 'Premier' else 'text-ecs-green dark:text-blue-400' }}">
+                            <i class="ti ti-shield mr-2"></i>{{ league_type }} League Predictions
+                        </h1>
+                        <p class="text-gray-500 dark:text-gray-400">
+                            {{ current_season.name }} - Predict which round each player will be drafted
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div id="saveStatus" class="flex items-center text-gray-500 dark:text-gray-400 text-sm">
+                            <i class="ti ti-device-floppy mr-2"></i>
+                            <span class="status-text">Changes save automatically</span>
+                        </div>
+                        <a href="{{ url_for('draft_predictions.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <i class="ti ti-arrow-left mr-2"></i>Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-4">
+                    <i class="ti ti-users text-blue-600 dark:text-blue-400 text-xl"></i>
+                </div>
+                <div>
+                    <span class="text-gray-500 dark:text-gray-400 text-sm font-medium block">Total Players</span>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white" id="totalPlayers">{{ players|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mr-4">
+                    <i class="ti ti-check text-green-600 dark:text-green-400 text-xl"></i>
+                </div>
+                <div>
+                    <span class="text-gray-500 dark:text-gray-400 text-sm font-medium block">Your Predictions</span>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white" id="predictionCount">{{ predictions_map|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-12 h-12 bg-yellow-100 dark:bg-yellow-900 rounded-lg flex items-center justify-center mr-4">
+                    <i class="ti ti-percentage text-yellow-600 dark:text-yellow-400 text-xl"></i>
+                </div>
+                <div>
+                    <span class="text-gray-500 dark:text-gray-400 text-sm font-medium block">Completion</span>
+                    {% set completion = ((predictions_map|length / players|length) * 100) if players|length > 0 else 0 %}
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white" id="completionPercent">{{ "%.0f"|format(completion) }}%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Players Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-users mr-2"></i>Players
+                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                    {{ players|length }}
+                </span>
+            </h5>
+            <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <i class="ti ti-search text-gray-500 dark:text-gray-400"></i>
+                    </div>
+                    <input type="text" id="playerSearch"
+                           class="block w-full sm:w-64 pl-10 pr-4 py-2 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
+                           placeholder="Search players...">
+                </div>
+                <select id="positionFilter"
+                        class="block w-full sm:w-auto py-2 px-3 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+                    <option value="">All Positions</option>
+                    <option value="Forward">Forward</option>
+                    <option value="Midfielder">Midfielder</option>
+                    <option value="Defender">Defender</option>
+                    <option value="Goalkeeper">Goalkeeper</option>
+                </select>
+            </div>
+        </div>
+        <div class="p-4">
+            {% if players %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" id="playersTable">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 w-12">#</th>
+                                <th scope="col" class="px-4 py-3">Player</th>
+                                <th scope="col" class="px-4 py-3 w-28">Position</th>
+                                <th scope="col" class="px-4 py-3 w-36">Predicted Round</th>
+                                <th scope="col" class="px-4 py-3 w-28">Confidence</th>
+                                <th scope="col" class="px-4 py-3">Notes</th>
+                                <th scope="col" class="px-4 py-3 w-32">Avg Prediction</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player in players %}
+                            {% set prediction = predictions_map.get(player.id) %}
+                            {% set stats = aggregate_stats.get(player.id, {}) %}
+                            <tr class="prediction-row bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 {% if prediction %}has-prediction{% endif %}"
+                                data-player-id="{{ player.id }}"
+                                data-player-name="{{ player.name|lower }}"
+                                data-position="{{ player.favorite_position or '' }}">
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ loop.index }}</td>
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 w-8 h-8 mr-3">
+                                            {% if player.profile_picture_url or (player.image_cache and player.image_cache.thumbnail_url) %}
+                                                <img src="{{ player.image_cache.thumbnail_url if player.image_cache and player.image_cache.thumbnail_url else player.profile_picture_url }}"
+                                                     alt="{{ player.name }}"
+                                                     class="w-8 h-8 rounded-full object-cover cursor-pointer player-avatar-clickable"
+                                                     data-player-name="{{ player.name }}"
+                                                     data-full-image="{{ (player.image_cache.original_url or player.image_cache.cached_url) if player.image_cache else player.profile_picture_url }}">
+                                            {% else %}
+                                                <div class="w-8 h-8 rounded-full bg-ecs-green flex items-center justify-center text-white text-xs font-semibold">
+                                                    {{ player.name[:2]|upper }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <div class="font-medium text-gray-900 dark:text-white">{{ player.name }}</div>
+                                            {% if player.league %}
+                                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ player.league.name }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    {% if player.favorite_position %}
+                                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                            {{ player.favorite_position }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-gray-400 dark:text-gray-500">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <select class="prediction-input block w-full py-1.5 px-2 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
+                                            data-field="predicted_round"
+                                            data-player-id="{{ player.id }}">
+                                        <option value="">-</option>
+                                        {% for round_num in range(1, 21) %}
+                                            <option value="{{ round_num }}"
+                                                    {% if prediction and prediction.predicted_round == round_num %}selected{% endif %}>
+                                                Round {{ round_num }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <select class="prediction-input block w-full py-1.5 px-2 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
+                                            data-field="confidence_level"
+                                            data-player-id="{{ player.id }}">
+                                        <option value="">-</option>
+                                        {% for conf in range(1, 6) %}
+                                            <option value="{{ conf }}"
+                                                    {% if prediction and prediction.confidence_level == conf %}selected{% endif %}>
+                                                {{ conf }}/5
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <input type="text"
+                                           class="prediction-input block w-full py-1.5 px-2 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"
+                                           data-field="notes"
+                                           data-player-id="{{ player.id }}"
+                                           value="{{ prediction.notes if prediction else '' }}"
+                                           placeholder="Optional notes..."
+                                           aria-label="Optional notes...">
+                                </td>
+                                <td class="px-4 py-3">
+                                    {% if stats.get('prediction_count', 0) > 0 %}
+                                        <div class="text-sm">
+                                            <span class="font-semibold text-gray-900 dark:text-white">{{ "%.1f"|format(stats.avg_round) }}</span>
+                                            <span class="text-gray-500 dark:text-gray-400">({{ stats.prediction_count }} votes)</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-gray-400 dark:text-gray-500 text-sm">No predictions yet</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-12">
+                    <i class="ti ti-users-off text-gray-400 dark:text-gray-500 text-5xl mb-4"></i>
+                    <h5 class="text-lg font-medium text-gray-500 dark:text-gray-400 mb-2">No Players Found</h5>
+                    <p class="text-gray-400 dark:text-gray-500">No players are currently registered in this league.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
+<!-- Player Image Modal -->
+<div id="playerImageModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white" id="playerImageModalLabel">
+                    Player Photo
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="playerImageModal">
+                    <i class="ti ti-x text-lg"></i>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <!-- Modal body -->
+            <div class="p-4 md:p-5 text-center">
+                <img id="playerImageModalImg" src="" alt="" class="max-w-full h-auto rounded-lg mx-auto">
+                <div class="mt-4">
+                    <h6 id="playerImageModalName" class="text-gray-500 dark:text-gray-400"></h6>
+                </div>
+            </div>
+            <!-- Modal footer -->
+            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button data-modal-hide="playerImageModal" type="button" class="w-full text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Player search functionality
+    const searchInput = document.getElementById('playerSearch');
+    const positionFilter = document.getElementById('positionFilter');
+    const tableRows = document.querySelectorAll('.prediction-row');
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const position = positionFilter.value;
+
+        tableRows.forEach(row => {
+            const playerName = row.dataset.playerName;
+            const playerPosition = row.dataset.position;
+
+            const matchesSearch = !searchTerm || playerName.includes(searchTerm);
+            const matchesPosition = !position || playerPosition === position;
+
+            row.style.display = matchesSearch && matchesPosition ? '' : 'none';
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', filterTable);
+    }
+    if (positionFilter) {
+        positionFilter.addEventListener('change', filterTable);
+    }
+
+    // Player image modal functionality
+    const modal = document.getElementById('playerImageModal');
+    const modalImg = document.getElementById('playerImageModalImg');
+    const modalName = document.getElementById('playerImageModalName');
+    const avatars = document.querySelectorAll('.player-avatar-clickable');
+
+    avatars.forEach(avatar => {
+        avatar.addEventListener('click', function() {
+            const fullImage = this.dataset.fullImage;
+            const playerName = this.dataset.playerName;
+
+            if (modalImg && modalName && modal) {
+                modalImg.src = fullImage;
+                modalImg.alt = playerName;
+                modalName.textContent = playerName;
+
+                // Show modal using Flowbite
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        });
+    });
+
+    // Close modal handlers
+    const closeButtons = modal ? modal.querySelectorAll('[data-modal-hide="playerImageModal"]') : [];
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        });
+    });
+
+    // Close on backdrop click
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

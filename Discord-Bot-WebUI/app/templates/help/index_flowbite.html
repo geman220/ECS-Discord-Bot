@@ -1,0 +1,75 @@
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, input, empty_state %}
+
+{% block title %}Help Topics{% endblock %}
+{% block page_title %}Help Topics{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Help Topics</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Browse available help documentation</p>
+        </div>
+        {% if can_access_admin %}
+        <div>
+            {{ button("Admin Dashboard", variant="secondary", href=url_for('help.admin_help_topics'), icon="settings") }}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Help Topics Card -->
+    {% call card() %}
+    <!-- Search Input -->
+    <div class="mb-6">
+        <div class="relative">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <i class="ti ti-search text-gray-500 dark:text-gray-400"></i>
+            </div>
+            <input type="text"
+                   class="js-search-topics block w-full pl-10 pr-4 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green"
+                   placeholder="Search help topics..."
+                   data-action="search-topics"
+                   aria-label="Search help topics...">
+        </div>
+    </div>
+
+    <!-- Topics List -->
+    <ul class="js-help-topics-list divide-y divide-gray-200 dark:divide-gray-700" data-topics-list>
+        {% for topic in topics %}
+        <li class="group">
+            <a href="{{ url_for('help.view_topic', topic_id=topic.id) }}"
+               class="flex items-center justify-between py-4 px-2 -mx-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+               data-action="view-topic"
+               data-topic-id="{{ topic.id }}">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-ecs-green/10 rounded-lg">
+                        <i class="ti ti-book text-ecs-green text-lg"></i>
+                    </div>
+                    <span class="text-gray-900 dark:text-white font-medium">{{ topic.title }}</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400 group-hover:text-ecs-green transition-colors"></i>
+            </a>
+        </li>
+        {% else %}
+        <li class="py-12">
+            {{ empty_state(
+                title="No help topics available",
+                description="Help topics will appear here when they are created.",
+                icon="book-off"
+            ) }}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endcall %}
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<!-- Help Search Module loaded via Vite in production, or directly in development -->
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+<script type="module" src="{{ url_for('static', filename='custom_js/help-search.js') }}"></script>
+{% endif %}
+{% endblock %}

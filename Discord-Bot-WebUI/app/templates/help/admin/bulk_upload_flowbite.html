@@ -1,0 +1,202 @@
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, alert %}
+
+{% block title %}Bulk Upload Help Topics{% endblock %}
+{% block page_title %}Bulk Upload Help Topics{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Bulk Upload Help Topics</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Upload multiple markdown files at once</p>
+        </div>
+        <div>
+            {{ button("Back to Help Topics", variant="secondary", href=url_for('help.admin_help_topics'), icon="arrow-left") }}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Upload Form -->
+        <div class="lg:col-span-2">
+            {% call card(title="Upload Multiple Help Topics", subtitle="Select markdown files to create help topics") %}
+            <form method="POST"
+                  enctype="multipart/form-data"
+                  class="space-y-6"
+                  data-component="help-upload-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- File Input -->
+                <div>
+                    <label for="files" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Select Markdown Files
+                    </label>
+                    <div class="flex items-center justify-center w-full">
+                        <label for="files" class="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <i class="ti ti-cloud-upload text-4xl text-gray-500 dark:text-gray-400 mb-3"></i>
+                                <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                                    <span class="font-semibold">Click to upload</span> or drag and drop
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Markdown files (.md) only</p>
+                            </div>
+                            <input type="file"
+                                   class="hidden"
+                                   name="files"
+                                   id="files"
+                                   multiple
+                                   accept=".md"
+                                   required
+                                   data-form-control>
+                        </label>
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        Select one or more markdown (.md) files to upload. Each file will become a separate help topic.
+                    </p>
+                </div>
+
+                <!-- Info Alert -->
+                <div class="flex items-start p-4 rounded-lg border bg-blue-50 dark:bg-gray-800 text-blue-800 dark:text-blue-400 border-blue-300 dark:border-blue-800">
+                    <i class="ti ti-info-circle flex-shrink-0 w-5 h-5 mr-3 mt-0.5"></i>
+                    <div>
+                        <h4 class="font-medium mb-2">File Format Requirements:</h4>
+                        <ul class="text-sm space-y-1 list-disc list-inside">
+                            <li>Files must have a <code class="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">.md</code> extension</li>
+                            <li>Each file must start with a heading (e.g., <code class="bg-blue-100 dark:bg-blue-900/50 px-1 rounded"># Topic Title</code>)</li>
+                            <li>Include <code class="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">**Role Access**: Role Name</code> to specify which roles can access the topic</li>
+                            <li>Use <code class="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">**Role Access**: Public</code> to make the topic visible to all users</li>
+                            <li>Supported roles: Global Admin, Pub League Admin, ECS FC Coach, Pub League Coach, etc.</li>
+                            <li>If no role is specified, the topic will default to Global Admin access</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div>
+                    {{ button("Upload Help Topics", variant="primary", type="submit", icon="upload") }}
+                </div>
+            </form>
+            {% endcall %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Example Format -->
+            {% call card(title="Example Format") %}
+            <pre class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 text-sm overflow-x-auto"><code class="text-gray-800 dark:text-gray-200"># Topic Title
+
+**Role Access**: Global Admin, Pub League Admin
+**Priority**: High
+
+## What is this feature?
+
+Description of the feature...
+
+## When to use it:
+- Point 1
+- Point 2
+
+## How to use it:
+1. Step 1
+2. Step 2
+
+**[ADD SCREENSHOT: Description]**
+
+## Why this matters:
+Explanation of importance...
+
+---
+
+# Public Topic Example
+
+**Role Access**: Public
+
+This topic will be visible to all users
+regardless of their role.</code></pre>
+            {% endcall %}
+
+            <!-- Available Roles -->
+            {% call card(title="Available Roles") %}
+            <ul class="space-y-2 text-sm">
+                <li class="flex items-center gap-2">
+                    <code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Public</code>
+                    <span class="text-gray-500 dark:text-gray-400">(visible to all users)</span>
+                </li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Global Admin</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Pub League Admin</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">ECS FC Coach</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Pub League Coach</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Discord Admin</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">pl-classic</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">pl-premier</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">pl-ecs-fc</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Classic Sub</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Premier Sub</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">ECS FC Sub</code></li>
+            </ul>
+            <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                You can specify multiple roles separated by commas, or use "Public" for all users.
+            </p>
+            {% endcall %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('files');
+    const dropZone = fileInput?.closest('label');
+
+    if (fileInput && dropZone) {
+        // File validation on change
+        fileInput.addEventListener('change', function() {
+            const files = this.files;
+            const fileList = Array.from(files);
+
+            // Check if all files are markdown
+            const nonMarkdownFiles = fileList.filter(file => !file.name.endsWith('.md'));
+            if (nonMarkdownFiles.length > 0) {
+                Swal.fire({
+                    title: 'Invalid Files',
+                    text: 'Please select only markdown (.md) files.',
+                    icon: 'error',
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        confirmButton: 'bg-ecs-green hover:bg-ecs-green-700 text-white px-4 py-2 rounded-lg'
+                    }
+                });
+                fileInput.value = '';
+                return;
+            }
+
+            // Show selected files count
+            if (files.length > 0) {
+                const fileNames = fileList.map(file => file.name).join(', ');
+                console.log(`Selected ${files.length} file(s): ${fileNames}`);
+            }
+        });
+
+        // Drag and drop visual feedback
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                dropZone.classList.add('border-ecs-green', 'bg-ecs-green/5');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('border-ecs-green', 'bg-ecs-green/5');
+            });
+        });
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

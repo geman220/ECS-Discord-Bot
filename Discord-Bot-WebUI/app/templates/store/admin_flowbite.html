@@ -1,0 +1,415 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Store Administration{% endblock %}
+
+{% block page_title %}Store Administration{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6" data-component="store-admin">
+    <!-- Page Header -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4" data-component="admin-header">
+        <div>
+            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-settings text-ecs-green"></i>
+                Store Administration
+            </h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage store items and orders</p>
+        </div>
+    </div>
+
+    <!-- Navigation / Action Bar -->
+    <div class="flex flex-wrap items-center gap-3" data-component="action-bar">
+        <a href="{{ url_for('store.index') }}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700 transition-colors">
+            <i class="ti ti-arrow-left"></i> Back to Store
+        </a>
+        <button type="button" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-colors" data-modal-target="createItemModal" data-modal-toggle="createItemModal" data-action="create-item">
+            <i class="ti ti-plus"></i> Add New Item
+        </button>
+        <button type="button" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 focus:ring-4 focus:ring-amber-300 dark:focus:ring-amber-800 transition-colors" data-modal-target="resetOrderingModal" data-modal-toggle="resetOrderingModal" data-action="reset-season">
+            <i class="ti ti-refresh"></i> Reset Season Ordering
+        </button>
+    </div>
+
+    <!-- Store Items Management -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" data-component="store-items-table">
+        <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Store Items</h5>
+        </div>
+        <div class="overflow-x-auto" data-table-responsive>
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" data-table data-mobile-table data-table-type="items">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Item</th>
+                        <th scope="col" class="px-6 py-3">Category</th>
+                        <th scope="col" class="px-6 py-3">Price</th>
+                        <th scope="col" class="px-6 py-3">Options</th>
+                        <th scope="col" class="px-6 py-3">Status</th>
+                        <th scope="col" class="px-6 py-3">Created</th>
+                        <th scope="col" class="px-6 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50" data-item-id="{{ item.id }}">
+                        <td class="px-6 py-4" data-label="Item">
+                            <div class="flex items-center gap-3" data-component="store-item">
+                                {% if item.image_url %}
+                                <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-12 h-12 rounded-lg object-cover border border-gray-200 dark:border-gray-700">
+                                {% else %}
+                                <div class="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center border border-gray-200 dark:border-gray-600">
+                                    <i class="ti ti-photo text-gray-400 dark:text-gray-500"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <h6 class="font-medium text-gray-900 dark:text-white">{{ item.name }}</h6>
+                                    {% if item.description %}
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 max-w-xs truncate">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4" data-label="Category">
+                            {% if item.category %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" data-badge>{{ item.category }}</span>
+                            {% else %}
+                            <span class="text-gray-400 dark:text-gray-500">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4" data-label="Price">
+                            {% if item.price %}
+                            <span class="font-medium text-gray-900 dark:text-white">${{ "%.2f"|format(item.price) }}</span>
+                            {% else %}
+                            <span class="text-gray-400 dark:text-gray-500">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4" data-label="Options">
+                            {% if item.available_colors %}
+                            {% set colors = item.available_colors | replace("'", '"') | fromjson %}
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Colors: {{ colors|length }}</span><br>
+                            {% endif %}
+                            {% if item.available_sizes %}
+                            {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Sizes: {{ sizes|length }}</span>
+                            {% endif %}
+                            {% if not item.available_colors and not item.available_sizes %}
+                            <span class="text-gray-400 dark:text-gray-500">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4" data-label="Status">
+                            {% if item.is_active %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" data-badge>Active</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" data-badge>Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4" data-label="Created">
+                            <span class="text-gray-900 dark:text-white">{{ format_pacific_time_short(item.created_at) if item.created_at else '' }}</span><br>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">by {{ item.creator.username if item.creator else 'Unknown' }}</span>
+                        </td>
+                        <td class="px-6 py-4" data-label="Actions">
+                            <button id="dropdownItemBtn{{ item.id }}" data-dropdown-toggle="dropdownItem{{ item.id }}" class="p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700" type="button" aria-label="More options">
+                                <i class="ti ti-dots-vertical"></i>
+                            </button>
+                            <div id="dropdownItem{{ item.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600">
+                                <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                                    <li>
+                                        <a href="{{ url_for('store.edit_item', item_id=item.id) }}" class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white" data-action="edit">
+                                            <i class="ti ti-edit"></i>Edit
+                                        </a>
+                                    </li>
+                                </ul>
+                                <div class="py-2">
+                                    <a href="#" class="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600" data-action="delete-item" data-item-id="{{ item.id }}" data-item-name="{{ item.name }}">
+                                        <i class="ti ti-trash"></i>Delete
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Orders Management -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" data-component="orders-table">
+        <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4" data-component="orders-header">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Orders</h5>
+                <div class="flex flex-wrap items-center gap-3">
+                    <select id="bulk-status-select" class="px-3 py-2 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" data-form-select data-action="bulk-status-select">
+                        <option value="">Bulk Update Status</option>
+                        <option value="PENDING">Mark as Pending</option>
+                        <option value="PROCESSING">Mark as Processing</option>
+                        <option value="ORDERED">Mark as Ordered</option>
+                        <option value="DELIVERED">Mark as Delivered</option>
+                        <option value="CANCELLED">Mark as Cancelled</option>
+                    </select>
+                    <button type="button" class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" id="bulk-update-btn" disabled data-action="bulk-update">
+                        <i class="ti ti-check"></i>Update Selected
+                    </button>
+                    <button type="button" class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:ring-4 focus:ring-red-300 dark:focus:ring-red-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" id="bulk-delete-btn" disabled data-action="bulk-delete">
+                        <i class="ti ti-trash"></i>Delete Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="overflow-x-auto" data-table-responsive>
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" data-table data-mobile-table data-table-type="orders">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="p-4">
+                            <div class="flex items-center">
+                                <input id="select-all-orders" type="checkbox" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                <label for="select-all-orders" class="sr-only">Select all</label>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-3">Order ID</th>
+                        <th scope="col" class="px-6 py-3">Customer</th>
+                        <th scope="col" class="px-6 py-3">Item</th>
+                        <th scope="col" class="px-6 py-3">Details</th>
+                        <th scope="col" class="px-6 py-3">Status</th>
+                        <th scope="col" class="px-6 py-3">Order Date</th>
+                        <th scope="col" class="px-6 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50" data-order-id="{{ order.id }}">
+                        <td class="w-4 p-4" data-label="Select">
+                            <div class="flex items-center">
+                                <input id="order-{{ order.id }}" type="checkbox" value="{{ order.id }}" class="order-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" data-action="select-order">
+                                <label for="order-{{ order.id }}" class="sr-only">Select order {{ order.id }}</label>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 font-medium text-gray-900 dark:text-white" data-label="Order ID">#{{ order.id }}</td>
+                        <td class="px-6 py-4" data-label="Customer">{{ order.orderer.username if order.orderer else 'Unknown' }}</td>
+                        <td class="px-6 py-4" data-label="Item">
+                            <div>
+                                <span class="font-medium text-gray-900 dark:text-white">{{ order.item.name if order.item else 'Unknown Item' }}</span>
+                                <br><span class="text-xs text-gray-500 dark:text-gray-400">Qty: {{ order.quantity }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4" data-label="Details">
+                            <div class="flex flex-wrap gap-1">
+                                {% if order.selected_color %}
+                                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400" data-badge>{{ order.selected_color }}</span>
+                                {% endif %}
+                                {% if order.selected_size %}
+                                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300" data-badge>{{ order.selected_size }}</span>
+                                {% endif %}
+                            </div>
+                            {% if order.notes %}
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">{{ order.notes[:30] }}{% if order.notes|length > 30 %}...{% endif %}</p>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4" data-label="Status">
+                            <select class="px-3 py-1.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" data-action="update-order-status" data-order-id="{{ order.id }}" data-current-status="{{ order.status }}" data-form-select>
+                                <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                                <option value="PROCESSING" {% if order.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                                <option value="ORDERED" {% if order.status == 'ORDERED' %}selected{% endif %}>Ordered</option>
+                                <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>Delivered</option>
+                                <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                            </select>
+                        </td>
+                        <td class="px-6 py-4" data-label="Order Date">
+                            <span class="text-gray-900 dark:text-white">{{ format_pacific_time_short(order.order_date) if order.order_date else '' }}</span>
+                            {% if order.processed_by %}
+                            <br><span class="text-xs text-gray-500 dark:text-gray-400">Processed by {{ order.processor.username if order.processor else 'Unknown' }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4" data-label="Actions">
+                            <div class="flex items-center gap-2">
+                                <button type="button" class="p-2 text-cyan-600 rounded-lg border border-cyan-300 hover:bg-cyan-50 dark:text-cyan-400 dark:border-cyan-700 dark:hover:bg-cyan-900/30 transition-colors" data-action="view-order" data-order-id="{{ order.id }}" title="View Order">
+                                    <i class="ti ti-eye"></i>
+                                </button>
+                                <button type="button" class="p-2 text-red-600 rounded-lg border border-red-300 hover:bg-red-50 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/30 transition-colors"
+                                        data-action="delete-order"
+                                        data-order-id="{{ order.id }}"
+                                        data-order-info="Order #{{ order.id }} for {{ order.item.name if order.item else 'Unknown Item' }}"
+                                        data-customer-name="{{ order.orderer.username if order.orderer else 'Unknown Customer' }}"
+                                        title="Delete Order">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
+<!-- Create Item Modal -->
+<div id="createItemModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full" data-modal>
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <form id="createItemForm" enctype="multipart/form-data">
+                <div class="flex items-center justify-between p-4 md:p-5 border-b border-gray-200 dark:border-gray-700 rounded-t bg-gray-50 dark:bg-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2" id="createItemModalLabel">
+                        <i class="ti ti-plus text-ecs-green"></i>
+                        Add New Store Item
+                    </h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="createItemModal" data-dismiss aria-label="Close">
+                        <i class="ti ti-x text-lg"></i>
+                    </button>
+                </div>
+                <div class="p-4 md:p-5 space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-2">
+                            <label for="store-admin-item-name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Item Name *</label>
+                            <input type="text" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="store-admin-item-name" name="name" required placeholder="e.g. 0857 Pioneer Pullover" data-form-control>
+                        </div>
+                        <div>
+                            <label for="price" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Price (Admin Only)</label>
+                            <div class="flex">
+                                <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-r-0 border-gray-300 rounded-l-lg dark:bg-gray-600 dark:text-gray-400 dark:border-gray-600">$</span>
+                                <input type="number" class="rounded-none rounded-r-lg w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="price" name="price" step="0.01" min="0" placeholder="15.00" data-form-control>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="store-admin-item-description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                        <textarea class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="store-admin-item-description" name="description" rows="3" placeholder="Describe the item, materials, features, etc." data-form-control></textarea>
+                    </div>
+
+                    <div>
+                        <label for="category" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Category</label>
+                        <input type="text" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="category" name="category" placeholder="e.g. Apparel, Equipment, Accessories" data-form-control>
+                    </div>
+
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Image</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="image_file" class="block mb-1 text-xs text-gray-500 dark:text-gray-400">Upload Image</label>
+                                <input type="file" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" id="image_file" name="image_file" accept="image/*" data-form-control>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Upload an image file</p>
+                            </div>
+                            <div>
+                                <label for="image_url" class="block mb-1 text-xs text-gray-500 dark:text-gray-400">Or Image URL</label>
+                                <input type="url" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="image_url" name="image_url" placeholder="https://example.com/image.jpg" data-form-control>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Provide a direct link to an image</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Available Colors</label>
+                            <div id="colors-container" class="space-y-2">
+                                <div class="flex">
+                                    <input type="text" class="flex-1 rounded-l-lg px-4 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" name="colors[]" placeholder="e.g. Navy, Black, White" data-form-control aria-label="Color option">
+                                    <button type="button" class="hidden px-3 text-red-600 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg hover:bg-red-50 dark:bg-gray-600 dark:border-gray-600 dark:hover:bg-red-900/30 remove-color" aria-label="Remove color">
+                                        <i class="ti ti-x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="mt-2 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 border border-blue-300 rounded-lg hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/50 transition-colors" id="add-color">
+                                <i class="ti ti-plus"></i>Add Color
+                            </button>
+                        </div>
+
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Available Sizes</label>
+                            <div id="sizes-container" class="space-y-2">
+                                <div class="flex">
+                                    <input type="text" class="flex-1 rounded-l-lg px-4 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL, AS, AM, AL" data-form-control aria-label="Size option">
+                                    <button type="button" class="hidden px-3 text-red-600 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg hover:bg-red-50 dark:bg-gray-600 dark:border-gray-600 dark:hover:bg-red-900/30 remove-size" aria-label="Remove size">
+                                        <i class="ti ti-x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="mt-2 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 border border-blue-300 rounded-lg hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/50 transition-colors" id="add-size">
+                                <i class="ti ti-plus"></i>Add Size
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end gap-3 p-4 md:p-5 border-t border-gray-200 dark:border-gray-700 rounded-b bg-gray-50 dark:bg-gray-700">
+                    <button type="button" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700 transition-colors" data-modal-hide="createItemModal" data-dismiss>
+                        <i class="ti ti-x"></i>Cancel
+                    </button>
+                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-colors">
+                        <i class="ti ti-device-floppy"></i>Create Item
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Season Ordering Modal -->
+<div id="resetOrderingModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full" data-modal>
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b border-amber-200 dark:border-amber-700 rounded-t bg-amber-50 dark:bg-amber-900/30">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2" id="resetOrderingModalLabel">
+                    <i class="ti ti-refresh text-amber-600 dark:text-amber-400"></i>
+                    Reset Season Ordering
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="resetOrderingModal" data-dismiss aria-label="Close">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-5 space-y-4">
+                <div class="flex items-start p-4 text-sm text-amber-800 rounded-lg bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400" role="alert" data-alert>
+                    <i class="ti ti-alert-triangle text-lg mr-2 flex-shrink-0"></i>
+                    <div>
+                        <span class="font-medium">Warning:</span> This action will allow all coaches to place new orders for the current season, even if they have already placed an order. Use this at the beginning of a new season.
+                    </div>
+                </div>
+
+                <p class="text-sm text-gray-700 dark:text-gray-300">Choose how to reset ordering eligibility:</p>
+
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="resetAll" type="radio" name="resetType" value="all" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        </div>
+                        <div class="ms-3 text-sm">
+                            <label for="resetAll" class="font-medium text-gray-900 dark:text-white">Delete all orders for current season</label>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">This will permanently delete all orders for the current season and allow everyone to order again.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="resetEligibility" type="radio" name="resetType" value="eligibility" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        </div>
+                        <div class="ms-3 text-sm">
+                            <label for="resetEligibility" class="font-medium text-gray-900 dark:text-white">Reset eligibility only</label>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Keep existing orders but allow coaches to place additional orders (useful for special promotions).</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-3 p-4 md:p-5 border-t border-amber-200 dark:border-amber-700 rounded-b bg-amber-50 dark:bg-amber-900/30">
+                <button type="button" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700 transition-colors" data-modal-hide="resetOrderingModal" data-dismiss>
+                    <i class="ti ti-x"></i>Cancel
+                </button>
+                <button type="button" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 focus:ring-4 focus:ring-amber-300 dark:focus:ring-amber-800 transition-colors" id="confirmResetBtn">
+                    <i class="ti ti-refresh"></i>Reset Season Ordering
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+    // Dark mode detection for SweetAlert2
+    const isDark = () => document.documentElement.classList.contains('dark');
+</script>
+<script type="module" src="{{ url_for('static', filename='custom_js/store-admin.js') }}"></script>
+{% endblock %}

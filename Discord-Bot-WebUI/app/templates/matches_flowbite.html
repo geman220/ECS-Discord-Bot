@@ -1,0 +1,586 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Sounders Schedule [DEPRECATED]{% endblock %}
+
+{% block page_title %}Sounders Schedule{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<style>
+    /* Live status indicators */
+    .live-status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    .live-status-indicator::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+    .live-status-indicator.stopped { background: rgba(107, 114, 128, 0.1); color: #6b7280; }
+    .live-status-indicator.stopped::before { background: #6b7280; animation: none; }
+    .live-status-indicator.scheduled { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    .live-status-indicator.scheduled::before { background: #3b82f6; }
+    .live-status-indicator.running { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+    .live-status-indicator.running::before { background: #22c55e; }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    /* Responsive table */
+    @media (max-width: 768px) {
+        .matches-table thead { display: none; }
+        .matches-table tr { display: block; margin-bottom: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; }
+        .dark .matches-table tr { border-color: #374151; }
+        .matches-table td { display: flex; justify-content: space-between; padding: 0.75rem 1rem; border-bottom: 1px solid #e5e7eb; }
+        .dark .matches-table td { border-color: #374151; }
+        .matches-table td:last-child { border-bottom: none; }
+        .matches-table td::before { content: attr(data-label); font-weight: 600; margin-right: 1rem; }
+        .matches-table td.actions-cell { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+        .matches-table td.actions-cell::before { display: none; }
+    }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+    <!-- Deprecation Notice -->
+    <div class="flex items-start p-4 text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800" role="alert">
+        <i class="ti ti-alert-triangle text-xl mr-3 flex-shrink-0 mt-0.5"></i>
+        <div class="flex-1">
+            <h3 class="text-lg font-semibold mb-1">Deprecated Page</h3>
+            <p class="text-sm">
+                This page has been replaced by the new
+                <a href="{{ url_for('admin.match_management') }}" class="font-medium underline hover:no-underline">Match Management</a>
+                interface, which combines thread scheduling and live reporting in one unified view.
+            </p>
+        </div>
+        <button type="button" class="ml-auto -mx-1.5 -my-1.5 bg-yellow-50 text-yellow-500 rounded-lg focus:ring-2 focus:ring-yellow-400 p-1.5 hover:bg-yellow-200 inline-flex items-center justify-center h-8 w-8 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-800" data-dismiss-target="[role='alert']" aria-label="Close">
+            <i class="ti ti-x"></i>
+        </button>
+    </div>
+
+    <!-- Match List Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Manage Upcoming Matches</h5>
+            <div class="relative">
+                <button type="button" id="matchActionsDropdownBtn" data-dropdown-toggle="matchActionsDropdown" class="p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
+                    <i class="ti ti-dots-vertical"></i>
+                </button>
+                <div id="matchActionsDropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-lg w-48 dark:bg-gray-700 dark:divide-gray-600 border border-gray-200 dark:border-gray-600">
+                    <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                        <li>
+                            <button type="button" data-modal-target="addMatchModal" data-modal-toggle="addMatchModal" class="w-full flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
+                                <i class="ti ti-plus mr-2"></i> Add a Match
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" id="clearMatchesBtn" class="w-full flex items-center px-4 py-2 text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600">
+                                <i class="ti ti-trash mr-2"></i> Clear Matches
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="matches-table w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Opponent</th>
+                        <th scope="col" class="px-6 py-3">Date</th>
+                        <th scope="col" class="px-6 py-3">Competition</th>
+                        <th scope="col" class="px-6 py-3">Live Reporting Status</th>
+                        <th scope="col" class="px-6 py-3 text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for match in matches %}
+                    <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50" data-match-id="{{ match.match_id }}">
+                        <td data-label="Opponent" class="px-6 py-4">
+                            <span class="font-medium text-gray-900 dark:text-white" id="opponent-{{ match.id }}">{{ match.opponent }}</span>
+                        </td>
+                        <td data-label="Date" class="px-6 py-4">
+                            <span id="date-{{ match.id }}">{{ match.formatted_date }}</span>
+                        </td>
+                        <td data-label="Competition" class="px-6 py-4">
+                            <span id="competition-{{ match.id }}">{{ inverse_competition_mappings.get(match.competition, match.competition) }}</span>
+                        </td>
+                        <td data-label="Status" class="px-6 py-4">
+                            <span id="status-{{ match.id }}" class="live-status-indicator {{ match.live_reporting_status }}">
+                                {{ match.live_reporting_status|capitalize }}
+                            </span>
+                        </td>
+                        <td data-label="Actions" class="actions-cell px-6 py-4" id="actions-{{ match.id }}">
+                            <div class="flex items-center justify-center gap-2">
+                                <!-- Dropdown Menu -->
+                                <div class="relative">
+                                    <button type="button" data-dropdown-toggle="matchDropdown-{{ match.id }}" class="p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
+                                        <i class="ti ti-dots-vertical"></i>
+                                    </button>
+                                    <div id="matchDropdown-{{ match.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-lg w-40 dark:bg-gray-700 dark:divide-gray-600 border border-gray-200 dark:border-gray-600">
+                                        <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                                            <li>
+                                                <button type="button" data-action="edit-match-schedule" data-match-id="{{ match.id }}" class="w-full flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
+                                                    <i class="ti ti-edit mr-2"></i> Edit Schedule
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button type="button" data-action="remove-match" data-match-id="{{ match.match_id }}" class="w-full flex items-center px-4 py-2 text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600">
+                                                    <i class="ti ti-trash mr-2"></i> Delete
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <button type="button"
+                                        data-action="start-reporting"
+                                        data-match-id="{{ match.id }}"
+                                        {% if match.live_reporting_status == 'running' %}disabled{% endif %}
+                                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        aria-label="Start live reporting for match against {{ match.opponent }}">
+                                    {% if match.live_reporting_status == 'scheduled' %}
+                                    Force Start
+                                    {% elif match.live_reporting_status == 'running' %}
+                                    Running
+                                    {% else %}
+                                    Start
+                                    {% endif %}
+                                </button>
+                                <button type="button"
+                                        data-action="stop-reporting"
+                                        data-match-id="{{ match.id }}"
+                                        {% if match.live_reporting_status != 'running' %}disabled{% endif %}
+                                        class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:ring-4 focus:ring-red-300 dark:focus:ring-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                    Stop
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center">
+                                <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                                    <i class="ti ti-calendar-off text-2xl text-gray-400 dark:text-gray-500"></i>
+                                </div>
+                                <h6 class="text-lg font-medium text-gray-900 dark:text-white mb-1">No Matches Scheduled</h6>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm mb-4">There are no upcoming matches to display.</p>
+                                <button type="button" data-modal-target="addMatchModal" data-modal-toggle="addMatchModal" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
+                                    <i class="ti ti-plus mr-2"></i> Add a Match
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
+<!-- Add Match Modal -->
+<div id="addMatchModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
+    <div class="relative p-4 w-full max-w-md max-h-full mx-auto mt-20">
+        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Add New Match</h5>
+                <button type="button" data-modal-close="addMatchModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <form method="POST" action="{{ url_for('bot_admin.add_mls_match') }}" id="addMatchForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="mb-4">
+                        <label for="date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date</label>
+                        <input type="text" id="date" name="date" placeholder="Select Date" required class="flatpickr w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="competition" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Competition</label>
+                        <select id="competition" name="competition" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+                            {% for name, value in competition_mappings.items() %}
+                            <option value="{{ name }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-colors">
+                        <i class="ti ti-plus mr-2"></i> Add Match
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+// Dark mode detection for SweetAlert2
+const isDark = () => document.documentElement.classList.contains('dark');
+
+// Modal helper functions for Flowbite-style modals
+const FlowbiteModal = {
+    show(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.classList.add('overflow-hidden');
+        }
+    },
+    hide(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }
+};
+
+// Initialize modal close buttons
+document.querySelectorAll('[data-modal-close]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const modalId = this.getAttribute('data-modal-close');
+        FlowbiteModal.hide(modalId);
+    });
+});
+
+// Initialize modal toggle buttons
+document.querySelectorAll('[data-modal-toggle]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const modalId = this.getAttribute('data-modal-toggle');
+        FlowbiteModal.show(modalId);
+    });
+});
+
+// Close modals when clicking backdrop
+document.querySelectorAll('[data-modal-backdrop]').forEach(backdrop => {
+    backdrop.addEventListener('click', function() {
+        const modal = this.closest('[id]');
+        if (modal) {
+            FlowbiteModal.hide(modal.id);
+        }
+    });
+});
+
+// Initialize dismiss buttons for alerts
+document.querySelectorAll('[data-dismiss-target]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const targetSelector = this.getAttribute('data-dismiss-target');
+        const target = document.querySelector(targetSelector);
+        if (target) {
+            target.remove();
+        }
+    });
+});
+
+// Simple dropdown toggle
+document.querySelectorAll('[data-dropdown-toggle]').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const dropdownId = this.getAttribute('data-dropdown-toggle');
+        const dropdown = document.getElementById(dropdownId);
+
+        // Close all other dropdowns first
+        document.querySelectorAll('[id^="matchDropdown-"], #matchActionsDropdown').forEach(d => {
+            if (d.id !== dropdownId) d.classList.add('hidden');
+        });
+
+        // Toggle this dropdown
+        if (dropdown) {
+            dropdown.classList.toggle('hidden');
+
+            // Position dropdown below button
+            const rect = this.getBoundingClientRect();
+            dropdown.style.position = 'absolute';
+            dropdown.style.top = '100%';
+            dropdown.style.right = '0';
+        }
+    });
+});
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function() {
+    document.querySelectorAll('[id^="matchDropdown-"], #matchActionsDropdown').forEach(d => {
+        d.classList.add('hidden');
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    // Initialize flatpickr for date input
+    if (typeof flatpickr !== 'undefined') {
+        flatpickr('.flatpickr', {
+            enableTime: true,
+            dateFormat: 'Y-m-d H:i',
+            time_24hr: true
+        });
+    }
+
+    // Helper function to show toast notifications
+    function showToast(type, message) {
+        if (typeof Swal !== 'undefined') {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'bottom-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f9fafb' : '#111827'
+            });
+            Toast.fire({
+                icon: type === 'danger' ? 'error' : type,
+                title: message
+            });
+        } else {
+            console.log(`[${type}] ${message}`);
+        }
+    }
+
+    // Helper function for confirmation dialogs
+    async function confirmAction(title, text, confirmText = 'Yes', cancelText = 'Cancel') {
+        if (typeof Swal !== 'undefined') {
+            const result = await Swal.fire({
+                title: title,
+                text: text,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#1a472a',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: confirmText,
+                cancelButtonText: cancelText,
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f9fafb' : '#111827'
+            });
+            return result.isConfirmed;
+        } else {
+            return confirm(`${title}\n\n${text}`);
+        }
+    }
+
+    // Start Live Reporting
+    document.querySelectorAll('[data-action="start-reporting"]').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const matchId = this.dataset.matchId;
+
+            const confirmed = await confirmAction(
+                'Start Live Reporting?',
+                'Are you sure you want to start live reporting for this match?',
+                'Yes, start'
+            );
+
+            if (!confirmed) return;
+
+            this.disabled = true;
+            this.innerHTML = '<i class="ti ti-loader animate-spin mr-1"></i> Starting...';
+
+            try {
+                const response = await fetch(`/bot-admin/mls-matches/${matchId}/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': _csrfToken
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showToast('success', 'Live reporting started successfully');
+                    // Update UI
+                    const statusEl = document.getElementById(`status-${matchId}`);
+                    if (statusEl) {
+                        statusEl.className = 'live-status-indicator running';
+                        statusEl.textContent = 'Running';
+                    }
+                    this.disabled = true;
+                    this.textContent = 'Running';
+
+                    // Enable stop button
+                    const stopBtn = document.querySelector(`[data-action="stop-reporting"][data-match-id="${matchId}"]`);
+                    if (stopBtn) stopBtn.disabled = false;
+                } else {
+                    showToast('error', result.error || 'Failed to start live reporting');
+                    this.disabled = false;
+                    this.textContent = 'Start';
+                }
+            } catch (error) {
+                console.error('Error starting live reporting:', error);
+                showToast('error', 'An error occurred while starting live reporting');
+                this.disabled = false;
+                this.textContent = 'Start';
+            }
+        });
+    });
+
+    // Stop Live Reporting
+    document.querySelectorAll('[data-action="stop-reporting"]').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const matchId = this.dataset.matchId;
+
+            const confirmed = await confirmAction(
+                'Stop Live Reporting?',
+                'Are you sure you want to stop live reporting for this match?',
+                'Yes, stop'
+            );
+
+            if (!confirmed) return;
+
+            this.disabled = true;
+            this.innerHTML = '<i class="ti ti-loader animate-spin mr-1"></i> Stopping...';
+
+            try {
+                const response = await fetch(`/bot-admin/mls-matches/${matchId}/stop`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': _csrfToken
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showToast('success', 'Live reporting stopped successfully');
+                    // Update UI
+                    const statusEl = document.getElementById(`status-${matchId}`);
+                    if (statusEl) {
+                        statusEl.className = 'live-status-indicator stopped';
+                        statusEl.textContent = 'Stopped';
+                    }
+                    this.disabled = true;
+                    this.textContent = 'Stop';
+
+                    // Enable start button
+                    const startBtn = document.querySelector(`[data-action="start-reporting"][data-match-id="${matchId}"]`);
+                    if (startBtn) {
+                        startBtn.disabled = false;
+                        startBtn.textContent = 'Start';
+                    }
+                } else {
+                    showToast('error', result.error || 'Failed to stop live reporting');
+                    this.disabled = false;
+                    this.textContent = 'Stop';
+                }
+            } catch (error) {
+                console.error('Error stopping live reporting:', error);
+                showToast('error', 'An error occurred while stopping live reporting');
+                this.disabled = false;
+                this.textContent = 'Stop';
+            }
+        });
+    });
+
+    // Remove Match
+    document.querySelectorAll('[data-action="remove-match"]').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const matchId = this.dataset.matchId;
+            const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
+            const opponent = row?.querySelector('[id^="opponent-"]')?.textContent || 'this match';
+
+            const confirmed = await confirmAction(
+                'Delete Match?',
+                `Are you sure you want to delete the match against ${opponent}? This action cannot be undone.`,
+                'Yes, delete'
+            );
+
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch(`/bot-admin/mls-matches/${matchId}/remove`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': _csrfToken
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showToast('success', 'Match deleted successfully');
+                    // Remove row from table
+                    if (row) {
+                        row.style.transition = 'opacity 0.3s ease';
+                        row.style.opacity = '0';
+                        setTimeout(() => row.remove(), 300);
+                    }
+                } else {
+                    showToast('error', result.error || 'Failed to delete match');
+                }
+            } catch (error) {
+                console.error('Error deleting match:', error);
+                showToast('error', 'An error occurred while deleting the match');
+            }
+        });
+    });
+
+    // Clear All Matches
+    document.getElementById('clearMatchesBtn')?.addEventListener('click', async function() {
+        const confirmed = await confirmAction(
+            'Clear All Matches?',
+            'Are you sure you want to clear all matches? This action cannot be undone.',
+            'Yes, clear all'
+        );
+
+        if (!confirmed) return;
+
+        try {
+            const response = await fetch('/bot-admin/mls-matches/clear', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': _csrfToken
+                }
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                showToast('success', 'All matches cleared successfully');
+                // Reload page to show empty state
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('error', result.error || 'Failed to clear matches');
+            }
+        } catch (error) {
+            console.error('Error clearing matches:', error);
+            showToast('error', 'An error occurred while clearing matches');
+        }
+    });
+
+    // Edit Match Schedule (placeholder - implement actual edit modal if needed)
+    document.querySelectorAll('[data-action="edit-match-schedule"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            showToast('info', `Edit functionality for match ${matchId} coming soon`);
+            // TODO: Implement edit modal if needed
+        });
+    });
+});
+</script>
+{% endblock %}

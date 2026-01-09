@@ -1,0 +1,1687 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Pub League Calendar{% endblock %}
+
+{% block page_title %}Pub League Calendar{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<style>
+    /* Calendar Page Specific Styles */
+    .day-schedule { display: flex; flex-direction: column; gap: 1rem; }
+    .time-slot { display: flex; gap: 1rem; align-items: flex-start; }
+    .time-label { min-width: 80px; font-weight: 600; color: #6b7280; padding-top: 0.5rem; }
+    .time-events { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .week-schedule { display: flex; flex-direction: column; }
+    .week-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; margin-bottom: 0.5rem; }
+    .day-header { text-align: center; padding: 0.5rem; border-radius: 0.5rem; }
+    .day-header.today { background: rgba(26, 71, 42, 0.1); }
+    .dark .day-header.today { background: rgba(26, 71, 42, 0.3); }
+    .day-name { font-size: 0.75rem; color: #6b7280; text-transform: uppercase; }
+    .day-date { font-size: 1.25rem; font-weight: 600; }
+    .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; }
+    .day-column { min-height: 150px; padding: 0.5rem; border-radius: 0.5rem; background: #f9fafb; }
+    .dark .day-column { background: #1f2937; }
+    .day-column.today { background: rgba(26, 71, 42, 0.05); border: 2px solid #1a472a; }
+    .dark .day-column.today { background: rgba(26, 71, 42, 0.2); }
+    .day-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #9ca3af; }
+
+    .month-schedule { display: flex; flex-direction: column; }
+    .month-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem; margin-bottom: 0.5rem; }
+    .month-weekday { text-align: center; font-size: 0.75rem; color: #6b7280; text-transform: uppercase; font-weight: 600; padding: 0.5rem; }
+    .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem; }
+    .month-day { min-height: 100px; padding: 0.5rem; border-radius: 0.5rem; background: #f9fafb; border: 1px solid #e5e7eb; }
+    .dark .month-day { background: #1f2937; border-color: #374151; }
+    .month-day.prev-month, .month-day.next-month { opacity: 0.4; }
+    .month-day.today { background: rgba(26, 71, 42, 0.1); border-color: #1a472a; }
+    .dark .month-day.today { background: rgba(26, 71, 42, 0.3); }
+    .month-day.has-events { border-color: #1a472a; }
+    .month-day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+    .day-number { font-weight: 600; font-size: 0.875rem; }
+    .event-count-badge { background: #1a472a; color: white; font-size: 0.625rem; padding: 0.125rem 0.375rem; border-radius: 9999px; }
+    .month-day-content { font-size: 0.75rem; }
+    .month-event { padding: 0.25rem 0.5rem; margin-bottom: 0.25rem; border-radius: 0.25rem; cursor: pointer; transition: all 0.2s; }
+    .month-event.premier { background: rgba(59, 130, 246, 0.1); border-left: 2px solid #3b82f6; }
+    .month-event.classic { background: rgba(34, 197, 94, 0.1); border-left: 2px solid #22c55e; }
+    .month-event:hover { transform: translateX(2px); }
+    .month-event-time { font-size: 0.625rem; color: #6b7280; }
+    .month-event-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .month-event-ref { display: flex; align-items: center; gap: 0.25rem; }
+    .month-event-ref.assigned { color: #22c55e; }
+    .month-event-ref.unassigned { color: #ef4444; }
+    .month-more-events { font-size: 0.75rem; color: #1a472a; cursor: pointer; padding: 0.25rem; text-align: center; }
+    .month-more-events:hover { text-decoration: underline; }
+
+    .list-schedule { display: flex; flex-direction: column; gap: 1.5rem; }
+    .date-group { border-left: 3px solid #1a472a; padding-left: 1rem; }
+    .date-group.today { border-color: #c9a227; }
+    .date-header { font-weight: 600; color: #1a472a; margin-bottom: 0.75rem; display: flex; align-items: center; }
+    .dark .date-header { color: #22c55e; }
+    .date-matches { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .match-teams { display: flex; align-items: center; justify-content: center; gap: 1rem; }
+    .match-teams .vs { color: #9ca3af; font-size: 0.875rem; }
+    .home-team, .away-team { font-weight: 600; }
+
+    .ref-badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; border-radius: 0.375rem; font-size: 0.75rem; }
+    .ref-badge.ref-assigned { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+    .ref-badge.ref-unassigned { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; text-align: center; }
+    .empty-state-icon { font-size: 3rem; color: #9ca3af; margin-bottom: 1rem; }
+    .empty-state-text { font-size: 1.125rem; color: #6b7280; margin-bottom: 0.5rem; }
+    .empty-state-subtext { font-size: 0.875rem; color: #9ca3af; }
+
+    .referee-item .referee-available { border-color: #22c55e; }
+    .assignment-mode-active .unassigned-match { border: 2px solid #ef4444; animation: pulse 2s infinite; }
+    .assignment-mode-active .selected-referee { border: 2px solid #1a472a; background: rgba(26, 71, 42, 0.1); }
+    .assignment-mode-active .assignable-match { cursor: pointer; }
+    .assignment-mode-active .assignable-match:hover { border-color: #1a472a; }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    .assignment-helper { background: linear-gradient(135deg, rgba(26, 71, 42, 0.1), rgba(201, 162, 39, 0.1)); border: 1px solid #1a472a; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; }
+    .dark .assignment-helper { background: linear-gradient(135deg, rgba(26, 71, 42, 0.3), rgba(201, 162, 39, 0.2)); }
+
+    /* Mini calendar dots */
+    .flatpickr-day.has-event::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: #1a472a; border-radius: 50%; }
+
+    /* Match detail cards */
+    .match-detail-card { background: linear-gradient(135deg, rgba(26, 71, 42, 0.1), rgba(201, 162, 39, 0.05)); }
+    .dark .match-detail-card { background: linear-gradient(135deg, rgba(26, 71, 42, 0.3), rgba(201, 162, 39, 0.1)); }
+
+    .match-teams-container { display: flex; align-items: center; justify-content: center; gap: 2rem; }
+    .team { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+    .match-vs { font-size: 1.5rem; font-weight: 700; color: #9ca3af; }
+
+    .match-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .match-info-item { display: flex; align-items: center; gap: 0.5rem; }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 mb-2">
+                <i class="ti ti-calendar text-2xl text-ecs-green dark:text-green-400"></i>
+                <h4 class="text-xl font-semibold text-gray-900 dark:text-white">Pub League Calendar</h4>
+            </div>
+            <nav class="flex" aria-label="Breadcrumb">
+                <ol class="inline-flex items-center space-x-1 md:space-x-2 text-sm">
+                    <li class="inline-flex items-center">
+                        <a href="/" class="inline-flex items-center text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-green-400">
+                            <i class="ti ti-home mr-1"></i> Home
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i class="ti ti-chevron-right text-gray-400 mx-1"></i>
+                            <span class="text-gray-700 dark:text-gray-300">Calendar</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" id="refreshScheduleBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-colors">
+                <i class="ti ti-refresh mr-2"></i>
+                Refresh
+            </button>
+            {% if can_edit_events %}
+            <button type="button" id="addLeagueEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-colors">
+                <i class="ti ti-calendar-plus mr-2"></i>
+                Add Event
+            </button>
+            {% endif %}
+            {% if can_assign_referee and not is_referee %}
+            <button type="button" id="toggleAssignmentMode" class="inline-flex items-center px-4 py-2 text-sm font-medium text-ecs-green bg-white border border-ecs-green rounded-lg hover:bg-green-50 focus:ring-4 focus:ring-green-300 dark:bg-gray-800 dark:text-green-400 dark:border-green-400 dark:hover:bg-gray-700 transition-colors">
+                <i class="ti ti-user-check mr-2"></i>
+                Assignment Mode
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if is_referee %}
+    <!-- Referee View -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- My Assignments Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-user-check text-ecs-green dark:text-green-400"></i>
+                    <h5 class="text-lg font-semibold text-gray-900 dark:text-white">My Assignments</h5>
+                </div>
+                <span id="myAssignmentsCount" class="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-medium text-white bg-ecs-green rounded-full">0</span>
+            </div>
+            <div id="myAssignmentsList" class="p-4">
+                <div class="flex flex-col items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green mb-2"></div>
+                    <p class="text-gray-500 dark:text-gray-400">Loading assignments...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Availability Toggle -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
+                <i class="ti ti-toggle-right text-ecs-green dark:text-green-400"></i>
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Availability Status</h5>
+            </div>
+            <div class="p-4 text-center">
+                <div id="availabilityStatus" class="mb-4">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green mx-auto mb-2"></div>
+                    <p class="text-gray-500 dark:text-gray-400">Loading status...</p>
+                </div>
+                <button type="button" id="toggleAvailabilityBtn" disabled class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    <i class="ti ti-loader animate-spin mr-2"></i> Loading...
+                </button>
+                <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                    Toggle your availability for referee assignments. When unavailable, you won't be shown in the assignment pool.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Main Content Column -->
+        <div class="lg:col-span-2 xl:col-span-3">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Match Schedule</h5>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Search -->
+                        <div class="relative">
+                            <input type="text" id="matchSearchInput" placeholder="Search matches..." class="w-48 px-4 py-2 pl-10 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+                            <i class="ti ti-search absolute left-3 top-2.5 text-gray-500 dark:text-gray-400"></i>
+                        </div>
+
+                        <!-- View Toggle -->
+                        <div class="inline-flex rounded-lg shadow-sm" role="group">
+                            <button type="button" data-view="day" id="viewDayBtn" class="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 hover:text-ecs-green focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">Day</button>
+                            <button type="button" data-view="week" id="viewWeekBtn" class="px-3 py-2 text-sm font-medium text-gray-900 bg-white border-t border-b border-gray-200 hover:bg-gray-100 hover:text-ecs-green focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">Week</button>
+                            <button type="button" data-view="month" id="viewMonthBtn" class="px-3 py-2 text-sm font-medium text-white bg-ecs-green border border-ecs-green hover:bg-green-800 focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-green-600 dark:border-green-600 dark:hover:bg-green-700">Month</button>
+                            <button type="button" data-view="list" id="viewListBtn" class="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-100 hover:text-ecs-green focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">List</button>
+                        </div>
+
+                        <!-- Keyboard Help -->
+                        <button type="button" id="keyboardHelpBtn" title="Keyboard shortcuts (?)" class="p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
+                            <i class="ti ti-keyboard text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-4">
+                    <!-- Navigation -->
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="calendar-prevBtn" title="Previous" class="p-2 text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600">
+                                <i class="ti ti-chevron-left"></i>
+                            </button>
+                            <button type="button" id="todayBtn" title="Go to today" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
+                                Today
+                            </button>
+                        </div>
+                        <h5 id="currentDateDisplay" class="text-lg font-semibold text-gray-900 dark:text-white">Sunday, April 7, 2024</h5>
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="nextEventBtn" title="Jump to next scheduled event" class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 dark:bg-gray-700 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-gray-600">
+                                <i class="ti ti-calendar-event mr-1"></i>Next
+                            </button>
+                            <button type="button" id="calendar-nextBtn" title="Next" class="p-2 text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600">
+                                <i class="ti ti-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Schedule content will be loaded here dynamically -->
+                    <div id="scheduleContent">
+                        <div class="flex flex-col items-center justify-center py-12">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-ecs-green mb-4"></div>
+                            <h6 class="text-ecs-green dark:text-green-400 font-medium mb-1">Loading schedule...</h6>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm">Retrieving match data and referee assignments</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Mini Calendar Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-ecs-green/10 dark:bg-green-900/30">
+                        <i class="ti ti-calendar text-ecs-green dark:text-green-400"></i>
+                    </div>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Quick Jump</h5>
+                </div>
+                <div class="p-3">
+                    <div id="miniCalendar"></div>
+                </div>
+            </div>
+
+            <!-- Calendar Filters Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                        <i class="ti ti-filter text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Filters</h5>
+                </div>
+                <div class="p-4 space-y-4">
+                    <!-- Event Type Filters -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Event Types</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="filterShowMatches" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                                    <i class="ti ti-ball-football mr-1 text-gray-400"></i>
+                                    Matches
+                                </span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="filterShowLeagueEvents" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                                    <i class="ti ti-calendar-event mr-1 text-gray-400"></i>
+                                    League Events
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Division Filters -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Divisions</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="filterSelectAllDivisions" class="text-xs text-ecs-green hover:underline dark:text-green-400">All</button>
+                                <button type="button" id="filterClearAllDivisions" class="text-xs text-gray-500 hover:underline dark:text-gray-400">None</button>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" value="Premier" id="filterDivPremier" checked class="filter-division w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                                    <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                                    Premier
+                                </span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" value="Classic" id="filterDivClassic" checked class="filter-division w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                                    <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                    Classic
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Reset Button -->
+                    <button type="button" id="filterResetBtn" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
+                        <i class="ti ti-refresh mr-2"></i>Reset Filters
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Stats Card -->
+            {% if can_view_schedule_stats %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                        <i class="ti ti-chart-pie text-purple-600 dark:text-purple-400"></i>
+                    </div>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Schedule Statistics</h5>
+                </div>
+                <div class="p-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p id="totalMatches" class="text-2xl font-bold text-blue-600 dark:text-blue-400">0</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Total Matches</p>
+                                </div>
+                                <i class="ti ti-soccer-field text-2xl text-blue-300 dark:text-blue-700"></i>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p id="assignedRefs" class="text-2xl font-bold text-green-600 dark:text-green-400">0</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Assigned Refs</p>
+                                </div>
+                                <i class="ti ti-user-check text-2xl text-green-300 dark:text-green-700"></i>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p id="unassignedMatches" class="text-2xl font-bold text-red-600 dark:text-red-400">0</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Unassigned</p>
+                                </div>
+                                <i class="ti ti-user-x text-2xl text-red-300 dark:text-red-700"></i>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p id="totalReferees" class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">0</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Referees</p>
+                                </div>
+                                <i class="ti ti-whistle text-2xl text-cyan-300 dark:text-cyan-700"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Referee List Card - Only show for admins -->
+            {% if not is_referee and can_view_available_referees %}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-ecs-green/10 dark:bg-green-900/30">
+                            <i class="ti ti-users text-ecs-green dark:text-green-400"></i>
+                        </div>
+                        <h5 class="font-semibold text-gray-900 dark:text-white">Available Referees</h5>
+                    </div>
+                    <span id="refCount" class="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-medium text-white bg-ecs-green rounded-full">0</span>
+                </div>
+                <div class="p-3">
+                    <div class="relative mb-3">
+                        <input type="text" id="refSearchInput" placeholder="Search referees..." class="w-full px-4 py-2 pl-10 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+                        <i class="ti ti-search absolute left-3 top-2.5 text-gray-500 dark:text-gray-400"></i>
+                    </div>
+                </div>
+                <div id="refereeList" class="max-h-80 overflow-y-auto">
+                    <div class="flex flex-col items-center justify-center py-6">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green mb-2"></div>
+                        <p class="text-ecs-green dark:text-green-400 text-sm font-medium">Loading referees...</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+{{ super() }}
+<!-- Referee Assignment Modal -->
+<div id="assignRefModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
+    <div class="relative p-4 w-full max-w-lg max-h-full mx-auto mt-20">
+        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-user-check text-ecs-green dark:text-green-400 mr-2"></i>
+                    Referee Assignment
+                </h5>
+                <button type="button" data-modal-close="assignRefModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <form id="assignRefForm">
+                    <input type="hidden" id="matchId" name="match_id">
+
+                    <div class="p-4 mb-4 rounded-lg match-detail-card">
+                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            <i class="ti ti-calendar-event mr-2"></i>
+                            <span id="matchDateTime">Date & Time</span>
+                        </div>
+                        <div class="text-center mb-3">
+                            <span id="homeTeam" class="font-bold text-gray-900 dark:text-white">Home Team</span>
+                            <span class="mx-2 text-gray-400">vs</span>
+                            <span id="awayTeam" class="font-bold text-gray-900 dark:text-white">Away Team</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-600 dark:text-gray-400">
+                                <i class="ti ti-map-pin mr-1"></i>
+                                <span id="matchLocation">Location</span>
+                            </span>
+                            <span id="matchDivision" class="px-2 py-0.5 text-xs font-medium text-white bg-ecs-green rounded-full">Division</span>
+                        </div>
+                    </div>
+
+                    <div id="currentRefereeSection" class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Current Referee</label>
+                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-ecs-green/10 dark:bg-green-900/30 flex items-center justify-center mr-2">
+                                    <i class="ti ti-user text-ecs-green dark:text-green-400"></i>
+                                </div>
+                                <span id="currentRefereeName" class="font-semibold text-gray-900 dark:text-white">Unassigned</span>
+                            </div>
+                            <button type="button" id="removeRefButton" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-800 dark:border-red-500 dark:text-red-400 dark:hover:bg-gray-700">
+                                <i class="ti ti-user-x mr-1"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="refSelect" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Assign Referee</label>
+                        <select id="refSelect" name="ref_id" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+                            <option value="" selected disabled>Choose a referee</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Select a referee from the list to assign to this match</p>
+                    </div>
+
+                    <div id="assignRefFeedback"></div>
+                </form>
+            </div>
+            <div class="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" data-modal-close="assignRefModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">Cancel</button>
+                <button type="submit" form="assignRefForm" id="assignRefButton" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
+                    <i class="ti ti-user-check mr-2"></i> Assign Referee
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Match Details Modal -->
+<div id="matchDetailsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
+    <div class="relative p-4 w-full max-w-lg max-h-full mx-auto mt-20">
+        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-soccer-field text-ecs-green dark:text-green-400 mr-2"></i>
+                    Match Details
+                </h5>
+                <button type="button" data-modal-close="matchDetailsModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <div class="match-detail-full">
+                    <div class="flex items-center justify-center gap-8 py-4">
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-ecs-green/10 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2">
+                                <i class="ti ti-home text-2xl text-ecs-green dark:text-green-400"></i>
+                            </div>
+                            <div id="detailHomeTeam" class="font-bold text-gray-900 dark:text-white">Home Team</div>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-400">VS</div>
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-2">
+                                <i class="ti ti-plane-departure text-2xl text-gray-500 dark:text-gray-400"></i>
+                            </div>
+                            <div id="detailAwayTeam" class="font-bold text-gray-900 dark:text-white">Away Team</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="flex items-center gap-2">
+                            <i class="ti ti-calendar text-ecs-green dark:text-green-400"></i>
+                            <span id="detailMatchDate" class="font-medium text-gray-900 dark:text-white">Date</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="ti ti-clock text-ecs-green dark:text-green-400"></i>
+                            <span id="detailMatchTime" class="font-medium text-gray-900 dark:text-white">Time</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="ti ti-map-pin text-ecs-green dark:text-green-400"></i>
+                            <span id="detailMatchLocation" class="font-medium text-gray-900 dark:text-white">Location</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="ti ti-flag text-ecs-green dark:text-green-400"></i>
+                            <span id="detailMatchDivision" class="font-medium text-gray-900 dark:text-white">Division</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 p-4 bg-ecs-green/10 dark:bg-green-900/20 rounded-lg">
+                        <div class="flex items-center justify-between mb-3">
+                            <h6 class="font-bold text-gray-900 dark:text-white">Referee Assignment</h6>
+                            {% if can_assign_referee %}
+                            <button type="button" id="openAssignRefBtnTop" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800">
+                                <i class="ti ti-user-check mr-1"></i> Assign Referee
+                            </button>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center mr-2">
+                                <i class="ti ti-user-circle text-ecs-green dark:text-green-400"></i>
+                            </div>
+                            <span id="detailMatchReferee" class="font-semibold text-gray-900 dark:text-white">Unassigned</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" data-modal-close="matchDetailsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">Close</button>
+                {% if can_assign_referee %}
+                <button type="button" id="openAssignRefBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
+                    <i class="ti ti-user-check mr-2"></i> Assign Referee
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- League Event Modal (for admin event creation/editing) -->
+{% if can_edit_events %}
+<div id="leagueEventModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
+    <div class="relative p-4 w-full max-w-lg max-h-full mx-auto mt-20">
+        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-calendar-plus text-ecs-green dark:text-green-400 mr-2"></i>
+                    <span id="eventModalTitle">Create League Event</span>
+                </h5>
+                <button type="button" data-modal-close="leagueEventModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <form id="leagueEventForm" class="space-y-4">
+                    <input type="hidden" id="eventId" value="">
+
+                    <div>
+                        <label for="eventTitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Title <span class="text-red-500">*</span></label>
+                        <input type="text" id="eventTitle" placeholder="e.g., Pre-Season Party" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="eventType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Type</label>
+                            <select id="eventType" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+                                <option value="party">Party</option>
+                                <option value="meeting">Meeting</option>
+                                <option value="social">Social Event</option>
+                                <option value="training">Training</option>
+                                <option value="tournament">Tournament</option>
+                                <option value="other" selected>Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="eventLocation" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+                            <input type="text" id="eventLocation" placeholder="e.g., The Local Pub" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="eventStartDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date/Time <span class="text-red-500">*</span></label>
+                            <input type="datetime-local" id="eventStartDate" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+                        </div>
+                        <div>
+                            <label for="eventEndDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date/Time</label>
+                            <input type="datetime-local" id="eventEndDate" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="eventAllDay" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">All-day event</span>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label for="eventDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                        <textarea id="eventDescription" rows="3" placeholder="Event details..." class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="eventNotifyDiscord" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                                <i class="ti ti-brand-discord mr-1"></i>
+                                Announce in Discord
+                            </span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" id="deleteEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:border-red-500 dark:text-red-400 dark:hover:bg-gray-600">
+                    <i class="ti ti-trash mr-2"></i> Delete
+                </button>
+                <div class="flex gap-2">
+                    <button type="button" data-modal-close="leagueEventModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">Cancel</button>
+                    <button type="button" id="saveEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
+                        <i class="ti ti-check mr-2"></i> Save Event
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Keyboard Shortcuts Modal (created dynamically) -->
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+
+<script>
+// Dark mode detection for SweetAlert2
+const isDark = () => document.documentElement.classList.contains('dark');
+
+// Modal helper functions for Flowbite-style modals
+const FlowbiteModal = {
+    show(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.classList.add('overflow-hidden');
+        }
+    },
+    hide(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }
+};
+
+// Initialize modal close buttons
+document.querySelectorAll('[data-modal-close]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const modalId = this.getAttribute('data-modal-close');
+        FlowbiteModal.hide(modalId);
+    });
+});
+
+// Close modals when clicking backdrop
+document.querySelectorAll('[data-modal-backdrop]').forEach(backdrop => {
+    backdrop.addEventListener('click', function() {
+        const modal = this.closest('[id]');
+        if (modal) {
+            FlowbiteModal.hide(modal.id);
+        }
+    });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    // State variables
+    let isAssignmentMode = false;
+    let allEvents = [];
+    let currentViewEvents = [];
+    let currentView = 'month';
+    let currentDate = new Date();
+    const canAssignReferee = {{ 'true' if can_assign_referee else 'false' }};
+    const isReferee = {{ 'true' if is_referee else 'false' }};
+    const canEditRefereeMatches = {{ 'true' if can_edit_referee_matches else 'false' }};
+    const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    let refereeAssignedMatches = [];
+
+    // View toggle buttons
+    const viewButtons = document.querySelectorAll('[data-view]');
+    viewButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Update active button styling
+            viewButtons.forEach(b => {
+                b.classList.remove('bg-ecs-green', 'text-white', 'border-ecs-green', 'dark:bg-green-600', 'dark:border-green-600', 'dark:hover:bg-green-700');
+                b.classList.add('text-gray-900', 'bg-white', 'border-gray-200', 'hover:bg-gray-100', 'hover:text-ecs-green', 'dark:bg-gray-700', 'dark:border-gray-600', 'dark:text-white', 'dark:hover:bg-gray-600');
+            });
+            this.classList.remove('text-gray-900', 'bg-white', 'border-gray-200', 'hover:bg-gray-100', 'hover:text-ecs-green', 'dark:bg-gray-700', 'dark:border-gray-600', 'dark:text-white', 'dark:hover:bg-gray-600');
+            this.classList.add('bg-ecs-green', 'text-white', 'border-ecs-green', 'dark:bg-green-600', 'dark:border-green-600', 'dark:hover:bg-green-700');
+
+            currentView = this.dataset.view;
+            renderSchedule();
+        });
+    });
+
+    // Toggle assignment mode
+    const toggleAssignmentMode = document.getElementById('toggleAssignmentMode');
+    if (toggleAssignmentMode) {
+        toggleAssignmentMode.addEventListener('click', function() {
+            isAssignmentMode = !isAssignmentMode;
+            if (isAssignmentMode) {
+                this.classList.remove('text-ecs-green', 'bg-white', 'border-ecs-green', 'hover:bg-green-50', 'dark:bg-gray-800', 'dark:text-green-400', 'dark:border-green-400');
+                this.classList.add('text-white', 'bg-ecs-green', 'border-ecs-green', 'hover:bg-green-800', 'dark:bg-green-600', 'dark:border-green-600');
+                this.innerHTML = '<i class="ti ti-x mr-2"></i> Exit Assignment Mode';
+            } else {
+                this.classList.add('text-ecs-green', 'bg-white', 'border-ecs-green', 'hover:bg-green-50', 'dark:bg-gray-800', 'dark:text-green-400', 'dark:border-green-400');
+                this.classList.remove('text-white', 'bg-ecs-green', 'border-ecs-green', 'hover:bg-green-800', 'dark:bg-green-600', 'dark:border-green-600');
+                this.innerHTML = '<i class="ti ti-user-check mr-2"></i> Assignment Mode';
+            }
+            toggleAssignmentModeUI(isAssignmentMode);
+        });
+    }
+
+    // Navigation buttons
+    document.getElementById('calendar-prevBtn').addEventListener('click', () => navigateDate(-1));
+    document.getElementById('calendar-nextBtn').addEventListener('click', () => navigateDate(1));
+    document.getElementById('todayBtn').addEventListener('click', () => {
+        currentDate = new Date();
+        updateDateDisplay();
+        renderSchedule();
+    });
+    document.getElementById('keyboardHelpBtn').addEventListener('click', () => showKeyboardShortcuts());
+    document.getElementById('nextEventBtn').addEventListener('click', () => jumpToNextEvent());
+
+    function jumpToNextEvent() {
+        if (allEvents.length === 0) {
+            showToast('warning', 'No events loaded');
+            return;
+        }
+        const now = new Date();
+        const futureEvents = allEvents.filter(event => new Date(event.start) > now).sort((a, b) => new Date(a.start) - new Date(b.start));
+        if (futureEvents.length > 0) {
+            currentDate = new Date(futureEvents[0].start);
+            updateDateDisplay();
+            renderSchedule();
+            showToast('info', `Jumped to ${currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
+        } else {
+            const sortedEvents = [...allEvents].sort((a, b) => new Date(b.start) - new Date(a.start));
+            if (sortedEvents.length > 0) {
+                currentDate = new Date(sortedEvents[0].start);
+                updateDateDisplay();
+                renderSchedule();
+                showToast('info', `Showing most recent event`);
+            }
+        }
+    }
+
+    function navigateDate(direction) {
+        switch(currentView) {
+            case 'day': currentDate.setDate(currentDate.getDate() + direction); break;
+            case 'week': currentDate.setDate(currentDate.getDate() + (direction * 7)); break;
+            case 'month': currentDate.setMonth(currentDate.getMonth() + direction); break;
+            default: currentDate.setDate(currentDate.getDate() + direction);
+        }
+        updateDateDisplay();
+        renderSchedule();
+    }
+
+    function updateDateDisplay() {
+        const dateDisplay = document.getElementById('currentDateDisplay');
+        if (currentView === 'day') {
+            dateDisplay.textContent = currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        } else if (currentView === 'week') {
+            const firstDay = new Date(currentDate);
+            firstDay.setDate(currentDate.getDate() - currentDate.getDay());
+            const lastDay = new Date(firstDay);
+            lastDay.setDate(firstDay.getDate() + 6);
+            dateDisplay.textContent = `${firstDay.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} - ${lastDay.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}`;
+        } else if (currentView === 'month') {
+            dateDisplay.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        } else {
+            dateDisplay.textContent = 'All Matches';
+        }
+    }
+
+    // Search functionality
+    const refSearchInput = document.getElementById('refSearchInput');
+    if (refSearchInput) {
+        refSearchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            document.querySelectorAll('.referee-item').forEach(item => {
+                const refName = item.querySelector('.referee-name')?.textContent.toLowerCase() || '';
+                item.style.display = refName.includes(searchTerm) || searchTerm === '' ? '' : 'none';
+            });
+        });
+    }
+
+    const matchSearchInput = document.getElementById('matchSearchInput');
+    if (matchSearchInput) {
+        matchSearchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            if (currentView === 'list') {
+                document.querySelectorAll('.match-item').forEach(item => {
+                    item.style.display = item.textContent.toLowerCase().includes(searchTerm) || searchTerm === '' ? '' : 'none';
+                });
+            } else {
+                renderSchedule(searchTerm);
+            }
+        });
+    }
+
+    // Refresh button
+    const refreshButton = document.getElementById('refreshScheduleBtn');
+    if (refreshButton) {
+        refreshButton.addEventListener('click', function() {
+            this.disabled = true;
+            this.innerHTML = '<i class="ti ti-loader animate-spin mr-2"></i> Refreshing';
+            Promise.all([loadScheduleEvents(), fetchAvailableReferees()]).then(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="ti ti-refresh mr-2"></i> Refresh';
+                showToast('success', 'Schedule refreshed successfully');
+            }).catch(error => {
+                this.disabled = false;
+                this.innerHTML = '<i class="ti ti-refresh mr-2"></i> Refresh';
+                showToast('error', 'Failed to refresh data');
+            });
+        });
+    }
+
+    // Load events
+    async function loadScheduleEvents() {
+        try {
+            const response = await fetch('/calendar/events');
+            if (!response.ok) throw new Error('Failed to fetch events.');
+            const data = await response.json();
+            allEvents = data.events.map(event => ({
+                ...event,
+                type: event.type || 'match',
+                date: new Date(event.start),
+                homeTeam: event.teams ? event.teams.split(' vs ')[0] : event.title,
+                awayTeam: event.teams ? event.teams.split(' vs ')[1] : '',
+                location: event.description ? event.description.replace('Location: ', '') : event.location || '',
+                time: new Date(event.start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
+            }));
+            updateQuickStats(data.stats);
+            if (data.referee_assigned_matches) refereeAssignedMatches = data.referee_assigned_matches;
+            if (allEvents.length > 0) {
+                const today = new Date();
+                const hasEventsToday = allEvents.some(event => new Date(event.start).toDateString() === today.toDateString());
+                if (!hasEventsToday) {
+                    const futureEvents = allEvents.filter(event => new Date(event.start) > today).sort((a, b) => new Date(a.start) - new Date(b.start));
+                    if (futureEvents.length > 0) currentDate = new Date(futureEvents[0].start);
+                }
+            }
+            renderSchedule();
+            return data;
+        } catch (error) {
+            console.error('Error loading events:', error);
+            document.getElementById('scheduleContent').innerHTML = `
+                <div class="empty-state">
+                    <i class="ti ti-alert-triangle empty-state-icon text-red-500"></i>
+                    <h5 class="empty-state-text text-red-500">Failed to load schedule</h5>
+                    <p class="empty-state-subtext">There was a problem retrieving the match data</p>
+                    <button class="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:border-red-500 dark:text-red-400" onclick="location.reload()">
+                        <i class="ti ti-refresh mr-2"></i> Try Again
+                    </button>
+                </div>
+            `;
+            throw error;
+        }
+    }
+
+    async function fetchAvailableReferees() {
+        try {
+            let startDate = new Date(currentDate);
+            let endDate = new Date(currentDate);
+            if (currentView === 'week') {
+                startDate.setDate(currentDate.getDate() - currentDate.getDay());
+                endDate.setDate(startDate.getDate() + 6);
+            } else if (currentView === 'month') {
+                startDate.setDate(1);
+                endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            } else if (currentView === 'list') {
+                startDate = new Date();
+                endDate = new Date();
+                endDate.setMonth(endDate.getMonth() + 3);
+            }
+            const response = await fetch(`/calendar/available_refs?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`);
+            if (!response.ok) throw new Error('Failed to fetch referees.');
+            const referees = await response.json();
+            renderRefereeList(referees);
+            const totalRefsEl = document.getElementById('totalReferees');
+            const refCountEl = document.getElementById('refCount');
+            if (totalRefsEl) totalRefsEl.textContent = referees.length;
+            if (refCountEl) refCountEl.textContent = referees.length;
+            return referees;
+        } catch (error) {
+            console.error('Error fetching referees:', error);
+            const refereeList = document.getElementById('refereeList');
+            if (refereeList) {
+                refereeList.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-6">
+                        <i class="ti ti-alert-triangle text-2xl text-red-500 mb-2"></i>
+                        <p class="text-red-500 text-sm font-medium">Failed to load referees</p>
+                    </div>
+                `;
+            }
+            throw error;
+        }
+    }
+
+    function renderRefereeList(referees) {
+        const refList = document.getElementById('refereeList');
+        if (!refList) return;
+        refList.innerHTML = '';
+        if (referees.length === 0) {
+            refList.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-6">
+                    <div class="w-12 h-12 rounded-full bg-ecs-green/10 dark:bg-green-900/30 flex items-center justify-center mb-2">
+                        <i class="ti ti-user-off text-xl text-ecs-green dark:text-green-400"></i>
+                    </div>
+                    <h6 class="text-gray-500 dark:text-gray-400 mb-1">No Referees Available</h6>
+                    <p class="text-gray-400 dark:text-gray-500 text-sm">No eligible referees found</p>
+                </div>
+            `;
+            return;
+        }
+        referees.sort((a, b) => a.matches_assigned_in_week - b.matches_assigned_in_week);
+        const container = document.createElement('div');
+        container.className = 'p-2 space-y-2';
+        referees.forEach(ref => {
+            const highlightClass = ref.matches_assigned_in_week === 0 ? 'border-green-400' : 'border-gray-200 dark:border-gray-700';
+            const item = document.createElement('div');
+            item.className = 'referee-item';
+            item.innerHTML = `
+                <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border ${highlightClass} cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors" data-ref-id="${ref.id}" data-ref-name="${ref.name}">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full bg-ecs-green/10 dark:bg-green-900/30 flex items-center justify-center mr-2">
+                                <i class="ti ti-user text-ecs-green dark:text-green-400"></i>
+                            </div>
+                            <div>
+                                <span class="referee-name font-semibold text-gray-900 dark:text-white">${ref.name}</span>
+                                ${ref.matches_assigned_in_week > 0
+                                    ? `<span class="ml-2 px-2 py-0.5 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full dark:bg-yellow-900/30 dark:text-yellow-400">${ref.matches_assigned_in_week}</span>`
+                                    : '<span class="ml-2 px-2 py-0.5 text-xs font-medium text-green-800 bg-green-100 rounded-full dark:bg-green-900/30 dark:text-green-400">Available</span>'}
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 text-xs font-medium text-white bg-ecs-green rounded-full">${ref.total_matches_assigned}</span>
+                    </div>
+                    <div class="mt-2 w-full bg-gray-200 rounded-full h-1 dark:bg-gray-600">
+                        <div class="bg-ecs-green h-1 rounded-full" style="width: ${Math.min(ref.matches_assigned_in_week * 33, 100)}%"></div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(item);
+        });
+        refList.appendChild(container);
+    }
+
+    function updateQuickStats(stats) {
+        const totalMatches = document.getElementById('totalMatches');
+        const assignedRefs = document.getElementById('assignedRefs');
+        const unassignedMatches = document.getElementById('unassignedMatches');
+        if (totalMatches) totalMatches.textContent = stats.totalMatches;
+        if (assignedRefs) assignedRefs.textContent = stats.assignedRefs;
+        if (unassignedMatches) unassignedMatches.textContent = stats.unassignedMatches;
+    }
+
+    function renderSchedule(searchTerm = '') {
+        const scheduleContent = document.getElementById('scheduleContent');
+        updateDateDisplay();
+        currentViewEvents = filterEventsByView();
+        if (searchTerm) {
+            currentViewEvents = currentViewEvents.filter(event => {
+                const matchText = `${event.homeTeam} ${event.awayTeam} ${event.location} ${event.division} ${event.ref}`.toLowerCase();
+                return matchText.includes(searchTerm.toLowerCase());
+            });
+        }
+        if (currentViewEvents.length === 0) {
+            scheduleContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="ti ti-calendar-off empty-state-icon"></i>
+                    <h5 class="empty-state-text">No matches scheduled</h5>
+                    <p class="empty-state-subtext">Try a different date or view to see scheduled matches</p>
+                </div>
+            `;
+            return;
+        }
+        switch(currentView) {
+            case 'day': renderDayView(); break;
+            case 'week': renderWeekView(); break;
+            case 'month': renderMonthView(); break;
+            case 'list': renderListView(); break;
+            default: renderDayView();
+        }
+    }
+
+    function filterEventsByView() {
+        let filteredEvents = allEvents;
+        // Apply filter checkboxes
+        const showMatches = document.getElementById('filterShowMatches')?.checked ?? true;
+        const showLeagueEvents = document.getElementById('filterShowLeagueEvents')?.checked ?? true;
+        const premierChecked = document.getElementById('filterDivPremier')?.checked ?? true;
+        const classicChecked = document.getElementById('filterDivClassic')?.checked ?? true;
+        const divisions = [];
+        if (premierChecked) divisions.push('Premier');
+        if (classicChecked) divisions.push('Classic');
+
+        filteredEvents = filteredEvents.filter(event => {
+            if (event.type === 'match' && !showMatches) return false;
+            if (event.type === 'league_event' && !showLeagueEvents) return false;
+            if (event.type === 'match' && divisions.length > 0 && !divisions.includes(event.division)) return false;
+            return true;
+        });
+
+        if (currentView === 'day') {
+            return filteredEvents.filter(event => new Date(event.start).toDateString() === currentDate.toDateString());
+        } else if (currentView === 'week') {
+            const weekStart = new Date(currentDate);
+            weekStart.setDate(currentDate.getDate() - currentDate.getDay());
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            return filteredEvents.filter(event => {
+                const eventDate = new Date(event.start);
+                return eventDate >= weekStart && eventDate <= weekEnd;
+            });
+        } else if (currentView === 'month') {
+            return filteredEvents.filter(event => {
+                const eventDate = new Date(event.start);
+                return eventDate.getMonth() === currentDate.getMonth() && eventDate.getFullYear() === currentDate.getFullYear();
+            });
+        } else {
+            return [...filteredEvents].sort((a, b) => new Date(a.start) - new Date(b.start));
+        }
+    }
+
+    function renderDayView() {
+        const scheduleContent = document.getElementById('scheduleContent');
+        const sortedEvents = [...currentViewEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+        const timeSlots = {};
+        sortedEvents.forEach(event => {
+            const time = new Date(event.start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+            if (!timeSlots[time]) timeSlots[time] = [];
+            timeSlots[time].push(event);
+        });
+        let html = '<div class="day-schedule">';
+        for (const time in timeSlots) {
+            html += `<div class="time-slot"><div class="time-label">${time}</div><div class="time-events">`;
+            timeSlots[time].forEach(event => {
+                const isAssigned = event.ref !== 'Unassigned';
+                html += renderMatchCard(event, isAssigned);
+            });
+            html += '</div></div>';
+        }
+        html += '</div>';
+        scheduleContent.innerHTML = html;
+        addMatchItemEventListeners();
+    }
+
+    function renderWeekView() {
+        const scheduleContent = document.getElementById('scheduleContent');
+        const weekStart = new Date(currentDate);
+        weekStart.setDate(currentDate.getDate() - currentDate.getDay());
+        const weekDays = [];
+        for (let i = 0; i < 7; i++) {
+            const day = new Date(weekStart);
+            day.setDate(weekStart.getDate() + i);
+            weekDays.push(day);
+        }
+        let html = '<div class="week-schedule"><div class="week-header">';
+        weekDays.forEach(day => {
+            const isToday = day.toDateString() === new Date().toDateString();
+            html += `<div class="day-header ${isToday ? 'today' : ''}"><div class="day-name">${day.toLocaleDateString('en-US', {weekday: 'short'})}</div><div class="day-date">${day.getDate()}</div></div>`;
+        });
+        html += '</div><div class="week-grid">';
+        weekDays.forEach(day => {
+            const dayEvents = currentViewEvents.filter(event => new Date(event.start).toDateString() === day.toDateString());
+            dayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+            const isToday = day.toDateString() === new Date().toDateString();
+            html += `<div class="day-column ${isToday ? 'today' : ''}" data-date="${day.toDateString()}">`;
+            if (dayEvents.length === 0) {
+                html += `<div class="day-empty"><div class="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-2"><i class="ti ti-calendar-off text-gray-400"></i></div><small class="text-gray-400 dark:text-gray-500">No matches</small></div>`;
+            } else {
+                dayEvents.forEach(event => {
+                    const isAssigned = event.ref !== 'Unassigned';
+                    html += renderMatchCardCompact(event, isAssigned);
+                });
+            }
+            html += '</div>';
+        });
+        html += '</div></div>';
+        scheduleContent.innerHTML = html;
+        addMatchItemEventListeners();
+    }
+
+    function renderMonthView() {
+        const scheduleContent = document.getElementById('scheduleContent');
+        const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const startingDayOfWeek = firstDay.getDay();
+        const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const totalCells = Math.ceil((startingDayOfWeek + daysInMonth) / 7) * 7;
+        const nextMonthDays = totalCells - (startingDayOfWeek + daysInMonth);
+
+        const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        let html = '<div class="month-schedule"><div class="month-weekdays">';
+        weekdays.forEach(day => { html += `<div class="month-weekday">${day}</div>`; });
+        html += '</div><div class="month-grid">';
+
+        const prevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+        for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+            html += `<div class="month-day prev-month"><div class="month-day-header">${prevMonth.getDate() - i}</div><div class="month-day-content"></div></div>`;
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+            const isToday = date.toDateString() === new Date().toDateString();
+            const dayEvents = currentViewEvents.filter(event => new Date(event.start).toDateString() === date.toDateString());
+            dayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+            const eventCountBadge = dayEvents.length > 0 ? `<span class="event-count-badge">${dayEvents.length}</span>` : '';
+
+            html += `<div class="month-day ${isToday ? 'today' : ''} ${dayEvents.length > 0 ? 'has-events' : ''}"><div class="month-day-header"><span class="day-number">${day}</span>${eventCountBadge}</div><div class="month-day-content">`;
+
+            if (dayEvents.length > 0) {
+                const displayEvents = dayEvents.slice(0, 3);
+                displayEvents.forEach(event => {
+                    const isAssigned = event.ref !== 'Unassigned';
+                    html += `<div class="month-event ${event.division === 'Premier' ? 'premier' : 'classic'}" data-event-id="${event.id}"><div class="month-event-time">${event.time}</div><div class="month-event-title">${event.homeTeam} vs ${event.awayTeam}</div><div class="month-event-ref ${isAssigned ? 'assigned' : 'unassigned'}"><i class="ti ti-user-circle"></i></div></div>`;
+                });
+                if (dayEvents.length > 3) {
+                    html += `<div class="month-more-events">+${dayEvents.length - 3} more</div>`;
+                }
+            }
+            html += '</div></div>';
+        }
+
+        for (let day = 1; day <= nextMonthDays; day++) {
+            html += `<div class="month-day next-month"><div class="month-day-header">${day}</div><div class="month-day-content"></div></div>`;
+        }
+        html += '</div></div>';
+        scheduleContent.innerHTML = html;
+
+        document.querySelectorAll('.month-event').forEach(item => {
+            item.addEventListener('click', function() {
+                const eventId = this.dataset.eventId;
+                const event = allEvents.find(e => e.id == eventId);
+                if (event) {
+                    if (isAssignmentMode && canAssignReferee) showAssignRefModal(event);
+                    else showMatchDetailsModal(event);
+                }
+            });
+        });
+
+        document.querySelectorAll('.month-more-events').forEach(item => {
+            item.addEventListener('click', function() {
+                const dayElement = this.closest('.month-day');
+                const dayNumber = dayElement.querySelector('.day-number').textContent;
+                currentDate.setDate(parseInt(dayNumber));
+                currentView = 'day';
+                viewButtons.forEach(btn => {
+                    btn.classList.remove('bg-ecs-green', 'text-white');
+                    if (btn.dataset.view === 'day') btn.classList.add('bg-ecs-green', 'text-white');
+                });
+                renderSchedule();
+            });
+        });
+    }
+
+    function renderListView() {
+        const scheduleContent = document.getElementById('scheduleContent');
+        const sortedEvents = [...currentViewEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+        const eventsByDate = {};
+        sortedEvents.forEach(event => {
+            const dateKey = new Date(event.start).toDateString();
+            if (!eventsByDate[dateKey]) eventsByDate[dateKey] = [];
+            eventsByDate[dateKey].push(event);
+        });
+        let html = '<div class="list-schedule">';
+        for (const dateKey in eventsByDate) {
+            const date = new Date(dateKey);
+            const isToday = dateKey === new Date().toDateString();
+            html += `<div class="date-group ${isToday ? 'today' : ''}"><div class="date-header"><i class="ti ti-calendar-event mr-2"></i>${date.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'})}</div><div class="date-matches">`;
+            eventsByDate[dateKey].forEach(event => {
+                const isAssigned = event.ref !== 'Unassigned';
+                html += renderMatchCard(event, isAssigned);
+            });
+            html += '</div></div>';
+        }
+        html += '</div>';
+        scheduleContent.innerHTML = html;
+        addMatchItemEventListeners();
+    }
+
+    function renderMatchCard(event, isAssigned) {
+        const assignmentClass = (!isAssigned && isAssignmentMode) ? 'unassigned-match' : '';
+        return `
+            <div class="match-item p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${assignmentClass}" data-event-id="${event.id}">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="px-2 py-0.5 text-xs font-medium text-white ${event.division === 'Premier' ? 'bg-blue-500' : 'bg-green-500'} rounded-full">${event.division}</span>
+                    <span class="text-sm text-gray-500 dark:text-gray-400"><i class="ti ti-map-pin mr-1"></i>${event.location}</span>
+                </div>
+                <div class="match-teams mb-3">
+                    <div class="home-team text-gray-900 dark:text-white">${event.homeTeam}</div>
+                    <div class="vs">vs</div>
+                    <div class="away-team text-gray-900 dark:text-white">${event.awayTeam}</div>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div class="ref-badge ${isAssigned ? 'ref-assigned' : 'ref-unassigned'}">
+                        <i class="ti ti-user-circle"></i>
+                        <span>${event.ref}</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="view-match-btn px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
+                            <i class="ti ti-eye mr-1"></i>View
+                        </button>
+                        ${canAssignReferee ? `
+                        <button class="assign-ref-btn px-3 py-1.5 text-xs font-medium ${isAssigned ? 'text-green-600 bg-white border border-green-300 hover:bg-green-50 dark:bg-gray-700 dark:border-green-500 dark:text-green-400' : 'text-white bg-ecs-green hover:bg-green-800'} rounded-lg">
+                            <i class="ti ti-user-check mr-1"></i>${isAssigned ? 'Change' : 'Assign'}
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderMatchCardCompact(event, isAssigned) {
+        return `
+            <div class="match-item p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-2 cursor-pointer hover:shadow-sm transition-shadow" data-event-id="${event.id}">
+                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1"><i class="ti ti-clock mr-1"></i>${event.time}</div>
+                <div class="flex items-center gap-1 mb-1">
+                    <span class="px-1.5 py-0.5 text-[10px] font-medium text-white ${event.division === 'Premier' ? 'bg-blue-500' : 'bg-green-500'} rounded">${event.division}</span>
+                    <small class="text-gray-700 dark:text-gray-300 truncate">${event.homeTeam} vs ${event.awayTeam}</small>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div class="ref-badge-small ${isAssigned ? 'text-green-500' : 'text-red-500'} text-xs">
+                        <i class="ti ti-user-circle mr-1"></i>${event.ref}
+                    </div>
+                    <button class="view-match-btn p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <i class="ti ti-eye text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    function addMatchItemEventListeners() {
+        document.querySelectorAll('.match-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                if (!e.target.closest('button')) {
+                    const eventId = this.dataset.eventId;
+                    const event = allEvents.find(evt => evt.id == eventId);
+                    if (event) showMatchDetailsModal(event);
+                }
+            });
+            const viewBtn = item.querySelector('.view-match-btn');
+            if (viewBtn) {
+                viewBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const eventId = item.dataset.eventId;
+                    const event = allEvents.find(evt => evt.id == eventId);
+                    if (event) showMatchDetailsModal(event);
+                });
+            }
+            const assignBtn = item.querySelector('.assign-ref-btn');
+            if (assignBtn) {
+                assignBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const eventId = item.dataset.eventId;
+                    const event = allEvents.find(evt => evt.id == eventId);
+                    if (event) showAssignRefModal(event);
+                });
+            }
+        });
+    }
+
+    function showMatchDetailsModal(event) {
+        document.getElementById('detailHomeTeam').textContent = event.homeTeam;
+        document.getElementById('detailAwayTeam').textContent = event.awayTeam;
+        document.getElementById('detailMatchDate').textContent = event.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        document.getElementById('detailMatchTime').textContent = event.time;
+        document.getElementById('detailMatchLocation').textContent = event.location;
+        document.getElementById('detailMatchDivision').textContent = event.division;
+        document.getElementById('detailMatchReferee').textContent = event.ref;
+
+        const openAssignRefBtn = document.getElementById('openAssignRefBtn');
+        const openAssignRefBtnTop = document.getElementById('openAssignRefBtnTop');
+        if (openAssignRefBtn) {
+            openAssignRefBtn.onclick = function() {
+                FlowbiteModal.hide('matchDetailsModal');
+                setTimeout(() => showAssignRefModal(event), 300);
+            };
+        }
+        if (openAssignRefBtnTop) {
+            openAssignRefBtnTop.onclick = function() {
+                FlowbiteModal.hide('matchDetailsModal');
+                setTimeout(() => showAssignRefModal(event), 300);
+            };
+        }
+        FlowbiteModal.show('matchDetailsModal');
+    }
+
+    function showAssignRefModal(event) {
+        document.getElementById('matchId').value = event.id;
+        document.getElementById('homeTeam').textContent = event.homeTeam;
+        document.getElementById('awayTeam').textContent = event.awayTeam;
+        document.getElementById('matchDateTime').textContent = `${event.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at ${event.time}`;
+        document.getElementById('matchLocation').textContent = event.location;
+        document.getElementById('matchDivision').textContent = event.division;
+
+        if (event.ref !== 'Unassigned') {
+            document.getElementById('currentRefereeSection').style.display = 'block';
+            document.getElementById('currentRefereeName').textContent = event.ref;
+            document.getElementById('removeRefButton').style.display = 'inline-flex';
+        } else {
+            document.getElementById('currentRefereeSection').style.display = 'none';
+            document.getElementById('removeRefButton').style.display = 'none';
+        }
+
+        fetchRefereesForMatch(event.id);
+        document.getElementById('assignRefFeedback').innerHTML = '';
+        FlowbiteModal.show('assignRefModal');
+    }
+
+    async function fetchRefereesForMatch(matchId) {
+        try {
+            const response = await fetch(`/calendar/refs?match_id=${matchId}`);
+            if (!response.ok) throw new Error('Failed to fetch referees.');
+            const referees = await response.json();
+            const refSelect = document.getElementById('refSelect');
+            refSelect.innerHTML = '<option value="" selected disabled>Choose a referee</option>';
+
+            if (referees.length === 0) {
+                refSelect.innerHTML += '<option value="" disabled>No eligible referees available</option>';
+                document.getElementById('assignRefButton').disabled = true;
+                displayModalFeedback('assignRefFeedback', 'No eligible referees available for this match.', 'warning');
+            } else {
+                referees.sort((a, b) => a.matches_assigned_in_week - b.matches_assigned_in_week);
+                const availableGroup = document.createElement('optgroup');
+                availableGroup.label = "Available Referees (0 assignments)";
+                const assignedGroup = document.createElement('optgroup');
+                assignedGroup.label = "Assigned Referees";
+
+                referees.forEach(ref => {
+                    const option = document.createElement('option');
+                    option.value = ref.id;
+                    const label = ref.matches_assigned_in_week > 0 ? `(${ref.matches_assigned_in_week} this week)` : '(Available)';
+                    option.textContent = `${ref.name} ${label}`;
+                    if (ref.matches_assigned_in_week > 0) assignedGroup.appendChild(option);
+                    else availableGroup.appendChild(option);
+                });
+
+                if (availableGroup.children.length > 0) refSelect.appendChild(availableGroup);
+                if (assignedGroup.children.length > 0) refSelect.appendChild(assignedGroup);
+                refSelect.disabled = false;
+                document.getElementById('assignRefButton').disabled = false;
+            }
+        } catch (error) {
+            console.error('Error fetching referees:', error);
+            displayModalFeedback('assignRefFeedback', `Error: ${error.message}`, 'error');
+        }
+    }
+
+    document.getElementById('assignRefForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const matchId = document.getElementById('matchId').value;
+        const refId = document.getElementById('refSelect').value;
+        if (!refId) {
+            displayModalFeedback('assignRefFeedback', 'Please select a referee.', 'warning');
+            return;
+        }
+        try {
+            const response = await fetch('/calendar/assign_ref', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrfToken },
+                body: JSON.stringify({ match_id: matchId, ref_id: refId })
+            });
+            const result = await response.json();
+            if (!response.ok || result.error) {
+                displayModalFeedback('assignRefFeedback', result.error || 'Failed to assign referee.', 'error');
+                return;
+            }
+            displayModalFeedback('assignRefFeedback', 'Referee assigned successfully!', 'success');
+            setTimeout(() => {
+                FlowbiteModal.hide('assignRefModal');
+                Promise.all([loadScheduleEvents(), fetchAvailableReferees()]).then(() => showToast('success', 'Referee assigned'));
+            }, 1000);
+        } catch (error) {
+            displayModalFeedback('assignRefFeedback', 'Error assigning referee.', 'error');
+        }
+    });
+
+    document.getElementById('removeRefButton').addEventListener('click', async function() {
+        const matchId = document.getElementById('matchId').value;
+        if (typeof Swal !== 'undefined') {
+            const result = await Swal.fire({
+                title: 'Remove Referee?',
+                text: 'Are you sure you want to remove the referee from this match?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#1a472a',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, remove',
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f9fafb' : '#111827'
+            });
+            if (!result.isConfirmed) return;
+        } else if (!confirm('Remove referee from this match?')) return;
+
+        try {
+            const response = await fetch('/calendar/remove_ref', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrfToken },
+                body: JSON.stringify({ match_id: matchId })
+            });
+            const result = await response.json();
+            if (!response.ok || result.error) {
+                displayModalFeedback('assignRefFeedback', result.error || 'Failed to remove referee.', 'error');
+                return;
+            }
+            displayModalFeedback('assignRefFeedback', 'Referee removed successfully!', 'success');
+            setTimeout(() => {
+                FlowbiteModal.hide('assignRefModal');
+                Promise.all([loadScheduleEvents(), fetchAvailableReferees()]).then(() => showToast('success', 'Referee removed'));
+            }, 1000);
+        } catch (error) {
+            displayModalFeedback('assignRefFeedback', 'Error removing referee.', 'error');
+        }
+    });
+
+    function displayModalFeedback(elementId, message, type) {
+        const feedbackEl = document.getElementById(elementId);
+        const colors = {
+            success: 'text-green-800 bg-green-50 dark:bg-green-900/20 dark:text-green-400',
+            error: 'text-red-800 bg-red-50 dark:bg-red-900/20 dark:text-red-400',
+            warning: 'text-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400',
+            info: 'text-blue-800 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400'
+        };
+        const icons = { success: 'ti-circle-check', error: 'ti-circle-x', warning: 'ti-alert-triangle', info: 'ti-info-circle' };
+        feedbackEl.innerHTML = `<div class="flex items-center p-3 text-sm rounded-lg ${colors[type] || colors.info}" role="alert"><i class="ti ${icons[type] || icons.info} mr-2"></i><span class="font-medium">${message}</span></div>`;
+    }
+
+    function showToast(type, message) {
+        if (typeof Swal !== 'undefined') {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'bottom-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f9fafb' : '#111827'
+            });
+            Toast.fire({ icon: type === 'error' ? 'error' : type, title: message });
+        } else {
+            console.log(`[${type}] ${message}`);
+        }
+    }
+
+    // Referee assignments for referee users
+    async function loadRefereeAssignments() {
+        try {
+            const response = await fetch('/calendar/my_assignments');
+            if (!response.ok) throw new Error('Failed to fetch assignments.');
+            const data = await response.json();
+            renderRefereeAssignments(data.assignments);
+            document.getElementById('myAssignmentsCount').textContent = data.total_assignments;
+        } catch (error) {
+            document.getElementById('myAssignmentsList').innerHTML = `<div class="flex flex-col items-center justify-center py-6"><i class="ti ti-alert-triangle text-2xl text-red-500 mb-2"></i><p class="text-red-500 text-sm">Failed to load assignments</p></div>`;
+        }
+    }
+
+    function renderRefereeAssignments(assignments) {
+        const assignmentsList = document.getElementById('myAssignmentsList');
+        if (assignments.length === 0) {
+            assignmentsList.innerHTML = `<div class="flex flex-col items-center justify-center py-6"><div class="w-12 h-12 rounded-full bg-ecs-green/10 flex items-center justify-center mb-2"><i class="ti ti-calendar-off text-xl text-ecs-green"></i></div><h6 class="text-gray-500 mb-1">No Assignments Yet</h6><p class="text-gray-400 text-sm">You don't have any upcoming referee assignments</p></div>`;
+            return;
+        }
+        let html = '<div class="divide-y divide-gray-200 dark:divide-gray-700">';
+        assignments.forEach(a => {
+            const isUpcoming = new Date(a.start) > new Date();
+            html += `<div class="p-3"><div class="flex justify-between"><div><h6 class="font-semibold text-gray-900 dark:text-white mb-1">${a.title}</h6><div class="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400"><span><i class="ti ti-calendar mr-1"></i>${a.date}</span><span><i class="ti ti-clock mr-1"></i>${a.time}</span></div><div class="text-sm text-gray-500 dark:text-gray-400"><i class="ti ti-map-pin mr-1"></i>${a.location}</div></div><div class="text-right"><span class="px-2 py-0.5 text-xs font-medium text-white ${a.division === 'Premier' ? 'bg-blue-500' : 'bg-green-500'} rounded-full">${a.division}</span><br><span class="mt-1 inline-block px-2 py-0.5 text-xs font-medium ${isUpcoming ? 'text-blue-800 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-400'} rounded-full">${isUpcoming ? 'Upcoming' : 'Completed'}</span></div></div></div>`;
+        });
+        html += '</div>';
+        assignmentsList.innerHTML = html;
+    }
+
+    async function loadRefereeAvailabilityStatus() {
+        try {
+            const response = await fetch('/calendar/availability_status');
+            if (!response.ok) throw new Error('Failed to fetch status.');
+            const data = await response.json();
+            renderAvailabilityStatus(data.is_available, data.referee_name);
+        } catch (error) {
+            document.getElementById('availabilityStatus').innerHTML = `<i class="ti ti-alert-triangle text-2xl text-red-500 mb-2"></i><p class="text-red-500">Failed to load status</p>`;
+        }
+    }
+
+    function renderAvailabilityStatus(isAvailable, refereeName) {
+        const statusEl = document.getElementById('availabilityStatus');
+        const toggleBtn = document.getElementById('toggleAvailabilityBtn');
+        statusEl.innerHTML = `<div class="w-16 h-16 rounded-full ${isAvailable ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-700'} flex items-center justify-center mx-auto mb-2"><i class="ti ti-${isAvailable ? 'check' : 'x'} text-2xl ${isAvailable ? 'text-green-500' : 'text-gray-500'}"></i></div><h6 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">You are ${isAvailable ? 'Available' : 'Unavailable'}</h6><p class="text-gray-500 dark:text-gray-400 text-sm">for referee assignments</p>`;
+        toggleBtn.disabled = false;
+        toggleBtn.innerHTML = `<i class="ti ti-toggle-${isAvailable ? 'right' : 'left'} mr-2"></i>${isAvailable ? 'Set Unavailable' : 'Set Available'}`;
+        toggleBtn.onclick = async function() {
+            this.disabled = true;
+            this.innerHTML = '<i class="ti ti-loader animate-spin mr-2"></i> Updating...';
+            try {
+                const response = await fetch('/calendar/toggle_availability', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrfToken } });
+                if (!response.ok) throw new Error('Failed');
+                const result = await response.json();
+                renderAvailabilityStatus(result.is_available, refereeName);
+                showToast('success', result.message);
+            } catch (error) {
+                showToast('error', 'Failed to update availability');
+                this.disabled = false;
+                this.innerHTML = `<i class="ti ti-toggle-${isAvailable ? 'right' : 'left'} mr-2"></i>${isAvailable ? 'Set Unavailable' : 'Set Available'}`;
+            }
+        };
+    }
+
+    function toggleAssignmentModeUI(enabled) {
+        if (enabled) {
+            document.body.classList.add('assignment-mode-active');
+            showAssignmentHelper();
+            renderSchedule();
+        } else {
+            document.body.classList.remove('assignment-mode-active');
+            hideAssignmentHelper();
+            renderSchedule();
+        }
+    }
+
+    function showAssignmentHelper() {
+        const existing = document.getElementById('assignmentHelper');
+        if (existing) existing.remove();
+        const helper = document.createElement('div');
+        helper.id = 'assignmentHelper';
+        helper.className = 'assignment-helper';
+        helper.innerHTML = `<div class="flex items-center justify-between mb-2"><h6 class="font-semibold text-ecs-green dark:text-green-400 flex items-center"><i class="ti ti-info-circle mr-2"></i>Assignment Mode Active</h6><button type="button" class="p-1 text-gray-400 hover:text-gray-600" onclick="document.getElementById('toggleAssignmentMode').click()"><i class="ti ti-x"></i></button></div><p class="text-sm text-gray-600 dark:text-gray-400 mb-2">1. Click a referee in the sidebar<br>2. Click any unassigned match to assign<br>3. Unassigned matches are highlighted</p><div class="text-sm text-gray-500"><span id="unassignedCount">0</span> unassigned matches</div>`;
+        const scheduleContent = document.getElementById('scheduleContent');
+        scheduleContent.insertBefore(helper, scheduleContent.firstChild);
+        updateUnassignedCount();
+    }
+
+    function hideAssignmentHelper() {
+        const helper = document.getElementById('assignmentHelper');
+        if (helper) helper.remove();
+    }
+
+    function updateUnassignedCount() {
+        const count = allEvents.filter(e => e.ref === 'Unassigned').length;
+        const el = document.getElementById('unassignedCount');
+        if (el) el.textContent = count;
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+        if (document.querySelector('[id$="Modal"]:not(.hidden)')) return;
+
+        switch(e.key) {
+            case 'ArrowLeft': e.preventDefault(); navigateDate(-1); break;
+            case 'ArrowRight': e.preventDefault(); navigateDate(1); break;
+            case 't': case 'T': e.preventDefault(); document.getElementById('todayBtn').click(); break;
+            case 'n': case 'N': e.preventDefault(); jumpToNextEvent(); break;
+            case 'd': case 'D': if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); setView('day'); } break;
+            case 'w': case 'W': if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); setView('week'); } break;
+            case 'm': case 'M': if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); setView('month'); } break;
+            case 'l': case 'L': if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); setView('list'); } break;
+            case '?': e.preventDefault(); showKeyboardShortcuts(); break;
+        }
+    });
+
+    function setView(view) {
+        currentView = view;
+        viewButtons.forEach(btn => {
+            btn.classList.remove('bg-ecs-green', 'text-white', 'border-ecs-green');
+            btn.classList.add('text-gray-900', 'bg-white', 'border-gray-200');
+            if (btn.dataset.view === view) {
+                btn.classList.remove('text-gray-900', 'bg-white', 'border-gray-200');
+                btn.classList.add('bg-ecs-green', 'text-white', 'border-ecs-green');
+            }
+        });
+        renderSchedule();
+    }
+
+    function showKeyboardShortcuts() {
+        const shortcuts = [
+            { key: '<span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">&#8592;</span> / <span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">&#8594;</span>', desc: 'Navigate previous/next' },
+            { key: '<span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">T</span>', desc: 'Go to today' },
+            { key: '<span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">N</span>', desc: 'Jump to next event' },
+            { key: '<span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">D</span> / <span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">W</span> / <span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">M</span> / <span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">L</span>', desc: 'Day/Week/Month/List view' },
+            { key: '<span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">?</span>', desc: 'Show this help' }
+        ];
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: '<i class="ti ti-keyboard mr-2"></i>Keyboard Shortcuts',
+                html: `<div class="text-left"><table class="w-full"><tbody>${shortcuts.map(s => `<tr class="border-b border-gray-200 dark:border-gray-700"><td class="py-2">${s.key}</td><td class="py-2 text-gray-500 dark:text-gray-400 text-sm">${s.desc}</td></tr>`).join('')}</tbody></table></div>`,
+                confirmButtonColor: '#1a472a',
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f9fafb' : '#111827'
+            });
+        }
+    }
+
+    // Filter checkboxes
+    ['filterShowMatches', 'filterShowLeagueEvents', 'filterDivPremier', 'filterDivClassic'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => renderSchedule());
+    });
+
+    document.getElementById('filterSelectAllDivisions')?.addEventListener('click', () => {
+        document.getElementById('filterDivPremier').checked = true;
+        document.getElementById('filterDivClassic').checked = true;
+        renderSchedule();
+    });
+
+    document.getElementById('filterClearAllDivisions')?.addEventListener('click', () => {
+        document.getElementById('filterDivPremier').checked = false;
+        document.getElementById('filterDivClassic').checked = false;
+        renderSchedule();
+    });
+
+    document.getElementById('filterResetBtn')?.addEventListener('click', () => {
+        document.getElementById('filterShowMatches').checked = true;
+        document.getElementById('filterShowLeagueEvents').checked = true;
+        document.getElementById('filterDivPremier').checked = true;
+        document.getElementById('filterDivClassic').checked = true;
+        renderSchedule();
+    });
+
+    // Initialize
+    loadScheduleEvents();
+    fetchAvailableReferees();
+    if (isReferee) {
+        loadRefereeAssignments();
+        loadRefereeAvailabilityStatus();
+    }
+
+    // Expose refreshCalendar globally
+    window.refreshCalendar = function() {
+        loadScheduleEvents();
+        fetchAvailableReferees();
+    };
+});
+</script>
+{% endblock %}

@@ -1,0 +1,347 @@
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, input, select, textarea %}
+
+{% block title %}{{ 'Edit' if prompt else 'Create' }} AI Prompt{% endblock %}
+
+{% block page_title %}{{ 'Edit' if prompt else 'Create' }} AI Prompt{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{{ url_for('main.index') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">
+                    <i class="ti ti-home w-4 h-4 mr-2"></i>
+                    Admin
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+                    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Live Reporting</span>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+                    <a href="{{ url_for('ai_prompts.list_prompts') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">AI Prompts</a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+                    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ 'Edit Prompt' if prompt else 'Create Prompt' }}</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <form method="POST" action="{{ url_for('ai_prompts.create_prompt') if not prompt else url_for('ai_prompts.edit_prompt', prompt_id=prompt.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main Configuration (2/3 width) -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Basic Configuration -->
+                {% call card(title="Basic Configuration") %}
+                <div class="space-y-4">
+                    <!-- Name and Type -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="ai-prompt-name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Prompt Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="ai-prompt-name" name="name"
+                                   value="{{ prompt.name if prompt else '' }}" required
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        <div>
+                            <label for="prompt_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Prompt Type <span class="text-red-500">*</span></label>
+                            <select id="prompt_type" name="prompt_type" required
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <option value="">Select Type...</option>
+                                <option value="match_commentary" {{ 'selected' if prompt and prompt.prompt_type == 'match_commentary' }}>Match Commentary</option>
+                                <option value="goal" {{ 'selected' if prompt and prompt.prompt_type == 'goal' }}>Goal Event</option>
+                                <option value="card" {{ 'selected' if prompt and prompt.prompt_type == 'card' }}>Card Event</option>
+                                <option value="substitution" {{ 'selected' if prompt and prompt.prompt_type == 'substitution' }}>Substitution</option>
+                                <option value="halftime" {{ 'selected' if prompt and prompt.prompt_type == 'halftime' }}>Halftime</option>
+                                <option value="fulltime" {{ 'selected' if prompt and prompt.prompt_type == 'fulltime' }}>Full Time</option>
+                                <option value="rivalry" {{ 'selected' if prompt and prompt.prompt_type == 'rivalry' }}>Rivalry Match</option>
+                                <option value="penalty" {{ 'selected' if prompt and prompt.prompt_type == 'penalty' }}>Penalty</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label for="ai-prompt-description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                        <textarea id="ai-prompt-description" name="description" rows="2"
+                                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">{{ prompt.description if prompt else '' }}</textarea>
+                    </div>
+
+                    <!-- System Prompt -->
+                    <div>
+                        <label for="system_prompt" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">System Prompt <span class="text-red-500">*</span></label>
+                        <textarea id="system_prompt" name="system_prompt" rows="5" required
+                                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono">{{ prompt.system_prompt if prompt else '' }}</textarea>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Define the AI's role, personality, and behavior</p>
+                    </div>
+
+                    <!-- User Prompt Template -->
+                    <div>
+                        <label for="user_prompt_template" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">User Prompt Template <span class="text-red-500">*</span></label>
+                        <textarea id="user_prompt_template" name="user_prompt_template" rows="5" required
+                                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono">{{ prompt.user_prompt_template if prompt else '' }}</textarea>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Use <code class="bg-gray-100 dark:bg-gray-600 px-1 rounded">{match_context}</code>, <code class="bg-gray-100 dark:bg-gray-600 px-1 rounded">{events}</code>, <code class="bg-gray-100 dark:bg-gray-600 px-1 rounded">{score}</code> as variables</p>
+                    </div>
+                </div>
+                {% endcall %}
+
+                <!-- AI Parameters -->
+                {% call card(title="AI Parameters") %}
+                <div class="space-y-6">
+                    <!-- Temperature -->
+                    <div>
+                        <label for="temperature" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Temperature: <span id="temp-value" class="text-ecs-green font-semibold">{{ prompt.temperature if prompt else 0.7 }}</span>
+                        </label>
+                        <input type="range" id="temperature" name="temperature"
+                               min="0" max="1" step="0.05" value="{{ prompt.temperature if prompt else 0.7 }}"
+                               data-action="update-temperature"
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-ecs-green">
+                        <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <span>Conservative (0.0)</span>
+                            <span>Creative (1.0)</span>
+                        </div>
+                    </div>
+
+                    <!-- Max Tokens and Competition Filter -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="max_tokens" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Tokens</label>
+                            <input type="number" id="max_tokens" name="max_tokens"
+                                   min="50" max="500" value="{{ prompt.max_tokens if prompt else 150 }}"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        <div>
+                            <label for="competition_filter" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Competition Filter</label>
+                            <select id="competition_filter" name="competition_filter"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <option value="all" {{ 'selected' if not prompt or prompt.competition_filter == 'all' }}>All Competitions</option>
+                                <option value="mls" {{ 'selected' if prompt and prompt.competition_filter == 'mls' }}>MLS Only</option>
+                                <option value="usoc" {{ 'selected' if prompt and prompt.competition_filter == 'usoc' }}>US Open Cup</option>
+                                <option value="ccl" {{ 'selected' if prompt and prompt.competition_filter == 'ccl' }}>Champions League</option>
+                                <option value="leagues_cup" {{ 'selected' if prompt and prompt.competition_filter == 'leagues_cup' }}>Leagues Cup</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                {% endcall %}
+
+                <!-- Rivalry Configuration -->
+                {% call card(title="Rivalry Configuration") %}
+                <div class="space-y-4">
+                    <!-- Rivalry Intensity -->
+                    <div>
+                        <label for="rivalry_intensity" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Rivalry Intensity: <span id="rivalry-value" class="text-ecs-green font-semibold">{{ prompt.rivalry_intensity if prompt else 5 }}</span>/10
+                        </label>
+                        <input type="range" id="rivalry_intensity" name="rivalry_intensity"
+                               min="1" max="10" step="1" value="{{ prompt.rivalry_intensity if prompt else 5 }}"
+                               data-action="update-rivalry-intensity"
+                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-ecs-green">
+                        <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <span>Mild (1)</span>
+                            <span>Maximum Hostility (10)</span>
+                        </div>
+                    </div>
+
+                    <!-- Rivalry Teams -->
+                    <div>
+                        <label for="rivalry_teams" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Rivalry Teams (JSON)</label>
+                        <textarea id="rivalry_teams" name="rivalry_teams" rows="3"
+                                  placeholder='{"portland": ["timbers", "portland timbers"], "vancouver": ["whitecaps"]}'
+                                  data-action="validate-rivalry-json"
+                                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono">{{ prompt.rivalry_teams|tojson if prompt and prompt.rivalry_teams else '' }}</textarea>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Define team keywords that trigger rivalry behavior</p>
+                    </div>
+                </div>
+                {% endcall %}
+            </div>
+
+            <!-- Side Panel (1/3 width) -->
+            <div class="space-y-6">
+                <!-- Status and Actions -->
+                {% call card(title="Status & Actions") %}
+                <div class="space-y-4">
+                    <!-- Active Status -->
+                    <div class="flex items-center">
+                        <input type="checkbox" id="ai-prompt-is_active" name="is_active"
+                               {{ 'checked' if not prompt or prompt.is_active }}
+                               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                        <label for="ai-prompt-is_active" class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Active</label>
+                    </div>
+
+                    <!-- Version Info -->
+                    {% if prompt %}
+                    <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <dl class="space-y-1 text-sm">
+                            <div class="flex justify-between">
+                                <dt class="text-gray-500 dark:text-gray-400">Version:</dt>
+                                <dd class="font-medium text-gray-900 dark:text-white">{{ prompt.version }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-gray-500 dark:text-gray-400">Created:</dt>
+                                <dd class="font-medium text-gray-900 dark:text-white">{{ prompt.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-gray-500 dark:text-gray-400">By:</dt>
+                                <dd class="font-medium text-gray-900 dark:text-white">{{ prompt.created_by }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                    {% endif %}
+
+                    <!-- Submit Buttons -->
+                    <div class="space-y-2">
+                        <button type="submit" class="w-full px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50">
+                            <i class="ti ti-device-floppy mr-1"></i>
+                            {{ 'Update Prompt' if prompt else 'Create Prompt' }}
+                        </button>
+                        <a href="{{ url_for('ai_prompts.list_prompts') }}" class="block w-full px-4 py-2 text-sm font-medium text-center text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
+                            <i class="ti ti-arrow-left mr-1"></i> Back to List
+                        </a>
+                    </div>
+                </div>
+                {% endcall %}
+
+                <!-- Personality Traits -->
+                {% call card(title="Personality Traits") %}
+                {% set traits = prompt.personality_traits if prompt and prompt.personality_traits else {} %}
+                <div class="space-y-4">
+                    <!-- Enthusiasm -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-sm font-medium text-gray-900 dark:text-white">Enthusiasm</label>
+                            <span id="enthusiasm-value" class="text-sm text-ecs-green font-semibold">{{ traits.get('enthusiasm', 5) }}</span>
+                        </div>
+                        <input type="range" name="personality_enthusiasm" data-action="update-personality-slider" data-target="enthusiasm-value"
+                               min="1" max="10" step="1" value="{{ traits.get('enthusiasm', 5) }}"
+                               class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-ecs-green">
+                    </div>
+
+                    <!-- Bias -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-sm font-medium text-gray-900 dark:text-white">Bias</label>
+                            <span id="bias-value" class="text-sm text-ecs-green font-semibold">{{ traits.get('bias', 5) }}</span>
+                        </div>
+                        <input type="range" name="personality_bias" data-action="update-personality-slider" data-target="bias-value"
+                               min="1" max="10" step="1" value="{{ traits.get('bias', 5) }}"
+                               class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-ecs-green">
+                    </div>
+
+                    <!-- Humor -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-sm font-medium text-gray-900 dark:text-white">Humor</label>
+                            <span id="humor-value" class="text-sm text-ecs-green font-semibold">{{ traits.get('humor', 5) }}</span>
+                        </div>
+                        <input type="range" name="personality_humor" data-action="update-personality-slider" data-target="humor-value"
+                               min="1" max="10" step="1" value="{{ traits.get('humor', 5) }}"
+                               class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-ecs-green">
+                    </div>
+
+                    <!-- Hostility -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-sm font-medium text-gray-900 dark:text-white">Hostility</label>
+                            <span id="hostility-value" class="text-sm text-ecs-green font-semibold">{{ traits.get('hostility', 1) }}</span>
+                        </div>
+                        <input type="range" name="personality_hostility" data-action="update-personality-slider" data-target="hostility-value"
+                               min="1" max="10" step="1" value="{{ traits.get('hostility', 1) }}"
+                               class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-ecs-green">
+                    </div>
+
+                    <!-- Formality -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-sm font-medium text-gray-900 dark:text-white">Formality</label>
+                            <span id="formality-value" class="text-sm text-ecs-green font-semibold">{{ traits.get('formality', 5) }}</span>
+                        </div>
+                        <input type="range" name="personality_formality" data-action="update-personality-slider" data-target="formality-value"
+                               min="1" max="10" step="1" value="{{ traits.get('formality', 5) }}"
+                               class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 accent-ecs-green">
+                    </div>
+                </div>
+                {% endcall %}
+
+                <!-- Quick Templates -->
+                {% if templates %}
+                {% call card(title="Quick Templates") %}
+                <div class="space-y-2">
+                    {% for template in templates[:3] %}
+                    <button type="button" class="w-full px-3 py-2 text-sm font-medium text-ecs-green bg-white border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white dark:bg-gray-700 dark:hover:bg-ecs-green transition-colors"
+                            data-action="load-ai-template"
+                            data-template-id="{{ template.id }}">
+                        <i class="ti ti-copy mr-1"></i> {{ template.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+                {% endcall %}
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Temperature slider
+    const tempSlider = document.getElementById('temperature');
+    const tempValue = document.getElementById('temp-value');
+    if (tempSlider && tempValue) {
+        tempSlider.addEventListener('input', function() {
+            tempValue.textContent = this.value;
+        });
+    }
+
+    // Rivalry intensity slider
+    const rivalrySlider = document.getElementById('rivalry_intensity');
+    const rivalryValue = document.getElementById('rivalry-value');
+    if (rivalrySlider && rivalryValue) {
+        rivalrySlider.addEventListener('input', function() {
+            rivalryValue.textContent = this.value;
+        });
+    }
+
+    // Personality trait sliders
+    document.querySelectorAll('[data-action="update-personality-slider"]').forEach(slider => {
+        slider.addEventListener('input', function() {
+            const target = document.getElementById(this.dataset.target);
+            if (target) {
+                target.textContent = this.value;
+            }
+        });
+    });
+
+    // JSON validation for rivalry teams
+    const rivalryTeamsInput = document.getElementById('rivalry_teams');
+    if (rivalryTeamsInput) {
+        rivalryTeamsInput.addEventListener('blur', function() {
+            if (this.value.trim()) {
+                try {
+                    JSON.parse(this.value);
+                    this.classList.remove('border-red-500');
+                    this.classList.add('border-gray-300', 'dark:border-gray-600');
+                } catch (e) {
+                    this.classList.remove('border-gray-300', 'dark:border-gray-600');
+                    this.classList.add('border-red-500');
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
