@@ -154,7 +154,7 @@ def submit_feedback():
                 return redirect(url_for('feedback.submit_feedback'))
         
         return render_template(
-            'feedback/submit_feedback.html',
+            'feedback/submit_feedback_flowbite.html',
             title='Submit Feedback',
             form=form,
             feedbacks=user_feedbacks,
@@ -211,7 +211,7 @@ def view_feedback(feedback_id):
                 raise
             
         return render_template(
-            'view_feedback_user.html',
+            'view_feedback_user_flowbite.html',
             title='View Feedback',
             feedback=feedback,
             form=form

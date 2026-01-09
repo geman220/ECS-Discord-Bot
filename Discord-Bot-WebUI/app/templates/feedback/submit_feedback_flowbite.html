@@ -1,0 +1,222 @@
+{% extends 'base_flowbite.html' %}
+
+{% block title %}Submit Feedback{% endblock %}
+
+{% block page_title %}Feedback System{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Feedback System</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">Submit suggestions, report issues, or request features</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Submit Feedback Form -->
+        <div class="lg:col-span-5">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 h-full">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-message-plus text-ecs-green"></i>
+                        Submit New Feedback
+                    </h2>
+                </div>
+                <div class="p-4">
+                    <form method="POST" action="{{ url_for('feedback.submit_feedback') }}">
+                        {{ form.hidden_tag() }}
+
+                        {% if not safe_current_user.is_authenticated %}
+                        <div class="mb-4">
+                            <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ form.name.label.text }}</label>
+                            <input type="text" name="name" id="name" value="{{ form.name.data or '' }}"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green"
+                                   placeholder="Your Name">
+                            {% for error in form.name.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-4">
+                            <label for="category" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ form.category.label.text }}</label>
+                            <select name="category" id="category"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green">
+                                {% for choice in form.category.choices %}
+                                <option value="{{ choice[0] }}" {% if form.category.data == choice[0] %}selected{% endif %}>{{ choice[1] }}</option>
+                                {% endfor %}
+                            </select>
+                            {% for error in form.category.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ form.title.label.text }}</label>
+                            <input type="text" name="title" id="title" value="{{ form.title.data or '' }}"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green"
+                                   placeholder="Brief summary of your feedback">
+                            {% for error in form.title.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ form.description.label.text }}</label>
+                            <textarea name="description" id="description" rows="6"
+                                      class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green"
+                                      placeholder="Please provide detailed information...">{{ form.description.data or '' }}</textarea>
+                            {% for error in form.description.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-500">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+
+                        <button type="submit"
+                                class="w-full text-white bg-ecs-green hover:bg-ecs-green/90 focus:ring-4 focus:ring-ecs-green/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center justify-center gap-2">
+                            <i class="ti ti-send"></i>
+                            Submit Feedback
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Your Feedbacks -->
+        <div class="lg:col-span-7">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-messages text-ecs-green"></i>
+                            Your Feedback History
+                        </h2>
+                        <form method="GET" class="flex">
+                            <div class="relative">
+                                <input type="text" name="q" value="{{ search_query }}"
+                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full pr-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green"
+                                       placeholder="Search...">
+                                <button type="submit" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-ecs-green">
+                                    <i class="ti ti-search"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% if feedbacks %}
+                        {% for feedback in feedbacks %}
+                        <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-2">
+                                <h3 class="font-medium text-gray-900 dark:text-white">
+                                    <a href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id) }}" class="hover:text-ecs-green">
+                                        {{ feedback.title }}
+                                    </a>
+                                </h3>
+                                <div class="flex gap-1 flex-shrink-0">
+                                    {% if feedback.status == 'Open' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{{ feedback.status }}</span>
+                                    {% elif feedback.status == 'In Progress' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300">{{ feedback.status }}</span>
+                                    {% elif feedback.status == 'Closed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ feedback.status }}</span>
+                                    {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ feedback.status }}</span>
+                                    {% endif %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ feedback.category }}</span>
+                                </div>
+                            </div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-4">
+                                <span class="flex items-center gap-1">
+                                    <i class="ti ti-calendar"></i>
+                                    {{ feedback.created_at.strftime('%b %d, %Y') }}
+                                </span>
+                                {% if feedback.replies %}
+                                <span class="flex items-center gap-1">
+                                    <i class="ti ti-messages"></i>
+                                    {{ feedback.replies|length }} {{ 'replies' if feedback.replies|length != 1 else 'reply' }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ feedback.description|truncate(100) }}</p>
+                            <a href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id) }}"
+                               class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors">
+                                <i class="ti ti-eye"></i>
+                                View Details
+                            </a>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="p-8 text-center">
+                            <div class="w-12 h-12 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                                <i class="ti ti-message-circle-off text-xl text-gray-400"></i>
+                            </div>
+                            <p class="text-gray-900 dark:text-white font-medium mb-1">No feedback submissions found.</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Submit your first feedback to get started!</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if feedbacks and feedbacks.pages > 1 %}
+                <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                    <nav class="flex justify-center" aria-label="Page navigation">
+                        <ul class="inline-flex items-center -space-x-px">
+                            {% if feedbacks.has_prev %}
+                            <li>
+                                <a href="{{ url_for('feedback.submit_feedback', page=feedbacks.prev_num, q=search_query) }}"
+                                   class="block px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                                    <i class="ti ti-chevron-left"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            {% set start_page = [1, feedbacks.page - 2]|max %}
+                            {% set end_page = [feedbacks.pages, feedbacks.page + 2]|min %}
+
+                            {% if start_page > 1 %}
+                            <li>
+                                <a href="{{ url_for('feedback.submit_feedback', page=1, q=search_query) }}"
+                                   class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">1</a>
+                            </li>
+                            {% if start_page > 2 %}
+                            <li>
+                                <span class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">...</span>
+                            </li>
+                            {% endif %}
+                            {% endif %}
+
+                            {% for page_num in range(start_page, end_page + 1) %}
+                            <li>
+                                <a href="{{ url_for('feedback.submit_feedback', page=page_num, q=search_query) }}"
+                                   class="px-3 py-2 leading-tight border border-gray-300 dark:border-gray-700 {% if page_num == feedbacks.page %}text-ecs-green bg-ecs-green/10 dark:bg-ecs-green/20{% else %}text-gray-500 bg-white hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white{% endif %}">{{ page_num }}</a>
+                            </li>
+                            {% endfor %}
+
+                            {% if end_page < feedbacks.pages %}
+                            {% if end_page < feedbacks.pages - 1 %}
+                            <li>
+                                <span class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">...</span>
+                            </li>
+                            {% endif %}
+                            <li>
+                                <a href="{{ url_for('feedback.submit_feedback', page=feedbacks.pages, q=search_query) }}"
+                                   class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">{{ feedbacks.pages }}</a>
+                            </li>
+                            {% endif %}
+
+                            {% if feedbacks.has_next %}
+                            <li>
+                                <a href="{{ url_for('feedback.submit_feedback', page=feedbacks.next_num, q=search_query) }}"
+                                   class="block px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                                    <i class="ti ti-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -75,7 +75,7 @@
 
                     <!-- Page Title -->
                     <h1 class="text-xl font-semibold text-gray-900 dark:text-white hidden lg:block">
-                        {% block page_title %}Dashboard{% endblock %}
+                        {% block page_title %}{{ title if title else 'Dashboard' }}{% endblock %}
                     </h1>
 
                     <!-- Right side: Search + User Menu -->

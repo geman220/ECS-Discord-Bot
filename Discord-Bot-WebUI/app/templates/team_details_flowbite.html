@@ -2,6 +2,8 @@
 
 {% block title %}{{ team.name }} - Team Details{% endblock %}
 
+{% block page_title %}{{ team.name }}{% endblock %}
+
 {% block main_content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Team Header -->
@@ -233,6 +235,16 @@
                                     {{ match.result_text }}
                                 </span>
                                 {% endif %}
+                                {% if can_report_match %}
+                                <button type="button"
+                                        class="flex-shrink-0 p-1.5 rounded-lg transition-colors edit-match-btn
+                                            {% if match.reported %}bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900{% else %}bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900{% endif %}"
+                                        data-action="edit-match"
+                                        data-match-id="{{ match.id }}"
+                                        title="{{ 'Edit Match' if match.reported else 'Report Match' }}">
+                                    <i class="ti ti-{% if match.reported %}edit{% else %}clipboard-list{% endif %} w-4 h-4"></i>
+                                </button>
+                                {% endif %}
                             </div>
                             {% endfor %}
                         </div>
@@ -314,6 +326,30 @@
 {% block custom_js %}
 {{ super() }}
 <script>
+// Match data for reporting
+window.TEAM_MATCH_DATA = {
+    {% for date, matches_on_date in schedule.items() %}
+    {% for match in matches_on_date %}
+    "{{ match.id }}": {
+        homeTeamName: "{{ match.home_team_name|escape }}",
+        awayTeamName: "{{ match.away_team_name|escape }}",
+        homeTeamId: "{{ match.home_team_id }}",
+        awayTeamId: "{{ match.away_team_id }}",
+        homeTeamPlayers: [
+            {% for player in match.home_players %}
+            {id: "{{ player.id }}", name: "{{ player.name|escape }}"}{{ "," if not loop.last else "" }}
+            {% endfor %}
+        ],
+        awayTeamPlayers: [
+            {% for player in match.away_players %}
+            {id: "{{ player.id }}", name: "{{ player.name|escape }}"}{{ "," if not loop.last else "" }}
+            {% endfor %}
+        ]
+    }{{ "," if not loop.last else "" }}
+    {% endfor %}
+    {% endfor %}
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     // Expand all schedule items
     const expandBtn = document.getElementById('expand-all-btn');
@@ -329,4 +365,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+{% if not config.get('ASSETS_PRODUCTION_MODE') and (vite_production_mode is not defined or not vite_production_mode()) %}
+<script src="{{ url_for('static', filename='custom_js/team-detail.js') }}"></script>
+{% endif %}
+<!-- report_match.js loaded globally in base.html -->
 {% endblock %}
