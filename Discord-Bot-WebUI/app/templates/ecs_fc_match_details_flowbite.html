@@ -1,0 +1,276 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}{{ match.team.name }} vs {{ match.opponent_name }} - ECS FC Match{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="mb-4 text-sm">
+        <ol class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+            <li><a href="#" class="hover:text-ecs-green">ECS FC</a></li>
+            <li><i class="ti ti-chevron-right text-xs"></i></li>
+            <li><a href="#" class="hover:text-ecs-green">Matches</a></li>
+            <li><i class="ti ti-chevron-right text-xs"></i></li>
+            <li class="text-gray-900 dark:text-white font-medium">{{ match.team.name }} vs {{ match.opponent_name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Match Information Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-ecs-green/10 rounded-full flex items-center justify-center">
+                    <i class="ti ti-soccer-field text-2xl text-ecs-green"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900 dark:text-white">
+                        {{ match.team.name }} vs {{ match.opponent_name }}
+                    </h1>
+                    <div class="flex flex-wrap items-center gap-2 mt-1">
+                        <span class="px-2 py-0.5 text-xs rounded-full {{ 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' if match.is_home_match else 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' }}">
+                            {{ 'Home' if match.is_home_match else 'Away' }} Match
+                        </span>
+                        <span class="px-2 py-0.5 text-xs rounded-full {{ 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' if match.status == 'COMPLETED' else 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300' if match.status == 'SCHEDULED' else 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' }}">
+                            {{ match.status }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% if can_manage %}
+            <div class="flex flex-wrap gap-2">
+                <button type="button" class="js-edit-match inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors text-sm"
+                        data-match-id="{{ match.id }}">
+                    <i class="ti ti-{% if match.status == 'COMPLETED' %}edit{% else %}report{% endif %}"></i>
+                    {% if match.status == 'COMPLETED' %}Edit Match Report{% else %}Report Results{% endif %}
+                </button>
+                <button type="button" class="js-send-reminder inline-flex items-center gap-2 px-4 py-2 border border-yellow-500 text-yellow-600 dark:text-yellow-400 rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors text-sm"
+                        data-match-id="{{ match.id }}">
+                    <i class="ti ti-bell"></i> Send Reminder
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Match Details Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-2">
+                    <i class="ti ti-calendar text-ecs-green"></i>
+                    <span class="text-sm font-medium">Match Date</span>
+                </div>
+                <p class="font-semibold text-gray-900 dark:text-white">{{ match.match_date.strftime('%A, %B %d, %Y') }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ match.match_time.strftime('%I:%M %p') }}</p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-2">
+                    <i class="ti ti-map-pin text-ecs-green"></i>
+                    <span class="text-sm font-medium">Location</span>
+                </div>
+                <p class="font-semibold text-gray-900 dark:text-white">{{ match.location }}</p>
+                {% if match.field_name %}
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ match.field_name }}</p>
+                {% endif %}
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-2">
+                    <i class="ti ti-users text-ecs-green"></i>
+                    <span class="text-sm font-medium">Team</span>
+                </div>
+                <p class="font-semibold text-gray-900 dark:text-white">{{ match.team.name }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ match.team.players|length }} players</p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-2">
+                    <i class="ti ti-trophy text-ecs-green"></i>
+                    <span class="text-sm font-medium">League</span>
+                </div>
+                <p class="font-semibold text-gray-900 dark:text-white">ECS FC</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">External Match</p>
+            </div>
+        </div>
+
+        {% if match.notes %}
+        <div class="mt-4">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Match Notes</h3>
+            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-blue-700 dark:text-blue-300">
+                {{ match.notes }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- RSVP Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-green-200 dark:border-green-800 p-4 text-center">
+            <div class="w-12 h-12 mx-auto mb-2 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
+                <i class="ti ti-check text-xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ rsvp_summary.yes }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Available</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-200 dark:border-red-800 p-4 text-center">
+            <div class="w-12 h-12 mx-auto mb-2 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center">
+                <i class="ti ti-x text-xl text-red-600 dark:text-red-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-red-600 dark:text-red-400">{{ rsvp_summary.no }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Unavailable</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-yellow-200 dark:border-yellow-800 p-4 text-center">
+            <div class="w-12 h-12 mx-auto mb-2 bg-yellow-100 dark:bg-yellow-900/50 rounded-full flex items-center justify-center">
+                <i class="ti ti-help text-xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ rsvp_summary.maybe }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Maybe</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="w-12 h-12 mx-auto mb-2 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                <i class="ti ti-clock text-xl text-gray-500 dark:text-gray-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-500 dark:text-gray-400">{{ rsvp_summary.no_response }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">No Response</p>
+        </div>
+    </div>
+
+    <!-- RSVP Details Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h2 class="font-semibold text-gray-900 dark:text-white">Player Availability</h2>
+            {% if can_manage %}
+            <a href="{{ url_for('admin.ecs_fc_rsvp_status', match_id=match.id) }}"
+               class="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
+                <i class="ti ti-settings"></i> Manage RSVPs
+            </a>
+            {% endif %}
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Player</th>
+                        <th scope="col" class="px-4 py-3">Response</th>
+                        <th scope="col" class="px-4 py-3">Response Time</th>
+                        <th scope="col" class="px-4 py-3">Notes</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for player in match.team.players %}
+                    {% set availability = rsvp_responses.get(player.id) %}
+                    <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                {% if player.profile_picture %}
+                                <img src="{{ player.profile_picture }}" alt="{{ player.player_name }}"
+                                     class="w-8 h-8 rounded-full object-cover">
+                                {% else %}
+                                <div class="w-8 h-8 bg-ecs-green/10 rounded-full flex items-center justify-center">
+                                    <span class="text-sm font-medium text-ecs-green">{{ player.player_name[0] }}</span>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <p class="font-medium text-gray-900 dark:text-white">{{ player.player_name }}</p>
+                                    {% if player.discord_id %}
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Discord User</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if availability %}
+                            <span class="px-2 py-1 text-xs rounded-full {{ 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' if availability.response == 'yes' else 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' if availability.response == 'no' else 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300' if availability.response == 'maybe' else 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400' }}">
+                                {% if availability.response == 'yes' %}Available{% elif availability.response == 'no' %}Unavailable{% elif availability.response == 'maybe' %}Maybe{% else %}No Response{% endif %}
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">No Response</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-gray-500 dark:text-gray-400">
+                            {% if availability and availability.response_time %}
+                            {{ availability.response_time.strftime('%m/%d %I:%M %p') }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-gray-500 dark:text-gray-400">
+                            {% if availability and availability.notes %}
+                            {{ availability.notes }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = () => document.documentElement.classList.contains('dark');
+
+    // Edit match button
+    document.querySelectorAll('.js-edit-match').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            window.location.href = `/admin/ecs-fc/match/${matchId}/edit`;
+        });
+    });
+
+    // Send reminder button
+    document.querySelectorAll('.js-send-reminder').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const matchId = this.dataset.matchId;
+
+            const result = await Swal.fire({
+                title: 'Send Reminder?',
+                text: 'This will send a reminder to all players who haven\'t responded.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#1a472a',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, send it',
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f3f4f6' : '#111827'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/admin/ecs-fc/match/${matchId}/send-reminder`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token() }}'
+                        }
+                    });
+
+                    if (response.ok) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Reminder Sent',
+                            text: 'RSVP reminder has been sent to all players.',
+                            background: isDark() ? '#1f2937' : '#ffffff',
+                            color: isDark() ? '#f3f4f6' : '#111827',
+                            confirmButtonColor: '#1a472a'
+                        });
+                    } else {
+                        throw new Error('Failed to send reminder');
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message,
+                        background: isDark() ? '#1f2937' : '#ffffff',
+                        color: isDark() ? '#f3f4f6' : '#111827',
+                        confirmButtonColor: '#1a472a'
+                    });
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
