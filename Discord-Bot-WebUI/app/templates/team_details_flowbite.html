@@ -1,0 +1,332 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}{{ team.name }} - Team Details{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Team Header -->
+    <div class="relative rounded-xl overflow-hidden mb-6">
+        <!-- Background -->
+        {% if team.background_image_url %}
+        <div class="absolute inset-0 bg-cover bg-center"
+             style="background-image: url('{{ team.background_image_url }}');
+                    {% if team.background_size %}background-size: {{ team.background_size }};{% endif %}
+                    {% if team.background_position %}background-position: {{ team.background_position }};{% endif %}">
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-black/40"></div>
+        {% else %}
+        <div class="absolute inset-0 bg-gradient-to-r from-ecs-green to-ecs-green/80"></div>
+        {% endif %}
+
+        <!-- Content -->
+        <div class="relative p-6 md:p-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    {% if team.kit_url %}
+                    <img src="{{ team.kit_url }}" alt="{{ team.name }} kit"
+                         class="w-20 h-20 md:w-24 md:h-24 rounded-xl object-cover border-2 border-white/20 shadow-lg">
+                    {% endif %}
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-bold text-white">{{ team.name }}</h1>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-white/20 text-white">
+                                <i class="ti ti-trophy"></i>
+                                {{ league.name }}
+                            </span>
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-white/20 text-white">
+                                <i class="ti ti-calendar"></i>
+                                {{ season.name if season else 'No active season' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {% if can_upload_kit %}
+                <div class="flex gap-2">
+                    <form action="{{ url_for('teams.upload_team_kit', team_id=team.id) }}" method="post" enctype="multipart/form-data" class="inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="file" name="team_kit" id="kit-upload" class="hidden" accept="image/*" onchange="this.form.submit()">
+                        <button type="button" onclick="document.getElementById('kit-upload').click()"
+                                class="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors">
+                            <i class="ti ti-upload"></i>
+                            <span class="hidden sm:inline">Upload Kit</span>
+                        </button>
+                    </form>
+                    <button type="button" id="upload-bg-btn"
+                            class="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-white/20 text-white hover:bg-white/30 transition-colors">
+                        <i class="ti ti-photo"></i>
+                        <span class="hidden sm:inline">Upload Background</span>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Team Members Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Team Members</h2>
+                    <div class="flex gap-2">
+                        {% if has_role('Global Admin') or has_role('Pub League Admin') %}
+                        <button type="button" id="assign-discord-btn" data-team-id="{{ team.id }}"
+                                class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-[#5865F2] text-white hover:bg-[#4752c4] transition-colors">
+                            <i class="ti ti-brand-discord"></i>
+                            <span class="hidden sm:inline">Assign Roles</span>
+                        </button>
+                        {% endif %}
+                        {% if can_add_player %}
+                        <a href="{{ url_for('teams.add_player', team_id=team.id) }}"
+                           class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors">
+                            <i class="ti ti-plus"></i>
+                            <span class="hidden sm:inline">Add Player</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="p-4">
+                {% if players %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {% for player in players %}
+                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
+                       class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                        <div class="relative flex-shrink-0">
+                            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
+                                 alt="{{ player.name }}"
+                                 class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600">
+                            {% if player.is_coach %}
+                            <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-ecs-gold flex items-center justify-center" title="Coach">
+                                <i class="ti ti-trophy text-xs text-gray-900"></i>
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h6 class="font-medium text-gray-900 dark:text-white truncate group-hover:text-ecs-green">{{ player.name }}</h6>
+                            {% if player.favorite_position %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ format_position(player.favorite_position) }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-1 text-xs">
+                            {% if can_view_player_stats %}
+                            <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" title="Goals">
+                                <i class="ti ti-ball-football mr-0.5"></i>{{ player.season_goals(season.id) }}
+                            </span>
+                            <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" title="Assists">
+                                <i class="ti ti-arrow-big-right-lines mr-0.5"></i>{{ player.season_assists(season.id) }}
+                            </span>
+                            {% endif %}
+                            {% if player.discord_id %}
+                            <span class="text-[#5865F2]" title="Discord: {{ player.discord_username or player.discord_id }}">
+                                <i class="ti ti-brand-discord"></i>
+                            </span>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <div class="w-12 h-12 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                        <i class="ti ti-users-off text-xl text-gray-400"></i>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No players have been assigned to this team yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Team Schedule Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Team Schedule</h2>
+                    <div class="flex gap-2">
+                        {% if schedule %}
+                        <button type="button" id="expand-all-btn"
+                                class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <i class="ti ti-arrows-maximize"></i>
+                            Expand
+                        </button>
+                        {% endif %}
+                        {% if can_add_match %}
+                        <a href="{{ url_for('matches.add_match', team_id=team.id) }}"
+                           class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors">
+                            <i class="ti ti-plus"></i>
+                            Add Match
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 max-h-[500px] overflow-y-auto">
+                {% if schedule %}
+                <div class="space-y-2">
+                    {% for date, matches_on_date in schedule.items() %}
+                    {% set wins = matches_on_date|selectattr('result_text', 'equalto', 'W')|list|length %}
+                    {% set losses = matches_on_date|selectattr('result_text', 'equalto', 'L')|list|length %}
+                    {% set draws = matches_on_date|selectattr('result_text', 'equalto', 'D')|list|length %}
+                    {% set pending = matches_on_date|rejectattr('reported')|list|length %}
+                    <details class="group border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <summary class="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg">
+                            <div class="flex items-center gap-2">
+                                <i class="ti ti-calendar-event text-ecs-green"></i>
+                                <span class="font-medium text-gray-900 dark:text-white">{{ date.strftime('%B %d, %Y') }}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                {% if wins > 0 %}
+                                <span class="px-1.5 py-0.5 text-xs rounded bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">W{{ wins }}</span>
+                                {% endif %}
+                                {% if losses > 0 %}
+                                <span class="px-1.5 py-0.5 text-xs rounded bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">L{{ losses }}</span>
+                                {% endif %}
+                                {% if draws > 0 %}
+                                <span class="px-1.5 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">D{{ draws }}</span>
+                                {% endif %}
+                                {% if pending > 0 %}
+                                <span class="px-1.5 py-0.5 text-xs rounded bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">{{ pending }}</span>
+                                {% endif %}
+                                <i class="ti ti-chevron-down transition-transform group-open:rotate-180 text-gray-400"></i>
+                            </div>
+                        </summary>
+                        <div class="p-3 pt-0 space-y-2">
+                            {% for match in matches_on_date %}
+                            {% set current_team_id = team.id %}
+                            {% if match.home_team_id == current_team_id %}
+                                {% set display_home = match.home_team_name %}
+                                {% set display_away = match.away_team_name %}
+                            {% else %}
+                                {% set display_home = match.away_team_name %}
+                                {% set display_away = match.home_team_name %}
+                            {% endif %}
+                            <div class="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm">
+                                <span class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                    <i class="ti ti-clock"></i>
+                                    {{ match.time.strftime('%I:%M %p') }}
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    {% if not match.is_ecs_fc %}
+                                    <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="hover:text-ecs-green">
+                                    {% endif %}
+                                        {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF', 'PRACTICE'] %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">{{ match.week_type }}</span>
+                                        {% else %}
+                                        <span class="font-medium text-gray-900 dark:text-white">{{ display_home }}</span>
+                                        <span class="text-gray-400 mx-1">vs</span>
+                                        <span class="font-medium text-gray-900 dark:text-white">{{ display_away }}</span>
+                                        {% endif %}
+                                    {% if not match.is_ecs_fc %}
+                                    </a>
+                                    {% endif %}
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                                        <i class="ti ti-map-pin"></i>
+                                        {{ match.location }}{% if match.field_name %} - {{ match.field_name }}{% endif %}
+                                    </div>
+                                </div>
+                                {% if can_view_game_results and match.reported %}
+                                <span class="px-2 py-0.5 text-xs rounded font-medium
+                                    {% if match.result_text == 'W' %}bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300
+                                    {% elif match.result_text == 'L' %}bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300
+                                    {% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300{% endif %}">
+                                    {{ match.result_text }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </details>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <div class="w-12 h-12 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                        <i class="ti ti-calendar-off text-xl text-gray-400"></i>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No matches have been scheduled for this team yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Information Card -->
+    <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Team Information</h2>
+        </div>
+        <div class="p-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                            <i class="ti ti-users text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Total Players</p>
+                            <p class="text-lg font-bold text-gray-900 dark:text-white">{{ players|length }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                            <i class="ti ti-calendar-event text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Current Season</p>
+                            <p class="text-lg font-bold text-gray-900 dark:text-white">{{ season.name if season else 'N/A' }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                            <i class="ti ti-trophy text-purple-600 dark:text-purple-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Division</p>
+                            <p class="text-lg font-bold text-gray-900 dark:text-white">{{ league.name }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% if next_match %}
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg col-span-2 md:col-span-1">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                            <i class="ti ti-calendar-time text-amber-600 dark:text-amber-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Next Match</p>
+                            <p class="font-semibold text-gray-900 dark:text-white text-sm">{{ next_match.date.strftime('%b %d') }} at {{ next_match.time.strftime('%I:%M %p') }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ next_match.location }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Expand all schedule items
+    const expandBtn = document.getElementById('expand-all-btn');
+    if (expandBtn) {
+        let expanded = false;
+        expandBtn.addEventListener('click', () => {
+            expanded = !expanded;
+            document.querySelectorAll('details').forEach(d => d.open = expanded);
+            expandBtn.innerHTML = expanded ?
+                '<i class="ti ti-arrows-minimize"></i> Collapse' :
+                '<i class="ti ti-arrows-maximize"></i> Expand';
+        });
+    }
+});
+</script>
+{% endblock %}

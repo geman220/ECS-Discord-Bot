@@ -1,0 +1,71 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}500 - Server Error{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <div class="w-full max-w-md text-center">
+        <!-- ECS Logo -->
+        <div class="mb-8">
+            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}"
+                 alt="ECS Logo" class="w-24 h-24 mx-auto">
+        </div>
+
+        <!-- Error Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+            <!-- Error Icon -->
+            <div class="mb-4">
+                <div class="w-20 h-20 mx-auto rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center">
+                    <i class="ti ti-server-off text-4xl text-red-600 dark:text-red-400"></i>
+                </div>
+            </div>
+
+            <!-- Error Code -->
+            <h1 class="text-6xl font-bold text-red-600 dark:text-red-400 mb-2">500</h1>
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Server Error</h2>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">Our server got a red card and had to leave the field.</p>
+
+            <!-- Soccer Joke -->
+            <div class="bg-red-50 dark:bg-red-900/30 rounded-lg p-4 mb-6 text-sm text-red-700 dark:text-red-300 italic border border-red-200 dark:border-red-800">
+                <i class="ti ti-quote text-red-500 mr-2"></i>
+                <span id="jokeText">Our server just went down faster than a player in the penalty box!</span>
+            </div>
+
+            <!-- Action Button -->
+            <a href="{{ url_for('main.index') }}"
+               class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors">
+                <i class="ti ti-home"></i>
+                Back to Home
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-6">Emerald City Supporters</p>
+    </div>
+</div>
+
+<script>
+const jokes = [
+    "Our server just went down faster than a player in the penalty box!",
+    "500 Error: Our server got a straight red card from the referee.",
+    "Looks like our server pulled a hamstring. We're sending in a substitute page.",
+    "Our application is taking a hydration break. Should be back on the pitch soon!",
+    "Our server's defending worse than the Sounders against LAFC in 2019.",
+    "500 Error: The server is stuck in traffic trying to get to Lumen Field.",
+    "The server is experiencing Seattle weather - unexpected downtime.",
+    "Looks like our database connection is about as reliable as Seattle sunshine.",
+    "Our server just missed an open goal. Even Jordan Morris wouldn't have missed that one!",
+    "500: This page is as broken as the Sounders' passing in the final third.",
+    "Our server is taking a longer break than halftime at a Sounders match.",
+    "Our code got caught offside. We're waiting for VAR to make a decision.",
+    "500 Error: The server got confused like a midfielder in a high press.",
+    "Our database just got nutmegged by an unexpected query."
+];
+
+document.addEventListener('DOMContentLoaded', function() {
+    const jokeText = document.getElementById('jokeText');
+    const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+    jokeText.textContent = randomJoke;
+});
+</script>
+{% endblock %}
