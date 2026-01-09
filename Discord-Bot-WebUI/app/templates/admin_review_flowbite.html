@@ -1,0 +1,72 @@
+{% extends "base_flowbite.html" %}
+{% block title %}Manual Review Required{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Manual Review Required</h1>
+        <p class="text-gray-500 dark:text-gray-400">Players that need manual verification or review</p>
+    </div>
+
+    {% if players %}
+    <!-- Players Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-alert-circle text-yellow-500"></i>
+                Players Needing Review
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300">
+                    {{ players|length }}
+                </span>
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">Email</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for player in players %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/50 flex items-center justify-center">
+                                    <i class="ti ti-user-question text-yellow-600 dark:text-yellow-400"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900 dark:text-white">{{ player.name }}</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400 sm:hidden">{{ player.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-gray-600 dark:text-gray-300 hidden sm:table-cell">{{ player.email }}</td>
+                        <td class="px-4 py-3 text-right">
+                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
+                               class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 transition-colors">
+                                <i class="ti ti-eye"></i>
+                                Review
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+        <div class="w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center mb-4">
+            <i class="ti ti-check text-2xl text-green-600 dark:text-green-400"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">All Clear!</h3>
+        <p class="text-gray-500 dark:text-gray-400">No accounts need manual review at this time.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

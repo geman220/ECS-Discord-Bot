@@ -1,0 +1,215 @@
+{% extends "base_flowbite.html" %}
+{% block title %}Admin - Feedback #{{ feedback.id }}{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Feedback #{{ feedback.id }}</h1>
+            <p class="text-gray-500 dark:text-gray-400">Review and manage feedback details</p>
+        </div>
+        <a href="{{ url_for('admin.admin_reports') }}"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <i class="ti ti-arrow-left"></i>
+            Back to Reports
+        </a>
+    </div>
+
+    <!-- Main Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <!-- Header -->
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green to-ecs-green/80">
+            <h2 class="text-lg font-bold text-white">{{ feedback.title }}</h2>
+        </div>
+
+        <div class="p-6 space-y-6">
+            <!-- Description -->
+            <div>
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Description</h3>
+                <p class="text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">{{ feedback.description }}</p>
+            </div>
+
+            <!-- Status & Priority Form -->
+            <div>
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Status & Priority</h3>
+                <form method="POST" action="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}">
+                    {{ form.hidden_tag() }}
+                    <input type="hidden" name="update_feedback" value="1">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ form.status.label.text }}</label>
+                            {{ form.status(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                            {% for error in form.status.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ form.priority.label.text }}</label>
+                            {{ form.priority(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                            {% for error in form.priority.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <button type="submit"
+                            class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                        <i class="ti ti-device-floppy"></i>
+                        Update Feedback
+                    </button>
+                </form>
+            </div>
+
+            <!-- Submission Details -->
+            <div>
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Submission Details</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Submitted By</span>
+                        <p class="font-medium text-gray-900 dark:text-white">
+                            {% if feedback.user %}
+                            {{ feedback.user.username }} ({{ feedback.user.email }})
+                            {% else %}
+                            Anonymous {% if feedback.name %}({{ feedback.name }}){% endif %}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Submitted At</span>
+                        <p class="font-medium text-gray-900 dark:text-white">{{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Replies Section -->
+            <div>
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Replies</h3>
+                {% if feedback.replies %}
+                <div class="space-y-2">
+                    {% for reply in feedback.replies %}
+                    <details class="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden group" {% if loop.first %}open{% endif %}>
+                        <summary class="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <span class="font-medium text-gray-900 dark:text-white">
+                                {% if reply.is_admin_reply %}
+                                <span class="inline-flex items-center gap-1"><i class="ti ti-shield text-ecs-green"></i> Admin Reply</span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1"><i class="ti ti-user text-blue-500"></i> User Reply</span>
+                                {% endif %}
+                            </span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                {{ reply.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                <i class="ti ti-chevron-down transition-transform group-open:rotate-180"></i>
+                            </span>
+                        </summary>
+                        <div class="p-3 pt-0 text-gray-600 dark:text-gray-300">{{ reply.content }}</div>
+                    </details>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 dark:text-gray-400 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">No replies available.</p>
+                {% endif %}
+
+                <!-- Reply Form -->
+                <form method="POST" action="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}" class="mt-4">
+                    {{ reply_form.hidden_tag() }}
+                    <input type="hidden" name="submit_reply" value="1">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Add a Reply</label>
+                        {{ reply_form.content(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", rows="3", placeholder="Enter your reply here...") }}
+                        {% for error in reply_form.content.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    <button type="submit"
+                            class="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                        <i class="ti ti-send"></i>
+                        Submit Reply
+                    </button>
+                </form>
+            </div>
+
+            <!-- Admin Notes Section -->
+            <div>
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Admin Notes</h3>
+                {% if feedback.notes %}
+                <div class="space-y-2">
+                    {% for note in feedback.notes %}
+                    <details class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg overflow-hidden group">
+                        <summary class="flex items-center justify-between p-3 cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-900/30">
+                            <span class="font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                                <i class="ti ti-note text-yellow-600"></i> Admin Note
+                            </span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                {{ note.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                <i class="ti ti-chevron-down transition-transform group-open:rotate-180"></i>
+                            </span>
+                        </summary>
+                        <div class="p-3 pt-0 text-gray-600 dark:text-gray-300">{{ note.content }}</div>
+                    </details>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 dark:text-gray-400 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">No admin notes available.</p>
+                {% endif %}
+
+                <!-- Note Form -->
+                <form method="POST" action="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}" class="mt-4">
+                    {{ note_form.hidden_tag() }}
+                    <input type="hidden" name="add_note" value="1">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Add a Note</label>
+                        {{ note_form.content(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", rows="3", placeholder="Enter your note here...") }}
+                        {% for error in note_form.content.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    <button type="submit"
+                            class="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500 text-white font-medium hover:bg-yellow-600 transition-colors">
+                        <i class="ti ti-notes"></i>
+                        Add Note
+                    </button>
+                </form>
+            </div>
+
+            <!-- Admin Actions -->
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Admin Actions</h3>
+                <div class="flex flex-wrap gap-3">
+                    {% if feedback.status != 'Closed' %}
+                    <form method="POST" action="{{ url_for('admin.close_feedback', feedback_id=feedback.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-500 text-white font-medium hover:bg-yellow-600 transition-colors">
+                            <i class="ti ti-lock"></i>
+                            Close Ticket
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    <form method="POST" action="{{ url_for('admin.delete_feedback', feedback_id=feedback.id) }}"
+                          onsubmit="return confirm('Are you sure you want to delete this feedback? This action cannot be undone.')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors">
+                            <i class="ti ti-trash"></i>
+                            Delete Feedback
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script src="{{ url_for('static', filename='custom_js/admin-reports.js') }}"></script>
+<script>
+AdminReports.init({
+    deleteFeedbackUrl: '{{ url_for("admin.delete_feedback", feedback_id=0) }}',
+    csrfToken: '{{ csrf_token() }}'
+});
+window.confirmDelete = AdminReports.confirmDelete;
+</script>
+{% endblock %}
