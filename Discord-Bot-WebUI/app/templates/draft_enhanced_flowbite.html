@@ -1,0 +1,306 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Connection Status -->
+    <div id="connectionStatus" class="fixed top-4 right-4 z-50 hidden">
+        <div class="bg-red-100 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded-lg px-4 py-2 flex items-center gap-2 text-red-700 dark:text-red-300">
+            <i class="ti ti-wifi-off"></i>
+            <span>Connecting...</span>
+        </div>
+    </div>
+
+    <!-- Draft Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-ecs-green">{{ title }}</h1>
+                <p class="text-gray-500 dark:text-gray-400">Draft and manage players for your teams</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-ecs-green">{{ analytics.total_teams }}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Teams</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-500">{{ analytics.total_players_drafted }}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Drafted</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-500" id="availableCount">{{ available_players|length }}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400">Available</div>
+                </div>
+                <a href="{{ url_for('draft_enhanced.draft_league_pitch_view', league_name=league_name) }}"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <i class="ti ti-layout-dashboard"></i>
+                    Pitch View
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search Players</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                        <i class="ti ti-search"></i>
+                    </span>
+                    <input type="text" id="playerSearch" placeholder="Type player name..."
+                           class="w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Position</label>
+                <select id="positionFilter" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    <option value="">All Positions</option>
+                    <option value="goalkeeper">Goalkeeper</option>
+                    <option value="defender">Defender</option>
+                    <option value="midfielder">Midfielder</option>
+                    <option value="forward">Forward</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sort By</label>
+                <select id="sortBy" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    <option value="name">Name</option>
+                    <option value="experience">Experience</option>
+                    <option value="attendance">Attendance</option>
+                    <option value="goals">Goals</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Available Players -->
+        <div class="lg:col-span-8">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-users text-ecs-green"></i>
+                        Available Players (<span id="available-players-count">{{ available_players|length }}</span>)
+                    </h2>
+                </div>
+                <div class="p-4">
+                    <div id="available-players" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 js-draft-drop-zone" data-drop-target="available">
+                        {% for player in available_players %}
+                        <div id="player-{{ player.id }}" class="bg-white dark:bg-gray-700 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden js-draggable-player"
+                             data-player-id="{{ player.id }}"
+                             data-player-name="{{ player.name|lower }}"
+                             data-position="{{ (player.favorite_position or '')|lower }}"
+                             data-experience="{{ player.league_experience_seasons }}"
+                             data-attendance="{{ player.attendance_estimate }}"
+                             data-goals="{{ player.career_goals }}"
+                             draggable="true">
+                            <!-- Player Image -->
+                            <div class="relative h-32 bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-600 dark:to-gray-700">
+                                <img src="{{ player.profile_picture_medium or player.profile_picture_webp or player.profile_picture_url or '/static/img/default_player.png' }}"
+                                     alt="{{ player.name }}"
+                                     class="w-full h-full object-cover object-top"
+                                     loading="lazy">
+                                <!-- Experience Badge -->
+                                <div class="absolute top-2 right-2">
+                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white
+                                                {{ 'bg-green-500' if player.experience_level == 'Veteran' else 'bg-yellow-500' if player.experience_level == 'Experienced' else 'bg-gray-400' }}">
+                                        {{ player.experience_level[0] if player.experience_level else 'N' }}
+                                    </span>
+                                </div>
+                                {% if player.is_ref %}
+                                <div class="absolute top-2 left-2">
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-red-500 text-white">REF</span>
+                                </div>
+                                {% endif %}
+                                <!-- Name Overlay -->
+                                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                                    <h3 class="text-white font-bold text-sm truncate">{{ player.name }}</h3>
+                                </div>
+                            </div>
+
+                            <!-- Player Info -->
+                            <div class="p-3">
+                                <!-- Position -->
+                                <div class="text-center mb-2">
+                                    {% if player.favorite_position and player.favorite_position != 'Any' %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green">
+                                        {{ format_position(player.favorite_position) }}
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300">
+                                        Any Position
+                                    </span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Stats -->
+                                <div class="grid grid-cols-2 gap-2 text-center text-xs mb-2">
+                                    <div>
+                                        <div class="font-bold text-green-500">{{ player.career_goals }}</div>
+                                        <div class="text-gray-500 dark:text-gray-400">Goals</div>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-blue-500">{{ player.career_assists }}</div>
+                                        <div class="text-gray-500 dark:text-gray-400">Assists</div>
+                                    </div>
+                                </div>
+
+                                <!-- Cards & Attendance -->
+                                <div class="grid grid-cols-2 gap-2 text-center text-xs mb-3">
+                                    <div>
+                                        <div class="font-bold">
+                                            <span class="text-yellow-500">{{ player.career_yellow_cards }}</span>/<span class="text-red-500">{{ player.career_red_cards }}</span>
+                                        </div>
+                                        <div class="text-gray-500 dark:text-gray-400">Cards</div>
+                                    </div>
+                                    <div>
+                                        {% if player.attendance_estimate is not none %}
+                                        <div class="font-bold {{ 'text-green-500' if player.attendance_estimate >= 80 else 'text-yellow-500' if player.attendance_estimate >= 60 else 'text-red-500' }}">
+                                            {{ "%.0f"|format(player.attendance_estimate) }}%
+                                        </div>
+                                        {% else %}
+                                        <div class="font-bold text-gray-400">N/A</div>
+                                        {% endif %}
+                                        <div class="text-gray-500 dark:text-gray-400">Attend</div>
+                                    </div>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="space-y-1">
+                                    <button class="w-full px-3 py-1.5 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green/90 transition-colors js-draft-player"
+                                            data-player-id="{{ player.id }}"
+                                            data-player-name="{{ player.name|escape }}">
+                                        <i class="ti ti-user-plus mr-1"></i>Draft
+                                    </button>
+                                    <button class="w-full px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors js-view-player-profile"
+                                            data-player-id="{{ player.id }}">
+                                        <i class="ti ti-user mr-1"></i>Profile
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-12">
+                <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                    <i class="ti ti-search text-2xl text-gray-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No players found</h3>
+                <p class="text-gray-500 dark:text-gray-400">Try adjusting your search or filters</p>
+            </div>
+        </div>
+
+        <!-- Teams Sidebar -->
+        <div class="lg:col-span-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden sticky top-4">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-users text-ecs-green"></i>
+                        Teams
+                    </h2>
+                </div>
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for team in teams %}
+                    <details class="group js-draft-drop-zone" data-team-id="{{ team.id }}" data-drop-target="team">
+                        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <span class="font-semibold text-gray-900 dark:text-white">{{ team.name }}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green" id="teamCount{{ team.id }}">
+                                    {{ drafted_players_by_team[team.id]|length if drafted_players_by_team[team.id] else 0 }}
+                                </span>
+                                <i class="ti ti-chevron-down transform group-open:rotate-180 transition-transform text-gray-400"></i>
+                            </div>
+                        </summary>
+                        <div class="p-4 pt-0">
+                            <div id="teamPlayers{{ team.id }}" class="space-y-2 js-draft-drop-zone" data-team-id="{{ team.id }}" data-drop-target="team">
+                                {% for player in drafted_players_by_team[team.id] %}
+                                <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg js-draggable-player" draggable="true" data-player-id="{{ player.id }}">
+                                    <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
+                                         alt="{{ player.name }}"
+                                         class="w-8 h-8 rounded-full object-cover">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ format_position(player.favorite_position) if player.favorite_position else 'Any' }}</div>
+                                    </div>
+                                    <button class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded js-remove-player"
+                                            data-player-id="{{ player.id }}"
+                                            data-team-id="{{ team.id }}">
+                                        <i class="ti ti-x"></i>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                                {% if not drafted_players_by_team[team.id] %}
+                                <div class="text-center py-4 text-gray-500 dark:text-gray-400">
+                                    <i class="ti ti-user-plus text-xl mb-1 block"></i>
+                                    <div class="text-sm">Drag players here</div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </details>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Draft Confirmation Modal -->
+<div id="draftConfirmModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-black/50" onclick="document.getElementById('draftConfirmModal').classList.add('hidden')"></div>
+        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-user-plus text-ecs-green"></i>
+                    Draft Player
+                </h3>
+            </div>
+            <div class="p-4">
+                <p id="draftPlayerMessage" class="text-gray-600 dark:text-gray-300 mb-4"></p>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Team:</label>
+                <select id="teamSelect" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    <option value="">Choose a team...</option>
+                </select>
+            </div>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+                <button onclick="document.getElementById('draftConfirmModal').classList.add('hidden')"
+                        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    Cancel
+                </button>
+                <button id="confirmDraftBtn" class="px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90">
+                    <i class="ti ti-user-plus mr-1"></i>Draft Player
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 text-center">
+        <div class="animate-spin w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full mx-auto mb-3"></div>
+        <p class="text-gray-600 dark:text-gray-300">Processing...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+  window.DraftConfig = {
+    leagueName: {{ league_name | tojson | safe }}
+  };
+</script>
+<script type="module" src="{{ url_for('static', filename='js/draft-system.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/mobile-draft.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/draft-enhanced.js') }}"></script>
+{% endblock %}

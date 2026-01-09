@@ -1,0 +1,290 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}{{ title }} - Pitch View{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/pitch-view.css') }}">
+{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-ecs-green">{{ title }} - Pitch View</h1>
+                <p class="text-gray-500 dark:text-gray-400">Visualize your team formation and draft players to positions</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{{ url_for('draft_enhanced.draft_league', league_name=league_name) }}"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <i class="ti ti-list"></i>
+                    List View
+                </a>
+                <div class="relative group">
+                    <button class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors">
+                        <i class="ti ti-user-check"></i>
+                        Coach View
+                        <i class="ti ti-chevron-down"></i>
+                    </button>
+                    <div class="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                        {% for team in teams %}
+                        <a href="#" class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 js-switch-team-view"
+                           data-team-id="{{ team.id }}">
+                            {{ team.name }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Selection Tabs -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-2 mb-6">
+        <div class="flex flex-wrap gap-2" id="team-tabs">
+            {% for team in teams %}
+            <button class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                          {% if loop.first %}bg-ecs-green text-white{% else %}text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700{% endif %}"
+                    data-team-id="{{ team.id }}"
+                    data-target="team-{{ team.id }}-pitch">
+                {{ team.name }}
+                <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-white/20" id="teamPitchCount{{ team.id }}">
+                    {{ drafted_players_by_team[team.id]|length if drafted_players_by_team[team.id] else 0 }}
+                </span>
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Available Players Pool -->
+        <div class="lg:col-span-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden sticky top-4">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-users text-ecs-green"></i>
+                        Available Players
+                    </h2>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green" id="availablePlayerCount">
+                        {{ available_players|length }}
+                    </span>
+                </div>
+                <div class="p-4">
+                    <!-- Search -->
+                    <div class="mb-3">
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                <i class="ti ti-search"></i>
+                            </span>
+                            <input type="text" id="playerSearchPitch" placeholder="Search players..."
+                                   class="w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                    </div>
+                    <!-- Position Filter -->
+                    <div class="mb-3">
+                        <select id="positionFilterPitch" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="">All Positions</option>
+                            <option value="goalkeeper">Goalkeeper</option>
+                            <option value="defender">Defender</option>
+                            <option value="midfielder">Midfielder</option>
+                            <option value="forward">Forward</option>
+                            <option value="wing">Wing</option>
+                        </select>
+                    </div>
+
+                    <!-- Players List -->
+                    <div id="availablePlayersList" class="space-y-2 max-h-[60vh] overflow-y-auto">
+                        {% for player in available_players %}
+                        <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-grab js-draggable-player"
+                             data-player-id="{{ player.id }}"
+                             data-player-name="{{ player.name|lower }}"
+                             data-position="{{ (player.favorite_position or '')|lower }}"
+                             draggable="true">
+                            <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
+                                 alt="{{ player.name }}"
+                                 class="w-10 h-10 rounded-full object-cover">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ player.favorite_position or 'Any' }}</span>
+                                </div>
+                                <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                                    <span class="text-green-500" title="Goals"><i class="ti ti-ball-football"></i> {{ player.career_goals }}</span>
+                                    <span class="text-blue-500" title="Assists"><i class="ti ti-shoe"></i> {{ player.career_assists }}</span>
+                                    {% if player.attendance_estimate is not none %}
+                                    <span class="{{ 'text-green-500' if player.attendance_estimate >= 80 else 'text-yellow-500' if player.attendance_estimate >= 60 else 'text-red-500' }}" title="Attendance">
+                                        <i class="ti ti-calendar-check"></i> {{ "%.0f"|format(player.attendance_estimate) }}%
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <i class="ti ti-grip-vertical text-gray-400"></i>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Soccer Pitch Views -->
+        <div class="lg:col-span-8">
+            {% for team in teams %}
+            <div class="{% if not loop.first %}hidden{% endif %}" id="team-{{ team.id }}-pitch" data-team-content>
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <h3 class="font-semibold text-gray-900 dark:text-white">{{ team.name }} Formation</h3>
+                    </div>
+                    <div class="p-4">
+                        <!-- Soccer Pitch -->
+                        <div class="soccer-pitch" id="pitch-{{ team.id }}" data-team-id="{{ team.id }}">
+                            <div class="pitch-background">
+                                <div class="goal-area goal-area-top"></div>
+                                <div class="goal-area goal-area-bottom"></div>
+                                <div class="center-circle"></div>
+                                <div class="center-line"></div>
+                                <div class="penalty-area penalty-area-top"></div>
+                                <div class="penalty-area penalty-area-bottom"></div>
+                            </div>
+
+                            <!-- Position Zones -->
+                            <div class="position-zone striker-zone js-position-drop-zone" data-position="st" data-team-id="{{ team.id }}">
+                                <div class="position-label">ST <span class="position-count">(0)</span></div>
+                                <div class="position-players" id="position-st-{{ team.id }}"></div>
+                            </div>
+
+                            <div class="position-zone leftwing-zone js-position-drop-zone" data-position="lw" data-team-id="{{ team.id }}">
+                                <div class="position-label">LW <span class="position-count">(0)</span></div>
+                                <div class="position-players" id="position-lw-{{ team.id }}"></div>
+                            </div>
+
+                            <div class="position-zone rightwing-zone js-position-drop-zone" data-position="rw" data-team-id="{{ team.id }}">
+                                <div class="position-label">RW <span class="position-count">(0)</span></div>
+                                <div class="position-players" id="position-rw-{{ team.id }}"></div>
+                            </div>
+
+                            <div class="position-zone cam-zone js-position-drop-zone" data-position="cam" data-team-id="{{ team.id }}">
+                                <div class="position-label">CAM <span class="position-count">(0)</span></div>
+                                <div class="position-players" id="position-cam-{{ team.id }}"></div>
+                            </div>
+
+                            <div class="position-zone cm-zone js-position-drop-zone" data-position="cm" data-team-id="{{ team.id }}">
+                                <div class="position-label">CM <span class="position-count">(0)</span></div>
+                                <div class="position-players" id="position-cm-{{ team.id }}"></div>
+                            </div>
+
+                            <div class="position-zone cdm-zone js-position-drop-zone" data-position="cdm" data-team-id="{{ team.id }}">
+                                <div class="position-label">CDM <span class="position-count">(0)</span></div>
+                                <div class="position-players" id="position-cdm-{{ team.id }}"></div>
+                            </div>
+
+                            <div class="position-zone leftwingback-zone js-position-drop-zone" data-position="lwb" data-team-id="{{ team.id }}">
+                                <div class="position-label">LWB <span class="position-count">(0)</span></div>
+                                <div class="position-players" id="position-lwb-{{ team.id }}"></div>
+                            </div>
+
+                            <div class="position-zone rightwingback-zone js-position-drop-zone" data-position="rwb" data-team-id="{{ team.id }}">
+                                <div class="position-label">RWB <span class="position-count">(0)</span></div>
+                                <div class="position-players" id="position-rwb-{{ team.id }}"></div>
+                            </div>
+
+                            <div class="position-zone leftback-zone js-position-drop-zone" data-position="lb" data-team-id="{{ team.id }}">
+                                <div class="position-label">LB <span class="position-count">(0)</span></div>
+                                <div class="position-players" id="position-lb-{{ team.id }}"></div>
+                            </div>
+
+                            <div class="position-zone centerback-zone js-position-drop-zone" data-position="cb" data-team-id="{{ team.id }}">
+                                <div class="position-label">CB <span class="position-count">(0)</span></div>
+                                <div class="position-players" id="position-cb-{{ team.id }}"></div>
+                            </div>
+
+                            <div class="position-zone rightback-zone js-position-drop-zone" data-position="rb" data-team-id="{{ team.id }}">
+                                <div class="position-label">RB <span class="position-count">(0)</span></div>
+                                <div class="position-players" id="position-rb-{{ team.id }}"></div>
+                            </div>
+
+                            <div class="position-zone goalkeeper-zone js-position-drop-zone" data-position="gk" data-team-id="{{ team.id }}">
+                                <div class="position-label">GK <span class="position-count">(0)</span></div>
+                                <div class="position-players" id="position-gk-{{ team.id }}"></div>
+                            </div>
+                        </div>
+
+                        <!-- Bench -->
+                        <div class="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                            <div class="position-zone bench-zone js-position-drop-zone w-full" data-position="bench" data-team-id="{{ team.id }}">
+                                <div class="position-label mb-2">BENCH <span class="position-count">(0)</span></div>
+                                <div class="position-players flex flex-wrap gap-2" id="position-bench-{{ team.id }}"></div>
+                            </div>
+                        </div>
+
+                        <!-- Formation Stats -->
+                        <div class="grid grid-cols-5 gap-2 mt-4 text-center">
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                                <div class="text-lg font-bold text-gray-900 dark:text-white" id="gk-count-{{ team.id }}">0</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">GK</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                                <div class="text-lg font-bold text-gray-900 dark:text-white" id="def-count-{{ team.id }}">0</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">DEF</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                                <div class="text-lg font-bold text-gray-900 dark:text-white" id="mid-count-{{ team.id }}">0</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">MID</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                                <div class="text-lg font-bold text-gray-900 dark:text-white" id="fwd-count-{{ team.id }}">0</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">FWD</div>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                                <div class="text-lg font-bold text-gray-900 dark:text-white" id="bench-count-{{ team.id }}">0</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">BENCH</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 text-center">
+        <div class="animate-spin w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full mx-auto mb-3"></div>
+        <p class="text-gray-600 dark:text-gray-300">Processing...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+  window.PitchViewConfig = {
+    leagueName: {{ league_name | tojson | safe }},
+    teams: {{ teams_json | tojson | safe }},
+    draftedPlayers: {{ drafted_players_by_team | tojson | safe }}
+  };
+
+  // Tab switching
+  document.querySelectorAll('#team-tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+          // Update button styles
+          document.querySelectorAll('#team-tabs button').forEach(b => {
+              b.classList.remove('bg-ecs-green', 'text-white');
+              b.classList.add('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
+          });
+          btn.classList.remove('text-gray-600', 'dark:text-gray-300', 'hover:bg-gray-100', 'dark:hover:bg-gray-700');
+          btn.classList.add('bg-ecs-green', 'text-white');
+
+          // Show/hide content
+          const targetId = btn.dataset.target;
+          document.querySelectorAll('[data-team-content]').forEach(el => el.classList.add('hidden'));
+          document.getElementById(targetId)?.classList.remove('hidden');
+      });
+  });
+</script>
+<script type="module" src="{{ url_for('static', filename='js/pitch-view.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/mobile-draft.js') }}"></script>
+{% endblock %}
