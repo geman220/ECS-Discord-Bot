@@ -1,0 +1,226 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block main_content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Manage system configuration, roles, and container status</p>
+        </div>
+        <button class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors" data-action="refresh-containers">
+            <i class="ti ti-refresh"></i>
+            <span>Refresh Containers</span>
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Manage Roles and Permissions Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="font-semibold text-gray-900 dark:text-white">Manage Roles & Permissions</h5>
+            </div>
+            <div class="p-4">
+                <form method="POST" action="{{ url_for('admin.admin_dashboard') }}" class="space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="action" value="update_permissions">
+
+                    <div>
+                        <label for="role_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Select Role <span class="text-red-500">*</span>
+                        </label>
+                        <select name="role_id" id="role_id" required
+                                class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="" disabled selected>Select a role...</option>
+                            {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="permissions" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Assign Permissions
+                        </label>
+                        <select name="permissions" id="permissions" multiple size="6"
+                                class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            {% for permission in permissions %}
+                            <option value="{{ permission.id }}">{{ permission.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                        <i class="ti ti-check"></i>
+                        <span>Update Permissions</span>
+                    </button>
+                </form>
+
+                <hr class="my-4 border-gray-200 dark:border-gray-700">
+
+                <h6 class="font-medium text-gray-900 dark:text-white mb-2">Current Permissions</h6>
+                <ul id="current-permissions-list" class="space-y-1 text-sm text-gray-500 dark:text-gray-400">
+                    <li>Select a role to view permissions.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Quick Links Section -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="font-semibold text-gray-900 dark:text-white">Quick Admin Links</h5>
+            </div>
+            <div class="p-4">
+                <div class="space-y-2">
+                    <a href="{{ url_for('admin.message_config.list_categories') }}"
+                       class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                            <i class="ti ti-message-2 text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h6 class="font-medium text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">Message Management</h6>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Manage Discord bot messages and website announcements</p>
+                        </div>
+                        <i class="ti ti-chevron-right text-gray-400"></i>
+                    </a>
+
+                    <a href="{{ url_for('admin.manage_polls') }}"
+                       class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                            <i class="ti ti-chart-bar text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h6 class="font-medium text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">League Polls</h6>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Create and manage league polls</p>
+                        </div>
+                        <i class="ti ti-chevron-right text-gray-400"></i>
+                    </a>
+
+                    <a href="{{ url_for('admin.user_approvals') }}"
+                       class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                            <i class="ti ti-users text-amber-600 dark:text-amber-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h6 class="font-medium text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">User Approvals</h6>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Approve pending user registrations</p>
+                        </div>
+                        <i class="ti ti-chevron-right text-gray-400"></i>
+                    </a>
+
+                    <a href="{{ url_for('admin.user_waitlist') }}"
+                       class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center">
+                            <i class="ti ti-clock text-cyan-600 dark:text-cyan-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h6 class="font-medium text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">User Waitlist</h6>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Manage users on the waitlist</p>
+                        </div>
+                        <i class="ti ti-chevron-right text-gray-400"></i>
+                    </a>
+
+                    <a href="{{ url_for('monitoring.monitor_dashboard') }}"
+                       class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                            <i class="ti ti-chart-dots text-purple-600 dark:text-purple-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h6 class="font-medium text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">System Monitoring</h6>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Monitor system tasks and performance</p>
+                        </div>
+                        <i class="ti ti-chevron-right text-gray-400"></i>
+                    </a>
+
+                    <button type="button" data-action="open-task-management"
+                            class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group text-left">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+                            <i class="ti ti-list-check text-indigo-600 dark:text-indigo-400"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h6 class="font-medium text-gray-900 dark:text-white group-hover:text-ecs-green dark:group-hover:text-ecs-gold">Task Management</h6>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Monitor and manage Celery tasks</p>
+                        </div>
+                        <i class="ti ti-chevron-right text-gray-400"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Docker Containers Status Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Docker Containers Status</h5>
+        </div>
+        <div class="p-4">
+            <div id="dockerStatusContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div class="col-span-full flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400">
+                    <div class="w-8 h-8 border-2 border-ecs-green border-t-transparent rounded-full animate-spin mb-2"></div>
+                    <p>Loading container status...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Management Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h5 class="font-semibold text-gray-900 dark:text-white">Global Task Management</h5>
+            <div class="flex gap-2">
+                <button class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors"
+                        data-action="refresh-task-list">
+                    <i class="ti ti-refresh text-sm"></i>
+                    <span>Refresh</span>
+                </button>
+                <button class="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors"
+                        data-action="cleanup-old-tasks">
+                    <i class="ti ti-broom text-sm"></i>
+                    <span>Cleanup</span>
+                </button>
+            </div>
+        </div>
+        <div class="p-4">
+            <div id="taskManagementContainer">
+                <div class="flex justify-center py-4">
+                    <button class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-ecs-green text-ecs-green dark:text-ecs-gold dark:border-ecs-gold hover:bg-ecs-green/10 dark:hover:bg-ecs-gold/10 transition-colors"
+                            data-action="load-task-management">
+                        <i class="ti ti-list-check"></i>
+                        <span>Load Task Management</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Docker Logs Modal -->
+<div id="dockerLogsModal" tabindex="-1" aria-hidden="true"
+     class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
+    <div class="relative p-4 w-full max-w-4xl max-h-full mx-auto mt-20">
+        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Container Logs</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="dockerLogsModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 max-h-96 overflow-auto">
+                <pre id="dockerLogsContent" class="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 p-4 rounded-lg font-mono whitespace-pre-wrap"></pre>
+            </div>
+            <div class="flex justify-end px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        data-modal-hide="dockerLogsModal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script type="module" src="{{ url_for('static', filename='js/admin/admin-dashboard.js') }}"></script>
+{% endblock %}

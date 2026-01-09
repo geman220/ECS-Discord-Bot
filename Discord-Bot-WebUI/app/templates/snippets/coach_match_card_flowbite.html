@@ -1,0 +1,106 @@
+{# Coach Match Card Component for Flowbite templates #}
+<div class="p-4">
+    <div class="flex flex-col md:flex-row gap-4">
+        <!-- Match Info -->
+        <div class="flex-1">
+            <div class="flex justify-between items-center mb-2">
+                <span class="font-bold text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else match.opponent_name }}</span>
+                <span class="text-2xl font-bold {% if match.home_team_score is not none %}text-ecs-green dark:text-ecs-gold{% else %}text-gray-400{% endif %}">
+                    {{ match.home_team_score if match.home_team_score is not none else '-' }}
+                </span>
+            </div>
+            <div class="text-center text-gray-400 text-sm mb-2">vs</div>
+            <div class="flex justify-between items-center mb-3">
+                <span class="font-bold text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else match.opponent_name }}</span>
+                <span class="text-2xl font-bold {% if match.away_team_score is not none %}text-ecs-green dark:text-ecs-gold{% else %}text-gray-400{% endif %}">
+                    {{ match.away_team_score if match.away_team_score is not none else '-' }}
+                </span>
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-calendar"></i>{{ match.date.strftime('%a, %b %d, %Y') }}
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-clock"></i>{{ match.time.strftime('%I:%M %p') }}
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-map-pin"></i>{{ match.location }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="md:w-48 space-y-2">
+            {% if match.home_team_score is not none %}
+            <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm">
+                <i class="ti ti-check-circle"></i><strong>Reported</strong>
+            </div>
+            {% else %}
+            <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm">
+                <i class="ti ti-alert-circle"></i><strong>Not Reported</strong>
+            </div>
+            {% endif %}
+
+            {# RSVP Counts #}
+            {% if match.rsvp_counts %}
+            <div class="mb-2">
+                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                    <i class="ti ti-users"></i>RSVPs:
+                </div>
+                <div class="flex gap-1">
+                    <span class="px-2 py-0.5 text-xs rounded bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400">✓ {{ match.rsvp_counts.YES }}</span>
+                    <span class="px-2 py-0.5 text-xs rounded bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400">✗ {{ match.rsvp_counts.NO }}</span>
+                    <span class="px-2 py-0.5 text-xs rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">? {{ match.rsvp_counts.MAYBE }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Sub Request Status #}
+            {% if match.sub_requests %}
+            <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-sm">
+                <i class="ti ti-user-plus"></i>
+                {% for sub_req in match.sub_requests %}
+                    {% if sub_req.status == 'OPEN' %}
+                    <strong>{{ sub_req.substitutes_needed }} sub(s) requested</strong>
+                    {% elif sub_req.status == 'FILLED' %}
+                    <strong>Sub filled</strong>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {# Match Reporting Button #}
+            <button class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors"
+                    data-bs-toggle="modal" data-bs-target="#reportMatchModal-{{ match.id }}">
+                <i class="ti ti-pencil"></i>{% if match.home_team_score is not none %}Edit{% else %}Report{% endif %}
+            </button>
+
+            {# Request Sub Button (only for future matches) #}
+            {% if match.date and match.date > today and match.home_team_score is none %}
+                {% set has_open_request = namespace(value=false) %}
+                {% if match.sub_requests %}
+                    {% for sub_req in match.sub_requests %}
+                        {% if sub_req.status == 'OPEN' %}
+                            {% set has_open_request.value = true %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% if not has_open_request.value %}
+                    {% if match.is_ecs_fc %}
+                    <button class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors js-request-sub"
+                            data-action="request-sub" data-match-id="{{ match.id }}" data-league-type="{{ match.league_type }}"
+                            data-team-id="{{ match.team_id if hasattr(match, 'team_id') else (match.home_team_id if match.home_team_id else match.away_team_id) }}">
+                        <i class="ti ti-user-plus"></i>Request Sub
+                    </button>
+                    {% else %}
+                    <button class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors js-request-sub"
+                            data-action="request-sub" data-match-id="{{ match.id }}" data-league-type="{{ match.league_type if match.league_type else 'Pub League' }}"
+                            data-team-id="{{ match.home_team_id if match.home_team_id else match.away_team_id }}">
+                        <i class="ti ti-user-plus"></i>Request Sub
+                    </button>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
