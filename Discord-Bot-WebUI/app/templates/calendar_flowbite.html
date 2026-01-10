@@ -908,7 +908,7 @@
                         <label for="importYear" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Default Year
                         </label>
-                        <input type="number" id="importYear" value="{{ now().year }}"
+                        <input type="number" id="importYear" value=""
                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">For dates without year (e.g., 1/4)</p>
                     </div>
@@ -1059,6 +1059,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const canEditRefereeMatches = {{ 'true' if can_edit_referee_matches else 'false' }};
     const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     let refereeAssignedMatches = [];
+
+    // Set default year for CSV import to current year
+    const importYearInput = document.getElementById('importYear');
+    if (importYearInput) {
+        importYearInput.value = new Date().getFullYear();
+    }
 
     // View toggle buttons
     const viewButtons = document.querySelectorAll('[data-view]');
