@@ -257,7 +257,7 @@ EventDelegation.register('action-name', handler);
 
 ## Contributors
 
-- JavaScript Migration: Claude Code
-- Architecture Design: Claude Code
-- Documentation: Claude Code
+- JavaScript Migration: ECS Development Team
+- Architecture Design: ECS Development Team
+- Documentation: ECS Development Team
 
