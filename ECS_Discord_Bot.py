@@ -2062,13 +2062,25 @@ async def process_reaction(message_id, emoji, user_id, channel_id, payload):
                 message = await channel.fetch_message(message_id)
                 # Use a non-blocking task for removing the reaction
                 asyncio.create_task(
-                    remove_reaction_safely(message, payload.emoji, user, 
+                    remove_reaction_safely(message, payload.emoji, user,
                                           f"Removed reaction {emoji} from user {user_id} on message {message_id} (not on team)")
                 )
             except Exception as e:
                 logger.error(f"Error removing reaction: {e}")
 
-        # Just log the restriction, no need for DM
+        # DM the user to explain why their reaction was removed
+        try:
+            dm_message = (
+                f"Your RSVP reaction was removed because you're not a member of the team this match belongs to.\n\n"
+                f"If you believe this is an error, please contact a league administrator."
+            )
+            await user.send(dm_message)
+            logger.info(f"Sent DM to user {user_id} explaining RSVP removal (not on team {team_id})")
+        except discord.Forbidden:
+            logger.warning(f"Cannot DM user {user_id} - DMs disabled")
+        except Exception as e:
+            logger.error(f"Error sending DM to user {user_id}: {e}")
+
         logger.info(f"User {user_id} cannot RSVP for team {team_id} (not their team)")
         return
 

@@ -1024,71 +1024,80 @@ def get_scheduled_messages():
     # Only get messages for recent/upcoming matches (last 14 days + future)
     cutoff_date = datetime.now().date() - timedelta(days=14)
 
-    with managed_session() as session_db:
-        # Get pub league messages - only for recent matches
-        pub_league_messages = (
-            session_db.query(
-                ScheduledMessage.match_id,
-                ScheduledMessage.home_channel_id,
-                ScheduledMessage.home_message_id,
-                ScheduledMessage.away_channel_id,
-                ScheduledMessage.away_message_id,
-                Match.home_team_id,
-                Match.away_team_id,
-                Match.match_date
+    try:
+        with managed_session() as session_db:
+            # Get pub league messages - only for recent matches
+            pub_league_messages = (
+                session_db.query(
+                    ScheduledMessage.match_id,
+                    ScheduledMessage.home_channel_id,
+                    ScheduledMessage.home_message_id,
+                    ScheduledMessage.away_channel_id,
+                    ScheduledMessage.away_message_id,
+                    Match.home_team_id,
+                    Match.away_team_id,
+                    Match.match_date
+                )
+                .join(Match, Match.id == ScheduledMessage.match_id)
+                .filter(Match.match_date >= cutoff_date)
+                .all()
             )
-            .join(Match, Match.id == ScheduledMessage.match_id)
-            .filter(Match.match_date >= cutoff_date)
-            .all()
-        )
 
-        # Get ECS FC matches with Discord messages (not from ScheduledMessage)
-        ecs_fc_matches = (
-            session_db.query(EcsFcMatch)
-            .filter(
-                EcsFcMatch.match_date >= cutoff_date,
-                EcsFcMatch.discord_message_id.isnot(None),
-                EcsFcMatch.discord_message_id != ''
+            # Format pub league messages inside session (in case of lazy loading)
+            pub_league_data = [{
+                'match_id': m.match_id,
+                'home_channel_id': m.home_channel_id,
+                'home_message_id': m.home_message_id,
+                'away_channel_id': m.away_channel_id,
+                'away_message_id': m.away_message_id,
+                'home_team_id': m.home_team_id,
+                'away_team_id': m.away_team_id,
+                'match_date': m.match_date.isoformat() if m.match_date else None,
+                'message_type': 'pub_league'
+            } for m in pub_league_messages]
+
+            # Get ECS FC matches with Discord messages
+            ecs_fc_matches = (
+                session_db.query(
+                    EcsFcMatch.id,
+                    EcsFcMatch.team_id,
+                    EcsFcMatch.discord_message_id,
+                    EcsFcMatch.discord_channel_id,
+                    EcsFcMatch.match_date
+                )
+                .filter(
+                    EcsFcMatch.match_date >= cutoff_date,
+                    EcsFcMatch.discord_message_id.isnot(None),
+                    EcsFcMatch.discord_message_id != ''
+                )
+                .all()
             )
-            .all()
-        )
 
-        # Debug logging
-        logger.info(f"Found {len(pub_league_messages)} pub league messages and {len(ecs_fc_matches)} ECS FC matches with Discord messages")
+            # Format ECS FC messages inside session
+            ecs_fc_data = [{
+                'match_id': f'ecs_{m.id}',
+                'ecs_fc_match_id': m.id,
+                'home_channel_id': m.discord_channel_id,
+                'home_message_id': m.discord_message_id,
+                'away_channel_id': None,
+                'away_message_id': None,
+                'home_team_id': m.team_id,
+                'away_team_id': None,
+                'match_date': m.match_date.isoformat() if m.match_date else None,
+                'message_type': 'ecs_fc'
+            } for m in ecs_fc_matches]
 
-    # Format pub league messages (existing format with match_date)
-    pub_league_data = [{
-        'match_id': m.match_id,
-        'home_channel_id': m.home_channel_id,
-        'home_message_id': m.home_message_id,
-        'away_channel_id': m.away_channel_id,
-        'away_message_id': m.away_message_id,
-        'home_team_id': m.home_team_id,
-        'away_team_id': m.away_team_id,
-        'match_date': m.match_date.isoformat() if m.match_date else None,
-        'message_type': 'pub_league'
-    } for m in pub_league_messages]
+            # Debug logging
+            logger.info(f"Found {len(pub_league_data)} pub league messages and {len(ecs_fc_data)} ECS FC matches with Discord messages")
 
-    # Format ECS FC messages from EcsFcMatch directly
-    ecs_fc_data = []
-    for match in ecs_fc_matches:
-        ecs_fc_data.append({
-            'match_id': f'ecs_{match.id}',
-            'ecs_fc_match_id': match.id,
-            'home_channel_id': match.discord_channel_id,
-            'home_message_id': match.discord_message_id,
-            'away_channel_id': None,
-            'away_message_id': None,
-            'home_team_id': match.team_id,  # Actual team ID
-            'away_team_id': None,
-            'match_date': match.match_date.isoformat() if match.match_date else None,
-            'message_type': 'ecs_fc'
-        })
+        # Combine both types of messages
+        all_messages = pub_league_data + ecs_fc_data
 
-    # Combine both types of messages
-    all_messages = pub_league_data + ecs_fc_data
+        return jsonify(all_messages), 200
 
-    return jsonify(all_messages), 200
+    except Exception as e:
+        logger.error(f"Error fetching scheduled messages: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 
 @availability_bp.route('/get_player_id_from_discord/<string:discord_id>', methods=['GET'])
