@@ -402,11 +402,12 @@ def get_event_types():
         JSON array of event type options
     """
     event_types = [
-        {'value': 'party', 'label': 'Party', 'color': '#9c27b0'},
-        {'value': 'meeting', 'label': 'Meeting', 'color': '#ff9800'},
-        {'value': 'social', 'label': 'Social Event', 'color': '#e91e63'},
-        {'value': 'training', 'label': 'Training', 'color': '#4caf50'},
-        {'value': 'tournament', 'label': 'Tournament', 'color': '#f44336'},
-        {'value': 'other', 'label': 'Other', 'color': '#607d8b'},
+        {'id': 1, 'value': 'party', 'label': 'Party/Social', 'color': '#9c27b0', 'icon': 'celebration'},
+        {'id': 2, 'value': 'tournament', 'label': 'Tournament', 'color': '#ffc107', 'icon': 'trophy'},
+        {'id': 3, 'value': 'meeting', 'label': 'Meeting', 'color': '#2196f3', 'icon': 'groups'},
+        {'id': 4, 'value': 'plop', 'label': 'PLOP', 'color': '#4caf50', 'icon': 'sports'},
+        {'id': 5, 'value': 'fundraiser', 'label': 'Fundraiser', 'color': '#ff5722', 'icon': 'volunteer_activism'},
+        {'id': 6, 'value': 'social', 'label': 'Social Event', 'color': '#e91e63', 'icon': 'heart'},
+        {'id': 7, 'value': 'other', 'label': 'Other', 'color': '#607d8b', 'icon': 'calendar'},
     ]
     return jsonify(event_types)

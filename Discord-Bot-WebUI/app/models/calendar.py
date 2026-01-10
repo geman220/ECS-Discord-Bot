@@ -23,8 +23,9 @@ class LeagueEventType(Enum):
     PARTY = 'party'
     MEETING = 'meeting'
     SOCIAL = 'social'
-    TRAINING = 'training'
+    PLOP = 'plop'  # Replaced 'training'
     TOURNAMENT = 'tournament'
+    FUNDRAISER = 'fundraiser'
     OTHER = 'other'
 
 
@@ -101,11 +102,12 @@ class LeagueEvent(db.Model):
         """
         # Color mapping by event type
         color_map = {
-            'party': '#9c27b0',      # Purple
-            'meeting': '#ff9800',     # Orange
+            'party': '#9c27b0',       # Purple
+            'meeting': '#2196f3',     # Blue
             'social': '#e91e63',      # Pink
-            'training': '#4caf50',    # Green
-            'tournament': '#f44336',  # Red
+            'plop': '#4caf50',        # Green
+            'tournament': '#ffc107',  # Yellow/Gold
+            'fundraiser': '#ff5722',  # Deep Orange
             'other': '#607d8b',       # Blue-grey
         }
 

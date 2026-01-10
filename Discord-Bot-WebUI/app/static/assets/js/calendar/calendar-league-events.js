@@ -9,11 +9,12 @@
 
 // Event types with colors and labels
 export const EVENT_TYPES = {
-    party: { label: 'Party', color: '#9c27b0', icon: 'ti-confetti' },
-    meeting: { label: 'Meeting', color: '#ff9800', icon: 'ti-users' },
+    party: { label: 'Party/Social', color: '#9c27b0', icon: 'ti-confetti' },
+    tournament: { label: 'Tournament', color: '#ffc107', icon: 'ti-trophy' },
+    meeting: { label: 'Meeting', color: '#2196f3', icon: 'ti-users' },
+    plop: { label: 'PLOP', color: '#4caf50', icon: 'ti-ball-football' },
+    fundraiser: { label: 'Fundraiser', color: '#ff5722', icon: 'ti-heart-handshake' },
     social: { label: 'Social Event', color: '#e91e63', icon: 'ti-heart' },
-    training: { label: 'Training', color: '#4caf50', icon: 'ti-ball-football' },
-    tournament: { label: 'Tournament', color: '#f44336', icon: 'ti-trophy' },
     other: { label: 'Other', color: '#607d8b', icon: 'ti-calendar-event' }
 };
 
@@ -72,11 +73,12 @@ function createModal() {
                             <div>
                                 <label for="eventType" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Event Type</label>
                                 <select id="eventType" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green">
-                                    <option value="party">Party</option>
-                                    <option value="meeting">Meeting</option>
-                                    <option value="social">Social Event</option>
-                                    <option value="training">Training</option>
+                                    <option value="party">Party/Social</option>
                                     <option value="tournament">Tournament</option>
+                                    <option value="meeting">Meeting</option>
+                                    <option value="plop">PLOP</option>
+                                    <option value="fundraiser">Fundraiser</option>
+                                    <option value="social">Social Event</option>
                                     <option value="other" selected>Other</option>
                                 </select>
                             </div>
@@ -102,6 +104,55 @@ function createModal() {
                             <label for="eventAllDay" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">All-day event</label>
                         </div>
 
+                        <!-- Recurring Event Section -->
+                        <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div class="flex items-center mb-3">
+                                <input id="eventRecurring" type="checkbox" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                <label for="eventRecurring" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                    <i class="ti ti-repeat me-1"></i>
+                                    Recurring event
+                                </label>
+                            </div>
+                            <div id="recurringOptions" class="hidden space-y-3">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label for="recurrencePattern" class="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Repeat</label>
+                                        <select id="recurrencePattern" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                            <option value="weekly">Weekly</option>
+                                            <option value="biweekly">Every 2 weeks</option>
+                                            <option value="monthly">Monthly</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="recurrenceDay" class="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Day of Week</label>
+                                        <select id="recurrenceDay" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                            <option value="0">Sunday</option>
+                                            <option value="1">Monday</option>
+                                            <option value="2">Tuesday</option>
+                                            <option value="3">Wednesday</option>
+                                            <option value="4">Thursday</option>
+                                            <option value="5">Friday</option>
+                                            <option value="6">Saturday</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label for="recurrenceTime" class="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Time</label>
+                                        <input type="time" id="recurrenceTime" value="09:00" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                    </div>
+                                    <div>
+                                        <label for="recurrenceEndDate" class="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Until (optional)</label>
+                                        <input type="date" id="recurrenceEndDate" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    <i class="ti ti-info-circle me-1"></i>
+                                    Creates individual events based on the pattern. Leave end date empty to create 12 events.
+                                </p>
+                            </div>
+                        </div>
+
                         <div class="mb-4">
                             <label for="eventDescription" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
                             <textarea id="eventDescription" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" placeholder="Event details..."></textarea>
@@ -117,7 +168,7 @@ function createModal() {
                     </form>
                 </div>
                 <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
-                    <button type="button" class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-auto calendar-delete-event-btn dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900" id="deleteEventBtn">
+                    <button type="button" class="hidden text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-auto calendar-delete-event-btn dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900" id="deleteEventBtn">
                         <i class="ti ti-trash me-1"></i> Delete
                     </button>
                     <button type="button" class="text-gray-900 bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600" onclick="var modal = document.getElementById('leagueEventModal'); if(modal._flowbiteModal) modal._flowbiteModal.hide();">Cancel</button>
@@ -158,6 +209,22 @@ function bindEvents() {
             endInput.type = 'datetime-local';
         }
     });
+
+    // Recurring checkbox toggles recurring options
+    document.getElementById('eventRecurring')?.addEventListener('change', function() {
+        const recurringOptions = document.getElementById('recurringOptions');
+        const startDateSection = document.getElementById('eventStartDate').closest('.grid');
+        const endDateSection = document.getElementById('eventEndDate').closest('div');
+
+        if (this.checked) {
+            recurringOptions.classList.remove('hidden');
+            // Hide end date when recurring (each event can have its own duration if needed)
+            if (endDateSection) endDateSection.style.opacity = '0.5';
+        } else {
+            recurringOptions.classList.add('hidden');
+            if (endDateSection) endDateSection.style.opacity = '1';
+        }
+    });
 }
 
 /**
@@ -176,8 +243,16 @@ export function openCreateModal(date = null) {
     document.getElementById('leagueEventForm').reset();
     document.getElementById('eventId').value = '';
     document.getElementById('eventModalTitle').textContent = 'Create League Event';
-    document.getElementById('deleteEventBtn').classList.remove('is-visible');
+    document.getElementById('deleteEventBtn').classList.add('hidden');
     document.getElementById('saveEventBtn').innerHTML = '<i class="ti ti-check me-1"></i> Create Event';
+
+    // Show recurring section for new events
+    const recurringCheckbox = document.getElementById('eventRecurring');
+    const recurringSection = recurringCheckbox?.closest('.mb-4.p-3');
+    if (recurringSection) {
+        recurringSection.classList.remove('hidden');
+    }
+    document.getElementById('recurringOptions')?.classList.add('hidden'); // Start collapsed
 
     // Set default date if provided
     if (date) {
@@ -220,12 +295,87 @@ export function openEditModal(event) {
         document.getElementById('eventEndDate').value = formatDateForInput(new Date(event.end));
     }
 
+    // Hide recurring options when editing (can't convert single event to recurring)
+    const recurringCheckbox = document.getElementById('eventRecurring');
+    const recurringSection = recurringCheckbox?.closest('.mb-4.p-3');
+    if (recurringCheckbox) {
+        recurringCheckbox.checked = false;
+    }
+    if (recurringSection) {
+        recurringSection.classList.add('hidden');
+    }
+    document.getElementById('recurringOptions')?.classList.add('hidden');
+
     // Update modal title and buttons
     document.getElementById('eventModalTitle').textContent = 'Edit League Event';
-    document.getElementById('deleteEventBtn').classList.add('is-visible');
+    document.getElementById('deleteEventBtn').classList.remove('hidden');
     document.getElementById('saveEventBtn').innerHTML = '<i class="ti ti-check me-1"></i> Save Changes';
 
     modal.show();
+}
+
+/**
+ * Generate recurring event dates based on pattern
+ * @param {Object} options - Recurrence options
+ * @returns {Array<Date>} Array of dates for recurring events
+ */
+function generateRecurringDates(options) {
+    const { pattern, dayOfWeek, time, endDate, maxOccurrences = 12 } = options;
+    const dates = [];
+
+    // Parse the time
+    const [hours, minutes] = time.split(':').map(Number);
+
+    // Start from next occurrence of the specified day
+    let currentDate = new Date();
+    currentDate.setHours(hours, minutes, 0, 0);
+
+    // Move to the first occurrence of the target day
+    const targetDay = parseInt(dayOfWeek, 10);
+    const currentDay = currentDate.getDay();
+    let daysUntilTarget = (targetDay - currentDay + 7) % 7;
+    if (daysUntilTarget === 0 && currentDate < new Date()) {
+        daysUntilTarget = 7; // If today is the target day but time has passed, go to next week
+    }
+    currentDate.setDate(currentDate.getDate() + daysUntilTarget);
+
+    // Calculate end date limit
+    const endDateLimit = endDate ? new Date(endDate) : null;
+    if (endDateLimit) {
+        endDateLimit.setHours(23, 59, 59, 999);
+    }
+
+    // Generate dates
+    let occurrences = 0;
+    while (occurrences < maxOccurrences) {
+        // Check if we've passed the end date
+        if (endDateLimit && currentDate > endDateLimit) {
+            break;
+        }
+
+        dates.push(new Date(currentDate));
+        occurrences++;
+
+        // Move to next occurrence based on pattern
+        switch (pattern) {
+            case 'weekly':
+                currentDate.setDate(currentDate.getDate() + 7);
+                break;
+            case 'biweekly':
+                currentDate.setDate(currentDate.getDate() + 14);
+                break;
+            case 'monthly':
+                // Move to same day of week in next month
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                // Adjust to the correct day of week
+                const newDay = currentDate.getDay();
+                const diff = (targetDay - newDay + 7) % 7;
+                currentDate.setDate(currentDate.getDate() + diff);
+                break;
+        }
+    }
+
+    return dates;
 }
 
 /**
@@ -240,41 +390,107 @@ async function saveEvent() {
 
     const eventId = document.getElementById('eventId').value;
     const isEdit = !!eventId;
+    const isRecurring = document.getElementById('eventRecurring')?.checked && !isEdit;
 
-    const eventData = {
+    // Base event data
+    const baseEventData = {
         title: document.getElementById('eventTitle').value,
         event_type: document.getElementById('eventType').value,
         location: document.getElementById('eventLocation').value || null,
         description: document.getElementById('eventDescription').value || null,
-        start_datetime: document.getElementById('eventStartDate').value,
-        end_datetime: document.getElementById('eventEndDate').value || null,
         is_all_day: document.getElementById('eventAllDay').checked,
         notify_discord: document.getElementById('eventNotifyDiscord').checked
     };
 
     try {
-        const url = isEdit
-            ? `/api/calendar/league-events/${eventId}`
-            : '/api/calendar/league-events';
+        if (isRecurring) {
+            // Generate recurring events
+            const recurrenceOptions = {
+                pattern: document.getElementById('recurrencePattern').value,
+                dayOfWeek: document.getElementById('recurrenceDay').value,
+                time: document.getElementById('recurrenceTime').value,
+                endDate: document.getElementById('recurrenceEndDate').value || null
+            };
 
-        const response = await fetch(url, {
-            method: isEdit ? 'PUT' : 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify(eventData)
-        });
+            const dates = generateRecurringDates(recurrenceOptions);
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to save event');
+            if (dates.length === 0) {
+                showToast('error', 'No dates generated for the recurring pattern');
+                return;
+            }
+
+            // Show progress
+            showToast('info', `Creating ${dates.length} recurring events...`);
+
+            let successCount = 0;
+            let failCount = 0;
+
+            // Create each event
+            for (const date of dates) {
+                const eventData = {
+                    ...baseEventData,
+                    start_datetime: date.toISOString(),
+                    end_datetime: null // Can add duration support later
+                };
+
+                try {
+                    const response = await fetch('/api/calendar/league-events', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify(eventData)
+                    });
+
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                    }
+                } catch (err) {
+                    failCount++;
+                }
+            }
+
+            modal.hide();
+
+            if (failCount === 0) {
+                showToast('success', `Created ${successCount} recurring events successfully`);
+            } else {
+                showToast('warning', `Created ${successCount} events, ${failCount} failed`);
+            }
+        } else {
+            // Single event create/update
+            const eventData = {
+                ...baseEventData,
+                start_datetime: document.getElementById('eventStartDate').value,
+                end_datetime: document.getElementById('eventEndDate').value || null
+            };
+
+            const url = isEdit
+                ? `/api/calendar/league-events/${eventId}`
+                : '/api/calendar/league-events';
+
+            const response = await fetch(url, {
+                method: isEdit ? 'PUT' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(eventData)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to save event');
+            }
+
+            const savedEvent = await response.json();
+
+            modal.hide();
+            showToast('success', isEdit ? 'Event updated successfully' : 'Event created successfully');
         }
-
-        const savedEvent = await response.json();
-
-        modal.hide();
-        showToast('success', isEdit ? 'Event updated successfully' : 'Event created successfully');
 
         // Trigger calendar refresh
         if (typeof window.refreshCalendar === 'function') {

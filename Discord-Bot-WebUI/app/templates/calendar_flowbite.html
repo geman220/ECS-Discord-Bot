@@ -1682,6 +1682,43 @@ document.addEventListener('DOMContentLoaded', () => {
         loadScheduleEvents();
         fetchAvailableReferees();
     };
+
+    // Initialize LeagueEventManager for Add Event functionality
+    const canEditEvents = {{ 'true' if can_edit_events else 'false' }};
+    if (canEditEvents && typeof LeagueEventManager !== 'undefined') {
+        LeagueEventManager.init({ isAdmin: true });
+
+        // Bind Add Event button
+        const addEventBtn = document.getElementById('addLeagueEventBtn');
+        if (addEventBtn) {
+            addEventBtn.addEventListener('click', function() {
+                LeagueEventManager.openCreateModal();
+            });
+        }
+    }
 });
+</script>
+
+<!-- League Event Manager Script -->
+<script src="{{ url_for('static', filename='assets/js/calendar/calendar-league-events.js') }}" type="module"></script>
+<script>
+// Make LeagueEventManager available globally (loaded as ES module)
+import('/static/assets/js/calendar/calendar-league-events.js').then(module => {
+    window.LeagueEventManager = module.LeagueEventManager;
+
+    // Initialize if page is ready
+    const canEditEvents = {{ 'true' if can_edit_events else 'false' }};
+    if (canEditEvents) {
+        module.LeagueEventManager.init({ isAdmin: true });
+
+        // Bind Add Event button
+        const addEventBtn = document.getElementById('addLeagueEventBtn');
+        if (addEventBtn) {
+            addEventBtn.addEventListener('click', function() {
+                module.LeagueEventManager.openCreateModal();
+            });
+        }
+    }
+}).catch(err => console.error('Failed to load LeagueEventManager:', err));
 </script>
 {% endblock %}

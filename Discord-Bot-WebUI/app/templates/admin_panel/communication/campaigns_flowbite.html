@@ -406,9 +406,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 confirmButtonColor: '#1a472a',
                 background: isDark ? '#1f2937' : '#ffffff',
                 color: isDark ? '#f3f4f6' : '#111827'
-            }).then((result) => {
+            }).then(async (result) => {
                 if (result.isConfirmed) {
-                    // Send campaign
+                    try {
+                        const response = await fetch(`/admin/communication/campaigns/${campaignId}/send`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        const data = await response.json();
+
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Campaign Sent!',
+                                text: `Sent to ${data.sent_count || 0} devices`,
+                                icon: 'success',
+                                confirmButtonColor: '#1a472a',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => window.location.reload());
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: data.error || 'Failed to send campaign',
+                                icon: 'error',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Send error:', error);
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Failed to send campaign',
+                            icon: 'error',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    }
                 }
             });
         } else if (action === 'delete-campaign') {
@@ -421,14 +458,109 @@ document.addEventListener('DOMContentLoaded', function() {
                 confirmButtonColor: '#dc2626',
                 background: isDark ? '#1f2937' : '#ffffff',
                 color: isDark ? '#f3f4f6' : '#111827'
-            }).then((result) => {
+            }).then(async (result) => {
                 if (result.isConfirmed) {
-                    // Delete campaign
+                    try {
+                        const response = await fetch(`/admin/communication/campaigns/${campaignId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        const data = await response.json();
+
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: data.message || 'Campaign deleted successfully',
+                                icon: 'success',
+                                confirmButtonColor: '#1a472a',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => window.location.reload());
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: data.error || 'Failed to delete campaign',
+                                icon: 'error',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Delete error:', error);
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Failed to delete campaign',
+                            icon: 'error',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    }
                 }
             });
         } else if (action === 'schedule-campaign') {
             document.getElementById('schedule_campaign_id').value = campaignId;
             document.getElementById('schedule_campaign_name').textContent = campaignName;
+            // Clear and set minimum date/time
+            const sendTimeInput = document.getElementById('schedule_send_time');
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + 5); // Minimum 5 minutes from now
+            sendTimeInput.min = now.toISOString().slice(0, 16);
+            sendTimeInput.value = '';
+        }
+    });
+
+    // Schedule confirmation button handler
+    document.getElementById('confirmScheduleBtn')?.addEventListener('click', async function() {
+        const campaignId = document.getElementById('schedule_campaign_id').value;
+        const sendTime = document.getElementById('schedule_send_time').value;
+
+        if (!campaignId || !sendTime) {
+            if (window.showToast) {
+                window.showToast('Please select a date and time', 'error');
+            }
+            return;
+        }
+
+        try {
+            const response = await fetch(`/admin/communication/campaigns/${campaignId}/schedule`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ send_time: sendTime })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Hide modal
+                const modal = document.getElementById('scheduleCampaignModal');
+                if (modal && typeof Modal !== 'undefined') {
+                    const flowbiteModal = Modal.getInstance(modal);
+                    if (flowbiteModal) flowbiteModal.hide();
+                }
+
+                Swal.fire({
+                    title: 'Scheduled!',
+                    text: 'Campaign has been scheduled for delivery',
+                    icon: 'success',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => window.location.reload());
+            } else {
+                if (window.showToast) {
+                    window.showToast(data.error || 'Failed to schedule campaign', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Schedule error:', error);
+            if (window.showToast) {
+                window.showToast('Failed to schedule campaign', 'error');
+            }
         }
     });
 });

@@ -216,4 +216,344 @@
     </button>
     {% endif %}
 </div>
+
+<!-- Add Member Modal -->
+<div id="addMemberModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-user-plus mr-2"></i>Add Member
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="addMemberModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <div class="mb-4">
+                    <label for="memberSearchInput" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Users</label>
+                    <input type="text" id="memberSearchInput" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Type to search users...">
+                </div>
+                <div id="memberSearchResults" class="max-h-60 overflow-y-auto space-y-2">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Start typing to search for users</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Group Modal -->
+<div id="editGroupModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-edit mr-2"></i>Edit Group
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="editGroupModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <form id="editGroupForm">
+                    <div class="mb-4">
+                        <label for="editGroupName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Group Name</label>
+                        <input type="text" id="editGroupName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="{{ group.name }}" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="editGroupDescription" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                        <textarea id="editGroupDescription" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">{{ group.description or '' }}</textarea>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500" data-modal-hide="editGroupModal">Cancel</button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block panel_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const groupId = {{ group.id }};
+    const baseUrl = '/admin/communication/notification-groups/' + groupId;
+
+    // Initialize modals
+    const addMemberModalEl = document.getElementById('addMemberModal');
+    const editGroupModalEl = document.getElementById('editGroupModal');
+    let addMemberModal = null;
+    let editGroupModal = null;
+
+    if (addMemberModalEl && typeof Modal !== 'undefined') {
+        addMemberModal = new Modal(addMemberModalEl);
+    }
+    if (editGroupModalEl && typeof Modal !== 'undefined') {
+        editGroupModal = new Modal(editGroupModalEl);
+    }
+
+    // Add Member button handlers
+    const addMemberBtn = document.getElementById('addMemberBtn');
+    const addFirstMemberBtn = document.getElementById('addFirstMemberBtn');
+
+    function openAddMemberModal() {
+        if (addMemberModal) {
+            addMemberModal.show();
+            document.getElementById('memberSearchInput').value = '';
+            document.getElementById('memberSearchResults').innerHTML =
+                '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Start typing to search for users</p>';
+        }
+    }
+
+    if (addMemberBtn) {
+        addMemberBtn.addEventListener('click', openAddMemberModal);
+    }
+    if (addFirstMemberBtn) {
+        addFirstMemberBtn.addEventListener('click', openAddMemberModal);
+    }
+
+    // Member search functionality
+    const memberSearchInput = document.getElementById('memberSearchInput');
+    let searchTimeout = null;
+
+    if (memberSearchInput) {
+        memberSearchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+
+            if (query.length < 2) {
+                document.getElementById('memberSearchResults').innerHTML =
+                    '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Type at least 2 characters to search</p>';
+                return;
+            }
+
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${baseUrl}/members/search?q=${encodeURIComponent(query)}`);
+                    const data = await response.json();
+
+                    if (data.success && data.users.length > 0) {
+                        document.getElementById('memberSearchResults').innerHTML = data.users.map(user => `
+                            <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div>
+                                    <div class="font-medium text-gray-900 dark:text-white">${user.name}</div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">${user.email || 'No email'}</div>
+                                </div>
+                                <button type="button" class="px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700" onclick="addMember(${user.id})">
+                                    Add
+                                </button>
+                            </div>
+                        `).join('');
+                    } else {
+                        document.getElementById('memberSearchResults').innerHTML =
+                            '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No users found</p>';
+                    }
+                } catch (error) {
+                    console.error('Search error:', error);
+                }
+            }, 300);
+        });
+    }
+
+    // Add member function
+    window.addMember = async function(userId) {
+        try {
+            const response = await fetch(`${baseUrl}/members`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ user_id: userId })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                if (window.showToast) {
+                    window.showToast(data.message || 'Member added successfully', 'success');
+                }
+                // Reload page to show updated members
+                window.location.reload();
+            } else {
+                if (window.showToast) {
+                    window.showToast(data.error || 'Failed to add member', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Error adding member:', error);
+            if (window.showToast) {
+                window.showToast('Failed to add member', 'error');
+            }
+        }
+    };
+
+    // Remove member function
+    window.removeMember = async function(userId) {
+        if (!confirm('Are you sure you want to remove this member from the group?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${baseUrl}/members/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                if (window.showToast) {
+                    window.showToast('Member removed successfully', 'success');
+                }
+                window.location.reload();
+            } else {
+                if (window.showToast) {
+                    window.showToast(data.error || 'Failed to remove member', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Error removing member:', error);
+            if (window.showToast) {
+                window.showToast('Failed to remove member', 'error');
+            }
+        }
+    };
+
+    // Edit Group button handler
+    const editGroupBtn = document.getElementById('editGroupBtn');
+    if (editGroupBtn) {
+        editGroupBtn.addEventListener('click', function() {
+            if (editGroupModal) {
+                editGroupModal.show();
+            }
+        });
+    }
+
+    // Edit Group form submission
+    const editGroupForm = document.getElementById('editGroupForm');
+    if (editGroupForm) {
+        editGroupForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('editGroupName').value.trim();
+            const description = document.getElementById('editGroupDescription').value.trim();
+
+            if (!name) {
+                if (window.showToast) {
+                    window.showToast('Group name is required', 'error');
+                }
+                return;
+            }
+
+            try {
+                const response = await fetch(baseUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ name, description })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (window.showToast) {
+                        window.showToast('Group updated successfully', 'success');
+                    }
+                    window.location.reload();
+                } else {
+                    if (window.showToast) {
+                        window.showToast(data.error || 'Failed to update group', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating group:', error);
+                if (window.showToast) {
+                    window.showToast('Failed to update group', 'error');
+                }
+            }
+        });
+    }
+
+    // Activate button handler
+    const activateBtn = document.getElementById('activateBtn');
+    if (activateBtn) {
+        activateBtn.addEventListener('click', async function() {
+            try {
+                const response = await fetch(baseUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ is_active: true })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (window.showToast) {
+                        window.showToast('Group activated successfully', 'success');
+                    }
+                    window.location.reload();
+                } else {
+                    if (window.showToast) {
+                        window.showToast(data.error || 'Failed to activate group', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error activating group:', error);
+                if (window.showToast) {
+                    window.showToast('Failed to activate group', 'error');
+                }
+            }
+        });
+    }
+
+    // Deactivate button handler
+    const deactivateBtn = document.getElementById('deactivateBtn');
+    if (deactivateBtn) {
+        deactivateBtn.addEventListener('click', async function() {
+            if (!confirm('Are you sure you want to deactivate this group? It will no longer be available for notifications.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(baseUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ is_active: false })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (window.showToast) {
+                        window.showToast('Group deactivated successfully', 'success');
+                    }
+                    window.location.reload();
+                } else {
+                    if (window.showToast) {
+                        window.showToast(data.error || 'Failed to deactivate group', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error deactivating group:', error);
+                if (window.showToast) {
+                    window.showToast('Failed to deactivate group', 'error');
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

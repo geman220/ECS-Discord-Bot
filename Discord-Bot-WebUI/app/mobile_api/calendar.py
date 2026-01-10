@@ -27,24 +27,21 @@ from app.models_ecs import EcsFcMatch
 logger = logging.getLogger(__name__)
 
 
-# Event type color mapping for mobile UI
-EVENT_TYPE_COLORS = {
-    'party': '#9c27b0',
-    'meeting': '#ff9800',
-    'social': '#e91e63',
-    'training': '#4caf50',
-    'tournament': '#f44336',
-    'other': '#607d8b'
+# Event type definitions for mobile UI
+# Each type has: id, value, label, color, icon
+EVENT_TYPES = {
+    'party': {'id': 1, 'value': 'party', 'label': 'Party/Social', 'color': '#9c27b0', 'icon': 'celebration'},
+    'tournament': {'id': 2, 'value': 'tournament', 'label': 'Tournament', 'color': '#ffc107', 'icon': 'trophy'},
+    'meeting': {'id': 3, 'value': 'meeting', 'label': 'Meeting', 'color': '#2196f3', 'icon': 'groups'},
+    'plop': {'id': 4, 'value': 'plop', 'label': 'PLOP', 'color': '#4caf50', 'icon': 'sports'},
+    'fundraiser': {'id': 5, 'value': 'fundraiser', 'label': 'Fundraiser', 'color': '#ff5722', 'icon': 'volunteer_activism'},
+    'social': {'id': 6, 'value': 'social', 'label': 'Social Event', 'color': '#e91e63', 'icon': 'heart'},
+    'other': {'id': 7, 'value': 'other', 'label': 'Other', 'color': '#607d8b', 'icon': 'calendar'},
 }
 
-EVENT_TYPE_ICONS = {
-    'party': 'party',
-    'meeting': 'users',
-    'social': 'heart',
-    'training': 'football',
-    'tournament': 'trophy',
-    'other': 'calendar'
-}
+# Legacy mappings for backward compatibility
+EVENT_TYPE_COLORS = {k: v['color'] for k, v in EVENT_TYPES.items()}
+EVENT_TYPE_ICONS = {k: v['icon'] for k, v in EVENT_TYPES.items()}
 
 
 def _match_to_calendar_event(match, user_team_ids: list = None) -> dict:
@@ -82,25 +79,59 @@ def _match_to_calendar_event(match, user_team_ids: list = None) -> dict:
     }
 
 
-def _league_event_to_calendar_event(event: LeagueEvent) -> dict:
-    """Convert a LeagueEvent object to a calendar event dict for mobile."""
-    return {
-        'id': f'event-{event.id}',
+def _league_event_to_calendar_event(event: LeagueEvent, include_league_name: bool = True) -> dict:
+    """
+    Convert a LeagueEvent object to a calendar event dict for mobile.
+
+    Returns format matching app expectations:
+    - id: integer (not prefixed string)
+    - event_type_key: the event type value
+    - event_type_details: full type info with id, value, label, color, icon
+    - is_all_day: boolean (not all_day)
+    - league_name: included when available
+    """
+    from flask import request
+
+    # Get event type details (default to 'other' if not found)
+    event_type_key = event.event_type or 'other'
+    event_type_details = EVENT_TYPES.get(event_type_key, EVENT_TYPES['other'])
+
+    # Build base URL for any URLs
+    base_url = request.host_url.rstrip('/') if request else ''
+
+    result = {
+        'id': event.id,  # Integer, not prefixed string
         'type': 'league_event',
         'title': event.title,
-        'start': event.start_datetime.isoformat(),
-        'end': event.end_datetime.isoformat() if event.end_datetime else None,
-        'all_day': event.is_all_day,
-        'location': event.location,
         'description': event.description,
-        'event_type': event.event_type,
-        'color': EVENT_TYPE_COLORS.get(event.event_type, EVENT_TYPE_COLORS['other']),
-        'icon': EVENT_TYPE_ICONS.get(event.event_type, EVENT_TYPE_ICONS['other']),
+        'start': event.start_datetime.isoformat() if event.start_datetime else None,
+        'end': event.end_datetime.isoformat() if event.end_datetime else None,
+        'location': event.location,
+        'event_type_key': event_type_key,
+        'event_type_details': event_type_details,
+        'league_id': event.league_id,
+        'is_all_day': event.is_all_day,
+        'url': f"{base_url}/calendar?event={event.id}" if base_url else None,
+        'metadata': {
+            'notify_discord': event.notify_discord,
+            'season_id': event.season_id,
+            'created_at': event.created_at.isoformat() if event.created_at else None,
+        },
+        # Legacy fields for backward compatibility
+        'event_type': event_type_key,
+        'color': event_type_details['color'],
+        'icon': event_type_details['icon'],
         'event_id': event.id,
-        'notify_discord': event.notify_discord,
-        'season_id': event.season_id,
-        'league_id': event.league_id
+        'all_day': event.is_all_day,
     }
+
+    # Include league name if available and requested
+    if include_league_name and event.league:
+        result['league_name'] = event.league.name
+    else:
+        result['league_name'] = None
+
+    return result
 
 
 def _ecs_fc_match_to_calendar_event(match: EcsFcMatch, user_team_ids: list = None) -> dict:
@@ -262,23 +293,28 @@ def get_league_events():
     Get league events only (no matches).
 
     Query parameters:
-        start: ISO date string for range start
-        end: ISO date string for range end
-        event_type: Filter by event type (party, meeting, social, training, tournament, other)
+        date_from: ISO date string for range start (alias: start)
+        date_to: ISO date string for range end (alias: end)
+        league_id: Filter by league ID (optional)
+        event_type: Filter by event type (party, meeting, social, plop, tournament, fundraiser, other)
         limit: Maximum events to return (default: 50)
 
     Returns:
-        JSON with league events
+        JSON with league events matching app expected format
     """
-    # Parse query parameters
-    start_str = request.args.get('start')
-    end_str = request.args.get('end')
+    # Parse query parameters (support both naming conventions)
+    start_str = request.args.get('date_from') or request.args.get('start')
+    end_str = request.args.get('date_to') or request.args.get('end')
     event_type = request.args.get('event_type')
+    league_id = request.args.get('league_id', type=int)
     limit = request.args.get('limit', 50, type=int)
     limit = min(limit, 100)  # Cap at 100
 
     with managed_session() as session_db:
-        query = session_db.query(LeagueEvent).filter(
+        # Eagerly load league for league_name
+        query = session_db.query(LeagueEvent).options(
+            joinedload(LeagueEvent.league)
+        ).filter(
             LeagueEvent.is_active == True
         )
 
@@ -300,6 +336,10 @@ def get_league_events():
         # Filter by event type
         if event_type:
             query = query.filter(LeagueEvent.event_type == event_type)
+
+        # Filter by league
+        if league_id:
+            query = query.filter(LeagueEvent.league_id == league_id)
 
         events = query.order_by(LeagueEvent.start_datetime).limit(limit).all()
 
@@ -427,14 +467,8 @@ def get_event_types():
     Get available league event types with colors and icons.
 
     Returns:
-        JSON with event type definitions
+        JSON array of event type definitions with id, value, label, color, icon
     """
-    event_types = [
-        {'value': 'party', 'label': 'Party', 'color': EVENT_TYPE_COLORS['party'], 'icon': EVENT_TYPE_ICONS['party']},
-        {'value': 'meeting', 'label': 'Meeting', 'color': EVENT_TYPE_COLORS['meeting'], 'icon': EVENT_TYPE_ICONS['meeting']},
-        {'value': 'social', 'label': 'Social Event', 'color': EVENT_TYPE_COLORS['social'], 'icon': EVENT_TYPE_ICONS['social']},
-        {'value': 'training', 'label': 'Training', 'color': EVENT_TYPE_COLORS['training'], 'icon': EVENT_TYPE_ICONS['training']},
-        {'value': 'tournament', 'label': 'Tournament', 'color': EVENT_TYPE_COLORS['tournament'], 'icon': EVENT_TYPE_ICONS['tournament']},
-        {'value': 'other', 'label': 'Other', 'color': EVENT_TYPE_COLORS['other'], 'icon': EVENT_TYPE_ICONS['other']},
-    ]
+    # Return as list sorted by id
+    event_types = sorted(EVENT_TYPES.values(), key=lambda x: x['id'])
     return jsonify(event_types), 200
