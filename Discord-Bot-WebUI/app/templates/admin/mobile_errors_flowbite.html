@@ -1,0 +1,268 @@
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, pagination_nav %}
+
+{% block title %}Mobile Error Analytics{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Mobile Error Analytics</h1>
+            <p class="text-gray-500 dark:text-gray-400">View and analyze mobile application errors</p>
+        </div>
+        <a href="{{ url_for('mobile_analytics_admin.dashboard') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
+            <i class="ti ti-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <form method="GET" action="{{ url_for('mobile_analytics_admin.view_errors') }}" class="flex flex-wrap items-end gap-4">
+            <div class="flex-1 min-w-[150px]">
+                <label for="severity" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Severity</label>
+                <select id="severity" name="severity" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">All Severities</option>
+                    {% for sev in severity_options %}
+                    <option value="{{ sev }}" {% if current_filters.severity == sev %}selected{% endif %}>{{ sev|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex-1 min-w-[150px]">
+                <label for="error_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Error Type</label>
+                <select id="error_type" name="error_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">All Types</option>
+                    {% for et in error_type_options %}
+                    <option value="{{ et }}" {% if current_filters.error_type == et %}selected{% endif %}>{{ et }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex-1 min-w-[150px]">
+                <label for="days" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Time Period</label>
+                <select id="days" name="days" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="1" {% if current_filters.days == 1 %}selected{% endif %}>Last 24 Hours</option>
+                    <option value="7" {% if current_filters.days == 7 %}selected{% endif %}>Last 7 Days</option>
+                    <option value="30" {% if current_filters.days == 30 %}selected{% endif %}>Last 30 Days</option>
+                    <option value="90" {% if current_filters.days == 90 %}selected{% endif %}>Last 90 Days</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="inline-flex items-center px-4 py-2.5 bg-ecs-green text-white font-medium rounded-lg hover:bg-green-800 transition-colors">
+                    <i class="ti ti-filter mr-2"></i>Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Errors Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap justify-between items-center gap-4">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-bug mr-2 text-gray-400"></i>Error Log
+                {% if errors.items %}
+                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ errors.total }}</span>
+                {% endif %}
+            </h5>
+        </div>
+
+        {% if errors.items %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Severity</th>
+                        <th scope="col" class="px-4 py-3">Error Type</th>
+                        <th scope="col" class="px-4 py-3">Message</th>
+                        <th scope="col" class="px-4 py-3">Screen</th>
+                        <th scope="col" class="px-4 py-3">User</th>
+                        <th scope="col" class="px-4 py-3">Time</th>
+                        <th scope="col" class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for error in errors.items %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if error.severity == 'critical' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
+                                {% elif error.severity == 'error' %}bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300
+                                {% elif error.severity == 'warning' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
+                                {% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% endif %}">
+                                {{ error.severity|capitalize }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                            {{ error.error_type }}
+                        </td>
+                        <td class="px-4 py-3 max-w-xs truncate" title="{{ error.error_message }}">
+                            {{ error.error_message[:50] }}{% if error.error_message|length > 50 %}...{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-gray-500">
+                            {{ error.screen_name or '-' }}
+                        </td>
+                        <td class="px-4 py-3 text-gray-500">
+                            {{ error.user_id or '-' }}
+                        </td>
+                        <td class="px-4 py-3 text-xs text-gray-500">
+                            {{ error.created_at.strftime('%b %d, %Y %I:%M %p') }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <button type="button" class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" onclick="viewErrorDetails({{ error.id }})" title="View Details">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if errors.pages > 1 %}
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+            <nav class="flex justify-center">
+                <ul class="inline-flex -space-x-px text-sm">
+                    {% if errors.has_prev %}
+                    <li>
+                        <a href="{{ url_for('mobile_analytics_admin.view_errors', page=errors.prev_num, severity=current_filters.severity, error_type=current_filters.error_type, days=current_filters.days) }}" class="flex items-center justify-center px-3 h-8 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                            <i class="ti ti-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% for page_num in errors.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                        <li>
+                            <a href="{{ url_for('mobile_analytics_admin.view_errors', page=page_num, severity=current_filters.severity, error_type=current_filters.error_type, days=current_filters.days) }}" class="flex items-center justify-center px-3 h-8 leading-tight {% if page_num == errors.page %}text-ecs-green bg-green-50 border border-ecs-green dark:border-gray-700 dark:bg-gray-700 dark:text-white{% else %}text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white{% endif %}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                        {% else %}
+                        <li>
+                            <span class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if errors.has_next %}
+                    <li>
+                        <a href="{{ url_for('mobile_analytics_admin.view_errors', page=errors.next_num, severity=current_filters.severity, error_type=current_filters.error_type, days=current_filters.days) }}" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="text-center py-12">
+            <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                <i class="ti ti-bug-off text-3xl text-gray-400"></i>
+            </div>
+            <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Errors Found</h5>
+            <p class="text-gray-500 dark:text-gray-400">No errors match the current filter criteria.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Error Details Modal -->
+<div id="errorDetailsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Error Details</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="errorDetailsModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4 md:p-5 space-y-4" id="errorDetailsContent">
+                <div class="flex justify-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function viewErrorDetails(errorId) {
+    const modal = document.getElementById('errorDetailsModal');
+    const content = document.getElementById('errorDetailsContent');
+
+    // Show modal
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    // Show loading
+    content.innerHTML = '<div class="flex justify-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div></div>';
+
+    // Fetch error details
+    fetch(`/admin/mobile-analytics/api/error/${errorId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                content.innerHTML = `<p class="text-red-500">${data.error}</p>`;
+                return;
+            }
+
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Severity</p>
+                            <p class="font-medium text-gray-900 dark:text-white">${data.severity || '-'}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Error Type</p>
+                            <p class="font-medium text-gray-900 dark:text-white">${data.error_type || '-'}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Screen</p>
+                            <p class="font-medium text-gray-900 dark:text-white">${data.screen_name || '-'}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">User ID</p>
+                            <p class="font-medium text-gray-900 dark:text-white">${data.user_id || '-'}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Message</p>
+                        <p class="font-medium text-gray-900 dark:text-white">${data.error_message || '-'}</p>
+                    </div>
+                    ${data.stack_trace ? `
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Stack Trace</p>
+                        <pre class="mt-1 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs overflow-x-auto">${data.stack_trace}</pre>
+                    </div>
+                    ` : ''}
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Created At</p>
+                        <p class="font-medium text-gray-900 dark:text-white">${data.created_at || '-'}</p>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(err => {
+            content.innerHTML = `<p class="text-red-500">Failed to load error details</p>`;
+        });
+}
+
+// Close modal handlers
+document.querySelectorAll('[data-modal-hide="errorDetailsModal"]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.getElementById('errorDetailsModal').classList.add('hidden');
+        document.getElementById('errorDetailsModal').classList.remove('flex');
+    });
+});
+
+// Close on backdrop click
+document.getElementById('errorDetailsModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.classList.add('hidden');
+        this.classList.remove('flex');
+    }
+});
+</script>
+{% endblock %}

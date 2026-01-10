@@ -38,6 +38,28 @@ const activeLoadings = new Map();
 let loadingCounter = 0;
 
 /**
+ * Get dark mode status for SweetAlert styling
+ * @returns {boolean}
+ */
+function isDarkMode() {
+    return document.documentElement.classList.contains('dark');
+}
+
+/**
+ * Get SweetAlert options with dark mode support
+ * @param {Object} options - Base options
+ * @returns {Object}
+ */
+function getSwalOptions(options) {
+    const dark = isDarkMode();
+    return {
+        ...options,
+        background: dark ? '#1f2937' : '#ffffff',
+        color: dark ? '#f3f4f6' : '#111827'
+    };
+}
+
+/**
  * Show loading using SweetAlert2 (global overlay)
  * @param {LoadingOptions} options - Loading options
  * @returns {string} - Loading ID for tracking
@@ -46,11 +68,14 @@ function showSwalLoading(options = {}) {
     const id = `swal-${++loadingCounter}`;
 
     if (typeof window.Swal !== 'undefined') {
-        window.Swal.fire({
+        const dark = isDarkMode();
+        const spinnerColor = dark ? 'border-gray-300' : 'border-ecs-green';
+
+        window.Swal.fire(getSwalOptions({
             title: options.title || 'Loading...',
             html: options.message
-                ? `<div class="text-center"><div class="spinner-border text-primary mb-3" role="status"></div><p class="mb-0">${options.message}</p></div>`
-                : '<div class="text-center"><div class="spinner-border text-primary" role="status"></div></div>',
+                ? `<div class="flex flex-col items-center"><div class="w-8 h-8 border-4 ${spinnerColor} border-t-transparent rounded-full animate-spin mb-3"></div><p class="text-gray-600 dark:text-gray-400">${options.message}</p></div>`
+                : `<div class="flex justify-center"><div class="w-8 h-8 border-4 ${spinnerColor} border-t-transparent rounded-full animate-spin"></div></div>`,
             allowOutsideClick: false,
             allowEscapeKey: false,
             showConfirmButton: false,
@@ -58,7 +83,7 @@ function showSwalLoading(options = {}) {
                 // Store reference to close later
                 activeLoadings.set(id, { type: 'swal' });
             }
-        });
+        }));
     } else {
         // Fallback to modal if Swal not available
         return showModalLoading(options);
@@ -68,7 +93,7 @@ function showSwalLoading(options = {}) {
 }
 
 /**
- * Show loading using Bootstrap modal
+ * Show loading using Flowbite modal (Tailwind-based)
  * @param {LoadingOptions} options - Loading options
  * @returns {string} - Loading ID for tracking
  */
@@ -84,15 +109,14 @@ function showModalLoading(options = {}) {
     }
 
     const modalHtml = `
-        <div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-body text-center py-5">
-                        <div class="spinner-border text-primary mb-3" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <h5 class="mb-2">${title}</h5>
-                        <p class="text-muted mb-0">${message}</p>
+        <div id="loadingModal" tabindex="-1" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden">
+            <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
+            <div class="relative p-4 w-full max-w-md">
+                <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                    <div class="p-6 text-center">
+                        <div class="w-12 h-12 border-4 border-ecs-green border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">${title}</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">${message}</p>
                     </div>
                 </div>
             </div>
@@ -100,12 +124,11 @@ function showModalLoading(options = {}) {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.body.classList.add('overflow-hidden');
 
     const modal = document.getElementById('loadingModal');
-    if (modal && typeof window.bootstrap !== 'undefined') {
-        const bsModal = new window.bootstrap.Modal(modal);
-        bsModal.show();
-        activeLoadings.set(id, { type: 'modal', element: modal, instance: bsModal });
+    if (modal) {
+        activeLoadings.set(id, { type: 'modal', element: modal });
     }
 
     return id;
@@ -131,9 +154,8 @@ function showElementLoading(target, options = {}) {
         // Optionally add spinner overlay
         if (options.showSpinner !== false) {
             const spinner = document.createElement('div');
-            spinner.className = 'loading-spinner-overlay';
-            spinner.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
-            spinner.style.cssText = 'position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.8); z-index: 10;';
+            spinner.className = 'loading-spinner-overlay absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 z-10';
+            spinner.innerHTML = '<div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin"></div>';
 
             // Ensure element has position for overlay
             const computedStyle = window.getComputedStyle(element);
@@ -192,6 +214,7 @@ function hideLoadingById(id) {
             if (loading.element) {
                 loading.element.remove();
             }
+            document.body.classList.remove('overflow-hidden');
             break;
 
         case 'element':
@@ -343,9 +366,8 @@ export function showLoadingModal(title, message) {
 export function hideLoadingModal() {
     const modal = document.getElementById('loadingModal');
     if (modal) {
-        if (typeof window.bootstrap !== 'undefined') {
-            const bsModal = window.bootstrap.Modal.getInstance(modal);
-            if (bsModal) bsModal.hide();
+        if (modal._flowbiteModal) {
+            modal._flowbiteModal.hide();
         }
         modal.remove();
     }

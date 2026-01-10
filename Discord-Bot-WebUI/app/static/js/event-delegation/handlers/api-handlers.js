@@ -54,9 +54,9 @@ window.EventDelegation.register('generate-api-key', function(element, e) {
                     html: `
                         <div class="text-start">
                             <p class="text-danger mb-2"><strong>Important:</strong> Copy this key now. You won't be able to see it again.</p>
-                            <div class="input-group">
-                                <input type="text" class="form-control" value="${data.api_key}" id="generated-key" readonly>
-                                <button class="c-btn c-btn--outline-secondary" type="button" data-copy-key>
+                            <div class="flex">
+                                <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${data.api_key}" id="generated-key" readonly>
+                                <button class="c-btn c-btn--outline-secondary rounded-l-none" type="button" data-copy-key>
                                     Copy
                                 </button>
                             </div>

@@ -74,17 +74,17 @@ window.EventDelegation.register('view-role', function(element, e) {
     // Show loading state in modal content
     const contentElement = document.getElementById('role_details_content');
     if (contentElement) {
-        contentElement.innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
+        contentElement.innerHTML = '<div class="flex justify-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status" data-spinner></div></div>';
     }
 
     // Show the modal
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('roleDetailsModal');
     } else {
-        // Fallback to Bootstrap modal if window.ModalManager not available
+        // Fallback to Flowbite modal if window.ModalManager not available
         const modalEl = document.getElementById('roleDetailsModal');
-        if (modalEl && typeof window.bootstrap !== 'undefined') {
-            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modalEl) {
+            const modal = modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }));
             modal.show();
         }
     }

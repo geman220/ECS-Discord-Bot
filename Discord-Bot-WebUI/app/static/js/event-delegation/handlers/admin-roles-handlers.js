@@ -62,11 +62,11 @@ window.EventDelegation.register('create-role', function(element, e) {
     if (roleModal) {
         roleModal.show();
     } else {
-        // Fallback to Bootstrap modal
+        // Fallback to Flowbite modal
         const modalEl = document.getElementById('roleModal');
-        if (modalEl && typeof window.bootstrap !== 'undefined') {
-            const bsModal = new window.bootstrap.Modal(modalEl);
-            bsModal.show();
+        if (modalEl && typeof window.Modal !== 'undefined') {
+            const flowbiteModal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
+            flowbiteModal.show();
         }
     }
 });
@@ -93,7 +93,7 @@ window.EventDelegation.register('edit-role', function(element, e) {
     // Show loading
     window.Swal.fire({
         title: 'Loading Role Data',
-        html: '<div class="text-center"><div class="spinner-border text-primary" role="status" data-spinner></div></div>',
+        html: '<div class="flex justify-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status" data-spinner></div></div>',
         allowOutsideClick: false,
         showConfirmButton: false
     });
@@ -155,7 +155,7 @@ window.EventDelegation.register('view-role-details', function(element, e) {
 
     const detailsContent = document.getElementById('roleDetailsContent');
     if (detailsContent) {
-        detailsContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status" data-spinner></div></div>';
+        detailsContent.innerHTML = '<div class="flex justify-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status" data-spinner></div></div>';
     }
 
     if (roleDetailsModal) {

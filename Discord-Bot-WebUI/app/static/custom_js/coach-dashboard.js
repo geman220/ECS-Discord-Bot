@@ -43,15 +43,15 @@ async function requestSub(matchId, leagueType, teamId) {
         html: `
             <div class="mb-3">
                 <label class="form-label">Number of subs needed:</label>
-                <input type="number" id="subs-needed" class="form-control" value="1" min="1" max="5" data-form-control>
+                <input type="number" id="subs-needed" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="1" min="1" max="5" data-form-control>
             </div>
             <div class="mb-3">
                 <label class="form-label">Positions needed:</label>
-                <input type="text" id="positions" class="form-control" placeholder="e.g., Forward, Midfielder" data-form-control>
+                <input type="text" id="positions" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="e.g., Forward, Midfielder" data-form-control>
             </div>
             <div class="mb-3">
                 <label class="form-label">Notes (optional):</label>
-                <textarea id="notes" class="form-control" rows="3" placeholder="Any additional information..." data-form-control></textarea>
+                <textarea id="notes" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" rows="3" placeholder="Any additional information..." data-form-control></textarea>
             </div>
         `,
         showCancelButton: true,
@@ -136,9 +136,8 @@ async function handleMatchReportSubmit(form) {
 
         if (data.success) {
             // Close modal
-            const modal = window.bootstrap.Modal.getInstance(
-                document.getElementById(`reportMatchModal-${matchId}`)
-            );
+            const modalEl = document.getElementById(`reportMatchModal-${matchId}`);
+            const modal = modalEl?._flowbiteModal;
             if (modal) modal.hide();
 
             // Show success message and reload

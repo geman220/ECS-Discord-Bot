@@ -1,0 +1,190 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge %}
+
+{% block admin_title %}{{ player.name }} - Predictions{% endblock %}
+{% block panel_description %}All coach predictions for {{ player.name }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.draft_overview') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Draft</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('draft_predictions.admin_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Predictions</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('draft_predictions.admin_view_league', league_type=league_type, season_id=season.id) }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">{{ league_type }}</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ player.name }}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Player Header -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+    <div class="flex flex-wrap justify-between items-center gap-4">
+        <div class="flex items-center gap-4">
+            <div class="flex-shrink-0 w-16 h-16 rounded-full bg-ecs-green/10 flex items-center justify-center overflow-hidden">
+                {% if player.profile_picture_url %}
+                <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}" class="w-16 h-16 rounded-full object-cover">
+                {% else %}
+                <span class="text-xl font-bold text-ecs-green">{{ player.name[:2]|upper }}</span>
+                {% endif %}
+            </div>
+            <div>
+                <h4 class="text-xl font-bold text-gray-900 dark:text-white">{{ player.name }}</h4>
+                <div class="flex gap-2 mt-1">
+                    {% if player.favorite_position %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position }}</span>
+                    {% endif %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if league_type == 'Premier' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' }}">{{ league_type }}</span>
+                </div>
+            </div>
+        </div>
+        <a href="{{ url_for('draft_predictions.admin_view_league', league_type=league_type, season_id=season.id) }}"
+           class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
+            <i class="ti ti-arrow-left mr-2"></i>Back to {{ league_type }}
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-4">
+                <i class="ti ti-chart-bar text-xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Average Round</p>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{% if stats.avg_round %}{{ "%.1f"|format(stats.avg_round) }}{% else %}-{% endif %}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-4">
+                <i class="ti ti-arrow-up text-xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Highest (Earliest)</p>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.min_round or '-' }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mr-4">
+                <i class="ti ti-arrow-down text-xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Lowest (Latest)</p>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.max_round or '-' }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-4">
+                <i class="ti ti-users text-xl text-purple-600 dark:text-purple-400"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Votes</p>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.count }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Coach Predictions Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-list mr-2 text-gray-400"></i>Coach Predictions
+        </h5>
+    </div>
+
+    {% if predictions %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Coach</th>
+                    <th scope="col" class="px-4 py-3">Predicted Round</th>
+                    <th scope="col" class="px-4 py-3">Confidence</th>
+                    <th scope="col" class="px-4 py-3">Notes</th>
+                    <th scope="col" class="px-4 py-3">Submitted</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prediction, coach in predictions %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center mr-3">
+                                <span class="text-xs font-medium text-ecs-green">{{ coach.username[:2]|upper }}</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900 dark:text-white">{{ coach.username }}</p>
+                                {% if coach.email %}
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ coach.email }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if prediction.predicted_round <= 5 else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if prediction.predicted_round <= 10 else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
+                            Round {{ prediction.predicted_round }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if prediction.confidence_level %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">{{ prediction.confidence_level }}/5</span>
+                        {% else %}
+                        <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-gray-500 dark:text-gray-400 max-w-xs truncate">
+                        {{ prediction.notes or '-' }}
+                    </td>
+                    <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+                        {{ prediction.updated_at.strftime('%b %d, %Y %I:%M %p') }}
+                    </td>
+                    <td class="px-4 py-3">
+                        <a href="{{ url_for('draft_predictions.admin_coach_detail', coach_id=coach.id, season_id=season.id, league_type=league_type) }}"
+                           class="p-1.5 text-gray-600 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600">
+                            <i class="ti ti-user"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+            <i class="ti ti-list-check text-3xl text-gray-400"></i>
+        </div>
+        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Predictions</h5>
+        <p class="text-gray-500 dark:text-gray-400">No coaches have predicted for this player yet.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

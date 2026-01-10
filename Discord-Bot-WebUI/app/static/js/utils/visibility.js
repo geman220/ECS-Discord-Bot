@@ -26,13 +26,13 @@ export const Visibility = {
      * The standard hidden class used throughout the application
      * Defined in state-utils.css
      */
-    HIDDEN_CLASS: 'is-hidden',
+    HIDDEN_CLASS: 'hidden',
 
     /**
      * Legacy classes that should be migrated to is-hidden
      * Used for backwards compatibility during migration
      */
-    LEGACY_CLASSES: ['d-none', 'js-hidden', 'hidden'],
+    LEGACY_CLASSES: ['d-none', 'js-hidden', 'is-hidden'],
 
     /**
      * Hide an element

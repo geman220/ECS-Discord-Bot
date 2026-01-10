@@ -1,0 +1,381 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Teams{% endblock %}
+{% block panel_description %}Manage teams across all seasons and divisions{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.league_management_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">League Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Teams</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 flex items-center">
+        <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-4">
+            <i class="ti ti-users-group text-xl text-blue-600 dark:text-blue-400"></i>
+        </div>
+        <div>
+            <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.total_teams }}</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Total Teams</p>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 flex items-center">
+        <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mr-4">
+            <i class="ti ti-brand-discord text-xl text-green-600 dark:text-green-400"></i>
+        </div>
+        <div>
+            <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.teams_with_discord }}</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400">With Discord</p>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 flex items-center">
+        <div class="w-12 h-12 bg-yellow-100 dark:bg-yellow-900 rounded-lg flex items-center justify-center mr-4">
+            <i class="ti ti-trophy text-xl text-yellow-600 dark:text-yellow-400"></i>
+        </div>
+        <div>
+            <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.teams_by_league_type|length }}</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400">League Types</p>
+        </div>
+    </div>
+</div>
+
+<!-- Teams Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-users-group mr-2"></i>Teams
+        </h5>
+        <div class="flex flex-wrap items-center gap-3">
+            <select id="seasonFilter" onchange="applyFilters()"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="">All Seasons</option>
+                {% for season in seasons %}
+                <option value="{{ season.id }}" {% if current_season_id == season.id %}selected{% endif %}>
+                    {{ season.name }} {% if season.is_current %}(Current){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            <select id="leagueTypeFilter" onchange="applyFilters()"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="">All League Types</option>
+                <option value="Pub League" {% if current_league_type == 'Pub League' %}selected{% endif %}>Pub League</option>
+                <option value="ECS FC" {% if current_league_type == 'ECS FC' %}selected{% endif %}>ECS FC</option>
+            </select>
+            <button onclick="openCreateModal()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="ti ti-plus mr-1"></i>Add Team
+            </button>
+        </div>
+    </div>
+    <div class="p-5">
+        {% if teams %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Team Name</th>
+                        <th scope="col" class="px-6 py-3">League</th>
+                        <th scope="col" class="px-6 py-3">Season</th>
+                        <th scope="col" class="px-6 py-3">Discord</th>
+                        <th scope="col" class="px-6 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in teams %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4">
+                            <a href="{{ url_for('admin_panel.league_management_team_detail', team_id=team.id) }}" class="font-medium text-blue-600 hover:underline dark:text-blue-400">
+                                {{ team.name }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if team.league %}
+                            <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">{{ team.league.name }}</span>
+                            {% else %}
+                            <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if team.league and team.league.season %}
+                            {{ team.league.season.name }}
+                            {% if team.league.season.is_current %}
+                            <span class="ml-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">Current</span>
+                            {% endif %}
+                            {% else %}
+                            <span class="text-gray-400">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if team.discord_channel_id %}
+                            <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">
+                                <i class="ti ti-check mr-1"></i>Connected
+                            </span>
+                            {% else %}
+                            <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">
+                                <i class="ti ti-x mr-1"></i>Not Set
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <button id="dropdownBtn{{ team.id }}" data-dropdown-toggle="dropdown{{ team.id }}"
+                                    class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-700">
+                                <i class="ti ti-dots-vertical"></i>
+                            </button>
+                            <div id="dropdown{{ team.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700">
+                                <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                                    <li>
+                                        <a href="{{ url_for('admin_panel.league_management_team_detail', team_id=team.id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                            <i class="ti ti-eye mr-2"></i>View Details
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#" onclick="editTeam({{ team.id }}, '{{ team.name }}')" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                            <i class="ti ti-edit mr-2"></i>Rename
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#" onclick="syncDiscord({{ team.id }})" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                            <i class="ti ti-refresh mr-2"></i>Sync Discord
+                                        </a>
+                                    </li>
+                                </ul>
+                                <div class="py-2">
+                                    <a href="#" onclick="deleteTeam({{ team.id }}, '{{ team.name }}')" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600">
+                                        <i class="ti ti-trash mr-2"></i>Delete
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <i class="ti ti-users-group text-4xl text-gray-400 mb-3"></i>
+            <p class="text-gray-500 dark:text-gray-400 mb-4">No teams found</p>
+            <button onclick="openCreateModal()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <i class="ti ti-plus mr-2"></i>Create First Team
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Team Modal -->
+<div id="createTeamModal" tabindex="-1" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-modal md:h-full justify-center items-center bg-gray-900/50">
+    <div class="relative w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-plus mr-2"></i>Create Team
+                </h3>
+                <button type="button" onclick="closeCreateModal()" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label for="newTeamName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Team Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="newTeamName" required
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                </div>
+                <div>
+                    <label for="newTeamLeague" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        League <span class="text-red-500">*</span>
+                    </label>
+                    <select id="newTeamLeague" required
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                        <option value="">Select a league...</option>
+                        {% for season in seasons %}
+                        {% if season.is_current %}
+                        <optgroup label="{{ season.name }} ({{ season.league_type }})">
+                            {% for league in season.leagues %}
+                            <option value="{{ league.id }}">{{ league.name }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Only current season leagues are shown</p>
+                </div>
+            </div>
+            <div class="flex items-center p-4 border-t border-gray-200 rounded-b dark:border-gray-600 gap-2">
+                <button onclick="closeCreateModal()" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">Cancel</button>
+                <button onclick="createTeam()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <i class="ti ti-plus mr-1"></i>Create Team
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Team Modal -->
+<div id="editTeamModal" tabindex="-1" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-modal md:h-full justify-center items-center bg-gray-900/50">
+    <div class="relative w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-edit mr-2"></i>Rename Team
+                </h3>
+                <button type="button" onclick="closeEditModal()" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="editTeamId">
+                <div>
+                    <label for="editTeamName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Team Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="editTeamName" required
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                </div>
+                <div class="p-3 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-600 dark:text-blue-300">
+                    <i class="ti ti-info-circle mr-1"></i>
+                    Renaming will also update the Discord channel and role names.
+                </div>
+            </div>
+            <div class="flex items-center p-4 border-t border-gray-200 rounded-b dark:border-gray-600 gap-2">
+                <button onclick="closeEditModal()" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">Cancel</button>
+                <button onclick="saveTeamEdit()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <i class="ti ti-check mr-1"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+window.ADMIN_TEAMS_CONFIG = {
+    teamsUrl: '{{ url_for("admin_panel.league_management_teams") }}',
+    createTeamUrl: '{{ url_for("admin_panel.league_management_create_team") }}'
+};
+
+function applyFilters() {
+    const seasonId = document.getElementById('seasonFilter').value;
+    const leagueType = document.getElementById('leagueTypeFilter').value;
+    const params = new URLSearchParams();
+    if (seasonId) params.set('season_id', seasonId);
+    if (leagueType) params.set('league_type', leagueType);
+    window.location.href = window.ADMIN_TEAMS_CONFIG.teamsUrl + (params.toString() ? '?' + params.toString() : '');
+}
+
+function openCreateModal() {
+    document.getElementById('createTeamModal').classList.remove('hidden');
+    document.getElementById('createTeamModal').classList.add('flex');
+}
+
+function closeCreateModal() {
+    document.getElementById('createTeamModal').classList.add('hidden');
+    document.getElementById('createTeamModal').classList.remove('flex');
+}
+
+function createTeam() {
+    const name = document.getElementById('newTeamName').value;
+    const leagueId = document.getElementById('newTeamLeague').value;
+
+    if (!name || !leagueId) return;
+
+    fetch(window.ADMIN_TEAMS_CONFIG.createTeamUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ name, league_id: leagueId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) window.location.reload();
+    });
+}
+
+function editTeam(teamId, teamName) {
+    document.getElementById('editTeamId').value = teamId;
+    document.getElementById('editTeamName').value = teamName;
+    document.getElementById('editTeamModal').classList.remove('hidden');
+    document.getElementById('editTeamModal').classList.add('flex');
+}
+
+function closeEditModal() {
+    document.getElementById('editTeamModal').classList.add('hidden');
+    document.getElementById('editTeamModal').classList.remove('flex');
+}
+
+function saveTeamEdit() {
+    const teamId = document.getElementById('editTeamId').value;
+    const name = document.getElementById('editTeamName').value;
+
+    fetch(`/admin-panel/league-management/teams/${teamId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ name })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) window.location.reload();
+    });
+}
+
+function syncDiscord(teamId) {
+    fetch(`/admin-panel/league-management/teams/${teamId}/sync-discord`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const isDark = document.documentElement.classList.contains('dark');
+        Swal.fire({
+            title: data.success ? 'Success' : 'Error',
+            text: data.message || (data.success ? 'Discord synced' : 'Sync failed'),
+            icon: data.success ? 'success' : 'error',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+    });
+}
+
+function deleteTeam(teamId, teamName) {
+    const isDark = document.documentElement.classList.contains('dark');
+    Swal.fire({
+        title: 'Delete Team?',
+        text: `Are you sure you want to delete "${teamName}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        confirmButtonText: 'Delete',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin-panel/league-management/teams/${teamId}`, {
+                method: 'DELETE',
+                headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) window.location.reload();
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

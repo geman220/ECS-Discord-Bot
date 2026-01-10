@@ -148,8 +148,8 @@ export function showExistingSeasons() {
     const mainView = document.querySelector('.row.mb-4:has(.c-card.h-100.border-primary)');
     const existingView = document.getElementById('existingSeasons');
 
-    if (mainView) mainView.classList.add('d-none');
-    if (existingView) existingView.classList.remove('d-none');
+    if (mainView) mainView.classList.add('hidden');
+    if (existingView) existingView.classList.remove('hidden');
 }
 
 /**
@@ -159,8 +159,8 @@ export function showMainView() {
     const mainView = document.querySelector('.row.mb-4:has(.c-card.h-100.border-primary)');
     const existingView = document.getElementById('existingSeasons');
 
-    if (mainView) mainView.classList.remove('d-none');
-    if (existingView) existingView.classList.add('d-none');
+    if (mainView) mainView.classList.remove('hidden');
+    if (existingView) existingView.classList.add('hidden');
 }
 
 /**

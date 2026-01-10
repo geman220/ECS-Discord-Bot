@@ -135,10 +135,11 @@ def user_approvals():
         recent_actions = []
         try:
             recent_actions = db.session.query(User).options(
-                joinedload(User.player)
+                joinedload(User.player),
+                joinedload(User.roles)
             ).filter(
                 User.approval_status.in_(['approved', 'denied']),
-                User.approved_at >= datetime.utcnow() - timedelta(days=30)
+                User.approved_at.isnot(None)
             ).order_by(User.approved_at.desc()).limit(20).all()
 
             # Add approved_by_user information
@@ -156,10 +157,23 @@ def user_approvals():
             'total_denied': db.session.query(func.count(User.id)).filter(User.approval_status == 'denied').scalar()
         }
 
+        # Get audit log entries for user approvals
+        audit_logs = []
+        try:
+            audit_logs = db.session.query(AdminAuditLog).options(
+                joinedload(AdminAuditLog.user)
+            ).filter(
+                AdminAuditLog.resource_type == 'user_approval'
+            ).order_by(AdminAuditLog.timestamp.desc()).limit(20).all()
+        except Exception as e:
+            logger.error(f"Error loading audit logs: {str(e)}")
+            audit_logs = []
+
         return render_template(
             'admin_panel/users/user_approvals_flowbite.html',
             pending_users=pending_users,
             recent_actions=recent_actions,
+            audit_logs=audit_logs,
             stats=stats,
             # Pass filter values back to template for form persistence
             status_filter=status_filter,
@@ -193,8 +207,12 @@ def approve_user(user_id: int):
         if not user:
             return jsonify({'success': False, 'message': 'User not found'}), 404
 
-        if user.approval_status != 'pending':
-            return jsonify({'success': False, 'message': 'User is not pending approval'}), 400
+        # Check if user has pl-waitlist role (can approve directly from waitlist)
+        has_waitlist_role = any(role.name == 'pl-waitlist' for role in user.roles)
+
+        # Allow approving users who are pending OR on waitlist
+        if user.approval_status != 'pending' and not has_waitlist_role:
+            return jsonify({'success': False, 'message': 'User is not pending approval or on waitlist'}), 400
 
         # Get form data
         league_type = request.form.get('league_type')
@@ -224,6 +242,11 @@ def approve_user(user_id: int):
         unverified_role = db.session.query(Role).filter_by(name='pl-unverified').first()
         if unverified_role and unverified_role in user.roles:
             user.roles.remove(unverified_role)
+
+        # Remove the pl-waitlist role (if user was on waitlist)
+        waitlist_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
+        if waitlist_role and waitlist_role in user.roles:
+            user.roles.remove(waitlist_role)
 
         # Add the new approved role
         if new_role not in user.roles:

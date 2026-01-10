@@ -177,7 +177,7 @@ function performDismiss(userIds) {
 export function runScan(event) {
     const btn = event.target.closest('button');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Scanning...';
+    btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></span>Scanning...';
 
     fetch(config.scanUrl, { method: 'POST' })
         .then(response => response.json())

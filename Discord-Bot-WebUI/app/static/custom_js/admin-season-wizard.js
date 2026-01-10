@@ -454,7 +454,7 @@ class AdminSeasonWizardManager {
         const btn = document.getElementById('createBtn');
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Creating...';
+            btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></span>Creating...';
         }
 
         const data = this.getWizardData();

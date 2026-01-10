@@ -115,8 +115,8 @@ function addPositionBadge(card, type, position = null) {
  * Set up team tab highlighting event listeners
  */
 export function setupTeamTabHighlighting() {
-    // Find all team tabs/sections
-    const teamTabs = document.querySelectorAll('[data-bs-toggle="collapse"][data-team-id]');
+    // Find all team tabs/sections (Flowbite accordion pattern)
+    const teamTabs = document.querySelectorAll('[data-accordion-target][data-team-id], [data-collapse-toggle][data-team-id]');
     teamTabs.forEach(tab => {
         tab.addEventListener('click', (e) => {
             const teamId = parseInt(e.currentTarget.dataset.teamId);

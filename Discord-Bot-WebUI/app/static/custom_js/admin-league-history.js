@@ -210,7 +210,7 @@ class AdminLeagueHistoryManager {
         const titleDiv = document.getElementById('playerHistoryTitle');
 
         resultDiv.style.display = 'block';
-        contentDiv.innerHTML = '<div class="spinner-border spinner-border-sm" data-spinner></div> Loading...';
+        contentDiv.innerHTML = '<div class="inline-block w-4 h-4 border-2 border-ecs-green border-t-transparent rounded-full animate-spin" data-spinner></div> Loading...';
         titleDiv.textContent = `Team History for ${playerName}`;
 
         fetch(`/admin-panel/league-management/history/api/player/${playerId}`)

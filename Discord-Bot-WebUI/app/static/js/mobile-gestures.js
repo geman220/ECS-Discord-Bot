@@ -55,10 +55,10 @@ const MobileGestures = {
         hammer.on('swipedown', (ev) => {
           // Only dismiss if swiping from near the top (drag handle area)
           if (ev.center.y < 100) {
-            const bootstrapModal = window.bootstrap.Modal.getInstance(modal);
-            if (bootstrapModal) {
+            const flowbiteModal = modal._flowbiteModal;
+            if (flowbiteModal) {
               if (window.Haptics) window.Haptics.modalClose();
-              bootstrapModal.hide();
+              flowbiteModal.hide();
             }
           }
         });
@@ -91,10 +91,10 @@ const MobileGestures = {
 
           if (deltaY > 100) {
             // Threshold reached, dismiss modal
-            const bootstrapModal = window.bootstrap.Modal.getInstance(modal);
-            if (bootstrapModal) {
+            const flowbiteModal = modal._flowbiteModal;
+            if (flowbiteModal) {
               if (window.Haptics) window.Haptics.modalClose();
-              bootstrapModal.hide();
+              flowbiteModal.hide();
             }
           } else {
             // Snap back - REFACTORED: Using utility classes

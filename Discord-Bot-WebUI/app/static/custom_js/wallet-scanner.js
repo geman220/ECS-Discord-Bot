@@ -30,7 +30,8 @@ function initScanner() {
     if (typeof QrCodeScanner === 'undefined') {
         console.warn('[WalletScanner] QR Scanner library not loaded');
         startBtn.innerHTML = '<i class="ti ti-camera-off me-1"></i>Camera Unavailable';
-        startBtn.classList.replace('btn-primary', 'btn-secondary');
+        startBtn.classList.remove('bg-ecs-green', 'hover:bg-ecs-green-dark');
+        startBtn.classList.add('bg-gray-500', 'hover:bg-gray-600');
         startBtn.disabled = true;
         return;
     }

@@ -1,0 +1,158 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}System Information{% endblock %}
+{% block panel_description %}System health and configuration status{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">System Info</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- System Status Overview -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ info.database_status }}</h3>
+                <span class="text-sm text-green-700 dark:text-green-300">Database Status</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50">
+                <i class="ti ti-database text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ info.total_users }}</h3>
+                <span class="text-sm text-blue-700 dark:text-blue-300">Total Users</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                <i class="ti ti-users text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-purple-50 dark:bg-purple-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ info.total_roles }}</h3>
+                <span class="text-sm text-purple-700 dark:text-purple-300">Total Roles</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/50">
+                <i class="ti ti-shield text-2xl text-purple-600 dark:text-purple-400"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ info.total_settings }}</h3>
+                <span class="text-sm text-cyan-700 dark:text-cyan-300">Total Settings</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50">
+                <i class="ti ti-settings text-2xl text-cyan-600 dark:text-cyan-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-emerald-50 dark:bg-emerald-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ info.enabled_settings }}</h3>
+                <span class="text-sm text-emerald-700 dark:text-emerald-300">Enabled Settings</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/50">
+                <i class="ti ti-toggle-right text-2xl text-emerald-600 dark:text-emerald-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-orange-50 dark:bg-orange-900/30 rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-orange-600 dark:text-orange-400">{{ info.recent_activity }}</h3>
+                <span class="text-sm text-orange-700 dark:text-orange-300">Activity (24h)</span>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/50">
+                <i class="ti ti-activity text-2xl text-orange-600 dark:text-orange-400"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Critical Settings -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-alert-triangle mr-2 text-yellow-500"></i>Critical Settings
+        </h5>
+    </div>
+    <div class="p-5">
+        {% if critical_settings %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Setting</th>
+                        <th scope="col" class="px-6 py-3">Value</th>
+                        <th scope="col" class="px-6 py-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for setting in critical_settings %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                            {{ setting.key|replace('_', ' ')|title }}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if setting.value_type == 'boolean' %}
+                                {% if setting.value == 'true' %}
+                                    <span class="text-green-600 dark:text-green-400">Enabled</span>
+                                {% else %}
+                                    <span class="text-red-600 dark:text-red-400">Disabled</span>
+                                {% endif %}
+                            {% else %}
+                                {{ setting.value }}
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if setting.is_enabled %}
+                                {{ badge('Active', variant='success') }}
+                            {% else %}
+                                {{ badge('Inactive', variant='secondary') }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-8">
+            <i class="ti ti-check-circle text-4xl text-green-500 mb-3"></i>
+            <p class="text-gray-500 dark:text-gray-400">No critical settings configured</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="mt-6 flex flex-wrap gap-3">
+    <a href="{{ url_for('admin_panel.feature_toggles') }}" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+        <i class="ti ti-settings mr-1"></i>Feature Toggles
+    </a>
+    <a href="{{ url_for('admin_panel.audit_logs') }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+        <i class="ti ti-file-text mr-1"></i>Audit Logs
+    </a>
+    <a href="{{ url_for('admin_panel.dashboard') }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+        <i class="ti ti-arrow-left mr-1"></i>Back to Dashboard
+    </a>
+</div>
+{% endblock %}

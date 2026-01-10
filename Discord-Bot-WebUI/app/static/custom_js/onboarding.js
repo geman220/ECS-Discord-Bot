@@ -83,28 +83,28 @@ export function initOnboarding() {
     if (!window._onboardingDelegationSetup) {
         window._onboardingDelegationSetup = true;
 
-        // Single delegated shown.bs.modal listener for onboarding modal
-        document.addEventListener('shown.bs.modal', function(e) {
-            const modal = e.target;
-            if (modal.id !== 'onboardingSlideModal') return;
+        // Note: Flowbite modals emit 'show' and 'hide' events directly on elements
+        // For onboarding modal, we rely on InitSystem timing and manual updates
 
-            // Update the progress bar
-            if (typeof updateProgress === 'function') {
-                updateProgress();
-            }
-        });
-
-        // Clean up Cropper.js when modal is hidden
-        document.addEventListener('hidden.bs.modal', function(e) {
-            const modal = e.target;
-            if (modal.id !== 'onboardingSlideModal') return;
-
-            // Destroy Cropper.js instance to prevent memory leaks
-            if (window.onboardingCropper) {
-                window.onboardingCropper.destroy();
-                window.onboardingCropper = null;
-            }
-        });
+        // Clean up Cropper.js when modal is hidden via MutationObserver
+        const modalEl = document.getElementById('onboardingSlideModal');
+        if (modalEl) {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'class') {
+                        // Check if modal was hidden (Flowbite adds 'hidden' class)
+                        if (modalEl.classList.contains('hidden')) {
+                            // Destroy Cropper.js instance to prevent memory leaks
+                            if (window.onboardingCropper) {
+                                window.onboardingCropper.destroy();
+                                window.onboardingCropper = null;
+                            }
+                        }
+                    }
+                });
+            });
+            observer.observe(modalEl, { attributes: true, attributeFilter: ['class'] });
+        }
 
         // Single delegated change listener for image input - uses Cropper.js
         document.addEventListener('change', function(e) {
@@ -127,10 +127,10 @@ export function initOnboarding() {
                     const cropperInterface = document.getElementById('cropperInterface');
                     const cropperControls = document.getElementById('cropperControls');
 
-                    if (profilePreview) profilePreview.classList.add('d-none');
-                    if (uploadInstructions) uploadInstructions.classList.add('d-none');
-                    if (cropperInterface) cropperInterface.classList.remove('d-none');
-                    if (cropperControls) cropperControls.classList.remove('d-none');
+                    if (profilePreview) profilePreview.classList.add('hidden');
+                    if (uploadInstructions) uploadInstructions.classList.add('hidden');
+                    if (cropperInterface) cropperInterface.classList.remove('hidden');
+                    if (cropperControls) cropperControls.classList.remove('hidden');
 
                     // Destroy existing cropper instance if any
                     if (window.onboardingCropper) {
@@ -173,39 +173,26 @@ export function initOnboarding() {
     // Note: Crop & Save handling is done via event delegation in onboarding-wizard.js using Cropper.js
 
     // ======================
-    //  Carousel initialization
+    //  Carousel initialization (Flowbite)
     // ======================
-    if (carouselElement) {
-        bootstrapCarousel = new window.bootstrap.Carousel(carouselElement, {
-            interval: false, // don't auto-slide
-            ride: false,
-            touch: false,
-            wrap: false,
-            keyboard: false
-        });
-
-        // Carousel events - using document-level delegation
-        // Note: These are Bootstrap events that only fire on the carousel element itself
-        // Using capture phase to ensure we can prevent default
-        if (!window._onboardingCarouselDelegationSetup) {
-            window._onboardingCarouselDelegationSetup = true;
-
-            // Delegated slide.bs.carousel listener
-            document.addEventListener('slide.bs.carousel', function(e) {
-                if (e.target.id !== 'modalCarouselControls') return;
-                if (isCropping) {
-                    e.preventDefault();
-                    return false;
+    if (carouselElement && typeof window.Carousel !== 'undefined') {
+        // Flowbite Carousel initialization
+        bootstrapCarousel = new window.Carousel(carouselElement, {
+            interval: 0, // don't auto-slide
+            indicators: { items: [] }, // No indicators
+            onNext: () => {
+                if (!isCropping) {
+                    updateNavButtons();
+                    updateProgress();
                 }
-            });
-
-            // Delegated slid.bs.carousel listener
-            document.addEventListener('slid.bs.carousel', function(e) {
-                if (e.target.id !== 'modalCarouselControls') return;
-                updateNavButtons();
-                updateProgress();
-            });
-        }
+            },
+            onPrev: () => {
+                if (!isCropping) {
+                    updateNavButtons();
+                    updateProgress();
+                }
+            }
+        });
     }
 
     // ======================
@@ -317,32 +304,32 @@ export function initOnboarding() {
 
         // Update visibility of carousel controls
         if (step === 0 && carouselControls) {
-            carouselControls.classList.add('d-none');
+            carouselControls.classList.add('hidden');
         } else if (carouselControls) {
-            carouselControls.classList.remove('d-none');
+            carouselControls.classList.remove('hidden');
 
             // On first step, hide previous button
             if (step === 1 && previousButton) {
-                previousButton.classList.add('d-none');
+                previousButton.classList.add('hidden');
             } else if (previousButton) {
-                previousButton.classList.remove('d-none');
+                previousButton.classList.remove('hidden');
             }
 
             // On final step, change next button to submit
             if (step === totalSteps && nextOrSaveButton) {
                 nextOrSaveButton.innerHTML = 'Save and Finish';
                 nextOrSaveButton.type = 'button';  // Keep as button, not submit
-                nextOrSaveButton.classList.remove('btn-primary');
-                nextOrSaveButton.classList.add('btn-success');
-                nextOrSaveButton.removeAttribute('data-bs-slide');
-                nextOrSaveButton.removeAttribute('data-bs-target');
+                nextOrSaveButton.classList.remove('text-white', 'bg-ecs-green', 'hover:bg-ecs-green-dark', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5');
+                nextOrSaveButton.classList.add('text-white', 'bg-green-600', 'hover:bg-green-700', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5');
+                nextOrSaveButton.removeAttribute('data-carousel-slide');
+                nextOrSaveButton.removeAttribute('data-carousel-target');
             } else if (nextOrSaveButton) {
                 nextOrSaveButton.innerHTML = 'Next <i class="ti ti-chevron-right ms-2"></i>';
                 nextOrSaveButton.type = 'button';
-                nextOrSaveButton.classList.remove('btn-success');
-                nextOrSaveButton.classList.add('btn-primary');
-                nextOrSaveButton.removeAttribute('data-bs-slide');  // Remove Bootstrap carousel control
-                nextOrSaveButton.removeAttribute('data-bs-target'); // Remove Bootstrap carousel target
+                nextOrSaveButton.classList.remove('text-white', 'bg-green-600', 'hover:bg-green-700', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5');
+                nextOrSaveButton.classList.add('text-white', 'bg-ecs-green', 'hover:bg-ecs-green-dark', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5');
+                nextOrSaveButton.removeAttribute('data-carousel-slide');  // Remove Flowbite carousel control
+                nextOrSaveButton.removeAttribute('data-carousel-target'); // Remove Flowbite carousel target
             }
         }
     }

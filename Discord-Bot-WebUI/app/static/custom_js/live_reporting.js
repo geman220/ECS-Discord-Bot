@@ -820,7 +820,7 @@ export function liveReportingShowNotification(message, type = 'info') {
     const $notification = window.$(`
         <div class="alert alert-${type} alert-dismissible fade show" role="alert">
             ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" onclick="this.closest('.alert').remove()" aria-label="Close"></button>
         </div>
     `);
 

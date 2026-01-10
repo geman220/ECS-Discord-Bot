@@ -26,8 +26,8 @@ window.EventDelegation.register('show-create-team-modal', function(element, e) {
             window.ModalManager.show('createTeamModal');
         } else {
             const modalEl = document.getElementById('createTeamModal');
-            if (modalEl && typeof window.bootstrap !== 'undefined') {
-                window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            if (modalEl) {
+                (modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }))).show();
             }
         }
     }
@@ -59,8 +59,8 @@ window.EventDelegation.register('show-edit-team-modal', function(element, e) {
             window.ModalManager.show('editTeamModal');
         } else {
             const modalEl = document.getElementById('editTeamModal');
-            if (modalEl && typeof window.bootstrap !== 'undefined') {
-                window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            if (modalEl) {
+                (modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }))).show();
             }
         }
     }

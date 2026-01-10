@@ -423,26 +423,124 @@
                             <i class="ti ti-alert-circle mr-1"></i>This user does not have a player profile.
                         </div>
 
-                        <div id="playerFields" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="editLeague" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Primary League</label>
-                                <select id="editLeague" name="league_id" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                                    <option value="">Select League</option>
-                                    {% for league in leagues %}
-                                    <option value="{{ league.id }}">{{ league.name }}</option>
-                                    {% endfor %}
-                                </select>
+                        <div id="playerFields" class="space-y-4">
+                            <!-- Three-tier League/Team Assignment -->
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                <i class="ti ti-info-circle mr-1"></i>Classic/Premier: 1 team each. ECS FC: multiple teams allowed.
                             </div>
-                            <div>
-                                <label for="editTeam" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Primary Team</label>
-                                <select id="editTeam" name="team_id" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                                    <option value="">Select Team</option>
-                                    {% for league in leagues %}
-                                    {% for team in league.teams %}
-                                    <option value="{{ team.id }}" data-league="{{ league.id }}">{{ team.name }}</option>
-                                    {% endfor %}
-                                    {% endfor %}
+
+                            <!-- Primary League -->
+                            <div class="league-tier-section" data-tier="primary">
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 mr-1 text-xs font-bold text-white bg-ecs-green rounded-full">1</span>
+                                    Primary League
+                                </label>
+                                <select id="editPrimaryLeagueType" name="primary_league_type" class="league-type-select bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white mb-2">
+                                    <option value="">None</option>
+                                    <option value="classic">Classic</option>
+                                    <option value="premier">Premier</option>
+                                    <option value="ecsfc">ECS FC</option>
                                 </select>
+                                <!-- Single team dropdown for Classic/Premier -->
+                                <div id="primarySingleTeam" class="hidden">
+                                    <select id="editPrimaryTeam" name="primary_team_id" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                        <option value="">Select Team</option>
+                                        {% for league in leagues %}
+                                        {% for team in league.teams %}
+                                        <option value="{{ team.id }}" data-league="{{ league.id }}" data-league-name="{{ league.name }}">{{ team.name }}</option>
+                                        {% endfor %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <!-- Multiple team checkboxes for ECS FC -->
+                                <div id="primaryEcsFcTeams" class="hidden grid grid-cols-2 md:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
+                                    {% for league in leagues %}
+                                    {% if 'ECS FC' in league.name %}
+                                    {% for team in league.teams %}
+                                    <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
+                                        <input type="checkbox" name="primary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+                                        <span class="ml-1.5 text-gray-700 dark:text-gray-300 truncate">{{ team.name }}</span>
+                                    </label>
+                                    {% endfor %}
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Secondary League -->
+                            <div class="league-tier-section border-t border-gray-200 dark:border-gray-600 pt-4" data-tier="secondary">
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 mr-1 text-xs font-bold text-white bg-gray-400 rounded-full">2</span>
+                                    Secondary League <span class="text-gray-400 font-normal">(optional)</span>
+                                </label>
+                                <select id="editSecondaryLeagueType" name="secondary_league_type" class="league-type-select bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white mb-2">
+                                    <option value="">None</option>
+                                    <option value="classic">Classic</option>
+                                    <option value="premier">Premier</option>
+                                    <option value="ecsfc">ECS FC</option>
+                                </select>
+                                <!-- Single team dropdown for Classic/Premier -->
+                                <div id="secondarySingleTeam" class="hidden">
+                                    <select id="editSecondaryTeam" name="secondary_team_id" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                        <option value="">Select Team</option>
+                                        {% for league in leagues %}
+                                        {% for team in league.teams %}
+                                        <option value="{{ team.id }}" data-league="{{ league.id }}" data-league-name="{{ league.name }}">{{ team.name }}</option>
+                                        {% endfor %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <!-- Multiple team checkboxes for ECS FC -->
+                                <div id="secondaryEcsFcTeams" class="hidden grid grid-cols-2 md:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
+                                    {% for league in leagues %}
+                                    {% if 'ECS FC' in league.name %}
+                                    {% for team in league.teams %}
+                                    <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
+                                        <input type="checkbox" name="secondary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+                                        <span class="ml-1.5 text-gray-700 dark:text-gray-300 truncate">{{ team.name }}</span>
+                                    </label>
+                                    {% endfor %}
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Tertiary League (ECS FC) -->
+                            <div class="league-tier-section border-t border-gray-200 dark:border-gray-600 pt-4" data-tier="tertiary">
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                    <span class="inline-flex items-center justify-center w-5 h-5 mr-1 text-xs font-bold text-white bg-gray-300 rounded-full">3</span>
+                                    Tertiary League <span class="text-gray-400 font-normal">(optional)</span>
+                                </label>
+                                <select id="editTertiaryLeagueType" name="tertiary_league_type" class="league-type-select bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white mb-2">
+                                    <option value="">None</option>
+                                    <option value="classic">Classic</option>
+                                    <option value="premier">Premier</option>
+                                    <option value="ecsfc">ECS FC</option>
+                                </select>
+                                <!-- Single team dropdown for Classic/Premier -->
+                                <div id="tertiarySingleTeam" class="hidden">
+                                    <select id="editTertiaryTeam" name="tertiary_team_id" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                        <option value="">Select Team</option>
+                                        {% for league in leagues %}
+                                        {% for team in league.teams %}
+                                        <option value="{{ team.id }}" data-league="{{ league.id }}" data-league-name="{{ league.name }}">{{ team.name }}</option>
+                                        {% endfor %}
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <!-- Multiple team checkboxes for ECS FC -->
+                                <div id="tertiaryEcsFcTeams" class="hidden grid grid-cols-2 md:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
+                                    {% for league in leagues %}
+                                    {% if 'ECS FC' in league.name %}
+                                    {% for team in league.teams %}
+                                    <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
+                                        <input type="checkbox" name="tertiary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+                                        <span class="ml-1.5 text-gray-700 dark:text-gray-300 truncate">{{ team.name }}</span>
+                                    </label>
+                                    {% endfor %}
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -495,9 +593,15 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', () => closeModal(editUserModal));
     });
 
-    editUserModal.querySelector('[data-modal-backdrop]').addEventListener('click', () => {
-        closeModal(editUserModal);
-    });
+    // Add backdrop click handler only if modal exists
+    if (editUserModal) {
+        const backdrop = editUserModal.querySelector('[data-modal-backdrop]');
+        if (backdrop) {
+            backdrop.addEventListener('click', () => {
+                closeModal(editUserModal);
+            });
+        }
+    }
 
     // Select all checkbox
     document.getElementById('selectAll').addEventListener('change', function() {
@@ -540,17 +644,29 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = window.USER_MGMT_CONFIG.userDetailsUrl.replace('0', userId);
 
         fetch(url)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Invalid response format');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     populateEditForm(data.user);
                     openModal(editUserModal);
+                } else {
+                    throw new Error(data.error || 'Failed to load user');
                 }
             })
             .catch(error => {
+                console.error('Error loading user details:', error);
                 Swal.fire({
                     title: 'Error',
-                    text: 'Failed to load user details',
+                    text: error.message || 'Failed to load user details',
                     icon: 'error',
                     background: isDark ? '#1f2937' : '#ffffff',
                     color: isDark ? '#f3f4f6' : '#111827'
@@ -566,23 +682,183 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('editIsApproved').checked = user.is_approved;
         document.getElementById('editIsActive').checked = user.is_active;
 
-        // Reset role checkboxes
+        // Reset role checkboxes (API returns 'roles' as array of role IDs)
+        const userRoleIds = user.roles || user.role_ids || [];
         document.querySelectorAll('#editRolesContainer input[type="checkbox"]').forEach(cb => {
-            cb.checked = user.role_ids && user.role_ids.includes(parseInt(cb.value));
+            cb.checked = userRoleIds.includes(parseInt(cb.value));
         });
 
         // Player profile
         if (user.player) {
             document.getElementById('noPlayerMessage').classList.add('hidden');
             document.getElementById('playerFields').classList.remove('hidden');
-            document.getElementById('editLeague').value = user.player.league_id || '';
-            document.getElementById('editTeam').value = user.player.team_id || '';
             document.getElementById('editIsCurrentPlayer').checked = user.player.is_current_player;
+
+            // Reset all league tier selections
+            resetAllLeagueTiers();
+
+            // Populate league tiers based on player's team assignments
+            populateLeagueTiers(user.player);
         } else {
             document.getElementById('noPlayerMessage').classList.remove('hidden');
             document.getElementById('playerFields').classList.add('hidden');
+            resetAllLeagueTiers();
         }
     }
+
+    // Helper function to determine league type from league name
+    function getLeagueTypeFromName(leagueName) {
+        if (!leagueName) return '';
+        if (leagueName.includes('ECS FC')) return 'ecsfc';
+        if (leagueName.toLowerCase().includes('classic')) return 'classic';
+        if (leagueName.toLowerCase().includes('premier')) return 'premier';
+        return '';
+    }
+
+    // Reset all league tier selections
+    function resetAllLeagueTiers() {
+        ['primary', 'secondary', 'tertiary'].forEach(tier => {
+            const typeSelect = document.getElementById(`edit${tier.charAt(0).toUpperCase() + tier.slice(1)}LeagueType`);
+            if (typeSelect) typeSelect.value = '';
+
+            // Hide team selections
+            const singleTeam = document.getElementById(`${tier}SingleTeam`);
+            const ecsfcTeams = document.getElementById(`${tier}EcsFcTeams`);
+            if (singleTeam) singleTeam.classList.add('hidden');
+            if (ecsfcTeams) ecsfcTeams.classList.add('hidden');
+
+            // Reset values
+            const teamSelect = document.getElementById(`edit${tier.charAt(0).toUpperCase() + tier.slice(1)}Team`);
+            if (teamSelect) teamSelect.value = '';
+
+            // Reset ECS FC checkboxes
+            document.querySelectorAll(`#${tier}EcsFcTeams input[type="checkbox"]`).forEach(cb => {
+                cb.checked = false;
+            });
+        });
+    }
+
+    // Populate league tiers from player data
+    function populateLeagueTiers(player) {
+        const allTeamIds = player.team_ids || [];
+        const primaryTeamId = player.team_id;
+
+        // Get team info from the DOM
+        const teamOptions = document.querySelectorAll('#editPrimaryTeam option[data-league-name]');
+        const teamInfo = {};
+        teamOptions.forEach(opt => {
+            teamInfo[opt.value] = {
+                leagueName: opt.dataset.leagueName,
+                leagueId: opt.dataset.league
+            };
+        });
+
+        // Group teams by league type
+        const classicTeams = [];
+        const premierTeams = [];
+        const ecsfcTeams = [];
+
+        allTeamIds.forEach(teamId => {
+            const info = teamInfo[teamId];
+            if (info) {
+                const leagueType = getLeagueTypeFromName(info.leagueName);
+                if (leagueType === 'classic') classicTeams.push(teamId);
+                else if (leagueType === 'premier') premierTeams.push(teamId);
+                else if (leagueType === 'ecsfc') ecsfcTeams.push(teamId);
+            }
+        });
+
+        // Assign to tiers - priority: primary team's league first
+        const primaryLeagueType = player.league_id ? getLeagueTypeFromTeamId(primaryTeamId, teamInfo) : '';
+        let usedTiers = { primary: false, secondary: false, tertiary: false };
+
+        // Set primary tier based on primary team
+        if (primaryLeagueType === 'classic' && classicTeams.length > 0) {
+            setLeagueTier('primary', 'classic', classicTeams[0]);
+            usedTiers.primary = true;
+        } else if (primaryLeagueType === 'premier' && premierTeams.length > 0) {
+            setLeagueTier('primary', 'premier', premierTeams[0]);
+            usedTiers.primary = true;
+        } else if (primaryLeagueType === 'ecsfc' && ecsfcTeams.length > 0) {
+            setLeagueTier('primary', 'ecsfc', ecsfcTeams);
+            usedTiers.primary = true;
+        }
+
+        // Assign remaining leagues to secondary/tertiary
+        const remainingLeagues = [];
+        if (premierTeams.length > 0 && primaryLeagueType !== 'premier') remainingLeagues.push({ type: 'premier', teams: premierTeams });
+        if (classicTeams.length > 0 && primaryLeagueType !== 'classic') remainingLeagues.push({ type: 'classic', teams: classicTeams });
+        if (ecsfcTeams.length > 0 && primaryLeagueType !== 'ecsfc') remainingLeagues.push({ type: 'ecsfc', teams: ecsfcTeams });
+
+        remainingLeagues.forEach((league, idx) => {
+            const tier = idx === 0 ? 'secondary' : 'tertiary';
+            if (league.type === 'ecsfc') {
+                setLeagueTier(tier, 'ecsfc', league.teams);
+            } else {
+                setLeagueTier(tier, league.type, league.teams[0]);
+            }
+        });
+    }
+
+    function getLeagueTypeFromTeamId(teamId, teamInfo) {
+        const info = teamInfo[teamId];
+        return info ? getLeagueTypeFromName(info.leagueName) : '';
+    }
+
+    function setLeagueTier(tier, leagueType, teamData) {
+        const typeSelect = document.getElementById(`edit${tier.charAt(0).toUpperCase() + tier.slice(1)}LeagueType`);
+        if (typeSelect) {
+            typeSelect.value = leagueType;
+            handleLeagueTypeChange(tier, leagueType);
+
+            if (leagueType === 'ecsfc' && Array.isArray(teamData)) {
+                // Set ECS FC team checkboxes
+                teamData.forEach(teamId => {
+                    const checkbox = document.querySelector(`#${tier}EcsFcTeams input[data-team-id="${teamId}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            } else if (teamData) {
+                // Set single team dropdown
+                const teamSelect = document.getElementById(`edit${tier.charAt(0).toUpperCase() + tier.slice(1)}Team`);
+                if (teamSelect) teamSelect.value = teamData;
+            }
+        }
+    }
+
+    // Handle league type dropdown change
+    function handleLeagueTypeChange(tier, leagueType) {
+        const singleTeam = document.getElementById(`${tier}SingleTeam`);
+        const ecsfcTeams = document.getElementById(`${tier}EcsFcTeams`);
+        const teamSelect = document.getElementById(`edit${tier.charAt(0).toUpperCase() + tier.slice(1)}Team`);
+
+        // Hide both first
+        if (singleTeam) singleTeam.classList.add('hidden');
+        if (ecsfcTeams) ecsfcTeams.classList.add('hidden');
+
+        if (leagueType === 'classic' || leagueType === 'premier') {
+            // Show single team dropdown, filter by league type
+            if (singleTeam) singleTeam.classList.remove('hidden');
+            if (teamSelect) {
+                teamSelect.querySelectorAll('option[data-league-name]').forEach(opt => {
+                    const optLeagueType = getLeagueTypeFromName(opt.dataset.leagueName);
+                    opt.style.display = optLeagueType === leagueType ? '' : 'none';
+                });
+            }
+        } else if (leagueType === 'ecsfc') {
+            // Show ECS FC checkboxes
+            if (ecsfcTeams) ecsfcTeams.classList.remove('hidden');
+        }
+    }
+
+    // Attach change handlers to league type dropdowns
+    ['Primary', 'Secondary', 'Tertiary'].forEach(tier => {
+        const select = document.getElementById(`edit${tier}LeagueType`);
+        if (select) {
+            select.addEventListener('change', function() {
+                handleLeagueTypeChange(tier.toLowerCase(), this.value);
+            });
+        }
+    });
 
     function confirmAction(action, userId) {
         const messages = {
@@ -625,7 +901,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-CSRFToken': window.USER_MGMT_CONFIG.csrfToken
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Invalid response format');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 Swal.fire({
@@ -637,14 +922,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     color: isDark ? '#f3f4f6' : '#111827'
                 }).then(() => location.reload());
             } else {
-                Swal.fire({
-                    title: 'Error',
-                    text: data.message,
-                    icon: 'error',
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827'
-                });
+                throw new Error(data.message || 'Action failed');
             }
+        })
+        .catch(error => {
+            console.error('Error performing action:', error);
+            Swal.fire({
+                title: 'Error',
+                text: error.message || 'Action failed',
+                icon: 'error',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
         });
     }
 
@@ -680,7 +969,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     body: JSON.stringify({ action: action, user_ids: selectedUsers })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error('Invalid response format');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         Swal.fire({
@@ -692,14 +990,18 @@ document.addEventListener('DOMContentLoaded', function() {
                             color: isDark ? '#f3f4f6' : '#111827'
                         }).then(() => location.reload());
                     } else {
-                        Swal.fire({
-                            title: 'Error',
-                            text: data.message,
-                            icon: 'error',
-                            background: isDark ? '#1f2937' : '#ffffff',
-                            color: isDark ? '#f3f4f6' : '#111827'
-                        });
+                        throw new Error(data.message || 'Bulk action failed');
                     }
+                })
+                .catch(error => {
+                    console.error('Error performing bulk action:', error);
+                    Swal.fire({
+                        title: 'Error',
+                        text: error.message || 'Bulk action failed',
+                        icon: 'error',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
                 });
             }
         });

@@ -227,8 +227,8 @@ export function createMatchCard(match) {
                     </div>
                     <div class="col-md-6">
                         <div class="js-rsvp-summary" id="rsvp-summary-${match.id}">
-                            <div class="spinner-border spinner-border-sm" role="status">
-                                <span class="visually-hidden">Loading...</span>
+                            <div class="inline-block w-4 h-4 border-2 border-ecs-green border-t-transparent rounded-full animate-spin" role="status">
+                                <span class="sr-only">Loading...</span>
                             </div>
                         </div>
                     </div>
@@ -240,7 +240,7 @@ export function createMatchCard(match) {
                         <button class="btn btn-sm btn-success js-rsvp-btn" data-match-id="${match.id}" data-response="yes">
                             <i class="fas fa-check me-1"></i>Yes
                         </button>
-                        <button class="btn btn-sm btn-danger js-rsvp-btn" data-match-id="${match.id}" data-response="no">
+                        <button class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 js-rsvp-btn" data-match-id="${match.id}" data-response="no">
                             <i class="fas fa-times me-1"></i>No
                         </button>
                         <button class="btn btn-sm btn-warning js-rsvp-btn" data-match-id="${match.id}" data-response="maybe">
@@ -251,10 +251,10 @@ export function createMatchCard(match) {
                         </button>
                     ` : ''}
 
-                    <button class="btn btn-sm btn-outline-primary js-edit-match-btn" data-match-id="${match.id}">
+                    <button class="text-ecs-green border border-ecs-green hover:bg-ecs-green hover:text-white focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 js-edit-match-btn" data-match-id="${match.id}">
                         <i class="fas fa-edit me-1"></i>Edit
                     </button>
-                    <button class="btn btn-sm btn-outline-danger js-delete-match-btn" data-match-id="${match.id}">
+                    <button class="text-red-600 border border-red-600 hover:bg-red-600 hover:text-white focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 js-delete-match-btn" data-match-id="${match.id}">
                         <i class="fas fa-trash me-1"></i>Delete
                     </button>
                 </div>
@@ -380,7 +380,8 @@ export function handleMatchFormSubmit(e) {
             ecsFcShowAlert('success', data.message);
 
             // Close modal
-            const modal = window.bootstrap.Modal.getInstance(document.getElementById('createMatchModal'));
+            const modalEl = document.getElementById('createMatchModal');
+            const modal = modalEl?._flowbiteModal;
             if (modal) modal.hide();
 
             // Refresh displays
@@ -569,7 +570,8 @@ export function handleImportFormSubmit(e) {
             ecsFcShowAlert('success', data.message);
 
             // Close modal
-            const modal = window.bootstrap.Modal.getInstance(document.getElementById('importMatchesModal'));
+            const modalEl = document.getElementById('importMatchesModal');
+            const modal = modalEl?._flowbiteModal;
             if (modal) modal.hide();
 
             // Refresh displays
@@ -671,7 +673,7 @@ export function ecsFcShowAlert(type, message) {
     alertDiv.classList.add('js-alert-message');
     alertDiv.innerHTML = `
         ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <button type="button" class="btn-close" onclick="this.closest('.alert').remove()"></button>
     `;
 
     // Find alerts container or create one

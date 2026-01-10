@@ -280,7 +280,7 @@ const ResponsiveSystem = {
 
       // Single delegated click listener for ALL modal close buttons (haptic feedback)
       document.addEventListener('click', function(e) {
-        const closeBtn = e.target.closest('.btn-close, [data-bs-dismiss="modal"]');
+        const closeBtn = e.target.closest('.btn-close, [data-modal-hide], [data-dismiss="modal"]');
         if (closeBtn && window.Haptics) {
           window.Haptics.light();
         }
@@ -353,9 +353,9 @@ const ResponsiveSystem = {
           modalDialog.classList.add('swipe-animating', 'swipe-dismiss');
 
           setTimeout(() => {
-            const bsModal = window.bootstrap.Modal.getInstance(modal);
-            if (bsModal) {
-              bsModal.hide();
+            const flowbiteModal = modal._flowbiteModal;
+            if (flowbiteModal) {
+              flowbiteModal.hide();
             }
             // Reset transform
             // REFACTORED: Using CSS classes instead of inline styles

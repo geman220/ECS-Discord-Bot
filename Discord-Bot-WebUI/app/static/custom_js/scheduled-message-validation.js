@@ -23,11 +23,12 @@ export function initializeValidationPage() {
     // Set up periodic refresh for overdue messages
     setupAutoRefresh();
 
-    // Initialize tooltips if Bootstrap tooltips are available
-    if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Tooltip) {
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new window.bootstrap.Tooltip(tooltipTriggerEl);
+    // Initialize tooltips - Flowbite auto-initializes tooltips with title attribute
+    if (typeof window.Tooltip !== 'undefined') {
+        document.querySelectorAll('[title]').forEach(el => {
+            if (!el._tooltip) {
+                el._tooltip = new window.Tooltip(el);
+            }
         });
     }
 

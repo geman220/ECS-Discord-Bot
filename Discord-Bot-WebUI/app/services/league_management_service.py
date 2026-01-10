@@ -160,7 +160,7 @@ class LeagueManagementService:
                     'league_management', 'match_operations'
                 ])
             ).order_by(
-                AdminAuditLog.created_at.desc()
+                AdminAuditLog.timestamp.desc()
             ).limit(limit).all()
 
             return [
@@ -168,7 +168,7 @@ class LeagueManagementService:
                     'action': log.action,
                     'resource_type': log.resource_type,
                     'resource_id': log.resource_id,
-                    'created_at': log.created_at.isoformat() if log.created_at else None,
+                    'created_at': log.timestamp.isoformat() if log.timestamp else None,
                     'user_id': log.user_id
                 }
                 for log in recent

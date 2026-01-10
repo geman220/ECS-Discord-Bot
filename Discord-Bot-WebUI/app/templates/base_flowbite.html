@@ -48,6 +48,56 @@
     {% block head_extra %}{% endblock %}
     {% block custom_css %}{% endblock %}
     {% block extra_css %}{% endblock %}
+
+    <!-- Custom Theme Colors (set via Admin Panel > Appearance) -->
+    {% if site_settings and site_settings.custom_colors %}
+    <style id="custom-theme-colors">
+        :root {
+            {% set light = site_settings.custom_colors.get('light', {}) %}
+            {% if light.primary %}--color-primary: {{ light.primary }};{% endif %}
+            {% if light.primary_light %}--color-primary-light: {{ light.primary_light }};{% endif %}
+            {% if light.primary_dark %}--color-primary-dark: {{ light.primary_dark }};{% endif %}
+            {% if light.secondary %}--color-secondary: {{ light.secondary }};{% endif %}
+            {% if light.accent %}--color-accent: {{ light.accent }};{% endif %}
+            {% if light.success %}--color-success: {{ light.success }};{% endif %}
+            {% if light.warning %}--color-warning: {{ light.warning }};{% endif %}
+            {% if light.danger %}--color-danger: {{ light.danger }};{% endif %}
+            {% if light.info %}--color-info: {{ light.info }};{% endif %}
+            {% if light.text_heading %}--color-text-heading: {{ light.text_heading }};{% endif %}
+            {% if light.text_body %}--color-text-body: {{ light.text_body }};{% endif %}
+            {% if light.text_muted %}--color-text-muted: {{ light.text_muted }};{% endif %}
+            {% if light.text_link %}--color-text-link: {{ light.text_link }};{% endif %}
+            {% if light.bg_body %}--color-bg-body: {{ light.bg_body }};{% endif %}
+            {% if light.bg_card %}--color-bg-card: {{ light.bg_card }};{% endif %}
+            {% if light.bg_input %}--color-bg-input: {{ light.bg_input }};{% endif %}
+            {% if light.border %}--color-border: {{ light.border }};{% endif %}
+            {% if light.border_input %}--color-border-input: {{ light.border_input }};{% endif %}
+        }
+
+        .dark {
+            {% set dark = site_settings.custom_colors.get('dark', {}) %}
+            {% if dark.primary %}--color-primary: {{ dark.primary }};{% endif %}
+            {% if dark.primary_light %}--color-primary-light: {{ dark.primary_light }};{% endif %}
+            {% if dark.primary_dark %}--color-primary-dark: {{ dark.primary_dark }};{% endif %}
+            {% if dark.secondary %}--color-secondary: {{ dark.secondary }};{% endif %}
+            {% if dark.accent %}--color-accent: {{ dark.accent }};{% endif %}
+            {% if dark.success %}--color-success: {{ dark.success }};{% endif %}
+            {% if dark.warning %}--color-warning: {{ dark.warning }};{% endif %}
+            {% if dark.danger %}--color-danger: {{ dark.danger }};{% endif %}
+            {% if dark.info %}--color-info: {{ dark.info }};{% endif %}
+            {% if dark.text_heading %}--color-text-heading: {{ dark.text_heading }};{% endif %}
+            {% if dark.text_body %}--color-text-body: {{ dark.text_body }};{% endif %}
+            {% if dark.text_muted %}--color-text-muted: {{ dark.text_muted }};{% endif %}
+            {% if dark.text_link %}--color-text-link: {{ dark.text_link }};{% endif %}
+            {% if dark.bg_body %}--color-bg-body: {{ dark.bg_body }};{% endif %}
+            {% if dark.bg_card %}--color-bg-card: {{ dark.bg_card }};{% endif %}
+            {% if dark.bg_input %}--color-bg-input: {{ dark.bg_input }};{% endif %}
+            {% if dark.bg_sidebar %}--color-bg-sidebar: {{ dark.bg_sidebar }};{% endif %}
+            {% if dark.border %}--color-border: {{ dark.border }};{% endif %}
+            {% if dark.border_input %}--color-border-input: {{ dark.border_input }};{% endif %}
+        }
+    </style>
+    {% endif %}
 </head>
 
 <body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -92,6 +142,68 @@
                             <i class="ti ti-sun w-5 h-5 hidden dark:block"></i>
                             <i class="ti ti-moon w-5 h-5 block dark:hidden"></i>
                         </button>
+
+                        {% if real_is_global_admin %}
+                        <!-- Role Impersonation Toggle (Global Admin Only) -->
+                        <div class="relative">
+                            <button type="button" id="role-impersonation-toggle" data-dropdown-toggle="role-impersonation-dropdown"
+                                    class="p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 {{ 'text-orange-500 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50' if is_role_impersonation_active() else 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700' }}"
+                                    title="{{ 'Role Impersonation Active' if is_role_impersonation_active() else 'Impersonate Role' }}">
+                                <i class="ti ti-masks-theater w-5 h-5"></i>
+                                {% if is_role_impersonation_active() %}
+                                <span class="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-pulse"></span>
+                                {% endif %}
+                            </button>
+
+                            <!-- Role Impersonation Dropdown -->
+                            <div id="role-impersonation-dropdown" class="z-50 hidden w-72 bg-white divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600 border border-gray-200 dark:border-gray-600">
+                                <div class="px-4 py-3">
+                                    <span class="block text-sm font-medium text-gray-900 dark:text-white">
+                                        <i class="ti ti-masks-theater mr-1"></i> Role Impersonation
+                                    </span>
+                                    <span class="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        View the app as a different role
+                                    </span>
+                                </div>
+
+                                {% if is_role_impersonation_active() %}
+                                <!-- Active Impersonation Status -->
+                                <div class="px-4 py-3 bg-orange-50 dark:bg-orange-900/20">
+                                    <div class="flex items-center gap-2 text-sm text-orange-700 dark:text-orange-300">
+                                        <i class="ti ti-alert-circle"></i>
+                                        <span>Currently viewing as:</span>
+                                    </div>
+                                    <div class="mt-2 flex flex-wrap gap-1">
+                                        {% for role in user_roles %}
+                                        <span class="px-2 py-0.5 text-xs font-medium bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 rounded">
+                                            {{ role }}
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+                                    <form action="{{ url_for('role_impersonation.stop_impersonation_form') }}" method="POST" class="mt-3">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="w-full px-3 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors">
+                                            <i class="ti ti-player-stop mr-1"></i> Stop Impersonation
+                                        </button>
+                                    </form>
+                                </div>
+                                {% else %}
+                                <!-- Role Selection -->
+                                <div class="py-2 max-h-64 overflow-y-auto">
+                                    <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Select Role to View As</div>
+                                    {% for role in available_roles %}
+                                    <button type="button"
+                                            class="role-impersonate-btn w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                            data-role="{{ role.name }}">
+                                        <span>{{ role.name }}</span>
+                                        <span class="text-xs text-gray-400">{{ role.permission_count }} perms</span>
+                                    </button>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
 
                         <!-- User Menu -->
                         <button type="button" class="flex items-center gap-2 p-1 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700" id="user-menu-button" data-dropdown-toggle="user-dropdown">
@@ -269,6 +381,78 @@
             {% endif %}
         });
     </script>
+
+    <!-- Role Impersonation Handler -->
+    {% if real_is_global_admin %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle role impersonation button clicks
+            document.querySelectorAll('.role-impersonate-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var roleName = this.getAttribute('data-role');
+                    var isDark = document.documentElement.classList.contains('dark');
+
+                    Swal.fire({
+                        title: 'Start Role Impersonation?',
+                        html: 'You will view the application as a user with the <strong>' + roleName + '</strong> role.<br><br><small class="text-gray-500">The navigation and features will reflect this role\'s permissions.</small>',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Start Viewing',
+                        cancelButtonText: 'Cancel',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827',
+                        confirmButtonColor: '#ea580c'
+                    }).then(function(result) {
+                        if (result.isConfirmed) {
+                            fetch('/api/role-impersonation/start', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                                },
+                                body: JSON.stringify({ roles: [roleName] })
+                            })
+                            .then(function(response) { return response.json(); })
+                            .then(function(data) {
+                                if (data.error) {
+                                    Swal.fire({
+                                        title: 'Error',
+                                        text: data.error,
+                                        icon: 'error',
+                                        background: isDark ? '#1f2937' : '#ffffff',
+                                        color: isDark ? '#f3f4f6' : '#111827'
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        title: 'Role Impersonation Started',
+                                        text: 'You are now viewing as: ' + roleName,
+                                        icon: 'success',
+                                        timer: 1500,
+                                        showConfirmButton: false,
+                                        background: isDark ? '#1f2937' : '#ffffff',
+                                        color: isDark ? '#f3f4f6' : '#111827'
+                                    }).then(function() {
+                                        window.location.reload();
+                                    });
+                                }
+                            })
+                            .catch(function(err) {
+                                console.error('Impersonation error:', err);
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: 'Failed to start role impersonation',
+                                    icon: 'error',
+                                    background: isDark ? '#1f2937' : '#ffffff',
+                                    color: isDark ? '#f3f4f6' : '#111827'
+                                });
+                            });
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+    {% endif %}
 
     {% block modals %}{% endblock %}
 

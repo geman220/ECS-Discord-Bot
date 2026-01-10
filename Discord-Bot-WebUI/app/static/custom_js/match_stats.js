@@ -87,9 +87,9 @@ function initMatchStats() {
                             'success'
                         ).then(() => {
                             const modal = document.getElementById('editMatchStatModal');
-                            if (modal && window.bootstrap) {
-                                const bsModal = window.bootstrap.Modal.getInstance(modal);
-                                if (bsModal) bsModal.hide();
+                            if (modal) {
+                                const flowbiteModal = modal._flowbiteModal;
+                                if (flowbiteModal) flowbiteModal.hide();
                             }
                             location.reload();
                         });
@@ -151,9 +151,9 @@ async function matchStatsEditMatch(statId) {
         document.getElementById('editStatId').value = statId;
 
         const modal = document.getElementById('editMatchStatModal');
-        if (modal && window.bootstrap) {
-            const bsModal = new window.bootstrap.Modal(modal);
-            bsModal.show();
+        if (modal) {
+            modal._flowbiteModal = modal._flowbiteModal || new window.Modal(modal, { backdrop: 'dynamic', closable: true });
+            modal._flowbiteModal.show();
         }
     } catch (error) {
         console.error('[match_stats] Error loading stat:', error);

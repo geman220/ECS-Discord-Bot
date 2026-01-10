@@ -122,7 +122,7 @@ def index():
         current_season = get_current_season()
         if not current_season:
             return render_template(
-                'draft_predictions/index.html',
+                'draft_predictions/index_flowbite.html',
                 current_season=None,
                 leagues=[],
                 message="No active season found."
@@ -165,7 +165,7 @@ def index():
             option['my_predictions'] = count
 
         return render_template(
-            'draft_predictions/index.html',
+            'draft_predictions/index_flowbite.html',
             current_season=current_season,
             leagues=league_options,
             is_admin='Global Admin' in [r.name for r in current_user.roles] or
@@ -175,7 +175,7 @@ def index():
     except Exception as e:
         logger.error(f"Error in draft predictions index: {e}", exc_info=True)
         return render_template(
-            'draft_predictions/index.html',
+            'draft_predictions/index_flowbite.html',
             current_season=None,
             leagues=[],
             message="Error loading draft predictions."
@@ -219,7 +219,7 @@ def predict(league_type):
         )
 
         return render_template(
-            'draft_predictions/predict.html',
+            'draft_predictions/predict_flowbite.html',
             current_season=current_season,
             league_type=league_type,
             players=players,
@@ -340,7 +340,7 @@ def admin_dashboard():
 
         if not selected_season:
             return render_template(
-                'draft_predictions/admin_dashboard.html',
+                'draft_predictions/admin_dashboard_flowbite.html',
                 seasons=seasons,
                 selected_season=None,
                 league_stats={},
@@ -379,7 +379,7 @@ def admin_dashboard():
             }
 
         return render_template(
-            'draft_predictions/admin_dashboard.html',
+            'draft_predictions/admin_dashboard_flowbite.html',
             seasons=seasons,
             selected_season=selected_season,
             current_season=current_season,
@@ -389,7 +389,7 @@ def admin_dashboard():
     except Exception as e:
         logger.error(f"Error in admin dashboard: {e}", exc_info=True)
         return render_template(
-            'draft_predictions/admin_dashboard.html',
+            'draft_predictions/admin_dashboard_flowbite.html',
             seasons=[],
             selected_season=None,
             league_stats={},
@@ -446,7 +446,7 @@ def admin_view_league(league_type):
         player_data.sort(key=lambda x: (x['avg_round'] is None, x['avg_round'] or 999))
 
         return render_template(
-            'draft_predictions/admin_view_league.html',
+            'draft_predictions/admin_view_league_flowbite.html',
             season=season,
             league_type=league_type,
             player_data=player_data,
@@ -509,7 +509,7 @@ def admin_player_detail(player_id):
             avg_round = min_round = max_round = None
 
         return render_template(
-            'draft_predictions/admin_player_detail.html',
+            'draft_predictions/admin_player_detail_flowbite.html',
             player=player,
             season=season,
             league_type=league_type,
@@ -563,7 +563,7 @@ def admin_coach_detail(coach_id):
         ).order_by(DraftPrediction.predicted_round, Player.name).all()
 
         return render_template(
-            'draft_predictions/admin_coach_detail.html',
+            'draft_predictions/admin_coach_detail_flowbite.html',
             coach=coach,
             season=season,
             league_type=league_type,

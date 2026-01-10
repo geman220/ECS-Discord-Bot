@@ -333,11 +333,10 @@ async function openConversation(user) {
     await loadMessages(user.id);
 
     if (modal) {
-        if (true) {
+        if (window.ModalManager) {
             window.ModalManager.hide('newConversationModal');
-        } else {
-            const bsModal = window.bootstrap.Modal.getInstance(modal);
-            if (bsModal) bsModal.hide();
+        } else if (modal._flowbiteModal) {
+            modal._flowbiteModal.hide();
         }
     }
 
@@ -721,13 +720,13 @@ function handleConversationSearch() {
 
 function openNewConversationModal() {
     if (modal) {
-        if (true) {
+        if (window.ModalManager) {
             window.ModalManager.show('newConversationModal');
-        } else if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
-            const bsModal = new window.bootstrap.Modal(modal);
-            bsModal.show();
+        } else if (typeof window.Modal !== 'undefined') {
+            const flowbiteModal = modal._flowbiteModal || (modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true }));
+            flowbiteModal.show();
         } else {
-            console.error('[MessagesInbox] Neither window.ModalManager nor Bootstrap available');
+            console.error('[MessagesInbox] Neither window.ModalManager nor Flowbite available');
         }
     } else {
         console.error('[MessagesInbox] Modal element not found');

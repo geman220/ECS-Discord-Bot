@@ -115,7 +115,7 @@ async function scheduleCampaign(campaignId, campaignName) {
         html: `
             <div class="text-start">
                 <label class="form-label">Schedule Time</label>
-                <input type="datetime-local" id="scheduleTime" class="form-control">
+                <input type="datetime-local" id="scheduleTime" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
             </div>
         `,
         showCancelButton: true,
@@ -266,7 +266,7 @@ function toggleCampaignTargetOptions() {
 
     selectors.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.classList.add('d-none');
+        if (el) el.classList.add('hidden');
     });
 
     // Show selected target selector
@@ -281,7 +281,7 @@ function toggleCampaignTargetOptions() {
     const selectedSelector = selectorMap[targetType];
     if (selectedSelector) {
         const el = document.getElementById(selectedSelector);
-        if (el) el.classList.remove('d-none');
+        if (el) el.classList.remove('hidden');
     }
 }
 
@@ -292,9 +292,9 @@ function toggleCampaignSchedule() {
     if (!scheduleContainer) return;
 
     if (sendType === 'scheduled') {
-        scheduleContainer.classList.remove('d-none');
+        scheduleContainer.classList.remove('hidden');
     } else {
-        scheduleContainer.classList.add('d-none');
+        scheduleContainer.classList.add('hidden');
     }
 }
 

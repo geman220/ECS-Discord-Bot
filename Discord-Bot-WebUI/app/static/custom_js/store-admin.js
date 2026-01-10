@@ -54,10 +54,10 @@ const StoreAdmin = {
                 const container = document.getElementById('colors-container');
                 if (container) {
                     const div = document.createElement('div');
-                    div.className = 'input-group mb-2';
+                    div.className = 'flex gap-2 mb-2';
                     div.innerHTML = `
-                        <input type="text" class="form-control" name="colors[]" placeholder="e.g. Navy, Black, White" data-form-control aria-label="e.g. Navy, Black, White">
-                        <button type="button" class="c-btn c-btn--outline-danger remove-color" aria-label="Remove color"><i class="ti ti-x"></i></button>
+                        <input type="text" class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" name="colors[]" placeholder="e.g. Navy, Black, White" data-form-control aria-label="e.g. Navy, Black, White">
+                        <button type="button" class="text-red-600 hover:text-red-800 dark:text-red-500 dark:hover:text-red-400 p-2.5 remove-color" aria-label="Remove color"><i class="ti ti-x"></i></button>
                     `;
                     container.appendChild(div);
                     self.updateRemoveButtons('color');
@@ -70,10 +70,10 @@ const StoreAdmin = {
                 const container = document.getElementById('sizes-container');
                 if (container) {
                     const div = document.createElement('div');
-                    div.className = 'input-group mb-2';
+                    div.className = 'flex gap-2 mb-2';
                     div.innerHTML = `
-                        <input type="text" class="form-control" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL" data-form-control aria-label="e.g. YXS, YS, YM, YL">
-                        <button type="button" class="c-btn c-btn--outline-danger remove-size" aria-label="Remove size"><i class="ti ti-x"></i></button>
+                        <input type="text" class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL" data-form-control aria-label="e.g. YXS, YS, YM, YL">
+                        <button type="button" class="text-red-600 hover:text-red-800 dark:text-red-500 dark:hover:text-red-400 p-2.5 remove-size" aria-label="Remove size"><i class="ti ti-x"></i></button>
                     `;
                     container.appendChild(div);
                     self.updateRemoveButtons('size');
@@ -83,14 +83,14 @@ const StoreAdmin = {
 
             // Remove color
             if (e.target.closest('.remove-color')) {
-                e.target.closest('.input-group').remove();
+                e.target.closest('.flex.gap-2').remove();
                 self.updateRemoveButtons('color');
                 return;
             }
 
             // Remove size
             if (e.target.closest('.remove-size')) {
-                e.target.closest('.input-group').remove();
+                e.target.closest('.flex.gap-2').remove();
                 self.updateRemoveButtons('size');
                 return;
             }
@@ -117,14 +117,14 @@ const StoreAdmin = {
         const container = document.getElementById(`${type}s-container`);
         if (!container) return;
 
-        const groups = container.querySelectorAll('.input-group');
+        const groups = container.querySelectorAll('.flex.gap-2');
         groups.forEach((group) => {
             const removeBtn = group.querySelector(`.remove-${type}`);
             if (removeBtn) {
                 if (groups.length > 1) {
-                    removeBtn.classList.remove('d-none');
+                    removeBtn.classList.remove('hidden');
                 } else {
-                    removeBtn.classList.add('d-none');
+                    removeBtn.classList.add('hidden');
                 }
             }
         });
@@ -141,7 +141,7 @@ const StoreAdmin = {
 
         // Show loading
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status" data-spinner></div>Creating...';
+        submitBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin me-1" role="status" data-spinner></div>Creating...';
 
         const createItemUrl = form.getAttribute('action') || '/store/create-item';
 
@@ -464,7 +464,7 @@ const StoreAdmin = {
         const bulkUpdateBtn = document.getElementById('bulk-update-btn');
         const originalText = bulkUpdateBtn.innerHTML;
         bulkUpdateBtn.disabled = true;
-        bulkUpdateBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status" data-spinner></div>Updating...';
+        bulkUpdateBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin me-1" role="status" data-spinner></div>Updating...';
 
         fetch('/store/admin/orders/bulk-update', {
             method: 'POST',
@@ -552,7 +552,7 @@ const StoreAdmin = {
         const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
         const originalText = bulkDeleteBtn.innerHTML;
         bulkDeleteBtn.disabled = true;
-        bulkDeleteBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status" data-spinner></div>Deleting...';
+        bulkDeleteBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin me-1" role="status" data-spinner></div>Deleting...';
 
         fetch('/store/admin/orders/bulk-delete', {
             method: 'POST',
@@ -616,9 +616,8 @@ const StoreAdmin = {
 
             const resetTypeInput = document.querySelector('input[name="resetType"]:checked');
             const resetType = resetTypeInput ? resetTypeInput.value : 'all';
-            const modal = typeof window.bootstrap !== 'undefined'
-                ? window.bootstrap.Modal.getInstance(document.getElementById('resetOrderingModal'))
-                : null;
+            const modalEl = document.getElementById('resetOrderingModal');
+            const modal = modalEl?._flowbiteModal || null;
 
             const actionText = resetType === 'all'
                 ? 'delete all orders for the current season'
@@ -651,7 +650,7 @@ const StoreAdmin = {
         const confirmResetBtn = document.getElementById('confirmResetBtn');
         const originalText = confirmResetBtn.innerHTML;
         confirmResetBtn.disabled = true;
-        confirmResetBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status" data-spinner></div>Resetting...';
+        confirmResetBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin me-1" role="status" data-spinner></div>Resetting...';
 
         fetch('/store/admin/reset-season-ordering', {
             method: 'POST',

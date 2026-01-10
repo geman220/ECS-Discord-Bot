@@ -315,8 +315,8 @@ window.EventDelegation.register('submit-discord-dm', function(element, e) {
     .then(data => {
         if (data.success) {
             const modalElement = document.getElementById('discordDMModal');
-            if (modalElement && window.bootstrap) {
-                const modalInstance = window.bootstrap.Modal.getInstance(modalElement);
+            if (modalElement) {
+                const modalInstance = modalElement._flowbiteModal;
                 if (modalInstance) modalInstance.hide();
             }
 

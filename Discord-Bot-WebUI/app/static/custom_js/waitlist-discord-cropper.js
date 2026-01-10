@@ -58,12 +58,12 @@ function initWaitlistDiscordCropper() {
                 const label = document.querySelector('label[for="terms-agreement-waitlist"]');
                 if (e.target.checked) {
                     if (label) label.style.color = '#5a5c69';
-                    waitlistBtn.classList.remove('btn-secondary');
-                    waitlistBtn.classList.add('btn-primary');
+                    waitlistBtn.classList.remove('bg-gray-500', 'hover:bg-gray-600');
+                    waitlistBtn.classList.add('bg-ecs-green', 'hover:bg-ecs-green-dark');
                 } else {
                     if (label) label.style.color = '#858796';
-                    waitlistBtn.classList.remove('btn-primary');
-                    waitlistBtn.classList.add('btn-secondary');
+                    waitlistBtn.classList.remove('bg-ecs-green', 'hover:bg-ecs-green-dark');
+                    waitlistBtn.classList.add('bg-gray-500', 'hover:bg-gray-600');
                 }
             }
         }
@@ -173,7 +173,7 @@ function loadImage(input) {
                 // Show the editor
                 const imageEditor = document.getElementById('imageEditor');
                 if (imageEditor) {
-                    imageEditor.classList.remove('d-none');
+                    imageEditor.classList.remove('hidden');
                     imageEditor.style.display = 'block';
                 }
 
@@ -385,8 +385,8 @@ function applyCrop() {
 
     // Close modal
     const modalEl = document.getElementById('profileImageModal');
-    if (modalEl && typeof window.bootstrap !== 'undefined') {
-        const modal = window.bootstrap.Modal.getInstance(modalEl);
+    if (modalEl) {
+        const modal = modalEl._flowbiteModal;
         if (modal) modal.hide();
     }
 

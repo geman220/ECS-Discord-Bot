@@ -803,7 +803,7 @@ def _calculate_mobile_analytics(total_users, platform_stats):
         # Estimate push notification metrics from recent audit logs
         push_notifications_sent = AdminAuditLog.query.filter(
             AdminAuditLog.action.contains('notification'),
-            AdminAuditLog.created_at >= one_week_ago
+            AdminAuditLog.timestamp >= one_week_ago
         ).count()
         
         # Estimate open rate based on activity after notifications

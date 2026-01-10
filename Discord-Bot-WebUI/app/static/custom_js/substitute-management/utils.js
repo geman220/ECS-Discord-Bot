@@ -107,10 +107,10 @@ export function showTableLoading(table, message = 'Loading...', colspan = 5) {
   table.innerHTML = `
     <tr>
       <td colspan="${colspan}" class="text-center">
-        <div class="spinner-border spinner-border-sm text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
+        <div class="inline-block w-4 h-4 border-2 border-ecs-green border-t-transparent rounded-full animate-spin" role="status">
+          <span class="sr-only">Loading...</span>
         </div>
-        <span class="ms-2">${message}</span>
+        <span class="ml-2">${message}</span>
       </td>
     </tr>
   `;

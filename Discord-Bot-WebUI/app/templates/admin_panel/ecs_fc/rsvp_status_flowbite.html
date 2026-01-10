@@ -1,0 +1,274 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}RSVP Status - {{ match.opponent_name }}{% endblock %}
+{% block panel_description %}View RSVP responses for match{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">ECS FC Hub</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.ecs_fc_team_schedule', team_id=match.team_id) }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">{{ match.team.name }}</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">RSVP Status</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Match Info -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h4 class="text-xl font-semibold text-gray-900 dark:text-white mb-1">
+                    {{ match.team.name }}
+                    <span class="text-gray-400 mx-2">vs</span>
+                    {{ match.opponent_name }}
+                </h4>
+                <p class="text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-calendar mr-1"></i>{{ match.match_date.strftime('%A, %B %d, %Y') }}
+                    <span class="mx-2">|</span>
+                    <i class="ti ti-clock mr-1"></i>{{ match.match_time.strftime('%I:%M %p') }}
+                    <span class="mx-2">|</span>
+                    <i class="ti ti-map-pin mr-1"></i>{{ match.location }}{% if match.field_name %} - {{ match.field_name }}{% endif %}
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                {% if rsvp_counts.yes < 11 %}
+                <a href="{{ url_for('admin.ecs_fc_sub_request', match_id=match.id) }}"
+                   class="px-4 py-2 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600">
+                    <i class="ti ti-user-plus mr-1"></i>Request Sub
+                </a>
+                {% endif %}
+                <button type="button" onclick="sendReminder({{ match.id }})"
+                        class="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">
+                    <i class="ti ti-bell mr-1"></i>Send Reminder
+                </button>
+                <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
+                   class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
+                    <i class="ti ti-edit mr-1"></i>Edit Match
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- RSVP Summary -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
+        <i class="ti ti-check text-4xl text-green-600 dark:text-green-400 mb-2"></i>
+        <h2 class="text-3xl font-bold text-green-600 dark:text-green-400">{{ rsvp_counts.yes }}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Yes</p>
+    </div>
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-center">
+        <i class="ti ti-x text-4xl text-red-600 dark:text-red-400 mb-2"></i>
+        <h2 class="text-3xl font-bold text-red-600 dark:text-red-400">{{ rsvp_counts.no }}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">No</p>
+    </div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 text-center">
+        <i class="ti ti-question-mark text-4xl text-yellow-600 dark:text-yellow-400 mb-2"></i>
+        <h2 class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{{ rsvp_counts.maybe }}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Maybe</p>
+    </div>
+    <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-4 text-center">
+        <i class="ti ti-minus text-4xl text-gray-500 dark:text-gray-400 mb-2"></i>
+        <h2 class="text-3xl font-bold text-gray-600 dark:text-gray-300">{{ rsvp_counts.no_response }}</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">No Response</p>
+    </div>
+</div>
+
+<!-- Response Lists -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Yes Responses -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-900/20 rounded-t-lg">
+            <h5 class="text-lg font-semibold text-green-700 dark:text-green-400 flex items-center">
+                <i class="ti ti-check mr-2"></i>Yes ({{ responses.yes|length }})
+            </h5>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% if responses.yes %}
+                {% for avail in responses.yes %}
+                <div class="p-4 flex justify-between items-center">
+                    <div>
+                        {% if avail.player %}
+                        <span class="font-medium text-gray-900 dark:text-white">{{ avail.player.name }}</span>
+                        {% else %}
+                        <span class="text-gray-500 dark:text-gray-400">Discord ID: {{ avail.discord_id }}</span>
+                        {% endif %}
+                    </div>
+                    {% if avail.responded_at %}
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ avail.responded_at.strftime('%b %d, %I:%M %p') }}</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                <i class="ti ti-mood-sad text-4xl mb-2 block"></i>
+                No responses yet
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- No Responses -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-900/20 rounded-t-lg">
+            <h5 class="text-lg font-semibold text-red-700 dark:text-red-400 flex items-center">
+                <i class="ti ti-x mr-2"></i>No ({{ responses.no|length }})
+            </h5>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% if responses.no %}
+                {% for avail in responses.no %}
+                <div class="p-4 flex justify-between items-center">
+                    <div>
+                        {% if avail.player %}
+                        <span class="font-medium text-gray-900 dark:text-white">{{ avail.player.name }}</span>
+                        {% else %}
+                        <span class="text-gray-500 dark:text-gray-400">Discord ID: {{ avail.discord_id }}</span>
+                        {% endif %}
+                    </div>
+                    {% if avail.responded_at %}
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ avail.responded_at.strftime('%b %d, %I:%M %p') }}</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                No "No" responses
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Maybe Responses -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-yellow-50 dark:bg-yellow-900/20 rounded-t-lg">
+            <h5 class="text-lg font-semibold text-yellow-700 dark:text-yellow-400 flex items-center">
+                <i class="ti ti-question-mark mr-2"></i>Maybe ({{ responses.maybe|length }})
+            </h5>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% if responses.maybe %}
+                {% for avail in responses.maybe %}
+                <div class="p-4 flex justify-between items-center">
+                    <div>
+                        {% if avail.player %}
+                        <span class="font-medium text-gray-900 dark:text-white">{{ avail.player.name }}</span>
+                        {% else %}
+                        <span class="text-gray-500 dark:text-gray-400">Discord ID: {{ avail.discord_id }}</span>
+                        {% endif %}
+                    </div>
+                    {% if avail.responded_at %}
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ avail.responded_at.strftime('%b %d, %I:%M %p') }}</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                No "Maybe" responses
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- No Response -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 rounded-t-lg">
+            <h5 class="text-lg font-semibold text-gray-700 dark:text-gray-300 flex items-center">
+                <i class="ti ti-minus mr-2"></i>No Response ({{ responses.no_response|length }})
+            </h5>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% if responses.no_response %}
+                {% for avail in responses.no_response %}
+                <div class="p-4 flex justify-between items-center">
+                    <div>
+                        {% if avail.player %}
+                        <span class="font-medium text-gray-900 dark:text-white">{{ avail.player.name }}</span>
+                        {% else %}
+                        <span class="text-gray-500 dark:text-gray-400">Discord ID: {{ avail.discord_id }}</span>
+                        {% endif %}
+                    </div>
+                    <button type="button" disabled
+                            class="p-2 text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-gray-700 opacity-50 cursor-not-allowed"
+                            title="Send Reminder">
+                        <i class="ti ti-bell"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                Everyone has responded!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function sendReminder(matchId) {
+    const isDark = document.documentElement.classList.contains('dark');
+    Swal.fire({
+        title: 'Send RSVP Reminder?',
+        text: 'This will send a reminder to all players who haven\'t responded yet.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3b82f6',
+        confirmButtonText: 'Send Reminder',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin-panel/ecs-fc/match/${matchId}/send-reminder`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Reminder Sent!',
+                        text: data.message || 'RSVP reminder has been sent.',
+                        icon: 'success',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: data.error || 'Failed to send reminder.',
+                        icon: 'error',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            })
+            .catch(() => {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to send reminder.',
+                    icon: 'error',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

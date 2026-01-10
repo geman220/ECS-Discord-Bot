@@ -391,8 +391,8 @@ window.EventDelegation.register('show-sub-assignment', function(element, e) {
         window.ModalManager.show('subAssignmentModal');
     } else {
         const modalEl = document.getElementById('subAssignmentModal');
-        if (modalEl && typeof window.bootstrap !== 'undefined') {
-            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modalEl && typeof window.Modal !== 'undefined') {
+            const modal = modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }));
             modal.show();
         }
     }
@@ -424,10 +424,10 @@ window.EventDelegation.register('show-contact-subs', function(element, e) {
     if (contactLeagueType) contactLeagueType.value = leagueType;
     if (contactMessage) contactMessage.value = '';
     if (contactMatchDetails) {
-        contactMatchDetails.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm" data-spinner></div> Loading...</div>';
+        contactMatchDetails.innerHTML = '<div class="flex justify-center items-center gap-2"><div class="w-4 h-4 border-2 border-ecs-green border-t-transparent rounded-full animate-spin" data-spinner></div> Loading...</div>';
     }
     if (availableSubsList) {
-        availableSubsList.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm" data-spinner></div></div>';
+        availableSubsList.innerHTML = '<div class="flex justify-center py-2"><div class="w-4 h-4 border-2 border-ecs-green border-t-transparent rounded-full animate-spin" data-spinner></div></div>';
     }
 
     // Show the modal
@@ -435,8 +435,8 @@ window.EventDelegation.register('show-contact-subs', function(element, e) {
         window.ModalManager.show('contactSubsModal');
     } else {
         const modalEl = document.getElementById('contactSubsModal');
-        if (modalEl && typeof window.bootstrap !== 'undefined') {
-            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modalEl && typeof window.Modal !== 'undefined') {
+            const modal = modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }));
             modal.show();
         }
     }
@@ -480,21 +480,21 @@ window.EventDelegation.register('show-contact-subs', function(element, e) {
                         availableSubsList.innerHTML = '<div class="text-muted text-center py-2">No active subs in this pool</div>';
                     }
                 } else {
-                    let html = '<div class="list-group list-group-flush">';
+                    let html = '<div class="divide-y divide-gray-200 dark:divide-gray-700">';
                     data.subs.forEach(sub => {
                         const channels = [];
-                        if (sub.channels.email) channels.push('<i class="ti ti-mail text-success"></i>');
-                        if (sub.channels.sms) channels.push('<i class="ti ti-device-mobile text-success"></i>');
-                        if (sub.channels.discord) channels.push('<i class="ti ti-brand-discord text-success"></i>');
+                        if (sub.channels.email) channels.push('<i class="ti ti-mail text-green-500"></i>');
+                        if (sub.channels.sms) channels.push('<i class="ti ti-device-mobile text-green-500"></i>');
+                        if (sub.channels.discord) channels.push('<i class="ti ti-brand-discord text-green-500"></i>');
 
                         html += `
-                            <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                            <div class="flex justify-between items-center py-2 px-3">
                                 <div>
-                                    <strong>${escapeHtml(sub.name)}</strong>
-                                    ${sub.pronouns ? '<small class="text-muted ms-1">(' + escapeHtml(sub.pronouns) + ')</small>' : ''}
-                                    ${sub.preferred_positions ? '<br><small class="text-muted">' + escapeHtml(sub.preferred_positions) + '</small>' : ''}
+                                    <strong class="text-gray-900 dark:text-white">${escapeHtml(sub.name)}</strong>
+                                    ${sub.pronouns ? '<small class="text-gray-500 dark:text-gray-400 ml-1">(' + escapeHtml(sub.pronouns) + ')</small>' : ''}
+                                    ${sub.preferred_positions ? '<br><small class="text-gray-500 dark:text-gray-400">' + escapeHtml(sub.preferred_positions) + '</small>' : ''}
                                 </div>
-                                <div class="d-flex gap-1">
+                                <div class="flex gap-1">
                                     ${channels.join(' ')}
                                 </div>
                             </div>
@@ -566,9 +566,8 @@ window.EventDelegation.register('send-to-all-subs', function(element, e) {
                 }
                 // Close modal
                 const modalEl = document.getElementById('contactSubsModal');
-                if (modalEl && typeof window.bootstrap !== 'undefined') {
-                    const modal = window.bootstrap.Modal.getInstance(modalEl);
-                    if (modal) modal.hide();
+                if (modalEl && modalEl._flowbiteModal) {
+                    modalEl._flowbiteModal.hide();
                 }
             } else {
                 if (typeof window.Swal !== 'undefined') {
@@ -621,9 +620,9 @@ window.EventDelegation.register('show-availability', function(element, e) {
     const availabilityList = document.getElementById('availabilityList');
     if (availabilityList) {
         availabilityList.innerHTML = `
-            <div class="text-center py-3">
-                <div class="spinner-border text-primary" role="status" data-spinner></div>
-                <p class="mt-2 text-muted">Loading availability...</p>
+            <div class="flex flex-col items-center py-3">
+                <div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status" data-spinner></div>
+                <p class="mt-2 text-gray-500 dark:text-gray-400">Loading availability...</p>
             </div>
         `;
     }
@@ -633,8 +632,8 @@ window.EventDelegation.register('show-availability', function(element, e) {
         window.ModalManager.show('availabilityModal');
     } else {
         const modalEl = document.getElementById('availabilityModal');
-        if (modalEl && typeof window.bootstrap !== 'undefined') {
-            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modalEl && typeof window.Modal !== 'undefined') {
+            const modal = modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }));
             modal.show();
         }
     }
@@ -681,34 +680,34 @@ function loadSubAvailability(requestId) {
                 if (data.responses.length === 0) {
                     if (availabilityList) {
                         availabilityList.innerHTML = `
-                            <div class="text-center py-3 text-muted">
-                                <i class="ti ti-users-minus u-card-icon-stat"></i>
+                            <div class="flex flex-col items-center py-3 text-gray-500 dark:text-gray-400">
+                                <i class="ti ti-users-minus text-4xl mb-2"></i>
                                 <p class="mt-2">No subs have been contacted yet.</p>
                             </div>
                         `;
                     }
                 } else {
-                    let html = '<div class="list-group list-group-flush">';
+                    let html = '<div class="divide-y divide-gray-200 dark:divide-gray-700">';
                     data.responses.forEach(resp => {
-                        let badgeClass = 'bg-warning';
+                        let badgeClass = 'bg-yellow-500 text-white';
                         let icon = 'ti-clock';
                         if (resp.status === 'available') {
-                            badgeClass = 'bg-success';
+                            badgeClass = 'bg-green-500 text-white';
                             icon = 'ti-check';
                         } else if (resp.status === 'not_available') {
-                            badgeClass = 'bg-danger';
+                            badgeClass = 'bg-red-500 text-white';
                             icon = 'ti-x';
                         }
 
                         html += `
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="flex justify-between items-center py-3 px-3">
                                 <div>
-                                    <strong>${resp.player_name}</strong>
-                                    <br><small class="text-muted">via ${resp.notification_methods || 'N/A'}</small>
-                                    ${resp.response_text ? '<br><small class="fst-italic">"' + resp.response_text + '"</small>' : ''}
+                                    <strong class="text-gray-900 dark:text-white">${resp.player_name}</strong>
+                                    <br><small class="text-gray-500 dark:text-gray-400">via ${resp.notification_methods || 'N/A'}</small>
+                                    ${resp.response_text ? '<br><small class="italic text-gray-600 dark:text-gray-300">"' + resp.response_text + '"</small>' : ''}
                                 </div>
-                                <span class="badge ${badgeClass}" data-badge>
-                                    <i class="ti ${icon} me-1"></i>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badgeClass}" data-badge>
+                                    <i class="ti ${icon} mr-1"></i>
                                     ${resp.status.replace('_', ' ')}
                                 </span>
                             </div>

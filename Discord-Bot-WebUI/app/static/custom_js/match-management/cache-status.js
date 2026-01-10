@@ -25,7 +25,7 @@ export function showCacheStatus() {
                                     <h5 class="modal-title">
                                         <i class="ti ti-database me-2"></i>Cache System Status
                                     </h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    <button type="button" class="btn-close" data-modal-hide="cacheStatusModal"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="row mb-3">
@@ -83,7 +83,7 @@ export function showCacheStatus() {
                                     </div>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-secondary" data-modal-hide="cacheStatusModal">Close</button>
                                 </div>
                             </div>
                         </div>
@@ -102,10 +102,19 @@ export function showCacheStatus() {
                 // Show modal
                 window.ModalManager.show('cacheStatusModal');
 
-                // Clean up when modal is hidden
-                document.getElementById('cacheStatusModal').addEventListener('hidden.bs.modal', function () {
-                    this.remove();
-                });
+                // Clean up when modal is hidden (using MutationObserver for Flowbite)
+                const modalEl = document.getElementById('cacheStatusModal');
+                if (modalEl) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.attributeName === 'class' && modalEl.classList.contains('hidden')) {
+                                modalEl.remove();
+                                observer.disconnect();
+                            }
+                        });
+                    });
+                    observer.observe(modalEl, { attributes: true, attributeFilter: ['class'] });
+                }
 
             } else {
                 if (typeof window.Swal !== 'undefined') {

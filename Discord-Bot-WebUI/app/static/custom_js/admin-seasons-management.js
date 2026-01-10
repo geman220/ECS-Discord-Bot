@@ -46,7 +46,7 @@ class AdminSeasonsManager {
                     self.loadRolloverPreview();
                 } else {
                     const preview = document.getElementById('rolloverPreview');
-                    if (preview) preview.classList.add('d-none');
+                    if (preview) preview.classList.add('hidden');
                 }
             }
         });
@@ -91,7 +91,7 @@ class AdminSeasonsManager {
         if (setCurrentSeasonId) setCurrentSeasonId.value = seasonId;
         if (setCurrentSeasonName) setCurrentSeasonName.textContent = seasonName;
         if (performRollover) performRollover.checked = false;
-        if (rolloverPreview) rolloverPreview.classList.add('d-none');
+        if (rolloverPreview) rolloverPreview.classList.add('hidden');
 
         window.ModalManager.show('setCurrentModal');
     }
@@ -105,7 +105,7 @@ class AdminSeasonsManager {
 
         if (!previewDiv || !seasonId) return;
 
-        previewDiv.classList.remove('d-none');
+        previewDiv.classList.remove('hidden');
         previewDiv.innerHTML = '<i class="ti ti-loader me-2"></i>Loading preview...';
 
         fetch(`/admin-panel/league-management/seasons/api/${seasonId}/rollover-preview`)

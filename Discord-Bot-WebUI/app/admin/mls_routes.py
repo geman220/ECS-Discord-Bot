@@ -193,7 +193,7 @@ def view_mls_matches():
         match.status_icon = get_status_icon(match.live_reporting_status)
         match.status_display = get_status_display(match.live_reporting_status)
     
-    return render_template('admin/mls_matches.html', matches=matches, title='MLS Matches (DEPRECATED)')
+    return render_template('admin/mls_matches_flowbite.html', matches=matches, title='MLS Matches (DEPRECATED)')
 
 
 @admin_bp.route('/admin/match_management', endpoint='match_management')

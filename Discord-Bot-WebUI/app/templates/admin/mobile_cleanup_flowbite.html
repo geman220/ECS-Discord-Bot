@@ -1,0 +1,276 @@
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge %}
+
+{% block title %}Mobile Analytics Cleanup{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Data Cleanup Management</h1>
+            <p class="text-gray-500 dark:text-gray-400">Manage mobile analytics storage and cleanup old data</p>
+        </div>
+        <a href="{{ url_for('mobile_analytics_admin.dashboard') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
+            <i class="ti ti-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Storage Stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-4">
+                    <i class="ti ti-bug text-xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Error Records</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ storage_stats.error_count|default(0) }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-4">
+                    <i class="ti ti-file-text text-xl text-green-600 dark:text-green-400"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Log Records</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ storage_stats.log_count|default(0) }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-4">
+                    <i class="ti ti-chart-dots text-xl text-purple-600 dark:text-purple-400"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Pattern Records</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ storage_stats.pattern_count|default(0) }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mr-4">
+                    <i class="ti ti-database text-xl text-yellow-600 dark:text-yellow-400"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Records</p>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ storage_stats.total_records|default(0) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cleanup Preview -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-trash mr-2 text-gray-400"></i>Cleanup Preview
+            </h5>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Data older than the retention period will be removed</p>
+        </div>
+        <div class="p-6">
+            {% if preview %}
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-red-600 dark:text-red-400">Errors to Remove</p>
+                            <h4 class="text-2xl font-bold text-red-700 dark:text-red-300">{{ preview.errors_to_delete|default(0) }}</h4>
+                        </div>
+                        <i class="ti ti-bug-off text-3xl text-red-400"></i>
+                    </div>
+                    <p class="text-xs text-red-500 dark:text-red-400 mt-2">Older than {{ preview.error_retention_days|default(30) }} days</p>
+                </div>
+
+                <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-orange-600 dark:text-orange-400">Logs to Remove</p>
+                            <h4 class="text-2xl font-bold text-orange-700 dark:text-orange-300">{{ preview.logs_to_delete|default(0) }}</h4>
+                        </div>
+                        <i class="ti ti-file-x text-3xl text-orange-400"></i>
+                    </div>
+                    <p class="text-xs text-orange-500 dark:text-orange-400 mt-2">Older than {{ preview.log_retention_days|default(7) }} days</p>
+                </div>
+
+                <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-purple-600 dark:text-purple-400">Patterns to Remove</p>
+                            <h4 class="text-2xl font-bold text-purple-700 dark:text-purple-300">{{ preview.patterns_to_delete|default(0) }}</h4>
+                        </div>
+                        <i class="ti ti-chart-dots-3 text-3xl text-purple-400"></i>
+                    </div>
+                    <p class="text-xs text-purple-500 dark:text-purple-400 mt-2">Stale patterns (inactive)</p>
+                </div>
+            </div>
+
+            <!-- Total to be cleaned -->
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Total Records to Remove</p>
+                        <h3 class="text-3xl font-bold text-gray-900 dark:text-white">
+                            {{ (preview.errors_to_delete|default(0) + preview.logs_to_delete|default(0) + preview.patterns_to_delete|default(0)) }}
+                        </h3>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Estimated Space Saved</p>
+                        <p class="text-xl font-semibold text-gray-900 dark:text-white">{{ preview.estimated_space_saved|default('N/A') }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Execute Cleanup Button -->
+            <div class="flex justify-end">
+                <button type="button" id="executeCleanupBtn" class="inline-flex items-center px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors" onclick="confirmCleanup()">
+                    <i class="ti ti-trash mr-2"></i>Execute Cleanup
+                </button>
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                    <i class="ti ti-check text-3xl text-green-500"></i>
+                </div>
+                <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Nothing to Clean</h5>
+                <p class="text-gray-500 dark:text-gray-400">All data is within retention periods. No cleanup needed.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Retention Policy Info -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-info-circle mr-2 text-gray-400"></i>Retention Policy
+            </h5>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-3">
+                        <i class="ti ti-bug text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                    <div>
+                        <h6 class="font-medium text-gray-900 dark:text-white">Error Analytics</h6>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Retained for 30 days</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-3">
+                        <i class="ti ti-file-text text-green-600 dark:text-green-400"></i>
+                    </div>
+                    <div>
+                        <h6 class="font-medium text-gray-900 dark:text-white">Mobile Logs</h6>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Retained for 7 days</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-3">
+                        <i class="ti ti-chart-dots text-purple-600 dark:text-purple-400"></i>
+                    </div>
+                    <div>
+                        <h6 class="font-medium text-gray-900 dark:text-white">Error Patterns</h6>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Removed when inactive for 90 days</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmCleanup() {
+    const isDark = document.documentElement.classList.contains('dark');
+
+    Swal.fire({
+        title: 'Confirm Cleanup',
+        text: 'This will permanently delete old analytics data. This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, delete data',
+        cancelButtonText: 'Cancel',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            executeCleanup();
+        }
+    });
+}
+
+function executeCleanup() {
+    const btn = document.getElementById('executeCleanupBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>Cleaning...';
+
+    const isDark = document.documentElement.classList.contains('dark');
+
+    fetch('/admin/mobile-analytics/api/cleanup/execute', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ confirmed: true })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            Swal.fire({
+                title: 'Cleanup Complete',
+                html: `
+                    <p>Successfully removed:</p>
+                    <ul class="text-left mt-2">
+                        <li>Errors: ${data.errors_deleted || 0}</li>
+                        <li>Logs: ${data.logs_deleted || 0}</li>
+                        <li>Patterns: ${data.patterns_deleted || 0}</li>
+                    </ul>
+                `,
+                icon: 'success',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
+            Swal.fire({
+                title: 'Cleanup Failed',
+                text: data.error || 'An error occurred during cleanup',
+                icon: 'error',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ti ti-trash mr-2"></i>Execute Cleanup';
+        }
+    })
+    .catch(err => {
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to execute cleanup',
+            icon: 'error',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-trash mr-2"></i>Execute Cleanup';
+    });
+}
+</script>
+{% endblock %}

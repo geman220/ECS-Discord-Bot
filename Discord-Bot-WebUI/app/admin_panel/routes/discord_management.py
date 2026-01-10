@@ -678,7 +678,7 @@ def discord_role_mapping():
         logger.warning(f"Could not fetch Discord roles: {e}")
 
     return render_template(
-        'admin_panel/discord/role_mapping.html',
+        'admin_panel/discord/role_mapping_flowbite.html',
         flask_roles=flask_roles,
         discord_roles=discord_roles,
         bot_status=bot_status,

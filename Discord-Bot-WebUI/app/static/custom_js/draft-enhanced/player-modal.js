@@ -17,8 +17,8 @@ import { confirmDraftPlayer } from './draft-confirmation.js';
 export function openPlayerModal(playerId) {
     // Show loading state
     const profileLoading = document.getElementById('profileLoading');
-    profileLoading.classList.add('d-block');
-    profileLoading.classList.remove('d-none');
+    profileLoading.classList.add('block');
+    profileLoading.classList.remove('hidden');
     document.getElementById('profileData').classList.remove('is-visible');
     document.getElementById('draftFromModal').classList.remove('is-visible');
 
@@ -50,8 +50,8 @@ export function openPlayerModal(playerId) {
  */
 export function displayPlayerProfile(data, playerId) {
     const profileLoading = document.getElementById('profileLoading');
-    profileLoading.classList.add('d-none');
-    profileLoading.classList.remove('d-block');
+    profileLoading.classList.add('hidden');
+    profileLoading.classList.remove('block');
 
     const profileHtml = `
         <div class="p-4 draft-profile-container">
@@ -159,7 +159,8 @@ export function displayPlayerProfile(data, playerId) {
     draftButton.classList.add('is-visible');
     draftButton.onclick = () => {
         // Close modal and trigger draft
-        window.bootstrap.Modal.getInstance(document.getElementById('playerProfileModal')).hide();
+        const modalEl = document.getElementById('playerProfileModal');
+        modalEl?._flowbiteModal?.hide();
         confirmDraftPlayer(playerId, data.name);
     };
 }

@@ -27,9 +27,9 @@ export function initMobileNavigation(context) {
 
         const navbarCollapse = document.querySelector('[data-navbar-collapse], .navbar-collapse');
         if (window.innerWidth < CONFIG.TABLET_BREAKPOINT && navbarCollapse && navbarCollapse.classList.contains('show')) {
-            const bsCollapse = window.bootstrap?.Collapse?.getInstance(navbarCollapse);
-            if (bsCollapse) {
-                bsCollapse.hide();
+            const flowbiteCollapse = window.Collapse?.getInstance(navbarCollapse);
+            if (flowbiteCollapse) {
+                flowbiteCollapse.hide();
             }
         }
     });

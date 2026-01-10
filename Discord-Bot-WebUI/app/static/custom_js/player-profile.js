@@ -329,7 +329,7 @@ import { showToast } from '../js/services/toast-service.js';
                     // Close modal
                     const contactModal = document.getElementById('contactModal');
                     if (contactModal) {
-                        const modalInstance = window.bootstrap.Modal.getInstance(contactModal);
+                        const modalInstance = contactModal._flowbiteModal;
                         if (modalInstance) modalInstance.hide();
                     }
                 } else {
@@ -373,18 +373,21 @@ import { showToast } from '../js/services/toast-service.js';
     // ========================================================================
 
     /**
-     * Initialize Bootstrap tooltips
-     * Activates all elements with data-bs-toggle="tooltip"
+     * Initialize tooltips
+     * Flowbite auto-initializes tooltips with title attribute
      */
     function initTooltips() {
-        if (typeof window.bootstrap === 'undefined') return;
+        if (typeof window.Tooltip === 'undefined') return;
 
-        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => {
-            return new window.bootstrap.Tooltip(tooltipTriggerEl);
+        let count = 0;
+        document.querySelectorAll('[title]').forEach(el => {
+            if (!el._tooltip) {
+                el._tooltip = new window.Tooltip(el);
+                count++;
+            }
         });
 
-        console.log(`[Player Profile] Initialized ${tooltipList.length} tooltips`);
+        console.log(`[Player Profile] Initialized ${count} tooltips`);
     }
 
     // ========================================================================
@@ -544,17 +547,20 @@ import { showToast } from '../js/services/toast-service.js';
 
                 // Use SweetAlert2 for edit modal
                 if (typeof window.Swal !== 'undefined') {
+                    const isDark = document.documentElement.classList.contains('dark');
                     window.Swal.fire({
                         title: `Edit ${eventLabel}`,
                         html: `
-                            <div class="mb-3 text-start">
-                                <label class="form-label">Match: ${data.match_date}</label>
+                            <div class="mb-4 text-left">
+                                <label class="block text-sm font-medium text-gray-900 dark:text-white">Match: ${data.match_date}</label>
                             </div>
-                            <div class="mb-3 text-start">
-                                <label class="form-label" for="stat-minute">Minute</label>
-                                <input type="text" id="stat-minute" class="form-control" value="${currentMinute}" placeholder="e.g., 45, 90+2">
+                            <div class="mb-4 text-left">
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white" for="stat-minute">Minute</label>
+                                <input type="text" id="stat-minute" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${currentMinute}" placeholder="e.g., 45, 90+2">
                             </div>
                         `,
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827',
                         showCancelButton: true,
                         confirmButtonText: 'Save',
                         cancelButtonText: 'Cancel',

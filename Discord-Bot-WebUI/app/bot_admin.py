@@ -138,7 +138,7 @@ def matches():
 
     match_dates.sort(key=lambda x: x['date'])
     return render_template(
-        'matches.html',
+        'matches_flowbite.html',
         title='Sounders Match Dates',
         matches=match_dates,
         competition_mappings=COMPETITION_MAPPINGS,

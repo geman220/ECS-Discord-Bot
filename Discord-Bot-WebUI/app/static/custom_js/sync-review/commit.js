@@ -26,12 +26,12 @@ export function checkCommitReadiness() {
     const readyToCommit = document.getElementById('readyToCommit');
 
     if (resolvedIssues === totalIssues) {
-        if (commitValidation) commitValidation.classList.add('d-none');
-        if (readyToCommit) readyToCommit.classList.remove('d-none');
+        if (commitValidation) commitValidation.classList.add('hidden');
+        if (readyToCommit) readyToCommit.classList.remove('hidden');
         populateCommitSummary();
     } else {
-        if (commitValidation) commitValidation.classList.remove('d-none');
-        if (readyToCommit) readyToCommit.classList.add('d-none');
+        if (commitValidation) commitValidation.classList.remove('hidden');
+        if (readyToCommit) readyToCommit.classList.add('hidden');
     }
 }
 
@@ -91,8 +91,8 @@ export function commitAllChanges() {
         showCancelButton: true,
         confirmButtonText: 'Yes, commit changes',
         cancelButtonText: 'Cancel',
-        confirmButtonClass: 'btn btn-success',
-        cancelButtonClass: 'btn btn-secondary'
+        confirmButtonClass: 'text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5',
+        cancelButtonClass: 'text-gray-900 bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600'
     }).then((result) => {
         if (result.isConfirmed) {
             executeCommit();
@@ -117,7 +117,7 @@ export function executeCommit() {
     const commitBtn = document.getElementById('finalCommitBtn');
     if (commitBtn) {
         commitBtn.disabled = true;
-        commitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>Committing Changes...';
+        commitBtn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>Committing Changes...';
     }
 
     fetch('/user_management/commit_sync_changes', {
@@ -135,7 +135,7 @@ export function executeCommit() {
                 icon: 'success',
                 title: 'Changes Committed!',
                 text: 'All sync changes have been successfully applied.',
-                confirmButtonClass: 'btn btn-success'
+                confirmButtonClass: 'text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5'
             }).then(() => {
                 window.location.href = '/user_management/manage_users';
             });
@@ -148,7 +148,7 @@ export function executeCommit() {
             icon: 'error',
             title: 'Commit Failed',
             text: 'Error committing changes: ' + error.message,
-            confirmButtonClass: 'btn btn-danger'
+            confirmButtonClass: 'text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5'
         });
 
         if (commitBtn) {

@@ -622,13 +622,11 @@ window.Swal = {
     isVisible: vi.fn().mockReturnValue(false)
 };
 
-// Bootstrap Modal
-window.bootstrap = {
-    Modal: vi.fn().mockImplementation(() => ({
-        show: vi.fn(),
-        hide: vi.fn()
-    }))
-};
+// Flowbite Modal
+window.Modal = vi.fn().mockImplementation(() => ({
+    show: vi.fn(),
+    hide: vi.fn()
+}));
 
 // Socket.io
 window.io = vi.fn().mockReturnValue({

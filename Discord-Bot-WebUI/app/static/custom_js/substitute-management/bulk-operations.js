@@ -94,7 +94,7 @@ export function handleExport(btn) {
 
   // Disable button and show loading
   $btn.prop('disabled', true);
-  $btn.html('<i class="ti ti-loader me-2 spinner-border spinner-border-sm"></i>Exporting...');
+  $btn.html('<span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></span>Exporting...');
 
   // Simulate export (replace with actual implementation)
   setTimeout(function() {

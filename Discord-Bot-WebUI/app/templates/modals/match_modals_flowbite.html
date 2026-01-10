@@ -1,0 +1,12 @@
+{% from "macros/flowbite.html" import render_report_match_modal_flowbite %}
+
+<!-- This template is rendered by the /render_modals endpoint -->
+<!-- Uses Flowbite modal patterns -->
+
+<div id="reportMatchModal-container" class="modal-container">
+    {% for match in matches %}
+        {% if match and match.id in player_choices %}
+            {{ render_report_match_modal_flowbite(match, player_choices) }}
+        {% endif %}
+    {% endfor %}
+</div>

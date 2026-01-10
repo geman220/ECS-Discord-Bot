@@ -739,16 +739,16 @@ def _get_slow_queries():
         try:
             # Look for database-related audit logs that might indicate slow operations
             recent_logs = AdminAuditLog.query.filter(
-                AdminAuditLog.created_at >= datetime.utcnow() - timedelta(hours=24),
+                AdminAuditLog.timestamp >= datetime.utcnow() - timedelta(hours=24),
                 AdminAuditLog.action.like('%database%')
-            ).order_by(AdminAuditLog.created_at.desc()).limit(10).all()
+            ).order_by(AdminAuditLog.timestamp.desc()).limit(10).all()
             
             for log in recent_logs:
                 if 'slow' in log.details.lower() if log.details else False:
                     slow_queries.append({
                         'query': log.details[:100] + '...' if len(log.details) > 100 else log.details,
                         'duration': '> 1000ms',
-                        'timestamp': log.created_at,
+                        'timestamp': log.timestamp,
                         'user': log.user.username if log.user else 'System'
                     })
         except Exception:
@@ -839,8 +839,8 @@ def _get_database_activity():
         # Get recent audit log entries as database activity indicators
         try:
             recent_logs = AdminAuditLog.query.filter(
-                AdminAuditLog.created_at >= datetime.utcnow() - timedelta(hours=1)
-            ).order_by(AdminAuditLog.created_at.desc()).limit(20).all()
+                AdminAuditLog.timestamp >= datetime.utcnow() - timedelta(hours=1)
+            ).order_by(AdminAuditLog.timestamp.desc()).limit(20).all()
             
             for log in recent_logs:
                 activity_type = 'INSERT'
@@ -854,7 +854,7 @@ def _get_database_activity():
                 activities.append({
                     'type': activity_type,
                     'table': log.resource_type or 'unknown',
-                    'timestamp': log.created_at,
+                    'timestamp': log.timestamp,
                     'user': log.user.username if log.user else 'System',
                     'action': log.action,
                     'duration': '~50ms'  # Estimated duration
@@ -1025,7 +1025,7 @@ def _get_query_statistics():
         # Count operations in last 24 hours as a proxy for queries
         cutoff = datetime.utcnow() - timedelta(hours=24)
         total_queries = AdminAuditLog.query.filter(
-            AdminAuditLog.created_at >= cutoff
+            AdminAuditLog.timestamp >= cutoff
         ).count()
 
         # Estimate slow queries (any operation taking multiple DB calls)
@@ -1033,7 +1033,7 @@ def _get_query_statistics():
         try:
             # Count complex operations that might involve slow queries
             complex_ops = AdminAuditLog.query.filter(
-                AdminAuditLog.created_at >= cutoff,
+                AdminAuditLog.timestamp >= cutoff,
                 AdminAuditLog.action.in_(['bulk_update', 'sync', 'migration', 'report'])
             ).count()
             slow_queries = complex_ops
@@ -1112,7 +1112,7 @@ def _estimate_queries_per_second():
         # Count operations in last minute
         cutoff = datetime.utcnow() - timedelta(minutes=1)
         recent_ops = AdminAuditLog.query.filter(
-            AdminAuditLog.created_at >= cutoff
+            AdminAuditLog.timestamp >= cutoff
         ).count()
 
         # Each operation might involve multiple queries, estimate ~3 per operation

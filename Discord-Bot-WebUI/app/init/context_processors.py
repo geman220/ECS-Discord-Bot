@@ -104,9 +104,31 @@ def _register_utility_processor(app):
         def is_role_impersonation_active():
             return is_impersonation_active()
 
-        # Get available roles for impersonation (only for Global Admins)
+        def is_real_global_admin():
+            """Check if the REAL user (not impersonated) is a Global Admin."""
+            if not safe_current_user or not safe_current_user.is_authenticated:
+                return False
+            try:
+                session_db = getattr(g, 'db_session', None)
+                if session_db:
+                    from app.models import User
+                    from sqlalchemy.orm import selectinload
+                    db_user = session_db.query(User).options(
+                        selectinload(User.roles)
+                    ).get(safe_current_user.id)
+                    if db_user:
+                        real_roles = [role.name for role in db_user.roles]
+                        return 'Global Admin' in real_roles
+            except Exception as e:
+                logger.error(f"Error checking real global admin status: {e}")
+            return False
+
+        # Check if real user is Global Admin (for impersonation UI)
+        real_is_global_admin = is_real_global_admin()
+
+        # Get available roles for impersonation (only for real Global Admins)
         available_roles = []
-        if 'Global Admin' in user_roles:
+        if real_is_global_admin:
             try:
                 from app.models import Role
                 session_db = getattr(g, 'db_session', None)
@@ -132,6 +154,7 @@ def _register_utility_processor(app):
             'has_role': has_role,
             'is_admin': is_admin,
             'is_role_impersonation_active': is_role_impersonation_active,
+            'real_is_global_admin': real_is_global_admin,
             'admin_settings': admin_settings,
             'available_roles': available_roles
         }

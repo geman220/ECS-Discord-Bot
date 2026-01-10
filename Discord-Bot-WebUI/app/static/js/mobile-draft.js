@@ -137,13 +137,13 @@ const MobileDraft = {
               <div class="small text-muted">Select team to draft</div>
             </div>
           </div>
-          <button class="btn btn-sm btn-light" data-action="close-quick-draft-panel" aria-label="Close"><i class="ti ti-x"></i></button>
+          <button class="text-gray-900 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600" data-action="close-quick-draft-panel" aria-label="Close"><i class="ti ti-x"></i></button>
         </div>
         <div class="d-grid gap-2">
-          <button class="btn btn-success btn-lg" data-action="quick-draft" data-player-id="${playerId}" data-team="default">
+          <button class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-base px-6 py-3" data-action="quick-draft" data-player-id="${playerId}" data-team="default">
             <i class="ti ti-check"></i> Quick Draft
           </button>
-          <button class="btn btn-outline-primary" data-action="show-team-selector" data-player-id="${playerId}">
+          <button class="text-ecs-green bg-transparent border border-ecs-green hover:bg-ecs-green hover:text-white focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5" data-action="show-team-selector" data-player-id="${playerId}">
             <i class="ti ti-users"></i> Select Team
           </button>
         </div>
@@ -180,8 +180,8 @@ const MobileDraft = {
      * Show team selector modal
      */
     showTeamSelector: function (playerId) {
-      // Find and click team selection modal trigger
-      const selectBtn = document.querySelector(`[data-player-id="${playerId}"] [data-bs-toggle="modal"]`);
+      // Find and click team selection modal trigger (Flowbite pattern)
+      const selectBtn = document.querySelector(`[data-player-id="${playerId}"] [data-modal-toggle]`);
       if (selectBtn) {
         selectBtn.click();
       }

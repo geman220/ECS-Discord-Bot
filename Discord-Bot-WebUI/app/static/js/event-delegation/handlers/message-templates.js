@@ -103,21 +103,18 @@ function copyTemplate(templateId) {
         if (data.message_content) {
             navigator.clipboard.writeText(data.message_content).then(function() {
                 // Show success message
-                const toast = document.createElement('div');
-                toast.className = 'toast-container position-fixed top-0 end-0 p-3';
-                toast.innerHTML = `
-                    <div class="toast show" role="alert">
-                        <div class="toast-header">
-                            <strong class="me-auto">Success</strong>
-                            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-                        </div>
-                        <div class="toast-body">
-                            Message content copied to clipboard!
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(toast);
-                setTimeout(() => toast.remove(), 3000);
+                // Show success using SweetAlert2 toast
+                if (window.Swal) {
+                    window.Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Message content copied to clipboard!',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                }
             });
         }
     })

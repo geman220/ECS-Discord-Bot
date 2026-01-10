@@ -1,0 +1,34 @@
+<!-- Team History Partial - Flowbite/Tailwind -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+        <h6 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-history mr-2 text-gray-400"></i>Team History
+        </h6>
+    </div>
+    <div class="p-4">
+        {% if team_history %}
+        <div class="space-y-3">
+            {% for pts, team, season in team_history %}
+            <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <div>
+                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="font-medium text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-green">
+                        {{ team.name }}
+                    </a>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ season.name }}</p>
+                </div>
+                {% if season.is_current %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                    Current
+                </span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-6">
+            <i class="ti ti-users-group text-3xl text-gray-400 mb-2"></i>
+            <p class="text-gray-500 dark:text-gray-400">No team history available</p>
+        </div>
+        {% endif %}
+    </div>
+</div>

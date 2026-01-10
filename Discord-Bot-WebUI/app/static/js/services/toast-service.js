@@ -60,18 +60,18 @@ function normalizeType(type) {
 }
 
 /**
- * Get Bootstrap background class for toast type
+ * Get Tailwind background class for toast type
  * @param {ToastType} type - Toast type
  * @returns {string}
  */
-function getBootstrapClass(type) {
+function getTailwindBgClass(type) {
     const classMap = {
-        success: 'bg-success',
-        error: 'bg-danger',
-        warning: 'bg-warning',
-        info: 'bg-info'
+        success: 'bg-green-600 dark:bg-green-700',
+        error: 'bg-red-600 dark:bg-red-700',
+        warning: 'bg-yellow-500 dark:bg-yellow-600',
+        info: 'bg-blue-600 dark:bg-blue-700'
     };
-    return classMap[type] || 'bg-info';
+    return classMap[type] || 'bg-blue-600 dark:bg-blue-700';
 }
 
 /**
@@ -138,93 +138,79 @@ function showToastrToast(message, type, options = {}) {
 }
 
 /**
- * Show toast using Bootstrap Toast
+ * Show toast using Tailwind-styled toast (fallback when SweetAlert2 unavailable)
  * @param {string} message - Toast message
  * @param {ToastType} type - Toast type
  * @param {ToastOptions} options - Additional options
  * @returns {boolean} - Whether the toast was shown
  */
-function showBootstrapToast(message, type, options = {}) {
+function showTailwindToast(message, type, options = {}) {
     // Get or create toast container
     let container = document.querySelector('[data-role="toast-container"]');
     if (!container) {
         container = document.createElement('div');
-        container.className = 'toast-container position-fixed top-0 end-0 p-3';
-        container.style.zIndex = '9999';
+        container.className = 'fixed top-4 right-4 z-50 flex flex-col gap-2';
         container.setAttribute('data-role', 'toast-container');
         document.body.appendChild(container);
     }
 
-    const bgClass = getBootstrapClass(type);
+    const bgClass = getTailwindBgClass(type);
     const title = options.title || getDefaultTitle(type);
     const duration = options.duration || 3000;
 
     const toastId = `toast-${Date.now()}`;
     const toastHtml = `
-        <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body">
-                    ${title !== message ? `<strong>${title}</strong><br>` : ''}
-                    ${message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        <div id="${toastId}" class="flex items-center p-4 text-white ${bgClass} rounded-lg shadow-lg max-w-sm transform transition-all duration-300 translate-x-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="flex-1 text-sm font-medium">
+                ${title !== message ? `<span class="font-bold">${title}</span><br>` : ''}
+                ${message}
             </div>
+            <button type="button" onclick="this.closest('[role=alert]').remove()" class="ml-3 -mr-1 -my-1 p-1.5 rounded-lg hover:bg-white/20 focus:ring-2 focus:ring-white/50" aria-label="Close">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+            </button>
         </div>
     `;
 
     container.insertAdjacentHTML('beforeend', toastHtml);
 
     const toastElement = document.getElementById(toastId);
-    if (toastElement && typeof window.bootstrap !== 'undefined' && window.bootstrap.Toast) {
-        const bsToast = new window.bootstrap.Toast(toastElement, {
-            autohide: true,
-            delay: duration
-        });
-        bsToast.show();
 
-        // Remove from DOM after hidden
-        toastElement.addEventListener('hidden.bs.toast', () => {
-            toastElement.remove();
-        });
-
-        return true;
-    }
-
-    // Fallback: manual display and removal
-    toastElement.classList.add('show');
+    // Auto-remove after duration
     setTimeout(() => {
-        toastElement.classList.remove('show');
-        setTimeout(() => toastElement.remove(), 300);
+        if (toastElement) {
+            toastElement.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => toastElement.remove(), 300);
+        }
     }, duration);
 
     return true;
 }
 
 /**
- * Show toast using custom DOM element (fallback)
+ * Show toast using custom DOM element (final fallback)
  * @param {string} message - Toast message
  * @param {ToastType} type - Toast type
  * @param {ToastOptions} options - Additional options
  */
 function showDomToast(message, type, options = {}) {
     const duration = options.duration || 3000;
-    const bgClass = getBootstrapClass(type);
+    const bgClass = getTailwindBgClass(type);
 
     const toast = document.createElement('div');
-    toast.className = `position-fixed top-0 end-0 m-3 p-3 rounded text-white ${bgClass}`;
-    toast.style.cssText = 'z-index: 9999; min-width: 250px; animation: slideIn 0.3s ease;';
+    toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg text-white min-w-64 shadow-lg ${bgClass}`;
     toast.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center">
-            <span>${message}</span>
-            <button type="button" class="btn-close btn-close-white ms-2" onclick="this.parentElement.parentElement.remove()"></button>
+        <div class="flex justify-between items-center gap-3">
+            <span class="text-sm">${message}</span>
+            <button type="button" class="p-1 hover:bg-white/20 rounded" onclick="this.parentElement.parentElement.remove()">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+            </button>
         </div>
     `;
 
     document.body.appendChild(toast);
 
     setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.3s ease';
+        toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
         setTimeout(() => toast.remove(), 300);
     }, duration);
 }
@@ -293,7 +279,7 @@ export function showToast(arg1, arg2 = 'info', arg3 = {}) {
     // Try notification methods in order of preference
     if (showSwalToast(message, type, options)) return;
     if (showToastrToast(message, type, options)) return;
-    if (showBootstrapToast(message, type, options)) return;
+    if (showTailwindToast(message, type, options)) return;
 
     // Final fallback: DOM element or console
     try {

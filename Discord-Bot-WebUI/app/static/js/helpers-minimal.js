@@ -480,12 +480,12 @@ const Helpers = {
         if (this._sidebarToggleRegistered) return;
         this._sidebarToggleRegistered = true;
 
-        // Delegated click handler for sidebar toggles
+        // Delegated click handler for sidebar toggles (Flowbite pattern)
         document.addEventListener('click', function(e) {
-            const el = e.target.closest('[data-bs-toggle="sidebar"]');
+            const el = e.target.closest('[data-sidebar-toggle], [data-drawer-toggle]');
             if (!el) return;
 
-            const target = el.getAttribute('data-target');
+            const target = el.getAttribute('data-target') || el.getAttribute('data-sidebar-toggle');
             const overlay = el.getAttribute('data-overlay');
             const appOverlay = document.querySelector('.app-overlay');
 
@@ -509,8 +509,8 @@ const Helpers = {
             appOverlay.classList.remove('show');
 
             // Close all shown sidebars
-            document.querySelectorAll('[data-bs-toggle="sidebar"]').forEach(toggle => {
-                const target = toggle.getAttribute('data-target');
+            document.querySelectorAll('[data-sidebar-toggle], [data-drawer-toggle]').forEach(toggle => {
+                const target = toggle.getAttribute('data-target') || toggle.getAttribute('data-sidebar-toggle');
                 if (target) {
                     document.querySelectorAll(target).forEach(tel => {
                         tel.classList.remove('show');

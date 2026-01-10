@@ -51,12 +51,16 @@ export function applyTheme(theme, save = true) {
   // Set data-style attribute (used by our modern CSS)
   html.setAttribute('data-style', actualTheme);
 
-  // Set data-bs-theme (Bootstrap 5.3+)
-  html.setAttribute('data-bs-theme', actualTheme);
-  body.setAttribute('data-bs-theme', actualTheme);
-
-  // Set data-theme (generic)
+  // Set data-theme (generic - used by Tailwind/Flowbite dark mode)
   html.setAttribute('data-theme', actualTheme);
+  body.setAttribute('data-theme', actualTheme);
+
+  // Add/remove Tailwind dark class for Flowbite dark mode
+  if (actualTheme === 'dark') {
+    html.classList.add('dark');
+  } else {
+    html.classList.remove('dark');
+  }
 
   // Set Vuexy-specific class
   if (actualTheme === 'dark') {

@@ -121,6 +121,7 @@ def scheduled_messages_queue():
 
         return render_template('admin_panel/communication/scheduled_messages_queue_flowbite.html',
                              pending_messages=pending_messages,
+                             now=datetime.utcnow(),
                              **stats)
     except Exception as e:
         logger.error(f"Error loading scheduled messages queue: {e}")

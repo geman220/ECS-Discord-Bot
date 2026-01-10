@@ -18,22 +18,28 @@ export const ViewStandings = {
     },
 
     initializeBootstrapComponents() {
-        // Initialize tooltips
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(tooltipTriggerEl => {
-            return new window.bootstrap.Tooltip(tooltipTriggerEl, {
-                delay: { show: 300, hide: 100 }
+        // Initialize tooltips - Flowbite auto-initializes tooltips with title attribute
+        if (typeof window.Tooltip !== 'undefined') {
+            document.querySelectorAll('[title]').forEach(el => {
+                if (!el._tooltip) {
+                    el._tooltip = new window.Tooltip(el, {
+                        delay: { show: 300, hide: 100 }
+                    });
+                }
             });
-        });
+        }
 
-        // Initialize popovers
-        const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-        popoverTriggerList.map(popoverTriggerEl => {
-            return new window.bootstrap.Popover(popoverTriggerEl, {
-                delay: { show: 100, hide: 100 },
-                container: 'body'
+        // Initialize popovers using Flowbite (data-popover-target attribute)
+        if (typeof window.Popover !== 'undefined') {
+            document.querySelectorAll('[data-popover-target]').forEach(popoverTriggerEl => {
+                if (!popoverTriggerEl._popover) {
+                    popoverTriggerEl._popover = new window.Popover(popoverTriggerEl, {
+                        delay: { show: 100, hide: 100 },
+                        container: 'body'
+                    });
+                }
             });
-        });
+        }
     },
 
     setupTabPersistence() {
@@ -41,8 +47,8 @@ export const ViewStandings = {
         const activeTabId = localStorage.getItem('standingsActiveTab');
         if (activeTabId) {
             const tabElement = document.getElementById(activeTabId);
-            if (tabElement) {
-                const tab = new window.bootstrap.Tab(tabElement);
+            if (tabElement && typeof window.Tabs !== 'undefined') {
+                const tab = new window.Tabs(tabElement);
                 tab.show();
             }
         }

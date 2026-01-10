@@ -468,7 +468,7 @@ window.EventDelegation.register('view-task-details', (element, event) => {
     const modalContent = document.getElementById('task_details_content');
 
     if (modalTitle) modalTitle.textContent = `Details for ${taskName}`;
-    if (modalContent) modalContent.innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
+    if (modalContent) modalContent.innerHTML = '<div class="flex justify-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status" data-spinner></div></div>';
 
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('taskDetailsModal');
@@ -504,7 +504,7 @@ window.EventDelegation.register('view-task-logs', (element, event) => {
     const modalContent = document.getElementById('task_logs_content');
 
     if (modalTitle) modalTitle.textContent = `Logs for ${taskName}`;
-    if (modalContent) modalContent.innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
+    if (modalContent) modalContent.innerHTML = '<div class="flex justify-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status" data-spinner></div></div>';
 
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('taskLogsModal');

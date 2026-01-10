@@ -233,12 +233,12 @@ class PitchViewSystem {
 
             // Use CSS classes instead of inline styles
             if (isVisible) {
-                item.classList.remove('d-none');
-                item.classList.add('d-flex');
+                item.classList.remove('hidden');
+                item.classList.add('flex');
                 visibleCount++;
             } else {
-                item.classList.remove('d-flex');
-                item.classList.add('d-none');
+                item.classList.remove('flex');
+                item.classList.add('hidden');
             }
         });
 
@@ -256,12 +256,12 @@ class PitchViewSystem {
 
             // Use CSS classes instead of inline styles
             if (isVisible) {
-                item.classList.remove('d-none');
-                item.classList.add('d-flex');
+                item.classList.remove('hidden');
+                item.classList.add('flex');
                 visibleCount++;
             } else {
-                item.classList.remove('d-flex');
-                item.classList.add('d-none');
+                item.classList.remove('flex');
+                item.classList.add('hidden');
             }
         });
 
@@ -339,15 +339,15 @@ class PitchViewSystem {
                 <img src="${player.profile_picture_url}" alt="${player.name}"
                      class="player-profile-img"
                      data-fallback-initials="${this.getPlayerInitials(player.name)}">
-                <div class="player-initials d-none">${this.getPlayerInitials(player.name)}</div>
+                <div class="player-initials hidden">${this.getPlayerInitials(player.name)}</div>
                 <button class="remove-btn" data-action="remove-player-from-pitch" data-player-id="${player.id}" data-position="${position}" data-team-id="${teamId}" title="Remove ${player.name}" aria-label="Remove ${player.name}">×</button>
             `;
             // Set up image error handling
             const img = element.querySelector('img');
             if (img) {
                 img.onerror = function() {
-                    this.classList.add('d-none');
-                    this.nextElementSibling?.classList.remove('d-none');
+                    this.classList.add('hidden');
+                    this.nextElementSibling?.classList.remove('hidden');
                 };
             }
         } else {
@@ -813,7 +813,7 @@ class PitchViewSystem {
 
     updateAvailablePlayerCount(count = null) {
         if (count === null) {
-            const visiblePlayers = document.querySelectorAll('#availablePlayersList .player-item:not(.d-none)');
+            const visiblePlayers = document.querySelectorAll('#availablePlayersList .player-item:not(.hidden)');
             count = visiblePlayers.length;
         }
 
@@ -827,16 +827,16 @@ class PitchViewSystem {
     showLoading() {
         const overlay = document.getElementById('loadingOverlay');
         if (overlay) {
-            overlay.classList.remove('d-none');
-            overlay.classList.add('d-flex');
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
         }
     }
 
     hideLoading() {
         const overlay = document.getElementById('loadingOverlay');
         if (overlay) {
-            overlay.classList.remove('d-flex');
-            overlay.classList.add('d-none');
+            overlay.classList.remove('flex');
+            overlay.classList.add('hidden');
         }
     }
 
@@ -908,7 +908,7 @@ function switchTeamView(teamId) {
     // Switch to the team's tab
     const tabButton = document.getElementById(`team-${teamId}-tab`);
     if (tabButton) {
-        const tab = new window.bootstrap.Tab(tabButton);
+        const tab = new window.Tabs(tabButton);
         tab.show();
     }
 }

@@ -135,11 +135,21 @@ let _initialized = false;
           };
         }
         
-        // Initialize tooltips
-        if (window.bootstrap) {
-          var tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        // Initialize tooltips using Flowbite Tooltip
+        if (window.Tooltip) {
+          var tooltipElements = document.querySelectorAll('[title]');
           for (var i = 0; i < tooltipElements.length; i++) {
-            new window.bootstrap.Tooltip(tooltipElements[i]);
+            var el = tooltipElements[i];
+            var tooltipContent = el.getAttribute('title') || '';
+            if (tooltipContent && !el._flowbiteTooltip) {
+              // Create tooltip target element
+              var tooltipEl = document.createElement('div');
+              tooltipEl.textContent = tooltipContent;
+              tooltipEl.id = 'tooltip-' + i;
+              tooltipEl.className = 'tooltip-content hidden';
+              document.body.appendChild(tooltipEl);
+              el._flowbiteTooltip = new window.Tooltip(tooltipEl, el, { placement: 'top', triggerType: 'hover' });
+            }
           }
         }
         
@@ -279,13 +289,19 @@ export function bindEventHandlers() {
     if (window.jQuery) {
       var $ = window.jQuery;
       
-      // Initialize tooltips
-      if (window.bootstrap) {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function(tooltipTriggerEl) {
-            return new window.bootstrap.Tooltip(tooltipTriggerEl, {
-                delay: { show: 200, hide: 100 }
-            });
+      // Initialize tooltips using Flowbite Tooltip
+      if (window.Tooltip) {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+        tooltipTriggerList.forEach(function(el, idx) {
+            var tooltipContent = el.getAttribute('title') || '';
+            if (tooltipContent && !el._flowbiteTooltip) {
+              var tooltipEl = document.createElement('div');
+              tooltipEl.textContent = tooltipContent;
+              tooltipEl.id = 'tooltip-bind-' + idx;
+              tooltipEl.className = 'tooltip-content hidden';
+              document.body.appendChild(tooltipEl);
+              el._flowbiteTooltip = new window.Tooltip(tooltipEl, el, { placement: 'top', triggerType: 'hover' });
+            }
         });
       }
       
@@ -371,8 +387,8 @@ export function bindEventHandlers() {
                 window.toastr.success('SMS sent successfully.');
               }
               var smsModal = document.querySelector('[data-modal="send-sms"]');
-              if (window.bootstrap && smsModal) {
-                window.bootstrap.Modal.getInstance(smsModal).hide();
+              if (smsModal && smsModal._flowbiteModal) {
+                smsModal._flowbiteModal.hide();
               }
             } else {
               if (window.toastr) {
@@ -429,8 +445,8 @@ export function bindEventHandlers() {
                 window.toastr.success('Discord DM sent successfully.');
               }
               var discordModal = document.querySelector('[data-modal="send-discord-dm"]');
-              if (window.bootstrap && discordModal) {
-                window.bootstrap.Modal.getInstance(discordModal).hide();
+              if (discordModal && discordModal._flowbiteModal) {
+                discordModal._flowbiteModal.hide();
               }
             } else {
               if (window.toastr) {
@@ -464,16 +480,18 @@ export function bindTabHandlers() {
   try {
     if (window.jQuery) {
       var $ = window.jQuery;
-      
-      // Handle tab switching
-      window.$('a[data-bs-toggle="tab"]').on('shown.bs.tab', function() {
-        // Fix overflow issues
-        fixDropdownsAndOverflow();
-        
-        // Adjust DataTables
-        if (window.$.fn.dataTable) {
-          window.$.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
-        }
+
+      // Handle tab switching (Flowbite tabs use click events)
+      window.$('[role="tab"]').on('click', function() {
+        // Fix overflow issues after tab switch
+        setTimeout(function() {
+          fixDropdownsAndOverflow();
+
+          // Adjust DataTables
+          if (window.$.fn.dataTable) {
+            window.$.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+          }
+        }, 100);
       });
     }
   } catch (e) {
@@ -495,7 +513,19 @@ export function loadAvailableSubs() {
       }
       
       // When the modal is shown, fetch substitute responses
-      window.$('#assignSubModalRSVP').on('shown.bs.modal', function() {
+      // Using MutationObserver for Flowbite modal (detects class change from hidden to flex)
+      var assignSubModal = document.getElementById('assignSubModalRSVP');
+      if (assignSubModal) {
+        var modalObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'class' && !assignSubModal.classList.contains('hidden')) {
+              window.$(assignSubModal).trigger('modal-shown');
+            }
+          });
+        });
+        modalObserver.observe(assignSubModal, { attributes: true, attributeFilter: ['class'] });
+      }
+      window.$('#assignSubModalRSVP').on('modal-shown', function() {
         var subPlayerSelect = window.$('#subPlayerRSVP');
         
         // Clear existing options except the default
@@ -575,7 +605,7 @@ export function loadAvailableSubs() {
         var originalText = submitBtn.html();
         
         // Disable button and show loading
-        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Assigning...');
+        submitBtn.prop('disabled', true).html('<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" role="status" aria-hidden="true"></span> Assigning...');
         
         fetch(this.action, {
           method: 'POST',
@@ -609,9 +639,8 @@ export function loadAvailableSubs() {
             
             // Hide modal
             var assignModal = document.querySelector('[data-modal="assign-sub"]');
-            if (window.bootstrap && assignModal) {
-              var modal = window.bootstrap.Modal.getInstance(assignModal);
-              modal.hide();
+            if (assignModal && assignModal._flowbiteModal) {
+              assignModal._flowbiteModal.hide();
             }
           } else {
             // Show error message

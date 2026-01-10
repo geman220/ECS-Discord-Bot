@@ -135,7 +135,7 @@ function initializeFormHandlers() {
 
         // Show loading state
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div>';
+        submitBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" role="status"><span class="sr-only">Loading...</span></div>';
 
         // Note: Form will submit normally, this is just for UI feedback
         // The backend will handle the actual update

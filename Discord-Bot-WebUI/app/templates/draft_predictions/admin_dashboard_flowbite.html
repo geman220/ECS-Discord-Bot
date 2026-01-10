@@ -1,0 +1,221 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge %}
+
+{% block admin_title %}Draft Predictions Admin{% endblock %}
+{% block panel_description %}View aggregated draft predictions and coach analytics{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.draft_overview') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Draft</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Predictions</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Header with Season Selector -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+    <div class="flex flex-wrap justify-between items-center gap-4">
+        <p class="text-gray-500 dark:text-gray-400">
+            View and analyze draft predictions submitted by coaches across all seasons.
+        </p>
+        <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-500 dark:text-gray-400">Season:</label>
+            <select id="seasonSelector" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                {% for season in seasons %}
+                <option value="{{ season.id }}" {% if selected_season and season.id == selected_season.id %}selected{% endif %}>
+                    {{ season.name }}{% if season.is_current %} (Current){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</div>
+
+{% if selected_season %}
+<!-- Overview Stats -->
+{% set total_predictions = league_stats.get('Premier', {}).get('prediction_count', 0) + league_stats.get('Classic', {}).get('prediction_count', 0) %}
+{% set total_coaches = league_stats.get('Premier', {}).get('coach_count', 0) + league_stats.get('Classic', {}).get('coach_count', 0) %}
+{% set total_players = league_stats.get('Premier', {}).get('player_count', 0) + league_stats.get('Classic', {}).get('player_count', 0) %}
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-ecs-green/10 flex items-center justify-center mr-4">
+                <i class="ti ti-trophy text-xl text-ecs-green"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Season</p>
+                <h5 class="text-lg font-bold text-gray-900 dark:text-white">{{ selected_season.name[:20] }}{% if selected_season.name|length > 20 %}...{% endif %}</h5>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-4">
+                <i class="ti ti-chart-bar text-xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Predictions</p>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_predictions }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-4">
+                <i class="ti ti-users text-xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Coaches</p>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_coaches }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex items-center">
+            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mr-4">
+                <i class="ti ti-user-check text-xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Players Predicted</p>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ total_players }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- League Cards -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Premier League -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-shield text-green-500 mr-2"></i>Premier League
+            </h5>
+        </div>
+        <div class="p-6">
+            {% set premier_stats = league_stats.get('Premier', {}) %}
+            <div class="grid grid-cols-3 gap-4 mb-6 text-center">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ premier_stats.get('prediction_count', 0) }}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Predictions</p>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ premier_stats.get('coach_count', 0) }}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Coaches</p>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ premier_stats.get('player_count', 0) }}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Players</p>
+                </div>
+            </div>
+
+            {% if premier_stats.get('prediction_count', 0) > 0 %}
+            <a href="{{ url_for('draft_predictions.admin_view_league', league_type='Premier', season_id=selected_season.id) }}"
+               class="w-full inline-flex items-center justify-center px-4 py-2 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors">
+                <i class="ti ti-eye mr-2"></i>View Predictions
+            </a>
+            {% else %}
+            <div class="text-center text-gray-500 dark:text-gray-400 py-3">
+                <i class="ti ti-info-circle mr-1"></i>No predictions yet
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Classic League -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-shield text-blue-500 mr-2"></i>Classic League
+            </h5>
+        </div>
+        <div class="p-6">
+            {% set classic_stats = league_stats.get('Classic', {}) %}
+            <div class="grid grid-cols-3 gap-4 mb-6 text-center">
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ classic_stats.get('prediction_count', 0) }}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Predictions</p>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ classic_stats.get('coach_count', 0) }}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Coaches</p>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ classic_stats.get('player_count', 0) }}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Players</p>
+                </div>
+            </div>
+
+            {% if classic_stats.get('prediction_count', 0) > 0 %}
+            <a href="{{ url_for('draft_predictions.admin_view_league', league_type='Classic', season_id=selected_season.id) }}"
+               class="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors">
+                <i class="ti ti-eye mr-2"></i>View Predictions
+            </a>
+            {% else %}
+            <div class="text-center text-gray-500 dark:text-gray-400 py-3">
+                <i class="ti ti-info-circle mr-1"></i>No predictions yet
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- No Season Selected/Available -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+    <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+        <i class="ti ti-calendar-off text-3xl text-gray-400"></i>
+    </div>
+    <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{{ message if message else 'No Season Selected' }}</h4>
+    <p class="text-gray-500 dark:text-gray-400">Select a season from the dropdown to view prediction data.</p>
+</div>
+{% endif %}
+
+<!-- Quick Links -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-link text-gray-400 mr-2"></i>Quick Links
+        </h5>
+    </div>
+    <div class="p-4">
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ url_for('draft_predictions.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
+                <i class="ti ti-home mr-2"></i>Coach View
+            </a>
+            <a href="{{ url_for('admin.draft_history') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
+                <i class="ti ti-history mr-2"></i>Draft History
+            </a>
+            <a href="{{ url_for('admin_panel.draft_overview') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
+                <i class="ti ti-settings mr-2"></i>Draft Settings
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const seasonSelector = document.getElementById('seasonSelector');
+    if (seasonSelector) {
+        seasonSelector.addEventListener('change', function() {
+            const seasonId = this.value;
+            window.location.href = `{{ url_for('draft_predictions.admin_dashboard') }}?season_id=${seasonId}`;
+        });
+    }
+});
+</script>
+{% endblock %}

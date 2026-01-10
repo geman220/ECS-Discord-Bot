@@ -28,7 +28,7 @@ export function searchPlayersDelayed(input, issueId, orderIndex) {
 
     // Show loading
     if (resultsDiv) {
-        resultsDiv.innerHTML = '<div class="text-muted small" data-spinner><i class="spinner-border spinner-border-sm me-1"></i>Searching...</div>';
+        resultsDiv.innerHTML = '<div class="text-gray-500 dark:text-gray-400 text-sm" data-spinner><span class="inline-block w-4 h-4 border-2 border-ecs-green border-t-transparent rounded-full animate-spin mr-1"></span>Searching...</div>';
     }
 
     setSearchTimeout(setTimeout(() => {
@@ -112,5 +112,5 @@ export function cancelPlayerSearch(issueId, orderIndex) {
     if (select) select.value = '';
 
     const searchDiv = document.getElementById(`search-${issueId}-${orderIndex}`);
-    if (searchDiv) searchDiv.classList.add('d-none');
+    if (searchDiv) searchDiv.classList.add('hidden');
 }

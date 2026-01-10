@@ -316,7 +316,7 @@ def duplicate_registration_stats():
         ).limit(10).all()
         
         return render_template(
-            'admin/duplicate_registration_stats.html',
+            'admin/duplicate_registration_stats_flowbite.html',
             title='Duplicate Registration Statistics',
             stats=stats,
             match_type_stats=dict(match_type_stats),

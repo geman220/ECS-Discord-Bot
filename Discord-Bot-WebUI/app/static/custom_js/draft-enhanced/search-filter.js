@@ -56,8 +56,8 @@ export function filterPlayers() {
         const isVisible = matchesSearch && matchesPosition;
 
         if (isVisible) {
-            card.classList.add('d-block');
-            card.classList.remove('d-none');
+            card.classList.add('block');
+            card.classList.remove('hidden');
             visibleCount++;
 
             // Collect data for sorting
@@ -73,8 +73,8 @@ export function filterPlayers() {
                 goals: goals
             });
         } else {
-            card.classList.add('d-none');
-            card.classList.remove('d-block');
+            card.classList.add('hidden');
+            card.classList.remove('block');
         }
     });
 

@@ -24,48 +24,50 @@ from app.admin_panel import admin_panel_bp
 from app.decorators import role_required
 from typing import Dict, Any, Optional
 
-# Default theme colors (Professional Edition - from theme-variables.css)
+# Default theme colors (ECS Brand + Flowbite/Tailwind)
+# ECS Brand: Green #1a472a, Gold #c9a227
+# Flowbite Dark Mode: bg #111827, card #1f2937, border #374151
 DEFAULT_COLORS = {
     "light": {
-        "primary": "#7C3AED",
-        "primary_light": "#8B5CF6",
-        "primary_dark": "#6D28D9",
-        "secondary": "#64748B",
-        "accent": "#F59E0B",
-        "success": "#10B981",
-        "warning": "#F59E0B",
-        "danger": "#EF4444",
-        "info": "#3B82F6",
-        "text_heading": "#18181B",
-        "text_body": "#52525B",
-        "text_muted": "#71717A",
-        "text_link": "#7C3AED",
-        "bg_body": "#FAFAFA",
-        "bg_card": "#FFFFFF",
-        "bg_input": "#FFFFFF",
-        "border": "#E4E4E7",
-        "border_input": "#D4D4D8"
+        "primary": "#1a472a",           # ECS Green (brand primary)
+        "primary_light": "#15803d",     # Green-700 for hover
+        "primary_dark": "#14532d",      # Green-900 for pressed
+        "secondary": "#6b7280",         # Gray-500
+        "accent": "#c9a227",            # ECS Gold (brand accent)
+        "success": "#16a34a",           # Green-600
+        "warning": "#d97706",           # Amber-600
+        "danger": "#dc2626",            # Red-600
+        "info": "#2563eb",              # Blue-600
+        "text_heading": "#111827",      # Gray-900
+        "text_body": "#374151",         # Gray-700
+        "text_muted": "#6b7280",        # Gray-500
+        "text_link": "#1a472a",         # ECS Green
+        "bg_body": "#f9fafb",           # Gray-50
+        "bg_card": "#ffffff",           # White
+        "bg_input": "#ffffff",          # White
+        "border": "#e5e7eb",            # Gray-200
+        "border_input": "#d1d5db"       # Gray-300
     },
     "dark": {
-        "primary": "#60A5FA",
-        "primary_light": "#93C5FD",
-        "primary_dark": "#3B82F6",
-        "secondary": "#94A3B8",
-        "accent": "#FBBF24",
-        "success": "#34D399",
-        "warning": "#FBBF24",
-        "danger": "#F87171",
-        "info": "#60A5FA",
-        "text_heading": "#F8FAFC",
-        "text_body": "#CBD5E1",
-        "text_muted": "#94A3B8",
-        "text_link": "#60A5FA",
-        "bg_body": "#0F172A",
-        "bg_card": "#1E293B",
-        "bg_input": "#334155",
-        "bg_sidebar": "#0F172A",
-        "border": "#475569",
-        "border_input": "#475569"
+        "primary": "#22c55e",           # Green-500 (brighter for dark mode)
+        "primary_light": "#4ade80",     # Green-400 for hover
+        "primary_dark": "#16a34a",      # Green-600 for pressed
+        "secondary": "#9ca3af",         # Gray-400
+        "accent": "#facc15",            # Yellow-400 (gold for dark mode)
+        "success": "#22c55e",           # Green-500
+        "warning": "#fbbf24",           # Amber-400
+        "danger": "#f87171",            # Red-400
+        "info": "#60a5fa",              # Blue-400
+        "text_heading": "#f9fafb",      # Gray-50
+        "text_body": "#d1d5db",         # Gray-300
+        "text_muted": "#9ca3af",        # Gray-400
+        "text_link": "#4ade80",         # Green-400
+        "bg_body": "#111827",           # Gray-900 (Flowbite dark bg)
+        "bg_card": "#1f2937",           # Gray-800 (Flowbite dark card)
+        "bg_input": "#374151",          # Gray-700
+        "bg_sidebar": "#111827",        # Gray-900 (same as body)
+        "border": "#374151",            # Gray-700 (Flowbite dark border)
+        "border_input": "#4b5563"       # Gray-600
     }
 }
 
@@ -993,7 +995,7 @@ def set_default_preset(preset_id):
 @role_required(['Global Admin'])
 def apply_preset_colors(preset_id):
     """
-    Apply a preset's colors to the current appearance settings.
+    Apply a preset's colors to the current appearance settings (by ID).
     """
     try:
         from app.models import ThemePreset
@@ -1013,4 +1015,96 @@ def apply_preset_colors(preset_id):
 
     except Exception as e:
         current_app.logger.error(f"Error applying preset: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@admin_panel_bp.route('/appearance/presets/apply', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def apply_preset():
+    """
+    Apply a preset's colors to the current appearance settings (by slug).
+    Used by the appearance page JS to apply presets.
+    """
+    try:
+        from app.models import ThemePreset
+
+        data = request.get_json()
+        if not data or 'slug' not in data:
+            return jsonify({"success": False, "message": "No preset slug provided"}), 400
+
+        preset = ThemePreset.get_by_slug(data['slug'])
+        if not preset:
+            return jsonify({"success": False, "message": "Preset not found"}), 404
+
+        # Save preset colors as current colors
+        if save_custom_colors(preset.colors):
+            return jsonify({
+                "success": True,
+                "message": f"Applied colors from '{preset.name}'. Refresh to see changes."
+            })
+        else:
+            return jsonify({"success": False, "message": "Failed to apply preset colors"}), 500
+
+    except Exception as e:
+        current_app.logger.error(f"Error applying preset: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@admin_panel_bp.route('/appearance/presets/save', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def save_preset():
+    """
+    Save a new theme preset with all settings.
+    Used by the appearance page JS to save presets from the modal.
+    """
+    try:
+        from app.models import ThemePreset, db
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "No data provided"}), 400
+
+        name = data.get('name')
+        colors = data.get('colors')
+        description = data.get('description', '')
+        enabled = data.get('enabled', True)
+        is_default = data.get('is_default', False)
+
+        if not name:
+            return jsonify({"success": False, "message": "Preset name is required"}), 400
+
+        if not colors:
+            return jsonify({"success": False, "message": "Colors are required"}), 400
+
+        # Validate colors structure
+        if 'light' not in colors or 'dark' not in colors:
+            return jsonify({"success": False, "message": "Invalid color structure"}), 400
+
+        # Create the preset
+        preset = ThemePreset.create_preset(
+            name=name,
+            colors=colors,
+            description=description,
+            user_id=current_user.id
+        )
+
+        # Update enabled and default status
+        preset.is_enabled = enabled
+        if is_default:
+            # Clear other defaults first
+            ThemePreset.query.filter(ThemePreset.id != preset.id).update({'is_default': False})
+            preset.is_default = True
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f"Preset '{name}' saved successfully.",
+            "preset": preset.to_dict()
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error saving preset: {e}")
         return jsonify({"success": False, "message": str(e)}), 500

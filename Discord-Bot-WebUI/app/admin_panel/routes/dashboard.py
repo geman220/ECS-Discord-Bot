@@ -243,7 +243,7 @@ def feature_toggles():
             categories[setting.category].append(setting)
 
         return render_template(
-            'admin_panel/feature_toggles.html',
+            'admin_panel/feature_toggles_flowbite.html',
             categories=categories
         )
     except Exception as e:
@@ -391,7 +391,7 @@ def audit_logs():
         resource_types = [rt[0] for rt in resource_types]
 
         return render_template(
-            'admin_panel/audit_logs.html',
+            'admin_panel/audit_logs_flowbite.html',
             logs=logs,
             users=users,
             resource_types=resource_types,
@@ -513,7 +513,7 @@ def system_info():
         ).all()
 
         return render_template(
-            'admin_panel/system_info.html',
+            'admin_panel/system_info_flowbite.html',
             info=info,
             critical_settings=critical_settings
         )

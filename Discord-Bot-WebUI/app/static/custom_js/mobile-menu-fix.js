@@ -29,7 +29,7 @@ function openMenu() {
         layoutMenu.classList.add('menu-open');
     }
     if (closeIcon) {
-        closeIcon.classList.remove('d-none');
+        closeIcon.classList.remove('hidden');
     }
 }
 
@@ -40,7 +40,7 @@ function closeMenu() {
         layoutMenu.classList.remove('menu-open');
     }
     if (closeIcon) {
-        closeIcon.classList.add('d-none');
+        closeIcon.classList.add('hidden');
     }
 }
 

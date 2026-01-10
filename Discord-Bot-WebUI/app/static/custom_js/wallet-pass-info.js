@@ -37,7 +37,7 @@ function detectIOSNonSafari() {
     if (isIOS && !isSafari) {
         const warning = document.getElementById('safari-warning');
         if (warning) {
-            warning.classList.remove('d-none');
+            warning.classList.remove('hidden');
         }
     }
 }
@@ -75,9 +75,9 @@ function copyPageLink() {
  */
 function showCopyFeedback(feedbackEl) {
     if (feedbackEl) {
-        feedbackEl.classList.remove('d-none');
+        feedbackEl.classList.remove('hidden');
         setTimeout(function() {
-            feedbackEl.classList.add('d-none');
+            feedbackEl.classList.add('hidden');
         }, 3000);
     }
 }

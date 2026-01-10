@@ -231,7 +231,7 @@ def campaigns_detail(campaign_id):
         campaign = PushNotificationCampaign.query.get_or_404(campaign_id)
 
         return render_template(
-            'admin_panel/communication/campaign_detail.html',
+            'admin_panel/communication/campaign_detail_flowbite.html',
             campaign=campaign,
             page_title=f'Campaign: {campaign.name}'
         )

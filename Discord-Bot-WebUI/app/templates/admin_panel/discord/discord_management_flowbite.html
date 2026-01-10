@@ -134,8 +134,10 @@
                     </div>
 
                     <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                        {% if player.discord_last_checked %}
+                        {% if player.discord_last_checked and player.discord_last_checked is not string %}
                         Last checked: {{ player.discord_last_checked.strftime('%Y-%m-%d %H:%M') }}
+                        {% elif player.discord_last_checked %}
+                        Last checked: {{ player.discord_last_checked }}
                         {% else %}
                         Never checked
                         {% endif %}

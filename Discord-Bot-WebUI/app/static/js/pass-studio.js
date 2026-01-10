@@ -124,13 +124,13 @@ const PassStudio = {
 
         if (previewLogo) {
             if (this.assets.logo && this.assets.logo.url) {
-                previewLogo.classList.remove('d-none');
-                previewLogo.classList.add('d-flex');
+                previewLogo.classList.remove('hidden');
+                previewLogo.classList.add('flex');
                 previewLogo.innerHTML = `<img src="${this.assets.logo.url}" alt="Logo">`;
             } else {
                 // No logo - hide the logo area entirely for cleaner look
-                previewLogo.classList.add('d-none');
-                previewLogo.classList.remove('d-flex');
+                previewLogo.classList.add('hidden');
+                previewLogo.classList.remove('flex');
                 previewLogo.innerHTML = '';
             }
         }
@@ -186,11 +186,11 @@ const PassStudio = {
 
         if (applePreview && googlePreview) {
             if (platform === 'apple') {
-                applePreview.classList.remove('d-none');
-                googlePreview.classList.add('d-none');
+                applePreview.classList.remove('hidden');
+                googlePreview.classList.add('hidden');
             } else {
-                applePreview.classList.add('d-none');
-                googlePreview.classList.remove('d-none');
+                applePreview.classList.add('hidden');
+                googlePreview.classList.remove('hidden');
             }
         }
     },
@@ -203,9 +203,9 @@ const PassStudio = {
         const passStyle = document.querySelector('input[name="apple_pass_style"]:checked')?.value || 'generic';
 
         // Update style descriptions
-        document.querySelectorAll('[id^="style-desc-"]').forEach(el => el.classList.add('d-none'));
+        document.querySelectorAll('[id^="style-desc-"]').forEach(el => el.classList.add('hidden'));
         const descEl = document.getElementById(`style-desc-${passStyle}`);
-        if (descEl) descEl.classList.remove('d-none');
+        if (descEl) descEl.classList.remove('hidden');
 
         // Show/hide appropriate asset containers
         const stripWrapper = document.getElementById('asset-strip-wrapper');
@@ -213,12 +213,12 @@ const PassStudio = {
 
         if (passStyle === 'generic') {
             // Generic uses thumbnail, not strip
-            if (stripWrapper) stripWrapper.classList.add('d-none');
-            if (thumbnailWrapper) thumbnailWrapper.classList.remove('d-none');
+            if (stripWrapper) stripWrapper.classList.add('hidden');
+            if (thumbnailWrapper) thumbnailWrapper.classList.remove('hidden');
         } else {
             // storeCard and eventTicket use strip, not thumbnail
-            if (stripWrapper) stripWrapper.classList.remove('d-none');
-            if (thumbnailWrapper) thumbnailWrapper.classList.add('d-none');
+            if (stripWrapper) stripWrapper.classList.remove('hidden');
+            if (thumbnailWrapper) thumbnailWrapper.classList.add('hidden');
         }
 
         // Update the preview card layout
@@ -251,32 +251,32 @@ const PassStudio = {
 
         if (passStyle === 'generic') {
             // Generic: hide strip, show thumbnail in header, show primary section below
-            if (stripArea) stripArea.classList.add('d-none');
-            if (thumbnail) thumbnail.classList.remove('d-none');
-            if (primarySection) primarySection.classList.remove('d-none');
-            if (primaryOverlay) primaryOverlay.classList.add('d-none');
-            if (notch) notch.classList.add('d-none');
+            if (stripArea) stripArea.classList.add('hidden');
+            if (thumbnail) thumbnail.classList.remove('hidden');
+            if (primarySection) primarySection.classList.remove('hidden');
+            if (primaryOverlay) primaryOverlay.classList.add('hidden');
+            if (notch) notch.classList.add('hidden');
         } else if (passStyle === 'eventTicket') {
             // EventTicket: show strip CLEAN (no overlay), hide thumbnail, show notch
             // Fields go in secondary/auxiliary below the strip
             if (stripArea) {
-                stripArea.classList.remove('d-none');
-                stripArea.classList.add('d-flex');
+                stripArea.classList.remove('hidden');
+                stripArea.classList.add('flex');
             }
-            if (thumbnail) thumbnail.classList.add('d-none');
-            if (primarySection) primarySection.classList.add('d-none');
-            if (primaryOverlay) primaryOverlay.classList.add('d-none'); // No overlay on eventTicket!
-            if (notch) notch.classList.remove('d-none');
+            if (thumbnail) thumbnail.classList.add('hidden');
+            if (primarySection) primarySection.classList.add('hidden');
+            if (primaryOverlay) primaryOverlay.classList.add('hidden'); // No overlay on eventTicket!
+            if (notch) notch.classList.remove('hidden');
         } else {
             // storeCard: show strip WITH primary overlay, hide thumbnail, hide notch
             if (stripArea) {
-                stripArea.classList.remove('d-none');
-                stripArea.classList.add('d-flex');
+                stripArea.classList.remove('hidden');
+                stripArea.classList.add('flex');
             }
-            if (thumbnail) thumbnail.classList.add('d-none');
-            if (primarySection) primarySection.classList.add('d-none');
-            if (primaryOverlay) primaryOverlay.classList.remove('d-none'); // Overlay visible for storeCard
-            if (notch) notch.classList.add('d-none');
+            if (thumbnail) thumbnail.classList.add('hidden');
+            if (primarySection) primarySection.classList.add('hidden');
+            if (primaryOverlay) primaryOverlay.classList.remove('hidden'); // Overlay visible for storeCard
+            if (notch) notch.classList.add('hidden');
         }
     },
 
@@ -460,8 +460,8 @@ const PassStudio = {
                     headerRow.appendChild(headerFieldsContainer);
                 }
             }
-            headerFieldsContainer.classList.remove('d-none');
-            headerFieldsContainer.classList.add('d-flex');
+            headerFieldsContainer.classList.remove('hidden');
+            headerFieldsContainer.classList.add('flex');
             headerFieldsContainer.innerHTML = fieldsByLocation.header.map(field => `
                 <div class="pass-header-field">
                     <div class="pass-field-label pass-field-label--dynamic" data-label-color="${labelColor}">${field.label || ''}</div>
@@ -473,8 +473,8 @@ const PassStudio = {
                 el.style.color = el.dataset.labelColor;
             });
         } else if (headerFieldsContainer) {
-            headerFieldsContainer.classList.add('d-none');
-            headerFieldsContainer.classList.remove('d-flex');
+            headerFieldsContainer.classList.add('hidden');
+            headerFieldsContainer.classList.remove('flex');
             headerFieldsContainer.innerHTML = '';
         }
 
@@ -547,7 +547,7 @@ const PassStudio = {
                 secondaryContainer.className = 'pass-secondary-fields';
                 const stripArea = appleCard.querySelector('.pass-strip-area');
                 const primarySec = appleCard.querySelector('.pass-primary-fields-section');
-                if (stripArea && !stripArea.classList.contains('d-none')) {
+                if (stripArea && !stripArea.classList.contains('hidden')) {
                     stripArea.after(secondaryContainer);
                 } else if (primarySec) {
                     primarySec.after(secondaryContainer);
@@ -659,13 +659,13 @@ const PassStudio = {
         // Update Apple preview
         const appleBarcodeArea = document.querySelector('#apple-preview .pass-barcode-area');
         if (appleBarcodeArea) {
-            appleBarcodeArea.classList.toggle('d-none', suppressBarcode);
+            appleBarcodeArea.classList.toggle('hidden', suppressBarcode);
         }
 
         // Update Google preview
         const googleBarcodeArea = document.querySelector('#google-preview .google-barcode-area');
         if (googleBarcodeArea) {
-            googleBarcodeArea.classList.toggle('d-none', suppressBarcode);
+            googleBarcodeArea.classList.toggle('hidden', suppressBarcode);
         }
     },
 
@@ -693,11 +693,11 @@ const PassStudio = {
 
         if (previewLogo) {
             if (showLogo && this.assets.logo && this.assets.logo.url) {
-                previewLogo.classList.remove('d-none');
-                previewLogo.classList.add('d-flex');
+                previewLogo.classList.remove('hidden');
+                previewLogo.classList.add('flex');
             } else {
-                previewLogo.classList.add('d-none');
-                previewLogo.classList.remove('d-flex');
+                previewLogo.classList.add('hidden');
+                previewLogo.classList.remove('flex');
             }
         }
     },

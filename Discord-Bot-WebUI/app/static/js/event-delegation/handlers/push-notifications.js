@@ -179,7 +179,7 @@ function sendTestNotification() {
  */
 function confirmSendTest() {
     const modal = document.getElementById('testNotificationModal');
-    const bsModal = modal ? window.bootstrap.Modal.getInstance(modal) : null;
+    const flowbiteModal = modal ? modal._flowbiteModal : null;
 
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value ||
                       document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -193,7 +193,7 @@ function confirmSendTest() {
     })
     .then(response => response.json())
     .then(data => {
-        if (bsModal) bsModal.hide();
+        if (flowbiteModal) flowbiteModal.hide();
         if (data.result && data.result.success > 0) {
             if (window.Swal) {
                 window.Swal.fire({
@@ -216,7 +216,7 @@ function confirmSendTest() {
         loadRecentActivity(); // Refresh activity
     })
     .catch(error => {
-        if (bsModal) bsModal.hide();
+        if (flowbiteModal) flowbiteModal.hide();
         console.error('Error sending test notification:', error);
         if (window.Swal) {
             window.Swal.fire({
@@ -250,7 +250,7 @@ function sendBroadcast() {
     }
 
     const modal = document.getElementById('broadcastModal');
-    const bsModal = modal ? window.bootstrap.Modal.getInstance(modal) : null;
+    const flowbiteModal = modal ? modal._flowbiteModal : null;
 
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value ||
                       document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -269,7 +269,7 @@ function sendBroadcast() {
     })
     .then(response => response.json())
     .then(data => {
-        if (bsModal) bsModal.hide();
+        if (flowbiteModal) flowbiteModal.hide();
         const form = document.getElementById('broadcastForm');
         if (form) form.reset();
 
@@ -295,7 +295,7 @@ function sendBroadcast() {
         loadRecentActivity(); // Refresh activity
     })
     .catch(error => {
-        if (bsModal) bsModal.hide();
+        if (flowbiteModal) flowbiteModal.hide();
         console.error('Error sending broadcast:', error);
         if (window.Swal) {
             window.Swal.fire({

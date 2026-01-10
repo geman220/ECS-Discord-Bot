@@ -151,8 +151,10 @@
                         {% endif %}
                     </td>
                     <td class="px-4 py-3 text-sm">
-                        {% if player.discord_last_checked %}
+                        {% if player.discord_last_checked and player.discord_last_checked is not string %}
                         {{ player.discord_last_checked.strftime('%b %d, %Y %H:%M') }}
+                        {% elif player.discord_last_checked %}
+                        {{ player.discord_last_checked }}
                         {% else %}
                         <span class="text-gray-400">Never</span>
                         {% endif %}

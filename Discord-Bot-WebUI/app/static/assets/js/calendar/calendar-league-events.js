@@ -41,34 +41,37 @@ export function init(options = {}) {
 function createModal() {
     // Check if modal already exists
     if (document.getElementById('leagueEventModal')) {
-        modal = new window.bootstrap.Modal(document.getElementById('leagueEventModal'));
+        const modalEl = document.getElementById('leagueEventModal');
+        modal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
         return;
     }
 
     const modalHtml = `
-    <div class="modal fade" id="leagueEventModal" tabindex="-1" aria-labelledby="leagueEventModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="leagueEventModalLabel">
+    <div id="leagueEventModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+        <div class="relative p-4 w-full max-w-xl max-h-full">
+            <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-800">
+                <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="leagueEventModalLabel">
                         <i class="ti ti-calendar-plus me-2"></i>
                         <span id="eventModalTitle">Create League Event</span>
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="var modal = document.getElementById('leagueEventModal'); if(modal._flowbiteModal) modal._flowbiteModal.hide();" aria-label="Close">
+                        <i class="ti ti-x text-xl"></i>
+                    </button>
                 </div>
-                <div class="modal-body">
+                <div class="p-4 md:p-5">
                     <form id="leagueEventForm">
                         <input type="hidden" id="eventId" value="">
 
-                        <div class="mb-3">
-                            <label for="eventTitle" class="form-label">Event Title <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="eventTitle" placeholder="e.g., Pre-Season Party" required>
+                        <div class="mb-4">
+                            <label for="eventTitle" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Event Title <span class="text-red-500">*</span></label>
+                            <input type="text" id="eventTitle" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" placeholder="e.g., Pre-Season Party" required>
                         </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="eventType" class="form-label">Event Type</label>
-                                <select class="form-select" id="eventType">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="eventType" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Event Type</label>
+                                <select id="eventType" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green">
                                     <option value="party">Party</option>
                                     <option value="meeting">Meeting</option>
                                     <option value="social">Social Event</option>
@@ -77,54 +80,48 @@ function createModal() {
                                     <option value="other" selected>Other</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
-                                <label for="eventLocation" class="form-label">Location</label>
-                                <input type="text" class="form-control" id="eventLocation" placeholder="e.g., The Local Pub">
+                            <div>
+                                <label for="eventLocation" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Location</label>
+                                <input type="text" id="eventLocation" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" placeholder="e.g., The Local Pub">
                             </div>
                         </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="eventStartDate" class="form-label">Start Date/Time <span class="text-danger">*</span></label>
-                                <input type="datetime-local" class="form-control" id="eventStartDate" required>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="eventStartDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Start Date/Time <span class="text-red-500">*</span></label>
+                                <input type="datetime-local" id="eventStartDate" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" required>
                             </div>
-                            <div class="col-md-6">
-                                <label for="eventEndDate" class="form-label">End Date/Time</label>
-                                <input type="datetime-local" class="form-control" id="eventEndDate">
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="eventAllDay">
-                                <label class="form-check-label" for="eventAllDay">
-                                    All-day event
-                                </label>
+                            <div>
+                                <label for="eventEndDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">End Date/Time</label>
+                                <input type="datetime-local" id="eventEndDate" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green">
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="eventDescription" class="form-label">Description</label>
-                            <textarea class="form-control" id="eventDescription" rows="3" placeholder="Event details..."></textarea>
+                        <div class="flex items-center mb-4">
+                            <input id="eventAllDay" type="checkbox" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <label for="eventAllDay" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">All-day event</label>
                         </div>
 
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="eventNotifyDiscord">
-                                <label class="form-check-label" for="eventNotifyDiscord">
-                                    <i class="ti ti-brand-discord me-1"></i>
-                                    Announce in Discord
-                                </label>
-                            </div>
+                        <div class="mb-4">
+                            <label for="eventDescription" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+                            <textarea id="eventDescription" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" placeholder="Event details..."></textarea>
+                        </div>
+
+                        <div class="flex items-center mb-4">
+                            <input id="eventNotifyDiscord" type="checkbox" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <label for="eventNotifyDiscord" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                <i class="ti ti-brand-discord me-1"></i>
+                                Announce in Discord
+                            </label>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-danger me-auto calendar-delete-event-btn" id="deleteEventBtn">
+                <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                    <button type="button" class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-auto calendar-delete-event-btn dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900" id="deleteEventBtn">
                         <i class="ti ti-trash me-1"></i> Delete
                     </button>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveEventBtn">
+                    <button type="button" class="text-gray-900 bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600" onclick="var modal = document.getElementById('leagueEventModal'); if(modal._flowbiteModal) modal._flowbiteModal.hide();">Cancel</button>
+                    <button type="button" class="text-white bg-ecs-green hover:bg-ecs-green-dark focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:focus:ring-green-800" id="saveEventBtn">
                         <i class="ti ti-check me-1"></i> Save Event
                     </button>
                 </div>
@@ -134,7 +131,8 @@ function createModal() {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    modal = new window.bootstrap.Modal(document.getElementById('leagueEventModal'));
+    const modalEl = document.getElementById('leagueEventModal');
+    modal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
 }
 
 /**

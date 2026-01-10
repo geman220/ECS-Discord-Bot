@@ -1,0 +1,187 @@
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge %}
+
+{% block title %}Responsive Tables Demo{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Responsive Tables Demo</h1>
+        <p class="text-gray-500 dark:text-gray-400">Mobile-friendly table patterns using Tailwind CSS</p>
+    </div>
+
+    <!-- Instructions -->
+    <div class="p-4 text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
+        <h6 class="font-semibold mb-2">How to use responsive tables:</h6>
+        <ol class="list-decimal list-inside space-y-1 text-sm">
+            <li>Wrap your table in an <code class="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/50 rounded">overflow-x-auto</code> div</li>
+            <li>Use Tailwind's responsive utilities for column visibility</li>
+            <li>Add <code class="px-1 py-0.5 bg-blue-100 dark:bg-blue-900/50 rounded">data-label</code> attributes for mobile card views</li>
+        </ol>
+    </div>
+
+    <!-- Basic Example -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Basic Example</h5>
+            <p class="text-sm text-gray-500 dark:text-gray-400">View on a mobile device or narrow your browser window</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Name</th>
+                        <th scope="col" class="px-4 py-3">Email</th>
+                        <th scope="col" class="px-4 py-3 hidden sm:table-cell">Phone</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Jersey Size</th>
+                        <th scope="col" class="px-4 py-3">League</th>
+                        <th scope="col" class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">David Hollingsworth</td>
+                        <td class="px-4 py-3">david@example.com</td>
+                        <td class="px-4 py-3 hidden sm:table-cell">206-555-1234</td>
+                        <td class="px-4 py-3 hidden md:table-cell">XL</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Premier</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex gap-2">
+                                <button class="px-3 py-1 text-xs font-medium text-white bg-ecs-green rounded hover:bg-green-800">View</button>
+                                <button class="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">Jane Smith</td>
+                        <td class="px-4 py-3">jane@example.com</td>
+                        <td class="px-4 py-3 hidden sm:table-cell">425-555-5678</td>
+                        <td class="px-4 py-3 hidden md:table-cell">S</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Classic</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex gap-2">
+                                <button class="px-3 py-1 text-xs font-medium text-white bg-ecs-green rounded hover:bg-green-800">View</button>
+                                <button class="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">Mike Johnson</td>
+                        <td class="px-4 py-3">mike@example.com</td>
+                        <td class="px-4 py-3 hidden sm:table-cell">206-555-9876</td>
+                        <td class="px-4 py-3 hidden md:table-cell">L</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Premier</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex gap-2">
+                                <button class="px-3 py-1 text-xs font-medium text-white bg-ecs-green rounded hover:bg-green-800">View</button>
+                                <button class="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Table with Status Colors -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Table with Status Colors</h5>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Match</th>
+                        <th scope="col" class="px-4 py-3 hidden sm:table-cell">Date</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Location</th>
+                        <th scope="col" class="px-4 py-3">Status</th>
+                        <th scope="col" class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="bg-green-50 dark:bg-green-900/20 border-b dark:border-gray-700">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">ECS FC vs. Seattle United</td>
+                        <td class="px-4 py-3 hidden sm:table-cell">May 15, 2025</td>
+                        <td class="px-4 py-3 hidden md:table-cell">Memorial Stadium</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Confirmed</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <button class="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700">Details</button>
+                        </td>
+                    </tr>
+                    <tr class="bg-yellow-50 dark:bg-yellow-900/20 border-b dark:border-gray-700">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">ECS FC vs. FC Seattle</td>
+                        <td class="px-4 py-3 hidden sm:table-cell">May 22, 2025</td>
+                        <td class="px-4 py-3 hidden md:table-cell">Starfire Complex</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Pending</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <button class="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700">Details</button>
+                        </td>
+                    </tr>
+                    <tr class="bg-red-50 dark:bg-red-900/20">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">ECS FC vs. Tacoma Stars</td>
+                        <td class="px-4 py-3 hidden sm:table-cell">May 29, 2025</td>
+                        <td class="px-4 py-3 hidden md:table-cell">Tacoma Soccer Center</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Cancelled</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <button class="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700">Details</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Implementation Guide -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Implementation Guide</h5>
+        </div>
+        <div class="p-6">
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Tailwind Responsive Table Pattern:</h6>
+            <pre class="p-4 bg-gray-100 dark:bg-gray-900 rounded-lg overflow-x-auto text-sm"><code class="text-gray-800 dark:text-gray-300">&lt;div class="overflow-x-auto"&gt;
+  &lt;table class="w-full text-sm text-left"&gt;
+    &lt;thead class="text-xs uppercase bg-gray-50"&gt;
+      &lt;tr&gt;
+        &lt;th class="px-4 py-3"&gt;Always Visible&lt;/th&gt;
+        &lt;th class="px-4 py-3 hidden sm:table-cell"&gt;Hidden on Mobile&lt;/th&gt;
+        &lt;th class="px-4 py-3 hidden md:table-cell"&gt;Tablet and Up&lt;/th&gt;
+      &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+      &lt;tr class="border-b hover:bg-gray-50"&gt;
+        &lt;td class="px-4 py-3"&gt;Data&lt;/td&gt;
+        &lt;td class="px-4 py-3 hidden sm:table-cell"&gt;Data&lt;/td&gt;
+        &lt;td class="px-4 py-3 hidden md:table-cell"&gt;Data&lt;/td&gt;
+      &lt;/tr&gt;
+    &lt;/tbody&gt;
+  &lt;/table&gt;
+&lt;/div&gt;</code></pre>
+
+            <div class="mt-6 p-4 text-green-800 border border-green-300 rounded-lg bg-green-50 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                <h6 class="font-semibold mb-2">Benefits of this approach:</h6>
+                <ul class="list-disc list-inside space-y-1 text-sm">
+                    <li>Horizontal scrolling on small screens when needed</li>
+                    <li>Hide less important columns on mobile with <code>hidden sm:table-cell</code></li>
+                    <li>Native Tailwind classes, no extra JavaScript needed</li>
+                    <li>Works with dark mode out of the box</li>
+                    <li>Maintains accessibility with proper table semantics</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

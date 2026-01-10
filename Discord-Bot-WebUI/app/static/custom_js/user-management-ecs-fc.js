@@ -121,8 +121,8 @@ export const EcsFcTeamManager = {
         if (!section) return;
 
         // Don't show if player fields are hidden
-        if (playerFields && playerFields.classList.contains('d-none')) {
-            section.classList.add('d-none');
+        if (playerFields && playerFields.classList.contains('hidden')) {
+            section.classList.add('hidden');
             return;
         }
 
@@ -136,9 +136,9 @@ export const EcsFcTeamManager = {
         const hasEcsFc = primaryText.includes('ECS FC') || secondaryText.includes('ECS FC');
 
         if (hasEcsFc) {
-            section.classList.remove('d-none');
+            section.classList.remove('hidden');
         } else {
-            section.classList.add('d-none');
+            section.classList.add('hidden');
             // Clear selection when hiding
             this.clearSelection();
         }

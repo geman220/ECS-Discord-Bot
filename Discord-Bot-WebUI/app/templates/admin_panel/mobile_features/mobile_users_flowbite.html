@@ -105,7 +105,7 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h6 class="text-lg font-medium text-gray-900 dark:text-white">Mobile User Management</h6>
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ mobile_users|length or 0 }} users shown</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ mobile_users.items|length if mobile_users.items else 0 }} users shown</p>
             </div>
             <div class="flex flex-wrap gap-2">
                 <button type="button" class="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="send-bulk-notification">
@@ -148,7 +148,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for user in mobile_users %}
+                {% for user in mobile_users.items %}
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td class="px-4 py-3">
                         <div class="flex items-center">

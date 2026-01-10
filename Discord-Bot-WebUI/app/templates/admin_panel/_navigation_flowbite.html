@@ -2,9 +2,10 @@
    ADMIN PANEL NAVIGATION - FLOWBITE VERSION
    ============================================================================
    Horizontal navigation bar with dropdown menus for admin sections
+   Uses custom data-admin-dropdown to avoid Flowbite auto-initialization
    ============================================================================ #}
 
-<nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-lg shadow-sm mb-6">
+<nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-lg shadow-sm mb-6 admin-nav-wrapper">
     <div class="overflow-x-auto">
         <ul class="flex flex-nowrap items-center text-sm font-medium text-gray-500 dark:text-gray-400">
             {# Dashboard #}
@@ -19,7 +20,7 @@
 
             {# League Operations #}
             <li class="relative" data-dropdown-wrapper>
-                <button type="button" data-dropdown-toggle="dropdown-league-ops-nav"
+                <button type="button" data-admin-dropdown="dropdown-league-ops-nav"
                         class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-tournament"></i>
                     <span>League Ops</span>
@@ -79,7 +80,7 @@
 
             {# MLS #}
             <li class="relative" data-dropdown-wrapper>
-                <button type="button" data-dropdown-toggle="dropdown-mls-nav"
+                <button type="button" data-admin-dropdown="dropdown-mls-nav"
                         class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-soccer-field"></i>
                     <span>MLS</span>
@@ -102,7 +103,7 @@
 
             {# ECS FC #}
             <li class="relative" data-dropdown-wrapper>
-                <button type="button" data-dropdown-toggle="dropdown-ecsfc-nav"
+                <button type="button" data-admin-dropdown="dropdown-ecsfc-nav"
                         class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-shield"></i>
                     <span>ECS FC</span>
@@ -144,7 +145,7 @@
 
             {# Discord #}
             <li class="relative" data-dropdown-wrapper>
-                <button type="button" data-dropdown-toggle="dropdown-discord-nav"
+                <button type="button" data-admin-dropdown="dropdown-discord-nav"
                         class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-brand-discord"></i>
                     <span>Discord</span>
@@ -182,7 +183,7 @@
 
             {# Members #}
             <li class="relative" data-dropdown-wrapper>
-                <button type="button" data-dropdown-toggle="dropdown-members-nav"
+                <button type="button" data-admin-dropdown="dropdown-members-nav"
                         class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-heart-handshake"></i>
                     <span>Members</span>
@@ -223,7 +224,7 @@
 
             {# Communications #}
             <li class="relative" data-dropdown-wrapper>
-                <button type="button" data-dropdown-toggle="dropdown-comms-nav"
+                <button type="button" data-admin-dropdown="dropdown-comms-nav"
                         class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-message-circle"></i>
                     <span>Comms</span>
@@ -263,7 +264,7 @@
 
             {# Users #}
             <li class="relative" data-dropdown-wrapper>
-                <button type="button" data-dropdown-toggle="dropdown-users-nav"
+                <button type="button" data-admin-dropdown="dropdown-users-nav"
                         class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-users"></i>
                     <span>Users</span>
@@ -296,7 +297,7 @@
 
             {# Admin/System #}
             <li class="relative" data-dropdown-wrapper>
-                <button type="button" data-dropdown-toggle="dropdown-admin-nav"
+                <button type="button" data-admin-dropdown="dropdown-admin-nav"
                         class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-settings"></i>
                     <span>Admin</span>
@@ -357,3 +358,90 @@
         </ul>
     </div>
 </nav>
+
+<script>
+// Admin navigation dropdowns - custom implementation
+// Uses data-admin-dropdown (not data-dropdown-toggle) to prevent Flowbite auto-initialization
+// Flowbite dropdowns don't work well with overflow-x-auto containers, so we use fixed positioning
+document.addEventListener('DOMContentLoaded', function() {
+    const navWrapper = document.querySelector('.admin-nav-wrapper');
+    if (!navWrapper) return;
+
+    const dropdownButtons = navWrapper.querySelectorAll('[data-admin-dropdown]');
+
+    // Close all dropdowns
+    function closeAllDropdowns() {
+        navWrapper.querySelectorAll('[id^="dropdown-"]').forEach(function(d) {
+            d.classList.add('hidden');
+            d.classList.remove('block');
+            // Reset positioning
+            d.style.position = '';
+            d.style.top = '';
+            d.style.left = '';
+            d.style.right = '';
+        });
+    }
+
+    // Position dropdown below button with fixed positioning
+    function positionDropdown(button, dropdown) {
+        const rect = button.getBoundingClientRect();
+        const dropdownWidth = dropdown.offsetWidth || 200;
+
+        dropdown.style.position = 'fixed';
+        dropdown.style.top = (rect.bottom + 4) + 'px';
+        dropdown.style.zIndex = '9999';
+
+        // Check if dropdown would overflow right edge of screen
+        if (rect.left + dropdownWidth > window.innerWidth - 16) {
+            // Align to right edge
+            dropdown.style.left = 'auto';
+            dropdown.style.right = '16px';
+        } else {
+            dropdown.style.left = rect.left + 'px';
+            dropdown.style.right = 'auto';
+        }
+    }
+
+    dropdownButtons.forEach(function(button) {
+        const dropdownId = button.getAttribute('data-admin-dropdown');
+        const dropdown = document.getElementById(dropdownId);
+
+        if (!dropdown) return;
+
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const isOpen = !dropdown.classList.contains('hidden');
+
+            // Close all other dropdowns first
+            closeAllDropdowns();
+
+            if (!isOpen) {
+                // Open this dropdown
+                dropdown.classList.remove('hidden');
+                dropdown.classList.add('block');
+                positionDropdown(button, dropdown);
+            }
+        });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.admin-nav-wrapper')) {
+            closeAllDropdowns();
+        }
+    });
+
+    // Close dropdowns when pressing Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAllDropdowns();
+        }
+    });
+
+    // Close dropdowns on scroll/resize
+    window.addEventListener('scroll', closeAllDropdowns, { passive: true });
+    window.addEventListener('resize', closeAllDropdowns, { passive: true });
+});
+</script>

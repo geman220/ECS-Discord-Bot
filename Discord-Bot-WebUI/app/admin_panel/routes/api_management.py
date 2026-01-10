@@ -452,14 +452,14 @@ def _get_recent_api_activity(limit=10):
     try:
         activities = db.session.query(AdminAuditLog).filter(
             AdminAuditLog.action.like('%api%')
-        ).order_by(desc(AdminAuditLog.created_at)).limit(limit).all()
-        
+        ).order_by(desc(AdminAuditLog.timestamp)).limit(limit).all()
+
         return [{
             'id': activity.id,
             'action': activity.action,
             'description': activity.details or activity.action,
             'user': activity.user.username if activity.user else 'System',
-            'timestamp': activity.created_at,
+            'timestamp': activity.timestamp,
             'type': 'api'
         } for activity in activities]
         

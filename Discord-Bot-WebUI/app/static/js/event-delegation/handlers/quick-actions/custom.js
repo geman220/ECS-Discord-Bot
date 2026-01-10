@@ -121,11 +121,11 @@ window.EventDelegation.register('save-custom-action', function(element, e) {
         html: `
             <div class="mb-3">
                 <label class="form-label">Template Name</label>
-                <input type="text" class="form-control" id="templateName" placeholder="Enter template name" data-form-control>
+                <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="templateName" placeholder="Enter template name" data-form-control>
             </div>
             <div class="mb-3">
                 <label class="form-label">Description</label>
-                <textarea class="form-control" id="templateDescription" rows="2" placeholder="Template description (optional)" data-form-control></textarea>
+                <textarea class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="templateDescription" rows="2" placeholder="Template description (optional)" data-form-control></textarea>
             </div>
         `,
         showCancelButton: true,

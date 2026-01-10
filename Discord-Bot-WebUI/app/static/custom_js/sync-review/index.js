@@ -63,14 +63,14 @@ function initializeAssignmentSelects() {
             const createDiv = document.getElementById(`create-new-${issueId}-${orderIndex}`);
 
             // Hide all forms first
-            if (searchDiv) searchDiv.classList.add('d-none');
-            if (createDiv) createDiv.classList.add('d-none');
+            if (searchDiv) searchDiv.classList.add('hidden');
+            if (createDiv) createDiv.classList.add('hidden');
 
             // Show appropriate form based on selection
             if (this.value === 'search' && searchDiv) {
-                searchDiv.classList.remove('d-none');
+                searchDiv.classList.remove('hidden');
             } else if (this.value === 'new' && createDiv) {
-                createDiv.classList.remove('d-none');
+                createDiv.classList.remove('hidden');
             }
         });
     });

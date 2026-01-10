@@ -107,7 +107,7 @@ window.EventDelegation.register('create-playoff', function(element, e) {
         html: `
             <div class="mb-3">
                 <label class="form-label">Tournament Name</label>
-                <input type="text" class="form-control" id="tournamentName" placeholder="Enter tournament name" data-form-control>
+                <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="tournamentName" placeholder="Enter tournament name" data-form-control>
             </div>
             <div class="mb-3">
                 <label class="form-label">Format</label>

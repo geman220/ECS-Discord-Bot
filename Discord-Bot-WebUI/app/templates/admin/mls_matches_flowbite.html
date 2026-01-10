@@ -1,0 +1,271 @@
+<!--
+DEPRECATED TEMPLATE
+This template has been replaced by /app/templates/admin/match_management_flowbite.html
+TODO: Remove this template after new system is verified in production
+-->
+{% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge %}
+
+{% block title %}MLS Matches [DEPRECATED]{% endblock %}
+
+{% block content %}
+<div class="p-4 space-y-6">
+    <!-- Deprecation Notice -->
+    <div class="p-4 text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800" role="alert">
+        <div class="flex items-center">
+            <i class="ti ti-alert-triangle text-xl mr-3"></i>
+            <h3 class="text-lg font-medium">Deprecated Page</h3>
+        </div>
+        <div class="mt-2 text-sm">
+            This page has been replaced by the new <a href="{{ url_for('admin.match_management') }}" class="font-semibold underline hover:no-underline">Match Management</a> interface, which combines thread scheduling and live reporting in one unified view.
+        </div>
+    </div>
+
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">MLS Matches [DEPRECATED]</h1>
+            <p class="text-gray-500 dark:text-gray-400">Discord / MLS Matches</p>
+        </div>
+        <button type="button" id="scheduleAllBtn" class="inline-flex items-center px-4 py-2 bg-ecs-green text-white font-medium rounded-lg hover:bg-green-800 transition-colors">
+            <i class="ti ti-calendar-plus mr-2"></i>Schedule All Matches
+        </button>
+    </div>
+
+    <!-- Matches Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-calendar mr-2 text-gray-400"></i>MLS Matches and Thread Scheduling
+            </h5>
+        </div>
+        {% if matches %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Match</th>
+                        <th scope="col" class="px-4 py-3">Date & Time</th>
+                        <th scope="col" class="px-4 py-3">Competition</th>
+                        <th scope="col" class="px-4 py-3">Thread Status</th>
+                        <th scope="col" class="px-4 py-3">Live Reporting</th>
+                        <th scope="col" class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in matches %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                            {% if match.is_home_game %}
+                            Sounders vs {{ match.opponent }}
+                            {% else %}
+                            {{ match.opponent }} vs Sounders
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {{ match.date_time.strftime('%m/%d/%Y %I:%M %p') }}
+                        </td>
+                        <td class="px-4 py-3">
+                            {{ match.competition }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-col gap-1">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if match.thread_created else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
+                                    {{ 'Thread Created' if match.thread_created else 'Pending' }}
+                                </span>
+                                {% if match.thread_creation_time %}
+                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                    Scheduled: {{ match.thread_creation_time.strftime('%m/%d/%Y %I:%M %p') }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-col gap-1">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if match.live_reporting_started else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
+                                    {{ match.live_reporting_status|title }}
+                                </span>
+                                {% if match.live_reporting_scheduled and not match.live_reporting_started %}
+                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                    Starts: {{ (match.date_time - timedelta(minutes=5)).strftime('%m/%d/%Y %I:%M %p') }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-wrap gap-2">
+                                {% if not match.thread_created %}
+                                <button type="button" class="schedule-btn inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800" data-match-id="{{ match.id }}">
+                                    {{ 'Re-schedule' if match.live_reporting_scheduled else 'Schedule' }}
+                                </button>
+                                <button type="button" class="create-thread-btn inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700" data-match-id="{{ match.id }}">
+                                    Create Now
+                                </button>
+                                {% else %}
+                                <a href="https://discord.com/channels/{{ config.SERVER_ID }}/{{ config.MATCH_CHANNEL_ID }}/{{ match.discord_thread_id }}" target="_blank" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                                    View Thread
+                                </a>
+                                {% endif %}
+
+                                {% if not match.live_reporting_started %}
+                                <button type="button" class="toggle-reporting-btn inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600" data-match-id="{{ match.id }}" data-action="start">
+                                    Start Reporting
+                                </button>
+                                {% else %}
+                                <button type="button" class="toggle-reporting-btn inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700" data-match-id="{{ match.id }}" data-action="stop">
+                                    Stop Reporting
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                <i class="ti ti-calendar-off text-3xl text-gray-400"></i>
+            </div>
+            <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Matches Found</h5>
+            <p class="text-gray-500 dark:text-gray-400">No MLS matches are currently scheduled.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Status Modal -->
+<div id="taskStatusModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Task Status</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="taskStatusModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <div class="flex items-center">
+                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-ecs-green mr-3"></div>
+                    <span id="taskStatusMessage" class="text-gray-700 dark:text-gray-300">Processing...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const isDark = document.documentElement.classList.contains('dark');
+
+    function showToast(type, message) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true,
+                position: 'bottom-end',
+                icon: type === 'error' ? 'error' : type,
+                title: message,
+                showConfirmButton: false,
+                timer: 3000,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+    }
+
+    // Schedule All Matches
+    document.getElementById('scheduleAllBtn')?.addEventListener('click', async function() {
+        try {
+            const response = await fetch('/bot/admin/match/schedule-all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast('success', 'All matches scheduled');
+                location.reload();
+            } else {
+                showToast('error', data.message || 'Failed to schedule matches');
+            }
+        } catch (error) {
+            showToast('error', 'Error scheduling matches');
+        }
+    });
+
+    // Schedule Individual Match
+    document.querySelectorAll('.schedule-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const matchId = this.dataset.matchId;
+            try {
+                const response = await fetch(`/bot/admin/match/schedule/${matchId}?force=true`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('success', 'Match scheduled');
+                    location.reload();
+                } else {
+                    showToast('error', data.message || 'Failed to schedule match');
+                }
+            } catch (error) {
+                showToast('error', 'Error scheduling match');
+            }
+        });
+    });
+
+    // Create Thread Now
+    document.querySelectorAll('.create-thread-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const matchId = this.dataset.matchId;
+            try {
+                const response = await fetch(`/bot/admin/match/${matchId}/create-thread?force=true`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('success', 'Thread creation started');
+                    location.reload();
+                } else {
+                    showToast('error', data.message || 'Failed to create thread');
+                }
+            } catch (error) {
+                showToast('error', 'Error creating thread');
+            }
+        });
+    });
+
+    // Toggle Live Reporting
+    document.querySelectorAll('.toggle-reporting-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const matchId = this.dataset.matchId;
+            const action = this.dataset.action;
+            const url = action === 'start'
+                ? `/bot/admin/start_live_reporting/${matchId}`
+                : `/bot/admin/stop_live_reporting/${matchId}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('success', `Live reporting ${action}ed`);
+                    location.reload();
+                } else {
+                    showToast('error', data.message || `Failed to ${action} reporting`);
+                }
+            } catch (error) {
+                showToast('error', `Error ${action}ing reporting`);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

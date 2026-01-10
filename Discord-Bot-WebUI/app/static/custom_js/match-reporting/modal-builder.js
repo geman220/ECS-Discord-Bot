@@ -47,124 +47,192 @@ export function createDynamicModal(matchId, data) {
 }
 
 /**
- * Build modal HTML structure
+ * Build modal HTML structure (Flowbite version)
  * @param {string|number} matchId - Match ID
  * @param {Object} data - Match data
  * @returns {string} Modal HTML
  */
 function buildModalHTML(matchId, data) {
-    const csrfToken = window.$('input[name="csrf_token"]').val() || '';
+    const csrfToken = window.$('input[name="csrf_token"]').val() ||
+        document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const homeTeamName = data.home_team_name || 'Home Team';
     const awayTeamName = data.away_team_name || 'Away Team';
     const reportType = data.reported ? 'Edit' : 'Report';
 
     return `
-    <div class="c-match-modal modal c-modal fade"
-         id="reportMatchModal-${matchId}"
+    <div id="reportMatchModal-${matchId}"
          tabindex="-1"
-         role="dialog"
-         aria-labelledby="reportMatchModalLabel-${matchId}"
          aria-hidden="true"
-         data-bs-backdrop="static"
-         data-component="match-modal"
-         data-modal>
-        <div class="c-match-modal__dialog modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" role="document" data-modal-dialog>
-            <div class="c-match-modal__content modal-content c-modal__content" data-modal-content>
-                <div class="c-match-modal__header modal-header c-modal__header bg-primary text-white" data-modal-header>
-                    <h5 class="c-match-modal__title modal-title c-modal__title" id="reportMatchModalLabel-${matchId}">
-                        <i data-feather="edit" class="c-match-modal__icon"></i>
-                        ${reportType} Match:
-                        <span class="c-match-modal__team-name c-match-modal__team-name--home">${homeTeamName}</span>
-                        vs
-                        <span class="c-match-modal__team-name c-match-modal__team-name--away">${awayTeamName}</span>
-                    </h5>
-                    <button type="button" class="c-match-modal__close btn-close btn-close-white" data-bs-dismiss="modal" data-action="dismiss-modal" aria-label="Close"></button>
-                </div>
+         class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80 modal-backdrop"></div>
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="relative w-full max-w-3xl">
+                <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800">
+                    <!-- Modal Header -->
+                    <div class="flex items-center justify-between p-4 bg-ecs-green rounded-t-lg">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2 modal-title">
+                            <i class="ti ti-edit"></i>
+                            ${reportType} Match:
+                            <span class="font-bold">${homeTeamName}</span>
+                            vs
+                            <span class="font-bold">${awayTeamName}</span>
+                        </h3>
+                        <button type="button"
+                                class="text-white/80 hover:text-white rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center"
+                                data-modal-hide="reportMatchModal-${matchId}">
+                            <i class="ti ti-x text-xl"></i>
+                        </button>
+                    </div>
 
-                <form id="reportMatchForm-${matchId}" class="c-match-form" data-component="match-form" data-match-id="${matchId}" action="/teams/report_match/${matchId}" method="POST" novalidate>
-                    <div class="c-match-modal__body modal-body c-modal__body" data-modal-body>
-                        <input type="hidden" name="csrf_token" value="${csrfToken}">
+                    <!-- Modal Body -->
+                    <form id="reportMatchForm-${matchId}"
+                          class="report-match-form"
+                          data-match-id="${matchId}"
+                          action="/teams/report_match/${matchId}"
+                          method="POST"
+                          novalidate>
+                        <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                            <input type="hidden" name="csrf_token" value="${csrfToken}">
 
-                        <div class="c-match-form__scores">
-                            <div class="c-match-form__score-field">
-                                <label for="home_team_score-${matchId}" class="c-match-form__label">${homeTeamName} Score</label>
-                                <input type="number" min="0" class="c-match-form__input form-control" id="home_team_score-${matchId}" name="home_team_score" value="${data.home_team_score ?? ''}" required data-form-control>
+                            <!-- Score Section -->
+                            <div class="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label for="home_team_score-${matchId}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        ${homeTeamName} Score <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="number"
+                                           min="0"
+                                           id="home_team_score-${matchId}"
+                                           name="home_team_score"
+                                           value="${data.home_team_score ?? ''}"
+                                           required
+                                           class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 text-2xl font-bold text-center text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                                </div>
+                                <div>
+                                    <label for="away_team_score-${matchId}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        ${awayTeamName} Score <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="number"
+                                           min="0"
+                                           id="away_team_score-${matchId}"
+                                           name="away_team_score"
+                                           value="${data.away_team_score ?? ''}"
+                                           required
+                                           class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 text-2xl font-bold text-center text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                                </div>
                             </div>
-                            <div class="c-match-form__score-field">
-                                <label for="away_team_score-${matchId}" class="c-match-form__label">${awayTeamName} Score</label>
-                                <input type="number" min="0" class="c-match-form__input form-control" id="away_team_score-${matchId}" name="away_team_score" value="${data.away_team_score ?? ''}" required data-form-control>
-                            </div>
-                        </div>
 
-                        <div class="c-match-form__events">
-                            <div class="c-match-form__events-column">
-                                <div class="c-event-card" data-component="event-card">
-                                    <div class="c-event-card__header">⚽ Goal Scorers</div>
-                                    <div class="c-event-card__body">
-                                        <div id="goalScorersContainer-${matchId}" class="c-event-card__list"></div>
-                                        <div class="c-event-card__actions">
-                                            <button class="c-event-card__add-btn c-btn c-btn--primary c-btn--sm" type="button" data-action="add-event" data-match-id="${matchId}" data-container="goalScorersContainer-${matchId}">
-                                                <i data-feather="plus"></i> Add Goal
-                                            </button>
-                                        </div>
+                            <!-- Two Column Grid for Events -->
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- Left Column: Goals and Assists -->
+                                <div class="space-y-4">
+                                    <!-- Goal Scorers -->
+                                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                        <h4 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                            <span class="text-lg">⚽</span> Goal Scorers
+                                        </h4>
+                                        <div id="goalScorersContainer-${matchId}" class="space-y-2"></div>
+                                        <button type="button"
+                                                class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-ecs-green hover:bg-ecs-green/10 rounded-lg transition-colors"
+                                                data-action="add-event"
+                                                data-match-id="${matchId}"
+                                                data-container="goalScorersContainer-${matchId}"
+                                                data-event-type="goal">
+                                            <i class="ti ti-plus"></i> Add Goal
+                                        </button>
+                                    </div>
+
+                                    <!-- Assists -->
+                                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                        <h4 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                            <span class="text-lg">🅰️</span> Assists
+                                        </h4>
+                                        <div id="assistProvidersContainer-${matchId}" class="space-y-2"></div>
+                                        <button type="button"
+                                                class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-ecs-green hover:bg-ecs-green/10 rounded-lg transition-colors"
+                                                data-action="add-event"
+                                                data-match-id="${matchId}"
+                                                data-container="assistProvidersContainer-${matchId}"
+                                                data-event-type="assist">
+                                            <i class="ti ti-plus"></i> Add Assist
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div class="c-event-card" data-component="event-card">
-                                    <div class="c-event-card__header">🅰️ Assists</div>
-                                    <div class="c-event-card__body">
-                                        <div id="assistProvidersContainer-${matchId}" class="c-event-card__list"></div>
-                                        <div class="c-event-card__actions">
-                                            <button class="c-event-card__add-btn c-btn c-btn--primary c-btn--sm" type="button" data-action="add-event" data-match-id="${matchId}" data-container="assistProvidersContainer-${matchId}">
-                                                <i data-feather="plus"></i> Add Assist
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="c-match-form__events-column">
-                                <div class="c-event-card" data-component="event-card">
-                                    <div class="c-event-card__header">🟨🟥 Cards</div>
-                                    <div class="c-event-card__body">
-                                        <div id="yellowCardsContainer-${matchId}" class="c-event-card__list"></div>
-                                        <div id="redCardsContainer-${matchId}" class="c-event-card__list"></div>
-                                        <div class="c-event-card__actions">
-                                            <button class="c-event-card__add-btn c-btn c-btn--warning c-btn--sm" type="button" data-action="add-event" data-match-id="${matchId}" data-container="yellowCardsContainer-${matchId}">
+                                <!-- Right Column: Cards and Own Goals -->
+                                <div class="space-y-4">
+                                    <!-- Cards -->
+                                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                        <h4 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                            <span class="text-lg">🟨🟥</span> Cards
+                                        </h4>
+                                        <div id="yellowCardsContainer-${matchId}" class="space-y-2"></div>
+                                        <div id="redCardsContainer-${matchId}" class="space-y-2 mt-2"></div>
+                                        <div class="flex gap-2 mt-3">
+                                            <button type="button"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 rounded-lg transition-colors"
+                                                    data-action="add-event"
+                                                    data-match-id="${matchId}"
+                                                    data-container="yellowCardsContainer-${matchId}"
+                                                    data-event-type="yellow">
                                                 🟨 Yellow
                                             </button>
-                                            <button class="c-event-card__add-btn c-btn c-btn--danger c-btn--sm" type="button" data-action="add-event" data-match-id="${matchId}" data-container="redCardsContainer-${matchId}">
+                                            <button type="button"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg transition-colors"
+                                                    data-action="add-event"
+                                                    data-match-id="${matchId}"
+                                                    data-container="redCardsContainer-${matchId}"
+                                                    data-event-type="red">
                                                 🟥 Red
                                             </button>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div class="c-event-card" data-component="event-card">
-                                    <div class="c-event-card__header">⚽❌ Own Goals</div>
-                                    <div class="c-event-card__body">
-                                        <div id="ownGoalsContainer-${matchId}" class="c-event-card__list"></div>
-                                        <div class="c-event-card__actions">
-                                            <button class="c-event-card__add-btn c-btn c-btn--secondary c-btn--sm" type="button" data-action="add-event" data-match-id="${matchId}" data-container="ownGoalsContainer-${matchId}">
-                                                <i data-feather="plus"></i> Own Goal
-                                            </button>
-                                        </div>
+                                    <!-- Own Goals -->
+                                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                                        <h4 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                            <span class="text-lg">⚽❌</span> Own Goals
+                                        </h4>
+                                        <div id="ownGoalsContainer-${matchId}" class="space-y-2"></div>
+                                        <button type="button"
+                                                class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 rounded-lg transition-colors"
+                                                data-action="add-event"
+                                                data-match-id="${matchId}"
+                                                data-container="ownGoalsContainer-${matchId}"
+                                                data-event-type="owngoal">
+                                            <i class="ti ti-plus"></i> Own Goal
+                                        </button>
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Match Notes -->
+                            <div>
+                                <label for="match_notes-${matchId}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Match Notes
+                                </label>
+                                <textarea id="match_notes-${matchId}"
+                                          name="match_notes"
+                                          rows="3"
+                                          class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">${data.notes || ''}</textarea>
+                            </div>
                         </div>
 
-                        <div class="c-match-form__notes">
-                            <label class="c-match-form__label" for="match_notes-${matchId}">Match Notes</label>
-                            <textarea class="c-match-form__textarea form-control" id="match_notes-${matchId}" name="match_notes" rows="3" data-form-control>${data.notes || ''}</textarea>
+                        <!-- Modal Footer -->
+                        <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700 rounded-b-lg">
+                            <button type="button"
+                                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                                    data-modal-hide="reportMatchModal-${matchId}">
+                                Close
+                            </button>
+                            <button type="submit"
+                                    class="px-4 py-2 text-sm font-medium text-white bg-ecs-green hover:bg-ecs-green/90 rounded-lg transition-colors"
+                                    id="submitBtn-${matchId}">
+                                Submit
+                            </button>
                         </div>
-                    </div>
-
-                    <div class="c-match-modal__footer modal-footer c-modal__footer" data-modal-footer>
-                        <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-action="dismiss-modal">Close</button>
-                        <button type="submit" class="c-btn c-btn--primary" id="submitBtn-${matchId}" data-action="submit-match-report">Submit</button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>`;
@@ -296,65 +364,179 @@ function populateEventContainers(matchId, data) {
 }
 
 /**
- * Show a modal using Bootstrap or fallback
+ * Show a modal using Flowbite
  * @param {Element} modal - Modal element
  */
 function showModal(modal) {
     try {
-        if (typeof window.bootstrap !== 'undefined') {
-            let existingModal = window.bootstrap.Modal.getInstance(modal);
-            if (existingModal) {
-                existingModal.dispose();
-            }
-
-            const bsModal = new window.bootstrap.Modal(modal, {
+        // Try Flowbite Modal class first
+        if (typeof window.Modal !== 'undefined') {
+            const flowbiteModal = new window.Modal(modal, {
                 backdrop: 'static',
-                keyboard: false
+                closable: true
             });
-
-            setTimeout(() => {
-                try {
-                    bsModal.show();
-                } catch (err) {
-                    fallbackShowModal(modal);
-                }
-            }, 50);
+            flowbiteModal.show();
+            // Store reference for later hiding
+            modal._flowbiteModal = flowbiteModal;
         } else {
-            fallbackShowModal(modal);
+            // Fallback: manual show/hide
+            flowbiteShowModal(modal);
         }
+
+        // Setup close button handlers
+        setupModalCloseHandlers(modal);
     } catch (error) {
-        window.Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Could not show match edit form. Please refresh and try again.'
-        });
+        console.error('Modal show error:', error);
+        // Ultimate fallback
+        flowbiteShowModal(modal);
+        setupModalCloseHandlers(modal);
     }
 }
 
 /**
- * Fallback modal show method
+ * Show modal using Flowbite patterns (manual)
  * @param {Element} modal - Modal element
  */
-function fallbackShowModal(modal) {
-    if (modal.id && window.ModalManager) {
-        window.ModalManager.show(modal.id);
-    } else if (typeof window.$ !== 'undefined' && typeof window.$.fn?.modal === 'function') {
-        window.$(modal).modal('show');
-    } else {
-        modal.classList.add('d-block', 'show');
-        document.body.classList.add('modal-open');
+function flowbiteShowModal(modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('overflow-hidden');
+}
 
-        const backdrop = document.createElement('div');
-        backdrop.className = 'modal-backdrop fade show';
-        document.body.appendChild(backdrop);
+/**
+ * Hide modal using Flowbite patterns
+ * @param {Element} modal - Modal element
+ */
+function hideModal(modal) {
+    // Clean up escape key handler
+    if (modal._escapeHandler) {
+        document.removeEventListener('keydown', modal._escapeHandler);
+        modal._escapeHandler = null;
     }
+
+    if (modal._flowbiteModal) {
+        modal._flowbiteModal.hide();
+    } else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('overflow-hidden');
+    }
+}
+
+/**
+ * Setup close button handlers for Flowbite modal
+ * @param {Element} modal - Modal element
+ */
+function setupModalCloseHandlers(modal) {
+    // Handle data-modal-hide buttons
+    const closeButtons = modal.querySelectorAll('[data-modal-hide]');
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideModal(modal);
+        });
+    });
+
+    // Handle Escape key to close modal
+    const escapeHandler = (e) => {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            e.preventDefault();
+            hideModal(modal);
+            // Remove the event listener after closing
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+
+    // Store handler reference for cleanup
+    modal._escapeHandler = escapeHandler;
+
+    // Handle backdrop click (optional - for non-static backdrops)
+    const backdrop = modal.querySelector('.modal-backdrop');
+    if (backdrop) {
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) {
+                hideModal(modal);
+            }
+        });
+    }
+
+    // Attach form submit handler directly to ensure it works
+    setupFormSubmitHandler(modal);
+}
+
+/**
+ * Setup form submit handler for the match report form
+ * @param {Element} modal - Modal element
+ */
+function setupFormSubmitHandler(modal) {
+    const form = modal.querySelector('.report-match-form');
+    if (!form || form._submitHandlerAttached) return;
+
+    form._submitHandlerAttached = true;
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const matchId = form.dataset.matchId;
+        if (!matchId) {
+            console.error('Match ID not found on form');
+            return;
+        }
+
+        // Import the required functions dynamically to avoid circular dependencies
+        const { calculateEventChanges } = await import('./form-handler.js');
+        const { submitMatchReport } = await import('./api.js');
+
+        // Ensure initialEvents is defined
+        if (!window.initialEvents) window.initialEvents = {};
+        if (!window.initialEvents[matchId]) {
+            window.initialEvents[matchId] = {
+                goals: [],
+                assists: [],
+                yellowCards: [],
+                redCards: [],
+                ownGoals: []
+            };
+        }
+
+        // Calculate changes
+        const changes = calculateEventChanges(matchId);
+
+        // Get dark mode status for SweetAlert
+        const isDark = document.documentElement.classList.contains('dark');
+        const swalOptions = {
+            title: 'Confirm Submission',
+            text: "Are you sure you want to submit this match report?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#1a472a',
+            cancelButtonColor: '#dc2626',
+            confirmButtonText: 'Yes, submit it!',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        };
+
+        window.Swal.fire(swalOptions).then((result) => {
+            if (result.isConfirmed) {
+                submitMatchReport(matchId, changes);
+            }
+        });
+    });
 }
 
 // Backward compatibility
 window.createDynamicModal = createDynamicModal;
 window.populateModal = populateModal;
+window.hideMatchModal = hideModal;
 
 export default {
     createDynamicModal,
-    populateModal
+    populateModal,
+    hideModal
 };
+
+export { hideModal };

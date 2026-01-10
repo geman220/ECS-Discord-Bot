@@ -37,25 +37,25 @@ export function setupImageHandling() {
  */
 export function handleAvatarImage(img, fallback) {
     // Show fallback by default
-    fallback.classList.add('d-flex');
-    fallback.classList.remove('d-none');
-    img.classList.add('d-none');
-    img.classList.remove('d-block');
+    fallback.classList.add('flex');
+    fallback.classList.remove('hidden');
+    img.classList.add('hidden');
+    img.classList.remove('block');
 
     // Test if image loads
     if (img.src && img.src !== '') {
         const testImg = new Image();
         testImg.onload = () => {
-            img.classList.add('d-block');
-            img.classList.remove('d-none');
-            fallback.classList.add('d-none');
-            fallback.classList.remove('d-flex');
+            img.classList.add('block');
+            img.classList.remove('hidden');
+            fallback.classList.add('hidden');
+            fallback.classList.remove('flex');
         };
         testImg.onerror = () => {
-            img.classList.add('d-none');
-            img.classList.remove('d-block');
-            fallback.classList.add('d-flex');
-            fallback.classList.remove('d-none');
+            img.classList.add('hidden');
+            img.classList.remove('block');
+            fallback.classList.add('flex');
+            fallback.classList.remove('hidden');
         };
         testImg.src = img.src;
     }

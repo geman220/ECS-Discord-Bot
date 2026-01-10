@@ -30,12 +30,12 @@ describe('LoadingService', () => {
             }))
         };
         mockBootstrap.Modal.getInstance = vi.fn().mockReturnValue(null);
-        window.bootstrap = mockBootstrap;
+        window.Modal = mockBootstrap.Modal;
     });
 
     afterEach(() => {
         delete window.Swal;
-        delete window.bootstrap;
+        delete window.Modal;
         vi.clearAllMocks();
     });
 

@@ -18,24 +18,44 @@ if (!window.jQuery) {
 }
 
 // ============================================================================
-// 2. BOOTSTRAP - Full Bootstrap with all components
+// 2. FLOWBITE - UI Components (modern Tailwind-based components)
 // ============================================================================
-import * as bootstrap from 'bootstrap';
-window.bootstrap = bootstrap;
+import { Modal, Dropdown, Collapse, Tooltip, Dismiss, Tabs, Carousel } from 'flowbite';
+
+// Expose Flowbite components globally for programmatic usage
+window.Modal = Modal;
+window.Dropdown = Dropdown;
+window.Collapse = Collapse;
+window.Tooltip = Tooltip;
+window.Dismiss = Dismiss;
+window.Tabs = Tabs;
+window.Carousel = Carousel;
+
+// Flowbite components object for convenience
+window.Flowbite = {
+  Modal,
+  Dropdown,
+  Collapse,
+  Tooltip,
+  Dismiss,
+  Tabs,
+  Carousel
+};
 
 // ============================================================================
 // 2b. JQUERY MODAL COMPATIBILITY SHIM
-// Wraps Bootstrap 5 native Modal API for legacy $(element).modal() calls
+// Wraps Flowbite Modal API for legacy $(element).modal() calls
 // ============================================================================
 if (window.jQuery && window.jQuery.fn && !window.jQuery.fn.modal) {
   window.jQuery.fn.modal = function(action, options) {
     return this.each(function() {
       const element = this;
-      let instance = bootstrap.Modal.getInstance(element);
+      let instance = element._flowbiteModal;
 
       if (action === 'show') {
         if (!instance) {
-          instance = new bootstrap.Modal(element, options || {});
+          instance = new Modal(element, options || { backdrop: 'dynamic', closable: true });
+          element._flowbiteModal = instance;
         }
         instance.show();
       } else if (action === 'hide') {
@@ -44,17 +64,19 @@ if (window.jQuery && window.jQuery.fn && !window.jQuery.fn.modal) {
         }
       } else if (action === 'toggle') {
         if (!instance) {
-          instance = new bootstrap.Modal(element, options || {});
+          instance = new Modal(element, options || { backdrop: 'dynamic', closable: true });
+          element._flowbiteModal = instance;
         }
         instance.toggle();
       } else if (action === 'dispose') {
         if (instance) {
-          instance.dispose();
+          instance.hide();
+          delete element._flowbiteModal;
         }
       } else if (typeof action === 'object' || action === undefined) {
         // Initialize with options
         if (!instance) {
-          new bootstrap.Modal(element, action || {});
+          element._flowbiteModal = new Modal(element, action || { backdrop: 'dynamic', closable: true });
         }
       }
     });
@@ -93,9 +115,10 @@ window.Shepherd = Shepherd;
 
 // ============================================================================
 // 8. DATATABLES - Table functionality (must init after jQuery)
+// Using default DataTables styling (not Bootstrap) for Tailwind compatibility
 // ============================================================================
-import DataTable from 'datatables.net-bs5';
-import 'datatables.net-responsive-bs5';
+import DataTable from 'datatables.net-dt';
+import 'datatables.net-responsive-dt';
 
 // ============================================================================
 // 9. SELECT2 - REMOVED (using native HTML5 selects for better mobile support)

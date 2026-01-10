@@ -97,11 +97,14 @@ function toggleTheme() {
     // Haptic feedback
     if (window.Haptics) window.Haptics.light();
 
-    // Close offcanvas
+    // Close offcanvas manually using classList
     const offcanvasEl = document.getElementById('mobileMoreMenu');
-    if (offcanvasEl && typeof window.bootstrap !== 'undefined') {
-        const offcanvas = window.bootstrap.Offcanvas.getInstance(offcanvasEl);
-        if (offcanvas) offcanvas.hide();
+    if (offcanvasEl) {
+        offcanvasEl.classList.remove('show');
+        offcanvasEl.setAttribute('aria-hidden', 'true');
+        const backdrop = document.querySelector('.offcanvas-backdrop');
+        if (backdrop) backdrop.remove();
+        document.body.classList.remove('overflow-hidden');
     }
 }
 

@@ -99,9 +99,9 @@ function handleUpdateSelection(event, element) {
 
     if (barEl) {
         if (count > 0) {
-            barEl.classList.remove('d-none');
+            barEl.classList.remove('hidden');
         } else {
-            barEl.classList.add('d-none');
+            barEl.classList.add('hidden');
         }
     }
 }

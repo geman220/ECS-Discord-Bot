@@ -25,12 +25,12 @@ export function handleSearch(event, onUpdate) {
             const shouldShow = playerName.includes(searchTerm);
 
             if (shouldShow) {
-                column.classList.remove('d-none');
-                column.classList.add('d-block');
+                column.classList.remove('hidden');
+                column.classList.add('block');
                 visibleCount++;
             } else {
-                column.classList.add('d-none');
-                column.classList.remove('d-block');
+                column.classList.add('hidden');
+                column.classList.remove('block');
             }
         }
     });
@@ -62,12 +62,12 @@ export function handleFilter(event, onUpdate) {
             const shouldShow = !position || playerPosition.includes(position);
 
             if (shouldShow) {
-                column.classList.remove('d-none');
-                column.classList.add('d-block');
+                column.classList.remove('hidden');
+                column.classList.add('block');
                 visibleCount++;
             } else {
-                column.classList.add('d-none');
-                column.classList.remove('d-block');
+                column.classList.add('hidden');
+                column.classList.remove('block');
             }
         }
     });
@@ -160,7 +160,7 @@ export function applyCurrentFilters(playerCard) {
         const cardElement = playerCard.querySelector('[data-component="player-card"]');
         const playerName = cardElement?.getAttribute('data-player-name') || '';
         if (!playerName.includes(searchTerm)) {
-            playerCard.classList.add('d-none');
+            playerCard.classList.add('hidden');
         }
     }
 
@@ -169,7 +169,7 @@ export function applyCurrentFilters(playerCard) {
         const cardElement = playerCard.querySelector('[data-component="player-card"]');
         const playerPosition = cardElement?.getAttribute('data-position') || '';
         if (filterPosition && !playerPosition.includes(filterPosition)) {
-            playerCard.classList.add('d-none');
+            playerCard.classList.add('hidden');
         }
     }
 }

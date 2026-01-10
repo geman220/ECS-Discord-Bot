@@ -59,7 +59,7 @@ export async function performMatchResendRequest(requestId, league) {
 
   const originalText = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<i class="ti ti-loader spinner-border spinner-border-sm"></i>';
+  btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>';
 
   try {
     const { response, data } = await resendRequest(league, requestId);
@@ -145,7 +145,7 @@ export async function performCancelMatchSubstituteRequest(requestId, league) {
 
   const originalText = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '<i class="ti ti-loader spinner-border spinner-border-sm"></i>';
+  btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>';
 
   try {
     const data = await cancelRequest(league, requestId);

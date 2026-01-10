@@ -103,8 +103,8 @@ window.EventDelegation.register('toggle-historical', function(element, e) {
     }
 
     const target = document.querySelector(targetId);
-    if (target && window.bootstrap) {
-        const collapse = window.bootstrap.Collapse.getOrCreateInstance(target);
+    if (target) {
+        const collapse = target._flowbiteCollapse || (target._flowbiteCollapse = new window.Collapse(target));
         collapse.toggle();
     }
 });

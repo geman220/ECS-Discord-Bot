@@ -896,7 +896,7 @@ def api_clear_system_logs():
 
         # Clear old audit logs (keep recent ones)
         deleted_count = AdminAuditLog.query.filter(
-            AdminAuditLog.created_at < cutoff_date
+            AdminAuditLog.timestamp < cutoff_date
         ).delete(synchronize_session=False)
 
         db.session.commit()

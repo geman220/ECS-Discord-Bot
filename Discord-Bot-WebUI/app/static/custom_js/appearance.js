@@ -650,9 +650,11 @@ function showImportModal() {
     const modal = document.getElementById('importModal');
     if (modal && typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('importModal');
-    } else if (modal && typeof window.bootstrap !== 'undefined') {
-        const bsModal = new window.bootstrap.Modal(modal);
-        bsModal.show();
+    } else if (modal && typeof window.Modal !== 'undefined') {
+        if (!modal._flowbiteModal) {
+            modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true });
+        }
+        modal._flowbiteModal.show();
     }
 }
 
@@ -686,9 +688,10 @@ function importColors() {
             if (data.success) {
                 // Hide modal
                 const modal = document.getElementById('importModal');
-                if (modal && typeof window.bootstrap !== 'undefined') {
-                    const bsModal = window.bootstrap.Modal.getInstance(modal);
-                    if (bsModal) bsModal.hide();
+                if (modal) {
+                    if (modal._flowbiteModal) {
+                        modal._flowbiteModal.hide();
+                    }
                 }
 
                 if (typeof window.Swal !== 'undefined') {
@@ -891,9 +894,11 @@ function showSavePresetModal(presetData = null) {
     // Show modal
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('savePresetModal');
-    } else if (typeof window.bootstrap !== 'undefined') {
-        const bsModal = new window.bootstrap.Modal(modal);
-        bsModal.show();
+    } else if (typeof window.Modal !== 'undefined') {
+        if (!modal._flowbiteModal) {
+            modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true });
+        }
+        modal._flowbiteModal.show();
     }
 }
 
@@ -940,9 +945,8 @@ function savePreset() {
         if (data.success) {
             // Hide modal
             const modal = document.getElementById('savePresetModal');
-            if (modal && typeof window.bootstrap !== 'undefined') {
-                const bsModal = window.bootstrap.Modal.getInstance(modal);
-                if (bsModal) bsModal.hide();
+            if (modal && modal._flowbiteModal) {
+                modal._flowbiteModal.hide();
             }
 
             if (typeof window.Swal !== 'undefined') {

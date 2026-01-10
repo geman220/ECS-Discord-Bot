@@ -139,11 +139,11 @@ window.EventDelegation.register('send-emergency-alert', function(element, e) {
             </div>
             <div class="mb-3">
                 <label class="form-label">Alert Title</label>
-                <input type="text" class="form-control" id="emergencyTitle" placeholder="Emergency alert title" value="Emergency Alert" data-form-control>
+                <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="emergencyTitle" placeholder="Emergency alert title" value="Emergency Alert" data-form-control>
             </div>
             <div class="mb-3">
                 <label class="form-label">Alert Message</label>
-                <textarea class="form-control" id="emergencyMessage" rows="3" placeholder="Enter emergency alert message" data-form-control></textarea>
+                <textarea class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="emergencyMessage" rows="3" placeholder="Enter emergency alert message" data-form-control></textarea>
             </div>
             <div class="mb-3">
                 <label class="form-label">Alert Level</label>

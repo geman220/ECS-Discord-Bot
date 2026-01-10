@@ -1,20 +1,20 @@
 'use strict';
 
 /**
- * Modal Manager - Centralized Bootstrap Modal Management
+ * Modal Manager - Centralized Flowbite Modal Management
  *
  * Best Practice 2025: Single source of truth for all modal operations
  *
  * USAGE:
  * ------
  * 1. Declarative (no JavaScript needed):
- *    <button data-bs-toggle="modal" data-bs-target="#myModal">Show Modal</button>
+ *    <button data-modal-target="myModal" data-modal-toggle="myModal">Show Modal</button>
  *
  * 2. Programmatic (simple one-liner):
  *    window.ModalManager.show('myModal');
  *
  * 3. With options:
- *    window.ModalManager.show('myModal', { backdrop: 'static', keyboard: false });
+ *    window.ModalManager.show('myModal', { backdrop: 'static', closable: true });
  *
  * 4. Event delegation (preferred):
  *    <button data-action="show-modal" data-modal-id="myModal">Show</button>
@@ -31,15 +31,16 @@
  * SELECTOR CONVENTION:
  * --------------------
  * - Uses data-modal attribute for modal identification
- * - Falls back to .modal class for backward compatibility
+ * - Falls back to .modal class for backward compatibility (Flowbite modals use hidden/flex classes)
  * - Uses data-action="show-modal|hide-modal|toggle-modal" for triggers
  *
  * @author ECS Discord Bot Team
  * @since 2025-12-17
+ * @updated 2026-01-09 - Migrated to Flowbite from Bootstrap
  */
 
 /**
- * Centralized Bootstrap Modal Manager
+ * Centralized Flowbite Modal Manager
  */
 export class ModalManager {
     /**
@@ -80,8 +81,9 @@ export class ModalManager {
             return;
         }
 
-        if (typeof window.bootstrap === 'undefined' || typeof window.bootstrap.Modal === 'undefined') {
-            console.error('[window.ModalManager] Bootstrap not loaded. Cannot initialize modals.');
+        // Check for Flowbite Modal (window.Modal) - set by vendor-globals.js
+        if (typeof window.Modal === 'undefined') {
+            console.error('[window.ModalManager] Flowbite not loaded. Cannot initialize modals.');
             return;
         }
 
@@ -102,13 +104,14 @@ export class ModalManager {
 
     /**
      * Discover all modals in context and cache their instances
-     * Uses data-modal attribute first, falls back to .modal class
+     * Uses data-modal attribute first, falls back to Flowbite modal patterns
      * @private
      * @param {Element} context - Context element to search within
      */
     static discoverModals(context = document) {
-        // Query by data attribute first, then fall back to class
-        const modalElements = context.querySelectorAll('[data-modal], .modal');
+        // Query by data attribute first, then fall back to common modal selectors
+        // Flowbite modals typically use 'hidden fixed inset-0' pattern
+        const modalElements = context.querySelectorAll('[data-modal], .modal, [id*="Modal"]');
 
         modalElements.forEach(modalEl => {
             if (modalEl.id) {
@@ -118,12 +121,16 @@ export class ModalManager {
                 }
 
                 try {
-                    // Check if modal already has a Bootstrap instance
-                    let instance = window.bootstrap.Modal.getInstance(modalEl);
+                    // Check if modal already has a Flowbite instance stored
+                    let instance = modalEl._flowbiteModal;
 
                     if (!instance) {
-                        // Create new instance if it doesn't exist
-                        instance = new window.bootstrap.Modal(modalEl);
+                        // Create new Flowbite Modal instance
+                        instance = new window.Modal(modalEl, {
+                            backdrop: 'dynamic',
+                            closable: true
+                        });
+                        modalEl._flowbiteModal = instance;
                     }
 
                     this.modalInstances.set(modalEl.id, instance);
@@ -206,7 +213,7 @@ export class ModalManager {
     /**
      * Show a modal by ID
      * @param {string} modalId - The ID of the modal to show (without # prefix)
-     * @param {Object} options - Bootstrap modal options (backdrop, keyboard, focus)
+     * @param {Object} options - Flowbite modal options (backdrop, closable)
      * @returns {boolean} - True if modal was shown successfully, false otherwise
      */
     static show(modalId, options = null) {
@@ -230,12 +237,14 @@ export class ModalManager {
             }
 
             try {
-                // Check if Bootstrap already initialized it
-                modal = window.bootstrap.Modal.getInstance(modalElement);
+                // Check if Flowbite already initialized it
+                modal = modalElement._flowbiteModal;
 
                 if (!modal) {
-                    // Create new instance with options
-                    modal = new window.bootstrap.Modal(modalElement, options);
+                    // Create new Flowbite Modal instance with options
+                    const modalOptions = options || { backdrop: 'dynamic', closable: true };
+                    modal = new window.Modal(modalElement, modalOptions);
+                    modalElement._flowbiteModal = modal;
                 }
 
                 // Cache for future use
@@ -275,10 +284,10 @@ export class ModalManager {
         if (!modal) {
             console.warn(`[window.ModalManager] Modal not found in cache: ${modalId}`);
 
-            // Try to find it in DOM and get Bootstrap instance
+            // Try to find it in DOM and get Flowbite instance
             const modalElement = document.getElementById(modalId);
             if (modalElement) {
-                const instance = window.bootstrap.Modal.getInstance(modalElement);
+                const instance = modalElement._flowbiteModal;
                 if (instance) {
                     try {
                         instance.hide();
@@ -288,6 +297,12 @@ export class ModalManager {
                         return false;
                     }
                 }
+                // Fallback: manually hide using Flowbite pattern
+                modalElement.classList.add('hidden');
+                modalElement.classList.remove('flex');
+                modalElement.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('overflow-hidden');
+                return true;
             }
 
             return false;
@@ -332,7 +347,7 @@ export class ModalManager {
     /**
      * Get a modal instance by ID
      * @param {string} modalId - The ID of the modal
-     * @returns {window.bootstrap.Modal|null} - The Bootstrap modal instance or null
+     * @returns {Modal|null} - The Flowbite modal instance or null
      */
     static getInstance(modalId) {
         return this.modalInstances.get(modalId) || null;
@@ -415,7 +430,7 @@ export class ModalManager {
  * Deprecated helper function - use window.ModalManager.getInstance() instead
  * @deprecated
  * @param {string} modalId - Modal ID
- * @returns {window.bootstrap.Modal|null} Modal instance or null
+ * @returns {Modal|null} Modal instance or null
  */
 export function safeGetModal(modalId) {
     console.warn('[Deprecated] safeGetModal() is deprecated. Use window.ModalManager.getInstance() instead.');

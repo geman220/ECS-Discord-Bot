@@ -68,6 +68,7 @@ class Team(db.Model):
     background_image_url = db.Column(db.String(255), nullable=True)
     background_position = db.Column(db.String(50), nullable=True, default='center')
     background_size = db.Column(db.String(50), nullable=True, default='cover')
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
 
     def to_dict(self, include_players=False):
         data = {

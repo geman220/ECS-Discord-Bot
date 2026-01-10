@@ -346,9 +346,9 @@ const Haptics = {
       // Handle buttons
       const btn = e.target.closest('.btn:not([data-haptics="false"])');
       if (btn) {
-        if (btn.classList.contains('btn-success')) {
+        if (btn.classList.contains('bg-green-600') || btn.classList.contains('bg-ecs-green')) {
           self.success();
-        } else if (btn.classList.contains('btn-danger')) {
+        } else if (btn.classList.contains('bg-red-600')) {
           self.warning();
         } else {
           self.medium();
@@ -367,7 +367,7 @@ const Haptics = {
     // Single delegated focusin listener for ALL form inputs
     document.addEventListener('focusin', function(e) {
       const input = e.target;
-      if (input.classList.contains('form-control') || input.classList.contains('form-select')) {
+      if (input.hasAttribute('data-form-control') || input.hasAttribute('data-form-select') || input.classList.contains('bg-gray-50')) {
         self.inputFocus();
       }
     }, { passive: true });
@@ -375,7 +375,7 @@ const Haptics = {
     // Single delegated invalid listener for ALL form inputs
     document.addEventListener('invalid', function(e) {
       const input = e.target;
-      if (input.classList.contains('form-control') || input.classList.contains('form-select')) {
+      if (input.hasAttribute('data-form-control') || input.hasAttribute('data-form-select') || input.classList.contains('bg-gray-50')) {
         self.validationError();
       }
     }, true); // Use capture phase for invalid events

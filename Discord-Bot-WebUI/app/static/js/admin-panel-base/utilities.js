@@ -22,9 +22,9 @@ export function showMobileToast(message, type) {
     toast.setAttribute('aria-atomic', 'true');
     toast.dataset.toast = type;
     toast.innerHTML = `
-        <div class="d-flex">
+        <div class="flex">
             <div class="toast-body">${message}</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" data-action="close-toast" aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest('.toast').remove()" data-action="close-toast" aria-label="Close"></button>
         </div>
     `;
 
@@ -32,16 +32,19 @@ export function showMobileToast(message, type) {
     if (container) {
         container.appendChild(toast);
 
-        const toastInstance = new window.bootstrap.Toast(toast, {
-            autohide: true,
-            delay: isMobile() ? CONFIG.TOAST_DURATION_MOBILE : CONFIG.TOAST_DURATION_DESKTOP
-        });
-
-        toastInstance.show();
-
-        toast.addEventListener('hidden.bs.toast', () => {
-            toast.remove();
-        });
+        // Use SweetAlert2 toast instead of Bootstrap Toast
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: type === 'danger' ? 'error' : type,
+                title: message,
+                showConfirmButton: false,
+                timer: isMobile() ? CONFIG.TOAST_DURATION_MOBILE : CONFIG.TOAST_DURATION_DESKTOP,
+                timerProgressBar: true
+            });
+            toast.remove(); // Remove the HTML element since we're using Swal
+        }
     }
 }
 

@@ -124,11 +124,10 @@ class OnlineStatusManager {
     element.classList.toggle('is-online', isOnline);
     element.classList.toggle('is-offline', !isOnline);
 
-    // Update tooltip if present
-    const tooltip = element.getAttribute('data-bs-original-title') || element.getAttribute('title');
+    // Update tooltip if present (Flowbite uses title attribute directly)
+    const tooltip = element.getAttribute('title');
     if (tooltip) {
       element.setAttribute('title', isOnline ? 'Online' : 'Offline');
-      element.setAttribute('data-bs-original-title', isOnline ? 'Online' : 'Offline');
     }
 
     // Dispatch custom event for other components to react

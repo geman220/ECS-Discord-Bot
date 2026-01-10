@@ -293,7 +293,7 @@ function editMatch(matchId) {
                     <a href="{{ url_for('admin_panel.match_results') }}?match_id=${matchId}" class="c-btn c-btn--primary">
                         <i class="ti ti-pencil me-2"></i>Enter/Update Results
                     </a>
-                    <a href="{{ url_for('admin_panel.match_schedule') }}" class="c-btn c-btn--outline-secondary">
+                    <a href="{{ url_for('admin_panel.schedule_matches') }}" class="c-btn c-btn--outline-secondary">
                         <i class="ti ti-calendar me-2"></i>Reschedule Match
                     </a>
                     <button data-action="verify-match" data-match-id="${matchId}" class="c-btn c-btn--outline-success">

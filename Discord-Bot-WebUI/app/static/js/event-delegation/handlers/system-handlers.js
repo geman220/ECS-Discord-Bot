@@ -32,7 +32,7 @@ window.EventDelegation.register('toggle-service-details', function(element, e) {
 
     const detailsEl = document.getElementById(targetId);
     if (detailsEl) {
-        detailsEl.classList.toggle('d-none');
+        detailsEl.classList.toggle('hidden');
         element.classList.toggle('is-expanded');
     }
 });
@@ -736,7 +736,7 @@ window.EventDelegation.register('toggle-task-details', function(element, e) {
 
     const detailsEl = document.getElementById(`task-details-${taskId}`);
     if (detailsEl) {
-        detailsEl.classList.toggle('d-none');
+        detailsEl.classList.toggle('hidden');
     }
 });
 

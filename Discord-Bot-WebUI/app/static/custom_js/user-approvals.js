@@ -37,17 +37,17 @@ export function viewUserDetails(userId, userName) {
         titleEl.textContent = `Details for ${userName}`;
     }
     if (contentEl) {
-        contentEl.innerHTML = '<div class="text-center"><div class="spinner-border" role="status" data-spinner></div></div>';
+        contentEl.innerHTML = '<div class="flex justify-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status" data-spinner></div></div>';
     }
 
     // Show modal using ModalManager if available
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('userDetailsModal');
-    } else if (typeof window.bootstrap !== 'undefined') {
+    } else if (typeof window.Modal !== 'undefined') {
         const modalEl = document.getElementById('userDetailsModal');
         if (modalEl) {
-            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
-            modal.show();
+            modalEl._flowbiteModal = modalEl._flowbiteModal || new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
+            modalEl._flowbiteModal.show();
         }
     }
 

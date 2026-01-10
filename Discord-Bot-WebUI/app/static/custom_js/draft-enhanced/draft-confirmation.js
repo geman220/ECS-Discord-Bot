@@ -86,7 +86,8 @@ export function showDraftTeamSelection(playerId, playerName, existingTeams = '')
         }
 
         // Close modal
-        window.bootstrap.Modal.getInstance(document.getElementById('draftConfirmModal')).hide();
+        const modalEl = document.getElementById('draftConfirmModal');
+        modalEl?._flowbiteModal?.hide();
 
         const leagueName = getLeagueName();
 

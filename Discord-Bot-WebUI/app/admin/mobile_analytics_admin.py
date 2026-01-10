@@ -147,7 +147,7 @@ def view_errors():
         error_type_options = [e[0] for e in error_type_options]
         
         return render_template(
-            'admin/mobile_errors.html',
+            'admin/mobile_errors_flowbite.html',
             errors=errors,
             severity_options=severity_options,
             error_type_options=error_type_options,
@@ -200,7 +200,7 @@ def cleanup_page():
         storage_stats = get_analytics_storage_stats()
         
         return render_template(
-            'admin/mobile_cleanup.html',
+            'admin/mobile_cleanup_flowbite.html',
             preview=preview,
             storage_stats=storage_stats
         )

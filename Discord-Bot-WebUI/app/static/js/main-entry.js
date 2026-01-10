@@ -82,7 +82,7 @@ import './mobile-keyboard.js';
 import './mobile-forms.js';
 import './mobile-haptics.js';
 import './responsive-tables.js';
-import './design-system.js';
+// design-system.js REMOVED - Bootstrap→ECS mapper not needed with Tailwind/Flowbite
 import './swal-contextual.js';
 
 // ============================================================================
@@ -187,7 +187,7 @@ import '../custom_js/calendar-subscription.js';
 import '../custom_js/check-duplicate.js';
 import '../custom_js/coach-dashboard.js';
 import '../custom_js/cropper.js';
-import '../custom_js/design-system-override.js';
+// design-system-override.js REMOVED - Patches design-system.js which is no longer used
 import '../custom_js/draft-enhanced.js';
 import '../custom_js/draft-predictions.js';
 import '../custom_js/ecs-fc-schedule.js';
@@ -217,7 +217,7 @@ import '../custom_js/verify-2fa.js';
 import '../custom_js/user-management-ecs-fc.js';
 import '../custom_js/verify-merge.js';
 import '../custom_js/view-standings.js';
-import '../custom_js/waves-css-override.js';
+// waves-css-override.js REMOVED - Waves ripple overrides not needed with Flowbite
 import '../custom_js/waitlist-login-register.js';
 import '../custom_js/waitlist-register-authenticated.js';
 import '../custom_js/waitlist-register.js';
@@ -260,8 +260,8 @@ import './security-dashboard.js';
 // 12. MAIN APP INITIALIZATION
 // ============================================================================
 
-// Main.js - initializes Menu, Helpers, and other core functionality
-import '../assets/js/main.js';
+// Note: Old main.js from template was removed during Flowbite migration
+// Core functionality now handled by individual modules above
 
 // ============================================================================
 // 13. FINAL INITIALIZATION - AFTER ALL IMPORTS

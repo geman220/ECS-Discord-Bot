@@ -22,10 +22,11 @@ function initMessageManagement() {
 
     console.log('Message Management JS loaded');
 
-    // Initialize tooltips
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new window.bootstrap.Tooltip(tooltipTriggerEl);
+    // Initialize tooltips - Flowbite auto-initializes tooltips with title attribute
+    document.querySelectorAll('[title]').forEach(el => {
+        if (!el._tooltip && window.Tooltip) {
+            el._tooltip = new window.Tooltip(el);
+        }
     });
 }
 
@@ -45,11 +46,9 @@ function previewTemplate(templateId) {
     // Set loading state
     const previewContent = document.getElementById('previewContent');
     previewContent.innerHTML = `
-        <div class="text-center">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">Loading preview...</p>
+        <div class="flex flex-col items-center">
+            <div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status"></div>
+            <p class="mt-2 text-gray-600 dark:text-gray-400">Loading preview...</p>
         </div>
     `;
 

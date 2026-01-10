@@ -1,0 +1,347 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}{{ team.name }}{% endblock %}
+{% block panel_description %}Team Details - {{ team.name }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.league_management_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">League Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.league_management_teams') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Teams</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ team.name }}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Team Overview Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-shield mr-2"></i>Team Overview
+            </h5>
+        </div>
+        <div class="p-5">
+            <div class="text-center mb-4">
+                <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ team.name[0] if team.name else 'T' }}</span>
+                </div>
+                <h4 class="text-xl font-semibold text-gray-900 dark:text-white mb-1">{{ team.name }}</h4>
+                {% if team.league %}
+                <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">{{ team.league.name }}</span>
+                {% endif %}
+            </div>
+
+            <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="text-center">
+                        <h5 class="text-2xl font-bold text-gray-900 dark:text-white">{{ team.players|length if team.players else 0 }}</h5>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Players</p>
+                    </div>
+                    <div class="text-center">
+                        <h5 class="text-md font-bold text-gray-900 dark:text-white">{{ team.league.season.name if team.league and team.league.season else 'N/A' }}</h5>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Season</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex gap-2">
+            <button onclick="editTeam({{ team.id }}, '{{ team.name }}')"
+                    class="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">
+                <i class="ti ti-edit mr-1"></i>Edit
+            </button>
+            <button onclick="syncDiscord({{ team.id }})"
+                    class="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                <i class="ti ti-refresh mr-1"></i>Sync Discord
+            </button>
+        </div>
+    </div>
+
+    <!-- Discord Integration -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-brand-discord mr-2"></i>Discord Integration
+            </h5>
+        </div>
+        <div class="p-5 space-y-4">
+            <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Channel</label>
+                {% if team.discord_channel_id %}
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">
+                        <i class="ti ti-check mr-1"></i>Connected
+                    </span>
+                    <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ team.discord_channel_id }}</code>
+                </div>
+                {% else %}
+                <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">
+                    <i class="ti ti-x mr-1"></i>Not Configured
+                </span>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Role</label>
+                {% if team.discord_role_id %}
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">
+                        <i class="ti ti-check mr-1"></i>Connected
+                    </span>
+                    <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ team.discord_role_id }}</code>
+                </div>
+                {% else %}
+                <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">
+                    <i class="ti ti-x mr-1"></i>Not Configured
+                </span>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Captain Role</label>
+                {% if team.discord_captain_role_id %}
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">
+                        <i class="ti ti-check mr-1"></i>Connected
+                    </span>
+                    <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ team.discord_captain_role_id }}</code>
+                </div>
+                {% else %}
+                <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">
+                    <i class="ti ti-x mr-1"></i>Not Configured
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- League Info -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-trophy mr-2"></i>League Info
+            </h5>
+        </div>
+        <div class="p-5">
+            {% if team.league %}
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Division</label>
+                    <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">{{ team.league.name }}</span>
+                </div>
+
+                {% if team.league.season %}
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Season</label>
+                    <span class="text-gray-900 dark:text-white">{{ team.league.season.name }}</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">League Type</label>
+                    {% if team.league.season.league_type == 'ECS FC' %}
+                    <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">
+                        <i class="ti ti-shirt-sport mr-1"></i>ECS FC
+                    </span>
+                    {% else %}
+                    <span class="px-2.5 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 rounded dark:bg-cyan-900 dark:text-cyan-300">
+                        <i class="ti ti-trophy mr-1"></i>Pub League
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Season Status</label>
+                    {% if team.league.season.is_current %}
+                    <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">Current Season</span>
+                    {% else %}
+                    <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Past Season</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="text-center py-6">
+                <i class="ti ti-trophy-off text-4xl text-gray-400 mb-2"></i>
+                <p class="text-gray-500 dark:text-gray-400">Not assigned to a league</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Team Roster -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-users mr-2"></i>Team Roster
+        </h5>
+        <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">{{ team.players|length if team.players else 0 }} Players</span>
+    </div>
+    <div class="p-5">
+        {% if team.players %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Player</th>
+                        <th scope="col" class="px-6 py-3">Discord</th>
+                        <th scope="col" class="px-6 py-3">Role</th>
+                        <th scope="col" class="px-6 py-3">Joined</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in team.players %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                {% if player.user and player.user.profile_picture_url %}
+                                <img src="{{ player.user.profile_picture_url }}" alt="" class="w-8 h-8 rounded-full">
+                                {% else %}
+                                <div class="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                                    <i class="ti ti-user text-white text-sm"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-white">{{ player.name }}</span>
+                                    {% if player.is_current_captain %}
+                                    <span class="ml-1 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">Captain</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if player.discord_id %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">
+                                <i class="ti ti-check mr-1"></i>Linked
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Not Linked</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if player.is_current_captain %}
+                            <span class="text-yellow-600 dark:text-yellow-400"><i class="ti ti-crown mr-1"></i>Captain</span>
+                            {% else %}
+                            <span class="text-gray-500 dark:text-gray-400">Player</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if player.created_at %}
+                            {{ player.created_at.strftime('%b %d, %Y') }}
+                            {% else %}
+                            <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <i class="ti ti-users-minus text-4xl text-gray-400 mb-3"></i>
+            <p class="text-gray-500 dark:text-gray-400">No players on this team yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Edit Team Modal -->
+<div id="editTeamModal" tabindex="-1" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-modal md:h-full justify-center items-center bg-gray-900/50">
+    <div class="relative w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-edit mr-2"></i>Rename Team
+                </h3>
+                <button type="button" onclick="closeEditModal()" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="editTeamId">
+                <div>
+                    <label for="editTeamName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Team Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="editTeamName" required
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                </div>
+                <div class="p-3 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-600 dark:text-blue-300">
+                    <i class="ti ti-info-circle mr-1"></i>
+                    Renaming will also update the Discord channel and role names.
+                </div>
+            </div>
+            <div class="flex items-center p-4 border-t border-gray-200 rounded-b dark:border-gray-600 gap-2">
+                <button onclick="closeEditModal()" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">Cancel</button>
+                <button onclick="saveTeamEdit()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <i class="ti ti-check mr-1"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function editTeam(teamId, teamName) {
+    document.getElementById('editTeamId').value = teamId;
+    document.getElementById('editTeamName').value = teamName;
+    document.getElementById('editTeamModal').classList.remove('hidden');
+    document.getElementById('editTeamModal').classList.add('flex');
+}
+
+function closeEditModal() {
+    document.getElementById('editTeamModal').classList.add('hidden');
+    document.getElementById('editTeamModal').classList.remove('flex');
+}
+
+function saveTeamEdit() {
+    const teamId = document.getElementById('editTeamId').value;
+    const name = document.getElementById('editTeamName').value;
+
+    fetch(`/admin-panel/league-management/teams/${teamId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ name })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) window.location.reload();
+    });
+}
+
+function syncDiscord(teamId) {
+    fetch(`/admin-panel/league-management/teams/${teamId}/sync-discord`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const isDark = document.documentElement.classList.contains('dark');
+        Swal.fire({
+            title: data.success ? 'Success' : 'Error',
+            text: data.message || (data.success ? 'Discord synced' : 'Sync failed'),
+            icon: data.success ? 'success' : 'error',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+    });
+}
+</script>
+{% endblock %}

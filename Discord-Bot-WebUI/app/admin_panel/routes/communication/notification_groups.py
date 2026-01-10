@@ -209,7 +209,7 @@ def notification_groups_detail(group_id):
         roles = Role.query.order_by(Role.name).all()
 
         return render_template(
-            'admin_panel/communication/notification_group_detail.html',
+            'admin_panel/communication/notification_group_detail_flowbite.html',
             group=group,
             members=members,
             member_count=member_count,

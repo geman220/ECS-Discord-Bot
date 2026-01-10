@@ -8,7 +8,7 @@
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <a href="{{ url_for('admin_panel.users_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">User Management</a>
+        <a href="{{ url_for('admin_panel.user_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">User Management</a>
     </div>
 </li>
 <li>
@@ -133,13 +133,16 @@
                 </td>
                 <td class="px-4 py-3">
                     <div class="flex gap-1">
-                        <button type="button" class="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400" data-action="view-player" data-user-id="{{ user.id }}">
+                        <button type="button" class="px-2 py-1 text-xs font-medium text-green-700 bg-green-50 rounded hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400" data-action="approve-modal" data-user-id="{{ user.id }}" data-username="{{ user.username }}" title="Approve & Assign League">
+                            <i class="ti ti-check"></i>
+                        </button>
+                        <button type="button" class="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400" data-action="view-player" data-user-id="{{ user.id }}" title="View Details">
                             <i class="ti ti-eye"></i>
                         </button>
-                        <button type="button" class="px-2 py-1 text-xs font-medium text-cyan-700 bg-cyan-50 rounded hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400" data-action="contact-modal" data-user-id="{{ user.id }}">
+                        <button type="button" class="px-2 py-1 text-xs font-medium text-cyan-700 bg-cyan-50 rounded hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400" data-action="contact-modal" data-user-id="{{ user.id }}" title="Contact User">
                             <i class="ti ti-mail"></i>
                         </button>
-                        <button type="button" class="px-2 py-1 text-xs font-medium text-red-700 bg-red-50 rounded hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400" data-action="removal-modal" data-user-id="{{ user.id }}">
+                        <button type="button" class="px-2 py-1 text-xs font-medium text-red-700 bg-red-50 rounded hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400" data-action="removal-modal" data-user-id="{{ user.id }}" title="Remove from Waitlist">
                             <i class="ti ti-trash"></i>
                         </button>
                     </div>
@@ -159,6 +162,117 @@
 </div>
 {% endif %}
 {% endcall %}
+
+<!-- Recent Actions -->
+{% if recent_actions %}
+{% call card(title="Recent Actions", subtitle="Recent approval and denial actions") %}
+<div class="overflow-x-auto">
+    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+                <th scope="col" class="px-4 py-3">User</th>
+                <th scope="col" class="px-4 py-3">Action</th>
+                <th scope="col" class="px-4 py-3">League</th>
+                <th scope="col" class="px-4 py-3">Processed By</th>
+                <th scope="col" class="px-4 py-3">Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in recent_actions %}
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ user.username }}</td>
+                <td class="px-4 py-3">
+                    {% if user.approval_status == 'approved' %}
+                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Approved</span>
+                    {% elif user.approval_status == 'denied' %}
+                    <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded">Denied</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3">
+                    {% if user.approval_league %}
+                        {% if user.approval_league.startswith('sub-') %}
+                        <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">{{ user.approval_league[4:].replace('-', ' ').title() }} Sub</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ user.approval_league.replace('-', ' ').title() }}</span>
+                        {% endif %}
+                    {% else %}
+                    <span class="text-gray-400 dark:text-gray-500">N/A</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3">{{ user.approved_by_user.username if user.approved_by_user else 'Unknown' }}</td>
+                <td class="px-4 py-3">{{ user.approved_at.strftime('%Y-%m-%d %H:%M') if user.approved_at else 'Unknown' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endcall %}
+{% endif %}
+
+<!-- Audit Log -->
+{% if audit_logs %}
+{% call card(title="Audit Log", subtitle="Recent admin actions on waitlist users") %}
+<div class="overflow-x-auto">
+    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+                <th scope="col" class="px-4 py-3">Admin</th>
+                <th scope="col" class="px-4 py-3">Action</th>
+                <th scope="col" class="px-4 py-3">User ID</th>
+                <th scope="col" class="px-4 py-3">Details</th>
+                <th scope="col" class="px-4 py-3">Date/Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in audit_logs %}
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                <td class="px-4 py-3">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-medium text-xs">
+                            {{ log.user.username[0].upper() if log.user else '?' }}
+                        </div>
+                        <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ log.user.username if log.user else 'Unknown' }}</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3">
+                    {% if log.action == 'remove_from_waitlist' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                        <i class="ti ti-user-minus mr-1"></i>Removed
+                    </span>
+                    {% elif log.action == 'contact_waitlist_user' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
+                        <i class="ti ti-mail mr-1"></i>Contacted
+                    </span>
+                    {% elif log.action == 'update_waitlist_priority' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                        <i class="ti ti-sort-ascending mr-1"></i>Priority
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                        {{ log.action.replace('_', ' ').title() }}
+                    </span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3">
+                    <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{ log.resource_id }}</code>
+                </td>
+                <td class="px-4 py-3 text-xs">
+                    {% if log.old_value %}
+                    <span class="text-gray-400">{{ log.old_value }}</span>
+                    <i class="ti ti-arrow-right mx-1 text-gray-400"></i>
+                    {% endif %}
+                    <span class="text-gray-600 dark:text-gray-300">{{ log.new_value or '-' }}</span>
+                </td>
+                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+                    {{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else 'Unknown' }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endcall %}
+{% endif %}
 
 <!-- Removal Modal -->
 <div id="removalModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
@@ -220,6 +334,57 @@
     </div>
 </div>
 
+<!-- Approval Modal -->
+<div id="approvalModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
+        <div class="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
+            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white"><i class="ti ti-user-check mr-2"></i>Approve Waitlist User</h3>
+                <button type="button" class="text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="approvalModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form id="approvalForm">
+                <div class="p-6 space-y-4">
+                    <div class="p-3 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300">
+                        <i class="ti ti-info-circle mr-2"></i>
+                        Approving <strong id="approvalUsername">this user</strong> will remove them from the waitlist and assign them to the selected league with Discord roles.
+                    </div>
+                    <div>
+                        <label for="leagueSelect" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Assign to League <span class="text-red-500">*</span></label>
+                        <select id="leagueSelect" name="league_type" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">Select a league...</option>
+                            <optgroup label="Full League Roles">
+                                <option value="classic">Classic Division</option>
+                                <option value="premier">Premier Division</option>
+                                <option value="ecs-fc">ECS FC League</option>
+                            </optgroup>
+                            <optgroup label="Substitute Roles (Mid-Season)">
+                                <option value="sub-classic">Classic Substitute</option>
+                                <option value="sub-premier">Premier Substitute</option>
+                                <option value="sub-ecs-fc">ECS FC Substitute</option>
+                            </optgroup>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">This will sync roles to Discord automatically.</p>
+                    </div>
+                    <div>
+                        <label for="approvalNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes (optional)</label>
+                        <textarea id="approvalNotes" name="notes" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Add any notes about this approval..."></textarea>
+                    </div>
+                    <input type="hidden" id="approvalUserId" name="user_id">
+                </div>
+                <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
+                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="approvalModal">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600">
+                        <i class="ti ti-check mr-1"></i>Approve User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Player Details Modal -->
 <div id="playerDetailsModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
     <div class="flex min-h-full items-center justify-center p-4">
@@ -250,20 +415,44 @@ document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
     let currentUserId = null;
 
-    // Modal setup
-    function setupModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (!modal) return;
-        document.querySelectorAll(`[data-modal-hide="${modalId}"]`).forEach(btn => {
-            btn.addEventListener('click', () => modal.classList.add('hidden'));
-        });
-        const backdrop = modal.querySelector('[data-modal-backdrop]');
-        if (backdrop) backdrop.addEventListener('click', () => modal.classList.add('hidden'));
-    }
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
-    setupModal('removalModal');
-    setupModal('contactModal');
-    setupModal('playerDetailsModal');
+    // Initialize Flowbite modals properly
+    const removalModalEl = document.getElementById('removalModal');
+    const contactModalEl = document.getElementById('contactModal');
+    const playerDetailsModalEl = document.getElementById('playerDetailsModal');
+    const approvalModalEl = document.getElementById('approvalModal');
+
+    const modalOptions = {
+        placement: 'center',
+        backdrop: 'dynamic',
+        backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
+        closable: true
+    };
+
+    const removalModal = removalModalEl ? new Modal(removalModalEl, modalOptions) : null;
+    const contactModal = contactModalEl ? new Modal(contactModalEl, modalOptions) : null;
+    const playerDetailsModal = playerDetailsModalEl ? new Modal(playerDetailsModalEl, modalOptions) : null;
+    const approvalModal = approvalModalEl ? new Modal(approvalModalEl, modalOptions) : null;
+
+    // Store modals on elements for access
+    if (removalModalEl) removalModalEl._flowbiteModal = removalModal;
+    if (contactModalEl) contactModalEl._flowbiteModal = contactModal;
+    if (playerDetailsModalEl) playerDetailsModalEl._flowbiteModal = playerDetailsModal;
+    if (approvalModalEl) approvalModalEl._flowbiteModal = approvalModal;
+
+    // Setup close buttons to use Flowbite Modal API
+    document.querySelectorAll('[data-modal-hide]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const modalId = this.getAttribute('data-modal-hide');
+            const modalEl = document.getElementById(modalId);
+            if (modalEl && modalEl._flowbiteModal) {
+                modalEl._flowbiteModal.hide();
+            }
+        });
+    });
 
     // Action handlers
     document.addEventListener('click', function(e) {
@@ -278,31 +467,221 @@ document.addEventListener('DOMContentLoaded', function() {
                 location.reload();
                 break;
             case 'view-player':
-                document.getElementById('playerDetailsModal').classList.remove('hidden');
+                currentUserId = userId;
+                loadPlayerDetails(userId);
+                if (playerDetailsModal) playerDetailsModal.show();
+                break;
+            case 'approve-modal':
+                currentUserId = userId;
+                document.getElementById('approvalUserId').value = userId;
+                document.getElementById('approvalUsername').textContent = target.dataset.username || 'this user';
+                document.getElementById('leagueSelect').value = '';
+                document.getElementById('approvalNotes').value = '';
+                if (approvalModal) approvalModal.show();
                 break;
             case 'contact-modal':
                 currentUserId = userId;
                 document.getElementById('contactUserId').value = userId;
-                document.getElementById('contactModal').classList.remove('hidden');
+                if (contactModal) contactModal.show();
                 break;
             case 'removal-modal':
                 currentUserId = userId;
                 document.getElementById('removalUserId').value = userId;
-                document.getElementById('removalModal').classList.remove('hidden');
+                if (removalModal) removalModal.show();
                 break;
             case 'submit-removal':
-                const reason = document.getElementById('removal-reason').value;
-                if (!reason.trim()) {
-                    Swal.fire({title: 'Error', text: 'Please provide a reason.', icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
-                    return;
-                }
-                Swal.fire({title: 'Success', text: 'User removed from waitlist.', icon: 'success', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'}).then(() => location.reload());
+                submitRemoval();
                 break;
             case 'submit-contact':
-                Swal.fire({title: 'Success', text: 'Contact logged.', icon: 'success', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
-                document.getElementById('contactModal').classList.add('hidden');
+                submitContact();
                 break;
         }
+    });
+
+    // Load player details via API
+    function loadPlayerDetails(userId) {
+        const contentEl = document.getElementById('playerDetailsContent');
+        contentEl.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div></div>';
+
+        fetch(`{{ url_for('admin_panel.get_waitlist_user_details', user_id=0) }}`.replace('/0', '/' + userId))
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const user = data.user;
+                    const player = user.player || {};
+                    contentEl.innerHTML = `
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Basic Information</h4>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Username:</strong> ${user.username}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Email:</strong> ${user.email || 'N/A'}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Joined:</strong> ${user.created_at || 'N/A'}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Status:</strong> ${user.approval_status || 'N/A'}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Preferred League:</strong> ${user.preferred_league || 'Not specified'}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Roles:</strong> ${user.roles ? user.roles.join(', ') : 'None'}</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Player Details</h4>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Name:</strong> ${player.name || 'N/A'}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Phone:</strong> ${player.phone || 'N/A'}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Pronouns:</strong> ${player.pronouns || 'N/A'}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Discord:</strong> ${player.discord_id ? 'Linked' : 'Not linked'}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Jersey Size:</strong> ${player.jersey_size || 'N/A'}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Jersey Number:</strong> ${player.jersey_number || 'N/A'}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Playing Information</h4>
+                                <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Favorite Position:</strong> ${player.favorite_position || 'N/A'}</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Other Positions:</strong> ${player.other_positions || 'N/A'}</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Positions NOT to Play:</strong> ${player.positions_not_to_play || 'N/A'}</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Frequency Play Goal:</strong> ${player.frequency_play_goal || 'N/A'}</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Expected Weeks Available:</strong> ${player.expected_weeks_available || 'N/A'}</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Willing to Referee:</strong> ${player.willing_to_referee || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Substitute Information</h4>
+                                <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Interested in Subbing:</strong> ${player.interested_in_sub ? 'Yes' : 'No'}</p>
+                                <p class="text-sm text-gray-600 dark:text-gray-300"><strong>Available for Subbing:</strong> ${player.is_sub ? 'Yes' : 'No'}</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    contentEl.innerHTML = '<p class="text-red-500">Failed to load player details.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading player details:', error);
+                contentEl.innerHTML = '<p class="text-red-500">Error loading player details.</p>';
+            });
+    }
+
+    // Submit removal
+    function submitRemoval() {
+        const reason = document.getElementById('removal-reason').value;
+        const userId = document.getElementById('removalUserId').value;
+
+        if (!reason.trim()) {
+            Swal.fire({title: 'Error', text: 'Please provide a reason.', icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
+            return;
+        }
+
+        fetch(`{{ url_for('admin_panel.remove_from_waitlist', user_id=0) }}`.replace('/0', '/' + userId), {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            body: JSON.stringify({reason: reason})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({title: 'Success', text: data.message, icon: 'success', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'}).then(() => location.reload());
+            } else {
+                Swal.fire({title: 'Error', text: data.message, icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
+            }
+        })
+        .catch(error => {
+            Swal.fire({title: 'Error', text: 'Failed to remove user.', icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
+        });
+    }
+
+    // Submit contact
+    function submitContact() {
+        const method = document.getElementById('contact-method').value;
+        const message = document.getElementById('contact-message').value;
+        const userId = document.getElementById('contactUserId').value;
+
+        if (!message.trim()) {
+            Swal.fire({title: 'Error', text: 'Please enter a message.', icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
+            return;
+        }
+
+        fetch(`{{ url_for('admin_panel.contact_waitlist_user', user_id=0) }}`.replace('/0', '/' + userId), {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            body: JSON.stringify({contact_method: method, message: message})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({title: 'Success', text: data.message, icon: 'success', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
+                if (contactModal) contactModal.hide();
+                document.getElementById('contact-message').value = '';
+            } else {
+                Swal.fire({title: 'Error', text: data.message, icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
+            }
+        })
+        .catch(error => {
+            Swal.fire({title: 'Error', text: 'Failed to send message.', icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
+        });
+    }
+
+    // Approval form submission
+    document.getElementById('approvalForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const userId = document.getElementById('approvalUserId').value;
+        const league = document.getElementById('leagueSelect').value;
+        const notes = document.getElementById('approvalNotes').value;
+
+        if (!league) {
+            Swal.fire({title: 'Error', text: 'Please select a league.', icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
+            return;
+        }
+
+        // Disable submit button
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="ti ti-loader animate-spin mr-1"></i>Processing...';
+
+        // Build form data
+        const formData = new FormData();
+        formData.append('league_type', league);
+        formData.append('notes', notes);
+
+        // Submit approval to API (using the approvals endpoint)
+        fetch(`/admin-panel/users/approvals/approve/${userId}`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrfToken},
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    title: 'Success',
+                    text: data.message || 'User approved and removed from waitlist.',
+                    icon: 'success',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => location.reload());
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Failed to approve user.',
+                    icon: 'error',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error approving user:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'An error occurred while processing the approval.',
+                icon: 'error',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
     });
 });
 </script>

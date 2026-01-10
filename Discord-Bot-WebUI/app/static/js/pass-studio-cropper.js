@@ -68,18 +68,18 @@ const AssetCropper = {
         this.reset();
 
         // Show upload area, hide canvas
-        document.getElementById('cropper-upload-area').classList.remove('d-none');
-        document.getElementById('cropper-canvas-area').classList.add('d-none');
+        document.getElementById('cropper-upload-area').classList.remove('hidden');
+        document.getElementById('cropper-canvas-area').classList.add('hidden');
         document.getElementById('cropper-save-btn').disabled = true;
-        document.getElementById('cropper-change-btn').classList.add('d-none');
+        document.getElementById('cropper-change-btn').classList.add('hidden');
 
         // Show/hide delete button based on whether asset exists
         const deleteBtn = document.getElementById('cropper-delete-btn');
         if (deleteBtn) {
             if (this.assetExists) {
-                deleteBtn.classList.remove('d-none');
+                deleteBtn.classList.remove('hidden');
             } else {
-                deleteBtn.classList.add('d-none');
+                deleteBtn.classList.add('hidden');
             }
         }
 
@@ -151,10 +151,10 @@ const AssetCropper = {
                 this.draw();
 
                 // Show canvas area
-                document.getElementById('cropper-upload-area').classList.add('d-none');
-                document.getElementById('cropper-canvas-area').classList.remove('d-none');
+                document.getElementById('cropper-upload-area').classList.add('hidden');
+                document.getElementById('cropper-canvas-area').classList.remove('hidden');
                 document.getElementById('cropper-save-btn').disabled = false;
-                document.getElementById('cropper-change-btn').classList.remove('d-none');
+                document.getElementById('cropper-change-btn').classList.remove('hidden');
             };
             img.onerror = () => {
                 window.Swal.fire({
@@ -467,8 +467,8 @@ const AssetCropper = {
                 });
 
                 // Close modal
-                const modal = window.bootstrap.Modal.getInstance(document.getElementById('assetCropperModal'));
-                if (modal) modal.hide();
+                const modalEl = document.getElementById('assetCropperModal');
+                if (modalEl && modalEl._flowbiteModal) modalEl._flowbiteModal.hide();
 
                 // Notify PassStudio to update preview
                 if (typeof window.PassStudio !== 'undefined' && window.PassStudio.onAssetUploaded) {
@@ -544,8 +544,8 @@ const AssetCropper = {
                 });
 
                 // Close modal
-                const modal = window.bootstrap.Modal.getInstance(document.getElementById('assetCropperModal'));
-                if (modal) modal.hide();
+                const modalEl = document.getElementById('assetCropperModal');
+                if (modalEl && modalEl._flowbiteModal) modalEl._flowbiteModal.hide();
 
                 // Notify PassStudio to update preview
                 if (typeof window.PassStudio !== 'undefined' && window.PassStudio.onAssetDeleted) {

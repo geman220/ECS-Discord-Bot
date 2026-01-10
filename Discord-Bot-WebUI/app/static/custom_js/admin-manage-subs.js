@@ -231,10 +231,13 @@ function renderAssignments(container, assignments, playerId) {
 
     container.innerHTML = html;
 
-    // Initialize tooltips if Bootstrap is available
-    if (typeof window.bootstrap !== 'undefined') {
-        const tooltipTriggerList = container.querySelectorAll('[data-bs-toggle="tooltip"]');
-        [...tooltipTriggerList].map(el => new window.bootstrap.Tooltip(el));
+    // Initialize tooltips - Flowbite auto-initializes tooltips with title attribute
+    if (typeof window.Tooltip !== 'undefined') {
+        container.querySelectorAll('[title]').forEach(el => {
+            if (!el._tooltip) {
+                el._tooltip = new window.Tooltip(el);
+            }
+        });
     }
 }
 
@@ -287,8 +290,9 @@ function handleAssignSub(link) {
     modalTitle.innerHTML = `<i class="ti ti-user-plus me-2"></i>Assign ${playerName} as Substitute`;
 
     // Open modal
-    const modal = new window.bootstrap.Modal(document.getElementById('assignSubModal'));
-    modal.show();
+    const modalEl = document.getElementById('assignSubModal');
+    modalEl._flowbiteModal = modalEl._flowbiteModal || new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
+    modalEl._flowbiteModal.show();
 }
 
 // ========================================================================
@@ -301,7 +305,7 @@ function handleAssignSubFormSubmit(form) {
 
     // Disable button and show loading
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Assigning...';
+    submitBtn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" role="status" aria-hidden="true"></span> Assigning...';
 
     fetch(form.action, {
         method: 'POST',
@@ -316,8 +320,8 @@ function handleAssignSubFormSubmit(form) {
             showToast(data.message, 'success');
 
             // Close modal
-            const modal = window.bootstrap.Modal.getInstance(document.getElementById('assignSubModal'));
-            modal.hide();
+            const modalEl = document.getElementById('assignSubModal');
+            modalEl?._flowbiteModal?.hide();
 
             // Reset form
             form.reset();

@@ -14,13 +14,13 @@ export function updateStructureSections() {
     const ecsFcStructure = document.getElementById('ecsFcStructure');
 
     if (leagueType === 'Pub League') {
-        if (pubLeagueStructure) pubLeagueStructure.classList.remove('d-none');
-        if (ecsFcStructure) ecsFcStructure.classList.add('d-none');
+        if (pubLeagueStructure) pubLeagueStructure.classList.remove('hidden');
+        if (ecsFcStructure) ecsFcStructure.classList.add('hidden');
         updateTotalWeeks('premier');
         updateTotalWeeks('classic');
     } else if (leagueType === 'ECS FC') {
-        if (pubLeagueStructure) pubLeagueStructure.classList.add('d-none');
-        if (ecsFcStructure) ecsFcStructure.classList.remove('d-none');
+        if (pubLeagueStructure) pubLeagueStructure.classList.add('hidden');
+        if (ecsFcStructure) ecsFcStructure.classList.remove('hidden');
         updateTotalWeeks('ecsFc');
     }
 }

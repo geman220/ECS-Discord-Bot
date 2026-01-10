@@ -1,0 +1,115 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Season History{% endblock %}
+{% block panel_description %}View historical seasons and player team history{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.league_management_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">League Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">History</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Season History -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-history mr-2"></i>Season History
+        </h5>
+    </div>
+    <div class="p-5">
+        {% if history %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Season</th>
+                        <th scope="col" class="px-6 py-3">League Type</th>
+                        <th scope="col" class="px-6 py-3">Leagues</th>
+                        <th scope="col" class="px-6 py-3">Teams</th>
+                        <th scope="col" class="px-6 py-3">Created</th>
+                        <th scope="col" class="px-6 py-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for season in history %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4">
+                            <a href="{{ url_for('admin_panel.league_management_season_detail', season_id=season.id) }}" class="text-blue-600 hover:underline dark:text-blue-400">
+                                {{ season.name }}
+                            </a>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">{{ season.league_type }}</span>
+                        </td>
+                        <td class="px-6 py-4">{{ season.league_count }}</td>
+                        <td class="px-6 py-4">{{ season.team_count }}</td>
+                        <td class="px-6 py-4">
+                            {% if season.created_at %}
+                            <span class="text-xs">{{ season.created_at[:10] }}</span>
+                            {% else %}
+                            <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if season.is_current %}
+                            <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">Current</span>
+                            {% else %}
+                            <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Archived</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-8">
+            <i class="ti ti-history text-4xl text-gray-400 mb-2"></i>
+            <p class="text-gray-500 dark:text-gray-400">No season history available</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Player History Lookup -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-user-search mr-2"></i>Player Team History Lookup
+        </h5>
+    </div>
+    <div class="p-5">
+        <div class="max-w-md">
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search by Player Name</label>
+            <div class="flex">
+                <input type="text" id="playerSearchInput"
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       placeholder="Start typing player name..." autocomplete="off">
+                <button id="lookupBtn" disabled
+                        class="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-r-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="ti ti-search mr-1"></i>Lookup
+                </button>
+            </div>
+            <div id="playerSearchResults" class="mt-2"></div>
+            <input type="hidden" id="selectedPlayerId">
+            <p id="selectedPlayerInfo" class="mt-1 text-sm text-gray-500 dark:text-gray-400"></p>
+        </div>
+
+        <div id="playerHistoryResult" class="mt-6 hidden">
+            <h6 id="playerHistoryTitle" class="text-md font-medium text-gray-900 dark:text-white mb-3">Team History</h6>
+            <div id="playerHistoryContent"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

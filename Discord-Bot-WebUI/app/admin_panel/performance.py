@@ -247,8 +247,8 @@ def preload_admin_data():
         })
         
         # Preload recent activity
-        admin_stats_cache.get_stats('recent_activity', lambda: 
-            AdminAuditLog.query.order_by(AdminAuditLog.created_at.desc()).limit(10).all()
+        admin_stats_cache.get_stats('recent_activity', lambda:
+            AdminAuditLog.query.order_by(AdminAuditLog.timestamp.desc()).limit(10).all()
         )
         
         logger.info("Admin data preloading completed")

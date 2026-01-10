@@ -196,7 +196,7 @@ def get_player_team_history(player_id):
             Season.name.desc()
         ).all()
         
-        return render_template('_team_history.html', title='Team History', team_history=history)
+        return render_template('_team_history_flowbite.html', title='Team History', team_history=history)
     except SQLAlchemyError as e:
         logger.error(f"Database error fetching team history: {str(e)}")
         return "Error loading team history", 500

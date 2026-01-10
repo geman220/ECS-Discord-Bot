@@ -14,11 +14,11 @@ import { formatTaskETA, formatScheduledTime, getTaskStatusColor } from './helper
 export function matchMgmtShowQueueStatus() {
     if (window.ModalManager) {
         window.ModalManager.show('queueStatusModal');
-    } else if (window.bootstrap?.Modal) {
+    } else if (window.Modal) {
         const modalEl = document.getElementById('queueStatusModal');
         if (modalEl) {
-            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
-            modal.show();
+            modalEl._flowbiteModal = modalEl._flowbiteModal || new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
+            modalEl._flowbiteModal.show();
         }
     }
     refreshQueueStatus();

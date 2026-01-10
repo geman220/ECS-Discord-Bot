@@ -97,7 +97,7 @@ function viewScheduledMessage(messageId, messageTitle) {
     }
 
     if (contentEl) {
-        contentEl.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+        contentEl.innerHTML = '<div class="flex justify-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status"></div></div>';
     }
 
     // Show modal
@@ -159,11 +159,11 @@ function editScheduledMessage(messageId) {
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Scheduled Time <span class="text-danger">*</span></label>
-                                <input type="datetime-local" id="editScheduledTime" class="form-control" value="${scheduledTime}">
+                                <input type="datetime-local" id="editScheduledTime" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${scheduledTime}">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Match ID</label>
-                                <input type="text" class="form-control" value="${message.match_id || 'N/A'}" disabled>
+                                <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${message.match_id || 'N/A'}" disabled>
                                 <small class="text-muted">Match ID cannot be changed</small>
                             </div>
                         </div>

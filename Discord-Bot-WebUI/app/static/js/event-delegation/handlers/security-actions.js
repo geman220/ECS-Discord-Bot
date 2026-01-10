@@ -135,7 +135,7 @@ window.EventDelegation.register('show-ban-ip-modal', function(element, e) {
 
     if (typeof showBanIpModal === 'function') {
         showBanIpModal();
-    } else if (window.bootstrap) {
+    } else if (window.ModalManager) {
         // Fallback: directly show the modal
         const modalElement = document.getElementById('banIpModal');
         if (modalElement) {

@@ -62,7 +62,7 @@ window.EventDelegation.register('void-pass', (element, event) => {
 
     window.Swal.fire({
         title: 'Void This Pass?',
-        html: '<p class="mb-3">The member will no longer be able to use this pass for check-ins.</p><input id="void-reason" class="form-control" placeholder="Reason for voiding (optional)" data-form-control>',
+        html: '<p class="mb-3">The member will no longer be able to use this pass for check-ins.</p><input id="void-reason" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Reason for voiding (optional)" data-form-control>',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
@@ -200,10 +200,10 @@ function updateBulkActionsBar() {
 
     if (bar) {
         if (count > 0) {
-            bar.classList.remove('d-none');
+            bar.classList.remove('hidden');
             if (countSpan) countSpan.textContent = count;
         } else {
-            bar.classList.add('d-none');
+            bar.classList.add('hidden');
         }
     }
 }
@@ -233,8 +233,9 @@ window.EventDelegation.register('bulk-void-passes', (element, event) => {
 
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('bulkVoidModal');
-    } else if (typeof window.bootstrap !== 'undefined') {
-        const modal = new window.bootstrap.Modal(document.getElementById('bulkVoidModal'));
+    } else if (typeof window.Modal !== 'undefined') {
+        const modalEl = document.getElementById('bulkVoidModal');
+        const modal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
         modal.show();
     }
 });
@@ -255,8 +256,8 @@ window.EventDelegation.register('confirm-bulk-void', (element, event) => {
     .then(response => response.json())
     .then(data => {
         const modal = document.getElementById('bulkVoidModal');
-        if (modal && typeof window.bootstrap !== 'undefined') {
-            window.bootstrap.Modal.getInstance(modal)?.hide();
+        if (modal && modal._flowbiteModal) {
+            modal._flowbiteModal.hide();
         }
         showNotification('Bulk Void Complete', `Voided ${data.success?.length || 0} passes. ${data.failed?.length || 0} failed.`, 'success');
         location.reload();
@@ -314,11 +315,11 @@ window.EventDelegation.register('bulk-pass-type-change', (element, event) => {
     const seasonField = document.getElementById('seasonField');
 
     if (element.value === 'pub_league') {
-        if (yearField) yearField.classList.add('d-none');
-        if (seasonField) seasonField.classList.remove('d-none');
+        if (yearField) yearField.classList.add('hidden');
+        if (seasonField) seasonField.classList.remove('hidden');
     } else {
-        if (yearField) yearField.classList.remove('d-none');
-        if (seasonField) seasonField.classList.add('d-none');
+        if (yearField) yearField.classList.remove('hidden');
+        if (seasonField) seasonField.classList.add('hidden');
     }
 });
 
@@ -335,7 +336,7 @@ window.EventDelegation.register('bulk-generate-passes', (element, event) => {
     const resultsContent = document.getElementById('bulkResultsContent');
 
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating...';
+    btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></span>Generating...';
 
     fetch('/admin/wallet/api/passes/bulk-generate', {
         method: 'POST',
@@ -351,7 +352,7 @@ window.EventDelegation.register('bulk-generate-passes', (element, event) => {
         btn.disabled = false;
         btn.innerHTML = '<i class="ti ti-bolt me-1"></i>Generate Passes';
 
-        if (resultsDiv) resultsDiv.classList.remove('d-none');
+        if (resultsDiv) resultsDiv.classList.remove('hidden');
 
         if (data.error) {
             if (resultsContent) resultsContent.innerHTML = `<div class="alert alert-danger" data-alert>${escapeHtml(data.error)}</div>`;
@@ -379,7 +380,7 @@ window.EventDelegation.register('bulk-generate-passes', (element, event) => {
         btn.disabled = false;
         btn.innerHTML = '<i class="ti ti-bolt me-1"></i>Generate Passes';
         if (resultsContent) resultsContent.innerHTML = `<div class="alert alert-danger" data-alert>Error generating passes. Please try again.</div>`;
-        if (resultsDiv) resultsDiv.classList.remove('d-none');
+        if (resultsDiv) resultsDiv.classList.remove('hidden');
     });
 });
 
@@ -400,8 +401,9 @@ window.EventDelegation.register('check-player-eligibility', (element, event) => 
 
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('eligibilityModal');
-    } else if (typeof window.bootstrap !== 'undefined') {
-        const modal = new window.bootstrap.Modal(document.getElementById('eligibilityModal'));
+    } else if (typeof window.Modal !== 'undefined') {
+        const modalEl = document.getElementById('eligibilityModal');
+        const modal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
         modal.show();
     }
 
@@ -532,7 +534,7 @@ function performBulkGenerateWalletPasses(element) {
     // Show loading state
     const originalText = element.innerHTML;
     element.disabled = true;
-    element.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating...';
+    element.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></span>Generating...';
 
     const csrfMeta = document.querySelector('meta[name="csrf-token"]');
     const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';

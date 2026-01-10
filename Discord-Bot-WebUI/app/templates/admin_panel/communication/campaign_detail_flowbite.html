@@ -1,0 +1,140 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}{{ page_title }}{% endblock %}
+{% block panel_description %}Campaign details and analytics{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.campaigns_list') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Push Campaigns</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ campaign.name }}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Campaign Header -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center justify-center w-14 h-14 rounded-full
+                    {% if campaign.status == 'sent' %}bg-green-100 dark:bg-green-900/50{% elif campaign.status == 'scheduled' %}bg-yellow-100 dark:bg-yellow-900/50{% elif campaign.status == 'draft' %}bg-gray-100 dark:bg-gray-700{% else %}bg-red-100 dark:bg-red-900/50{% endif %}">
+                    <i class="ti ti-broadcast text-2xl
+                        {% if campaign.status == 'sent' %}text-green-600 dark:text-green-400{% elif campaign.status == 'scheduled' %}text-yellow-600 dark:text-yellow-400{% elif campaign.status == 'draft' %}text-gray-600 dark:text-gray-400{% else %}text-red-600 dark:text-red-400{% endif %}"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ campaign.name }}</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Created {{ campaign.created_at.strftime('%B %d, %Y at %H:%M') if campaign.created_at else 'Unknown' }}
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                {% if campaign.status == 'sent' %}
+                    {{ badge('Sent', variant='success') }}
+                {% elif campaign.status == 'scheduled' %}
+                    {{ badge('Scheduled', variant='warning') }}
+                {% elif campaign.status == 'draft' %}
+                    {{ badge('Draft', variant='secondary') }}
+                {% elif campaign.status == 'cancelled' %}
+                    {{ badge('Cancelled', variant='danger') }}
+                {% else %}
+                    {{ badge(campaign.status|title, variant='secondary') }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="p-5">
+        <!-- Campaign Details Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">Title</div>
+                <div class="font-medium text-gray-900 dark:text-white">{{ campaign.title or 'No title' }}</div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">Target Audience</div>
+                <div class="font-medium text-gray-900 dark:text-white">{{ campaign.target_audience or 'All users' }}</div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">Scheduled For</div>
+                <div class="font-medium text-gray-900 dark:text-white">
+                    {{ campaign.scheduled_at.strftime('%Y-%m-%d %H:%M') if campaign.scheduled_at else 'Not scheduled' }}
+                </div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">Sent At</div>
+                <div class="font-medium text-gray-900 dark:text-white">
+                    {{ campaign.sent_at.strftime('%Y-%m-%d %H:%M') if campaign.sent_at else 'Not sent yet' }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Content -->
+        <div class="mb-6">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                <i class="ti ti-message mr-2"></i>Message Content
+            </h5>
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ campaign.message or 'No message content' }}</p>
+            </div>
+        </div>
+
+        <!-- Analytics (if sent) -->
+        {% if campaign.status == 'sent' %}
+        <div class="mb-6">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                <i class="ti ti-chart-bar mr-2"></i>Delivery Analytics
+            </h5>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ campaign.total_recipients or 0 }}</div>
+                    <div class="text-sm text-blue-700 dark:text-blue-300">Total Recipients</div>
+                </div>
+                <div class="bg-green-50 dark:bg-green-900/30 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ campaign.delivered_count or 0 }}</div>
+                    <div class="text-sm text-green-700 dark:text-green-300">Delivered</div>
+                </div>
+                <div class="bg-red-50 dark:bg-red-900/30 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-red-600 dark:text-red-400">{{ campaign.failed_count or 0 }}</div>
+                    <div class="text-sm text-red-700 dark:text-red-300">Failed</div>
+                </div>
+                <div class="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ campaign.opened_count or 0 }}</div>
+                    <div class="text-sm text-purple-700 dark:text-purple-300">Opened</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="flex flex-wrap gap-3">
+    <a href="{{ url_for('admin_panel.campaigns_list') }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+        <i class="ti ti-arrow-left mr-1"></i>Back to Campaigns
+    </a>
+    {% if campaign.status == 'draft' %}
+    <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+        <i class="ti ti-edit mr-1"></i>Edit Campaign
+    </button>
+    <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
+        <i class="ti ti-send mr-1"></i>Send Now
+    </button>
+    {% endif %}
+</div>
+{% endblock %}

@@ -8,7 +8,7 @@
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <a href="{{ url_for('admin_panel.users_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">User Management</a>
+        <a href="{{ url_for('admin_panel.user_management') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">User Management</a>
     </div>
 </li>
 <li>
@@ -210,6 +210,67 @@
 {% endcall %}
 {% endif %}
 
+<!-- Audit Log -->
+{% if audit_logs %}
+{% call card(title="Audit Log", subtitle="Recent admin actions on user approvals") %}
+<div class="overflow-x-auto">
+    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <tr>
+                <th scope="col" class="px-4 py-3">Admin</th>
+                <th scope="col" class="px-4 py-3">Action</th>
+                <th scope="col" class="px-4 py-3">User ID</th>
+                <th scope="col" class="px-4 py-3">Details</th>
+                <th scope="col" class="px-4 py-3">Date/Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in audit_logs %}
+            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                <td class="px-4 py-3">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-medium text-xs">
+                            {{ log.user.username[0].upper() if log.user else '?' }}
+                        </div>
+                        <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ log.user.username if log.user else 'Unknown' }}</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3">
+                    {% if log.action == 'approve_user' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                        <i class="ti ti-check mr-1"></i>Approved
+                    </span>
+                    {% elif log.action == 'deny_user' %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                        <i class="ti ti-x mr-1"></i>Denied
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                        {{ log.action.replace('_', ' ').title() }}
+                    </span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3">
+                    <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{ log.resource_id }}</code>
+                </td>
+                <td class="px-4 py-3 text-xs">
+                    {% if log.old_value %}
+                    <span class="text-gray-400">{{ log.old_value }}</span>
+                    <i class="ti ti-arrow-right mx-1 text-gray-400"></i>
+                    {% endif %}
+                    <span class="text-gray-600 dark:text-gray-300">{{ log.new_value or '-' }}</span>
+                </td>
+                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+                    {{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else 'Unknown' }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endcall %}
+{% endif %}
+
 <!-- Approval Modal -->
 <div id="approvalModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
     <div class="flex min-h-full items-center justify-center p-4">
@@ -365,28 +426,140 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
     // Form submissions
     document.getElementById('approvalForm')?.addEventListener('submit', function(e) {
         e.preventDefault();
         const userId = document.getElementById('approvalUserId').value;
         const league = document.getElementById('leagueSelect').value;
+        const notes = document.getElementById('approvalNotes').value;
+
         if (!league) {
             Swal.fire({title: 'Error', text: 'Please select a league.', icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
             return;
         }
-        // Submit approval
-        Swal.fire({title: 'Success', text: 'User approved successfully.', icon: 'success', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'}).then(() => location.reload());
+
+        // Disable submit button
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="ti ti-loader animate-spin mr-1"></i>Processing...';
+
+        // Build form data
+        const formData = new FormData();
+        formData.append('league_type', league);
+        formData.append('notes', notes);
+
+        // Submit approval to API
+        fetch(`{{ url_for('admin_panel.approve_user', user_id=0) }}`.replace('/0', '/' + userId), {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrfToken},
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    title: 'Success',
+                    text: data.message || 'User approved successfully.',
+                    icon: 'success',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => location.reload());
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Failed to approve user.',
+                    icon: 'error',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error approving user:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'An error occurred while processing the approval.',
+                icon: 'error',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
     });
 
     document.getElementById('denialForm')?.addEventListener('submit', function(e) {
         e.preventDefault();
+        const userId = document.getElementById('denialUserId').value;
         const notes = document.getElementById('denialNotes').value;
+
         if (!notes.trim()) {
             Swal.fire({title: 'Error', text: 'Please provide a reason for denial.', icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
             return;
         }
-        // Submit denial
-        Swal.fire({title: 'Success', text: 'User denied.', icon: 'success', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'}).then(() => location.reload());
+
+        // Disable submit button
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="ti ti-loader animate-spin mr-1"></i>Processing...';
+
+        // Build form data
+        const formData = new FormData();
+        formData.append('notes', notes);
+
+        // Submit denial to API
+        fetch(`{{ url_for('admin_panel.deny_user', user_id=0) }}`.replace('/0', '/' + userId), {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrfToken},
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    title: 'Success',
+                    text: data.message || 'User denied.',
+                    icon: 'success',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => location.reload());
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Failed to deny user.',
+                    icon: 'error',
+                    confirmButtonColor: '#1a472a',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error denying user:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'An error occurred while processing the denial.',
+                icon: 'error',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
     });
 });
 </script>

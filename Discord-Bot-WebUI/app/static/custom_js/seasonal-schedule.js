@@ -126,7 +126,7 @@ const SeasonalSchedule = {
                 showWeek = false;
             }
 
-            weekContainer.classList.toggle('d-none', !showWeek);
+            weekContainer.classList.toggle('hidden', !showWeek);
         });
 
         // Filter matches
@@ -250,7 +250,7 @@ const SeasonalSchedule = {
         const weekTitle = weekHeader.querySelector('.week-title');
         const weekEditForm = weekHeader.querySelector('.week-edit-form');
 
-        if (weekTitle) weekTitle.classList.add('d-none');
+        if (weekTitle) weekTitle.classList.add('hidden');
         if (weekEditForm) weekEditForm.classList.remove('week-edit-form-hidden');
 
         // Get first match time as default
@@ -274,7 +274,7 @@ const SeasonalSchedule = {
         const weekTitle = weekHeader.querySelector('.week-title');
         const weekEditForm = weekHeader.querySelector('.week-edit-form');
 
-        if (weekTitle) weekTitle.classList.remove('d-none');
+        if (weekTitle) weekTitle.classList.remove('hidden');
         if (weekEditForm) weekEditForm.classList.add('week-edit-form-hidden');
     },
 
@@ -426,11 +426,14 @@ const SeasonalSchedule = {
         this.updateAddMatchTeams();
 
         // Show modal
+        const modalEl = document.getElementById('addMatchModal');
         if (typeof window.ModalManager !== 'undefined') {
             window.ModalManager.show('addMatchModal');
-        } else if (typeof window.bootstrap !== 'undefined') {
-            const modal = new window.bootstrap.Modal(document.getElementById('addMatchModal'));
-            modal.show();
+        } else if (modalEl && typeof window.Modal !== 'undefined') {
+            if (!modalEl._flowbiteModal) {
+                modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
+            }
+            modalEl._flowbiteModal.show();
         }
     },
 
@@ -530,11 +533,14 @@ const SeasonalSchedule = {
                     }
 
                     // Show modal
+                    const modalEl = document.getElementById('editMatchModal');
                     if (typeof window.ModalManager !== 'undefined') {
                         window.ModalManager.show('editMatchModal');
-                    } else if (typeof window.bootstrap !== 'undefined') {
-                        const modal = new window.bootstrap.Modal(document.getElementById('editMatchModal'));
-                        modal.show();
+                    } else if (modalEl && typeof window.Modal !== 'undefined') {
+                        if (!modalEl._flowbiteModal) {
+                            modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
+                        }
+                        modalEl._flowbiteModal.show();
                     }
                 } else {
                     this.showAlert('error', data.error);
@@ -682,10 +688,9 @@ const SeasonalSchedule = {
             if (data.success) {
                 this.showAlert('success', data.message);
                 // Hide modal
-                if (typeof window.bootstrap !== 'undefined') {
-                    const modalEl = document.getElementById('editMatchModal');
-                    const modal = window.bootstrap.Modal.getInstance(modalEl);
-                    if (modal) modal.hide();
+                const modalEl = document.getElementById('editMatchModal');
+                if (modalEl && modalEl._flowbiteModal) {
+                    modalEl._flowbiteModal.hide();
                 }
                 location.reload();
             } else {
@@ -737,10 +742,9 @@ const SeasonalSchedule = {
             if (data.success) {
                 this.showAlert('success', data.message);
                 // Hide modal
-                if (typeof window.bootstrap !== 'undefined') {
-                    const modalEl = document.getElementById('addMatchModal');
-                    const modal = window.bootstrap.Modal.getInstance(modalEl);
-                    if (modal) modal.hide();
+                const modalEl = document.getElementById('addMatchModal');
+                if (modalEl && modalEl._flowbiteModal) {
+                    modalEl._flowbiteModal.hide();
                 }
                 location.reload();
             } else {
@@ -784,7 +788,7 @@ const SeasonalSchedule = {
     exportToCSV() {
         let csv = 'Week,Date,Time,Field,League,Home Team,Away Team,Status\n';
 
-        document.querySelectorAll('.week-container:not(.d-none)').forEach(weekContainer => {
+        document.querySelectorAll('.week-container:not(.hidden)').forEach(weekContainer => {
             const weekNum = weekContainer.dataset.week;
             const weekTitle = weekContainer.querySelector('.week-title');
             const weekTitleText = weekTitle ? weekTitle.textContent : '';
@@ -858,14 +862,14 @@ const SeasonalSchedule = {
                 if (option.value === '') return; // Skip "All Teams" option
 
                 if (selectedLeague === '' || option.dataset.league === selectedLeague) {
-                    option.classList.remove('d-none');
+                    option.classList.remove('hidden');
                 } else {
-                    option.classList.add('d-none');
+                    option.classList.add('hidden');
                 }
             });
 
             // Reset team filter if current selection is hidden
-            if (teamFilter.value && teamFilter.options[teamFilter.selectedIndex].classList.contains('d-none')) {
+            if (teamFilter.value && teamFilter.options[teamFilter.selectedIndex].classList.contains('hidden')) {
                 teamFilter.value = '';
             }
         });
@@ -930,7 +934,7 @@ const SeasonalSchedule = {
         alert.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
         alert.innerHTML = `
             ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" onclick="this.closest('.alert').remove()"></button>
         `;
 
         // Add to page

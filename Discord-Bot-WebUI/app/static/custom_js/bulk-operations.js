@@ -83,11 +83,14 @@ function initializeRoleDistributionChart() {
  * Show bulk approval modal
  */
 export function showBulkApprovalModal() {
+    const modalEl = document.getElementById('bulkApprovalModal');
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('bulkApprovalModal');
-    } else if (typeof window.bootstrap !== 'undefined') {
-        const modal = window.bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkApprovalModal'));
-        modal.show();
+    } else if (modalEl && typeof window.Modal !== 'undefined') {
+        if (!modalEl._flowbiteModal) {
+            modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
+        }
+        modalEl._flowbiteModal.show();
     }
     loadPendingUsersForApproval();
 }
@@ -96,11 +99,14 @@ export function showBulkApprovalModal() {
  * Show bulk role modal
  */
 export function showBulkRoleModal() {
+    const modalEl = document.getElementById('bulkRoleModal');
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('bulkRoleModal');
-    } else if (typeof window.bootstrap !== 'undefined') {
-        const modal = window.bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkRoleModal'));
-        modal.show();
+    } else if (modalEl && typeof window.Modal !== 'undefined') {
+        if (!modalEl._flowbiteModal) {
+            modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
+        }
+        modalEl._flowbiteModal.show();
     }
     loadRoleAssignmentInterface();
 }
@@ -109,11 +115,14 @@ export function showBulkRoleModal() {
  * Show bulk waitlist modal
  */
 export function showBulkWaitlistModal() {
+    const modalEl = document.getElementById('bulkWaitlistModal');
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('bulkWaitlistModal');
-    } else if (typeof window.bootstrap !== 'undefined') {
-        const modal = window.bootstrap.Modal.getOrCreateInstance(document.getElementById('bulkWaitlistModal'));
-        modal.show();
+    } else if (modalEl && typeof window.Modal !== 'undefined') {
+        if (!modalEl._flowbiteModal) {
+            modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
+        }
+        modalEl._flowbiteModal.show();
     }
     loadWaitlistUsersForProcessing();
 }
@@ -433,11 +442,11 @@ export function processBulkWaitlist() {
  * Hide a modal
  */
 function hideModal(modalId) {
+    const modalEl = document.getElementById(modalId);
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.hide(modalId);
-    } else if (typeof window.bootstrap !== 'undefined') {
-        const modal = window.bootstrap.Modal.getInstance(document.getElementById(modalId));
-        if (modal) modal.hide();
+    } else if (modalEl && modalEl._flowbiteModal) {
+        modalEl._flowbiteModal.hide();
     }
 }
 

@@ -51,7 +51,7 @@ const CSS_CLASSES = {
     BACKDROP_HIDE: 'hide',
     IOS_SCROLL: 'ios-scroll',
     IOS_MODAL_OPEN: 'ios-modal-open',
-    DISPLAY_NONE: 'd-none'
+    DISPLAY_NONE: 'hidden'
 };
 
 // ========================================================================
@@ -125,10 +125,10 @@ const ModalHelpers = {
     // ========================================================================
 
     /**
-     * Ensures a Bootstrap modal is properly initialized
+     * Ensures a Flowbite modal is properly initialized
      * Delegates to window.ModalManager if available
      * @param {string} modalId - The ID of the modal element
-     * @returns {window.bootstrap.Modal|null} Modal instance or null if not found
+     * @returns {Object|null} Modal instance or null if not found
      */
     ensureModalInitialized: function(modalId) {
         const modalElement = document.getElementById(modalId);
@@ -142,8 +142,8 @@ const ModalHelpers = {
             return window.ModalManager.getInstance(modalElement.id);
         }
 
-        // Fallback to direct Bootstrap instance
-        return window.bootstrap.Modal.getInstance(modalElement);
+        // Fallback to direct Flowbite instance
+        return modalElement._flowbiteModal;
     },
 
     /**
@@ -219,7 +219,7 @@ const ModalHelpers = {
         const openModals = document.querySelectorAll(`${CONFIG.MODAL_SELECTORS}.${CSS_CLASSES.MODAL_SHOW}`);
         openModals.forEach(modal => {
             try {
-                const modalInstance = window.bootstrap.Modal.getInstance(modal);
+                const modalInstance = modal._flowbiteModal;
                 if (modalInstance) {
                     modalInstance.hide();
                 } else {

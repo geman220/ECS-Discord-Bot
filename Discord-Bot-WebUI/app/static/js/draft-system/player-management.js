@@ -61,7 +61,7 @@ export function addPlayerToTeam(player, teamId, teamName) {
                             ${formatPosition(player.favorite_position) || 'Any'}
                         </div>
                     </div>
-                    <button class="btn btn-outline-danger btn-sm p-1"
+                    <button class="text-red-600 bg-transparent border border-red-600 hover:bg-red-600 hover:text-white focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-xs p-1"
                             data-action="remove-player"
                             data-player-id="${player.id}"
                             data-team-id="${teamId}"
@@ -229,13 +229,13 @@ export function addPlayerToAvailable(player) {
             <!-- Action Buttons -->
             <div class="card-footer bg-transparent border-0 p-2">
                 <div class="d-grid gap-1">
-                    <button class="btn btn-success btn-sm fw-bold bg-success-gradient"
+                    <button class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-3 py-1.5 fw-bold bg-success-gradient"
                             data-action="draft-player"
                             data-player-id="${player.id}"
                             data-player-name="${player.name}">
                         <i class="ti ti-user-plus me-1"></i>Draft Player
                     </button>
-                    <button class="btn btn-outline-info btn-sm"
+                    <button class="text-cyan-600 bg-transparent border border-cyan-600 hover:bg-cyan-600 hover:text-white focus:ring-4 focus:ring-cyan-300 font-medium rounded-lg text-sm px-3 py-1.5"
                             data-action="view-player-profile"
                             data-player-id="${player.id}">
                         <i class="ti ti-user me-1"></i>View Profile
@@ -298,7 +298,7 @@ export function removePlayerFromAvailable(playerId) {
         const currentHeight = playerColumn.offsetHeight;
         playerColumn.style.maxHeight = currentHeight + 'px';
 
-        playerColumn.classList.add('transition-smooth');
+        playerColumn.classList.add('transition-all', 'duration-300', 'ease-in-out');
 
         requestAnimationFrame(() => {
             playerColumn.classList.add('opacity-0');

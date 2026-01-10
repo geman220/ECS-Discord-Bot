@@ -103,11 +103,14 @@ function filterTeamsByLeague(leagueId, teamSelect, showLeagueName = false) {
  */
 function showLoading(title = 'Loading...') {
     if (typeof window.Swal !== 'undefined') {
+        const isDark = document.documentElement.classList.contains('dark');
         window.Swal.fire({
             title: title,
-            html: '<div class="text-center"><div class="spinner-border text-primary" role="status" data-spinner></div></div>',
+            html: '<div class="flex justify-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status" data-spinner></div></div>',
             allowOutsideClick: false,
-            showConfirmButton: false
+            showConfirmButton: false,
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
         });
     }
 }
@@ -158,8 +161,8 @@ function populateEditForm(user) {
 
     if (user.has_player && user.player) {
         // Show player fields, hide no-player message
-        if (playerFields) playerFields.classList.remove('d-none');
-        if (noPlayerMessage) noPlayerMessage.classList.add('d-none');
+        if (playerFields) playerFields.classList.remove('hidden');
+        if (noPlayerMessage) noPlayerMessage.classList.add('hidden');
 
         // Set active player status
         if (isCurrentPlayerCheckbox) {
@@ -199,8 +202,8 @@ function populateEditForm(user) {
         }
     } else {
         // Hide player fields, show no-player message
-        if (playerFields) playerFields.classList.add('d-none');
-        if (noPlayerMessage) noPlayerMessage.classList.remove('d-none');
+        if (playerFields) playerFields.classList.add('hidden');
+        if (noPlayerMessage) noPlayerMessage.classList.remove('hidden');
 
         // Disable all player-related fields
         if (isCurrentPlayerCheckbox) {
@@ -328,7 +331,16 @@ window.EventDelegation.register('edit-user', function(element, e) {
 
     // Fetch user data
     fetch(getUrl('userDetailsUrl', userId))
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Invalid response format - expected JSON');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 populateEditForm(data.user);
@@ -336,10 +348,10 @@ window.EventDelegation.register('edit-user', function(element, e) {
                 if (editUserModal) {
                     editUserModal.show();
                 } else {
-                    // Fallback to window.bootstrap modal
+                    // Fallback to Flowbite modal
                     const modalEl = document.getElementById('editUserModal');
-                    if (modalEl && typeof window.bootstrap !== 'undefined') {
-                        const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+                    if (modalEl && typeof window.Modal !== 'undefined') {
+                        const modal = modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }));
                         modal.show();
                     }
                 }
@@ -349,6 +361,7 @@ window.EventDelegation.register('edit-user', function(element, e) {
         })
         .catch(error => {
             closeLoading();
+            console.error('Error loading user details:', error);
             showNotification('Error', error.message || 'Failed to load user data', 'error');
         });
 }, { preventDefault: true });
@@ -489,16 +502,26 @@ function performUserAction(userId, action) {
             'X-CSRFToken': getCsrfToken()
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Invalid response format - expected JSON');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showNotification('Success', data.message, 'success');
             setTimeout(() => location.reload(), 1500);
         } else {
-            showNotification('Error', data.message, 'error');
+            throw new Error(data.message || 'Action failed');
         }
     })
     .catch(error => {
+        console.error('Error performing user action:', error);
         showNotification('Error', error.message || 'Action failed', 'error');
     });
 }
@@ -598,16 +621,26 @@ function performBulkAction(action, selectedUsers) {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Invalid response format - expected JSON');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showNotification('Success', data.message, 'success');
             setTimeout(() => location.reload(), 1500);
         } else {
-            showNotification('Error', data.message, 'error');
+            throw new Error(data.message || 'Bulk action failed');
         }
     })
     .catch(error => {
+        console.error('Error performing bulk action:', error);
         showNotification('Error', error.message || 'Bulk action failed', 'error');
     });
 }
@@ -634,20 +667,21 @@ window.EventDelegation.register('export-users', function(element, e) {
         return;
     }
 
+    const isDark = document.documentElement.classList.contains('dark');
     window.Swal.fire({
         title: 'Export User Data',
         html: `
-            <div class="mb-3">
-                <label class="form-label">Export Type</label>
-                <select class="form-select" id="userExportType" data-form-select>
+            <div class="mb-4">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Export Type</label>
+                <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="userExportType" data-form-select>
                     <option value="users" ${exportType === 'users' ? 'selected' : ''}>All Users</option>
                     <option value="roles" ${exportType === 'roles' ? 'selected' : ''}>User Roles</option>
                     <option value="activity" ${exportType === 'activity' ? 'selected' : ''}>Activity Data</option>
                 </select>
             </div>
-            <div class="mb-3">
-                <label class="form-label">Date Range</label>
-                <select class="form-select" id="userExportDateRange" data-form-select>
+            <div class="mb-4">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Date Range</label>
+                <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="userExportDateRange" data-form-select>
                     <option value="all">All Time</option>
                     <option value="7_days">Last 7 Days</option>
                     <option value="30_days">Last 30 Days</option>
@@ -655,6 +689,8 @@ window.EventDelegation.register('export-users', function(element, e) {
                 </select>
             </div>
         `,
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827',
         showCancelButton: true,
         confirmButtonText: 'Export',
         preConfirm: () => {
@@ -680,7 +716,16 @@ window.EventDelegation.register('export-users', function(element, e) {
                         },
                         body: JSON.stringify(result.value)
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Server error: ${response.status}`);
+                        }
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            throw new Error('Invalid response format');
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         if (data.success) {
                             // Create download link
@@ -785,9 +830,8 @@ function handleEditUserSubmit(e) {
             editUserModal.hide();
         } else {
             const modalEl = document.getElementById('editUserModal');
-            if (modalEl && typeof window.bootstrap !== 'undefined') {
-                const modal = window.bootstrap.Modal.getInstance(modalEl);
-                if (modal) modal.hide();
+            if (modalEl && modalEl._flowbiteModal) {
+                modalEl._flowbiteModal.hide();
             }
         }
         showNotification('Success', data.message || 'User updated successfully', 'success');

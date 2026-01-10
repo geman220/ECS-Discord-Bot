@@ -271,54 +271,51 @@ export function createFilterControlsHTML(options = {}) {
 
     return `
     <div class="calendar-filters">
-        <h6 class="fw-semibold mb-3">
+        <h6 class="font-semibold mb-3 text-gray-900 dark:text-white">
             <i class="ti ti-filter me-2"></i>Filters
         </h6>
 
         <!-- Event Type Filters -->
         <div class="mb-3">
-            <label class="form-label text-muted small text-uppercase">Event Types</label>
-            <div class="form-check form-switch mb-2">
-                <input class="form-check-input" type="checkbox" id="filterShowMatches" checked>
-                <label class="form-check-label" for="filterShowMatches">
-                    <i class="ti ti-ball-football me-1"></i>Matches
-                </label>
-            </div>
-            <div class="form-check form-switch mb-2">
-                <input class="form-check-input" type="checkbox" id="filterShowLeagueEvents" checked>
-                <label class="form-check-label" for="filterShowLeagueEvents">
-                    <i class="ti ti-calendar-event me-1"></i>League Events
-                </label>
-            </div>
+            <label class="block mb-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Event Types</label>
+            <label class="relative inline-flex items-center cursor-pointer mb-2 w-full">
+                <input type="checkbox" id="filterShowMatches" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/20 dark:peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300"><i class="ti ti-ball-football me-1"></i>Matches</span>
+            </label>
+            <label class="relative inline-flex items-center cursor-pointer mb-2 w-full">
+                <input type="checkbox" id="filterShowLeagueEvents" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/20 dark:peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300"><i class="ti ti-calendar-event me-1"></i>League Events</span>
+            </label>
         </div>
 
         <!-- Team Filter (if not admin) -->
         ${!isAdmin ? `
         <div class="mb-3">
-            <label class="form-label text-muted small text-uppercase">View</label>
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="filterMyTeamOnly">
-                <label class="form-check-label" for="filterMyTeamOnly">
-                    <i class="ti ti-users me-1"></i>My Team Only
-                </label>
-            </div>
+            <label class="block mb-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">View</label>
+            <label class="relative inline-flex items-center cursor-pointer w-full">
+                <input type="checkbox" id="filterMyTeamOnly" class="sr-only peer">
+                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/20 dark:peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300"><i class="ti ti-users me-1"></i>My Team Only</span>
+            </label>
         </div>
         ` : ''}
 
         <!-- Division Filters -->
         <div class="mb-3">
-            <label class="form-label text-muted small text-uppercase d-flex justify-content-between align-items-center">
+            <label class="flex justify-between items-center mb-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                 <span>Divisions</span>
                 <span>
-                    <button type="button" class="btn btn-link btn-sm p-0 me-2" id="filterSelectAllDivisions">All</button>
-                    <button type="button" class="btn btn-link btn-sm p-0" id="filterClearAllDivisions">None</button>
+                    <button type="button" class="text-ecs-green hover:text-ecs-green-dark text-sm p-0 me-2" id="filterSelectAllDivisions">All</button>
+                    <button type="button" class="text-ecs-green hover:text-ecs-green-dark text-sm p-0" id="filterClearAllDivisions">None</button>
                 </span>
             </label>
             ${divisions.map(div => `
-            <div class="form-check mb-2">
-                <input class="form-check-input filter-division" type="checkbox" value="${div}" id="filterDiv${div}" checked>
-                <label class="form-check-label" for="filterDiv${div}">
-                    <span class="badge bg-${div === 'Premier' ? 'primary' : 'success'} me-1">&nbsp;</span>
+            <div class="flex items-center mb-2">
+                <input type="checkbox" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 filter-division" value="${div}" id="filterDiv${div}" checked>
+                <label class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="filterDiv${div}">
+                    <span class="inline-block w-3 h-3 rounded ${div === 'Premier' ? 'bg-blue-600' : 'bg-green-600'} me-1"></span>
                     ${div}
                 </label>
             </div>
@@ -326,8 +323,8 @@ export function createFilterControlsHTML(options = {}) {
         </div>
 
         <!-- Reset Button -->
-        <div class="d-grid">
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="filterResetBtn">
+        <div class="w-full">
+            <button type="button" class="w-full text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700" id="filterResetBtn">
                 <i class="ti ti-refresh me-1"></i>Reset Filters
             </button>
         </div>

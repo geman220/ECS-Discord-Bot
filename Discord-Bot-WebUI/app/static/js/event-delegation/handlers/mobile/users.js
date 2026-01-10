@@ -90,11 +90,11 @@ export function initMobileUsersHandlers(ED) {
                 <div class="text-start">
                     <div class="mb-3">
                         <label class="form-label">Notification Title</label>
-                        <input type="text" class="form-control" id="notificationTitle" placeholder="Match Update" data-form-control>
+                        <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="notificationTitle" placeholder="Match Update" data-form-control>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Notification Message</label>
-                        <textarea class="form-control" id="notificationMessage" rows="3" placeholder="Your match against Arsenal FC starts in 30 minutes!" data-form-control></textarea>
+                        <textarea class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="notificationMessage" rows="3" placeholder="Your match against Arsenal FC starts in 30 minutes!" data-form-control></textarea>
                     </div>
                     <div class="mb-3">
                         <div class="form-check">
@@ -229,15 +229,15 @@ export function initMobileUsersHandlers(ED) {
                 <div class="text-start">
                     <div class="mb-3">
                         <label class="form-label">Notification Title</label>
-                        <input type="text" class="form-control" id="bulkNotificationTitle" placeholder="Important Update" data-form-control>
+                        <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="bulkNotificationTitle" placeholder="Important Update" data-form-control>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Notification Message</label>
-                        <textarea class="form-control" id="bulkNotificationMessage" rows="3" placeholder="Check out the latest updates in the app!" data-form-control></textarea>
+                        <textarea class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="bulkNotificationMessage" rows="3" placeholder="Check out the latest updates in the app!" data-form-control></textarea>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Send Schedule</label>
-                        <select class="form-select" id="sendSchedule" data-form-select>
+                        <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="sendSchedule" data-form-select>
                             <option value="immediate">Send Immediately</option>
                             <option value="scheduled">Schedule for Later</option>
                         </select>

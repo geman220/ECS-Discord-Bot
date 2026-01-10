@@ -1,0 +1,121 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}ECS FC Match RSVP{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <!-- Page Header -->
+    <div class="text-center mb-8">
+        <div class="w-16 h-16 mx-auto rounded-full bg-ecs-green/10 flex items-center justify-center mb-4">
+            <i class="ti ti-calendar-event text-3xl text-ecs-green"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">ECS FC Match RSVP</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-2">Let us know your availability for the match</p>
+    </div>
+
+    <!-- Match Info Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green to-ecs-green/80">
+            <h3 class="font-bold text-white text-lg">
+                {% if match.opponent %}
+                    {{ match.team.name }} vs {{ match.opponent.name }}
+                {% else %}
+                    {{ match.team.name }} - {{ match.custom_opponent or 'TBD' }}
+                {% endif %}
+            </h3>
+        </div>
+        <div class="p-4">
+            <div class="space-y-2 mb-4">
+                <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                    <i class="ti ti-calendar text-ecs-green"></i>
+                    <span>{{ match.match_date.strftime('%A, %B %d, %Y') if match.match_date else 'TBD' }}</span>
+                </div>
+                <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                    <i class="ti ti-clock text-ecs-green"></i>
+                    <span>{{ match.match_time.strftime('%I:%M %p') if match.match_time else 'TBD' }}</span>
+                </div>
+                <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                    <i class="ti ti-map-pin text-ecs-green"></i>
+                    <span>{{ match.location or 'TBD' }}</span>
+                </div>
+                <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                    <i class="ti ti-home text-ecs-green"></i>
+                    <span>{{ 'Home' if match.is_home else 'Away' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RSVP Form -->
+    <form method="POST" action="{{ url_for('ecs_fc.submit_rsvp', match_id=match.id) }}" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Will you be able to attend this match?</h4>
+
+            <div class="flex flex-wrap gap-2">
+                <label class="flex-1">
+                    <input type="radio" name="availability" value="yes"
+                           {% if existing_rsvp and existing_rsvp.availability == 'yes' %}checked{% endif %}
+                           class="peer hidden">
+                    <div class="cursor-pointer text-center py-3 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600
+                                peer-checked:border-green-500 peer-checked:bg-green-50 dark:peer-checked:bg-green-900/30
+                                peer-checked:text-green-600 dark:peer-checked:text-green-400 transition-colors">
+                        <i class="ti ti-check mr-1"></i>Yes
+                    </div>
+                </label>
+                <label class="flex-1">
+                    <input type="radio" name="availability" value="maybe"
+                           {% if existing_rsvp and existing_rsvp.availability == 'maybe' %}checked{% endif %}
+                           class="peer hidden">
+                    <div class="cursor-pointer text-center py-3 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600
+                                peer-checked:border-yellow-500 peer-checked:bg-yellow-50 dark:peer-checked:bg-yellow-900/30
+                                peer-checked:text-yellow-600 dark:peer-checked:text-yellow-400 transition-colors">
+                        <i class="ti ti-question-mark mr-1"></i>Maybe
+                    </div>
+                </label>
+                <label class="flex-1">
+                    <input type="radio" name="availability" value="no"
+                           {% if existing_rsvp and existing_rsvp.availability == 'no' %}checked{% endif %}
+                           class="peer hidden">
+                    <div class="cursor-pointer text-center py-3 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600
+                                peer-checked:border-red-500 peer-checked:bg-red-50 dark:peer-checked:bg-red-900/30
+                                peer-checked:text-red-600 dark:peer-checked:text-red-400 transition-colors">
+                        <i class="ti ti-x mr-1"></i>No
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Notes (optional) -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Notes (optional)
+            </label>
+            <textarea id="notes" name="notes" rows="3"
+                      class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-ecs-green focus:border-ecs-green"
+                      placeholder="Any additional information...">{{ existing_rsvp.notes if existing_rsvp else '' }}</textarea>
+        </div>
+
+        <button type="submit"
+                class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+            <i class="ti ti-send"></i>
+            Submit RSVP
+        </button>
+    </form>
+
+    {% if existing_rsvp %}
+    <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
+        <i class="ti ti-info-circle mr-1"></i>
+        You've already submitted an RSVP. Submitting again will update your response.
+    </p>
+    {% endif %}
+
+    <!-- Back Link -->
+    <div class="text-center mt-6">
+        <a href="{{ url_for('main.index') }}" class="text-ecs-green hover:underline">
+            <i class="ti ti-arrow-left mr-1"></i>Back to Home
+        </a>
+    </div>
+</div>
+{% endblock %}

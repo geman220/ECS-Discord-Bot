@@ -63,8 +63,8 @@ def render_all_modals():
                 player_choices[match.id] = placeholder
                 current_app.logger.warning(f"Match {match.id} missing team data, using placeholder")
         
-        # Render the modals template
-        return render_template('modals/match_modals.html', 
+        # Render the modals template (Flowbite version)
+        return render_template('modals/match_modals_flowbite.html',
                                matches=matches,
                                player_choices=player_choices,
                                safe_current_user=safe_current_user)

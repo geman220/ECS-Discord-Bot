@@ -148,9 +148,9 @@ window.EventDelegation.register('add-quick-opponent', function(element, e) {
     e.preventDefault();
 
     const modal = document.getElementById('addOpponentModal');
-    if (modal && window.bootstrap) {
-        const bsModal = window.bootstrap.Modal.getOrCreateInstance(modal);
-        bsModal.show();
+    if (modal && window.Modal) {
+        const flowbiteModal = modal._flowbiteModal || (modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true }));
+        flowbiteModal.show();
     }
 });
 
@@ -670,7 +670,7 @@ window.EventDelegation.register('submit-quick-match', function(element, e) {
     // Disable button during submission
     element.disabled = true;
     const originalHtml = element.innerHTML;
-    element.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+    element.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>Creating...';
 
     fetch(submitUrl, {
         method: 'POST',
@@ -954,7 +954,7 @@ window.EventDelegation.register('submit-ecs-match', function(element, e) {
     // Disable button during submission
     element.disabled = true;
     const originalHtml = element.innerHTML;
-    element.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+    element.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>Creating...';
 
     fetch('/api/ecs-fc/matches', {
         method: 'POST',
@@ -969,8 +969,7 @@ window.EventDelegation.register('submit-ecs-match', function(element, e) {
     .then(data => {
         if (data.success) {
             // Close modal
-            const bsModal = window.bootstrap?.Modal.getInstance(modal);
-            if (bsModal) bsModal.hide();
+            if (modal._flowbiteModal) modal._flowbiteModal.hide();
 
             if (window.Swal) {
                 window.Swal.fire({

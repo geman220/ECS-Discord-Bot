@@ -31,12 +31,12 @@ window.EventDelegation.register('toggle-detail', (element, event) => {
     const detailElement = document.getElementById(detailId);
 
     if (detailElement) {
-        const isHidden = detailElement.classList.contains('d-none');
+        const isHidden = detailElement.classList.contains('hidden');
         if (isHidden) {
-            detailElement.classList.remove('d-none');
+            detailElement.classList.remove('hidden');
             element.innerHTML = '<i class="ti ti-chevron-up me-1"></i> Hide Details';
         } else {
-            detailElement.classList.add('d-none');
+            detailElement.classList.add('hidden');
             element.innerHTML = '<i class="ti ti-chevron-down me-1"></i> View Details';
         }
     }
@@ -57,11 +57,11 @@ window.EventDelegation.register('run-admin-command', (element, event) => {
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('commandModal');
     } else {
-        // Fallback to Bootstrap modal
+        // Fallback to Flowbite modal
         const modal = document.getElementById('commandModal');
-        if (modal && typeof window.bootstrap !== 'undefined') {
-            const bsModal = new window.bootstrap.Modal(modal);
-            bsModal.show();
+        if (modal && typeof window.Modal !== 'undefined') {
+            const flowbiteModal = modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true });
+            flowbiteModal.show();
         }
     }
 });
@@ -162,9 +162,9 @@ window.EventDelegation.register('edit-wallet-template', (element, event) => {
         window.ModalManager.show('editTemplateModal');
     } else {
         const modal = document.getElementById('editTemplateModal');
-        if (modal && typeof window.bootstrap !== 'undefined') {
-            const bsModal = new window.bootstrap.Modal(modal);
-            bsModal.show();
+        if (modal && typeof window.Modal !== 'undefined') {
+            const flowbiteModal = modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true });
+            flowbiteModal.show();
         }
     }
 });
@@ -186,9 +186,9 @@ window.EventDelegation.register('create-wallet-template', (element, event) => {
         window.ModalManager.show('createTemplateModal');
     } else {
         const modal = document.getElementById('createTemplateModal');
-        if (modal && typeof window.bootstrap !== 'undefined') {
-            const bsModal = new window.bootstrap.Modal(modal);
-            bsModal.show();
+        if (modal && typeof window.Modal !== 'undefined') {
+            const flowbiteModal = modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true });
+            flowbiteModal.show();
         }
     }
 });
@@ -503,13 +503,13 @@ function validateWizardStep(step) {
 function showWizardStep(step) {
     // Hide all steps
     document.querySelectorAll('[data-wizard-step]').forEach(el => {
-        el.classList.add('d-none');
+        el.classList.add('hidden');
     });
 
     // Show target step
     const targetStep = document.querySelector(`[data-wizard-step="${step}"]`);
     if (targetStep) {
-        targetStep.classList.remove('d-none');
+        targetStep.classList.remove('hidden');
     }
 
     // Update progress indicators

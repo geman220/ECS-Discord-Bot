@@ -9,6 +9,22 @@ import { getCurrentMatchData } from './state.js';
 import { getVerificationStatus, validateVerification } from './verification.js';
 
 /**
+ * Get SweetAlert options with dark mode support
+ * @param {Object} options - SweetAlert options
+ * @returns {Object} Options with dark mode colors applied
+ */
+function getSwalOptions(options) {
+    const isDark = document.documentElement.classList.contains('dark');
+    return {
+        ...options,
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827',
+        confirmButtonColor: options.confirmButtonColor || '#1a472a',
+        cancelButtonColor: options.cancelButtonColor || '#dc2626'
+    };
+}
+
+/**
  * Fetch match data from the server
  * @param {string|number} matchId - Match ID
  * @returns {Promise<Object>} Match data
@@ -63,12 +79,12 @@ export async function submitMatchReport(matchId, changes) {
     // Validate verification if required
     const validation = validateVerification(matchId);
     if (!validation.isValid) {
-        window.Swal.fire({
+        window.Swal.fire(getSwalOptions({
             icon: 'warning',
             title: 'Verification Required',
             text: validation.message,
             confirmButtonText: 'OK'
-        });
+        }));
         return;
     }
 
@@ -116,11 +132,11 @@ export async function submitMatchReport(matchId, changes) {
             handleErrorResponse(matchId, data);
         }
     } catch (error) {
-        window.Swal.fire({
+        window.Swal.fire(getSwalOptions({
             icon: 'warning',
             title: 'Error!',
             text: error.message || 'An unexpected error occurred while submitting your report.'
-        }).then(() => {
+        })).then(() => {
             const submitBtn = document.getElementById(`submitBtn-${matchId}`);
             if (submitBtn) submitBtn.disabled = false;
         });
@@ -155,7 +171,7 @@ function handleConflictError(matchId, data) {
         swalOptions.cancelButtonText = 'Cancel';
     }
 
-    window.Swal.fire(swalOptions).then((result) => {
+    window.Swal.fire(getSwalOptions(swalOptions)).then((result) => {
         if (result.isConfirmed && showRefreshOption) {
             location.reload();
         } else {
@@ -186,11 +202,11 @@ function handleSuccessResponse(matchId, data, verificationStatus) {
         }
     }
 
-    window.Swal.fire({
+    window.Swal.fire(getSwalOptions({
         icon: 'success',
         title: 'Success!',
         text: successMessage
-    }).then(() => {
+    })).then(() => {
         closeModal(matchId);
         location.reload();
     });
@@ -202,34 +218,52 @@ function handleSuccessResponse(matchId, data, verificationStatus) {
  * @param {Object} data - Response data
  */
 function handleErrorResponse(matchId, data) {
-    window.Swal.fire({
+    window.Swal.fire(getSwalOptions({
         icon: 'error',
         title: 'Error!',
         text: data.message || 'There was an error submitting your report.'
-    }).then(() => {
+    })).then(() => {
         const submitBtn = document.getElementById(`submitBtn-${matchId}`);
         if (submitBtn) submitBtn.disabled = false;
     });
 }
 
 /**
- * Close the match modal
+ * Close the match modal (Flowbite version)
  * @param {string|number} matchId - Match ID
  */
 function closeModal(matchId) {
     try {
         const modalElem = document.getElementById(`reportMatchModal-${matchId}`);
         if (modalElem) {
-            const bsModal = window.bootstrap.Modal.getInstance(modalElem);
-            if (bsModal) {
-                bsModal.hide();
+            // Try Flowbite stored reference first
+            if (modalElem._flowbiteModal) {
+                modalElem._flowbiteModal.hide();
+            } else if (typeof window.Modal !== 'undefined') {
+                // Try Flowbite Modal class
+                const flowbiteModal = window.Modal.getInstance(modalElem);
+                if (flowbiteModal) {
+                    flowbiteModal.hide();
+                } else {
+                    // Fallback: manual hide with Flowbite patterns
+                    modalElem.classList.add('hidden');
+                    modalElem.classList.remove('flex');
+                    modalElem.setAttribute('aria-hidden', 'true');
+                    document.body.classList.remove('overflow-hidden');
+                }
+            } else if (window.hideMatchModal) {
+                // Use exported function from modal-builder
+                window.hideMatchModal(modalElem);
             } else {
-                modalElem.classList.remove('show');
-                modalElem.style.display = 'none';
+                // Ultimate fallback
+                modalElem.classList.add('hidden');
+                modalElem.classList.remove('flex');
+                modalElem.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('overflow-hidden');
             }
         }
     } catch (e) {
-        // Error closing modal
+        console.error('Error closing modal:', e);
     }
 }
 

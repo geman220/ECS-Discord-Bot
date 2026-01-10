@@ -159,7 +159,7 @@ window.EventDelegation.register('test-prompt', function(element, e) {
             const testOutput = document.getElementById('test-output');
 
             if (testResult) testResult.textContent = data.response;
-            if (testOutput) testOutput.classList.remove('d-none');
+            if (testOutput) testOutput.classList.remove('hidden');
         } else {
             if (typeof window.toastr !== 'undefined') {
                 window.toastr.error(data.error || 'Test failed');

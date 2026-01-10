@@ -534,7 +534,7 @@ window.EventDelegation.register('expire-task', function(element, e) {
         }).then((result) => {
             if (result.isConfirmed) {
                 const originalText = element.innerHTML;
-                element.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                element.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>';
                 element.disabled = true;
 
                 fetch(`/admin-panel/mls/task/${taskId}/expire`, {

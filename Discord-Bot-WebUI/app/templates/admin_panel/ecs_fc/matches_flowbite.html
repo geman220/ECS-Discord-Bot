@@ -1,0 +1,168 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}All ECS FC Matches{% endblock %}
+{% block panel_description %}View all ECS FC matches across teams{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">ECS FC Hub</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">All Matches</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Filters -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-4">
+        <form method="get" class="flex flex-wrap items-center gap-4">
+            <select name="team_id" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="">All Teams</option>
+                {% for team in teams %}
+                <option value="{{ team.id }}" {% if team_filter == team.id %}selected{% endif %}>{{ team.name }}</option>
+                {% endfor %}
+            </select>
+            <label class="inline-flex items-center cursor-pointer">
+                <input type="checkbox" class="sr-only peer" name="show_past" value="true"
+                       {% if show_past %}checked{% endif %} onchange="this.form.submit()">
+                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Show past matches</span>
+            </label>
+            <div class="ml-auto">
+                <a href="{{ url_for('admin_panel.ecs_fc_match_create') }}" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <i class="ti ti-plus mr-1"></i>Create Match
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Matches Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-calendar mr-2"></i>
+            {% if show_past %}All Matches{% else %}Upcoming Matches{% endif %}
+            <span class="ml-2 px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full dark:bg-blue-900 dark:text-blue-300">{{ matches|length }}</span>
+        </h5>
+    </div>
+
+    {% if matches %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Team</th>
+                    <th scope="col" class="px-6 py-3">Date</th>
+                    <th scope="col" class="px-6 py-3">Time</th>
+                    <th scope="col" class="px-6 py-3">Opponent</th>
+                    <th scope="col" class="px-6 py-3">Location</th>
+                    <th scope="col" class="px-6 py-3">RSVP</th>
+                    <th scope="col" class="px-6 py-3">Status</th>
+                    <th scope="col" class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for match in matches %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4">
+                        <a href="{{ url_for('admin_panel.ecs_fc_team_schedule', team_id=match.team_id) }}" class="text-blue-600 hover:underline dark:text-blue-400">
+                            {{ match.team.name }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4">{{ match.match_date.strftime('%a, %b %d') }}</td>
+                    <td class="px-6 py-4">{{ match.match_time.strftime('%I:%M %p') }}</td>
+                    <td class="px-6 py-4">
+                        {% if match.is_home_match %}
+                        <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300 mr-1">H</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300 mr-1">A</span>
+                        {% endif %}
+                        {{ match.opponent_name }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div>{{ match.location }}</div>
+                        {% if match.field_name %}
+                        <div class="text-xs text-gray-400">{{ match.field_name }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}" class="inline-flex gap-1">
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">{{ match.rsvp_counts.yes }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded dark:bg-red-900 dark:text-red-300">{{ match.rsvp_counts.no }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">{{ match.rsvp_counts.maybe }}</span>
+                        </a>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2.5 py-0.5 text-xs font-medium rounded
+                            {% if match.status_color == 'success' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                            {% elif match.status_color == 'warning' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
+                            {% elif match.status_color == 'danger' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
+                            {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                            <i class="{{ match.status_icon }} mr-1"></i>{{ match.status }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex gap-1">
+                            <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
+                               class="p-2 text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-gray-700" title="View RSVP">
+                                <i class="ti ti-users"></i>
+                            </a>
+                            <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
+                               class="p-2 text-gray-600 hover:bg-gray-100 rounded dark:text-gray-400 dark:hover:bg-gray-700" title="Edit">
+                                <i class="ti ti-edit"></i>
+                            </a>
+                            <button type="button"
+                                    class="p-2 text-red-600 hover:bg-red-100 rounded dark:text-red-400 dark:hover:bg-gray-700"
+                                    title="Delete" onclick="deleteMatch({{ match.id }})">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <i class="ti ti-calendar-off text-4xl text-gray-400 mb-3"></i>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">No matches found</p>
+        <a href="{{ url_for('admin_panel.ecs_fc_match_create') }}" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+            <i class="ti ti-plus mr-2"></i>Create Match
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function deleteMatch(matchId) {
+    const isDark = document.documentElement.classList.contains('dark');
+    Swal.fire({
+        title: 'Delete Match?',
+        text: 'This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        confirmButtonText: 'Delete',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin-panel/ecs-fc/match/${matchId}/delete`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
+            }).then(response => { if (response.ok) window.location.reload(); });
+        }
+    });
+}
+</script>
+{% endblock %}

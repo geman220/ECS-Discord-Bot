@@ -537,7 +537,7 @@ window.EventDelegation.register('preview-item-image', function(element, e) {
         const preview = document.getElementById('item-image-preview');
         if (preview) {
             preview.src = e.target.result;
-            preview.classList.remove('d-none');
+            preview.classList.remove('hidden');
         }
     };
     reader.readAsDataURL(file);
@@ -554,7 +554,7 @@ window.EventDelegation.register('remove-item-image', function(element, e) {
     const input = document.getElementById('item-image-input');
     const removeFlag = document.getElementById('remove-image-flag');
 
-    if (preview) preview.classList.add('d-none');
+    if (preview) preview.classList.add('hidden');
     if (input) input.value = '';
     if (removeFlag) removeFlag.value = 'true';
 });

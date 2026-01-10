@@ -7,6 +7,28 @@
 
 import { createPlayerOptions, createTeamOptions, getContainerId, getTeamData } from './player-options.js';
 
+// Helper for SweetAlert dark mode support
+function getSwalOptions(options) {
+    const isDark = document.documentElement.classList.contains('dark');
+    return {
+        ...options,
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827',
+        confirmButtonColor: options.confirmButtonColor || '#1a472a',
+        cancelButtonColor: options.cancelButtonColor || '#dc2626'
+    };
+}
+
+// Tailwind CSS classes for form elements (Flowbite-compatible with dark mode)
+const TAILWIND_CLASSES = {
+    inputGroup: 'flex items-center gap-2 mb-2 player-event-entry',
+    inputGroupCompact: 'flex items-center gap-1 mb-1 player-event-entry player-event-entry-compact',
+    select: 'flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green',
+    input: 'w-16 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green',
+    removeButton: 'text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-2.5 py-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900',
+    cardIndicator: 'flex items-center justify-center w-8 h-10 text-lg bg-gray-100 dark:bg-gray-600 rounded-lg'
+};
+
 /**
  * Add a new event entry to a container
  * @param {string|number} matchId - Match ID
@@ -26,16 +48,16 @@ export function addEvent(matchId, containerId, statId = null, playerId = null, m
 
     // Determine visual indicator and styling based on event type
     let eventIndicator = '';
-    let inputGroupClass = 'input-group mb-2 player-event-entry';
+    let inputGroupClass = TAILWIND_CLASSES.inputGroup;
     let formBaseName = baseName;
 
     if (baseName === 'yellowCards') {
-        eventIndicator = '<span class="input-group-text card-indicator-yellow">🟨</span>';
-        inputGroupClass = 'input-group player-event-entry-compact player-event-entry';
+        eventIndicator = `<span class="${TAILWIND_CLASSES.cardIndicator}">🟨</span>`;
+        inputGroupClass = TAILWIND_CLASSES.inputGroupCompact;
         formBaseName = 'yellow_cards';
     } else if (baseName === 'redCards') {
-        eventIndicator = '<span class="input-group-text card-indicator-red">🟥</span>';
-        inputGroupClass = 'input-group player-event-entry-compact player-event-entry';
+        eventIndicator = `<span class="${TAILWIND_CLASSES.cardIndicator}">🟥</span>`;
+        inputGroupClass = TAILWIND_CLASSES.inputGroupCompact;
         formBaseName = 'red_cards';
     } else if (baseName === 'ownGoals') {
         formBaseName = 'own_goals';
@@ -50,15 +72,15 @@ export function addEvent(matchId, containerId, statId = null, playerId = null, m
             <div class="${inputGroupClass}" data-unique-id="${uniqueId}">
                 ${eventIndicator}
                 <input type="hidden" name="${formBaseName}-stat_id[]" value="${statId ? statId : ''}">
-                <select class="form-select select-player" name="${formBaseName}-team_id[]">
+                <select class="${TAILWIND_CLASSES.select} select-player" name="${formBaseName}-team_id[]">
                     ${createTeamOptions(matchId)}
                 </select>
-                <input type="text" class="form-control input-minute" name="${formBaseName}-minute[]"
+                <input type="text" class="${TAILWIND_CLASSES.input} input-minute" name="${formBaseName}-minute[]"
                        placeholder="Min"
                        value="${minute ? minute : ''}"
                        pattern="^\\d{1,3}(\\+\\d{1,2})?$"
                        title="Enter a valid minute (e.g., '45' or '45+2')">
-                <button class="btn btn-danger btn-sm" type="button" data-action="remove-event">×</button>
+                <button class="${TAILWIND_CLASSES.removeButton}" type="button" data-action="remove-event">×</button>
             </div>
         `;
     } else {
@@ -67,15 +89,15 @@ export function addEvent(matchId, containerId, statId = null, playerId = null, m
             <div class="${inputGroupClass}" data-unique-id="${uniqueId}">
                 ${eventIndicator}
                 <input type="hidden" name="${formBaseName}-stat_id[]" value="${statId ? statId : ''}">
-                <select class="form-select select-player" name="${formBaseName}-player_id[]">
+                <select class="${TAILWIND_CLASSES.select} select-player" name="${formBaseName}-player_id[]">
                     ${createPlayerOptions(matchId)}
                 </select>
-                <input type="text" class="form-control input-minute" name="${formBaseName}-minute[]"
+                <input type="text" class="${TAILWIND_CLASSES.input} input-minute" name="${formBaseName}-minute[]"
                        placeholder="Min"
                        value="${minute ? minute : ''}"
                        pattern="^\\d{1,3}(\\+\\d{1,2})?$"
                        title="Enter a valid minute (e.g., '45' or '45+2')">
-                <button class="btn btn-danger btn-sm" type="button" data-action="remove-event">×</button>
+                <button class="${TAILWIND_CLASSES.removeButton}" type="button" data-action="remove-event">×</button>
             </div>
         `;
     }
@@ -164,37 +186,35 @@ export function removeEvent(button) {
         jQueryEntry.hide();
 
         if (typeof window.Swal !== 'undefined') {
-            window.Swal.fire({
+            window.Swal.fire(getSwalOptions({
                 title: 'Removed',
                 icon: 'success',
                 toast: true,
                 position: 'top-end',
                 showConfirmButton: false,
                 timer: 1500
-            });
+            }));
         }
     } else {
         // Desktop: confirmation dialog
-        window.Swal.fire({
+        window.Swal.fire(getSwalOptions({
             title: 'Remove Event?',
             text: "Do you want to remove this event?",
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('primary') : '#0d6efd',
-            cancelButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545',
             confirmButtonText: 'Yes, remove it'
-        }).then((result) => {
+        })).then((result) => {
             if (result.isConfirmed) {
                 jQueryEntry.addClass('to-be-removed');
                 jQueryEntry.hide();
 
-                window.Swal.fire({
+                window.Swal.fire(getSwalOptions({
                     title: 'Removed',
                     text: 'Save your changes to apply',
                     icon: 'success',
                     timer: 1500,
                     showConfirmButton: false
-                });
+                }));
             }
         });
     }
@@ -216,18 +236,18 @@ export function addOwnGoalEvent(matchId, containerId, statId = null, teamId = nu
     const { homeTeamName, awayTeamName, homeTeamId, awayTeamId } = teamData;
 
     const newInputGroup = `
-        <div class="input-group mb-2 player-event-entry" data-unique-id="${uniqueId}">
+        <div class="${TAILWIND_CLASSES.inputGroup}" data-unique-id="${uniqueId}">
             <input type="hidden" name="own_goals-stat_id[]" value="${statId ? statId : ''}">
-            <select class="form-select select-own-goal-team" name="own_goals-team_id[]">
+            <select class="${TAILWIND_CLASSES.select} select-own-goal-team" name="own_goals-team_id[]">
                 <option value="${homeTeamId}"${teamId == homeTeamId ? ' selected' : ''}>${homeTeamName}</option>
                 <option value="${awayTeamId}"${teamId == awayTeamId ? ' selected' : ''}>${awayTeamName}</option>
             </select>
-            <input type="text" class="form-control input-minute-compact" name="own_goals-minute[]"
+            <input type="text" class="${TAILWIND_CLASSES.input} input-minute-compact" name="own_goals-minute[]"
                    placeholder="Min"
                    value="${minute ? minute : ''}"
                    pattern="^\\d{1,3}(\\+\\d{1,2})?$"
                    title="Enter a valid minute (e.g., '45' or '45+2')">
-            <button class="btn btn-danger btn-sm" type="button" data-action="remove-own-goal">×</button>
+            <button class="${TAILWIND_CLASSES.removeButton}" type="button" data-action="remove-own-goal">×</button>
         </div>
     `;
 

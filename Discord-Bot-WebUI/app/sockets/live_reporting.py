@@ -22,6 +22,8 @@ from app.core import socketio, db
 from app.core.session_manager import managed_session
 from app.sockets.session import socket_session
 from app.sockets import SocketSessionManager
+from app.sockets.presence import PresenceManager
+from app.sockets.messaging import join_user_room, leave_user_room
 from app.utils.user_helpers import safe_current_user
 from app.database.db_models import (
     ActiveMatchReporter, LiveMatch, MatchEvent, PlayerShift
@@ -263,20 +265,28 @@ def handle_live_connect():
                 session_data = {'user_id': user_id}
                 request.sid_data = session_data
                 SocketSessionManager.save_session_data(request.sid, session_data)
-                
+
+                # Track user presence in Redis (enables real-time messaging)
+                PresenceManager.user_connected(user_id, request.sid)
+
+                # Join personal room for direct messaging
+                join_user_room(user_id)
+                logger.debug(f"User {user_id} joined messaging room via /live namespace")
+
                 # Verify user exists (but don't fail connection if not found)
                 with socket_session(db.engine) as session:
                     user = session.query(User).get(user_id)
                     if user:
                         logger.info(f"Live reporting client connected: {user.username} (ID: {user_id})")
-                        
+
                         # Explicitly emit authentication success to the client
                         # This helps React Native client know auth succeeded
                         try:
                             emit('authentication_success', {
                                 'user_id': user_id,
                                 'username': user.username,
-                                'timestamp': datetime.utcnow().isoformat()
+                                'timestamp': datetime.utcnow().isoformat(),
+                                'messaging_room': f'user_{user_id}'
                             })
                         except Exception as emit_error:
                             logger.error(f"Error emitting authentication success: {emit_error}")
@@ -288,9 +298,10 @@ def handle_live_connect():
                             'user_id': user_id,
                             'username': f'User_{user_id}',
                             'timestamp': datetime.utcnow().isoformat(),
-                            'anonymous': True
+                            'anonymous': True,
+                            'messaging_room': f'user_{user_id}'
                         })
-                
+
                 return True
                 
             except Exception as e:
@@ -315,13 +326,18 @@ def handle_live_connect():
 def handle_live_disconnect():
     """
     Handle client disconnection from the live reporting namespace.
-    
-    Updates the last_active timestamp for the user in active reporters.
+
+    Updates the last_active timestamp for the user in active reporters
+    and cleans up presence tracking for real-time messaging.
     """
     try:
+        # Clean up user presence in Redis (for real-time messaging)
+        # This uses the sid to look up user_id internally
+        PresenceManager.user_disconnected(request.sid)
+
         # Try to get user ID from memory storage
         user_id = None
-        
+
         # First try request.sid_data (local to this request)
         try:
             if hasattr(request, 'sid_data') and request.sid_data and 'user_id' in request.sid_data:

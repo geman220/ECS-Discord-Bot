@@ -66,7 +66,7 @@ export function updateStepDisplay(step) {
 
     if (prevBtn) prevBtn.classList.toggle('wizard-btn--hidden', step === 1);
     if (nextBtn) nextBtn.classList.toggle('wizard-btn--hidden', step === state.maxSteps);
-    if (createBtn) createBtn.classList.toggle('d-none', step !== state.maxSteps);
+    if (createBtn) createBtn.classList.toggle('hidden', step !== state.maxSteps);
 
     // Trigger step-specific updates
     triggerStepUpdate(step);

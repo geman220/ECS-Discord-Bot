@@ -145,10 +145,9 @@ const MobileForms = {
       if (!this.isMobile()) return;
 
       // Enhance native selects for mobile touch
-      document.querySelectorAll('select.form-select').forEach(select => {
-        // Ensure proper touch target size
-        select.style.minHeight = '48px';
-        select.style.fontSize = '16px'; // Prevent iOS zoom
+      document.querySelectorAll('select').forEach(select => {
+        // Ensure proper touch target size via CSS class
+        select.classList.add('mobile-select-optimized');
       });
     },
 
@@ -166,10 +165,10 @@ const MobileForms = {
           // Create collapsible header
           const header = document.createElement('button');
           header.type = 'button';
-          header.className = 'btn btn-link w-100 text-start mobile-collapse-toggle';
+          header.className = 'w-full text-left px-0 py-2 bg-transparent border-0 text-gray-900 dark:text-white hover:text-ecs-green mobile-collapse-toggle';
           header.innerHTML = `
-            <span class="fw-bold">${section.dataset.sectionTitle || 'Show/Hide Section'}</span>
-            <i class="ti ti-chevron-down float-end"></i>
+            <span class="font-semibold">${section.dataset.sectionTitle || 'Show/Hide Section'}</span>
+            <i class="ti ti-chevron-down float-right"></i>
           `;
 
           const content = document.createElement('div');
@@ -437,7 +436,8 @@ const MobileForms = {
           }
 
           /* Native select mobile optimization */
-          select.form-select {
+          select.mobile-select-optimized,
+          select {
             font-size: 16px !important;
             min-height: 48px;
           }
@@ -451,7 +451,7 @@ const MobileForms = {
 
           .shake-invalid {
             animation: shake 0.3s ease-in-out;
-            border-color: var(--bs-danger) !important;
+            border-color: #dc2626 !important;
           }
 
           /* Mobile form row stacking */
@@ -470,14 +470,17 @@ const MobileForms = {
           }
 
           /* Larger touch targets in modals */
-          [data-modal] .btn {
+          [data-modal] button,
+          [data-modal] [type="button"],
+          [data-modal] [type="submit"] {
             min-height: 48px;
             font-size: 16px;
             padding: 12px 24px;
           }
 
-          [data-modal] .form-control,
-          [data-modal] .form-select {
+          [data-modal] input,
+          [data-modal] select,
+          [data-modal] textarea {
             min-height: 44px;
             font-size: 16px;
           }

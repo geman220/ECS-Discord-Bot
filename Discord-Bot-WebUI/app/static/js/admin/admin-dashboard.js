@@ -810,24 +810,29 @@ const AdminDashboard = {
         const toastId = 'toast-' + Date.now();
         const toastHTML = `
             <div id="${toastId}" class="toast align-items-center border-0 bg-${type} text-white" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
+                <div class="flex">
                     <div class="toast-body">
                         <strong>${title}:</strong> ${message}
                     </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest('.toast').remove()" aria-label="Close"></button>
                 </div>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', toastHTML);
 
         const toastElement = document.getElementById(toastId);
-        if (toastElement && typeof window.bootstrap !== 'undefined') {
-            const toast = new window.bootstrap.Toast(toastElement, { autohide: true, delay: 5000 });
-            toast.show();
-
-            toastElement.addEventListener('hidden.bs.toast', function() {
-                toastElement.remove();
+        if (toastElement && typeof window.Swal !== 'undefined') {
+            // Use SweetAlert2 toast instead of Bootstrap Toast
+            window.Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: type === 'danger' ? 'error' : type,
+                title: message,
+                showConfirmButton: false,
+                timer: 5000,
+                timerProgressBar: true
             });
+            toastElement.remove(); // Remove the HTML element since we're using Swal
         }
     }
 };

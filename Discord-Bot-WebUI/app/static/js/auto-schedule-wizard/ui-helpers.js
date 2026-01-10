@@ -51,14 +51,14 @@ export function showModal(id, title, message, type = 'info', callback = null) {
     }
 
     const iconMap = {
-        info: 'ti-info-circle text-info',
-        success: 'ti-check text-success',
-        error: 'ti-x text-danger',
-        loading: 'ti-loader-2 text-primary'
+        info: 'ti-info-circle text-blue-500',
+        success: 'ti-check text-green-500',
+        error: 'ti-x text-red-500',
+        loading: 'ti-loader-2 text-ecs-green'
     };
 
     const modalHTML = `
-        <div class="modal fade" id="${id}" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal fade" id="${id}" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -66,15 +66,15 @@ export function showModal(id, title, message, type = 'info', callback = null) {
                             <i class="ti ${iconMap[type] || iconMap.info} me-2"></i>
                             ${title}
                         </h5>
-                        ${type !== 'loading' ? '<button type="button" class="btn-close" data-bs-dismiss="modal"></button>' : ''}
+                        ${type !== 'loading' ? '<button type="button" class="text-gray-400 hover:text-gray-500" onclick="var modal = this.closest(\'[id]\'); if(modal._flowbiteModal) modal._flowbiteModal.hide();"><i class="ti ti-x text-xl"></i></button>' : ''}
                     </div>
                     <div class="modal-body">
-                        ${type === 'loading' ? '<div class="text-center"><div class="spinner-border text-primary mb-3"></div><br></div>' : ''}
+                        ${type === 'loading' ? '<div class="flex justify-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin mb-3"></div></div>' : ''}
                         <p class="mb-0">${message}</p>
                     </div>
                     ${type !== 'loading' ? `
                     <div class="modal-footer">
-                        <button type="button" class="c-btn c-btn--primary" data-bs-dismiss="modal">OK</button>
+                        <button type="button" class="c-btn c-btn--primary" onclick="var modal = this.closest('[id]'); if(modal._flowbiteModal) modal._flowbiteModal.hide();">OK</button>
                     </div>
                     ` : ''}
                 </div>
@@ -83,7 +83,8 @@ export function showModal(id, title, message, type = 'info', callback = null) {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    const modal = new window.bootstrap.Modal(document.getElementById(id));
+    const modalEl = document.getElementById(id);
+    const modal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
     modal.show();
 
     if (callback) {
@@ -106,9 +107,8 @@ export function showLoadingModal(title, message) {
 export function hideLoadingModal() {
     const modal = document.getElementById('loadingModal');
     if (modal) {
-        const bsModal = window.bootstrap.Modal.getInstance(modal);
-        if (bsModal) {
-            bsModal.hide();
+        if (modal._flowbiteModal) {
+            modal._flowbiteModal.hide();
         }
         modal.remove();
     }
@@ -151,7 +151,7 @@ export function addSpinnerCSS() {
             width: 40px;
             height: 40px;
             border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--bs-primary, #696cff);
+            border-top: 4px solid var(--color-ecs-green, #1a472a);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -181,10 +181,10 @@ export function addCalendarCSS() {
             opacity: 0.5;
         }
         .wizard-week-item.drop-indicator-top {
-            border-top: 3px solid var(--drop-indicator-color, var(--bs-primary, #696cff)) !important;
+            border-top: 3px solid var(--drop-indicator-color, var(--color-ecs-green, #1a472a)) !important;
         }
         .wizard-week-item.drop-indicator-bottom {
-            border-bottom: 3px solid var(--drop-indicator-color, var(--bs-primary, #696cff)) !important;
+            border-bottom: 3px solid var(--drop-indicator-color, var(--color-ecs-green, #1a472a)) !important;
         }
     `;
 

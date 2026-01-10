@@ -120,11 +120,11 @@ class AdminMatchOperationsManager {
                 <div class="text-start">
                     <div class="mb-3">
                         <label class="form-label">Team Name <span class="text-danger">*</span></label>
-                        <input type="text" id="teamName" class="form-control" placeholder="e.g., FC United">
+                        <input type="text" id="teamName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="e.g., FC United">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">League / Division</label>
-                        <select id="teamLeagueId" class="form-select">
+                        <select id="teamLeagueId" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
                             <option value="">-- Select League --</option>
                             ${leagueOptions}
                         </select>
@@ -211,7 +211,7 @@ class AdminMatchOperationsManager {
                             <div class="text-start">
                                 <div class="mb-3">
                                     <label class="form-label">Team Name <span class="text-danger">*</span></label>
-                                    <input type="text" id="editTeamName" class="form-control" value="${team.name}">
+                                    <input type="text" id="editTeamName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${team.name}">
                                 </div>
                                 <p class="text-muted small mb-0">Players: ${team.player_count}</p>
                             </div>
@@ -305,15 +305,15 @@ class AdminMatchOperationsManager {
                 <form id="scheduleForm" class="text-start">
                     <div class="mb-3">
                         <label class="form-label">Date</label>
-                        <input type="date" class="form-control" id="matchDate" required>
+                        <input type="date" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="matchDate" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Time</label>
-                        <input type="time" class="form-control" id="matchTime" required>
+                        <input type="time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="matchTime" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Location</label>
-                        <input type="text" class="form-control" id="matchLocation" placeholder="e.g., North Field">
+                        <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="matchLocation" placeholder="e.g., North Field">
                     </div>
                 </form>
             `,
@@ -424,25 +424,25 @@ class AdminMatchOperationsManager {
                 <form id="newMatchForm" class="text-start">
                     <div class="mb-3">
                         <label class="form-label">Home Team</label>
-                        <select class="form-select" id="homeTeam" required>
+                        <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="homeTeam" required>
                             <option value="">Select Home Team</option>
                             ${teamOptions}
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Away Team</label>
-                        <select class="form-select" id="awayTeam" required>
+                        <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="awayTeam" required>
                             <option value="">Select Away Team</option>
                             ${teamOptions}
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Date (Optional)</label>
-                        <input type="date" class="form-control" id="newMatchDate">
+                        <input type="date" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="newMatchDate">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Time (Optional)</label>
-                        <input type="time" class="form-control" id="newMatchTime">
+                        <input type="time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="newMatchTime">
                     </div>
                 </form>
             `,

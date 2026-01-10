@@ -37,8 +37,8 @@ function croppingimg(e, ratio) {
         imageElement.src = imgsrc;
 
         const imgContainer = document.querySelector('.img-container');
-        imgContainer.classList.remove('d-none');
-        imgContainer.classList.add('d-block');
+        imgContainer.classList.remove('hidden');
+        imgContainer.classList.add('block');
 
         if (cropper) {
             cropper.destroy(); // Destroy previous cropper instance

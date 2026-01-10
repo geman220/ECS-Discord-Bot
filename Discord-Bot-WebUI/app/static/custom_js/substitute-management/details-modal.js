@@ -53,7 +53,9 @@ export function displayRequestDetailsModal(request) {
               <i class="ti ti-list-details me-2"></i>
               Substitute Request Details - ${request.team_name}
             </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <button type="button" class="text-gray-400 hover:text-gray-500" onclick="this.closest('[id]').classList.add('hidden'); if(this.closest('[id]')._flowbiteModal) this.closest('[id]')._flowbiteModal.hide();">
+              <i class="ti ti-x text-xl"></i>
+            </button>
           </div>
           <div class="modal-body">
             <div class="row mb-4">
@@ -80,7 +82,7 @@ export function displayRequestDetailsModal(request) {
             ${responsesHtml}
           </div>
           <div class="modal-footer">
-            <button type="button" data-action="close-modal" data-bs-dismiss="modal">Close</button>
+            <button type="button" data-action="close-modal" onclick="var modal = this.closest('[id]'); modal.classList.add('hidden'); if(modal._flowbiteModal) modal._flowbiteModal.hide();">Close</button>
             ${request.status === 'OPEN' ? `
               <button type="button" data-action="resend-from-details"
                       data-request-id="${request.id}"
@@ -104,14 +106,14 @@ export function displayRequestDetailsModal(request) {
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 
   // Show modal
+  const modalEl = document.getElementById('requestDetailsModal');
   if (window.ModalManager) {
     window.ModalManager.show('requestDetailsModal');
-  } else if (window.bootstrap?.Modal) {
-    const modalEl = document.getElementById('requestDetailsModal');
-    if (modalEl) {
-      const modal = new window.bootstrap.Modal(modalEl);
-      modal.show();
+  } else if (modalEl && typeof window.Modal !== 'undefined') {
+    if (!modalEl._flowbiteModal) {
+      modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
     }
+    modalEl._flowbiteModal.show();
   }
 }
 
@@ -287,9 +289,8 @@ function hideDetailsModal() {
 
   if (window.ModalManager) {
     window.ModalManager.hide('requestDetailsModal');
-  } else if (window.bootstrap) {
-    const bsModal = window.bootstrap.Modal.getInstance(modal);
-    if (bsModal) bsModal.hide();
+  } else if (modal._flowbiteModal) {
+    modal._flowbiteModal.hide();
   }
 }
 

@@ -183,7 +183,7 @@ window.EventDelegation.register('rsvp-request-sms', function(element, e) {
     } else {
         // Vanilla JS fallback
         const smsModal = document.querySelector('[data-modal="send-sms"]');
-        if (smsModal && window.bootstrap) {
+        if (smsModal && window.ModalManager) {
             // Set values directly
             const playerNameEl = document.getElementById('smsPlayerName');
             const playerIdEl = document.getElementById('smsPlayerId');
@@ -239,7 +239,7 @@ window.EventDelegation.register('rsvp-request-discord-dm', function(element, e) 
     } else {
         // Vanilla JS fallback
         const discordModal = document.querySelector('[data-modal="send-discord-dm"]');
-        if (discordModal && window.bootstrap) {
+        if (discordModal && window.ModalManager) {
             const playerNameEl = document.getElementById('discordPlayerName');
             const playerIdEl = document.getElementById('discordPlayerId');
             const discordIdEl = document.getElementById('discordId');

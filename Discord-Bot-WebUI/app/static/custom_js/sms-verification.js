@@ -13,18 +13,18 @@ export function toggleSmsConsent(show) {
     // console.log("Toggle SMS consent:", show);
     const smsOptInSection = document.getElementById('smsOptInSection');
     if (show) {
-        smsOptInSection.classList.remove('d-none');
-        smsOptInSection.classList.add('d-block');
+        smsOptInSection.classList.remove('hidden');
+        smsOptInSection.classList.add('block');
     } else {
-        smsOptInSection.classList.remove('d-block');
-        smsOptInSection.classList.add('d-none');
+        smsOptInSection.classList.remove('block');
+        smsOptInSection.classList.add('hidden');
     }
 
     // If SMS is disabled, also hide verification
     if (!show) {
         const smsVerificationSection = document.getElementById('smsVerificationSection');
-        smsVerificationSection.classList.remove('d-block');
-        smsVerificationSection.classList.add('d-none');
+        smsVerificationSection.classList.remove('block');
+        smsVerificationSection.classList.add('hidden');
     }
 }
 
@@ -32,11 +32,11 @@ export function toggleSmsVerification(show) {
     // console.log("Toggle SMS verification:", show);
     const smsVerificationSection = document.getElementById('smsVerificationSection');
     if (show) {
-        smsVerificationSection.classList.remove('d-none');
-        smsVerificationSection.classList.add('d-block');
+        smsVerificationSection.classList.remove('hidden');
+        smsVerificationSection.classList.add('block');
     } else {
-        smsVerificationSection.classList.remove('d-block');
-        smsVerificationSection.classList.add('d-none');
+        smsVerificationSection.classList.remove('block');
+        smsVerificationSection.classList.add('hidden');
     }
 }
 
@@ -93,8 +93,8 @@ export function sendVerificationCode() {
         sendButton.innerHTML = '<i class="ti ti-send me-1"></i> Send Verification Code';
 
         if (data.success) {
-            verificationCodeInput.classList.remove('d-none');
-            verificationCodeInput.classList.add('d-block');
+            verificationCodeInput.classList.remove('hidden');
+            verificationCodeInput.classList.add('block');
             window.Swal.fire({
                 icon: 'success',
                 title: 'Code Sent!',
@@ -170,14 +170,14 @@ export function verifyCode() {
 
             // Update send button to show verified state
             sendButton.disabled = true;
-            sendButton.classList.remove('btn-primary');
-            sendButton.classList.add('btn-success');
+            sendButton.classList.remove('text-white', 'bg-ecs-green', 'hover:bg-ecs-green-dark', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5');
+            sendButton.classList.add('text-white', 'bg-green-600', 'hover:bg-green-700', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5');
             sendButton.innerHTML = '<i class="ti ti-check me-1"></i> Verified';
 
             // Hide warning alert if present
             var warningAlert = document.getElementById('verificationRequiredAlert');
             if (warningAlert) {
-                warningAlert.classList.add('d-none');
+                warningAlert.classList.add('hidden');
             }
 
             window.Swal.fire({
@@ -245,8 +245,8 @@ window.adminSetVerificationCode = function() {
                 .then(function(data) {
                     if (data.success) {
                         // Show the verification code input
-                        verificationCodeInput.classList.remove('d-none');
-                        verificationCodeInput.classList.add('d-block');
+                        verificationCodeInput.classList.remove('hidden');
+                        verificationCodeInput.classList.add('block');
                         // console.log("Admin generated verification code:", data.code);
                         if (typeof window.Swal !== 'undefined') {
                             window.Swal.fire({

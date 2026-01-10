@@ -176,10 +176,10 @@ function updatePracticeWeekOptions() {
 
     for (let i = 1; i <= weekCount; i++) {
         const div = document.createElement('div');
-        div.className = 'form-check form-check-inline';
+        div.className = 'flex items-center mr-4';
         div.innerHTML = `
-            <input class="form-check-input" type="checkbox" id="practice-week-${i}" name="practice_weeks" value="${i}">
-            <label class="form-check-label" for="practice-week-${i}">Week ${i}</label>
+            <input class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="practice-week-${i}" name="practice_weeks" value="${i}">
+            <label class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="practice-week-${i}">Week ${i}</label>
         `;
         container.appendChild(div);
     }
@@ -205,11 +205,11 @@ export function addField() {
     fieldItem.setAttribute('data-field-index', fieldCount);
 
     fieldItem.innerHTML = `
-        <div class="input-group" data-input-group>
-            <input type="text" class="form-control field-name"
+        <div class="flex gap-2" data-input-group>
+            <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white field-name"
                    name="field_name_${fieldCount}"
                    placeholder="Field name" required data-form-control aria-label="Field name">
-            <input type="number" class="form-control field-capacity"
+            <input type="number" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white field-capacity"
                    name="field_capacity_${fieldCount}"
                    value="20" min="1" max="50"
                    placeholder="Capacity" title="Field capacity" data-form-control aria-label="Capacity">
@@ -265,7 +265,7 @@ export function addWeekConfig(weekType = 'REGULAR') {
         <div class="week-type">
             ${weekType}
         </div>
-        <select class="form-control form-control-sm mt-2 week-type-select"
+        <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white mt-2 week-type-select"
                 name="week_type_${weekConfigCount}"
                 data-action="update-week-card" data-form-select>
             <option value="REGULAR" ${weekType === 'REGULAR' ? 'selected' : ''}>Regular</option>

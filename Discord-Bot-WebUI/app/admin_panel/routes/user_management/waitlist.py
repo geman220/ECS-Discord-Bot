@@ -55,13 +55,33 @@ def user_waitlist():
             Role.name == 'pl-waitlist'
         ).order_by(User.created_at.desc()).all()
 
-        # Get recently removed users for reference
+        # Get audit log entries for waitlist actions
+        audit_logs = []
+        try:
+            audit_logs = db.session.query(AdminAuditLog).options(
+                joinedload(AdminAuditLog.user)
+            ).filter(
+                AdminAuditLog.resource_type == 'user_waitlist'
+            ).order_by(AdminAuditLog.timestamp.desc()).limit(20).all()
+        except Exception as e:
+            logger.error(f"Error loading audit logs: {str(e)}")
+            audit_logs = []
+
+        # Get recent approval actions (users processed from waitlist or regular approvals)
         recent_actions = []
         try:
-            # Get users who previously had pl-waitlist role but no longer do
-            # This is a simplified approach - in production you might want to track this in a separate table
-            recent_actions = []  # For now, we'll leave this empty until we implement proper tracking
+            recent_actions = db.session.query(User).options(
+                joinedload(User.player),
+                joinedload(User.roles)
+            ).filter(
+                User.approval_status.in_(['approved', 'denied']),
+                User.approved_at.isnot(None)
+            ).order_by(User.approved_at.desc()).limit(20).all()
 
+            # Add approved_by_user information
+            for user in recent_actions:
+                if user.approved_by:
+                    user.approved_by_user = db.session.query(User).filter_by(id=user.approved_by).first()
         except Exception as e:
             logger.error(f"Error loading recent actions: {str(e)}")
             recent_actions = []
@@ -84,8 +104,9 @@ def user_waitlist():
             'admin_panel/users/user_waitlist_flowbite.html',
             waitlist_users=waitlist_users,
             recent_actions=recent_actions,
+            audit_logs=audit_logs,
             now=datetime.utcnow(),
-            **stats
+            stats=stats
         )
     except Exception as e:
         logger.error(f"Error loading user waitlist: {e}")

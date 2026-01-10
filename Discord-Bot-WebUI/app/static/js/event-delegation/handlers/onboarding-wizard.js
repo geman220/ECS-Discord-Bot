@@ -21,12 +21,12 @@ window.EventDelegation.register('onboarding-create-profile', function(element, e
     const formActionInput = document.getElementById('form_action');
     if (formActionInput) formActionInput.value = 'create_profile';
 
-    // Get window.bootstrap carousel instance and advance to next slide
+    // Get Flowbite carousel instance and advance to next slide
     const carouselElement = document.getElementById('modalCarouselControls');
-    if (carouselElement && window.bootstrap) {
-        const bootstrapCarousel = window.bootstrap.Carousel.getInstance(carouselElement) ||
-                                 new window.bootstrap.Carousel(carouselElement);
-        bootstrapCarousel.next();
+    if (carouselElement && window.Carousel) {
+        const flowbiteCarousel = window.Carousel.getInstance(carouselElement) ||
+                                 new window.Carousel(carouselElement);
+        flowbiteCarousel.next();
     }
 });
 
@@ -152,9 +152,9 @@ window.EventDelegation.register('onboarding-previous', function(element, e) {
     e.preventDefault();
 
     const carouselElement = document.getElementById('modalCarouselControls');
-    if (carouselElement && window.bootstrap) {
-        const bootstrapCarousel = window.bootstrap.Carousel.getInstance(carouselElement);
-        if (bootstrapCarousel) bootstrapCarousel.prev();
+    if (carouselElement && window.Carousel) {
+        const flowbiteCarousel = window.Carousel.getInstance(carouselElement);
+        if (flowbiteCarousel) flowbiteCarousel.prev();
     }
 });
 
@@ -313,10 +313,10 @@ window.EventDelegation.register('reset-image-selection', function(element, e) {
     const cropperInterface = document.getElementById('cropperInterface');
     const cropperControls = document.getElementById('cropperControls');
 
-    if (profilePreview) profilePreview.classList.remove('d-none');
-    if (uploadInstructions) uploadInstructions.classList.remove('d-none');
-    if (cropperInterface) cropperInterface.classList.add('d-none');
-    if (cropperControls) cropperControls.classList.add('d-none');
+    if (profilePreview) profilePreview.classList.remove('hidden');
+    if (uploadInstructions) uploadInstructions.classList.remove('hidden');
+    if (cropperInterface) cropperInterface.classList.add('hidden');
+    if (cropperControls) cropperControls.classList.add('hidden');
 });
 
 /**
@@ -427,10 +427,10 @@ window.EventDelegation.register('crop-save-profile-image', async function(elemen
         const cropperInterface = document.getElementById('cropperInterface');
         const cropperControls = document.getElementById('cropperControls');
 
-        if (profilePreview) profilePreview.classList.remove('d-none');
-        if (uploadInstructions) uploadInstructions.classList.remove('d-none');
-        if (cropperInterface) cropperInterface.classList.add('d-none');
-        if (cropperControls) cropperControls.classList.add('d-none');
+        if (profilePreview) profilePreview.classList.remove('hidden');
+        if (uploadInstructions) uploadInstructions.classList.remove('hidden');
+        if (cropperInterface) cropperInterface.classList.add('hidden');
+        if (cropperControls) cropperControls.classList.add('hidden');
 
         // Show success message
         if (window.Swal) {
@@ -472,10 +472,10 @@ window.EventDelegation.register('crop-save-profile-image', async function(elemen
         const cropperInterface = document.getElementById('cropperInterface');
         const cropperControls = document.getElementById('cropperControls');
 
-        if (profilePreview) profilePreview.classList.remove('d-none');
-        if (uploadInstructions) uploadInstructions.classList.remove('d-none');
-        if (cropperInterface) cropperInterface.classList.add('d-none');
-        if (cropperControls) cropperControls.classList.add('d-none');
+        if (profilePreview) profilePreview.classList.remove('hidden');
+        if (uploadInstructions) uploadInstructions.classList.remove('hidden');
+        if (cropperInterface) cropperInterface.classList.add('hidden');
+        if (cropperControls) cropperControls.classList.add('hidden');
 
         // Show warning but don't block the flow
         if (window.Swal) {

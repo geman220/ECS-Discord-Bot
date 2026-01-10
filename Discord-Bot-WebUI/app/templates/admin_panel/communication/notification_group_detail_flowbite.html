@@ -1,0 +1,219 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}{{ page_title }}{% endblock %}
+{% block panel_description %}Notification group details and members{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Notification Groups</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ group.name }}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Group Header -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center justify-center w-14 h-14 rounded-full
+                    {% if group.is_static %}bg-cyan-100 dark:bg-cyan-900/50{% else %}bg-green-100 dark:bg-green-900/50{% endif %}">
+                    <i class="ti {% if group.is_static %}ti-list-check{% else %}ti-adjustments{% endif %} text-2xl
+                        {% if group.is_static %}text-cyan-600 dark:text-cyan-400{% else %}text-green-600 dark:text-green-400{% endif %}"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ group.name }}</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        {% if group.description %}{{ group.description }}{% else %}No description{% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                {% if group.is_static %}
+                    {{ badge('Static Group', variant='info') }}
+                {% else %}
+                    {{ badge('Dynamic Group', variant='success') }}
+                {% endif %}
+                {% if group.is_active %}
+                    {{ badge('Active', variant='success') }}
+                {% else %}
+                    {{ badge('Inactive', variant='secondary') }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="p-5">
+        <!-- Group Details -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ member_count }}</div>
+                <div class="text-sm text-blue-700 dark:text-blue-300">Total Members</div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
+                <div class="text-lg font-medium text-gray-900 dark:text-white">{{ group.group_type|title }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Group Type</div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-center">
+                <div class="text-lg font-medium text-gray-900 dark:text-white">
+                    {{ group.created_at.strftime('%Y-%m-%d') if group.created_at else 'Unknown' }}
+                </div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">Created</div>
+            </div>
+        </div>
+
+        <!-- Dynamic Group Criteria (if applicable) -->
+        {% if not group.is_static and group.criteria %}
+        <div class="mb-6">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                <i class="ti ti-filter mr-2"></i>Dynamic Criteria
+            </h5>
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <pre class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ group.criteria | tojson(indent=2) }}</pre>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Members List (for static groups) -->
+{% if group.is_static %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-users mr-2"></i>Group Members
+            </h5>
+            <button type="button" class="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" id="addMemberBtn">
+                <i class="ti ti-user-plus mr-1"></i>Add Member
+            </button>
+        </div>
+    </div>
+    <div class="p-5">
+        {% if members %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">User</th>
+                        <th scope="col" class="px-6 py-3">Email</th>
+                        <th scope="col" class="px-6 py-3">Added</th>
+                        <th scope="col" class="px-6 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for membership in members %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600">
+                                    <i class="ti ti-user text-gray-600 dark:text-gray-400"></i>
+                                </div>
+                                <span class="font-medium text-gray-900 dark:text-white">{{ membership.user.username }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">{{ membership.user.email or 'No email' }}</td>
+                        <td class="px-6 py-4">{{ membership.added_at.strftime('%Y-%m-%d') if membership.added_at else 'Unknown' }}</td>
+                        <td class="px-6 py-4">
+                            <button type="button" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300" onclick="removeMember({{ membership.user.id }})">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-8">
+            <i class="ti ti-users-minus text-4xl text-gray-400 mb-3"></i>
+            <p class="text-gray-500 dark:text-gray-400">No members in this group</p>
+            <button type="button" class="mt-3 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400" id="addFirstMemberBtn">
+                <i class="ti ti-user-plus mr-1"></i>Add the first member
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Available Filters for Editing (for all groups) -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-database mr-2"></i>Available Targeting Options
+        </h5>
+    </div>
+    <div class="p-5">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <h6 class="font-medium text-gray-900 dark:text-white mb-2">Teams ({{ teams|length }})</h6>
+                <div class="max-h-40 overflow-y-auto bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                    {% for team in teams[:5] %}
+                    <div class="text-sm text-gray-600 dark:text-gray-300 py-1">{{ team.name }}</div>
+                    {% endfor %}
+                    {% if teams|length > 5 %}
+                    <div class="text-sm text-gray-400 py-1">... and {{ teams|length - 5 }} more</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div>
+                <h6 class="font-medium text-gray-900 dark:text-white mb-2">Leagues ({{ leagues|length }})</h6>
+                <div class="max-h-40 overflow-y-auto bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                    {% for league in leagues[:5] %}
+                    <div class="text-sm text-gray-600 dark:text-gray-300 py-1">{{ league.name }}</div>
+                    {% endfor %}
+                    {% if leagues|length > 5 %}
+                    <div class="text-sm text-gray-400 py-1">... and {{ leagues|length - 5 }} more</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div>
+                <h6 class="font-medium text-gray-900 dark:text-white mb-2">Roles ({{ roles|length }})</h6>
+                <div class="max-h-40 overflow-y-auto bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                    {% for role in roles[:5] %}
+                    <div class="text-sm text-gray-600 dark:text-gray-300 py-1">{{ role.name }}</div>
+                    {% endfor %}
+                    {% if roles|length > 5 %}
+                    <div class="text-sm text-gray-400 py-1">... and {{ roles|length - 5 }} more</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="flex flex-wrap gap-3">
+    <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+        <i class="ti ti-arrow-left mr-1"></i>Back to Groups
+    </a>
+    <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" id="editGroupBtn">
+        <i class="ti ti-edit mr-1"></i>Edit Group
+    </button>
+    {% if group.is_active %}
+    <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600" id="deactivateBtn">
+        <i class="ti ti-player-pause mr-1"></i>Deactivate
+    </button>
+    {% else %}
+    <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700" id="activateBtn">
+        <i class="ti ti-player-play mr-1"></i>Activate
+    </button>
+    {% endif %}
+</div>
+{% endblock %}

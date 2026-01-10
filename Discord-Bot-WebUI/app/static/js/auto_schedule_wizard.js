@@ -171,7 +171,7 @@ function cleanupCalendarState() {
 function showExistingSeasons() {
     const existing = document.getElementById('existingSeasons');
     const mainView = document.querySelector('.row.mb-4:nth-child(2)');
-    if (existing) existing.classList.remove('d-none');
+    if (existing) existing.classList.remove('hidden');
     if (mainView) mainView.classList.add('wizard-view--hidden');
 }
 
@@ -181,7 +181,7 @@ function showExistingSeasons() {
 function showMainView() {
     const existing = document.getElementById('existingSeasons');
     const mainView = document.querySelector('.row.mb-4:nth-child(2)');
-    if (existing) existing.classList.add('d-none');
+    if (existing) existing.classList.add('hidden');
     if (mainView) mainView.classList.remove('wizard-view--hidden');
 }
 
@@ -194,12 +194,12 @@ function updateCalendarSections() {
     const ecsFcCalendar = document.getElementById('ecsFcCalendar');
 
     if (leagueType === 'Pub League') {
-        if (pubLeagueCalendar) pubLeagueCalendar.classList.remove('d-none');
-        if (ecsFcCalendar) ecsFcCalendar.classList.add('d-none');
+        if (pubLeagueCalendar) pubLeagueCalendar.classList.remove('hidden');
+        if (ecsFcCalendar) ecsFcCalendar.classList.add('hidden');
         updateCalendarSummary();
     } else if (leagueType === 'ECS FC') {
-        if (pubLeagueCalendar) pubLeagueCalendar.classList.add('d-none');
-        if (ecsFcCalendar) ecsFcCalendar.classList.remove('d-none');
+        if (pubLeagueCalendar) pubLeagueCalendar.classList.add('hidden');
+        if (ecsFcCalendar) ecsFcCalendar.classList.remove('hidden');
         updateCalendarSummary();
     }
 }
@@ -360,11 +360,11 @@ function generateCalendarPreview(forceRegenerate = false) {
     const ecsFcCalendar = document.getElementById('ecsFcCalendar');
 
     if (leagueType === 'Pub League') {
-        if (pubLeagueCalendar) pubLeagueCalendar.classList.remove('d-none');
-        if (ecsFcCalendar) ecsFcCalendar.classList.add('d-none');
+        if (pubLeagueCalendar) pubLeagueCalendar.classList.remove('hidden');
+        if (ecsFcCalendar) ecsFcCalendar.classList.add('hidden');
     } else if (leagueType === 'ECS FC') {
-        if (pubLeagueCalendar) pubLeagueCalendar.classList.add('d-none');
-        if (ecsFcCalendar) ecsFcCalendar.classList.remove('d-none');
+        if (pubLeagueCalendar) pubLeagueCalendar.classList.add('hidden');
+        if (ecsFcCalendar) ecsFcCalendar.classList.remove('hidden');
     }
 
     // Parse date
@@ -568,7 +568,7 @@ function applyWizardTemplate(templateType) {
             document.getElementById('breakDuration').value = '10';
             document.getElementById('enableTimeRotation').checked = true;
             document.getElementById('classicHasPractice').checked = false;
-            document.getElementById('practice-weeks-selection')?.classList.add('d-none');
+            document.getElementById('practice-weeks-selection')?.classList.add('hidden');
             break;
         case 'classic-practice':
             document.getElementById('premierStartTime').value = '08:20';
@@ -577,7 +577,7 @@ function applyWizardTemplate(templateType) {
             document.getElementById('breakDuration').value = '10';
             document.getElementById('enableTimeRotation').checked = true;
             document.getElementById('classicHasPractice').checked = true;
-            document.getElementById('practice-weeks-selection')?.classList.remove('d-none');
+            document.getElementById('practice-weeks-selection')?.classList.remove('hidden');
             setTimeout(() => {
                 updateWizardPracticeWeekOptions();
                 const week1 = document.getElementById('wizard-practice-week-1');
@@ -588,7 +588,7 @@ function applyWizardTemplate(templateType) {
             break;
         case 'custom':
             document.getElementById('classicHasPractice').checked = false;
-            document.getElementById('practice-weeks-selection')?.classList.add('d-none');
+            document.getElementById('practice-weeks-selection')?.classList.add('hidden');
             break;
     }
 
@@ -607,13 +607,13 @@ function addWizardField() {
     fieldItem.className = 'wizard-field-item mb-3';
 
     fieldItem.innerHTML = `
-        <div class="row">
-            <div class="col-md-8">
-                <label class="form-label">Field Name</label>
-                <input type="text" class="form-control wizard-field-name" placeholder="Field ${fieldCount + 1}" required>
+        <div class="flex flex-wrap gap-4">
+            <div class="flex-1 min-w-0">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Field Name</label>
+                <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white wizard-field-name" placeholder="Field ${fieldCount + 1}" required>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button type="button" class="btn btn-outline-danger" data-action="remove-wizard-field">
+            <div class="flex items-end">
+                <button type="button" class="text-red-600 hover:text-red-800 dark:text-red-500 dark:hover:text-red-400 border border-red-600 dark:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg px-3 py-2.5" data-action="remove-wizard-field">
                     <i class="fas fa-times"></i>
                 </button>
             </div>

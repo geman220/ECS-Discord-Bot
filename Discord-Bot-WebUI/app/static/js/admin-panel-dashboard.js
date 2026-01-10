@@ -99,7 +99,7 @@ function openNavigationSettings() {
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire({
             title: 'Navigation Settings',
-            html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading navigation settings...</p></div>',
+            html: '<div class="flex flex-col items-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status"></div><p class="mt-2 text-gray-600 dark:text-gray-400">Loading navigation settings...</p></div>',
             showConfirmButton: false,
             allowOutsideClick: false
         });
@@ -202,7 +202,7 @@ function openRegistrationSettings() {
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire({
             title: 'Registration Settings',
-            html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading registration settings...</p></div>',
+            html: '<div class="flex flex-col items-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status"></div><p class="mt-2 text-gray-600 dark:text-gray-400">Loading registration settings...</p></div>',
             showConfirmButton: false,
             allowOutsideClick: false
         });
@@ -329,7 +329,7 @@ function openTaskMonitor() {
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire({
             title: 'Task Monitor',
-            html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading task information...</p></div>',
+            html: '<div class="flex flex-col items-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status"></div><p class="mt-2 text-gray-600 dark:text-gray-400">Loading task information...</p></div>',
             width: '800px',
             showConfirmButton: false,
             allowOutsideClick: false
@@ -431,7 +431,7 @@ function openDatabaseMonitor() {
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire({
             title: 'Database Monitor',
-            html: '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading system information...</p></div>',
+            html: '<div class="flex flex-col items-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status"></div><p class="mt-2 text-gray-600 dark:text-gray-400">Loading system information...</p></div>',
             width: '900px',
             showConfirmButton: false,
             allowOutsideClick: false

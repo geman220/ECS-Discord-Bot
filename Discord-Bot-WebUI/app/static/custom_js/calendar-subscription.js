@@ -192,7 +192,7 @@ function getCardHTML(options = {}) {
             <!-- Loading State -->
             <div id="subscriptionLoading" class="u-text-center u-py-4">
                 <div class="u-spinner u-text-primary" role="status">
-                    <span class="u-visually-hidden">Loading...</span>
+                    <span class="sr-only">Loading...</span>
                 </div>
                 <p class="u-text-muted u-mt-2 u-mb-0">Loading subscription...</p>
             </div>

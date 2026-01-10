@@ -1,0 +1,337 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}{% if match %}Edit Match{% else %}Create Match{% endif %}{% endblock %}
+{% block panel_description %}{% if match %}Edit existing match{% else %}Create a new ECS FC match{% endif %}{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">ECS FC Hub</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{% if match %}Edit Match{% else %}Create Match{% endif %}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-{% if match %}edit{% else %}plus{% endif %} mr-2"></i>
+            {% if match %}Edit Match{% else %}Create New Match{% endif %}
+        </h5>
+    </div>
+    <div class="p-5">
+        <form method="post" id="matchForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Left Column -->
+                <div class="space-y-4">
+                    <!-- Team Selection -->
+                    <div>
+                        <label for="team_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Team <span class="text-red-500">*</span>
+                        </label>
+                        <select name="team_id" id="team_id" required {% if match %}disabled{% endif %}
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-600">
+                            <option value="">Select Team...</option>
+                            {% for team in teams %}
+                            <option value="{{ team.id }}"
+                                    {% if (match and match.team_id == team.id) or (preselect_team_id == team.id) %}selected{% endif %}>
+                                {{ team.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if match %}
+                        <input type="hidden" name="team_id" value="{{ match.team_id }}">
+                        {% endif %}
+                    </div>
+
+                    <!-- Opponent Selection -->
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Opponent <span class="text-red-500">*</span>
+                        </label>
+                        <div class="inline-flex rounded-md shadow-sm mb-3 w-full" role="group">
+                            <button type="button" id="oppLibraryBtn" onclick="toggleOpponentSource('library')"
+                                    class="opponent-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-l-lg focus:z-10 focus:ring-2 focus:ring-blue-700
+                                    {% if not match or match.external_opponent_id %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-900 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600{% endif %}">
+                                <i class="ti ti-books mr-1"></i>From Library
+                            </button>
+                            <button type="button" id="oppCustomBtn" onclick="toggleOpponentSource('custom')"
+                                    class="opponent-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-r-lg focus:z-10 focus:ring-2 focus:ring-blue-700
+                                    {% if match and not match.external_opponent_id %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-900 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600{% endif %}">
+                                <i class="ti ti-pencil mr-1"></i>Custom Entry
+                            </button>
+                        </div>
+                        <input type="hidden" name="opponent_source" id="opponent_source" value="{% if match and not match.external_opponent_id %}custom{% else %}library{% endif %}">
+
+                        <!-- Library dropdown -->
+                        <div id="librarySelect" class="{% if match and not match.external_opponent_id %}hidden{% endif %}">
+                            <div class="flex">
+                                <select name="external_opponent_id" id="external_opponent_id"
+                                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                    <option value="">Select Opponent...</option>
+                                    {% for opp in opponents %}
+                                    <option value="{{ opp.id }}"
+                                            {% if match and match.external_opponent_id == opp.id %}selected{% endif %}>
+                                        {{ opp.name }}{% if opp.league_affiliation %} ({{ opp.league_affiliation }}){% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <a href="{{ url_for('admin_panel.ecs_fc_opponents') }}" target="_blank"
+                                   class="px-3 py-2.5 text-sm font-medium text-gray-900 bg-gray-50 border border-l-0 border-gray-300 rounded-r-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600"
+                                   title="Add new opponent">
+                                    <i class="ti ti-plus"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Custom input -->
+                        <div id="customInput" class="{% if not match or match.external_opponent_id %}hidden{% endif %}">
+                            <input type="text" name="opponent_name" id="opponent_name"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   placeholder="Enter opponent team name (e.g., Seattle United O50)"
+                                   value="{% if match and not match.external_opponent_id %}{{ match.opponent_name }}{% endif %}">
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Enter the full name of the opposing team</p>
+                        </div>
+                    </div>
+
+                    <!-- Date and Time -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="match_date" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Date <span class="text-red-500">*</span>
+                            </label>
+                            <input type="date" name="match_date" id="match_date" required
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   value="{% if match %}{{ match.match_date.strftime('%Y-%m-%d') }}{% endif %}">
+                        </div>
+                        <div>
+                            <label for="match_time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Time <span class="text-red-500">*</span>
+                            </label>
+                            <input type="time" name="match_time" id="match_time" required
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   value="{% if match %}{{ match.match_time.strftime('%H:%M') }}{% else %}19:00{% endif %}">
+                        </div>
+                    </div>
+
+                    <!-- Location and Field -->
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="col-span-2">
+                            <label for="location" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Location <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="location" id="location" required
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   placeholder="e.g., Memorial Stadium"
+                                   value="{% if match %}{{ match.location }}{% endif %}">
+                        </div>
+                        <div>
+                            <label for="field_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Field Name</label>
+                            <input type="text" name="field_name" id="field_name"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   placeholder="e.g., Field A"
+                                   value="{% if match %}{{ match.field_name }}{% endif %}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="space-y-4">
+                    <!-- Home/Away and RSVP Deadline -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Home/Away <span class="text-red-500">*</span>
+                            </label>
+                            <div class="inline-flex rounded-md shadow-sm w-full" role="group">
+                                <button type="button" id="isHomeBtn" onclick="toggleHomeAway(true)"
+                                        class="home-away-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-l-lg focus:z-10 focus:ring-2 focus:ring-green-700
+                                        {% if not match or match.is_home_match %}bg-green-600 text-white border-green-600{% else %}bg-white text-gray-900 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600{% endif %}">
+                                    <i class="ti ti-home mr-1"></i>Home
+                                </button>
+                                <button type="button" id="isAwayBtn" onclick="toggleHomeAway(false)"
+                                        class="home-away-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-r-lg focus:z-10 focus:ring-2 focus:ring-gray-700
+                                        {% if match and not match.is_home_match %}bg-gray-600 text-white border-gray-600{% else %}bg-white text-gray-900 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600{% endif %}">
+                                    <i class="ti ti-map-pin mr-1"></i>Away
+                                </button>
+                            </div>
+                            <input type="hidden" name="is_home_match" id="is_home_match" value="{% if match and not match.is_home_match %}false{% else %}true{% endif %}">
+                        </div>
+                        <div>
+                            <label for="rsvp_deadline" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">RSVP Deadline</label>
+                            <input type="datetime-local" name="rsvp_deadline" id="rsvp_deadline"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   value="{% if match and match.rsvp_deadline %}{{ match.rsvp_deadline.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+                        </div>
+                    </div>
+
+                    {% if match %}
+                    <!-- Status (edit only) -->
+                    <div>
+                        <label for="status" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Status</label>
+                        <select name="status" id="status"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="SCHEDULED" {% if match.status == 'SCHEDULED' %}selected{% endif %}>Scheduled</option>
+                            <option value="IN_PROGRESS" {% if match.status == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+                            <option value="COMPLETED" {% if match.status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                            <option value="CANCELLED" {% if match.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                            <option value="POSTPONED" {% if match.status == 'POSTPONED' %}selected{% endif %}>Postponed</option>
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <!-- Notes -->
+                    <div>
+                        <label for="notes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes</label>
+                        <textarea name="notes" id="notes" rows="3"
+                                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                  placeholder="Any additional notes...">{% if match %}{{ match.notes }}{% endif %}</textarea>
+                    </div>
+
+                    {% if not match %}
+                    <!-- RSVP Scheduling Options (create only) -->
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <h6 class="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                            <i class="ti ti-calendar-event mr-2"></i>RSVP Scheduling
+                        </h6>
+                        <label class="inline-flex items-center cursor-pointer mb-3">
+                            <input type="checkbox" class="sr-only peer" id="schedule_rsvp" name="schedule_rsvp" checked>
+                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-blue-600"></div>
+                            <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                <i class="ti ti-bell-ringing mr-1"></i>Schedule RSVP Request
+                            </span>
+                        </label>
+                        <div class="p-3 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-600 dark:text-blue-300">
+                            <i class="ti ti-info-circle mr-1"></i>
+                            <strong>How it works:</strong> RSVP request will be posted to the team's Discord channel
+                            on <strong>Monday at 9:00 AM</strong> the week before the match.
+                            If the match is less than 7 days away, the RSVP will be posted immediately.
+                            Players can respond with emoji reactions: ✅ Yes, ❌ No, ❓ Maybe.
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex justify-between mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}"
+                   class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
+                    <i class="ti ti-arrow-left mr-1"></i>Cancel
+                </a>
+                <button type="submit"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800">
+                    <i class="ti ti-{% if match %}check{% else %}plus{% endif %} mr-1"></i>
+                    {% if match %}Save Changes{% else %}Create Match{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if not match %}
+<!-- Quick Schedule Templates -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mt-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h6 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-template mr-2"></i>Quick Schedule Templates
+        </h6>
+    </div>
+    <div class="p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Click a template to auto-fill date and time fields</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button type="button" onclick="applyTemplate('weekend')"
+                    class="px-4 py-3 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 dark:bg-gray-700 dark:text-blue-400 dark:hover:bg-gray-600 text-center">
+                <i class="ti ti-calendar-event mr-1"></i>Weekend Match
+                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-1">Next Saturday, 3:00 PM</span>
+            </button>
+            <button type="button" onclick="applyTemplate('midweek')"
+                    class="px-4 py-3 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 dark:bg-gray-700 dark:text-blue-400 dark:hover:bg-gray-600 text-center">
+                <i class="ti ti-calendar mr-1"></i>Midweek Match
+                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-1">Next Wednesday, 7:30 PM</span>
+            </button>
+            <button type="button" onclick="applyTemplate('sunday')"
+                    class="px-4 py-3 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 dark:bg-gray-700 dark:text-blue-400 dark:hover:bg-gray-600 text-center">
+                <i class="ti ti-sun mr-1"></i>Sunday Match
+                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-1">Next Sunday, 2:00 PM</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function toggleOpponentSource(source) {
+    document.getElementById('opponent_source').value = source;
+    const librarySelect = document.getElementById('librarySelect');
+    const customInput = document.getElementById('customInput');
+    const libraryBtn = document.getElementById('oppLibraryBtn');
+    const customBtn = document.getElementById('oppCustomBtn');
+
+    if (source === 'library') {
+        librarySelect.classList.remove('hidden');
+        customInput.classList.add('hidden');
+        libraryBtn.className = 'opponent-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-l-lg focus:z-10 focus:ring-2 focus:ring-blue-700 bg-blue-600 text-white border-blue-600';
+        customBtn.className = 'opponent-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-r-lg focus:z-10 focus:ring-2 focus:ring-blue-700 bg-white text-gray-900 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600';
+    } else {
+        librarySelect.classList.add('hidden');
+        customInput.classList.remove('hidden');
+        customBtn.className = 'opponent-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-r-lg focus:z-10 focus:ring-2 focus:ring-blue-700 bg-blue-600 text-white border-blue-600';
+        libraryBtn.className = 'opponent-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-l-lg focus:z-10 focus:ring-2 focus:ring-blue-700 bg-white text-gray-900 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600';
+    }
+}
+
+function toggleHomeAway(isHome) {
+    document.getElementById('is_home_match').value = isHome ? 'true' : 'false';
+    const homeBtn = document.getElementById('isHomeBtn');
+    const awayBtn = document.getElementById('isAwayBtn');
+
+    if (isHome) {
+        homeBtn.className = 'home-away-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-l-lg focus:z-10 focus:ring-2 focus:ring-green-700 bg-green-600 text-white border-green-600';
+        awayBtn.className = 'home-away-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-r-lg focus:z-10 focus:ring-2 focus:ring-gray-700 bg-white text-gray-900 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600';
+    } else {
+        awayBtn.className = 'home-away-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-r-lg focus:z-10 focus:ring-2 focus:ring-gray-700 bg-gray-600 text-white border-gray-600';
+        homeBtn.className = 'home-away-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-l-lg focus:z-10 focus:ring-2 focus:ring-green-700 bg-white text-gray-900 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600';
+    }
+}
+
+function applyTemplate(template) {
+    const today = new Date();
+    let targetDate;
+    let targetTime;
+
+    if (template === 'weekend') {
+        // Next Saturday
+        const daysUntilSaturday = (6 - today.getDay() + 7) % 7 || 7;
+        targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + daysUntilSaturday);
+        targetTime = '15:00';
+    } else if (template === 'midweek') {
+        // Next Wednesday
+        const daysUntilWednesday = (3 - today.getDay() + 7) % 7 || 7;
+        targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + daysUntilWednesday);
+        targetTime = '19:30';
+    } else if (template === 'sunday') {
+        // Next Sunday
+        const daysUntilSunday = (7 - today.getDay()) % 7 || 7;
+        targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + daysUntilSunday);
+        targetTime = '14:00';
+    }
+
+    document.getElementById('match_date').value = targetDate.toISOString().split('T')[0];
+    document.getElementById('match_time').value = targetTime;
+}
+</script>
+{% endblock %}

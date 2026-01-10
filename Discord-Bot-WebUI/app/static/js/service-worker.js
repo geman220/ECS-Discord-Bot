@@ -1,21 +1,16 @@
 // ECS Soccer League PWA Service Worker
-const CACHE_NAME = 'ecs-soccer-v2'; // Updated: v1 → v2 (route fixes + file path corrections)
+const CACHE_NAME = 'ecs-soccer-v3'; // Updated: v2 → v3 (Flowbite migration, removed Bootstrap/Sneat files)
 
 // Assets to cache on install
+// Note: Flowbite and other major libs are loaded from CDN (not cached here)
 const PRECACHE_ASSETS = [
   '/',
-  // Note: Core CSS files removed - loaded dynamically per page
-  // '/static/css/core.css', // Doesn't exist
-  // '/static/css/theme-default.css', // Doesn't exist
   '/static/vendor/fonts/tabler-icons.css',
   '/static/vendor/fonts/fontawesome.css',
   '/static/js/config.js',
-  '/static/js/helpers.js',
-  '/static/js/menu.js',
-  '/static/vendor/js/window.bootstrap.bundle.js', // Fixed: was window.bootstrap.js
+  '/static/js/helpers-minimal.js',
+  '/static/vendor/js/menu-refactored.js',
   '/static/vendor/libs/jquery/jquery.js',
-  '/static/custom_js/rsvp.js',
-  '/static/custom_js/report_match.js',
   '/static/img/default_player.png',
   '/static/img/default_logo.png',
   '/static/img/undraw_goal_-0-v5v.svg',

@@ -25,11 +25,11 @@ function triggerManualReviewModal() {
         // Use ModalManager (preferred), then Bootstrap Modal API, then jQuery fallback
         if (window.ModalManager) {
             window.ModalManager.show('manualReviewModal');
-        } else if (window.bootstrap?.Modal) {
+        } else if (window.Modal) {
             const modal = document.getElementById('manualReviewModal');
             if (modal) {
-                const bsModal = new window.bootstrap.Modal(modal);
-                bsModal.show();
+                modal._flowbiteModal = modal._flowbiteModal || new window.Modal(modal, { backdrop: 'dynamic', closable: true });
+                modal._flowbiteModal.show();
             }
         } else if (typeof window.$ !== 'undefined' && typeof window.$.fn?.modal === 'function') {
             // Safe jQuery fallback with .modal() check

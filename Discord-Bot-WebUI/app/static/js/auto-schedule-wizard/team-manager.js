@@ -14,13 +14,13 @@ export function updateTeamSections() {
     const ecsFcSection = document.getElementById('ecsFcTeams');
 
     if (leagueType === 'Pub League') {
-        if (pubLeagueSection) pubLeagueSection.classList.remove('d-none');
-        if (ecsFcSection) ecsFcSection.classList.add('d-none');
+        if (pubLeagueSection) pubLeagueSection.classList.remove('hidden');
+        if (ecsFcSection) ecsFcSection.classList.add('hidden');
         updateTeamPreview('premier');
         updateTeamPreview('classic');
     } else if (leagueType === 'ECS FC') {
-        if (pubLeagueSection) pubLeagueSection.classList.add('d-none');
-        if (ecsFcSection) ecsFcSection.classList.remove('d-none');
+        if (pubLeagueSection) pubLeagueSection.classList.add('hidden');
+        if (ecsFcSection) ecsFcSection.classList.remove('hidden');
         updateTeamPreview('ecsFc');
     }
 }

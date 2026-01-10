@@ -169,13 +169,13 @@ export function displaySearchResults(players) {
         players.forEach(function(player) {
             const item = $(`
                 <div class="search-result-item">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="flex justify-content-between align-items-center">
                         <div>
                             <strong>${player.name}</strong>
                             <br><small class="text-muted">${player.email || 'No email'}</small>
                         </div>
                         <div class="text-end">
-                            <small class="text-muted d-block">Can add to:</small>
+                            <small class="text-muted block">Can add to:</small>
                             <div>
                                 ${player.can_add_to.map(league => `
                                     <button class="btn btn-sm btn-outline-primary ms-1"
@@ -304,10 +304,10 @@ export function openPlayerDetailsModal(playerId) {
     const detailsData = document.getElementById('detailsData');
 
     // Show loading, hide data using CSS classes
-    detailsLoading.classList.remove('d-none');
-    detailsLoading.classList.add('d-block');
-    detailsData.classList.remove('d-block');
-    detailsData.classList.add('d-none');
+    detailsLoading.classList.remove('hidden');
+    detailsLoading.classList.add('block');
+    detailsData.classList.remove('block');
+    detailsData.classList.add('hidden');
 
     window.ModalManager.show('playerDetailsModal');
 
@@ -335,10 +335,10 @@ export function displayPlayerDetails(data, playerId) {
     const detailsData = document.getElementById('detailsData');
 
     // Hide loading, show data using CSS classes
-    detailsLoading.classList.remove('d-block');
-    detailsLoading.classList.add('d-none');
-    detailsData.classList.remove('d-none');
-    detailsData.classList.add('d-block');
+    detailsLoading.classList.remove('block');
+    detailsLoading.classList.add('hidden');
+    detailsData.classList.remove('hidden');
+    detailsData.classList.add('block');
 
     if (data.success && data.profile) {
         const profile = data.profile;

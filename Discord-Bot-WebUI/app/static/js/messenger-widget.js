@@ -517,8 +517,8 @@ class MessengerWidget {
         confirmButtonText: 'Yes, Delete',
         cancelButtonText: 'Cancel',
         customClass: {
-          confirmButton: 'btn btn-danger',
-          cancelButton: 'btn btn-secondary'
+          confirmButton: 'text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5',
+          cancelButton: 'text-gray-900 bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600'
         },
         buttonsStyling: false
       });

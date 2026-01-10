@@ -65,7 +65,7 @@ window.EventDelegation.register('set-current-season', function(element, e) {
         if (setCurrentSeasonId) setCurrentSeasonId.value = seasonId;
         if (setCurrentSeasonName) setCurrentSeasonName.textContent = seasonName;
         if (performRollover) performRollover.checked = false;
-        if (rolloverPreview) rolloverPreview.classList.add('d-none');
+        if (rolloverPreview) rolloverPreview.classList.add('hidden');
 
         if (typeof window.ModalManager !== 'undefined') {
             window.ModalManager.show('setCurrentModal');

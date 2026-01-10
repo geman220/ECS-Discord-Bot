@@ -198,11 +198,20 @@ export function loadImageForCropping(input) {
 
                 resetImagePosition();
 
-                // Show the modal
+                // Show the modal (Flowbite version)
                 const modalElement = document.getElementById('cropBackgroundModal');
                 if (modalElement) {
-                    const modal = window.bootstrap.Modal.getOrCreateInstance(modalElement);
-                    modal.show();
+                    // Try Flowbite Modal first
+                    if (typeof window.Modal !== 'undefined') {
+                        const modal = new window.Modal(modalElement);
+                        modal.show();
+                    } else {
+                        // Fallback: manual show
+                        modalElement.classList.remove('hidden');
+                        modalElement.classList.add('flex');
+                        modalElement.setAttribute('aria-hidden', 'false');
+                        document.body.classList.add('overflow-hidden');
+                    }
 
                     // Initialize positioning after modal is shown
                     setTimeout(() => {
@@ -733,15 +742,13 @@ export function refreshSinglePlayerDiscordStatus(playerId, playerName, badgeElem
 }
 
 /**
- * Initialize Bootstrap tooltips
+ * Initialize tooltips (Flowbite uses title attributes with Tailwind)
+ * Flowbite handles tooltips via data-tooltip-target attributes
  */
 export function initializeTooltips() {
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function(tooltipTriggerEl) {
-        return new window.bootstrap.Tooltip(tooltipTriggerEl, {
-            delay: { show: 500, hide: 100 }
-        });
-    });
+    // Flowbite initializes tooltips automatically via data attributes
+    // No manual initialization needed for Flowbite tooltips
+    // Legacy Bootstrap tooltips are no longer used
 }
 
 /**

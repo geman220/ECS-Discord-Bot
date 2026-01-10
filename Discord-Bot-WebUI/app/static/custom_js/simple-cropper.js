@@ -325,15 +325,15 @@ window.switchToCropMode = function() {
     const profilePreview = document.getElementById('profilePicturePreview');
     const uploadInstructions = document.getElementById('uploadInstructions');
     
-    if (profilePreview) profilePreview.classList.add('d-none');
-    if (uploadInstructions) uploadInstructions.classList.add('d-none');
+    if (profilePreview) profilePreview.classList.add('hidden');
+    if (uploadInstructions) uploadInstructions.classList.add('hidden');
     
     // Show cropper interface and controls
     const cropperInterface = document.getElementById('cropperInterface');
     const cropperControls = document.getElementById('cropperControls');
     
-    if (cropperInterface) cropperInterface.classList.remove('d-none');
-    if (cropperControls) cropperControls.classList.remove('d-none');
+    if (cropperInterface) cropperInterface.classList.remove('hidden');
+    if (cropperControls) cropperControls.classList.remove('hidden');
 };
 
 window.resetImageSelection = function() {
@@ -357,15 +357,15 @@ window.switchToUploadMode = function() {
     const profilePreview = document.getElementById('profilePicturePreview');
     const uploadInstructions = document.getElementById('uploadInstructions');
     
-    if (profilePreview) profilePreview.classList.remove('d-none');
-    if (uploadInstructions) uploadInstructions.classList.remove('d-none');
+    if (profilePreview) profilePreview.classList.remove('hidden');
+    if (uploadInstructions) uploadInstructions.classList.remove('hidden');
     
     // Hide cropper interface and controls
     const cropperInterface = document.getElementById('cropperInterface');
     const cropperControls = document.getElementById('cropperControls');
     
-    if (cropperInterface) cropperInterface.classList.add('d-none');
-    if (cropperControls) cropperControls.classList.add('d-none');
+    if (cropperInterface) cropperInterface.classList.add('hidden');
+    if (cropperControls) cropperControls.classList.add('hidden');
 };
 
 window.getCroppedImage = function() {

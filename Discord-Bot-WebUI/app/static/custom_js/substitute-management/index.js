@@ -129,11 +129,10 @@ function registerJQueryHandlers() {
     // Hide modal first
     if (window.ModalManager) {
       window.ModalManager.hide('requestDetailsModal');
-    } else if (window.bootstrap?.Modal) {
+    } else {
       const modalEl = document.getElementById('requestDetailsModal');
-      if (modalEl) {
-        const modal = window.bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
+      if (modalEl && modalEl._flowbiteModal) {
+        modalEl._flowbiteModal.hide();
       }
     }
     resendSubstituteRequest($el.data('request-id'), $el.data('league'), $el.data('team'), $el.data('created'));

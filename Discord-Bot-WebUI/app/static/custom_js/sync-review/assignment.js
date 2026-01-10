@@ -72,7 +72,7 @@ export function createNewPlayerFromForm(issueId, orderIndex) {
             icon: 'warning',
             title: 'Name Required',
             text: 'Please enter a player name',
-            confirmButtonClass: 'btn btn-primary'
+            confirmButtonClass: 'text-white bg-ecs-green hover:bg-ecs-green-dark focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5'
         });
         if (nameInput) nameInput.focus();
         return;
@@ -104,7 +104,7 @@ export function createNewPlayerFromForm(issueId, orderIndex) {
     const originalText = createBtn?.innerHTML;
     if (createBtn) {
         createBtn.disabled = true;
-        createBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-1"></i>Creating...';
+        createBtn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></span>Creating...';
     }
 
     fetch('/user_management/create_quick_player', {
@@ -168,7 +168,7 @@ export function createNewPlayerFromForm(issueId, orderIndex) {
                 icon: 'error',
                 title: 'Creation Failed',
                 text: 'Error creating player: ' + (data.error || 'Unknown error'),
-                confirmButtonClass: 'btn btn-danger'
+                confirmButtonClass: 'text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5'
             });
         }
     })
@@ -182,7 +182,7 @@ export function createNewPlayerFromForm(issueId, orderIndex) {
             icon: 'error',
             title: 'Creation Failed',
             text: 'Failed to create player',
-            confirmButtonClass: 'btn btn-danger'
+            confirmButtonClass: 'text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5'
         });
     });
 }
@@ -197,7 +197,7 @@ export function cancelPlayerCreation(issueId, orderIndex) {
     if (select) select.value = '';
 
     const createDiv = document.getElementById(`create-new-${issueId}-${orderIndex}`);
-    if (createDiv) createDiv.classList.add('d-none');
+    if (createDiv) createDiv.classList.add('hidden');
 }
 
 /**
@@ -239,8 +239,8 @@ export function removeAssignment(issueId, orderIndex) {
     // Hide any open forms
     const searchDiv = document.getElementById(`search-${issueId}-${orderIndex}`);
     const createDiv = document.getElementById(`create-new-${issueId}-${orderIndex}`);
-    if (searchDiv) searchDiv.classList.add('d-none');
-    if (createDiv) createDiv.classList.add('d-none');
+    if (searchDiv) searchDiv.classList.add('hidden');
+    if (createDiv) createDiv.classList.add('hidden');
 
     // Update progress and inactive counts since we removed an assignment
     updateProgressBar();
@@ -277,6 +277,6 @@ export function showAssignment(issueId, orderIndex, assignmentText) {
     // Hide any open forms
     const searchDiv = document.getElementById(`search-${issueId}-${orderIndex}`);
     const createDiv = document.getElementById(`create-new-${issueId}-${orderIndex}`);
-    if (searchDiv) searchDiv.classList.add('d-none');
-    if (createDiv) createDiv.classList.add('d-none');
+    if (searchDiv) searchDiv.classList.add('hidden');
+    if (createDiv) createDiv.classList.add('hidden');
 }

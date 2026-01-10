@@ -228,7 +228,8 @@ class DraftHistoryManager {
             
             if (data.success) {
                 this.showAlert('success', data.message);
-                window.bootstrap.Modal.getInstance(document.getElementById('editDraftPickModal')).hide();
+                const modalEl = document.getElementById('editDraftPickModal');
+                if (modalEl && modalEl._flowbiteModal) modalEl._flowbiteModal.hide();
                 this.reloadPage();
             } else {
                 this.showAlert('error', data.message);
@@ -251,8 +252,8 @@ class DraftHistoryManager {
                 confirmButtonText: 'Yes, Delete',
                 cancelButtonText: 'Cancel',
                 customClass: {
-                    confirmButton: 'btn btn-danger',
-                    cancelButton: 'btn btn-secondary'
+                    confirmButton: 'text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5',
+                    cancelButton: 'text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700'
                 },
                 buttonsStyling: false
             });
@@ -265,12 +266,12 @@ class DraftHistoryManager {
             const headers = {
                 'Content-Type': 'application/json',
             };
-            
+
             // Add CSRF token if available
             if (this.csrfToken) {
                 headers['X-CSRFToken'] = this.csrfToken;
             }
-            
+
             const response = await fetch(`/admin/draft-history/delete/${pickId}`, {
                 method: 'DELETE',
                 headers: headers
@@ -302,8 +303,8 @@ class DraftHistoryManager {
                 confirmButtonText: 'Yes, Fix Order',
                 cancelButtonText: 'Cancel',
                 customClass: {
-                    confirmButton: 'btn btn-primary',
-                    cancelButton: 'btn btn-secondary'
+                    confirmButton: 'text-white bg-ecs-green hover:bg-ecs-green-dark focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5',
+                    cancelButton: 'text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700'
                 },
                 buttonsStyling: false
             });
@@ -316,12 +317,12 @@ class DraftHistoryManager {
             const headers = {
                 'Content-Type': 'application/json',
             };
-            
+
             // Add CSRF token if available
             if (this.csrfToken) {
                 headers['X-CSRFToken'] = this.csrfToken;
             }
-            
+
             const response = await fetch('/admin/draft-history/normalize', {
                 method: 'POST',
                 headers: headers,
@@ -357,8 +358,8 @@ class DraftHistoryManager {
                 confirmButtonText: 'Yes, Clear All',
                 cancelButtonText: 'Cancel',
                 customClass: {
-                    confirmButton: 'btn btn-danger',
-                    cancelButton: 'btn btn-secondary'
+                    confirmButton: 'text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5',
+                    cancelButton: 'text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700'
                 },
                 buttonsStyling: false
             });
@@ -371,12 +372,12 @@ class DraftHistoryManager {
             const headers = {
                 'Content-Type': 'application/json',
             };
-            
+
             // Add CSRF token if available
             if (this.csrfToken) {
                 headers['X-CSRFToken'] = this.csrfToken;
             }
-            
+
             const response = await fetch('/admin/draft-history/clear', {
                 method: 'POST',
                 headers: headers,
@@ -415,9 +416,9 @@ class DraftHistoryManager {
         }
         
         const alertHtml = `
-            <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <div class="alert ${alertClass} alert-dismissible fade show" role="alert" id="draft-alert-${Date.now()}">
                 <i class="ti ${iconClass} me-2"></i>${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                <button type="button" class="btn-close" aria-label="Close" onclick="this.closest('.alert').remove()"></button>
             </div>
         `;
         
@@ -442,11 +443,12 @@ class DraftHistoryManager {
         }, 1000);
     }
 
-    // Initialize tooltips if available
+    // Initialize tooltips - Flowbite auto-initializes tooltips with title attribute
     initTooltips() {
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new window.bootstrap.Tooltip(tooltipTriggerEl);
+        document.querySelectorAll('[title]').forEach(el => {
+            if (!el._tooltip && window.Tooltip) {
+                el._tooltip = new window.Tooltip(el);
+            }
         });
     }
 }

@@ -56,9 +56,9 @@ function initWaitlistCarousel() {
         });
     }
 
-    // Initialize carousel
-    if (carouselElement && typeof window.bootstrap !== 'undefined') {
-        bootstrapCarousel = new window.bootstrap.Carousel(carouselElement, {
+    // Initialize carousel using Flowbite Carousel
+    if (carouselElement && typeof window.Carousel !== 'undefined') {
+        bootstrapCarousel = new window.Carousel(carouselElement, {
             interval: false,
             ride: false,
             touch: false,
@@ -130,9 +130,9 @@ function updateNavButtons() {
 
     // Hide previous button on first step
     if (step === 1 && previousButton) {
-        previousButton.classList.add('d-none');
+        previousButton.classList.add('hidden');
     } else if (previousButton) {
-        previousButton.classList.remove('d-none');
+        previousButton.classList.remove('hidden');
     }
 
     // Change next button to submit on final step
@@ -315,10 +315,10 @@ function resetImageSelection() {
     const profilePicturePreview = document.getElementById('profilePicturePreview');
     const cropperControls = document.getElementById('cropperControls');
 
-    if (cropperInterface) cropperInterface.classList.add('d-none');
-    if (uploadInstructions) uploadInstructions.classList.remove('d-none');
-    if (profilePicturePreview) profilePicturePreview.classList.remove('d-none');
-    if (cropperControls) cropperControls.classList.add('d-none');
+    if (cropperInterface) cropperInterface.classList.add('hidden');
+    if (uploadInstructions) uploadInstructions.classList.remove('hidden');
+    if (profilePicturePreview) profilePicturePreview.classList.remove('hidden');
+    if (cropperControls) cropperControls.classList.add('hidden');
 
     if (window.cropper) {
         window.cropper.destroy();

@@ -64,13 +64,13 @@ export function showDraftingIndicator(playerName, teamName) {
     indicator.id = 'currentDraftIndicator';
     indicator.className = 'drafting-indicator';
     indicator.innerHTML = `
-        <div class="d-flex align-items-center gap-3">
-            <div class="spinner-border spinner-border-sm text-primary" role="status">
-                <span class="visually-hidden">Drafting...</span>
+        <div class="flex items-center gap-3">
+            <div class="w-4 h-4 border-2 border-ecs-green border-t-transparent rounded-full animate-spin" role="status">
+                <span class="sr-only">Drafting...</span>
             </div>
             <div>
-                <strong>Drafting ${playerName}</strong>
-                <div class="small text-muted">to ${teamName}</div>
+                <strong class="text-gray-900 dark:text-white">Drafting ${playerName}</strong>
+                <div class="text-sm text-gray-500 dark:text-gray-400">to ${teamName}</div>
             </div>
         </div>
     `;
@@ -106,10 +106,10 @@ export function showUserActivity(username, playerName, teamName) {
     const activity = document.createElement('div');
     activity.className = 'user-activity-toast';
     activity.innerHTML = `
-        <i class="ti ti-user-check text-primary me-2"></i>
+        <i class="ti ti-user-check text-ecs-green mr-2"></i>
         <div>
-            <strong>${username}</strong> is drafting <strong>${playerName}</strong>
-            ${teamName ? `<div class="small text-muted">to ${teamName}</div>` : ''}
+            <strong class="text-gray-900 dark:text-white">${username}</strong> is drafting <strong class="text-gray-900 dark:text-white">${playerName}</strong>
+            ${teamName ? `<div class="text-sm text-gray-500 dark:text-gray-400">to ${teamName}</div>` : ''}
         </div>
     `;
 
@@ -132,20 +132,20 @@ export function toggleEmptyState(show) {
 
     if (emptyState) {
         if (show) {
-            emptyState.classList.add('d-block');
-            emptyState.classList.remove('d-none');
+            emptyState.classList.add('block');
+            emptyState.classList.remove('hidden');
         } else {
-            emptyState.classList.add('d-none');
-            emptyState.classList.remove('d-block');
+            emptyState.classList.add('hidden');
+            emptyState.classList.remove('block');
         }
     }
     if (playersContainer) {
         if (show) {
-            playersContainer.classList.add('d-none');
-            playersContainer.classList.remove('d-block');
+            playersContainer.classList.add('hidden');
+            playersContainer.classList.remove('block');
         } else {
-            playersContainer.classList.add('d-block');
-            playersContainer.classList.remove('d-none');
+            playersContainer.classList.add('block');
+            playersContainer.classList.remove('hidden');
         }
     }
 }
@@ -200,8 +200,7 @@ export function updateTeamCount(teamId) {
 export function closeModals() {
     const modals = document.querySelectorAll('[data-component="modal"][data-state="open"]');
     modals.forEach(modal => {
-        const bsModal = window.bootstrap.Modal.getInstance(modal);
-        if (bsModal) bsModal.hide();
+        if (modal._flowbiteModal) modal._flowbiteModal.hide();
     });
 }
 

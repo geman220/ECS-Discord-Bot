@@ -111,19 +111,19 @@ export class PlayoffBracket {
         const error = container.querySelector('.bracket-error');
         const content = container.querySelector('.bracket-content');
 
-        if (loading) loading.classList.add('d-none');
+        if (loading) loading.classList.add('hidden');
 
         if (!this.data || !this.data.groupA || !this.data.groupB) {
             if (error) {
-                error.classList.remove('d-none');
+                error.classList.remove('hidden');
                 error.querySelector('.bracket-error-message').textContent =
                     'No playoff data available. Playoffs may not have been generated yet.';
             }
             return;
         }
 
-        if (error) error.classList.add('d-none');
-        if (content) content.classList.remove('d-none');
+        if (error) error.classList.add('hidden');
+        if (content) content.classList.remove('hidden');
 
         // Update status badge
         this.updateStatusBadge();
@@ -300,11 +300,11 @@ export class PlayoffBracket {
 
         // Build report button HTML - uses data-action for event delegation
         const buttonHTML = `
-            <button class="btn btn-sm btn-primary match-report-btn"
+            <button class="text-white bg-ecs-green hover:bg-ecs-green-dark focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-xs px-3 py-1.5 match-report-btn"
                     data-match-id="${match.id}"
                     data-action="playoff-match-report">
                 <i class="ti ti-pencil"></i>
-                <span class="d-none d-md-inline">${isReported ? 'Edit' : 'Report'}</span>
+                <span class="hidden d-md-inline">${isReported ? 'Edit' : 'Report'}</span>
             </button>
         `;
 
@@ -483,15 +483,15 @@ export class PlayoffBracket {
 
         const error = container.querySelector('.bracket-error');
         if (error) {
-            error.classList.remove('d-none');
+            error.classList.remove('hidden');
             error.querySelector('.bracket-error-message').textContent = message;
         }
 
         const loading = container.querySelector('.bracket-loading');
         const content = container.querySelector('.bracket-content');
 
-        if (loading) loading.classList.add('d-none');
-        if (content) content.classList.add('d-none');
+        if (loading) loading.classList.add('hidden');
+        if (content) content.classList.add('hidden');
     }
 
     /**

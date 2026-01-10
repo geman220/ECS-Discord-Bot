@@ -97,7 +97,7 @@ window.EventDelegation.register('search-players', function(element, e) {
         playerCards.forEach(card => {
             const playerName = (card.dataset.playerName || '').toLowerCase();
             const shouldShow = !searchTerm || playerName.includes(searchTerm);
-            card.closest('[data-component="player-column"]')?.classList.toggle('d-none', !shouldShow);
+            card.closest('[data-component="player-column"]')?.classList.toggle('hidden', !shouldShow);
         });
     }
 });
@@ -114,7 +114,7 @@ window.EventDelegation.register('filter-position', function(element, e) {
         playerCards.forEach(card => {
             const playerPosition = (card.dataset.position || '').toLowerCase();
             const shouldShow = !position || playerPosition === position;
-            card.closest('[data-component="player-column"]')?.classList.toggle('d-none', !shouldShow);
+            card.closest('[data-component="player-column"]')?.classList.toggle('hidden', !shouldShow);
         });
     }
 });

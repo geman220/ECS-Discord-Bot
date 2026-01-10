@@ -299,7 +299,7 @@ function commandPermissions() {
                 </div>
                 <div class="mb-3">
                     <label for="permCooldown" class="form-label">Cooldown (seconds)</label>
-                    <input type="number" id="permCooldown" class="form-control" value="5" min="0">
+                    <input type="number" id="permCooldown" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="5" min="0">
                 </div>
             </div>
         `,
@@ -387,14 +387,14 @@ function customCommands() {
                 <p class="text-muted mb-3">Create custom bot commands that respond with text or execute actions.</p>
                 <div class="mb-3">
                     <label for="cmdName" class="form-label">Command Name</label>
-                    <div class="input-group">
-                        <span class="input-group-text">/</span>
-                        <input type="text" id="cmdName" class="form-control" placeholder="mycommand" pattern="[a-z0-9_-]+" title="Lowercase letters, numbers, underscores, and hyphens only">
+                    <div class="flex">
+                        <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-r-0 border-gray-300 rounded-l-lg dark:bg-gray-600 dark:text-gray-400 dark:border-gray-600">/</span>
+                        <input type="text" id="cmdName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-none rounded-r-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="mycommand" pattern="[a-z0-9_-]+" title="Lowercase letters, numbers, underscores, and hyphens only">
                     </div>
                 </div>
                 <div class="mb-3">
                     <label for="cmdDescription" class="form-label">Description</label>
-                    <input type="text" id="cmdDescription" class="form-control" placeholder="What does this command do?">
+                    <input type="text" id="cmdDescription" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="What does this command do?">
                 </div>
                 <div class="mb-3">
                     <label for="cmdType" class="form-label">Response Type</label>
@@ -406,7 +406,7 @@ function customCommands() {
                 </div>
                 <div class="mb-3">
                     <label for="cmdResponse" class="form-label">Response Content</label>
-                    <textarea id="cmdResponse" class="form-control" rows="3" placeholder="Enter the response message..."></textarea>
+                    <textarea id="cmdResponse" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" rows="3" placeholder="Enter the response message..."></textarea>
                 </div>
                 <div class="form-check mb-3">
                     <input class="form-check-input" type="checkbox" id="cmdEnabled" checked>
@@ -519,16 +519,24 @@ function manageGuild(element, e) {
                 title: `Manage Guild: ${settings.guild_name || guildName}`,
                 html: `
                     <div class="text-start">
-                        <ul class="nav nav-tabs mb-3" role="tablist">
-                            <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#guildSettings">Settings</a></li>
-                            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#guildChannels">Channels</a></li>
-                            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#guildRoles">Roles</a></li>
-                        </ul>
-                        <div class="tab-content">
-                            <div class="tab-pane fade show active" id="guildSettings">
+                        <div class="border-b border-gray-200 dark:border-gray-700 mb-4">
+                            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="guildTabs" role="tablist">
+                                <li class="mr-2" role="presentation">
+                                    <button class="inline-block p-4 border-b-2 rounded-t-lg border-primary-600 text-primary-600" id="settings-tab" type="button" role="tab" aria-controls="guildSettings" aria-selected="true" onclick="document.querySelectorAll('[role=tabpanel]').forEach(p => p.classList.add('hidden')); document.getElementById('guildSettings').classList.remove('hidden'); document.querySelectorAll('[role=tab]').forEach(t => { t.classList.remove('border-primary-600', 'text-primary-600'); t.classList.add('border-transparent'); t.setAttribute('aria-selected', 'false'); }); this.classList.add('border-primary-600', 'text-primary-600'); this.classList.remove('border-transparent'); this.setAttribute('aria-selected', 'true');">Settings</button>
+                                </li>
+                                <li class="mr-2" role="presentation">
+                                    <button class="inline-block p-4 border-b-2 rounded-t-lg border-transparent hover:text-gray-600 hover:border-gray-300" id="channels-tab" type="button" role="tab" aria-controls="guildChannels" aria-selected="false" onclick="document.querySelectorAll('[role=tabpanel]').forEach(p => p.classList.add('hidden')); document.getElementById('guildChannels').classList.remove('hidden'); document.querySelectorAll('[role=tab]').forEach(t => { t.classList.remove('border-primary-600', 'text-primary-600'); t.classList.add('border-transparent'); t.setAttribute('aria-selected', 'false'); }); this.classList.add('border-primary-600', 'text-primary-600'); this.classList.remove('border-transparent'); this.setAttribute('aria-selected', 'true');">Channels</button>
+                                </li>
+                                <li role="presentation">
+                                    <button class="inline-block p-4 border-b-2 rounded-t-lg border-transparent hover:text-gray-600 hover:border-gray-300" id="roles-tab" type="button" role="tab" aria-controls="guildRoles" aria-selected="false" onclick="document.querySelectorAll('[role=tabpanel]').forEach(p => p.classList.add('hidden')); document.getElementById('guildRoles').classList.remove('hidden'); document.querySelectorAll('[role=tab]').forEach(t => { t.classList.remove('border-primary-600', 'text-primary-600'); t.classList.add('border-transparent'); t.setAttribute('aria-selected', 'false'); }); this.classList.add('border-primary-600', 'text-primary-600'); this.classList.remove('border-transparent'); this.setAttribute('aria-selected', 'true');">Roles</button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div id="tabContent">
+                            <div class="" id="guildSettings" role="tabpanel" aria-labelledby="settings-tab">
                                 <div class="mb-3">
                                     <label for="guildPrefix" class="form-label">Bot Prefix</label>
-                                    <input type="text" id="guildPrefix" class="form-control" value="${settings.prefix || '!'}" maxlength="5">
+                                    <input type="text" id="guildPrefix" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${settings.prefix || '!'}" maxlength="5">
                                 </div>
                                 <div class="mb-3">
                                     <label for="guildLanguage" class="form-label">Language</label>
@@ -546,7 +554,7 @@ function manageGuild(element, e) {
                                     <label class="form-check-label" for="guildModLog">Enable moderation logging</label>
                                 </div>
                             </div>
-                            <div class="tab-pane fade" id="guildChannels">
+                            <div class="hidden" id="guildChannels" role="tabpanel" aria-labelledby="channels-tab">
                                 <div class="mb-3">
                                     <label for="announceChannel" class="form-label">Announcements Channel</label>
                                     <select id="announceChannel" class="form-select">
@@ -562,7 +570,7 @@ function manageGuild(element, e) {
                                     </select>
                                 </div>
                             </div>
-                            <div class="tab-pane fade" id="guildRoles">
+                            <div class="hidden" id="guildRoles" role="tabpanel" aria-labelledby="roles-tab">
                                 <div class="mb-3">
                                     <label for="adminRole" class="form-label">Admin Role</label>
                                     <select id="adminRole" class="form-select">

@@ -41,10 +41,10 @@ const StoreEditItem = {
             if (!container) return;
 
             const div = document.createElement('div');
-            div.className = 'input-group mb-2';
+            div.className = 'flex gap-2 mb-2';
             div.setAttribute('data-input-group', '');
             div.innerHTML = `
-                <input type="text" class="form-control" name="colors[]" placeholder="e.g. Red, Blue, Green" data-form-control aria-label="e.g. Red, Blue, Green">
+                <input type="text" class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" name="colors[]" placeholder="e.g. Red, Blue, Green" data-form-control aria-label="e.g. Red, Blue, Green">
                 <button type="button" class="c-btn c-btn--outline-danger remove-color" data-action="remove-color" aria-label="Remove color"><i class="ti ti-x"></i></button>
             `;
             container.appendChild(div);
@@ -64,10 +64,10 @@ const StoreEditItem = {
             if (!container) return;
 
             const div = document.createElement('div');
-            div.className = 'input-group mb-2';
+            div.className = 'flex gap-2 mb-2';
             div.setAttribute('data-input-group', '');
             div.innerHTML = `
-                <input type="text" class="form-control" name="sizes[]" placeholder="e.g. S, M, L, XL" data-form-control aria-label="e.g. S, M, L, XL">
+                <input type="text" class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" name="sizes[]" placeholder="e.g. S, M, L, XL" data-form-control aria-label="e.g. S, M, L, XL">
                 <button type="button" class="c-btn c-btn--outline-danger remove-size" data-action="remove-size" aria-label="Remove size"><i class="ti ti-x"></i></button>
             `;
             container.appendChild(div);
@@ -84,11 +84,11 @@ const StoreEditItem = {
             const removeSizeBtn = e.target.closest('[data-action="remove-size"]');
 
             if (removeColorBtn) {
-                removeColorBtn.closest('.input-group').remove();
+                removeColorBtn.closest('[data-input-group]').remove();
                 this.updateRemoveButtons('color');
             }
             if (removeSizeBtn) {
-                removeSizeBtn.closest('.input-group').remove();
+                removeSizeBtn.closest('[data-input-group]').remove();
                 this.updateRemoveButtons('size');
             }
         });
@@ -102,14 +102,14 @@ const StoreEditItem = {
         const container = document.getElementById(`${type}s-container`);
         if (!container) return;
 
-        const groups = container.querySelectorAll('.input-group');
+        const groups = container.querySelectorAll('[data-input-group]');
         groups.forEach((group) => {
             const removeBtn = group.querySelector(`[data-action="remove-${type}"]`);
             if (removeBtn) {
                 if (groups.length > 1) {
-                    removeBtn.classList.remove('d-none');
+                    removeBtn.classList.remove('hidden');
                 } else {
-                    removeBtn.classList.add('d-none');
+                    removeBtn.classList.add('hidden');
                 }
             }
         });

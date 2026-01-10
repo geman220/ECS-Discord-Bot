@@ -38,9 +38,12 @@ class SecurityDashboard {
     // - clear-all-bans (clear all IP bans)
 
     initTooltips() {
-        // Initialize Bootstrap tooltips
-        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new window.bootstrap.Tooltip(tooltipTriggerEl));
+        // Initialize tooltips - Flowbite auto-initializes tooltips with title attribute
+        document.querySelectorAll('[title]').forEach(el => {
+            if (!el._tooltip && window.Tooltip) {
+                el._tooltip = new window.Tooltip(el);
+            }
+        });
     }
 
     async refreshAll() {
@@ -374,8 +377,9 @@ class SecurityDashboard {
                 this.showAlert(data.message, 'success');
                 
                 // Close modal and reset form
-                const modal = window.bootstrap.Modal.getInstance(document.getElementById('banIpModal'));
-                modal.hide();
+                const modalEl = document.getElementById('banIpModal');
+                const modal = modalEl._flowbiteModal;
+                if (modal) modal.hide();
                 form.reset();
                 
                 // Refresh the page data

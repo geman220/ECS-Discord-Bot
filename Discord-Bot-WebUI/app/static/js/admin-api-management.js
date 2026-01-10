@@ -137,7 +137,7 @@ function testEndpoint() {
             <div class="text-start">
                 <div class="mb-3">
                     <label class="form-label">Endpoint Path</label>
-                    <input type="text" id="test-endpoint" class="form-control" placeholder="/api/example" data-form-control>
+                    <input type="text" id="test-endpoint" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="/api/example" data-form-control>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Method</label>
@@ -150,7 +150,7 @@ function testEndpoint() {
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Parameters (JSON)</label>
-                    <textarea id="test-params" class="form-control" rows="3" placeholder='{"key": "value"}' data-form-control></textarea>
+                    <textarea id="test-params" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" rows="3" placeholder='{"key": "value"}' data-form-control></textarea>
                 </div>
             </div>
         `,

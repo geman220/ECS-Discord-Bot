@@ -65,7 +65,7 @@ export function toggleEdit() {
         });
         if (editBtn) {
             editBtn.innerHTML = '<i class="ti ti-x me-1"></i>Cancel Edit';
-            editBtn.className = 'btn btn-secondary';
+            editBtn.className = 'text-white bg-gray-500 hover:bg-gray-600 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5';
         }
     } else {
         // Disable editing
@@ -78,7 +78,7 @@ export function toggleEdit() {
         });
         if (editBtn) {
             editBtn.innerHTML = '<i class="ti ti-edit me-1"></i>Edit Profile';
-            editBtn.className = 'btn btn-warning';
+            editBtn.className = 'text-white bg-yellow-500 hover:bg-yellow-600 focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5';
         }
     }
 }
@@ -167,8 +167,8 @@ export function verifyProfile() {
         if (result.isConfirmed) {
             // Hide the profile modal
             const modalEl = document.getElementById('profileModal');
-            if (modalEl && typeof window.bootstrap !== 'undefined') {
-                const modal = window.bootstrap.Modal.getInstance(modalEl);
+            if (modalEl) {
+                const modal = modalEl._flowbiteModal;
                 if (modal) {
                     modal.hide();
                 }

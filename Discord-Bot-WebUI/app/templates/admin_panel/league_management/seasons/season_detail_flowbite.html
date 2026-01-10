@@ -1,0 +1,296 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}{{ season.name }}{% endblock %}
+{% block panel_description %}Season Details - {{ season.name }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.league_management_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">League Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Seasons</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ season.name }}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Season Overview Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-calendar mr-2"></i>Season Overview
+            </h5>
+        </div>
+        <div class="p-5">
+            <div class="text-center mb-4">
+                <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="ti ti-tournament text-2xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <h4 class="text-xl font-semibold text-gray-900 dark:text-white mb-1">{{ season.name }}</h4>
+                {% if season.is_current %}
+                <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">Current Season</span>
+                {% else %}
+                <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Inactive</span>
+                {% endif %}
+            </div>
+
+            <div class="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400 text-sm">League Type:</span>
+                    <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">{{ season.league_type }}</span>
+                </div>
+                {% if season.start_date %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400 text-sm">Start Date:</span>
+                    <span class="text-gray-900 dark:text-white text-sm">{{ season.start_date.strftime('%b %d, %Y') }}</span>
+                </div>
+                {% endif %}
+                {% if season.end_date %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400 text-sm">End Date:</span>
+                    <span class="text-gray-900 dark:text-white text-sm">{{ season.end_date.strftime('%b %d, %Y') }}</span>
+                </div>
+                {% endif %}
+                <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400 text-sm">Total Leagues:</span>
+                    <span class="text-gray-900 dark:text-white text-sm font-medium">{{ season.leagues|length }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex gap-2">
+            <button onclick="editSeason({{ season.id }}, '{{ season.name }}')"
+                    class="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">
+                <i class="ti ti-edit mr-1"></i>Edit
+            </button>
+            {% if not season.is_current %}
+            <button onclick="setCurrentSeason({{ season.id }})"
+                    class="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800">
+                <i class="ti ti-check mr-1"></i>Set Current
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Statistics Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-chart-bar mr-2"></i>Statistics
+            </h5>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ summary.total_teams if summary else season.leagues|sum(attribute='teams')|length }}</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Total Teams</p>
+                </div>
+                <div class="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ summary.total_matches if summary else 0 }}</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Matches</p>
+                </div>
+                <div class="text-center p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg">
+                    <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ summary.matches_played if summary else 0 }}</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Played</p>
+                </div>
+                <div class="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                    <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ summary.matches_remaining if summary else 0 }}</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Remaining</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-bolt mr-2"></i>Quick Actions
+            </h5>
+        </div>
+        <div class="p-5 space-y-2">
+            <a href="{{ url_for('admin_panel.league_management_teams') }}?season_id={{ season.id }}"
+               class="flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 w-full">
+                <i class="ti ti-users-group mr-2"></i>View Teams
+            </a>
+            <a href="{{ url_for('admin_panel.draft_history') }}?season={{ season.id }}"
+               class="flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 w-full">
+                <i class="ti ti-list-numbers mr-2"></i>Draft History
+            </a>
+            <a href="{{ url_for('draft_predictions.admin_dashboard') }}?season_id={{ season.id }}"
+               class="flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 w-full">
+                <i class="ti ti-chart-dots mr-2"></i>Draft Predictions
+            </a>
+            <a href="{{ url_for('auto_schedule.schedule_manager') }}"
+               class="flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-600 dark:text-gray-300 dark:border-gray-500 dark:hover:bg-gray-500 w-full">
+                <i class="ti ti-calendar-event mr-2"></i>Auto Schedule
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Leagues Section -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-trophy mr-2"></i>Leagues ({{ season.leagues|length }})
+        </h5>
+    </div>
+    <div class="p-5">
+        {% if season.leagues %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for league in season.leagues %}
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                    <h6 class="font-semibold text-gray-900 dark:text-white">{{ league.name }}</h6>
+                    <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">{{ league.teams|length }} Teams</span>
+                </div>
+                <div class="p-4">
+                    {% if league.teams %}
+                    <div class="flex flex-wrap gap-1">
+                        {% for team in league.teams[:5] %}
+                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">{{ team.name }}</span>
+                        {% endfor %}
+                        {% if league.teams|length > 5 %}
+                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-600 rounded dark:bg-gray-600 dark:text-gray-400">+{{ league.teams|length - 5 }} more</span>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No teams in this league yet</p>
+                    {% endif %}
+                </div>
+                <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                    <a href="{{ url_for('admin_panel.league_management_teams') }}?league_id={{ league.id }}"
+                       class="w-full px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800 inline-flex items-center justify-center">
+                        <i class="ti ti-eye mr-1"></i>View Teams
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <i class="ti ti-trophy-off text-4xl text-gray-400 mb-3"></i>
+            <p class="text-gray-500 dark:text-gray-400">No leagues in this season yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Edit Season Modal -->
+<div id="editSeasonModal" tabindex="-1" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-modal md:h-full justify-center items-center bg-gray-900/50">
+    <div class="relative w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-edit mr-2"></i>Edit Season
+                </h3>
+                <button type="button" onclick="closeEditModal()" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <form id="editSeasonForm">
+                <input type="hidden" id="editSeasonId">
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label for="editSeasonName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Season Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="editSeasonName" required
+                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="editSeasonStartDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Start Date</label>
+                        <input type="date" id="editSeasonStartDate"
+                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="editSeasonEndDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">End Date</label>
+                        <input type="date" id="editSeasonEndDate"
+                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                    </div>
+                </div>
+                <div class="flex items-center p-4 border-t border-gray-200 rounded-b dark:border-gray-600 gap-2">
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">Cancel</button>
+                    <button type="button" onclick="saveSeason()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                        <i class="ti ti-check mr-1"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function editSeason(seasonId, seasonName) {
+    document.getElementById('editSeasonId').value = seasonId;
+    document.getElementById('editSeasonName').value = seasonName;
+    document.getElementById('editSeasonModal').classList.remove('hidden');
+    document.getElementById('editSeasonModal').classList.add('flex');
+}
+
+function closeEditModal() {
+    document.getElementById('editSeasonModal').classList.add('hidden');
+    document.getElementById('editSeasonModal').classList.remove('flex');
+}
+
+function saveSeason() {
+    const seasonId = document.getElementById('editSeasonId').value;
+    const name = document.getElementById('editSeasonName').value;
+    const startDate = document.getElementById('editSeasonStartDate').value;
+    const endDate = document.getElementById('editSeasonEndDate').value;
+
+    fetch(`/admin-panel/league-management/seasons/${seasonId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ name, start_date: startDate, end_date: endDate })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        }
+    });
+}
+
+function setCurrentSeason(seasonId) {
+    const isDark = document.documentElement.classList.contains('dark');
+    Swal.fire({
+        title: 'Set as Current Season?',
+        text: 'This will mark this season as current.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#16a34a',
+        confirmButtonText: 'Set Current',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin-panel/league-management/seasons/${seasonId}/set-current`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) window.location.reload();
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

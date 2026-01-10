@@ -24,7 +24,7 @@ export function resolveMultiOrder(issueId) {
             icon: 'warning',
             title: 'No Assignments Made',
             text: 'Please assign all orders to players before resolving.',
-            confirmButtonClass: 'btn btn-primary'
+            confirmButtonClass: 'text-white bg-ecs-green hover:bg-ecs-green-dark focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5'
         });
         return;
     }
@@ -37,7 +37,7 @@ export function resolveMultiOrder(issueId) {
             icon: 'warning',
             title: 'Incomplete Assignments',
             text: `Please assign all ${totalOrders} orders to players before resolving.`,
-            confirmButtonClass: 'btn btn-primary'
+            confirmButtonClass: 'text-white bg-ecs-green hover:bg-ecs-green-dark focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5'
         });
         return;
     }
@@ -55,7 +55,7 @@ export function resolveMultiOrder(issueId) {
         icon: 'success',
         title: 'Multi-Order Resolved!',
         text: summaryText,
-        confirmButtonClass: 'btn btn-success'
+        confirmButtonClass: 'text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5'
     });
 }
 
@@ -76,7 +76,7 @@ export function createNewPlayer(issueId) {
 export function searchExistingPlayers(issueId) {
     const searchDiv = document.getElementById(`player-search-${issueId}`);
     if (searchDiv) {
-        searchDiv.classList.remove('d-none');
+        searchDiv.classList.remove('hidden');
     }
 }
 
@@ -92,8 +92,8 @@ export function flagAsInvalid(issueId) {
         showCancelButton: true,
         confirmButtonText: 'Yes, mark as invalid',
         cancelButtonText: 'Cancel',
-        confirmButtonClass: 'btn btn-danger',
-        cancelButtonClass: 'btn btn-secondary'
+        confirmButtonClass: 'text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5',
+        cancelButtonClass: 'text-gray-900 bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600'
     }).then((result) => {
         if (result.isConfirmed) {
             setNewPlayerResolution(issueId, { action: 'invalid' });

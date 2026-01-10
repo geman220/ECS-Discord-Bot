@@ -46,28 +46,27 @@ function showNotification(title, message, type = 'info') {
 }
 
 /**
- * Show modal using window.ModalManager or window.bootstrap
+ * Show modal using window.ModalManager or Flowbite
  */
 function showModal(modalId) {
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show(modalId);
-    } else if (typeof window.bootstrap !== 'undefined') {
+    } else if (typeof window.Modal !== 'undefined') {
         const modalEl = document.getElementById(modalId);
         if (modalEl) {
-            const modal = new window.bootstrap.Modal(modalEl);
+            const modal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
             modal.show();
         }
     }
 }
 
 /**
- * Hide modal using window.bootstrap
+ * Hide modal using Flowbite
  */
 function hideModal(modalId) {
     const modalEl = document.getElementById(modalId);
-    if (modalEl && typeof window.bootstrap !== 'undefined') {
-        const modal = window.bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
+    if (modalEl && modalEl._flowbiteModal) {
+        modalEl._flowbiteModal.hide();
     }
 }
 

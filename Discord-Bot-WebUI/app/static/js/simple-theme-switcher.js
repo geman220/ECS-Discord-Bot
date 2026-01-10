@@ -734,13 +734,19 @@ window.EventDelegation.register('set-theme', (element, e) => {
     console.log('Theme switching to (action):', theme);
     window.themeSwitcher.setTheme(theme);
 
+    // Tailwind classes for button states
+    const primaryClasses = ['text-white', 'bg-ecs-green', 'hover:bg-ecs-green-dark', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5'];
+    const outlineSecondaryClasses = ['text-gray-700', 'bg-transparent', 'border', 'border-gray-300', 'hover:bg-gray-100', 'focus:ring-4', 'focus:ring-gray-100', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5', 'dark:text-gray-300', 'dark:border-gray-600', 'dark:hover:bg-gray-700'];
+
     // Update button states in settings page
     document.querySelectorAll('[data-action="set-theme"]').forEach(btn => {
-      btn.classList.remove('btn-primary');
-      btn.classList.add('btn-outline-secondary');
+      // Remove primary classes and add outline-secondary classes
+      primaryClasses.forEach(cls => btn.classList.remove(cls));
+      outlineSecondaryClasses.forEach(cls => btn.classList.add(cls));
     });
-    element.classList.remove('btn-outline-secondary');
-    element.classList.add('btn-primary');
+    // Set clicked button to primary
+    outlineSecondaryClasses.forEach(cls => element.classList.remove(cls));
+    primaryClasses.forEach(cls => element.classList.add(cls));
   }
 }, { preventDefault: true });
 
@@ -757,8 +763,8 @@ window.EventDelegation.register('select-theme', (element, e) => {
     const dropdown = element.closest('[data-role="theme-dropdown-menu"]');
     if (dropdown) {
       const toggle = document.querySelector('[data-role="theme-dropdown-toggle"]');
-      if (toggle && window.bootstrap) {
-        const dropdownInstance = window.bootstrap.Dropdown.getInstance(toggle);
+      if (toggle && window.Dropdown) {
+        const dropdownInstance = window.Dropdown.getInstance(toggle);
         if (dropdownInstance) {
           dropdownInstance.hide();
         }
@@ -780,8 +786,8 @@ window.EventDelegation.register('select-preset', (element, e) => {
     const dropdown = element.closest('[data-role="theme-dropdown-menu"]');
     if (dropdown) {
       const toggle = document.querySelector('[data-role="theme-dropdown-toggle"]');
-      if (toggle && window.bootstrap) {
-        const dropdownInstance = window.bootstrap.Dropdown.getInstance(toggle);
+      if (toggle && window.Dropdown) {
+        const dropdownInstance = window.Dropdown.getInstance(toggle);
         if (dropdownInstance) {
           dropdownInstance.hide();
         }

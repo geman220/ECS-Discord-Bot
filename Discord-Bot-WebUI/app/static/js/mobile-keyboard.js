@@ -427,9 +427,17 @@ const MobileKeyboard = {
         const input = e.target;
         if (!input.matches('input, textarea, select')) return;
 
-        if (input.validity.valid && input.classList.contains('is-invalid')) {
+        // Tailwind validation classes
+        const invalidClasses = ['border-red-500', 'focus:border-red-500', 'focus:ring-red-500', 'dark:border-red-400'];
+        const validClasses = ['border-green-500', 'focus:border-green-500', 'focus:ring-green-500', 'dark:border-green-400'];
+
+        if (input.validity.valid && (input.classList.contains('border-red-500') || input.classList.contains('is-invalid'))) {
+          // Remove invalid classes (both Bootstrap and Tailwind)
           input.classList.remove('is-invalid');
-          input.classList.add('is-valid');
+          invalidClasses.forEach(cls => input.classList.remove(cls));
+          // Add valid classes
+          input.classList.remove('is-valid');
+          validClasses.forEach(cls => input.classList.add(cls));
         }
       });
     },

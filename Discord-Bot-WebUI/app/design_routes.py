@@ -27,4 +27,4 @@ def design_guide():
     Returns:
         Rendered template of the design guide.
     """
-    return render_template('design-guide.html', title='Design System Guide')
+    return render_template('design-guide_flowbite.html', title='Design System Guide')

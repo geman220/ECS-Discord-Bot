@@ -75,7 +75,7 @@ const ProfileVerification = {
 
       // Create checkbox container
       const checkboxContainer = document.createElement('div');
-      checkboxContainer.className = 'form-check form-switch d-flex align-items-center ms-auto';
+      checkboxContainer.className = 'form-check form-switch flex align-items-center ms-auto';
 
       // Create checkbox input
       const checkbox = document.createElement('input');
@@ -97,8 +97,8 @@ const ProfileVerification = {
       checkboxContainer.appendChild(label);
 
       // Make card header flex if not already
-      if (!cardHeader.classList.contains('d-flex')) {
-        cardHeader.classList.add('d-flex', 'justify-content-between', 'align-items-center');
+      if (!cardHeader.classList.contains('flex')) {
+        cardHeader.classList.add('flex', 'justify-content-between', 'align-items-center');
       }
 
       cardHeader.appendChild(checkboxContainer);
@@ -238,11 +238,16 @@ const ProfileVerification = {
 
     const allReviewed = this.areAllSectionsReviewed();
 
+    // Tailwind classes for button states
+    const successClasses = ['text-white', 'bg-green-600', 'hover:bg-green-700', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5'];
+    const secondaryClasses = ['text-gray-900', 'bg-gray-200', 'hover:bg-gray-300', 'focus:ring-4', 'focus:ring-gray-100', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5', 'dark:bg-gray-700', 'dark:text-white', 'dark:hover:bg-gray-600'];
+
     if (allReviewed) {
       confirmButton.disabled = false;
       confirmButton.classList.remove('disabled');
-      confirmButton.classList.add('btn-success');
-      confirmButton.classList.remove('btn-secondary');
+      // Remove secondary classes and add success classes
+      secondaryClasses.forEach(cls => confirmButton.classList.remove(cls));
+      successClasses.forEach(cls => confirmButton.classList.add(cls));
       confirmButton.setAttribute('data-state', 'enabled');
 
       // Add checkmark icon if not present
@@ -254,8 +259,9 @@ const ProfileVerification = {
     } else {
       confirmButton.disabled = true;
       confirmButton.classList.add('disabled');
-      confirmButton.classList.remove('btn-success');
-      confirmButton.classList.add('btn-secondary');
+      // Remove success classes and add secondary classes
+      successClasses.forEach(cls => confirmButton.classList.remove(cls));
+      secondaryClasses.forEach(cls => confirmButton.classList.add(cls));
       confirmButton.setAttribute('data-state', 'disabled');
 
       // Remove checkmark icon

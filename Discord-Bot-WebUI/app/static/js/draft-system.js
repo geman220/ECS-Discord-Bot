@@ -457,8 +457,8 @@ class DraftSystemV2 {
                         </div>
                         ${player.profile_picture_url ?
                             `<img src="${player.profile_picture_url}" alt="${player.name}" class="player-avatar"
-                                  onload="this.classList.add('d-block'); this.classList.remove('d-none'); this.previousElementSibling.classList.add('d-none'); this.previousElementSibling.classList.remove('d-flex');"
-                                  onerror="this.classList.add('d-none'); this.classList.remove('d-block'); this.previousElementSibling.classList.add('d-flex'); this.previousElementSibling.classList.remove('d-none');">`
+                                  onload="this.classList.add('block'); this.classList.remove('hidden'); this.previousElementSibling.classList.add('hidden'); this.previousElementSibling.classList.remove('flex');"
+                                  onerror="this.classList.add('hidden'); this.classList.remove('block'); this.previousElementSibling.classList.add('flex'); this.previousElementSibling.classList.remove('hidden');">`
                             : ''
                         }
                     </div>
@@ -478,7 +478,7 @@ class DraftSystemV2 {
                     <div class="row">
                         <div class="col-sm-6 mb-3">
                             <h6 class="text-muted mb-1">Career Stats</h6>
-                            <div class="d-flex gap-2 flex-wrap">
+                            <div class="flex gap-2 flex-wrap">
                                 <span class="stat-chip stat-goals">${player.career_goals}G</span>
                                 <span class="stat-chip stat-assists">${player.career_assists}A</span>
                                 <span class="stat-chip bg-warning text-dark">${player.career_yellow_cards}Y</span>
@@ -488,7 +488,7 @@ class DraftSystemV2 {
                         </div>
                         <div class="col-sm-6 mb-3">
                             <h6 class="text-muted mb-1">Season Stats</h6>
-                            <div class="d-flex gap-2 flex-wrap">
+                            <div class="flex gap-2 flex-wrap">
                                 <span class="stat-chip stat-goals">${player.season_goals}G</span>
                                 <span class="stat-chip stat-assists">${player.season_assists}A</span>
                                 <span class="stat-chip bg-warning text-dark">${player.season_yellow_cards}Y</span>

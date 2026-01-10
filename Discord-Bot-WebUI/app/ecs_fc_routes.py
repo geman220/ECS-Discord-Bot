@@ -104,7 +104,7 @@ def rsvp_form(match_id: int):
         ).first()
         
         return render_template(
-            'ecs_fc_rsvp_form.html',
+            'ecs_fc_rsvp_form_flowbite.html',
             match=match,
             existing_rsvp=existing_rsvp
         )

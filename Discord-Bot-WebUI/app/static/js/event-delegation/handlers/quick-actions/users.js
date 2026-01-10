@@ -140,11 +140,11 @@ window.EventDelegation.register('send-bulk-notifications', function(element, e) 
         html: `
             <div class="mb-3">
                 <label class="form-label">Notification Title</label>
-                <input type="text" class="form-control" id="notificationTitle" placeholder="Enter notification title" data-form-control>
+                <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="notificationTitle" placeholder="Enter notification title" data-form-control>
             </div>
             <div class="mb-3">
                 <label class="form-label">Message</label>
-                <textarea class="form-control" id="notificationMessage" rows="3" placeholder="Enter notification message" data-form-control></textarea>
+                <textarea class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="notificationMessage" rows="3" placeholder="Enter notification message" data-form-control></textarea>
             </div>
             <div class="mb-3">
                 <label class="form-label">Target Audience</label>

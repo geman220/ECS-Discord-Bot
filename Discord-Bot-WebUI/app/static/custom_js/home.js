@@ -140,14 +140,12 @@ function initializeTabAutoScroll() {
         }
     }
 
-    // Use Bootstrap's shown.bs.tab event if available
-    if (typeof window.bootstrap !== 'undefined') {
-        document.addEventListener('shown.bs.tab', function(e) {
-            if (e.target.matches('[data-action="switch-tab"]')) {
-                scrollTabIntoView(e.target);
-            }
-        });
-    }
+    // Listen for tab shown events (Flowbite tabs)
+    document.addEventListener('shown.bs.tab', function(e) {
+        if (e.target.matches('[data-action="switch-tab"]')) {
+            scrollTabIntoView(e.target);
+        }
+    });
 
     // Also handle click events as fallback
     document.addEventListener('click', function(e) {
