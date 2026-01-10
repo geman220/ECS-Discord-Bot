@@ -181,46 +181,58 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
                 'match_type': 'pub_league'
             }
         
-        # Try ECS FC messages with indexed query
-        # Note: Consider adding a GIN index on message_metadata for better performance
-        # CREATE INDEX idx_scheduled_message_metadata_gin ON scheduled_message USING gin (message_metadata);
+        # Try ECS FC matches directly by discord_message_id (primary lookup method)
+        from app.models_ecs import EcsFcMatch
+
+        ecs_match = session.query(EcsFcMatch).filter(
+            EcsFcMatch.discord_message_id == message_id
+        ).first()
+
+        if ecs_match:
+            logger.info(f"Found ECS FC match by discord_message_id: ecs_{ecs_match.id}, team_id: {ecs_match.team_id}")
+            return {
+                'success': True,
+                'match_id': f'ecs_{ecs_match.id}',
+                'team_id': ecs_match.team_id,
+                'match_type': 'ecs_fc',
+                'ecs_fc_match_id': ecs_match.id,
+                'match_date': ecs_match.match_date.isoformat() if ecs_match.match_date else None
+            }
+
+        # Fallback: Try ECS FC messages in ScheduledMessage metadata (legacy)
         from sqlalchemy import text
-        
-        # Use a more efficient query with direct JSON operators
+
         ecs_message = session.query(ScheduledMessage).filter(
             ScheduledMessage.message_type == 'ecs_fc_rsvp',
             text("message_metadata @> :metadata")
         ).params(
             metadata=f'{{"discord_message_id": "{message_id}", "discord_channel_id": "{channel_id}"}}'
         ).first()
-        
+
         if ecs_message:
             # Extract ECS FC match ID from metadata
             metadata = ecs_message.message_metadata or {}
             ecs_fc_match_id = metadata.get('ecs_fc_match_id')
-            
+
             if not ecs_fc_match_id:
                 logger.error(f"No ECS FC match ID in metadata for message: {message_id}")
                 return {'success': False, 'message': 'ECS FC match ID not found in metadata'}
-            
+
             # Get the ECS FC match to find team ID
-            from app.models_ecs import EcsFcMatch
             ecs_match = session.query(EcsFcMatch).filter(EcsFcMatch.id == ecs_fc_match_id).first()
-            
+
             if not ecs_match:
                 logger.error(f"ECS FC match {ecs_fc_match_id} not found")
                 return {'success': False, 'message': 'ECS FC match not found'}
-            
-            # Update the ecs message (removed last_fetch as column doesn't exist)
-            session.add(ecs_message)
-            
-            logger.info(f"Found ECS FC match_id: ecs_{ecs_fc_match_id}, team_id: {ecs_match.team_id}")
+
+            logger.info(f"Found ECS FC match via ScheduledMessage: ecs_{ecs_fc_match_id}, team_id: {ecs_match.team_id}")
             return {
                 'success': True,
                 'match_id': f'ecs_{ecs_fc_match_id}',
                 'team_id': ecs_match.team_id,
                 'match_type': 'ecs_fc',
-                'ecs_fc_match_id': ecs_fc_match_id
+                'ecs_fc_match_id': ecs_fc_match_id,
+                'match_date': ecs_match.match_date.isoformat() if ecs_match.match_date else None
             }
 
         logger.error(f"No scheduled message found for message_id: {message_id}")

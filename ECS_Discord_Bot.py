@@ -1969,7 +1969,7 @@ async def process_reaction(message_id, emoji, user_id, channel_id, payload):
     if hasattr(bot_state, 'failed_message_timeouts') and message_id in bot_state.failed_message_timeouts:
         import time
         failure_time = bot_state.failed_message_timeouts[message_id]
-        timeout_duration = 9 * 24 * 60 * 60  # 9 days in seconds
+        timeout_duration = 5 * 60  # 5 minutes - allow quick retries for RSVP sync
         if time.time() - failure_time < timeout_duration:
             logger.debug(f"Message ID {message_id} is in timeout (failed {(time.time() - failure_time)/3600:.1f} hours ago). Ignoring reaction.")
             return
@@ -2037,7 +2037,7 @@ async def process_reaction(message_id, emoji, user_id, channel_id, payload):
             bot_state.failed_message_timeouts = {}
         import time
         bot_state.failed_message_timeouts[message_id] = time.time()
-        logger.info(f"Added message ID {message_id} to timeout list (will retry after 9 days)")
+        logger.info(f"Added message ID {message_id} to timeout list (will retry after 5 minutes)")
         return
     
     # If we successfully found match/team info but the message wasn't in managed messages,
@@ -2624,7 +2624,7 @@ async def process_reaction_removal(message_id, emoji, user_id, channel_id, paylo
         if hasattr(bot_state, 'failed_message_timeouts') and message_id in bot_state.failed_message_timeouts:
             import time
             failure_time = bot_state.failed_message_timeouts[message_id]
-            timeout_duration = 9 * 24 * 60 * 60  # 9 days in seconds
+            timeout_duration = 5 * 60  # 5 minutes - allow quick retries for RSVP sync
             if time.time() - failure_time < timeout_duration:
                 logger.debug(f"Message ID {message_id} is in timeout (failed {(time.time() - failure_time)/3600:.1f} hours ago). Ignoring reaction removal.")
                 return
@@ -2664,7 +2664,7 @@ async def process_reaction_removal(message_id, emoji, user_id, channel_id, paylo
                 bot_state.failed_message_timeouts = {}
             import time
             bot_state.failed_message_timeouts[message_id] = time.time()
-            logger.info(f"Added message ID {message_id} to timeout list (will retry after 9 days)")
+            logger.info(f"Added message ID {message_id} to timeout list (will retry after 5 minutes)")
             return
 
         # Check if user is on the team
