@@ -65,8 +65,17 @@ class PresenceManager:
             user_id: The user's ID
             sid: The Socket.IO session ID
         """
+        # Ensure user_id is an integer
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid user_id type in user_connected: {type(user_id)} - {user_id}")
+            return
+
         if not user_id or user_id < 0:  # Skip system users (e.g., Discord bot)
             return
+
+        logger.info(f"👤 Registering user {user_id} as online (sid: {sid})")
 
         try:
             redis = cls._get_redis()
@@ -161,13 +170,22 @@ class PresenceManager:
         Returns:
             bool: True if user is online
         """
+        # Ensure user_id is an integer
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid user_id type in is_user_online: {type(user_id)} - {user_id}")
+            return False
+
         if not user_id or user_id < 0:
             return False
 
         try:
             redis = cls._get_redis()
             user_key = cls._user_key(user_id)
-            return redis.exists(user_key) > 0
+            is_online = redis.exists(user_key) > 0
+            logger.debug(f"👤 is_user_online({user_id}): {is_online} (key: {user_key})")
+            return is_online
         except Exception as e:
             logger.error(f"Error checking user presence: {e}")
             return False

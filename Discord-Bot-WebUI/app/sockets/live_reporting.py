@@ -220,9 +220,17 @@ def handle_live_connect():
                     
                     # Look for user ID in common claim fields
                     user_id = payload.get('sub') or payload.get('identity') or payload.get('id')
-                    
+
+                    # Convert to int if it's a string (JWT often stores as string)
+                    if user_id is not None:
+                        try:
+                            user_id = int(user_id)
+                        except (ValueError, TypeError):
+                            logger.error(f"Invalid user_id format in JWT: {user_id}")
+                            user_id = None
+
                     logger.debug(f"Extracted user ID from token payload: {user_id}")
-                    
+
                     if not user_id:
                         logger.error(f"No user ID found in token payload: {payload}")
                         g.socket_user_id = 0  # Anonymous user
@@ -243,12 +251,20 @@ def handle_live_connect():
                         from flask_jwt_extended import decode_token
                         decoded_token = decode_token(token)
                         user_id = decoded_token.get('sub') or decoded_token.get('identity')
-                        
+
+                        # Convert to int if it's a string
+                        if user_id is not None:
+                            try:
+                                user_id = int(user_id)
+                            except (ValueError, TypeError):
+                                logger.error(f"Invalid user_id format in fallback JWT: {user_id}")
+                                user_id = None
+
                         if not user_id:
                             logger.error(f"No user ID found in token: {decoded_token}")
                             g.socket_user_id = 0  # Anonymous user
                             return True
-                            
+
                         g.socket_user_id = user_id
                         # Store user ID in local request and in-memory storage
                         session_data = {'user_id': user_id}

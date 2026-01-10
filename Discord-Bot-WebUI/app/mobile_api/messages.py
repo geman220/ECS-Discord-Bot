@@ -327,12 +327,32 @@ def send_message(user_id):
         session_db.add(message)
         session_db.commit()
 
-        # Send notification via orchestrator
-        try:
-            from app.services.notification_orchestrator import orchestrator
-            from app.sockets.presence import PresenceManager
+        # Check if recipient is online
+        from app.sockets.presence import PresenceManager
+        recipient_online = PresenceManager.is_user_online(user_id)
+        logger.info(f"Message from {current_user_id} to {user_id}: recipient_online={recipient_online}")
 
-            if not PresenceManager.is_user_online(user_id):
+        # Always emit WebSocket event to recipient (room handles delivery)
+        # This ensures real-time delivery when user is connected
+        try:
+            from flask import current_app
+
+            socketio = current_app.extensions.get('socketio')
+            if socketio:
+                msg_data = _message_to_dict(message, for_user_id=user_id)  # Recipient's perspective
+                # Emit to default namespace (web browser clients)
+                socketio.emit('new_message', msg_data, room=f'user_{user_id}')
+                # Emit to /live namespace (Flutter mobile clients)
+                socketio.emit('new_message', msg_data, room=f'user_{user_id}', namespace='/live')
+                logger.info(f"Emitted new_message to room user_{user_id} (both namespaces)")
+        except Exception as e:
+            logger.warning(f"Failed to emit WebSocket: {e}")
+
+        # Send push notification if recipient is offline
+        if not recipient_online:
+            try:
+                from app.services.notification_orchestrator import orchestrator
+
                 sender_name = None
                 player = session_db.query(Player).filter_by(user_id=current_user_id).first()
                 sender_name = player.name if player else current_user.username
@@ -344,23 +364,9 @@ def send_message(user_id):
                     message_preview=content,
                     message_id=message.id
                 )
-        except Exception as e:
-            logger.warning(f"Failed to send push notification: {e}")
-
-        # Emit WebSocket event to recipient (from their perspective, is_from_me=False)
-        try:
-            from flask import current_app
-            from app.sockets.presence import PresenceManager
-
-            socketio = current_app.extensions.get('socketio')
-            if socketio and PresenceManager.is_user_online(user_id):
-                msg_data = _message_to_dict(message, for_user_id=user_id)  # Recipient's perspective
-                # Emit to default namespace (web browser clients)
-                socketio.emit('new_message', msg_data, room=f'user_{user_id}')
-                # Emit to /live namespace (Flutter mobile clients)
-                socketio.emit('new_message', msg_data, room=f'user_{user_id}', namespace='/live')
-        except Exception as e:
-            logger.warning(f"Failed to emit WebSocket: {e}")
+                logger.info(f"Sent offline notifications to user {user_id}")
+            except Exception as e:
+                logger.warning(f"Failed to send push notification: {e}")
 
         # Return to sender with is_from_me=True
         return jsonify({
