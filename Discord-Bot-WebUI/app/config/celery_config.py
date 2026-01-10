@@ -505,4 +505,23 @@ class CeleryConfig:
                 'expires': 3540  # Task expires after 59 minutes
             }
         },
+
+        # =====================================================================
+        # LEAGUE EVENT REMINDERS (Dynamic)
+        # =====================================================================
+        # Dynamic event reminders: Runs every 2 hours
+        # Each event has its own reminder_days_before setting (default: 2 days)
+        # Only sends ONE reminder per event, tracked via reminder_sent_at
+        # Examples:
+        #   - Party on Sat with 2 days: reminded Thursday
+        #   - PLOP on Sun with 2 days: reminded Friday
+        #   - Draft on Tue with 3 days: reminded Saturday
+        'send-dynamic-event-reminders': {
+            'task': 'app.tasks.tasks_notification_reminders.send_dynamic_event_reminders',
+            'schedule': crontab(minute=0, hour='9,12,15,18'),  # 9 AM, 12 PM, 3 PM, 6 PM
+            'options': {
+                'queue': 'celery',
+                'expires': 3540  # Task expires after 59 minutes
+            }
+        },
     }

@@ -394,3 +394,226 @@ def send_rsvp_reminder_for_match(self, match_id: int):
         except Exception as e:
             logger.error(f"Error sending RSVP reminder for {match_id}: {e}")
             return {'success': False, 'error': str(e)}
+
+
+# ============================================================================
+# LEAGUE EVENT REMINDERS
+# ============================================================================
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=300)
+def send_league_event_reminders(self, days_ahead: int = 2, event_types: list = None):
+    """
+    Send Discord reminders for upcoming league events.
+
+    Posts reminders to the announcements channel for events happening
+    in the next few days. Particularly useful for PLOP reminders on Fridays.
+
+    Args:
+        days_ahead: Number of days to look ahead (default: 2 for Fri->Sun)
+        event_types: List of event types to remind about (default: all)
+
+    Run Friday at 5 PM for weekend PLOP reminders.
+    """
+    import asyncio
+    from app import create_app
+    from app.models.calendar import LeagueEvent
+    from app.services.discord_service import get_discord_service
+    from datetime import date
+
+    app = create_app()
+    with app.app_context():
+        try:
+            today = date.today()
+            reminder_end = today + timedelta(days=days_ahead)
+
+            # Query upcoming events
+            query = LeagueEvent.query.filter(
+                LeagueEvent.is_active == True,
+                LeagueEvent.start_datetime >= datetime.combine(today, datetime.min.time()),
+                LeagueEvent.start_datetime <= datetime.combine(reminder_end, datetime.max.time())
+            )
+
+            if event_types:
+                query = query.filter(LeagueEvent.event_type.in_(event_types))
+
+            events = query.order_by(LeagueEvent.start_datetime).all()
+
+            logger.info(f"Found {len(events)} upcoming events for reminders")
+
+            if not events:
+                return {'success': True, 'message': 'No upcoming events', 'count': 0}
+
+            # Group events by type for cleaner announcements
+            events_by_type = {}
+            for event in events:
+                event_type = event.event_type or 'other'
+                if event_type not in events_by_type:
+                    events_by_type[event_type] = []
+                events_by_type[event_type].append(event)
+
+            # Post reminders to Discord
+            discord_service = get_discord_service()
+            posted_count = 0
+
+            for event_type, type_events in events_by_type.items():
+                for event in type_events:
+                    try:
+                        # Format reminder message
+                        event_date = event.start_datetime
+                        day_name = event_date.strftime('%A')
+                        date_str = event_date.strftime('%B %d')
+                        time_str = event_date.strftime('%I:%M %p').lstrip('0')
+
+                        # Build reminder embed
+                        result = asyncio.run(
+                            discord_service.post_event_reminder(
+                                title=event.title,
+                                event_type=event.event_type,
+                                date_str=f"{day_name}, {date_str}",
+                                time_str=time_str,
+                                location=event.location,
+                                description=event.description
+                            )
+                        )
+
+                        if result:
+                            posted_count += 1
+                            logger.info(f"Posted reminder for {event.title} on {date_str}")
+
+                    except Exception as e:
+                        logger.error(f"Error posting reminder for event {event.id}: {e}")
+
+            logger.info(f"League event reminders complete: {posted_count} reminders posted")
+            return {'success': True, 'count': posted_count, 'events': len(events)}
+
+        except Exception as e:
+            logger.error(f"Error in send_league_event_reminders: {e}", exc_info=True)
+            raise self.retry(exc=e)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=300)
+def send_dynamic_event_reminders(self):
+    """
+    Send Discord reminders for league events based on each event's settings.
+
+    This task is DYNAMIC - it checks each event's `reminder_days_before` setting
+    to determine when to send the reminder. Each event only gets ONE reminder.
+
+    Logic:
+    - Find events where send_reminder=True and reminder_sent_at is NULL
+    - For each event, check if today >= (event_date - reminder_days_before)
+    - If so, send reminder and mark reminder_sent_at
+
+    Examples:
+    - Party on Jan 15 with reminder_days_before=2: reminded on Jan 13
+    - PLOP on Feb 22 with reminder_days_before=2: reminded on Feb 20
+    - Meeting on Mar 5 with reminder_days_before=1: reminded on Mar 4
+
+    Run hourly to catch events at the right time.
+    """
+    import asyncio
+    from app import create_app
+    from app.core import db
+    from app.models.calendar import LeagueEvent
+    from app.services.discord_service import get_discord_service
+    from datetime import date
+    from sqlalchemy import func
+
+    app = create_app()
+    with app.app_context():
+        try:
+            today = date.today()
+            now = datetime.utcnow()
+
+            # Find events that:
+            # 1. Are active
+            # 2. Have send_reminder enabled
+            # 3. Haven't been reminded yet (reminder_sent_at IS NULL)
+            # 4. Haven't happened yet (start_datetime >= today)
+            # 5. Are within their reminder window
+            events_needing_reminder = LeagueEvent.query.filter(
+                LeagueEvent.is_active == True,
+                LeagueEvent.send_reminder == True,
+                LeagueEvent.reminder_sent_at.is_(None),
+                LeagueEvent.start_datetime >= datetime.combine(today, datetime.min.time())
+            ).all()
+
+            logger.info(f"Checking {len(events_needing_reminder)} events for reminder eligibility")
+
+            if not events_needing_reminder:
+                return {'success': True, 'message': 'No events need reminders', 'count': 0}
+
+            discord_service = get_discord_service()
+            posted_count = 0
+            checked_count = 0
+
+            for event in events_needing_reminder:
+                try:
+                    # Calculate when reminder should be sent
+                    event_date = event.start_datetime.date()
+                    days_before = event.reminder_days_before or 2
+                    reminder_date = event_date - timedelta(days=days_before)
+
+                    # Check if it's time to remind (today >= reminder_date)
+                    if today < reminder_date:
+                        # Not time yet for this event
+                        continue
+
+                    checked_count += 1
+                    event_datetime = event.start_datetime
+                    day_name = event_datetime.strftime('%A')
+                    date_str = event_datetime.strftime('%B %d')
+                    time_str = event_datetime.strftime('%I:%M %p').lstrip('0')
+                    end_time_str = ''
+                    if event.end_datetime:
+                        end_time_str = event.end_datetime.strftime('%I:%M %p').lstrip('0')
+
+                    # Use PLOP-specific format for PLOP events
+                    if event.event_type == 'plop':
+                        result = asyncio.run(
+                            discord_service.post_plop_reminder(
+                                date_str=f"{day_name}, {date_str}",
+                                time_str=time_str,
+                                end_time_str=end_time_str,
+                                location=event.location or 'TBD'
+                            )
+                        )
+                    else:
+                        # Generic event reminder
+                        result = asyncio.run(
+                            discord_service.post_event_reminder(
+                                title=event.title,
+                                event_type=event.event_type,
+                                date_str=f"{day_name}, {date_str}",
+                                time_str=time_str,
+                                location=event.location,
+                                description=event.description
+                            )
+                        )
+
+                    if result:
+                        # Mark as reminded so we don't remind again
+                        event.reminder_sent_at = now
+                        db.session.add(event)
+                        posted_count += 1
+                        logger.info(f"Posted reminder for '{event.title}' on {date_str} (event on {event_date})")
+
+                except Exception as e:
+                    logger.error(f"Error posting reminder for event {event.id}: {e}")
+
+            # Commit all reminder_sent_at updates
+            if posted_count > 0:
+                db.session.commit()
+
+            logger.info(f"Dynamic event reminders complete: {posted_count} posted, {checked_count} checked")
+            return {
+                'success': True,
+                'posted_count': posted_count,
+                'checked_count': checked_count,
+                'total_pending': len(events_needing_reminder)
+            }
+
+        except Exception as e:
+            logger.error(f"Error in send_dynamic_event_reminders: {e}", exc_info=True)
+            db.session.rollback()
+            raise self.retry(exc=e)

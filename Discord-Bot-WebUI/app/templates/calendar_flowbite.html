@@ -138,6 +138,10 @@
                 <i class="ti ti-calendar-plus mr-2"></i>
                 Add Event
             </button>
+            <button type="button" id="importEventsBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-green-700 bg-white border border-green-600 rounded-lg hover:bg-green-50 focus:ring-4 focus:ring-green-300 dark:bg-gray-800 dark:text-green-400 dark:border-green-500 dark:hover:bg-gray-700 transition-colors">
+                <i class="ti ti-file-upload mr-2"></i>
+                Import CSV
+            </button>
             {% endif %}
             {% if can_assign_referee and not is_referee %}
             <button type="button" id="toggleAssignmentMode" class="inline-flex items-center px-4 py-2 text-sm font-medium text-ecs-green bg-white border border-ecs-green rounded-lg hover:bg-green-50 focus:ring-4 focus:ring-green-300 dark:bg-gray-800 dark:text-green-400 dark:border-green-400 dark:hover:bg-gray-700 transition-colors">
@@ -639,6 +643,60 @@
     </div>
 </div>
 
+<!-- League Event Details Modal (view-only) -->
+<div id="leagueEventDetailsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
+    <div class="relative p-4 w-full max-w-lg max-h-full mx-auto mt-20">
+        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i id="leagueEventDetailIcon" class="ti ti-calendar-event text-ecs-green dark:text-green-400 mr-2"></i>
+                    <span id="leagueEventDetailTitle">Event Details</span>
+                </h5>
+                <button type="button" data-modal-close="leagueEventDetailsModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <div class="mb-4">
+                    <span id="leagueEventDetailTypeBadge" class="px-3 py-1 text-sm font-medium text-white rounded-full">Event</span>
+                </div>
+
+                <h3 id="leagueEventDetailName" class="text-xl font-bold text-gray-900 dark:text-white mb-4">Event Name</h3>
+
+                <div id="leagueEventDetailDescription" class="text-gray-600 dark:text-gray-400 mb-4 hidden"></div>
+
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                    <div class="flex items-center gap-2">
+                        <i class="ti ti-calendar text-ecs-green dark:text-green-400"></i>
+                        <span id="leagueEventDetailDate" class="font-medium text-gray-900 dark:text-white">Date</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i class="ti ti-clock text-ecs-green dark:text-green-400"></i>
+                        <span id="leagueEventDetailTime" class="font-medium text-gray-900 dark:text-white">Time</span>
+                    </div>
+                    <div id="leagueEventDetailEndTimeContainer" class="flex items-center gap-2 hidden">
+                        <i class="ti ti-clock-off text-gray-400"></i>
+                        <span>Until <span id="leagueEventDetailEndTime" class="font-medium text-gray-900 dark:text-white">End Time</span></span>
+                    </div>
+                    <div id="leagueEventDetailLocationContainer" class="flex items-center gap-2 col-span-2">
+                        <i class="ti ti-map-pin text-ecs-green dark:text-green-400"></i>
+                        <span id="leagueEventDetailLocation" class="font-medium text-gray-900 dark:text-white">Location</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" data-modal-close="leagueEventDetailsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">Close</button>
+                {% if can_edit_events %}
+                <button type="button" id="editLeagueEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
+                    <i class="ti ti-edit mr-2"></i> Edit Event
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- League Event Modal (for admin event creation/editing) -->
 {% if can_edit_events %}
 <div id="leagueEventModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
@@ -763,6 +821,26 @@
                             </span>
                         </label>
                     </div>
+
+                    <!-- Reminder Settings -->
+                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="eventSendReminder" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                                <i class="ti ti-bell mr-1"></i>
+                                Send reminder before event
+                            </span>
+                        </label>
+                        <div id="reminderDaysSection" class="flex items-center gap-2 ml-6">
+                            <label for="eventReminderDays" class="text-sm text-gray-600 dark:text-gray-400">Remind</label>
+                            <select id="eventReminderDays" class="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <option value="1">1 day</option>
+                                <option value="2" selected>2 days</option>
+                                <option value="3">3 days</option>
+                            </select>
+                            <span class="text-sm text-gray-600 dark:text-gray-400">before</span>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700">
@@ -775,6 +853,121 @@
                         <i class="ti ti-check mr-2"></i> Create Event
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Events Modal -->
+<div id="importEventsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
+    <div class="relative p-4 w-full max-w-2xl max-h-full mx-auto mt-10">
+        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-file-upload text-ecs-green dark:text-green-400 mr-2"></i>
+                    Import Events from CSV
+                </h5>
+                <button type="button" data-modal-close="importEventsModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+            <div class="p-4 space-y-4">
+                <!-- Instructions -->
+                <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <h6 class="font-medium text-blue-800 dark:text-blue-300 mb-2">CSV Format</h6>
+                    <p class="text-sm text-blue-700 dark:text-blue-400 mb-2">
+                        Upload a CSV file with the following columns:
+                    </p>
+                    <ul class="text-xs text-blue-600 dark:text-blue-400 list-disc list-inside space-y-1">
+                        <li><strong>date</strong> - Event date (1/4, 01/04/2026, or 2026-01-04)</li>
+                        <li><strong>title</strong> - Event name (optional, uses event type if empty)</li>
+                        <li><strong>event_type</strong> - plop, party, meeting, tournament, social, fundraiser, other</li>
+                        <li><strong>start_time</strong> - Start time (9:30, 9:30 AM, 17:30)</li>
+                        <li><strong>end_time</strong> - End time (optional)</li>
+                        <li><strong>location</strong> - Venue name (optional)</li>
+                        <li><strong>description</strong> - Details (optional)</li>
+                    </ul>
+                    <a href="/api/calendar/league-events/import/template" class="inline-flex items-center mt-3 text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                        <i class="ti ti-download mr-1"></i> Download template CSV
+                    </a>
+                </div>
+
+                <!-- File Upload -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Select CSV File
+                    </label>
+                    <input type="file" id="importCsvFile" accept=".csv"
+                           class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400">
+                </div>
+
+                <!-- Options -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="importYear" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Default Year
+                        </label>
+                        <input type="number" id="importYear" value="{{ now().year }}"
+                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">For dates without year (e.g., 1/4)</p>
+                    </div>
+                    <div>
+                        <label for="importEventType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Default Event Type
+                        </label>
+                        <select id="importEventType"
+                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="plop">PLOP</option>
+                            <option value="party">Party/Social</option>
+                            <option value="meeting">Meeting</option>
+                            <option value="tournament">Tournament</option>
+                            <option value="social">Social Event</option>
+                            <option value="fundraiser">Fundraiser</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <input type="checkbox" id="importNotifyDiscord"
+                           class="w-4 h-4 text-ecs-green border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                    <label for="importNotifyDiscord" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                        Post announcements to Discord
+                    </label>
+                </div>
+
+                <!-- Preview Area -->
+                <div id="importPreviewArea" class="hidden">
+                    <h6 class="font-medium text-gray-900 dark:text-white mb-2">Preview</h6>
+                    <div id="importPreviewContent" class="max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <!-- Preview content will be inserted here -->
+                    </div>
+                    <div id="importPreviewErrors" class="mt-2 text-sm text-red-600 dark:text-red-400 hidden">
+                        <!-- Errors will be shown here -->
+                    </div>
+                </div>
+
+                <!-- Result Area -->
+                <div id="importResultArea" class="hidden">
+                    <div id="importResultContent" class="p-4 rounded-lg">
+                        <!-- Result content will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" data-modal-close="importEventsModal"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
+                    Cancel
+                </button>
+                <button type="button" id="previewImportBtn"
+                        class="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-300 rounded-lg hover:bg-green-100 dark:bg-green-900/30 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/50">
+                    <i class="ti ti-eye mr-2"></i> Preview
+                </button>
+                <button type="button" id="confirmImportBtn" disabled
+                        class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="ti ti-upload mr-2"></i> Import Events
+                </button>
             </div>
         </div>
     </div>
@@ -808,12 +1001,24 @@ const FlowbiteModal = {
             modal.classList.remove('flex');
             document.body.classList.remove('overflow-hidden');
         }
+    },
+    hideAll() {
+        // Close all open modals and clean up body state
+        document.querySelectorAll('[id$="Modal"]:not(.hidden)').forEach(modal => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        });
+        document.body.classList.remove('overflow-hidden');
+    },
+    getOpenModal() {
+        return document.querySelector('[id$="Modal"]:not(.hidden)');
     }
 };
 
 // Initialize modal close buttons
 document.querySelectorAll('[data-modal-close]').forEach(btn => {
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
         const modalId = this.getAttribute('data-modal-close');
         FlowbiteModal.hide(modalId);
     });
@@ -821,12 +1026,25 @@ document.querySelectorAll('[data-modal-close]').forEach(btn => {
 
 // Close modals when clicking backdrop
 document.querySelectorAll('[data-modal-backdrop]').forEach(backdrop => {
-    backdrop.addEventListener('click', function() {
-        const modal = this.closest('[id]');
+    backdrop.addEventListener('click', function(e) {
+        e.stopPropagation();
+        // Find the parent modal (the one with an ID ending in 'Modal')
+        const modal = this.closest('[id$="Modal"]');
         if (modal) {
             FlowbiteModal.hide(modal.id);
         }
     });
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const openModal = FlowbiteModal.getOpenModal();
+        if (openModal) {
+            e.preventDefault();
+            FlowbiteModal.hide(openModal.id);
+        }
+    }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1514,8 +1732,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 viewBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
                     const eventId = item.dataset.eventId;
+                    const eventType = item.dataset.eventType;
                     const event = allEvents.find(evt => evt.id == eventId);
-                    if (event) showMatchDetailsModal(event);
+                    if (event) {
+                        // Use league event modal for non-match events
+                        if (eventType === 'league_event') {
+                            showLeagueEventDetailsModal(event);
+                        } else {
+                            showMatchDetailsModal(event);
+                        }
+                    }
                 });
             }
             const editBtn = item.querySelector('.edit-event-btn');
@@ -1565,6 +1791,89 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
         FlowbiteModal.show('matchDetailsModal');
+    }
+
+    function showLeagueEventDetailsModal(event) {
+        // Event type configuration
+        const eventTypeConfig = {
+            party: { icon: 'ti-confetti', label: 'Party/Social', color: '#9c27b0' },
+            tournament: { icon: 'ti-trophy', label: 'Tournament', color: '#ffc107' },
+            meeting: { icon: 'ti-users', label: 'Meeting', color: '#2196f3' },
+            plop: { icon: 'ti-ball-football', label: 'PLOP', color: '#4caf50' },
+            fundraiser: { icon: 'ti-coin', label: 'Fundraiser', color: '#ff5722' },
+            social: { icon: 'ti-heart', label: 'Social Event', color: '#e91e63' },
+            other: { icon: 'ti-calendar-event', label: 'Event', color: '#607d8b' }
+        };
+
+        const eventType = event.eventType || event.extendedProps?.eventType || 'other';
+        const config = eventTypeConfig[eventType] || eventTypeConfig.other;
+
+        // Set modal header icon and title
+        document.getElementById('leagueEventDetailIcon').className = `ti ${config.icon} text-ecs-green dark:text-green-400 mr-2`;
+        document.getElementById('leagueEventDetailTitle').textContent = 'Event Details';
+
+        // Set event type badge
+        const typeBadge = document.getElementById('leagueEventDetailTypeBadge');
+        typeBadge.textContent = config.label;
+        typeBadge.style.backgroundColor = config.color;
+
+        // Set event name
+        document.getElementById('leagueEventDetailName').textContent = event.title || 'Event';
+
+        // Set description if present
+        const descEl = document.getElementById('leagueEventDetailDescription');
+        const description = event.description || event.extendedProps?.description;
+        if (description) {
+            descEl.textContent = description;
+            descEl.classList.remove('hidden');
+        } else {
+            descEl.classList.add('hidden');
+        }
+
+        // Set date and time
+        const eventDate = event.date || new Date(event.start);
+        document.getElementById('leagueEventDetailDate').textContent = eventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        document.getElementById('leagueEventDetailTime').textContent = event.time || eventDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+
+        // Set end time if present
+        const endTimeContainer = document.getElementById('leagueEventDetailEndTimeContainer');
+        if (event.end || event.endTime) {
+            const endDate = event.end ? new Date(event.end) : null;
+            const endTimeStr = event.endTime || (endDate ? endDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '');
+            if (endTimeStr) {
+                document.getElementById('leagueEventDetailEndTime').textContent = endTimeStr;
+                endTimeContainer.classList.remove('hidden');
+            } else {
+                endTimeContainer.classList.add('hidden');
+            }
+        } else {
+            endTimeContainer.classList.add('hidden');
+        }
+
+        // Set location if present
+        const locationContainer = document.getElementById('leagueEventDetailLocationContainer');
+        const location = event.location || event.extendedProps?.location;
+        if (location) {
+            document.getElementById('leagueEventDetailLocation').textContent = location;
+            locationContainer.classList.remove('hidden');
+        } else {
+            locationContainer.classList.add('hidden');
+        }
+
+        // Set up edit button
+        const editBtn = document.getElementById('editLeagueEventBtn');
+        if (editBtn) {
+            editBtn.onclick = function() {
+                FlowbiteModal.hide('leagueEventDetailsModal');
+                setTimeout(() => {
+                    if (typeof openLeagueEventModal === 'function') {
+                        openLeagueEventModal(event);
+                    }
+                }, 300);
+            };
+        }
+
+        FlowbiteModal.show('leagueEventDetailsModal');
     }
 
     function showAssignRefModal(event) {
@@ -1966,6 +2275,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('recurringSection').classList.toggle('hidden', !!eventData);
             document.getElementById('recurringOptions').classList.add('hidden');
 
+            // Reset reminder settings to defaults
+            document.getElementById('eventSendReminder').checked = true;
+            document.getElementById('eventReminderDays').value = '2';
+            document.getElementById('reminderDaysSection').classList.remove('opacity-50', 'pointer-events-none');
+
             if (eventData) {
                 document.getElementById('eventId').value = eventData.id?.replace('event-', '') || '';
                 document.getElementById('eventTitle').value = eventData.title || '';
@@ -1981,6 +2295,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const end = new Date(eventData.end);
                     document.getElementById('eventEndDate').value = end.toISOString().slice(0, 16);
                 }
+
+                // Load reminder settings from event data (via extendedProps or direct)
+                const sendReminder = eventData.send_reminder ?? eventData.extendedProps?.send_reminder ?? true;
+                const reminderDays = eventData.reminder_days_before ?? eventData.extendedProps?.reminder_days_before ?? 2;
+                document.getElementById('eventSendReminder').checked = sendReminder;
+                document.getElementById('eventReminderDays').value = String(reminderDays);
+                document.getElementById('reminderDaysSection').classList.toggle('opacity-50', !sendReminder);
+                document.getElementById('reminderDaysSection').classList.toggle('pointer-events-none', !sendReminder);
             }
 
             if (flowbiteModal) flowbiteModal.show();
@@ -1992,6 +2314,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (addEventBtn) {
             addEventBtn.addEventListener('click', () => openLeagueEventModal());
         }
+
+        // Toggle reminder days visibility
+        document.getElementById('eventSendReminder')?.addEventListener('change', function() {
+            const daysSection = document.getElementById('reminderDaysSection');
+            daysSection.classList.toggle('opacity-50', !this.checked);
+            daysSection.classList.toggle('pointer-events-none', !this.checked);
+        });
 
         // Auto-fill end time 3 hours after start
         document.getElementById('eventStartDate')?.addEventListener('change', function() {
@@ -2065,7 +2394,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 location: document.getElementById('eventLocation').value || null,
                 description: document.getElementById('eventDescription').value || null,
                 is_all_day: document.getElementById('eventAllDay').checked,
-                notify_discord: document.getElementById('eventNotifyDiscord').checked
+                notify_discord: document.getElementById('eventNotifyDiscord').checked,
+                send_reminder: document.getElementById('eventSendReminder').checked,
+                reminder_days_before: parseInt(document.getElementById('eventReminderDays').value) || 2
             };
 
             try {
@@ -2169,6 +2500,206 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Expose for calendar event clicks
         window.openLeagueEventModal = openLeagueEventModal;
+    }
+
+    // ========================================
+    // CSV Import Functionality
+    // ========================================
+    const importBtn = document.getElementById('importEventsBtn');
+    const importModal = document.getElementById('importEventsModal');
+
+    if (importBtn && importModal) {
+        let previewData = null;
+
+        // Open import modal
+        importBtn.addEventListener('click', () => {
+            // Reset state
+            document.getElementById('importCsvFile').value = '';
+            document.getElementById('importPreviewArea').classList.add('hidden');
+            document.getElementById('importResultArea').classList.add('hidden');
+            document.getElementById('confirmImportBtn').disabled = true;
+            previewData = null;
+            FlowbiteModal.show('importEventsModal');
+        });
+
+        // Preview button
+        document.getElementById('previewImportBtn')?.addEventListener('click', async () => {
+            const fileInput = document.getElementById('importCsvFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                if (window.showToast) window.showToast('Please select a CSV file', 'warning');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('year', document.getElementById('importYear').value);
+            formData.append('event_type', document.getElementById('importEventType').value);
+            formData.append('notify_discord', document.getElementById('importNotifyDiscord').checked);
+            formData.append('preview', 'true');
+
+            try {
+                const response = await fetch('/api/calendar/league-events/import', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Preview failed');
+                }
+
+                previewData = result;
+                displayPreview(result);
+
+            } catch (error) {
+                console.error('Preview error:', error);
+                if (window.showToast) window.showToast(error.message || 'Failed to preview', 'error');
+            }
+        });
+
+        // Display preview
+        function displayPreview(data) {
+            const previewArea = document.getElementById('importPreviewArea');
+            const previewContent = document.getElementById('importPreviewContent');
+            const previewErrors = document.getElementById('importPreviewErrors');
+            const confirmBtn = document.getElementById('confirmImportBtn');
+
+            // Build preview table
+            let html = `
+                <table class="w-full text-xs">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-2 py-1 text-left">Date</th>
+                            <th class="px-2 py-1 text-left">Title</th>
+                            <th class="px-2 py-1 text-left">Type</th>
+                            <th class="px-2 py-1 text-left">Time</th>
+                            <th class="px-2 py-1 text-left">Location</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            `;
+
+            for (const event of data.events) {
+                const timeStr = event.end_time ? `${event.start_time} - ${event.end_time}` : event.start_time;
+                html += `
+                    <tr class="text-gray-700 dark:text-gray-300">
+                        <td class="px-2 py-1">${event.date}</td>
+                        <td class="px-2 py-1 font-medium">${event.title}</td>
+                        <td class="px-2 py-1"><span class="px-1.5 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700">${event.event_type}</span></td>
+                        <td class="px-2 py-1">${timeStr}</td>
+                        <td class="px-2 py-1">${event.location || '-'}</td>
+                    </tr>
+                `;
+            }
+
+            html += '</tbody></table>';
+            html += `<div class="p-2 bg-gray-50 dark:bg-gray-700 text-sm text-gray-600 dark:text-gray-400">
+                Total: ${data.events_count} events to import
+            </div>`;
+
+            previewContent.innerHTML = html;
+            previewArea.classList.remove('hidden');
+
+            // Show errors if any
+            if (data.errors && data.errors.length > 0) {
+                previewErrors.innerHTML = '<strong>Warnings:</strong><ul class="list-disc list-inside mt-1">' +
+                    data.errors.map(e => `<li>${e}</li>`).join('') + '</ul>';
+                previewErrors.classList.remove('hidden');
+            } else {
+                previewErrors.classList.add('hidden');
+            }
+
+            // Enable confirm button if there are events to import
+            confirmBtn.disabled = data.events_count === 0;
+        }
+
+        // Confirm import
+        document.getElementById('confirmImportBtn')?.addEventListener('click', async () => {
+            const fileInput = document.getElementById('importCsvFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                if (window.showToast) window.showToast('Please select a CSV file', 'warning');
+                return;
+            }
+
+            const confirmBtn = document.getElementById('confirmImportBtn');
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="ti ti-loader animate-spin mr-2"></i> Importing...';
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('year', document.getElementById('importYear').value);
+            formData.append('event_type', document.getElementById('importEventType').value);
+            formData.append('notify_discord', document.getElementById('importNotifyDiscord').checked);
+
+            try {
+                const response = await fetch('/api/calendar/league-events/import', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Import failed');
+                }
+
+                // Show result
+                const resultArea = document.getElementById('importResultArea');
+                const resultContent = document.getElementById('importResultContent');
+
+                let statusClass = result.errors?.length > 0 ? 'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800' : 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800';
+                let statusIcon = result.errors?.length > 0 ? 'ti-alert-triangle text-yellow-600' : 'ti-check text-green-600';
+
+                resultContent.className = `p-4 rounded-lg border ${statusClass}`;
+                resultContent.innerHTML = `
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="ti ${statusIcon} text-xl"></i>
+                        <span class="font-medium text-gray-900 dark:text-white">
+                            Successfully imported ${result.created_count} events
+                        </span>
+                    </div>
+                    ${result.errors?.length > 0 ? `
+                        <div class="text-sm text-yellow-700 dark:text-yellow-400 mt-2">
+                            <strong>Some issues occurred:</strong>
+                            <ul class="list-disc list-inside mt-1">
+                                ${result.errors.map(e => `<li>${e}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                `;
+
+                resultArea.classList.remove('hidden');
+                document.getElementById('importPreviewArea').classList.add('hidden');
+
+                // Refresh calendar
+                window.refreshCalendar?.();
+
+                if (window.showToast) {
+                    window.showToast(`Imported ${result.created_count} events`, 'success');
+                }
+
+                // Reset button and close after delay
+                confirmBtn.innerHTML = '<i class="ti ti-check mr-2"></i> Done!';
+                setTimeout(() => {
+                    FlowbiteModal.hide('importEventsModal');
+                    confirmBtn.innerHTML = '<i class="ti ti-upload mr-2"></i> Import Events';
+                    confirmBtn.disabled = true;
+                }, 2000);
+
+            } catch (error) {
+                console.error('Import error:', error);
+                confirmBtn.innerHTML = '<i class="ti ti-upload mr-2"></i> Import Events';
+                confirmBtn.disabled = false;
+                if (window.showToast) window.showToast(error.message || 'Import failed', 'error');
+            }
+        });
     }
 });
 </script>

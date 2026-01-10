@@ -420,6 +420,118 @@ class DiscordService:
             logger.error(f"Error deleting league event announcement (message {message_id}): {e}")
             return False
 
+    async def post_event_reminder(
+        self,
+        title: str,
+        event_type: str,
+        date_str: str,
+        time_str: str,
+        location: Optional[str] = None,
+        description: Optional[str] = None,
+        channel_name: str = 'league-announcements'
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Post an event reminder to the announcements channel.
+
+        Args:
+            title: Event title
+            event_type: Type of event (plop, party, meeting, etc.)
+            date_str: Formatted date string
+            time_str: Formatted time string
+            location: Optional location
+            description: Optional description
+            channel_name: Target channel name (default: league-announcements)
+
+        Returns:
+            Dict with message_id, channel_id if successful
+        """
+        if self._should_skip_call("post_event_reminder"):
+            return None
+
+        try:
+            session = await self._get_session()
+            url = f"{self.bot_api_url}/api/event-reminder"
+
+            payload = {
+                'title': title,
+                'event_type': event_type,
+                'date_str': date_str,
+                'time_str': time_str,
+                'location': location,
+                'description': description,
+                'channel_name': channel_name
+            }
+
+            logger.info(f"Posting event reminder for {title}")
+
+            async with session.post(url, json=payload) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    logger.info(f"Posted event reminder: {result.get('message_id')}")
+                    return result
+                else:
+                    error_text = await response.text()
+                    logger.error(f"Failed to post event reminder (status {response.status}): {error_text}")
+                    return None
+
+        except Exception as e:
+            logger.error(f"Error posting event reminder for {title}: {e}")
+            return None
+
+    async def post_plop_reminder(
+        self,
+        date_str: str,
+        time_str: str,
+        location: str,
+        end_time_str: Optional[str] = None,
+        channel_name: str = 'league-announcements'
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Post a PLOP reminder to the announcements channel.
+
+        Specifically formatted for PLOP events with location emphasis.
+
+        Args:
+            date_str: Formatted date string (e.g., "Sunday, January 11")
+            time_str: Start time string
+            location: PLOP location (important - this is the key info)
+            end_time_str: Optional end time
+            channel_name: Target channel name
+
+        Returns:
+            Dict with message_id, channel_id if successful
+        """
+        if self._should_skip_call("post_plop_reminder"):
+            return None
+
+        try:
+            session = await self._get_session()
+            url = f"{self.bot_api_url}/api/plop-reminder"
+
+            payload = {
+                'date_str': date_str,
+                'time_str': time_str,
+                'end_time_str': end_time_str,
+                'location': location,
+                'channel_name': channel_name
+            }
+
+            logger.info(f"Posting PLOP reminder for {date_str} at {location}")
+
+            async with session.post(url, json=payload) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    logger.info(f"Posted PLOP reminder: {result.get('message_id')}")
+                    return result
+                else:
+                    error_text = await response.text()
+                    logger.error(f"Failed to post PLOP reminder (status {response.status}): {error_text}")
+                    return None
+
+        except Exception as e:
+            logger.error(f"Error posting PLOP reminder: {e}")
+            return None
+
     async def close(self):
         """Close the aiohttp session."""
         if self._session and not self._session.closed:

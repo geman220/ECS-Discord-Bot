@@ -58,6 +58,11 @@ class LeagueEvent(db.Model):
     discord_message_id = db.Column(db.String(100), nullable=True)
     discord_channel_id = db.Column(db.String(100), nullable=True)
 
+    # Reminder settings
+    send_reminder = db.Column(db.Boolean, default=True, nullable=False)  # Whether to send a reminder
+    reminder_days_before = db.Column(db.Integer, default=2, nullable=False)  # Days before to remind
+    reminder_sent_at = db.Column(db.DateTime, nullable=True)  # When reminder was sent (null = not sent)
+
     # Metadata
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -83,6 +88,9 @@ class LeagueEvent(db.Model):
             'season_id': self.season_id,
             'league_id': self.league_id,
             'notify_discord': self.notify_discord,
+            'send_reminder': self.send_reminder,
+            'reminder_days_before': self.reminder_days_before,
+            'reminder_sent_at': self.reminder_sent_at.isoformat() if self.reminder_sent_at else None,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
@@ -126,6 +134,9 @@ class LeagueEvent(db.Model):
                 'location': self.location,
                 'leagueId': self.league_id,
                 'seasonId': self.season_id,
+                'send_reminder': self.send_reminder,
+                'reminder_days_before': self.reminder_days_before,
+                'reminder_sent_at': self.reminder_sent_at.isoformat() if self.reminder_sent_at else None,
             }
         }
 

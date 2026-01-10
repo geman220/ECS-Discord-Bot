@@ -8,8 +8,10 @@ Admin-only operations for creating, updating, and deleting events.
 """
 
 import asyncio
+import csv
+import io
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, g
 from flask_login import login_required, current_user
 
@@ -411,3 +413,341 @@ def get_event_types():
         {'id': 7, 'value': 'other', 'label': 'Other', 'color': '#607d8b', 'icon': 'calendar'},
     ]
     return jsonify(event_types)
+
+
+def parse_time_string(time_str: str) -> tuple:
+    """
+    Parse a time string in various formats.
+
+    Supports: "9:30", "09:30", "9:30 AM", "9:30am", "17:30", etc.
+
+    Returns:
+        Tuple of (hour, minute) in 24-hour format
+    """
+    if not time_str:
+        return (0, 0)
+
+    time_str = time_str.strip().upper()
+
+    # Check for AM/PM
+    is_pm = 'PM' in time_str
+    is_am = 'AM' in time_str
+
+    # Remove AM/PM
+    time_str = time_str.replace('AM', '').replace('PM', '').strip()
+
+    # Parse the time
+    if ':' in time_str:
+        parts = time_str.split(':')
+        hour = int(parts[0])
+        minute = int(parts[1]) if len(parts) > 1 else 0
+    else:
+        hour = int(time_str)
+        minute = 0
+
+    # Convert to 24-hour if needed
+    if is_pm and hour < 12:
+        hour += 12
+    elif is_am and hour == 12:
+        hour = 0
+
+    return (hour, minute)
+
+
+def parse_date_string(date_str: str, default_year: int = None) -> datetime:
+    """
+    Parse a date string in various formats.
+
+    Supports: "1/4", "01/04", "1/4/2026", "2026-01-04", "Jan 4", etc.
+
+    Returns:
+        datetime object
+    """
+    if not date_str:
+        return None
+
+    if default_year is None:
+        default_year = datetime.now().year
+
+    date_str = date_str.strip()
+
+    # Try ISO format first (2026-01-04)
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d')
+    except ValueError:
+        pass
+
+    # Try M/D/YYYY
+    try:
+        return datetime.strptime(date_str, '%m/%d/%Y')
+    except ValueError:
+        pass
+
+    # Try M/D (add default year)
+    try:
+        dt = datetime.strptime(date_str, '%m/%d')
+        return dt.replace(year=default_year)
+    except ValueError:
+        pass
+
+    # Try Mon D format (Jan 4)
+    try:
+        dt = datetime.strptime(date_str, '%b %d')
+        return dt.replace(year=default_year)
+    except ValueError:
+        pass
+
+    raise ValueError(f"Could not parse date: {date_str}")
+
+
+@league_events_bp.route('/league-events/import', methods=['POST'])
+@login_required
+@role_required(ADMIN_ROLES)
+def import_league_events():
+    """
+    Import league events from a CSV file.
+
+    Expected CSV columns (flexible - uses header names):
+    - date: Event date (M/D, M/D/YYYY, or YYYY-MM-DD)
+    - title: Event title (optional, uses event_type if not provided)
+    - event_type: Type of event (plop, party, meeting, etc.)
+    - start_time: Start time (9:30, 9:30 AM, etc.)
+    - end_time: End time (optional)
+    - location: Event location (optional)
+    - description: Event description (optional)
+
+    Query parameters:
+    - year: Default year for dates without year (default: current year)
+    - notify_discord: Whether to announce events in Discord (default: false)
+    - preview: If true, only validate and preview without creating (default: false)
+
+    Returns:
+        JSON with import results
+    """
+    try:
+        # Check for file upload
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+
+        file = request.files['file']
+        if not file.filename:
+            return jsonify({'error': 'No file selected'}), 400
+
+        if not file.filename.endswith('.csv'):
+            return jsonify({'error': 'File must be a CSV'}), 400
+
+        # Get parameters
+        default_year = int(request.form.get('year', datetime.now().year))
+        notify_discord = request.form.get('notify_discord', 'false').lower() == 'true'
+        preview_only = request.form.get('preview', 'false').lower() == 'true'
+        default_event_type = request.form.get('event_type', 'other').lower()
+        default_title = request.form.get('title', '')
+
+        # Read and parse CSV
+        content = file.read().decode('utf-8-sig')  # Handle BOM
+        reader = csv.DictReader(io.StringIO(content))
+
+        # Normalize header names
+        if reader.fieldnames:
+            # Map common variations to standard names
+            header_map = {
+                'date': ['date', 'event_date', 'day'],
+                'title': ['title', 'name', 'event_name', 'event'],
+                'event_type': ['event_type', 'type', 'category'],
+                'start_time': ['start_time', 'start', 'time', 'begins'],
+                'end_time': ['end_time', 'end', 'until', 'ends'],
+                'location': ['location', 'venue', 'place', 'where'],
+                'description': ['description', 'desc', 'details', 'notes']
+            }
+
+            # Create reverse mapping
+            field_map = {}
+            for standard, variations in header_map.items():
+                for var in variations:
+                    for field in reader.fieldnames:
+                        if field.lower().strip() == var:
+                            field_map[field] = standard
+                            break
+
+        # Process rows
+        events_to_create = []
+        errors = []
+        row_num = 1
+
+        for row in reader:
+            row_num += 1
+
+            try:
+                # Normalize row keys
+                normalized_row = {}
+                for key, value in row.items():
+                    standard_key = field_map.get(key, key.lower().strip())
+                    normalized_row[standard_key] = value.strip() if value else ''
+
+                # Parse date
+                date_str = normalized_row.get('date', '')
+                if not date_str:
+                    errors.append(f"Row {row_num}: Missing date")
+                    continue
+
+                try:
+                    event_date = parse_date_string(date_str, default_year)
+                except ValueError as e:
+                    errors.append(f"Row {row_num}: {str(e)}")
+                    continue
+
+                # Parse times
+                start_time_str = normalized_row.get('start_time', '')
+                if start_time_str:
+                    start_hour, start_minute = parse_time_string(start_time_str)
+                else:
+                    start_hour, start_minute = (9, 0)  # Default to 9 AM
+
+                end_time_str = normalized_row.get('end_time', '')
+                end_datetime = None
+                if end_time_str:
+                    end_hour, end_minute = parse_time_string(end_time_str)
+                    end_datetime = event_date.replace(hour=end_hour, minute=end_minute)
+
+                start_datetime = event_date.replace(hour=start_hour, minute=start_minute)
+
+                # Get other fields
+                event_type = normalized_row.get('event_type', default_event_type).lower()
+                if event_type not in create_league_event_service(g.db_session).VALID_EVENT_TYPES:
+                    event_type = default_event_type
+
+                title = normalized_row.get('title', '') or default_title or event_type.upper()
+                location = normalized_row.get('location', '')
+                description = normalized_row.get('description', '')
+
+                events_to_create.append({
+                    'title': title,
+                    'start_datetime': start_datetime,
+                    'end_datetime': end_datetime,
+                    'event_type': event_type,
+                    'location': location,
+                    'description': description,
+                    'notify_discord': notify_discord,
+                    'row_num': row_num
+                })
+
+            except Exception as e:
+                errors.append(f"Row {row_num}: {str(e)}")
+
+        # If preview only, return what would be created
+        if preview_only:
+            return jsonify({
+                'preview': True,
+                'events_count': len(events_to_create),
+                'events': [
+                    {
+                        'row': e['row_num'],
+                        'title': e['title'],
+                        'date': e['start_datetime'].strftime('%Y-%m-%d'),
+                        'start_time': e['start_datetime'].strftime('%H:%M'),
+                        'end_time': e['end_datetime'].strftime('%H:%M') if e['end_datetime'] else None,
+                        'location': e['location'],
+                        'event_type': e['event_type']
+                    }
+                    for e in events_to_create
+                ],
+                'errors': errors
+            })
+
+        # Create events
+        league_event_service = create_league_event_service(g.db_session)
+        created_events = []
+
+        for event_data in events_to_create:
+            row_num = event_data.pop('row_num')
+
+            result = league_event_service.create_event(
+                title=event_data['title'],
+                start_datetime=event_data['start_datetime'],
+                created_by=current_user.id,
+                end_datetime=event_data['end_datetime'],
+                event_type=event_data['event_type'],
+                location=event_data['location'],
+                description=event_data['description'],
+                notify_discord=event_data['notify_discord']
+            )
+
+            if result.success:
+                event = result.data
+                created_events.append({
+                    'id': event.id,
+                    'title': event.title,
+                    'date': event.start_datetime.strftime('%Y-%m-%d'),
+                    'location': event.location
+                })
+
+                # Post to Discord if requested
+                if event.notify_discord:
+                    try:
+                        discord_service = get_discord_service()
+                        discord_result = asyncio.run(
+                            discord_service.post_league_event_announcement(
+                                event_id=event.id,
+                                title=event.title,
+                                start_datetime=event.start_datetime.isoformat(),
+                                description=event.description,
+                                event_type=event.event_type,
+                                location=event.location,
+                                end_datetime=event.end_datetime.isoformat() if event.end_datetime else None,
+                                is_all_day=False
+                            )
+                        )
+                        if discord_result:
+                            event.discord_message_id = str(discord_result.get('message_id'))
+                            event.discord_channel_id = str(discord_result.get('channel_id'))
+                            g.db_session.commit()
+                    except Exception as discord_error:
+                        logger.error(f"Error posting Discord announcement: {discord_error}")
+            else:
+                errors.append(f"Row {row_num}: {result.message}")
+
+        logger.info(f"Imported {len(created_events)} league events via CSV")
+
+        return jsonify({
+            'success': True,
+            'created_count': len(created_events),
+            'created_events': created_events,
+            'errors': errors
+        })
+
+    except Exception as e:
+        logger.error(f"Error importing league events from CSV: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@league_events_bp.route('/league-events/import/template', methods=['GET'])
+@login_required
+def get_import_template():
+    """
+    Get a CSV template for importing league events.
+
+    Returns:
+        CSV file download
+    """
+    from flask import Response
+
+    # Create template CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Header row
+    writer.writerow(['date', 'title', 'event_type', 'start_time', 'end_time', 'location', 'description'])
+
+    # Example rows
+    writer.writerow(['1/4', 'PLOP', 'plop', '9:30', '11:30', 'Eckstein Middle School', ''])
+    writer.writerow(['1/11', 'PLOP', 'plop', '9:30', '11:30', 'Eckstein Middle School', ''])
+    writer.writerow(['1/24', 'Preregistration Party', 'party', '5:00 PM', '8:00 PM', 'Nun Chuck Brewing', 'For returning players'])
+    writer.writerow(['2/11', 'Drunken Draft Team Reveals', 'party', '7:00 PM', '', 'Flatstick Pub Pioneer Square', ''])
+
+    output.seek(0)
+
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=league_events_template.csv'}
+    )

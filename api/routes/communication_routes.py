@@ -96,6 +96,8 @@ async def send_discord_dm(
 
 def create_league_event_embed(request: LeagueEventAnnouncementRequest) -> discord.Embed:
     """Create a Discord embed for a league event announcement."""
+    from zoneinfo import ZoneInfo
+
     event_type = request.event_type.lower()
     color = LEAGUE_EVENT_COLORS.get(event_type, LEAGUE_EVENT_COLORS['other'])
     icon = LEAGUE_EVENT_ICONS.get(event_type, LEAGUE_EVENT_ICONS['other'])
@@ -113,23 +115,30 @@ def create_league_event_embed(request: LeagueEventAnnouncementRequest) -> discor
         color=color
     )
 
-    # Parse and format datetime
+    # Pacific timezone for display
+    pacific_tz = ZoneInfo('America/Los_Angeles')
+
+    # Parse and format datetime - convert to Pacific time for display
     try:
         start_dt = datetime.fromisoformat(request.start_datetime.replace('Z', '+00:00'))
+        # Convert to Pacific timezone for display
+        start_dt_pacific = start_dt.astimezone(pacific_tz)
+
         if request.is_all_day:
-            date_str = start_dt.strftime("%A, %B %d, %Y")
+            date_str = start_dt_pacific.strftime("%A, %B %d, %Y")
             embed.add_field(name="📅 Date", value=date_str, inline=True)
         else:
-            date_str = start_dt.strftime("%A, %B %d, %Y")
-            time_str = start_dt.strftime("%I:%M %p")
+            date_str = start_dt_pacific.strftime("%A, %B %d, %Y")
+            time_str = start_dt_pacific.strftime("%I:%M %p")
             embed.add_field(name="📅 Date", value=date_str, inline=True)
             embed.add_field(name="🕐 Time", value=time_str, inline=True)
 
         # Add end time if provided
         if request.end_datetime:
             end_dt = datetime.fromisoformat(request.end_datetime.replace('Z', '+00:00'))
+            end_dt_pacific = end_dt.astimezone(pacific_tz)
             if not request.is_all_day:
-                end_time_str = end_dt.strftime("%I:%M %p")
+                end_time_str = end_dt_pacific.strftime("%I:%M %p")
                 embed.add_field(name="🏁 Until", value=end_time_str, inline=True)
     except ValueError as e:
         logger.warning(f"Failed to parse datetime for event {request.event_id}: {e}")
@@ -355,4 +364,151 @@ async def get_channel_by_name(
         raise
     except Exception as e:
         logger.error(f"Error looking up channel by name: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Event reminder configurations
+EVENT_REMINDER_COLORS = {
+    'party': 0x9c27b0,      # Purple
+    'meeting': 0xff9800,    # Orange
+    'social': 0xe91e63,     # Pink
+    'plop': 0x4caf50,       # Green
+    'tournament': 0xf44336, # Red
+    'fundraiser': 0xff5722, # Deep Orange
+    'other': 0x607d8b       # Blue-grey
+}
+
+EVENT_REMINDER_ICONS = {
+    'party': '🎉',
+    'meeting': '👥',
+    'social': '❤️',
+    'plop': '⚽',
+    'tournament': '🏆',
+    'fundraiser': '💰',
+    'other': '📅'
+}
+
+
+@router.post("/api/event-reminder")
+async def post_event_reminder(
+    title: str = Body(..., embed=True),
+    event_type: str = Body(..., embed=True),
+    date_str: str = Body(..., embed=True),
+    time_str: str = Body(..., embed=True),
+    location: Optional[str] = Body(None, embed=True),
+    description: Optional[str] = Body(None, embed=True),
+    channel_name: str = Body('league-announcements', embed=True),
+    bot: commands.Bot = Depends(get_bot)
+):
+    """
+    Post an event reminder to a Discord channel.
+
+    Used for reminding members about upcoming events.
+    """
+    try:
+        # Resolve the channel
+        channel = await resolve_channel(bot, channel_name=channel_name)
+
+        # Build the embed
+        event_type_lower = event_type.lower()
+        color = EVENT_REMINDER_COLORS.get(event_type_lower, EVENT_REMINDER_COLORS['other'])
+        icon = EVENT_REMINDER_ICONS.get(event_type_lower, EVENT_REMINDER_ICONS['other'])
+
+        embed = discord.Embed(
+            title=f"{icon} Reminder: {title}",
+            description=description or "",
+            color=color
+        )
+
+        embed.add_field(name="📅 Date", value=date_str, inline=True)
+        embed.add_field(name="🕐 Time", value=time_str, inline=True)
+
+        if location:
+            embed.add_field(name="📍 Location", value=location, inline=False)
+
+        embed.set_footer(text="Don't miss it!")
+
+        # Send the message
+        message = await channel.send(embed=embed)
+
+        logger.info(f"Posted event reminder for '{title}' to {channel.name}")
+
+        return {
+            "status": "success",
+            "message_id": message.id,
+            "channel_id": channel.id,
+            "channel_name": channel.name
+        }
+
+    except HTTPException:
+        raise
+    except discord.Forbidden as e:
+        logger.error(f"Permission denied posting event reminder: {e}")
+        raise HTTPException(status_code=403, detail="Bot lacks permission to post in that channel")
+    except Exception as e:
+        logger.error(f"Error posting event reminder: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/plop-reminder")
+async def post_plop_reminder(
+    date_str: str = Body(..., embed=True),
+    time_str: str = Body(..., embed=True),
+    location: str = Body(..., embed=True),
+    end_time_str: Optional[str] = Body(None, embed=True),
+    channel_name: str = Body('league-announcements', embed=True),
+    bot: commands.Bot = Depends(get_bot)
+):
+    """
+    Post a PLOP reminder to Discord.
+
+    Specifically formatted for PLOP events with emphasis on the location.
+    """
+    try:
+        # Resolve the channel
+        channel = await resolve_channel(bot, channel_name=channel_name)
+
+        # Build the PLOP-specific embed
+        embed = discord.Embed(
+            title="⚽ PLOP This Weekend!",
+            description="Get ready for Sunday's pickup game!",
+            color=0x4caf50  # Green
+        )
+
+        embed.add_field(name="📅 When", value=date_str, inline=True)
+
+        # Time field - show range if end time provided
+        time_display = time_str
+        if end_time_str:
+            time_display = f"{time_str} - {end_time_str}"
+        embed.add_field(name="🕐 Time", value=time_display, inline=True)
+
+        # Location is the most important info - make it prominent
+        embed.add_field(
+            name="📍 Location",
+            value=f"**{location}**",
+            inline=False
+        )
+
+        embed.set_footer(text="See you there! 🏟️")
+
+        # Send the message
+        message = await channel.send(embed=embed)
+
+        logger.info(f"Posted PLOP reminder for {date_str} at {location}")
+
+        return {
+            "status": "success",
+            "message_id": message.id,
+            "channel_id": channel.id,
+            "channel_name": channel.name
+        }
+
+    except HTTPException:
+        raise
+    except discord.Forbidden as e:
+        logger.error(f"Permission denied posting PLOP reminder: {e}")
+        raise HTTPException(status_code=403, detail="Bot lacks permission to post in that channel")
+    except Exception as e:
+        logger.error(f"Error posting PLOP reminder: {e}")
         raise HTTPException(status_code=500, detail=str(e))

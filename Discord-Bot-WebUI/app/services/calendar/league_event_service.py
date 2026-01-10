@@ -50,7 +50,9 @@ class LeagueEventService(BaseService):
         is_all_day: bool = False,
         season_id: Optional[int] = None,
         league_id: Optional[int] = None,
-        notify_discord: bool = False
+        notify_discord: bool = False,
+        send_reminder: bool = True,
+        reminder_days_before: int = 2
     ) -> ServiceResult[LeagueEvent]:
         """
         Create a new league event.
@@ -67,6 +69,8 @@ class LeagueEventService(BaseService):
             season_id: Optional season association
             league_id: Optional league association (null = all leagues)
             notify_discord: Whether to announce in Discord
+            send_reminder: Whether to send a reminder before the event
+            reminder_days_before: Days before event to send reminder (1-3)
 
         Returns:
             ServiceResult containing the created LeagueEvent
@@ -94,6 +98,12 @@ class LeagueEventService(BaseService):
                     'INVALID_DATE_RANGE'
                 )
 
+            # Validate reminder_days_before is reasonable
+            if reminder_days_before < 1:
+                reminder_days_before = 1
+            elif reminder_days_before > 7:
+                reminder_days_before = 7
+
             # Create the event
             event = LeagueEvent(
                 title=title.strip(),
@@ -106,6 +116,8 @@ class LeagueEventService(BaseService):
                 season_id=season_id,
                 league_id=league_id,
                 notify_discord=notify_discord,
+                send_reminder=send_reminder,
+                reminder_days_before=reminder_days_before,
                 created_by=created_by,
                 is_active=True
             )
@@ -173,7 +185,8 @@ class LeagueEventService(BaseService):
             allowed_fields = {
                 'title', 'description', 'event_type', 'location',
                 'start_datetime', 'end_datetime', 'is_all_day',
-                'season_id', 'league_id', 'notify_discord', 'is_active'
+                'season_id', 'league_id', 'notify_discord', 'is_active',
+                'send_reminder', 'reminder_days_before'
             }
 
             for field, value in updates.items():
@@ -187,6 +200,10 @@ class LeagueEventService(BaseService):
                         'INVALID_EVENT_TYPE'
                     )
 
+                # Validate reminder_days_before
+                if field == 'reminder_days_before':
+                    value = max(1, min(7, int(value) if value else 2))
+
                 # Strip strings
                 if isinstance(value, str):
                     value = value.strip() if value else None
@@ -199,6 +216,13 @@ class LeagueEventService(BaseService):
                     'end_datetime must be after start_datetime',
                     'INVALID_DATE_RANGE'
                 )
+
+            # Reset reminder if date changed or reminder settings changed
+            # This allows a new reminder to be sent for rescheduled events
+            if 'start_datetime' in updates or 'send_reminder' in updates or 'reminder_days_before' in updates:
+                if event.reminder_sent_at and 'start_datetime' in updates:
+                    event.reminder_sent_at = None
+                    logger.info(f"Reset reminder for event {event_id} due to date change")
 
             event.updated_at = datetime.utcnow()
             self._commit()
