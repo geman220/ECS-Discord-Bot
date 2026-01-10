@@ -160,7 +160,9 @@ def _ecs_fc_match_to_calendar_event(match: EcsFcMatch, user_team_ids: list = Non
         'opponent_name': match.opponent_name,
         'status': match.status,
         'notes': match.notes,
-        'rsvp_deadline': match.rsvp_deadline.isoformat() if match.rsvp_deadline else None
+        'rsvp_deadline': match.rsvp_deadline.isoformat() if match.rsvp_deadline else None,
+        'home_shirt_color': getattr(match, 'home_shirt_color', None),
+        'away_shirt_color': getattr(match, 'away_shirt_color', None)
     }
 
 

@@ -196,6 +196,19 @@ function bindEvents() {
     // Delete button
     document.getElementById('deleteEventBtn')?.addEventListener('click', deleteEvent);
 
+    // Auto-fill end time 3 hours after start time
+    document.getElementById('eventStartDate')?.addEventListener('change', function() {
+        const startInput = this;
+        const endInput = document.getElementById('eventEndDate');
+
+        if (startInput.value && !endInput.value) {
+            // Parse start time and add 3 hours
+            const startDate = new Date(startInput.value);
+            startDate.setHours(startDate.getHours() + 3);
+            endInput.value = formatDateForInput(startDate);
+        }
+    });
+
     // All-day checkbox toggles time inputs
     document.getElementById('eventAllDay')?.addEventListener('change', function() {
         const startInput = document.getElementById('eventStartDate');
@@ -213,16 +226,32 @@ function bindEvents() {
     // Recurring checkbox toggles recurring options
     document.getElementById('eventRecurring')?.addEventListener('change', function() {
         const recurringOptions = document.getElementById('recurringOptions');
-        const startDateSection = document.getElementById('eventStartDate').closest('.grid');
         const endDateSection = document.getElementById('eventEndDate').closest('div');
+        const discordCheckbox = document.getElementById('eventNotifyDiscord');
+        const discordLabel = discordCheckbox?.closest('.flex');
 
         if (this.checked) {
             recurringOptions.classList.remove('hidden');
             // Hide end date when recurring (each event can have its own duration if needed)
             if (endDateSection) endDateSection.style.opacity = '0.5';
+            // Update Discord label to indicate it will only post once
+            if (discordLabel) {
+                const label = discordLabel.querySelector('label');
+                if (label && !label.dataset.originalText) {
+                    label.dataset.originalText = label.innerHTML;
+                    label.innerHTML = '<i class="ti ti-brand-discord me-1"></i>Announce in Discord (single summary post)';
+                }
+            }
         } else {
             recurringOptions.classList.add('hidden');
             if (endDateSection) endDateSection.style.opacity = '1';
+            // Restore original Discord label
+            if (discordLabel) {
+                const label = discordLabel.querySelector('label');
+                if (label && label.dataset.originalText) {
+                    label.innerHTML = label.dataset.originalText;
+                }
+            }
         }
     });
 }
@@ -424,13 +453,41 @@ async function saveEvent() {
 
             let successCount = 0;
             let failCount = 0;
+            const wantsDiscord = baseEventData.notify_discord;
 
-            // Create each event
-            for (const date of dates) {
+            // Calculate event duration (3 hours default)
+            const eventDurationHours = 3;
+
+            // Create each event - only post to Discord for the FIRST event with a summary
+            for (let i = 0; i < dates.length; i++) {
+                const date = dates[i];
+                const endDate = new Date(date);
+                endDate.setHours(endDate.getHours() + eventDurationHours);
+
+                // Build description with recurring info for the first event (Discord post)
+                let description = baseEventData.description || '';
+                if (i === 0 && wantsDiscord && dates.length > 1) {
+                    // Add recurring schedule summary to the Discord announcement
+                    const patternLabel = {
+                        weekly: 'Weekly',
+                        biweekly: 'Every 2 weeks',
+                        monthly: 'Monthly'
+                    }[recurrenceOptions.pattern] || 'Recurring';
+
+                    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const dayName = dayNames[parseInt(recurrenceOptions.dayOfWeek, 10)];
+
+                    const scheduleInfo = `\n\n📅 **Recurring Schedule**: ${patternLabel} on ${dayName}s at ${recurrenceOptions.time} (${dates.length} events total)`;
+                    description = description + scheduleInfo;
+                }
+
                 const eventData = {
                     ...baseEventData,
+                    description: i === 0 ? description : baseEventData.description,
                     start_datetime: date.toISOString(),
-                    end_datetime: null // Can add duration support later
+                    end_datetime: endDate.toISOString(),
+                    // Only notify Discord for the first event (it contains the recurring summary)
+                    notify_discord: wantsDiscord && i === 0
                 };
 
                 try {
@@ -456,7 +513,8 @@ async function saveEvent() {
             modal.hide();
 
             if (failCount === 0) {
-                showToast('success', `Created ${successCount} recurring events successfully`);
+                const discordMsg = wantsDiscord ? ' (Discord announcement posted)' : '';
+                showToast('success', `Created ${successCount} recurring events successfully${discordMsg}`);
             } else {
                 showToast('warning', `Created ${successCount} events, ${failCount} failed`);
             }

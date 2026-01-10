@@ -399,8 +399,9 @@ class ICalGenerator:
             'party': ['Social', 'Party'],
             'meeting': ['Meeting'],
             'social': ['Social'],
-            'training': ['Training'],
+            'plop': ['PLOP', 'Training'],
             'tournament': ['Tournament', 'Match'],
+            'fundraiser': ['Fundraiser', 'Social'],
             'other': ['Event'],
         }
         categories = type_categories.get(league_event.event_type, ['Event'])

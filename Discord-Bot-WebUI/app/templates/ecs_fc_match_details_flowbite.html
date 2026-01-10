@@ -89,6 +89,31 @@
             </div>
         </div>
 
+        {% if match.home_shirt_color or match.away_shirt_color %}
+        <div class="mt-4">
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-2">
+                    <i class="ti ti-shirt text-ecs-green"></i>
+                    <span class="text-sm font-medium">Shirt Colors</span>
+                </div>
+                <div class="flex flex-wrap gap-4">
+                    {% if match.home_shirt_color %}
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Us:</span>
+                        <span class="px-3 py-1 bg-white dark:bg-gray-600 rounded-full font-medium text-gray-900 dark:text-white border border-gray-200 dark:border-gray-500">{{ match.home_shirt_color }}</span>
+                    </div>
+                    {% endif %}
+                    {% if match.away_shirt_color %}
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Them:</span>
+                        <span class="px-3 py-1 bg-white dark:bg-gray-600 rounded-full font-medium text-gray-900 dark:text-white border border-gray-200 dark:border-gray-500">{{ match.away_shirt_color }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         {% if match.notes %}
         <div class="mt-4">
             <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Match Notes</h3>

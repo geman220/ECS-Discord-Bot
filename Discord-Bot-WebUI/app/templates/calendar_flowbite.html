@@ -297,6 +297,68 @@
                         </div>
                     </div>
 
+                    <!-- League Event Type Filters -->
+                    <div id="leagueEventTypeFilters">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Event Types</label>
+                            <div class="flex gap-2">
+                                <button type="button" id="filterSelectAllEventTypes" class="text-xs text-ecs-green hover:underline dark:text-green-400">All</button>
+                                <button type="button" id="filterClearAllEventTypes" class="text-xs text-gray-500 hover:underline dark:text-gray-400">None</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" value="party" id="filterEventParty" checked class="filter-event-type w-3.5 h-3.5 rounded">
+                                <span class="ml-1.5 text-xs text-gray-700 dark:text-gray-300 flex items-center">
+                                    <span class="w-2 h-2 rounded-full mr-1" style="background-color: #9c27b0;"></span>
+                                    Party
+                                </span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" value="plop" id="filterEventPlop" checked class="filter-event-type w-3.5 h-3.5 rounded">
+                                <span class="ml-1.5 text-xs text-gray-700 dark:text-gray-300 flex items-center">
+                                    <span class="w-2 h-2 rounded-full mr-1" style="background-color: #4caf50;"></span>
+                                    PLOP
+                                </span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" value="tournament" id="filterEventTournament" checked class="filter-event-type w-3.5 h-3.5 rounded">
+                                <span class="ml-1.5 text-xs text-gray-700 dark:text-gray-300 flex items-center">
+                                    <span class="w-2 h-2 rounded-full mr-1" style="background-color: #ffc107;"></span>
+                                    Tournament
+                                </span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" value="meeting" id="filterEventMeeting" checked class="filter-event-type w-3.5 h-3.5 rounded">
+                                <span class="ml-1.5 text-xs text-gray-700 dark:text-gray-300 flex items-center">
+                                    <span class="w-2 h-2 rounded-full mr-1" style="background-color: #2196f3;"></span>
+                                    Meeting
+                                </span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" value="fundraiser" id="filterEventFundraiser" checked class="filter-event-type w-3.5 h-3.5 rounded">
+                                <span class="ml-1.5 text-xs text-gray-700 dark:text-gray-300 flex items-center">
+                                    <span class="w-2 h-2 rounded-full mr-1" style="background-color: #ff5722;"></span>
+                                    Fundraiser
+                                </span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" value="social" id="filterEventSocial" checked class="filter-event-type w-3.5 h-3.5 rounded">
+                                <span class="ml-1.5 text-xs text-gray-700 dark:text-gray-300 flex items-center">
+                                    <span class="w-2 h-2 rounded-full mr-1" style="background-color: #e91e63;"></span>
+                                    Social
+                                </span>
+                            </label>
+                            <label class="flex items-center col-span-2">
+                                <input type="checkbox" value="other" id="filterEventOther" checked class="filter-event-type w-3.5 h-3.5 rounded">
+                                <span class="ml-1.5 text-xs text-gray-700 dark:text-gray-300 flex items-center">
+                                    <span class="w-2 h-2 rounded-full mr-1" style="background-color: #607d8b;"></span>
+                                    Other
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- Division Filters -->
                     <div>
                         <div class="flex items-center justify-between mb-2">
@@ -319,6 +381,13 @@
                                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
                                     <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                                     Classic
+                                </span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" value="ECS FC" id="filterDivEcsFc" checked class="filter-division w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 dark:focus:ring-purple-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                                    <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                                    ECS FC
                                 </span>
                             </label>
                         </div>
@@ -574,7 +643,7 @@
 {% if can_edit_events %}
 <div id="leagueEventModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
     <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
-    <div class="relative p-4 w-full max-w-lg max-h-full mx-auto mt-20">
+    <div class="relative p-4 w-full max-w-xl max-h-full mx-auto mt-10">
         <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
             <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                 <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
@@ -585,7 +654,7 @@
                     <i class="ti ti-x text-lg"></i>
                 </button>
             </div>
-            <div class="p-4">
+            <div class="p-4 max-h-[70vh] overflow-y-auto">
                 <form id="leagueEventForm" class="space-y-4">
                     <input type="hidden" id="eventId" value="">
 
@@ -598,11 +667,12 @@
                         <div>
                             <label for="eventType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Type</label>
                             <select id="eventType" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
-                                <option value="party">Party</option>
-                                <option value="meeting">Meeting</option>
-                                <option value="social">Social Event</option>
-                                <option value="training">Training</option>
+                                <option value="party">Party/Social</option>
                                 <option value="tournament">Tournament</option>
+                                <option value="meeting">Meeting</option>
+                                <option value="plop">PLOP</option>
+                                <option value="fundraiser">Fundraiser</option>
+                                <option value="social">Social Event</option>
                                 <option value="other" selected>Other</option>
                             </select>
                         </div>
@@ -630,15 +700,64 @@
                         </label>
                     </div>
 
+                    <!-- Recurring Event Section -->
+                    <div id="recurringSection" class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="eventRecurring" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                            <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                                <i class="ti ti-repeat mr-1"></i>
+                                Recurring event
+                            </span>
+                        </label>
+                        <div id="recurringOptions" class="hidden mt-3 space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label for="recurrencePattern" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Repeat</label>
+                                    <select id="recurrencePattern" class="w-full px-3 py-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                        <option value="weekly">Weekly</option>
+                                        <option value="biweekly">Every 2 weeks</option>
+                                        <option value="monthly">Monthly</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="recurrenceDay" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Day of Week</label>
+                                    <select id="recurrenceDay" class="w-full px-3 py-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                        <option value="0">Sunday</option>
+                                        <option value="1">Monday</option>
+                                        <option value="2">Tuesday</option>
+                                        <option value="3">Wednesday</option>
+                                        <option value="4">Thursday</option>
+                                        <option value="5">Friday</option>
+                                        <option value="6">Saturday</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label for="recurrenceTime" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Time</label>
+                                    <input type="time" id="recurrenceTime" value="09:00" class="w-full px-3 py-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                </div>
+                                <div>
+                                    <label for="recurrenceEndDate" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Until (optional)</label>
+                                    <input type="date" id="recurrenceEndDate" class="w-full px-3 py-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                <i class="ti ti-info-circle mr-1"></i>
+                                Creates individual events based on the pattern. Leave end date empty to create 12 events.
+                            </p>
+                        </div>
+                    </div>
+
                     <div>
                         <label for="eventDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
                         <textarea id="eventDescription" rows="3" placeholder="Event details..." class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"></textarea>
                     </div>
 
-                    <div>
+                    <div id="discordNotifySection">
                         <label class="flex items-center">
                             <input type="checkbox" id="eventNotifyDiscord" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                            <span id="discordLabel" class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
                                 <i class="ti ti-brand-discord mr-1"></i>
                                 Announce in Discord
                             </span>
@@ -647,13 +766,13 @@
                 </form>
             </div>
             <div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" id="deleteEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:border-red-500 dark:text-red-400 dark:hover:bg-gray-600">
+                <button type="button" id="deleteEventBtn" class="hidden inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:border-red-500 dark:text-red-400 dark:hover:bg-gray-600">
                     <i class="ti ti-trash mr-2"></i> Delete
                 </button>
-                <div class="flex gap-2">
+                <div class="flex gap-2 ml-auto">
                     <button type="button" data-modal-close="leagueEventModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">Cancel</button>
                     <button type="button" id="saveEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
-                        <i class="ti ti-check mr-2"></i> Save Event
+                        <i class="ti ti-check mr-2"></i> Create Event
                     </button>
                 </div>
             </div>
@@ -1040,14 +1159,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const showLeagueEvents = document.getElementById('filterShowLeagueEvents')?.checked ?? true;
         const premierChecked = document.getElementById('filterDivPremier')?.checked ?? true;
         const classicChecked = document.getElementById('filterDivClassic')?.checked ?? true;
+        const ecsFcChecked = document.getElementById('filterDivEcsFc')?.checked ?? true;
         const divisions = [];
         if (premierChecked) divisions.push('Premier');
         if (classicChecked) divisions.push('Classic');
+        if (ecsFcChecked) divisions.push('ECS FC');
+
+        // Get selected event types
+        const selectedEventTypes = [];
+        document.querySelectorAll('.filter-event-type:checked').forEach(cb => {
+            selectedEventTypes.push(cb.value);
+        });
 
         filteredEvents = filteredEvents.filter(event => {
-            if (event.type === 'match' && !showMatches) return false;
+            // Filter matches (including ECS FC matches) by showMatches toggle
+            if ((event.type === 'match' || event.type === 'ecs_fc') && !showMatches) return false;
             if (event.type === 'league_event' && !showLeagueEvents) return false;
-            if (event.type === 'match' && divisions.length > 0 && !divisions.includes(event.division)) return false;
+            // Filter matches and ECS FC by division
+            if ((event.type === 'match' || event.type === 'ecs_fc') && divisions.length > 0 && !divisions.includes(event.division)) return false;
+            // Filter league events by event type
+            if (event.type === 'league_event' && selectedEventTypes.length > 0) {
+                const eventType = event.eventType || event.extendedProps?.eventType || 'other';
+                if (!selectedEventTypes.includes(eventType)) return false;
+            }
             return true;
         });
 
@@ -1229,12 +1363,76 @@ document.addEventListener('DOMContentLoaded', () => {
         addMatchItemEventListeners();
     }
 
-    function renderMatchCard(event, isAssigned) {
-        const assignmentClass = (!isAssigned && isAssignmentMode) ? 'unassigned-match' : '';
+    // Event type colors and icons for league events
+    const eventTypeConfig = {
+        party: { color: '#9c27b0', icon: 'ti-confetti', label: 'Party' },
+        tournament: { color: '#ffc107', icon: 'ti-trophy', label: 'Tournament' },
+        meeting: { color: '#2196f3', icon: 'ti-users', label: 'Meeting' },
+        plop: { color: '#4caf50', icon: 'ti-ball-football', label: 'PLOP' },
+        fundraiser: { color: '#ff5722', icon: 'ti-heart-handshake', label: 'Fundraiser' },
+        social: { color: '#e91e63', icon: 'ti-heart', label: 'Social' },
+        other: { color: '#607d8b', icon: 'ti-calendar-event', label: 'Other' }
+    };
+
+    function renderLeagueEventCard(event, compact = false) {
+        const eventType = event.eventType || event.extendedProps?.eventType || 'other';
+        const config = eventTypeConfig[eventType] || eventTypeConfig.other;
+        const title = event.title || 'League Event';
+        const location = event.location || event.extendedProps?.location || '';
+        const time = event.time || new Date(event.start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+
+        if (compact) {
+            return `
+                <div class="league-event-item match-item p-2 bg-white dark:bg-gray-800 rounded-lg border-l-4 mb-2 cursor-pointer hover:shadow-sm transition-shadow" style="border-left-color: ${config.color};" data-event-id="${event.id}" data-event-type="league_event">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1"><i class="ti ti-clock mr-1"></i>${time}</div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-1.5 py-0.5 text-[10px] font-medium text-white rounded" style="background-color: ${config.color};">
+                            <i class="ti ${config.icon} mr-1"></i>${config.label}
+                        </span>
+                    </div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white mt-1 truncate">${title}</div>
+                    ${location ? `<div class="text-xs text-gray-500 dark:text-gray-400 truncate"><i class="ti ti-map-pin mr-1"></i>${location}</div>` : ''}
+                </div>
+            `;
+        }
+
         return `
-            <div class="match-item p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${assignmentClass}" data-event-id="${event.id}">
+            <div class="league-event-item match-item p-4 bg-white dark:bg-gray-800 rounded-lg border-l-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer" style="border-left-color: ${config.color};" data-event-id="${event.id}" data-event-type="league_event">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="px-2 py-0.5 text-xs font-medium text-white rounded-full" style="background-color: ${config.color};">
+                        <i class="ti ${config.icon} mr-1"></i>${config.label}
+                    </span>
+                    ${location ? `<span class="text-sm text-gray-500 dark:text-gray-400"><i class="ti ti-map-pin mr-1"></i>${location}</span>` : ''}
+                </div>
+                <div class="text-lg font-semibold text-gray-900 dark:text-white mb-2">${title}</div>
+                <div class="flex justify-between items-center">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                        <i class="ti ti-clock mr-1"></i>${time}
+                    </div>
+                    {% if can_edit_events %}
+                    <button class="edit-event-btn px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
+                        <i class="ti ti-edit mr-1"></i>Edit
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderMatchCard(event, isAssigned) {
+        // Handle league events differently
+        if (event.type === 'league_event') {
+            return renderLeagueEventCard(event, false);
+        }
+        const assignmentClass = (!isAssigned && isAssignmentMode) ? 'unassigned-match' : '';
+        // Division badge color: Premier=blue, Classic=green, ECS FC=purple
+        const divisionBadgeClass = event.division === 'Premier' ? 'bg-blue-500' :
+                                   event.division === 'ECS FC' ? 'bg-purple-500' : 'bg-green-500';
+        const isEcsFc = event.type === 'ecs_fc';
+        return `
+            <div class="match-item p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${assignmentClass}" data-event-id="${event.id}" data-event-type="${event.type || 'match'}">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="px-2 py-0.5 text-xs font-medium text-white ${event.division === 'Premier' ? 'bg-blue-500' : 'bg-green-500'} rounded-full">${event.division}</span>
+                    <span class="px-2 py-0.5 text-xs font-medium text-white ${divisionBadgeClass} rounded-full">${event.division}</span>
                     <span class="text-sm text-gray-500 dark:text-gray-400"><i class="ti ti-map-pin mr-1"></i>${event.location}</span>
                 </div>
                 <div class="match-teams mb-3">
@@ -1243,15 +1441,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="away-team text-gray-900 dark:text-white">${event.awayTeam}</div>
                 </div>
                 <div class="flex justify-between items-center">
+                    ${!isEcsFc ? `
                     <div class="ref-badge ${isAssigned ? 'ref-assigned' : 'ref-unassigned'}">
                         <i class="ti ti-user-circle"></i>
                         <span>${event.ref}</span>
                     </div>
+                    ` : `<div class="text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-ball-football mr-1"></i>ECS FC Match</div>`}
                     <div class="flex gap-2">
                         <button class="view-match-btn px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
                             <i class="ti ti-eye mr-1"></i>View
                         </button>
-                        ${canAssignReferee ? `
+                        ${canAssignReferee && !isEcsFc ? `
                         <button class="assign-ref-btn px-3 py-1.5 text-xs font-medium ${isAssigned ? 'text-green-600 bg-white border border-green-300 hover:bg-green-50 dark:bg-gray-700 dark:border-green-500 dark:text-green-400' : 'text-white bg-ecs-green hover:bg-green-800'} rounded-lg">
                             <i class="ti ti-user-check mr-1"></i>${isAssigned ? 'Change' : 'Assign'}
                         </button>
@@ -1263,17 +1463,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderMatchCardCompact(event, isAssigned) {
+        // Handle league events differently
+        if (event.type === 'league_event') {
+            return renderLeagueEventCard(event, true);
+        }
+        // Division badge color: Premier=blue, Classic=green, ECS FC=purple
+        const divisionBadgeClass = event.division === 'Premier' ? 'bg-blue-500' :
+                                   event.division === 'ECS FC' ? 'bg-purple-500' : 'bg-green-500';
+        const isEcsFc = event.type === 'ecs_fc';
         return `
-            <div class="match-item p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-2 cursor-pointer hover:shadow-sm transition-shadow" data-event-id="${event.id}">
+            <div class="match-item p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-2 cursor-pointer hover:shadow-sm transition-shadow" data-event-id="${event.id}" data-event-type="${event.type || 'match'}">
                 <div class="text-xs text-gray-500 dark:text-gray-400 mb-1"><i class="ti ti-clock mr-1"></i>${event.time}</div>
                 <div class="flex items-center gap-1 mb-1">
-                    <span class="px-1.5 py-0.5 text-[10px] font-medium text-white ${event.division === 'Premier' ? 'bg-blue-500' : 'bg-green-500'} rounded">${event.division}</span>
+                    <span class="px-1.5 py-0.5 text-[10px] font-medium text-white ${divisionBadgeClass} rounded">${event.division}</span>
                     <small class="text-gray-700 dark:text-gray-300 truncate">${event.homeTeam} vs ${event.awayTeam}</small>
                 </div>
                 <div class="flex justify-between items-center">
+                    ${!isEcsFc ? `
                     <div class="ref-badge-small ${isAssigned ? 'text-green-500' : 'text-red-500'} text-xs">
                         <i class="ti ti-user-circle mr-1"></i>${event.ref}
                     </div>
+                    ` : `<div class="text-[10px] text-purple-500"><i class="ti ti-ball-football mr-1"></i>ECS FC</div>`}
                     <button class="view-match-btn p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                         <i class="ti ti-eye text-sm"></i>
                     </button>
@@ -1287,8 +1497,16 @@ document.addEventListener('DOMContentLoaded', () => {
             item.addEventListener('click', function(e) {
                 if (!e.target.closest('button')) {
                     const eventId = this.dataset.eventId;
+                    const eventType = this.dataset.eventType;
                     const event = allEvents.find(evt => evt.id == eventId);
-                    if (event) showMatchDetailsModal(event);
+                    if (event) {
+                        // Handle league events differently - open edit modal
+                        if (eventType === 'league_event' && typeof openLeagueEventModal === 'function') {
+                            openLeagueEventModal(event);
+                        } else {
+                            showMatchDetailsModal(event);
+                        }
+                    }
                 }
             });
             const viewBtn = item.querySelector('.view-match-btn');
@@ -1298,6 +1516,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     const eventId = item.dataset.eventId;
                     const event = allEvents.find(evt => evt.id == eventId);
                     if (event) showMatchDetailsModal(event);
+                });
+            }
+            const editBtn = item.querySelector('.edit-event-btn');
+            if (editBtn) {
+                editBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const eventId = item.dataset.eventId;
+                    const event = allEvents.find(evt => evt.id == eventId);
+                    if (event && typeof openLeagueEventModal === 'function') {
+                        openLeagueEventModal(event);
+                    }
                 });
             }
             const assignBtn = item.querySelector('.assign-ref-btn');
@@ -1644,20 +1873,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Filter checkboxes
-    ['filterShowMatches', 'filterShowLeagueEvents', 'filterDivPremier', 'filterDivClassic'].forEach(id => {
+    ['filterShowMatches', 'filterShowLeagueEvents', 'filterDivPremier', 'filterDivClassic', 'filterDivEcsFc'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', () => renderSchedule());
+    });
+
+    // Event type filter checkboxes
+    document.querySelectorAll('.filter-event-type').forEach(cb => {
+        cb.addEventListener('change', () => renderSchedule());
+    });
+
+    // Toggle event type filters visibility based on League Events checkbox
+    document.getElementById('filterShowLeagueEvents')?.addEventListener('change', function() {
+        const eventTypeFilters = document.getElementById('leagueEventTypeFilters');
+        if (eventTypeFilters) {
+            eventTypeFilters.style.display = this.checked ? 'block' : 'none';
+        }
     });
 
     document.getElementById('filterSelectAllDivisions')?.addEventListener('click', () => {
         document.getElementById('filterDivPremier').checked = true;
         document.getElementById('filterDivClassic').checked = true;
+        document.getElementById('filterDivEcsFc').checked = true;
         renderSchedule();
     });
 
     document.getElementById('filterClearAllDivisions')?.addEventListener('click', () => {
         document.getElementById('filterDivPremier').checked = false;
         document.getElementById('filterDivClassic').checked = false;
+        document.getElementById('filterDivEcsFc').checked = false;
+        renderSchedule();
+    });
+
+    // Event type filter all/none buttons
+    document.getElementById('filterSelectAllEventTypes')?.addEventListener('click', () => {
+        document.querySelectorAll('.filter-event-type').forEach(cb => cb.checked = true);
+        renderSchedule();
+    });
+
+    document.getElementById('filterClearAllEventTypes')?.addEventListener('click', () => {
+        document.querySelectorAll('.filter-event-type').forEach(cb => cb.checked = false);
         renderSchedule();
     });
 
@@ -1666,6 +1921,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('filterShowLeagueEvents').checked = true;
         document.getElementById('filterDivPremier').checked = true;
         document.getElementById('filterDivClassic').checked = true;
+        document.getElementById('filterDivEcsFc').checked = true;
+        // Reset event type filters
+        document.querySelectorAll('.filter-event-type').forEach(cb => cb.checked = true);
+        // Show event type filters section
+        const eventTypeFilters = document.getElementById('leagueEventTypeFilters');
+        if (eventTypeFilters) eventTypeFilters.style.display = 'block';
         renderSchedule();
     });
 
@@ -1683,42 +1944,232 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchAvailableReferees();
     };
 
-    // Initialize LeagueEventManager for Add Event functionality
-    const canEditEvents = {{ 'true' if can_edit_events else 'false' }};
-    if (canEditEvents && typeof LeagueEventManager !== 'undefined') {
-        LeagueEventManager.init({ isAdmin: true });
-
-        // Bind Add Event button
-        const addEventBtn = document.getElementById('addLeagueEventBtn');
-        if (addEventBtn) {
-            addEventBtn.addEventListener('click', function() {
-                LeagueEventManager.openCreateModal();
-            });
-        }
-    }
-});
-</script>
-
-<!-- League Event Manager Script -->
-<script src="{{ url_for('static', filename='assets/js/calendar/calendar-league-events.js') }}" type="module"></script>
-<script>
-// Make LeagueEventManager available globally (loaded as ES module)
-import('/static/assets/js/calendar/calendar-league-events.js').then(module => {
-    window.LeagueEventManager = module.LeagueEventManager;
-
-    // Initialize if page is ready
+    // League Event Modal Handlers (using inline modal, not JS module)
     const canEditEvents = {{ 'true' if can_edit_events else 'false' }};
     if (canEditEvents) {
-        module.LeagueEventManager.init({ isAdmin: true });
+        const leagueEventModal = document.getElementById('leagueEventModal');
+        let flowbiteModal = null;
+
+        // Initialize Flowbite modal
+        if (leagueEventModal && typeof Modal !== 'undefined') {
+            flowbiteModal = new Modal(leagueEventModal);
+        }
+
+        // Open modal function
+        function openLeagueEventModal(eventData = null) {
+            const form = document.getElementById('leagueEventForm');
+            form.reset();
+            document.getElementById('eventId').value = '';
+            document.getElementById('eventModalTitle').textContent = eventData ? 'Edit League Event' : 'Create League Event';
+            document.getElementById('saveEventBtn').innerHTML = eventData ? '<i class="ti ti-check mr-2"></i> Save Changes' : '<i class="ti ti-check mr-2"></i> Create Event';
+            document.getElementById('deleteEventBtn').classList.toggle('hidden', !eventData);
+            document.getElementById('recurringSection').classList.toggle('hidden', !!eventData);
+            document.getElementById('recurringOptions').classList.add('hidden');
+
+            if (eventData) {
+                document.getElementById('eventId').value = eventData.id?.replace('event-', '') || '';
+                document.getElementById('eventTitle').value = eventData.title || '';
+                document.getElementById('eventType').value = eventData.eventType || eventData.extendedProps?.eventType || 'other';
+                document.getElementById('eventLocation').value = eventData.location || eventData.extendedProps?.location || '';
+                document.getElementById('eventDescription').value = eventData.description || eventData.extendedProps?.description || '';
+                document.getElementById('eventAllDay').checked = eventData.allDay || false;
+                if (eventData.start) {
+                    const start = new Date(eventData.start);
+                    document.getElementById('eventStartDate').value = start.toISOString().slice(0, 16);
+                }
+                if (eventData.end) {
+                    const end = new Date(eventData.end);
+                    document.getElementById('eventEndDate').value = end.toISOString().slice(0, 16);
+                }
+            }
+
+            if (flowbiteModal) flowbiteModal.show();
+            else leagueEventModal.classList.remove('hidden');
+        }
 
         // Bind Add Event button
         const addEventBtn = document.getElementById('addLeagueEventBtn');
         if (addEventBtn) {
-            addEventBtn.addEventListener('click', function() {
-                module.LeagueEventManager.openCreateModal();
-            });
+            addEventBtn.addEventListener('click', () => openLeagueEventModal());
         }
+
+        // Auto-fill end time 3 hours after start
+        document.getElementById('eventStartDate')?.addEventListener('change', function() {
+            const endInput = document.getElementById('eventEndDate');
+            if (this.value && !endInput.value) {
+                const startDate = new Date(this.value);
+                startDate.setHours(startDate.getHours() + 3);
+                endInput.value = startDate.toISOString().slice(0, 16);
+            }
+        });
+
+        // Recurring checkbox toggle
+        document.getElementById('eventRecurring')?.addEventListener('change', function() {
+            const options = document.getElementById('recurringOptions');
+            const discordLabel = document.getElementById('discordLabel');
+            options.classList.toggle('hidden', !this.checked);
+            if (discordLabel) {
+                discordLabel.innerHTML = this.checked
+                    ? '<i class="ti ti-brand-discord mr-1"></i>Announce in Discord (single summary post)'
+                    : '<i class="ti ti-brand-discord mr-1"></i>Announce in Discord';
+            }
+        });
+
+        // Generate recurring dates
+        function generateRecurringDates(options) {
+            const { pattern, dayOfWeek, time, endDate, maxOccurrences = 12 } = options;
+            const dates = [];
+            const [hours, minutes] = time.split(':').map(Number);
+
+            let currentDate = new Date();
+            currentDate.setHours(hours, minutes, 0, 0);
+
+            const targetDay = parseInt(dayOfWeek, 10);
+            const currentDay = currentDate.getDay();
+            let daysUntilTarget = (targetDay - currentDay + 7) % 7;
+            if (daysUntilTarget === 0 && currentDate < new Date()) daysUntilTarget = 7;
+            currentDate.setDate(currentDate.getDate() + daysUntilTarget);
+
+            const endDateLimit = endDate ? new Date(endDate + 'T23:59:59') : null;
+            let occurrences = 0;
+
+            while (occurrences < maxOccurrences) {
+                if (endDateLimit && currentDate > endDateLimit) break;
+                dates.push(new Date(currentDate));
+                occurrences++;
+
+                if (pattern === 'weekly') currentDate.setDate(currentDate.getDate() + 7);
+                else if (pattern === 'biweekly') currentDate.setDate(currentDate.getDate() + 14);
+                else if (pattern === 'monthly') {
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                    const newDay = currentDate.getDay();
+                    const diff = (targetDay - newDay + 7) % 7;
+                    currentDate.setDate(currentDate.getDate() + diff);
+                }
+            }
+            return dates;
+        }
+
+        // Save event handler
+        document.getElementById('saveEventBtn')?.addEventListener('click', async function() {
+            const form = document.getElementById('leagueEventForm');
+            if (!form.checkValidity()) { form.reportValidity(); return; }
+
+            const eventId = document.getElementById('eventId').value;
+            const isEdit = !!eventId;
+            const isRecurring = document.getElementById('eventRecurring')?.checked && !isEdit;
+
+            const baseEventData = {
+                title: document.getElementById('eventTitle').value,
+                event_type: document.getElementById('eventType').value,
+                location: document.getElementById('eventLocation').value || null,
+                description: document.getElementById('eventDescription').value || null,
+                is_all_day: document.getElementById('eventAllDay').checked,
+                notify_discord: document.getElementById('eventNotifyDiscord').checked
+            };
+
+            try {
+                if (isRecurring) {
+                    const dates = generateRecurringDates({
+                        pattern: document.getElementById('recurrencePattern').value,
+                        dayOfWeek: document.getElementById('recurrenceDay').value,
+                        time: document.getElementById('recurrenceTime').value,
+                        endDate: document.getElementById('recurrenceEndDate').value || null
+                    });
+
+                    if (dates.length === 0) {
+                        if (window.showToast) window.showToast('No dates generated', 'error');
+                        return;
+                    }
+
+                    if (window.showToast) window.showToast(`Creating ${dates.length} recurring events...`, 'info');
+
+                    let successCount = 0;
+                    const wantsDiscord = baseEventData.notify_discord;
+                    const patternLabel = { weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly' }[document.getElementById('recurrencePattern').value];
+                    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const dayName = dayNames[parseInt(document.getElementById('recurrenceDay').value, 10)];
+                    const timeStr = document.getElementById('recurrenceTime').value;
+
+                    for (let i = 0; i < dates.length; i++) {
+                        const date = dates[i];
+                        const endDate = new Date(date);
+                        endDate.setHours(endDate.getHours() + 3);
+
+                        let description = baseEventData.description || '';
+                        if (i === 0 && wantsDiscord && dates.length > 1) {
+                            description += `\n\n📅 **Recurring Schedule**: ${patternLabel} on ${dayName}s at ${timeStr} (${dates.length} events total)`;
+                        }
+
+                        const response = await fetch('/api/calendar/league-events', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                            body: JSON.stringify({
+                                ...baseEventData,
+                                description: i === 0 ? description : baseEventData.description,
+                                start_datetime: date.toISOString(),
+                                end_datetime: endDate.toISOString(),
+                                notify_discord: wantsDiscord && i === 0
+                            })
+                        });
+                        if (response.ok) successCount++;
+                    }
+
+                    if (flowbiteModal) flowbiteModal.hide();
+                    else leagueEventModal.classList.add('hidden');
+                    if (window.showToast) window.showToast(`Created ${successCount} recurring events` + (wantsDiscord ? ' (Discord announced)' : ''), 'success');
+                    window.refreshCalendar?.();
+                } else {
+                    const eventData = {
+                        ...baseEventData,
+                        start_datetime: document.getElementById('eventStartDate').value,
+                        end_datetime: document.getElementById('eventEndDate').value || null
+                    };
+
+                    const url = isEdit ? `/api/calendar/league-events/${eventId}` : '/api/calendar/league-events';
+                    const response = await fetch(url, {
+                        method: isEdit ? 'PUT' : 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        body: JSON.stringify(eventData)
+                    });
+
+                    if (!response.ok) throw new Error((await response.json()).error || 'Failed to save');
+
+                    if (flowbiteModal) flowbiteModal.hide();
+                    else leagueEventModal.classList.add('hidden');
+                    if (window.showToast) window.showToast(isEdit ? 'Event updated' : 'Event created', 'success');
+                    window.refreshCalendar?.();
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                if (window.showToast) window.showToast(error.message || 'Failed to save event', 'error');
+            }
+        });
+
+        // Delete event handler
+        document.getElementById('deleteEventBtn')?.addEventListener('click', async function() {
+            const eventId = document.getElementById('eventId').value;
+            if (!eventId || !confirm('Delete this event?')) return;
+
+            try {
+                const response = await fetch(`/api/calendar/league-events/${eventId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) throw new Error('Failed to delete');
+
+                if (flowbiteModal) flowbiteModal.hide();
+                else leagueEventModal.classList.add('hidden');
+                if (window.showToast) window.showToast('Event deleted', 'success');
+                window.refreshCalendar?.();
+            } catch (error) {
+                if (window.showToast) window.showToast('Failed to delete event', 'error');
+            }
+        });
+
+        // Expose for calendar event clicks
+        window.openLeagueEventModal = openLeagueEventModal;
     }
-}).catch(err => console.error('Failed to load LeagueEventManager:', err));
+});
 </script>
 {% endblock %}

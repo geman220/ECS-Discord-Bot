@@ -41,6 +41,7 @@ def get_match_status_color(status):
         'COMPLETED': 'success',
         'CANCELLED': 'danger',
         'POSTPONED': 'secondary',
+        'BYE': 'info',
     }
     return status_colors.get(status, 'secondary')
 
@@ -53,6 +54,7 @@ def get_match_status_icon(status):
         'COMPLETED': 'ti-check',
         'CANCELLED': 'ti-x',
         'POSTPONED': 'ti-clock-pause',
+        'BYE': 'ti-calendar-off',
     }
     return status_icons.get(status, 'ti-calendar')
 
@@ -86,6 +88,178 @@ def get_rsvp_counts(match):
         'no_response': no_response_count,
         'total': yes_count + no_count + maybe_count + no_response_count
     }
+
+
+# -----------------------------------------------------------
+# CSV Import Helper Functions
+# -----------------------------------------------------------
+
+def parse_flexible_date(date_str):
+    """
+    Parse date string in multiple formats.
+
+    Supports:
+    - M/D/YYYY (1/7/2026)
+    - MM/DD/YYYY (01/07/2026)
+    - YYYY-MM-DD (2026-01-07)
+
+    Returns:
+        date object or None if empty/invalid
+    """
+    if not date_str or not date_str.strip():
+        return None
+
+    date_str = date_str.strip()
+
+    # Try common formats in order of likelihood
+    formats = [
+        '%m/%d/%Y',   # 01/07/2026 or 1/7/2026 (strptime handles both)
+        '%Y-%m-%d',   # 2026-01-07
+        '%m-%d-%Y',   # 01-07-2026
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_str, fmt).date()
+        except ValueError:
+            continue
+
+    # Fallback to dateutil parser for edge cases
+    try:
+        from dateutil import parser
+        parsed = parser.parse(date_str, dayfirst=False)  # US format (month first)
+        return parsed.date()
+    except Exception:
+        raise ValueError(f"Cannot parse date: '{date_str}'. Expected format: M/D/YYYY, MM/DD/YYYY, or YYYY-MM-DD")
+
+
+def parse_flexible_time(time_str):
+    """
+    Parse time string in multiple formats.
+
+    Supports:
+    - H:MM AM/PM (8:00 PM)
+    - HH:MM AM/PM (08:00 PM)
+    - HH:MM (20:00) - 24-hour format
+
+    Returns:
+        time object or None if empty/invalid
+    """
+    if not time_str or not time_str.strip():
+        return None
+
+    time_str = time_str.strip().upper()
+
+    # Try 12-hour formats first (most common in user CSVs)
+    formats_12h = [
+        '%I:%M %p',   # 8:00 PM or 08:00 PM
+        '%I:%M%p',    # 8:00PM (no space)
+    ]
+
+    for fmt in formats_12h:
+        try:
+            return datetime.strptime(time_str, fmt).time()
+        except ValueError:
+            continue
+
+    # Try 24-hour format
+    try:
+        return datetime.strptime(time_str, '%H:%M').time()
+    except ValueError:
+        pass
+
+    # Fallback to dateutil parser
+    try:
+        from dateutil import parser
+        parsed = parser.parse(time_str)
+        return parsed.time()
+    except Exception:
+        raise ValueError(f"Cannot parse time: '{time_str}'. Expected format: H:MM AM/PM or HH:MM")
+
+
+def normalize_csv_columns(row):
+    """
+    Normalize CSV column names to internal field names.
+
+    Maps various column name formats to standardized internal names.
+
+    Returns:
+        dict with normalized keys and processed values
+    """
+    # First, lowercase and strip all keys
+    row_lower = {k.lower().strip(): v.strip() if v else '' for k, v in row.items()}
+
+    # Column name alias mapping
+    column_aliases = {
+        # Opponent
+        'opponent': ['opponent', 'opponent_name', 'team', 'vs'],
+        # Date
+        'date': ['date', 'match_date', 'game_date'],
+        # Time
+        'time': ['time', 'match_time', 'game_time', 'kickoff'],
+        # Location
+        'location': ['location', 'venue', 'address'],
+        # Field name (more specific than location)
+        'field': ['field', 'field_name', 'pitch', 'court'],
+        # Home/Away indicator
+        'home_or_away': ['home or away', 'home/away', 'home', 'venue_type', 'h/a'],
+        # Shirt colors
+        'home_shirt_color': ['shirt color', 'shirt_color', 'our color', 'our_color', 'jersey', 'kit'],
+        'away_shirt_color': ['opponent shirt color', 'opponent_shirt_color', 'their color', 'their_color', 'opp jersey', 'opp kit'],
+        # Notes
+        'notes': ['notes', 'comments', 'memo', 'info'],
+    }
+
+    normalized = {}
+
+    for internal_name, aliases in column_aliases.items():
+        for alias in aliases:
+            if alias in row_lower:
+                normalized[internal_name] = row_lower[alias]
+                break
+
+    return normalized
+
+
+def parse_home_away(value):
+    """
+    Parse home/away indicator from various formats.
+
+    Home values: 'Y', 'YES', 'TRUE', '1', 'HOME', 'H'
+    Away values: 'N', 'NO', 'FALSE', '0', 'AWAY', 'A'
+
+    Returns:
+        bool: True for home, False for away
+    """
+    if not value:
+        return True  # Default to home if not specified
+
+    value = value.upper().strip()
+
+    home_values = {'Y', 'YES', 'TRUE', '1', 'HOME', 'H'}
+    away_values = {'N', 'NO', 'FALSE', '0', 'AWAY', 'A'}
+
+    if value in home_values:
+        return True
+    elif value in away_values:
+        return False
+    else:
+        # Default to home for unrecognized values
+        return True
+
+
+def is_bye_week(opponent_name):
+    """
+    Check if the row represents a bye week.
+
+    Returns:
+        bool: True if this is a bye week
+    """
+    if not opponent_name:
+        return False
+
+    bye_indicators = {'bye', 'bye week', 'off', 'no game', 'break'}
+    return opponent_name.lower().strip() in bye_indicators
 
 
 # -----------------------------------------------------------
@@ -623,27 +797,70 @@ def ecs_fc_import():
 
             for row_num, row in enumerate(reader, start=2):  # Start at 2 to account for header
                 try:
-                    # Normalize column names (case-insensitive)
-                    row_lower = {k.lower().strip(): v for k, v in row.items()}
+                    # Normalize column names using helper function
+                    normalized = normalize_csv_columns(row)
 
-                    opponent_name = row_lower.get('opponent') or row_lower.get('opponent_name', 'Unknown')
+                    # Get opponent name
+                    opponent_name = normalized.get('opponent', '').strip() or 'Unknown'
 
-                    # Parse date
-                    date_str = row_lower.get('date') or row_lower.get('match_date', '')
-                    match_date = datetime.strptime(date_str.strip(), '%Y-%m-%d').date()
+                    # Check for bye week
+                    if is_bye_week(opponent_name):
+                        # For bye weeks, date is required but time/location are optional
+                        date_str = normalized.get('date', '')
+                        match_date = parse_flexible_date(date_str)
 
-                    # Parse time
-                    time_str = row_lower.get('time') or row_lower.get('match_time', '19:00')
-                    match_time = datetime.strptime(time_str.strip(), '%H:%M').time()
+                        if not match_date:
+                            errors.append(f"Row {row_num}: Bye week must have a date")
+                            continue
 
-                    location = row_lower.get('location') or row_lower.get('venue', '')
-                    field_name = row_lower.get('field') or row_lower.get('field_name')
+                        match = EcsFcMatch(
+                            team_id=team_id,
+                            opponent_name='Bye',
+                            match_date=match_date,
+                            match_time=datetime.strptime('00:00', '%H:%M').time(),  # Placeholder
+                            location='',
+                            field_name=None,
+                            is_home_match=True,
+                            home_shirt_color=None,
+                            away_shirt_color=None,
+                            notes=normalized.get('notes', '') or 'Bye Week',
+                            status='BYE',
+                            created_by=current_user.id,
+                            created_at=datetime.utcnow(),
+                            updated_at=datetime.utcnow()
+                        )
+                        session.add(match)
+                        created_count += 1
+                        continue
+
+                    # Parse date (required)
+                    date_str = normalized.get('date', '')
+                    match_date = parse_flexible_date(date_str)
+                    if not match_date:
+                        errors.append(f"Row {row_num}: Missing or invalid date")
+                        continue
+
+                    # Parse time (required for non-bye)
+                    time_str = normalized.get('time', '')
+                    match_time = parse_flexible_time(time_str)
+                    if not match_time:
+                        errors.append(f"Row {row_num}: Missing or invalid time")
+                        continue
+
+                    # Location
+                    location = normalized.get('location', '')
+                    field_name = normalized.get('field') or None
 
                     # Parse home/away
-                    home_str = row_lower.get('home', 'Y').upper().strip()
-                    is_home_match = home_str in ['Y', 'YES', 'TRUE', '1', 'HOME']
+                    home_away_value = normalized.get('home_or_away', '')
+                    is_home_match = parse_home_away(home_away_value)
 
-                    notes = row_lower.get('notes', '')
+                    # Shirt colors (new fields)
+                    home_shirt_color = normalized.get('home_shirt_color') or None
+                    away_shirt_color = normalized.get('away_shirt_color') or None
+
+                    # Notes
+                    notes = normalized.get('notes', '')
 
                     match = EcsFcMatch(
                         team_id=team_id,
@@ -653,6 +870,8 @@ def ecs_fc_import():
                         location=location,
                         field_name=field_name,
                         is_home_match=is_home_match,
+                        home_shirt_color=home_shirt_color,
+                        away_shirt_color=away_shirt_color,
                         notes=notes,
                         status='SCHEDULED',
                         created_by=current_user.id,
@@ -760,6 +979,67 @@ def ecs_fc_rsvp_status(match_id):
         responses=responses,
         rsvp_counts=get_rsvp_counts(match)
     )
+
+
+# -----------------------------------------------------------
+# Manual RSVP Posting Routes
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/ecs-fc/post-missing-rsvps', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def ecs_fc_post_missing_rsvps():
+    """
+    Manually trigger posting of missing RSVP messages.
+
+    Finds all upcoming ECS FC matches without a Discord message
+    and posts RSVP messages for them immediately.
+    """
+    try:
+        from app.tasks.tasks_ecs_fc_scheduled import post_missing_ecs_fc_rsvps
+        result = post_missing_ecs_fc_rsvps.delay()
+        logger.info(f"Triggered post_missing_ecs_fc_rsvps task: {result.id}")
+        return jsonify({
+            'success': True,
+            'message': 'Task queued to post missing RSVPs. Check back in a moment.',
+            'task_id': result.id
+        })
+    except Exception as e:
+        logger.error(f"Failed to trigger post_missing_ecs_fc_rsvps: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_panel_bp.route('/ecs-fc/match/<int:match_id>/post-rsvp', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+def ecs_fc_post_rsvp(match_id):
+    """
+    Manually post RSVP message for a specific match.
+
+    This immediately sends the RSVP Discord message for the match,
+    regardless of scheduled timing.
+    """
+    session = g.db_session
+
+    match = session.query(EcsFcMatch).get(match_id)
+    if not match:
+        return jsonify({'success': False, 'message': 'Match not found'}), 404
+
+    if not validate_ecs_fc_coach_access(match.team_id, current_user):
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    try:
+        from app.tasks.tasks_rsvp_ecs import send_ecs_fc_match_notification
+        result = send_ecs_fc_match_notification.delay(match_id, 'created')
+        logger.info(f"Triggered RSVP post for match {match_id}: task {result.id}")
+        return jsonify({
+            'success': True,
+            'message': f'RSVP message queued for match vs {match.opponent_name}',
+            'task_id': result.id
+        })
+    except Exception as e:
+        logger.error(f"Failed to post RSVP for match {match_id}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 # -----------------------------------------------------------

@@ -66,7 +66,7 @@
                             </h6>
                         </div>
                         <div class="p-4">
-                            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">Your CSV should have the following columns (header row required):</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">Your CSV should have the following columns (header row required). Multiple date/time formats are supported:</p>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400 mb-4">
                                     <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-600 dark:text-gray-300">
@@ -79,56 +79,69 @@
                                     </thead>
                                     <tbody>
                                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">opponent</code></td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Opponent</code></td>
                                             <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded dark:bg-red-900 dark:text-red-300">Yes</span></td>
-                                            <td class="px-4 py-2">Text</td>
-                                            <td class="px-4 py-2">Seattle United O50</td>
+                                            <td class="px-4 py-2">Text or "Bye"</td>
+                                            <td class="px-4 py-2">Ice Crushers</td>
                                         </tr>
                                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">date</code></td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Date</code></td>
                                             <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded dark:bg-red-900 dark:text-red-300">Yes</span></td>
-                                            <td class="px-4 py-2">YYYY-MM-DD</td>
-                                            <td class="px-4 py-2">2025-01-15</td>
+                                            <td class="px-4 py-2">M/D/YYYY, MM/DD/YYYY, or YYYY-MM-DD</td>
+                                            <td class="px-4 py-2">1/7/2026</td>
                                         </tr>
                                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">time</code></td>
-                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">Optional</span></td>
-                                            <td class="px-4 py-2">HH:MM</td>
-                                            <td class="px-4 py-2">19:00</td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Time</code></td>
+                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">Required*</span></td>
+                                            <td class="px-4 py-2">H:MM AM/PM or HH:MM</td>
+                                            <td class="px-4 py-2">8:00 PM</td>
                                         </tr>
                                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">location</code></td>
-                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">Optional</span></td>
-                                            <td class="px-4 py-2">Text</td>
-                                            <td class="px-4 py-2">Memorial Stadium</td>
-                                        </tr>
-                                        <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">field</code></td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Location</code></td>
                                             <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
                                             <td class="px-4 py-2">Text</td>
-                                            <td class="px-4 py-2">Field A</td>
+                                            <td class="px-4 py-2">Miller Playfield</td>
                                         </tr>
                                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">home</code></td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Home or away</code></td>
                                             <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
-                                            <td class="px-4 py-2">Y/N</td>
-                                            <td class="px-4 py-2">Y</td>
+                                            <td class="px-4 py-2">Home/Away or Y/N</td>
+                                            <td class="px-4 py-2">Away</td>
+                                        </tr>
+                                        <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Shirt color</code></td>
+                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
+                                            <td class="px-4 py-2">Text (your team's color)</td>
+                                            <td class="px-4 py-2">Black</td>
+                                        </tr>
+                                        <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Opponent shirt color</code></td>
+                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
+                                            <td class="px-4 py-2">Text (opponent's color)</td>
+                                            <td class="px-4 py-2">White</td>
                                         </tr>
                                         <tr class="bg-white dark:bg-gray-800">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">notes</code></td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Notes</code></td>
                                             <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
                                             <td class="px-4 py-2">Text</td>
-                                            <td class="px-4 py-2">League match</td>
+                                            <td class="px-4 py-2">60/40 Koed for this match</td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
 
-                            <p class="text-sm font-medium text-gray-900 dark:text-white mb-2">Example CSV:</p>
-                            <pre class="bg-gray-900 text-gray-100 p-3 rounded-lg text-xs overflow-x-auto">opponent,date,time,location,field,home,notes
-Seattle United O50,2025-01-15,19:00,Memorial Stadium,Field A,Y,League match
-Wednesday FC,2025-01-22,19:30,Starfire,Field 2,N,Away game
-Eastside Masters,2025-01-29,18:00,Marymoor Park,,Y,</pre>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">* Time is optional for Bye weeks only</p>
+
+                            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                                <p class="text-sm text-blue-700 dark:text-blue-300"><i class="ti ti-info-circle mr-1"></i><strong>Bye Weeks:</strong> Set opponent to "Bye" to create a bye week entry (time and location not required).</p>
+                            </div>
+
+                            <p class="text-sm font-medium text-gray-900 dark:text-white mb-2">Example CSV (your league's format):</p>
+                            <pre class="bg-gray-900 text-gray-100 p-3 rounded-lg text-xs overflow-x-auto">Date,Time,Location,Home or away,Opponent,Shirt color,Opponent shirt color,Notes
+1/7/2026,8:00 PM,Miller Playfield,Away,Ice Crushers,Black,White,
+1/14/2026,8:00 PM,Loyal Heights Playfield,Home,Midfield Crisis,White,Black,60/40 Koed for this match
+1/21/2026,7:15 PM,Marymoor Park #3,Away,Landsharks,Black,White,
+3/4/2026,,,Bye,,,</pre>
                         </div>
                     </div>
                 </div>

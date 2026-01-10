@@ -24,10 +24,11 @@ MATCH_COLORS = {
 
 LEAGUE_EVENT_COLORS = {
     'party': '#9c27b0',        # Purple
-    'meeting': '#ff9800',      # Orange
+    'meeting': '#2196f3',      # Blue
     'social': '#e91e63',       # Pink
-    'training': '#4caf50',     # Green
-    'tournament': '#f44336',   # Red
+    'plop': '#4caf50',         # Green
+    'tournament': '#ffc107',   # Yellow/Gold
+    'fundraiser': '#ff5722',   # Deep Orange
     'other': '#607d8b',        # Blue-grey
 }
 
@@ -190,11 +191,71 @@ def league_event_to_fullcalendar(event, editable: bool = False) -> Dict[str, Any
     }
 
 
+def ecs_fc_match_to_fullcalendar(match, user_team_ids: List[int] = None) -> Dict[str, Any]:
+    """
+    Convert an EcsFcMatch model to FullCalendar event format.
+
+    Args:
+        match: The EcsFcMatch model instance
+        user_team_ids: Optional list of user's team IDs to determine is_my_team
+
+    Returns:
+        Dictionary in FullCalendar event format
+    """
+    # Determine if this is a user's team match
+    is_my_team = match.team_id in user_team_ids if user_team_ids else False
+
+    # Build title
+    team_name = match.team.name if match.team else 'Unknown'
+    title = f'{team_name} vs {match.opponent_name}'
+    if match.status == 'BYE':
+        title = f'{team_name} - Bye Week'
+
+    # Build start/end datetime
+    start_dt = datetime.combine(match.match_date, match.match_time)
+    end_dt = start_dt + timedelta(minutes=90)  # 90 minute match
+
+    # Use ECS FC color (purple)
+    color = MATCH_COLORS.get('ECS FC', '#7b1fa2')
+
+    # Build extended props
+    extended_props = {
+        'type': 'ecs_fc_match',
+        'matchId': match.id,
+        'teamId': match.team_id,
+        'teamName': team_name,
+        'opponentName': match.opponent_name,
+        'location': match.location or '',
+        'fieldName': match.field_name,
+        'division': 'ECS FC',
+        'isHomeMatch': match.is_home_match,
+        'isMyTeam': is_my_team,
+        'status': match.status,
+        'notes': match.notes,
+        'homeShirtColor': getattr(match, 'home_shirt_color', None),
+        'awayShirtColor': getattr(match, 'away_shirt_color', None),
+        'rsvpDeadline': match.rsvp_deadline.isoformat() if match.rsvp_deadline else None,
+    }
+
+    return {
+        'id': f'ecs-fc-match-{match.id}',
+        'title': title,
+        'start': start_dt.isoformat(),
+        'end': end_dt.isoformat(),
+        'allDay': False,
+        'color': color,
+        'editable': False,  # ECS FC matches are never editable from calendar
+        'extendedProps': extended_props,
+    }
+
+
 def events_to_fullcalendar(
     matches: List,
     league_events: List,
+    ecs_fc_matches: List = None,
     matches_editable: bool = False,
-    events_editable: bool = False
+    events_editable: bool = False,
+    user_team_ids: List[int] = None
 ) -> List[Dict[str, Any]]:
     """
     Convert lists of matches and league events to FullCalendar format.
@@ -202,8 +263,10 @@ def events_to_fullcalendar(
     Args:
         matches: List of Match model instances
         league_events: List of LeagueEvent model instances
+        ecs_fc_matches: List of EcsFcMatch model instances
         matches_editable: Whether matches should be editable
         events_editable: Whether league events should be editable
+        user_team_ids: Optional list of user's team IDs
 
     Returns:
         Combined list of FullCalendar events
@@ -215,6 +278,10 @@ def events_to_fullcalendar(
 
     for event in league_events:
         result.append(league_event_to_fullcalendar(event, editable=events_editable))
+
+    if ecs_fc_matches:
+        for ecs_match in ecs_fc_matches:
+            result.append(ecs_fc_match_to_fullcalendar(ecs_match, user_team_ids=user_team_ids))
 
     # Sort by start date
     result.sort(key=lambda x: x.get('start', ''))

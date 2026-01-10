@@ -158,34 +158,48 @@ class EcsFcScheduleManager:
     @staticmethod
     def delete_match(match_id: int) -> Tuple[bool, str]:
         """
-        Delete an ECS FC match.
-        
+        Delete an ECS FC match and all related scheduled messages.
+
         Args:
             match_id: ID of the match to delete
-            
+
         Returns:
             Tuple of (success, message)
         """
         try:
+            from app.models import ScheduledMessage
+
             match = g.db_session.query(EcsFcMatch).filter(EcsFcMatch.id == match_id).first()
             if not match:
                 return False, "Match not found"
-            
-            # Store match info for notification
+
+            # Store match info for notification before deletion
             team_name = match.team.name if match.team else "Unknown Team"
             opponent_name = match.opponent_name
             match_date = match.match_date
-            
+
+            # Delete any scheduled messages for this match
+            try:
+                scheduled_messages = g.db_session.query(ScheduledMessage).filter(
+                    ScheduledMessage.message_metadata.op('->>')('ecs_fc_match_id') == str(match_id)
+                ).all()
+
+                for msg in scheduled_messages:
+                    g.db_session.delete(msg)
+                    logger.info(f"Deleted scheduled message {msg.id} for ECS FC match {match_id}")
+            except Exception as e:
+                logger.warning(f"Error cleaning up scheduled messages for match {match_id}: {str(e)}")
+
+            # Send cancellation notification before deleting (needs match data)
+            EcsFcScheduleManager._send_match_notification(match, "cancelled")
+
             # Delete the match (cascading will handle availability records)
             g.db_session.delete(match)
             g.db_session.commit()
-            
-            # Send cancellation notification
-            EcsFcScheduleManager._send_match_notification(match, "cancelled")
-            
-            logger.info(f"Deleted ECS FC match: {match_id}")
+
+            logger.info(f"Deleted ECS FC match: {match_id} ({team_name} vs {opponent_name} on {match_date})")
             return True, "Match deleted successfully"
-            
+
         except Exception as e:
             g.db_session.rollback()
             logger.error(f"Error deleting ECS FC match {match_id}: {str(e)}")
@@ -461,8 +475,9 @@ class EcsFcScheduleManager:
         """
         Schedule automatic RSVP reminder for an ECS FC match.
 
-        If match is 7+ days away: Schedule for Monday 9 AM the week before.
-        If match is less than 7 days away: Post RSVP immediately.
+        RSVP posts are scheduled for the morning after the previous match day.
+        For example, if matches are on Wednesdays, RSVPs post Thursday 9 AM.
+        If that day has already passed, post immediately.
 
         Args:
             match: The ECS FC match to schedule reminder for
@@ -470,24 +485,26 @@ class EcsFcScheduleManager:
         try:
             from app.models import ScheduledMessage
 
-            # Calculate days until match
+            # Calculate when to post RSVP
+            # RSVP should go out the day after the previous match (same weekday - 6 days)
+            # e.g., for a Wednesday match, post the previous Thursday (Wed + 1 day = Thu, but previous week)
             match_datetime = datetime.combine(match.match_date, match.match_time)
-            days_until_match = (match_datetime.date() - datetime.utcnow().date()).days
+            now = datetime.utcnow()
 
-            if days_until_match < 7:
-                # Match is within a week - post RSVP immediately
-                from app.tasks.tasks_rsvp_ecs import send_ecs_fc_rsvp_reminder
-                send_ecs_fc_rsvp_reminder.delay(match.id)
-                logger.info(f"Match {match.id} is within 7 days - posting RSVP immediately")
+            # The ideal post day is: match day - 6 days (day after the previous match)
+            # For Wednesday match (weekday 2): post on Thursday of previous week (match_date - 6 days)
+            ideal_post_date = match.match_date - timedelta(days=6)
+            ideal_post_time = datetime.combine(ideal_post_date, datetime.strptime("09:00", "%H:%M").time())
+
+            # If the ideal post time has already passed, post immediately
+            if ideal_post_time <= now:
+                from app.tasks.tasks_rsvp_ecs import send_ecs_fc_match_notification
+                send_ecs_fc_match_notification.delay(match.id, 'created')
+                logger.info(f"Match {match.id} - ideal post time ({ideal_post_date}) has passed, posting RSVP immediately")
                 return
 
-            # Match is 7+ days away - schedule for Monday 9 AM before the match
-            # Find the Monday of the week before the match
-            days_until_monday = (match_datetime.weekday() + 6) % 7
-            if days_until_monday == 0:
-                days_until_monday = 7
-            send_date = match_datetime.date() - timedelta(days=days_until_monday)
-            send_time = datetime.combine(send_date, datetime.strptime("09:00", "%H:%M").time())
+            # Schedule for the ideal post time (Thursday 9 AM for Wednesday games)
+            send_time = ideal_post_time
             
             # Check if a scheduled message already exists for this match
             existing = g.db_session.query(ScheduledMessage).filter(

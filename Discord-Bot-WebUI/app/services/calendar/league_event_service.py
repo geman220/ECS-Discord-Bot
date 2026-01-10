@@ -23,11 +23,11 @@ class LeagueEventService(BaseService):
     Service for managing league events.
 
     Provides CRUD operations for non-match calendar events
-    such as parties, meetings, training sessions, etc.
+    such as parties, meetings, PLOPs, fundraisers, etc.
     """
 
     # Valid event types
-    VALID_EVENT_TYPES = {'party', 'meeting', 'social', 'training', 'tournament', 'other'}
+    VALID_EVENT_TYPES = {'party', 'meeting', 'social', 'plop', 'tournament', 'fundraiser', 'other'}
 
     def __init__(self, session: Session):
         """

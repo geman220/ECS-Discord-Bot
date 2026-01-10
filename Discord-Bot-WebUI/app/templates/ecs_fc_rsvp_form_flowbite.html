@@ -42,6 +42,16 @@
                     <i class="ti ti-home text-ecs-green"></i>
                     <span>{{ 'Home' if match.is_home else 'Away' }}</span>
                 </div>
+                {% if match.home_shirt_color or match.away_shirt_color %}
+                <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                    <i class="ti ti-shirt text-ecs-green"></i>
+                    <span>
+                        {% if match.home_shirt_color %}Us: {{ match.home_shirt_color }}{% endif %}
+                        {% if match.home_shirt_color and match.away_shirt_color %} | {% endif %}
+                        {% if match.away_shirt_color %}Them: {{ match.away_shirt_color }}{% endif %}
+                    </span>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

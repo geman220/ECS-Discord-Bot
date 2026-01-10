@@ -93,9 +93,17 @@ def send_ecs_fc_availability_message(self, session, scheduled_message_id: int) -
         
         if match.field_name:
             embed["fields"].append({"name": "🏟️ Field", "value": match.field_name, "inline": True})
-            
+
         embed["fields"].append({"name": "🏠 Home/Away", "value": "Home" if match.is_home_match else "Away", "inline": True})
-        
+
+        # Add shirt colors prominently
+        home_shirt = getattr(match, 'home_shirt_color', None)
+        away_shirt = getattr(match, 'away_shirt_color', None)
+        if home_shirt:
+            embed["fields"].append({"name": "👕 WEAR", "value": f"**{home_shirt.upper()}**", "inline": True})
+        if away_shirt:
+            embed["fields"].append({"name": "🎽 Opponent", "value": away_shirt, "inline": True})
+
         # Add current RSVP status
         embed["fields"].append({
             "name": "📊 Current Responses",
@@ -130,6 +138,8 @@ def send_ecs_fc_availability_message(self, session, scheduled_message_id: int) -
                 'rsvp_deadline': match.rsvp_deadline.isoformat() if match.rsvp_deadline else None,
                 'notes': match.notes,
                 'field_name': match.field_name,
+                'home_shirt_color': getattr(match, 'home_shirt_color', None),
+                'away_shirt_color': getattr(match, 'away_shirt_color', None),
                 'response_counts': rsvp_summary
             }
             
@@ -258,4 +268,81 @@ def schedule_ecs_fc_reminders(self, session, days_ahead: int = 90) -> Dict[str, 
     except Exception as e:
         # Rollback happens automatically in @celery_task decorator
         logger.error(f"Error scheduling ECS FC reminders: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=30)
+
+
+@celery_task(name='app.tasks.tasks_ecs_fc_scheduled.post_missing_ecs_fc_rsvps', max_retries=3, queue='discord')
+def post_missing_ecs_fc_rsvps(self, session) -> Dict[str, Any]:
+    """
+    Post RSVP messages for upcoming ECS FC matches that don't have a Discord message yet.
+
+    This task should be run on startup or periodically to catch any matches
+    that were created but never had their RSVP posted (e.g., due to timing issues).
+
+    Logic:
+    - Find all upcoming ECS FC matches (next 14 days)
+    - For matches without a discord_message_id, post RSVP if within the 6-day window
+    - RSVP posts should go out 6 days before the match (the day after the previous match)
+    - If the 6-day-before date has passed, post immediately
+
+    Args:
+        session: Database session
+
+    Returns:
+        Dictionary with results
+    """
+    try:
+        from datetime import timedelta
+        from app.tasks.tasks_rsvp_ecs import send_ecs_fc_match_notification
+
+        today = datetime.now().date()
+        end_date = today + timedelta(days=14)
+
+        # Find upcoming matches without Discord RSVP posts
+        matches = session.query(EcsFcMatch).filter(
+            EcsFcMatch.match_date >= today,
+            EcsFcMatch.match_date <= end_date,
+            EcsFcMatch.status == 'SCHEDULED',
+            # No Discord message posted yet
+            (EcsFcMatch.discord_message_id == None) | (EcsFcMatch.discord_message_id == '')
+        ).all()
+
+        posted_count = 0
+        skipped_count = 0
+        failed_count = 0
+
+        for match in matches:
+            try:
+                # Calculate when RSVP should be posted (6 days before match)
+                # This aligns with the logic in EcsFcScheduleManager._schedule_rsvp_reminder
+                ideal_post_date = match.match_date - timedelta(days=6)
+
+                # Only post if the 6-day-before date has passed (or is today)
+                if ideal_post_date <= today:
+                    send_ecs_fc_match_notification.delay(match.id, 'created')
+                    posted_count += 1
+                    logger.info(f"Posted missing RSVP for ECS FC match {match.id} ({match.team.name if match.team else 'Unknown'} vs {match.opponent_name} on {match.match_date})")
+                else:
+                    skipped_count += 1
+                    logger.debug(f"Skipped RSVP for ECS FC match {match.id} - not yet due (ideal post date: {ideal_post_date})")
+            except Exception as e:
+                logger.error(f"Failed to post RSVP for match {match.id}: {str(e)}")
+                failed_count += 1
+
+        logger.info(f"Posted {posted_count} missing ECS FC RSVPs, skipped {skipped_count} (not yet due), {failed_count} failed")
+
+        return {
+            'success': True,
+            'message': f'Posted {posted_count} missing RSVPs, skipped {skipped_count} (not yet due)',
+            'posted_count': posted_count,
+            'skipped_count': skipped_count,
+            'failed_count': failed_count,
+            'matches_checked': len(matches)
+        }
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error posting missing ECS FC RSVPs: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=60)
+    except Exception as e:
+        logger.error(f"Error posting missing ECS FC RSVPs: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)

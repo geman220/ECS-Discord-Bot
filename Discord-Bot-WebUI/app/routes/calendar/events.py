@@ -13,7 +13,7 @@ from flask import Blueprint, request, jsonify, g
 from flask_login import login_required, current_user
 
 from app.services.calendar import create_visibility_service
-from app.dto.calendar_dto import match_to_fullcalendar, league_event_to_fullcalendar
+from app.dto.calendar_dto import match_to_fullcalendar, league_event_to_fullcalendar, ecs_fc_match_to_fullcalendar
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +91,18 @@ def get_events():
                 fc_event = league_event_to_fullcalendar(league_event, editable=can_edit)
                 events.append(fc_event)
 
+        # Get ECS FC matches
+        ecs_fc_matches = visibility_service.get_visible_ecs_fc_matches(
+            current_user,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        user_team_ids = visibility_service.get_user_team_ids(current_user)
+        for ecs_match in ecs_fc_matches:
+            fc_event = ecs_fc_match_to_fullcalendar(ecs_match, user_team_ids=user_team_ids)
+            events.append(fc_event)
+
         return jsonify(events)
 
     except Exception as e:
@@ -154,7 +166,7 @@ def get_upcoming_events():
         visibility_service = create_visibility_service(g.db_session)
 
         # Get all visible events
-        matches, league_events = visibility_service.get_all_visible_events(
+        matches, league_events, ecs_fc_matches = visibility_service.get_all_visible_events(
             current_user,
             start_date=start_date,
             end_date=end_date
@@ -166,6 +178,11 @@ def get_upcoming_events():
             events.append(match_to_fullcalendar(match, editable=False))
         for event in league_events:
             events.append(league_event_to_fullcalendar(event, editable=False))
+
+        # Include ECS FC matches
+        user_team_ids = visibility_service.get_user_team_ids(current_user)
+        for ecs_match in ecs_fc_matches:
+            events.append(ecs_fc_match_to_fullcalendar(ecs_match, user_team_ids=user_team_ids))
 
         # Sort by start date and limit
         events.sort(key=lambda x: x.get('start', ''))

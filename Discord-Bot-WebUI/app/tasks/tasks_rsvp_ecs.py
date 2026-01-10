@@ -229,6 +229,17 @@ def send_ecs_fc_rsvp_reminder(self, session, match_id: int, target_players: Opti
         if match.field_name:
             embed["fields"].append({"name": "Field", "value": match.field_name, "inline": True})
 
+        # Add shirt colors if available
+        home_shirt = getattr(match, 'home_shirt_color', None)
+        away_shirt = getattr(match, 'away_shirt_color', None)
+        if home_shirt or away_shirt:
+            shirt_info = []
+            if home_shirt:
+                shirt_info.append(f"Us: {home_shirt}")
+            if away_shirt:
+                shirt_info.append(f"Them: {away_shirt}")
+            embed["fields"].append({"name": "👕 Shirt Colors", "value": " | ".join(shirt_info), "inline": False})
+
         if match.rsvp_deadline:
             deadline_str = match.rsvp_deadline.strftime("%B %d at %I:%M %p")
             embed["fields"].append({"name": "RSVP Deadline", "value": deadline_str, "inline": False})
@@ -372,6 +383,17 @@ def notify_ecs_fc_discord_of_rsvp_change_task(self, session, match_id: int) -> D
         if match.field_name:
             embed["fields"].insert(2, {"name": "🏟️ Field", "value": match.field_name, "inline": True})
 
+        # Add shirt colors if available
+        home_shirt = getattr(match, 'home_shirt_color', None)
+        away_shirt = getattr(match, 'away_shirt_color', None)
+        if home_shirt or away_shirt:
+            shirt_info = []
+            if home_shirt:
+                shirt_info.append(f"Us: {home_shirt}")
+            if away_shirt:
+                shirt_info.append(f"Them: {away_shirt}")
+            embed["fields"].append({"name": "👕 Shirt Colors", "value": " | ".join(shirt_info), "inline": False})
+
         if match.notes:
             embed["fields"].append({"name": "📝 Notes", "value": match.notes, "inline": False})
 
@@ -476,6 +498,14 @@ def send_ecs_fc_match_notification(self, session, match_id: int, notification_ty
         if notification_type != 'cancelled':
             embed["fields"].append({"name": "🏠 Home/Away", "value": "Home" if match.is_home_match else "Away", "inline": True})
 
+            # Add shirt colors if available - prominently show what to wear
+            home_shirt = getattr(match, 'home_shirt_color', None)
+            away_shirt = getattr(match, 'away_shirt_color', None)
+            if home_shirt:
+                embed["fields"].append({"name": "👕 WEAR", "value": f"**{home_shirt.upper()}**", "inline": True})
+            if away_shirt:
+                embed["fields"].append({"name": "🎽 Opponent", "value": away_shirt, "inline": True})
+
             if match.notes:
                 embed["fields"].append({"name": "📝 Notes", "value": match.notes, "inline": False})
 
@@ -506,10 +536,12 @@ def send_ecs_fc_match_notification(self, session, match_id: int, notification_ty
             'location': location_str,
             'field_name': match.field_name,
             'is_home_match': match.is_home_match,
+            'home_shirt_color': getattr(match, 'home_shirt_color', None),
+            'away_shirt_color': getattr(match, 'away_shirt_color', None),
             'notes': match.notes,
             'rsvp_deadline': match.rsvp_deadline.strftime("%B %d at %I:%M %p") if match.rsvp_deadline else None,
             'notification_type': notification_type,
-            'response_counts': {'yes': 0, 'no': 0, 'maybe': 0}
+            'response_counts': {'yes': 0, 'no': 0, 'maybe': 0, 'no_response': 0}
         }
 
         # Send notification to team channel via Discord client

@@ -22,7 +22,7 @@
         </h5>
     </div>
     <div class="p-5">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <a href="{{ url_for('admin_panel.ecs_fc_match_create') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
                 <i class="ti ti-plus mr-2"></i>Create Match
             </a>
@@ -35,6 +35,9 @@
             <a href="{{ url_for('admin_panel.ecs_fc_import') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
                 <i class="ti ti-file-import mr-2"></i>Import Schedule
             </a>
+            <button type="button" id="post-missing-rsvps-btn" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700">
+                <i class="ti ti-send mr-2"></i>Post Missing RSVPs
+            </button>
         </div>
     </div>
 </div>
@@ -145,6 +148,9 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-1">
+                            <button type="button" class="post-rsvp-btn p-2 text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg" data-match-id="{{ match.id }}" data-opponent="{{ match.opponent_name }}" title="Post RSVP Now">
+                                <i class="ti ti-send"></i>
+                            </button>
                             <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" title="View RSVP">
                                 <i class="ti ti-users"></i>
                             </a>
@@ -171,4 +177,112 @@
     </div>
     {% endif %}
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Post Missing RSVPs button
+    const postMissingBtn = document.getElementById('post-missing-rsvps-btn');
+    if (postMissingBtn) {
+        postMissingBtn.addEventListener('click', async function() {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-2"></i>Posting...';
+
+            try {
+                const response = await fetch('{{ url_for("admin_panel.ecs_fc_post_missing_rsvps") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (window.ToastService) {
+                        window.ToastService.success(data.message);
+                    } else {
+                        alert(data.message);
+                    }
+                } else {
+                    if (window.ToastService) {
+                        window.ToastService.error(data.message || 'Failed to post RSVPs');
+                    } else {
+                        alert(data.message || 'Failed to post RSVPs');
+                    }
+                }
+            } catch (error) {
+                console.error('Error posting missing RSVPs:', error);
+                if (window.ToastService) {
+                    window.ToastService.error('Failed to post RSVPs: ' + error.message);
+                } else {
+                    alert('Failed to post RSVPs: ' + error.message);
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        });
+    }
+
+    // Individual Post RSVP buttons
+    document.querySelectorAll('.post-rsvp-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const matchId = this.dataset.matchId;
+            const opponent = this.dataset.opponent;
+            const button = this;
+            const originalHTML = button.innerHTML;
+
+            if (!confirm(`Post RSVP message for match vs ${opponent}?`)) {
+                return;
+            }
+
+            button.disabled = true;
+            button.innerHTML = '<i class="ti ti-loader-2 animate-spin"></i>';
+
+            try {
+                const response = await fetch(`/admin-panel/ecs-fc/match/${matchId}/post-rsvp`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (window.ToastService) {
+                        window.ToastService.success(data.message);
+                    } else {
+                        alert(data.message);
+                    }
+                } else {
+                    if (window.ToastService) {
+                        window.ToastService.error(data.message || 'Failed to post RSVP');
+                    } else {
+                        alert(data.message || 'Failed to post RSVP');
+                    }
+                }
+            } catch (error) {
+                console.error('Error posting RSVP:', error);
+                if (window.ToastService) {
+                    window.ToastService.error('Failed to post RSVP: ' + error.message);
+                } else {
+                    alert('Failed to post RSVP: ' + error.message);
+                }
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

@@ -22,6 +22,8 @@ from sqlalchemy.orm import aliased, joinedload
 from flask_login import current_user
 
 from app.models import Match, Team, Season, Player, player_teams
+from app.models.calendar import LeagueEvent
+from app.models.ecs_fc import EcsFcMatch
 from app.decorators import role_required
 
 logger = logging.getLogger(__name__)
@@ -105,7 +107,93 @@ def get_schedule():
             })
 
         unassigned_matches = total_matches - assigned_refs
-        
+
+        # Add league events to the calendar
+        try:
+            league_events = session_db.query(LeagueEvent).filter(
+                LeagueEvent.is_active == True
+            ).all()
+
+            # Color mapping for event types
+            event_type_colors = {
+                'party': '#9c27b0',       # Purple
+                'meeting': '#2196f3',     # Blue
+                'social': '#e91e63',      # Pink
+                'plop': '#4caf50',        # Green
+                'tournament': '#ffc107',  # Yellow/Gold
+                'fundraiser': '#ff5722',  # Deep Orange
+                'other': '#607d8b',       # Blue-grey
+            }
+
+            for league_event in league_events:
+                event_color = event_type_colors.get(league_event.event_type, '#607d8b')
+                events.append({
+                    'id': f'event-{league_event.id}',
+                    'title': league_event.title,
+                    'start': league_event.start_datetime.isoformat() if league_event.start_datetime else None,
+                    'end': league_event.end_datetime.isoformat() if league_event.end_datetime else None,
+                    'allDay': league_event.is_all_day,
+                    'color': event_color,
+                    'type': 'league_event',
+                    'eventType': league_event.event_type,
+                    'description': league_event.description,
+                    'location': league_event.location,
+                    'notify_discord': league_event.notify_discord,
+                    'extendedProps': {
+                        'type': 'league_event',
+                        'eventType': league_event.event_type,
+                        'description': league_event.description,
+                        'location': league_event.location,
+                        'leagueId': league_event.league_id,
+                        'seasonId': league_event.season_id,
+                    }
+                })
+        except Exception as e:
+            logger.warning(f"Could not load league events: {e}")
+
+        # Add ECS FC matches to the calendar
+        ecs_fc_match_count = 0
+        try:
+            ecs_fc_matches = session_db.query(EcsFcMatch).options(
+                joinedload(EcsFcMatch.team)
+            ).all()
+
+            for match in ecs_fc_matches:
+                start_datetime = datetime.combine(match.match_date, match.match_time)
+                team_name = match.team.name if match.team else 'ECS FC'
+
+                # Format title based on home/away
+                if match.is_home_match:
+                    title = f"ECS FC: {team_name} vs {match.opponent_name}"
+                else:
+                    title = f"ECS FC: {team_name} @ {match.opponent_name}"
+
+                events.append({
+                    'id': f'ecsfc-{match.id}',
+                    'title': title,
+                    'start': start_datetime.isoformat(),
+                    'description': f"Location: {match.location}",
+                    'color': '#7b1fa2',  # Purple for ECS FC
+                    'type': 'ecs_fc',
+                    'division': 'ECS FC',
+                    'teams': f"{team_name} vs {match.opponent_name}",
+                    'location': match.location,
+                    'ref': 'N/A',  # ECS FC matches don't have refs assigned the same way
+                    'extendedProps': {
+                        'type': 'ecs_fc',
+                        'matchId': match.id,
+                        'teamId': match.team_id,
+                        'isHomeMatch': match.is_home_match,
+                        'status': match.status,
+                        'fieldName': match.field_name,
+                        'notes': match.notes,
+                    }
+                })
+                ecs_fc_match_count += 1
+
+        except Exception as e:
+            logger.warning(f"Could not load ECS FC matches: {e}")
+
         # For referees, also include which matches they can edit
         referee_assigned_matches = []
         from app.role_impersonation import is_impersonation_active, get_effective_roles

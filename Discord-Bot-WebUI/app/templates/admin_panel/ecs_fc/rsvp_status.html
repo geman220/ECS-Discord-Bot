@@ -33,10 +33,12 @@
                     </div>
                     <div class="col-md-6 text-md-end mt-3 mt-md-0">
                         {% if rsvp_counts.yes < 11 %}
-                        <a href="{{ url_for('admin.ecs_fc_sub_request', match_id=match.id) }}"
-                           class="c-btn c-btn--warning me-2">
-                            <i class="ti ti-user-plus me-1"></i>Request Sub
-                        </a>
+                        <form action="{{ url_for('admin.ecs_fc_subs.create_sub_request', match_id=match.id) }}" method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="c-btn c-btn--warning me-2">
+                                <i class="ti ti-user-plus me-1"></i>Request Sub
+                            </button>
+                        </form>
                         {% endif %}
                         <button type="button" class="c-btn c-btn--outline-info me-2"
                                 data-action="send-rsvp-reminder" data-match-id="{{ match.id }}">

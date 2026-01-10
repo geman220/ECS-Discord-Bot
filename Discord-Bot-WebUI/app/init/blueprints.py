@@ -94,6 +94,7 @@ def _import_blueprints():
     from app.routes.admin_live_reporting import admin_live_bp
     from app.routes.calendar import calendar_bp as calendar_api_bp
     from app.routes.substitute_rsvp import substitute_rsvp_bp
+    from app.legal_routes import legal_bp
 
     return {
         'auth_bp': auth_bp,
@@ -148,6 +149,7 @@ def _import_blueprints():
         'admin_live_bp': admin_live_bp,
         'calendar_api_bp': calendar_api_bp,
         'substitute_rsvp_bp': substitute_rsvp_bp,
+        'legal_bp': legal_bp,
     }
 
 
@@ -327,6 +329,9 @@ def _register_additional_blueprints(app, bp, csrf):
     """Register any additional blueprints not covered elsewhere."""
     # Substitute RSVP (public-facing RSVP pages for subs)
     app.register_blueprint(bp['substitute_rsvp_bp'])
+
+    # Legal pages (Privacy Policy, Terms of Service) - public routes
+    app.register_blueprint(bp['legal_bp'])
 
 
 def _init_enterprise_systems(app):

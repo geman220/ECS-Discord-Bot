@@ -46,10 +46,12 @@
             </div>
             <div class="flex flex-wrap gap-2">
                 {% if rsvp_counts.yes < 11 %}
-                <a href="{{ url_for('admin.ecs_fc_sub_request', match_id=match.id) }}"
-                   class="px-4 py-2 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600">
-                    <i class="ti ti-user-plus mr-1"></i>Request Sub
-                </a>
+                <form action="{{ url_for('admin.ecs_fc_subs.create_sub_request', match_id=match.id) }}" method="POST" class="inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600">
+                        <i class="ti ti-user-plus mr-1"></i>Request Sub
+                    </button>
+                </form>
                 {% endif %}
                 <button type="button" onclick="sendReminder({{ match.id }})"
                         class="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">

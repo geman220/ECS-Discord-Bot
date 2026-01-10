@@ -57,6 +57,7 @@ class CeleryConfig:
         'app.tasks.tasks_rsvp_ecs',
         'app.tasks.tasks_ecs_fc_scheduled',
         'app.tasks.tasks_discord',
+        'app.tasks.discord_cleanup',  # Season rollover Discord cleanup
         'app.tasks.monitoring_tasks',
         'app.tasks.tasks_maintenance',
         'app.tasks.tasks_cache_management',
@@ -174,6 +175,7 @@ class CeleryConfig:
     # Task Routes
     task_routes = {
         'app.tasks.tasks_discord.*': {'queue': 'discord'},
+        'app.tasks.discord_cleanup.*': {'queue': 'discord'},  # Season rollover cleanup
         'app.tasks.tasks_core.*': {'queue': 'celery'},
         'app.tasks.tasks_live_reporting.*': {'queue': 'live_reporting'},
         'app.tasks.live_reporting_orchestrator.*': {'queue': 'live_reporting'},  # Event-driven orchestration
@@ -281,6 +283,14 @@ class CeleryConfig:
             'options': {
                 'queue': 'discord',
                 'expires': 3600
+            }
+        },
+        'post-missing-ecs-fc-rsvps': {
+            'task': 'app.tasks.tasks_ecs_fc_scheduled.post_missing_ecs_fc_rsvps',
+            'schedule': crontab(minute=0),  # Run every hour to catch missed RSVP posts
+            'options': {
+                'queue': 'discord',
+                'expires': 3500
             }
         },
         'monitor-rsvp-health': {

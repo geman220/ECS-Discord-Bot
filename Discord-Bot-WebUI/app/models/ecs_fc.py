@@ -74,6 +74,8 @@ class EcsFcMatch(db.Model):
     location = db.Column(db.String(100), nullable=False)
     field_name = db.Column(db.String(100), nullable=True)
     is_home_match = db.Column(db.Boolean, nullable=False)
+    home_shirt_color = db.Column(db.String(50), nullable=True)
+    away_shirt_color = db.Column(db.String(50), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(50), nullable=False)
     home_score = db.Column(db.Integer, nullable=True)
@@ -128,6 +130,8 @@ class EcsFcMatch(db.Model):
             'location': self.location,
             'field_name': self.field_name,
             'is_home_match': self.is_home_match,
+            'home_shirt_color': self.home_shirt_color,
+            'away_shirt_color': self.away_shirt_color,
             'notes': self.notes,
             'status': self.status,
             'home_score': self.home_score,
