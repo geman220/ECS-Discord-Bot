@@ -25,6 +25,7 @@ This package provides RESTful API endpoints for mobile clients, organized by dom
 - calendar: Calendar events (matches + league events)
 - admin: Admin role and league management
 - messages: Direct messaging between users
+- ecs_fc_matches: ECS FC match details and RSVP management
 
 All endpoints are CSRF-exempt and use JWT authentication where required.
 """
@@ -64,6 +65,7 @@ def register_mobile_api_routes():
         calendar,
         admin,
         messages,
+        ecs_fc_matches,
     )
 
 

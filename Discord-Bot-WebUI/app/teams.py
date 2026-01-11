@@ -2039,7 +2039,7 @@ def coach_dashboard():
                     EcsFcAvailability.response,
                     func.count(EcsFcAvailability.id)
                 ).filter(
-                    EcsFcAvailability.match_id == match.id,
+                    EcsFcAvailability.ecs_fc_match_id == match.id,
                     EcsFcAvailability.player_id.in_(coached_team_player_ids)
                 ).group_by(EcsFcAvailability.response).all()
             else:
@@ -2170,7 +2170,7 @@ def coach_dashboard():
                             # Count YES responses for this player from EcsFcAvailability
                             yes_count = session.query(func.count(EcsFcAvailability.id)).filter(
                                 EcsFcAvailability.player_id == player.id,
-                                EcsFcAvailability.match_id.in_(match_ids),
+                                EcsFcAvailability.ecs_fc_match_id.in_(match_ids),
                                 EcsFcAvailability.response.in_(['YES', 'yes', 'Yes'])
                             ).scalar() or 0
 

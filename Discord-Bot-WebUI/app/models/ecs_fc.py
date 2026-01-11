@@ -95,18 +95,23 @@ class EcsFcMatch(db.Model):
     # Relationships
     team = db.relationship('Team', foreign_keys=[team_id], backref='ecs_fc_matches')
     external_opponent = db.relationship('ExternalOpponent', foreign_keys=[external_opponent_id], backref='matches')
-    availability = db.relationship('EcsFcAvailability', back_populates='match', cascade='all, delete-orphan')
+    availabilities = db.relationship('EcsFcAvailability', back_populates='match', cascade='all, delete-orphan')
+
+    # Alias for backward compatibility with code using singular form
+    @property
+    def availability(self):
+        return self.availabilities
 
     def get_rsvp_summary(self):
         """Get RSVP response counts for this match."""
-        yes_count = sum(1 for a in self.availability if a.response == 'yes')
-        no_count = sum(1 for a in self.availability if a.response == 'no')
-        maybe_count = sum(1 for a in self.availability if a.response == 'maybe')
-        no_response_count = sum(1 for a in self.availability if a.response == 'no_response' or not a.response)
+        yes_count = sum(1 for a in self.availabilities if a.response == 'yes')
+        no_count = sum(1 for a in self.availabilities if a.response == 'no')
+        maybe_count = sum(1 for a in self.availabilities if a.response == 'maybe')
+        no_response_count = sum(1 for a in self.availabilities if a.response == 'no_response' or not a.response)
 
         # Count players on team who haven't responded at all
         if self.team and hasattr(self.team, 'players'):
-            responded_player_ids = {a.player_id for a in self.availability if a.player_id}
+            responded_player_ids = {a.player_id for a in self.availabilities if a.player_id}
             all_player_ids = {p.id for p in self.team.players}
             not_responded = len(all_player_ids - responded_player_ids)
             no_response_count = no_response_count + not_responded
@@ -151,17 +156,27 @@ class EcsFcMatch(db.Model):
 class EcsFcAvailability(db.Model):
     """Model for ECS FC player availability responses."""
     __tablename__ = 'ecs_fc_availability'
-    
+
     id = db.Column(db.Integer, primary_key=True)
-    match_id = db.Column(db.Integer, db.ForeignKey('ecs_fc_matches.id'), nullable=False)
+    # Note: Database column is 'ecs_fc_match_id' but we use 'match_id' as the Python attribute
+    ecs_fc_match_id = db.Column('ecs_fc_match_id', db.Integer, db.ForeignKey('ecs_fc_matches.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=True)
     discord_id = db.Column(db.String(100), nullable=False)
     response = db.Column(db.String(20), nullable=False)
     responded_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
-    match = db.relationship('EcsFcMatch', back_populates='availability')
+    match = db.relationship('EcsFcMatch', back_populates='availabilities')
     player = db.relationship('Player', backref='ecs_fc_availability')
+
+    # Alias for backward compatibility with code using match_id
+    @property
+    def match_id(self):
+        return self.ecs_fc_match_id
+
+    @match_id.setter
+    def match_id(self, value):
+        self.ecs_fc_match_id = value
     
     def to_dict(self):
         return {

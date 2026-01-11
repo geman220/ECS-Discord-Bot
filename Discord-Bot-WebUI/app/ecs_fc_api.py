@@ -798,14 +798,14 @@ def update_rsvp_enterprise():
                 if match and player:
                     # Find or create RSVP record using EcsFcAvailability
                     rsvp = session_db.query(EcsFcAvailability).filter_by(
-                        match_id=match_id,
+                        ecs_fc_match_id=match_id,
                         player_id=player_id
                     ).first()
 
                     if not rsvp:
                         # Create new availability record
                         rsvp = EcsFcAvailability(
-                            match_id=match_id,
+                            ecs_fc_match_id=match_id,
                             player_id=player_id,
                             discord_id=discord_id or str(player_id),  # Use discord_id if available
                             response=response,
