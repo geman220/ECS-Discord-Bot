@@ -1036,10 +1036,10 @@ def get_scheduled_messages():
                     ScheduledMessage.away_message_id,
                     Match.home_team_id,
                     Match.away_team_id,
-                    Match.match_date
+                    Match.date
                 )
                 .join(Match, Match.id == ScheduledMessage.match_id)
-                .filter(Match.match_date >= cutoff_date)
+                .filter(Match.date >= cutoff_date)
                 .all()
             )
 
@@ -1052,7 +1052,7 @@ def get_scheduled_messages():
                 'away_message_id': m.away_message_id,
                 'home_team_id': m.home_team_id,
                 'away_team_id': m.away_team_id,
-                'match_date': m.match_date.isoformat() if m.match_date else None,
+                'match_date': m.date.isoformat() if m.date else None,
                 'message_type': 'pub_league'
             } for m in pub_league_messages]
 
