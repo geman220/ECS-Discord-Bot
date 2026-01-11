@@ -96,6 +96,7 @@ class EcsFcMatch(db.Model):
     team = db.relationship('Team', foreign_keys=[team_id], backref='ecs_fc_matches')
     external_opponent = db.relationship('ExternalOpponent', foreign_keys=[external_opponent_id], backref='matches')
     availabilities = db.relationship('EcsFcAvailability', back_populates='match', cascade='all, delete-orphan')
+    events = db.relationship('EcsFcPlayerEvent', back_populates='match', cascade='all, delete-orphan')
 
     # Alias for backward compatibility with code using singular form
     @property
@@ -187,6 +188,49 @@ class EcsFcAvailability(db.Model):
             'response': self.response,
             'responded_at': self.responded_at.isoformat() if self.responded_at else None,
         }
+
+
+class EcsFcPlayerEvent(db.Model):
+    """
+    Model representing a match event (goal, assist, card) for ECS FC matches.
+
+    This mirrors the PlayerEvent model for Pub League matches.
+    """
+    __tablename__ = 'ecs_fc_player_events'
+
+    id = db.Column(db.Integer, primary_key=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=True)
+    ecs_fc_match_id = db.Column(db.Integer, db.ForeignKey('ecs_fc_matches.id'), nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=True)  # For own goals
+    minute = db.Column(db.String(10), nullable=True)  # e.g., "45", "90+2"
+    event_type = db.Column(db.String(20), nullable=False)  # goal, assist, yellow_card, red_card, own_goal
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    player = db.relationship('Player', backref='ecs_fc_events')
+    match = db.relationship('EcsFcMatch', back_populates='events')
+    team = db.relationship('Team', backref='ecs_fc_own_goal_events')
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_ecs_fc_events')
+
+    def to_dict(self, include_player=False):
+        data = {
+            'id': self.id,
+            'player_id': self.player_id,
+            'match_id': self.ecs_fc_match_id,
+            'team_id': self.team_id,
+            'minute': self.minute,
+            'event_type': self.event_type,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+        if include_player and self.player:
+            data['player'] = {
+                'id': self.player.id,
+                'name': self.player.name,
+                'jersey_number': self.player.jersey_number,
+            }
+        return data
 
 
 class EcsFcScheduleTemplate(db.Model):
