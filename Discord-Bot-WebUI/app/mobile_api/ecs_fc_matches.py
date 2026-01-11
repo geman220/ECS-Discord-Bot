@@ -123,7 +123,7 @@ def get_ecs_fc_matches():
         # Build query
         query = session.query(EcsFcMatch).options(
             joinedload(EcsFcMatch.team),
-            selectinload(EcsFcMatch.availability)
+            selectinload(EcsFcMatch.availabilities)
         )
 
         # Filter by team
@@ -207,7 +207,7 @@ def get_ecs_fc_match_details(match_id: int):
     with managed_session() as session:
         match = session.query(EcsFcMatch).options(
             joinedload(EcsFcMatch.team).selectinload(Team.players),
-            selectinload(EcsFcMatch.availability).joinedload(EcsFcAvailability.player)
+            selectinload(EcsFcMatch.availabilities).joinedload(EcsFcAvailability.player)
         ).get(match_id)
 
         if not match:
@@ -279,7 +279,7 @@ def get_ecs_fc_match_availability(match_id: int):
     with managed_session() as session:
         match = session.query(EcsFcMatch).options(
             joinedload(EcsFcMatch.team).selectinload(Team.players),
-            selectinload(EcsFcMatch.availability).joinedload(EcsFcAvailability.player)
+            selectinload(EcsFcMatch.availabilities).joinedload(EcsFcAvailability.player)
         ).get(match_id)
 
         if not match:

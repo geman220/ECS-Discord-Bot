@@ -130,22 +130,25 @@ def create_match():
 
 
 @ecs_fc_api.route('/matches/<int:match_id>', methods=['GET'])
-@login_required
 def get_match(match_id: int):
-    """Get a specific ECS FC match."""
+    """Get a specific ECS FC match.
+
+    This endpoint is publicly accessible (no login required) to allow
+    the Discord bot to fetch match details for embed updates.
+    """
     try:
         match = EcsFcScheduleManager.get_match_by_id(match_id)
         if not match:
             return create_api_response(False, "Match not found", status_code=404)
-        
-        # Check authorization
-        if not validate_ecs_fc_coach_access(match.team_id):
-            return create_api_response(False, "Unauthorized access to this match", status_code=403)
-        
+
+        # Build match data with RSVP summary included
+        match_data = match.to_dict()
+        match_data['rsvp_summary'] = match.get_rsvp_summary()
+
         return create_api_response(True, "Match found", {
-            'match': match.to_dict(include_rsvp=True)
+            'match': match_data
         })
-        
+
     except Exception as e:
         logger.error(f"Error getting ECS FC match {match_id}: {str(e)}")
         return create_api_response(False, f"Internal server error: {str(e)}", status_code=500)

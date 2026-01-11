@@ -19,11 +19,12 @@ from datetime import datetime
 from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import or_
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import Team, League, Season, Match, Player, player_teams
+from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability, is_ecs_fc_team
 from app.etag_utils import make_etag_response, CACHE_DURATIONS
 from app.app_api_helpers import (
     build_match_response,
@@ -204,6 +205,8 @@ def get_team_matches(team_id: int):
     """
     Retrieve matches for a specific team.
 
+    Supports both Pub League teams and ECS FC teams.
+
     Query parameters:
         upcoming: If 'true', only return future matches
         completed: If 'true', only return past matches
@@ -218,7 +221,9 @@ def get_team_matches(team_id: int):
     logger.info(f"get_team_matches called for team_id: {team_id}, user_id: {current_user_id}")
 
     with managed_session() as session_db:
-        team = session_db.query(Team).get(team_id)
+        team = session_db.query(Team).options(
+            joinedload(Team.league)
+        ).get(team_id)
         if not team:
             return jsonify({"msg": "Team not found"}), 404
 
@@ -230,54 +235,140 @@ def get_team_matches(team_id: int):
         limit = request.args.get('limit')
         if limit and limit.isdigit():
             limit = int(limit)
+        else:
+            limit = 50  # Default limit
 
         # Get player for availability data
         player = None
         if include_availability and current_user_id:
             player = session_db.query(Player).filter_by(user_id=current_user_id).first()
 
-        # Build match query with eager loading
-        query = session_db.query(Match).options(
-            joinedload(Match.home_team),
-            joinedload(Match.away_team)
-        ).filter(
-            or_(Match.home_team_id == team_id, Match.away_team_id == team_id)
-        )
-
-        # Apply upcoming/completed filters
-        if upcoming:
-            query = query.filter(Match.date >= datetime.now().date())
-        if completed:
-            query = query.filter(Match.date < datetime.now().date())
-
-        # Order by date
-        query = query.order_by(Match.date.desc() if completed else Match.date.asc())
-
-        if limit:
-            query = query.limit(limit)
-
-        matches = query.all()
-
         matches_data = []
-        for match in matches:
-            match_data = build_match_response(
-                match=match,
-                include_events=include_events,
-                include_teams=True,
-                include_players=False,
-                current_player=player,
-                session=session_db
+
+        # Check if this is an ECS FC team
+        is_ecs_fc = team.league and 'ECS FC' in team.league.name
+
+        if is_ecs_fc:
+            # Query ECS FC matches
+            query = session_db.query(EcsFcMatch).options(
+                joinedload(EcsFcMatch.team).joinedload(Team.league),
+                selectinload(EcsFcMatch.availabilities).joinedload(EcsFcAvailability.player)
+            ).filter(
+                EcsFcMatch.team_id == team_id,
+                EcsFcMatch.status != 'CANCELLED'
             )
 
-            if include_availability and player:
-                match_data['my_availability'] = get_player_availability(
-                    match, player, session=session_db
-                )
-                match_data['team_availability'] = get_team_players_availability(
-                    match, team.players, session=session_db
-                )
+            # Apply upcoming/completed filters
+            today = datetime.now().date()
+            if upcoming:
+                query = query.filter(EcsFcMatch.match_date >= today)
+                query = query.order_by(EcsFcMatch.match_date.asc(), EcsFcMatch.match_time.asc())
+            elif completed:
+                query = query.filter(EcsFcMatch.match_date < today)
+                query = query.order_by(EcsFcMatch.match_date.desc(), EcsFcMatch.match_time.desc())
+            else:
+                query = query.order_by(EcsFcMatch.match_date.desc(), EcsFcMatch.match_time.desc())
 
-            matches_data.append(match_data)
+            if limit:
+                query = query.limit(limit)
+
+            ecs_matches = query.all()
+
+            for match in ecs_matches:
+                match_data = {
+                    'id': match.id,
+                    'match_type': 'ecs_fc',
+                    'date': match.match_date.isoformat() if match.match_date else None,
+                    'time': match.match_time.strftime('%H:%M') if match.match_time else None,
+                    'location': match.location,
+                    'field': match.field_name or match.location,
+                    'status': match.status,
+                    'notes': match.notes,
+                    'opponent_name': match.opponent_name,
+                    'is_home_match': match.is_home_match,
+                    'home_shirt_color': match.home_shirt_color,
+                    'away_shirt_color': match.away_shirt_color,
+                    'home_score': match.home_score,
+                    'away_score': match.away_score,
+                    'home_team': {
+                        'id': match.team.id,
+                        'name': match.team.name if match.is_home_match else match.opponent_name,
+                        'league_id': match.team.league_id
+                    } if match.team else None,
+                    'away_team': {
+                        'id': None,
+                        'name': match.opponent_name if match.is_home_match else match.team.name,
+                        'league_id': None
+                    } if match.team else None,
+                    'team': {
+                        'id': match.team.id,
+                        'name': match.team.name,
+                        'league_id': match.team.league_id
+                    } if match.team else None,
+                    'rsvp_deadline': match.rsvp_deadline.isoformat() if match.rsvp_deadline else None,
+                    'rsvp_summary': match.get_rsvp_summary(),
+                }
+
+                if include_availability and player:
+                    user_availability = next(
+                        (a for a in match.availabilities if a.player_id == player.id),
+                        None
+                    )
+                    if user_availability:
+                        match_data['availability'] = {
+                            'id': user_availability.id,
+                            'response': user_availability.response,
+                            'responded_at': user_availability.responded_at.isoformat() if user_availability.responded_at else None
+                        }
+                        match_data['my_availability'] = user_availability.response
+                    else:
+                        match_data['availability'] = None
+                        match_data['my_availability'] = None
+
+                matches_data.append(match_data)
+        else:
+            # Query Pub League matches
+            query = session_db.query(Match).options(
+                joinedload(Match.home_team),
+                joinedload(Match.away_team)
+            ).filter(
+                or_(Match.home_team_id == team_id, Match.away_team_id == team_id)
+            )
+
+            # Apply upcoming/completed filters
+            if upcoming:
+                query = query.filter(Match.date >= datetime.now().date())
+            if completed:
+                query = query.filter(Match.date < datetime.now().date())
+
+            # Order by date
+            query = query.order_by(Match.date.desc() if completed else Match.date.asc())
+
+            if limit:
+                query = query.limit(limit)
+
+            matches = query.all()
+
+            for match in matches:
+                match_data = build_match_response(
+                    match=match,
+                    include_events=include_events,
+                    include_teams=True,
+                    include_players=False,
+                    current_player=player,
+                    session=session_db
+                )
+                match_data['match_type'] = 'pub_league'
+
+                if include_availability and player:
+                    match_data['my_availability'] = get_player_availability(
+                        match, player, session=session_db
+                    )
+                    match_data['team_availability'] = get_team_players_availability(
+                        match, team.players, session=session_db
+                    )
+
+                matches_data.append(match_data)
 
         return jsonify(matches_data), 200
 

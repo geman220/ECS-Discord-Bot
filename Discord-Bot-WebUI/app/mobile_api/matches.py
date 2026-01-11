@@ -4,7 +4,7 @@
 Matches API Endpoints
 
 Handles match-related operations including:
-- Match listing
+- Match listing (both Pub League and ECS FC matches)
 - Match details
 - Match events
 - Match availability
@@ -13,16 +13,17 @@ Handles match-related operations including:
 
 import hashlib
 import logging
-from datetime import datetime
+from datetime import datetime, date
 from collections import defaultdict
 
 from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
-from app.models import Match, Player, User
+from app.models import Match, Player, User, Team
+from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability, is_ecs_fc_team
 from app.etag_utils import make_etag_response, CACHE_DURATIONS
 from app.app_api_helpers import (
     build_match_response,
@@ -34,6 +35,129 @@ from app.app_api_helpers import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def normalize_ecs_fc_match(match: EcsFcMatch, player: Player = None,
+                           include_availability: bool = False) -> dict:
+    """
+    Normalize an ECS FC match to the same format as Pub League matches.
+
+    Args:
+        match: EcsFcMatch instance
+        player: Player instance for availability lookup
+        include_availability: Whether to include availability data
+
+    Returns:
+        Dict in the same format as Pub League match data
+    """
+    # Build normalized match data
+    match_data = {
+        'id': match.id,
+        'match_type': 'ecs_fc',  # Flag to distinguish from pub league
+        'date': match.match_date.isoformat() if match.match_date else None,
+        'time': match.match_time.strftime('%H:%M') if match.match_time else None,
+        'location': match.location,
+        'field': match.field_name or match.location,
+        'status': match.status,
+        'notes': match.notes,
+        # ECS FC specific fields
+        'opponent_name': match.opponent_name,
+        'is_home_match': match.is_home_match,
+        'home_shirt_color': match.home_shirt_color,
+        'away_shirt_color': match.away_shirt_color,
+        # Scores
+        'home_score': match.home_score,
+        'away_score': match.away_score,
+        # Team info (ECS FC matches have single team + opponent)
+        'home_team': {
+            'id': match.team.id,
+            'name': match.team.name if match.is_home_match else match.opponent_name,
+            'league_id': match.team.league_id
+        } if match.team else None,
+        'away_team': {
+            'id': None,  # External opponent has no ID
+            'name': match.opponent_name if match.is_home_match else match.team.name,
+            'league_id': None
+        } if match.team else None,
+        # For display purposes
+        'team': {
+            'id': match.team.id,
+            'name': match.team.name,
+            'league_id': match.team.league_id
+        } if match.team else None,
+        # RSVP info
+        'rsvp_deadline': match.rsvp_deadline.isoformat() if match.rsvp_deadline else None,
+        'rsvp_summary': match.get_rsvp_summary(),
+    }
+
+    # Add availability if requested
+    if include_availability and player:
+        user_availability = next(
+            (a for a in match.availabilities if a.player_id == player.id),
+            None
+        )
+        if user_availability:
+            match_data['availability'] = {
+                'id': user_availability.id,
+                'response': user_availability.response,
+                'responded_at': user_availability.responded_at.isoformat() if user_availability.responded_at else None
+            }
+        else:
+            match_data['availability'] = None
+
+    return match_data
+
+
+def get_ecs_fc_team_ids(session, player: Player) -> list:
+    """Get list of ECS FC team IDs for a player."""
+    if not player or not player.teams:
+        return []
+
+    ecs_fc_ids = []
+    for team in player.teams:
+        if team.league and 'ECS FC' in team.league.name:
+            ecs_fc_ids.append(team.id)
+    return ecs_fc_ids
+
+
+def query_ecs_fc_matches(session, team_ids: list, upcoming: bool = False,
+                         completed: bool = False, limit: int = 50) -> list:
+    """
+    Query ECS FC matches for given team IDs.
+
+    Args:
+        session: Database session
+        team_ids: List of team IDs to query
+        upcoming: If True, only future matches
+        completed: If True, only past matches
+        limit: Max matches to return
+
+    Returns:
+        List of EcsFcMatch instances
+    """
+    if not team_ids:
+        return []
+
+    query = session.query(EcsFcMatch).options(
+        joinedload(EcsFcMatch.team).joinedload(Team.league),
+        selectinload(EcsFcMatch.availabilities)
+    ).filter(
+        EcsFcMatch.team_id.in_(team_ids),
+        EcsFcMatch.status != 'CANCELLED'
+    )
+
+    today = date.today()
+
+    if upcoming:
+        query = query.filter(EcsFcMatch.match_date >= today)
+        query = query.order_by(EcsFcMatch.match_date.asc(), EcsFcMatch.match_time.asc())
+    elif completed:
+        query = query.filter(EcsFcMatch.match_date < today)
+        query = query.order_by(EcsFcMatch.match_date.desc(), EcsFcMatch.match_time.desc())
+    else:
+        query = query.order_by(EcsFcMatch.match_date.desc(), EcsFcMatch.match_time.desc())
+
+    return query.limit(limit).all()
 
 
 @mobile_api_v2.route('/matches', methods=['GET'])
@@ -100,32 +224,106 @@ def get_all_matches():
             else:
                 limit = 15 if not (completed or upcoming or all_teams) else 20
 
-        query = build_matches_query(
-            team_id=request.args.get('team_id'),
-            player=player,
-            upcoming=upcoming,
-            completed=completed,
-            all_teams=all_teams,
-            limit=limit,
-            session=session_db
-        )
-
-        matches = query.all()
-        logger.info(f"Found {len(matches)} matches")
-
         include_events = request.args.get('include_events', 'false').lower() == 'true'
         include_availability = request.args.get('include_availability', 'false').lower() == 'true'
 
-        matches_data = process_matches_data(
-            matches=matches,
-            player=player,
-            include_events=include_events,
-            include_availability=include_availability,
-            session=session_db
-        )
+        # Initialize combined results
+        all_matches_data = []
+
+        # Check if team_id is an ECS FC team
+        ecs_fc_team_ids = []
+        pub_league_team_ids = []
+
+        if team_id:
+            # Check if specific team is ECS FC
+            if is_ecs_fc_team(team_id):
+                ecs_fc_team_ids = [team_id]
+            else:
+                pub_league_team_ids = [team_id]
+        elif player and player.teams:
+            # Separate player's teams into ECS FC and Pub League
+            for team in player.teams:
+                if team.league and 'ECS FC' in team.league.name:
+                    ecs_fc_team_ids.append(team.id)
+                else:
+                    pub_league_team_ids.append(team.id)
+
+        # Query Pub League matches (only if we have pub league teams or no specific filter)
+        if pub_league_team_ids or (not team_id and not ecs_fc_team_ids):
+            query = build_matches_query(
+                team_id=team_id if team_id and not is_ecs_fc_team(team_id) else None,
+                player=player,
+                upcoming=upcoming,
+                completed=completed,
+                all_teams=all_teams,
+                limit=limit,
+                session=session_db
+            )
+
+            pub_matches = query.all()
+            logger.info(f"Found {len(pub_matches)} Pub League matches")
+
+            pub_matches_data = process_matches_data(
+                matches=pub_matches,
+                player=player,
+                include_events=include_events,
+                include_availability=include_availability,
+                session=session_db
+            )
+
+            # Tag pub league matches
+            for m in pub_matches_data:
+                m['match_type'] = 'pub_league'
+
+            all_matches_data.extend(pub_matches_data)
+
+        # Query ECS FC matches
+        if ecs_fc_team_ids or (player and not team_id):
+            # Get ECS FC team IDs if not already determined
+            if not ecs_fc_team_ids and player:
+                ecs_fc_team_ids = get_ecs_fc_team_ids(session_db, player)
+
+            if ecs_fc_team_ids:
+                ecs_fc_matches = query_ecs_fc_matches(
+                    session=session_db,
+                    team_ids=ecs_fc_team_ids,
+                    upcoming=upcoming,
+                    completed=completed,
+                    limit=limit
+                )
+                logger.info(f"Found {len(ecs_fc_matches)} ECS FC matches")
+
+                for match in ecs_fc_matches:
+                    match_data = normalize_ecs_fc_match(
+                        match=match,
+                        player=player,
+                        include_availability=include_availability
+                    )
+                    all_matches_data.append(match_data)
+
+        # Sort combined results by date
+        def get_sort_key(m):
+            date_str = m.get('date')
+            time_str = m.get('time', '00:00')
+            if date_str:
+                try:
+                    return datetime.fromisoformat(f"{date_str}T{time_str or '00:00'}")
+                except (ValueError, TypeError):
+                    return datetime.min
+            return datetime.min
+
+        if upcoming:
+            all_matches_data.sort(key=get_sort_key)
+        else:
+            all_matches_data.sort(key=get_sort_key, reverse=True)
+
+        # Apply limit to combined results
+        all_matches_data = all_matches_data[:limit]
+
+        logger.info(f"Returning {len(all_matches_data)} total matches (Pub League + ECS FC)")
 
         cache_duration = CACHE_DURATIONS['match_list'] if not include_availability else 3600
-        return make_etag_response(matches_data, 'match_list', cache_duration)
+        return make_etag_response(all_matches_data, 'match_list', cache_duration)
 
 
 @mobile_api_v2.route('/matches/schedule', methods=['GET'])
