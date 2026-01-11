@@ -2365,7 +2365,7 @@ async def on_member_update(before: discord.Member, after: discord.Member):
             }
 
             async with http_session.post(
-                f"{WEBUI_API_URL}/api/discord/role-sync",
+                f"{WEBUI_API_URL}/discord/role-sync",
                 json=payload,
                 timeout=aiohttp.ClientTimeout(total=10)
             ) as resp:
