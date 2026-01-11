@@ -147,12 +147,27 @@ def _register_utility_processor(app):
             except Exception as e:
                 logger.error(f"Error getting available roles for impersonation: {e}")
 
+        def is_ecs_fc_coach():
+            """Check if user has ECS FC Coach role."""
+            return 'ECS FC Coach' in user_roles
+
+        def is_ecs_fc_coach_only():
+            """Check if user is ONLY an ECS FC Coach (not a full admin)."""
+            return 'ECS FC Coach' in user_roles and not is_admin()
+
+        def can_access_admin_panel():
+            """Check if user can access some part of the admin panel."""
+            return is_admin() or 'ECS FC Coach' in user_roles
+
         return {
             'safe_current_user': safe_current_user,
             'user_roles': user_roles,
             'has_permission': has_permission,
             'has_role': has_role,
             'is_admin': is_admin,
+            'is_ecs_fc_coach': is_ecs_fc_coach,
+            'is_ecs_fc_coach_only': is_ecs_fc_coach_only,
+            'can_access_admin_panel': can_access_admin_panel,
             'is_role_impersonation_active': is_role_impersonation_active,
             'real_is_global_admin': real_is_global_admin,
             'admin_settings': admin_settings,

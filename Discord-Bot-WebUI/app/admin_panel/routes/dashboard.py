@@ -31,10 +31,18 @@ logger = logging.getLogger(__name__)
 
 @admin_panel_bp.route('/')
 @login_required
-@role_required(['Global Admin', 'Pub League Admin'])
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
 @optimize_admin_queries()
 def dashboard():
-    """Main admin panel dashboard."""
+    """Main admin panel dashboard.
+
+    ECS FC Coaches are redirected to the ECS FC Hub instead.
+    """
+    # Redirect ECS FC Coaches to ECS FC Hub (they don't have access to full dashboard)
+    if current_user.has_role('ECS FC Coach') and not (
+        current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin')
+    ):
+        return redirect(url_for('admin_panel.ecs_fc_dashboard'))
     try:
         # Get overview statistics with caching and fallbacks
         try:

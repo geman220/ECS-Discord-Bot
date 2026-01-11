@@ -3,8 +3,95 @@
    ============================================================================
    Horizontal navigation bar with dropdown menus for admin sections
    Uses custom data-admin-dropdown to avoid Flowbite auto-initialization
+
+   ECS FC Coaches see a simplified navigation with only ECS FC items
    ============================================================================ #}
 
+{% if is_ecs_fc_coach_only() %}
+{# ============================================================================
+   SIMPLIFIED NAVIGATION FOR ECS FC COACHES ONLY
+   ============================================================================ #}
+<nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-lg shadow-sm mb-6 admin-nav-wrapper">
+    <div class="overflow-x-auto">
+        <ul class="flex flex-nowrap items-center text-sm font-medium text-gray-500 dark:text-gray-400">
+            {# ECS FC Hub (Dashboard for coaches) #}
+            <li>
+                <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}"
+                   class="inline-flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors
+                   {{ 'text-ecs-green border-ecs-green' if request.endpoint == 'admin_panel.ecs_fc_dashboard' else 'border-transparent' }}">
+                    <i class="ti ti-dashboard"></i>
+                    <span>ECS FC Hub</span>
+                </a>
+            </li>
+
+            {# Team Schedules Dropdown #}
+            {% if ecs_fc_teams %}
+            <li class="relative" data-dropdown-wrapper>
+                <button type="button" data-admin-dropdown="dropdown-teams-nav"
+                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                    <i class="ti ti-calendar"></i>
+                    <span>Team Schedules</span>
+                    <i class="ti ti-chevron-down text-xs"></i>
+                </button>
+                <div id="dropdown-teams-nav" class="hidden absolute left-0 z-50 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2">
+                        {% for team in ecs_fc_teams %}
+                        <a href="{{ url_for('admin_panel.ecs_fc_team_schedule', team_id=team.id) }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-calendar text-gray-400"></i>{{ team.name }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </li>
+            {% endif %}
+
+            {# All Matches #}
+            <li>
+                <a href="{{ url_for('admin_panel.ecs_fc_matches') }}"
+                   class="inline-flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors
+                   {{ 'text-ecs-green border-ecs-green' if request.endpoint == 'admin_panel.ecs_fc_matches' else 'border-transparent' }}">
+                    <i class="ti ti-list"></i>
+                    <span>All Matches</span>
+                </a>
+            </li>
+
+            {# Opponents #}
+            <li>
+                <a href="{{ url_for('admin_panel.ecs_fc_opponents') }}"
+                   class="inline-flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors
+                   {{ 'text-ecs-green border-ecs-green' if request.endpoint == 'admin_panel.ecs_fc_opponents' else 'border-transparent' }}">
+                    <i class="ti ti-users-group"></i>
+                    <span>Opponents</span>
+                </a>
+            </li>
+
+            {# Import #}
+            <li>
+                <a href="{{ url_for('admin_panel.ecs_fc_import') }}"
+                   class="inline-flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors
+                   {{ 'text-ecs-green border-ecs-green' if request.endpoint == 'admin_panel.ecs_fc_import' else 'border-transparent' }}">
+                    <i class="ti ti-file-import"></i>
+                    <span>Import</span>
+                </a>
+            </li>
+
+            {# Sub Pool #}
+            <li>
+                <a href="{{ url_for('admin_panel.ecs_fc_sub_pool') }}"
+                   class="inline-flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors
+                   {{ 'text-ecs-green border-ecs-green' if request.endpoint == 'admin_panel.ecs_fc_sub_pool' else 'border-transparent' }}">
+                    <i class="ti ti-user-plus"></i>
+                    <span>Sub Pool</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+{% else %}
+{# ============================================================================
+   FULL NAVIGATION FOR ADMINS
+   ============================================================================ #}
 <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-lg shadow-sm mb-6 admin-nav-wrapper">
     <div class="overflow-x-auto">
         <ul class="flex flex-nowrap items-center text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -358,6 +445,7 @@
         </ul>
     </div>
 </nav>
+{% endif %}
 
 <script>
 // Admin navigation dropdowns - custom implementation
