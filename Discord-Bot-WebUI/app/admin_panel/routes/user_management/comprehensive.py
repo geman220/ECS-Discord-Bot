@@ -124,8 +124,10 @@ def users_comprehensive():
 
         # Get all roles and leagues for filter dropdowns
         all_roles = Role.query.order_by(Role.name).all()
-        # Get leagues from current seasons only
-        all_leagues = League.query.join(Season).filter(Season.is_current == True).order_by(League.name).all()
+        # Get leagues from current seasons only, with teams eager-loaded for the edit form
+        all_leagues = League.query.options(
+            joinedload(League.teams)
+        ).join(Season).filter(Season.is_current == True).order_by(League.name).all()
 
         # Calculate statistics (for stat cards)
         thirty_days_ago = datetime.utcnow() - timedelta(days=30)
@@ -280,10 +282,26 @@ def edit_user_comprehensive(user_id):
         is_active = request.form.get('is_active') == 'on'
         is_current_player = request.form.get('is_current_player') == 'on'
         role_ids = request.form.getlist('roles')
-        league_id = request.form.get('league_id')
-        team_id = request.form.get('team_id')
-        secondary_league_id = request.form.get('secondary_league_id')
+
+        # Handle both old and new form field names for team assignments
+        # New form uses three-tier system: primary_team_id, secondary_team_id, tertiary_team_id
+        team_id = request.form.get('primary_team_id') or request.form.get('team_id')
         secondary_team_id = request.form.get('secondary_team_id')
+        tertiary_team_id = request.form.get('tertiary_team_id')
+
+        # Derive league_id from the primary team if a team is selected
+        league_id = None
+        if team_id:
+            primary_team = Team.query.get(int(team_id))
+            if primary_team and primary_team.league_id:
+                league_id = str(primary_team.league_id)
+
+        # Derive secondary_league_id from secondary team
+        secondary_league_id = None
+        if secondary_team_id:
+            sec_team = Team.query.get(int(secondary_team_id))
+            if sec_team and sec_team.league_id:
+                secondary_league_id = str(sec_team.league_id)
 
         # Store old values for audit log
         old_values = {
@@ -324,8 +342,15 @@ def edit_user_comprehensive(user_id):
                 if secondary_league and secondary_league != user.player.primary_league:
                     user.player.other_leagues.append(secondary_league)
 
-            # Get ECS FC team IDs from the multi-select form field
+            # Get ECS FC team IDs from the three-tier form fields
+            # Support both old format (ecs_fc_team_ids[]) and new format (primary/secondary/tertiary_ecsfc_teams)
             ecs_fc_team_ids = request.form.getlist('ecs_fc_team_ids[]')
+            if not ecs_fc_team_ids:
+                # Try new three-tier format
+                ecs_fc_team_ids = []
+                ecs_fc_team_ids.extend(request.form.getlist('primary_ecsfc_teams'))
+                ecs_fc_team_ids.extend(request.form.getlist('secondary_ecsfc_teams'))
+                ecs_fc_team_ids.extend(request.form.getlist('tertiary_ecsfc_teams'))
             ecs_fc_team_ids = [int(tid) for tid in ecs_fc_team_ids if tid]
 
             # Build the list of teams the player should be on
@@ -338,6 +363,10 @@ def edit_user_comprehensive(user_id):
             # Add secondary team if specified (for non-ECS FC leagues)
             if secondary_team_id:
                 target_team_ids.add(int(secondary_team_id))
+
+            # Add tertiary team if specified
+            if tertiary_team_id:
+                target_team_ids.add(int(tertiary_team_id))
 
             # Add all selected ECS FC teams
             target_team_ids.update(ecs_fc_team_ids)

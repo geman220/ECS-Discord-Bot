@@ -675,6 +675,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function populateEditForm(user) {
+        // Set the form action URL for this specific user
+        const editForm = document.getElementById('editUserForm');
+        editForm.action = window.USER_MGMT_CONFIG.editUserUrl.replace('0', user.id);
+
         document.getElementById('editUserId').value = user.id;
         document.getElementById('editUsername').value = user.username || '';
         document.getElementById('editEmail').value = user.email || '';
