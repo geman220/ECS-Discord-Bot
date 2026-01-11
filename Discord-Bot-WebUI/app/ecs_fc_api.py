@@ -569,10 +569,11 @@ def get_rsvp_message(match_id: int):
             from app.models import ScheduledMessage
             
             # Look specifically for the message that contains Discord message ID
+            # Use JSON path extraction to check key existence (compatible with SQLAlchemy JSON type)
             scheduled_message = session_db.query(ScheduledMessage).filter(
                 ScheduledMessage.message_type == 'ecs_fc_rsvp',
                 ScheduledMessage.message_metadata.op('->>')('ecs_fc_match_id') == str(match_id),
-                ScheduledMessage.message_metadata.has_key('discord_message_id')
+                ScheduledMessage.message_metadata.op('->>')('discord_message_id').isnot(None)
             ).first()
             
             if not scheduled_message:
@@ -762,12 +763,12 @@ def update_rsvp_enterprise():
                 logger.warning(f"🔵 [ECS_FC_API_V2] Invalid response value: {response}")
                 return create_api_response(False, "Invalid response value", status_code=400)
             
-            # Verify match exists (for regular Match table, not ECS FC specific)
-            from app.models import Match
-            match = session_db.query(Match).get(match_id)
+            # Verify match exists (for ECS FC Match table)
+            from app.models import EcsFcMatch
+            match = session_db.query(EcsFcMatch).get(match_id)
             if not match:
-                logger.warning(f"🔵 [ECS_FC_API_V2] Match {match_id} not found")
-                return create_api_response(False, "Match not found", status_code=404)
+                logger.warning(f"🔵 [ECS_FC_API_V2] ECS FC Match {match_id} not found")
+                return create_api_response(False, "ECS FC Match not found", status_code=404)
             
             # Collect context for audit trail
             user_context = {
@@ -789,32 +790,40 @@ def update_rsvp_enterprise():
                 message = "RSVP updated successfully"
                 event = None
                 
-                # Update the player's RSVP in database
-                from app.models import Match, Player, RSVP, RSVPStatus
-                match = session_db.query(Match).get(match_id)
+                # Update the player's RSVP in database using ECS FC models
+                from app.models import EcsFcMatch, EcsFcAvailability, Player
+                match = session_db.query(EcsFcMatch).get(match_id)
                 player = session_db.query(Player).get(player_id)
-                
+
                 if match and player:
-                    # Find or create RSVP record
-                    rsvp = session_db.query(RSVP).filter_by(
-                        match_id=match_id, 
+                    # Find or create RSVP record using EcsFcAvailability
+                    rsvp = session_db.query(EcsFcAvailability).filter_by(
+                        match_id=match_id,
                         player_id=player_id
                     ).first()
-                    
+
                     if not rsvp:
-                        rsvp = RSVP(match_id=match_id, player_id=player_id)
+                        # Create new availability record
+                        rsvp = EcsFcAvailability(
+                            match_id=match_id,
+                            player_id=player_id,
+                            discord_id=discord_id or str(player_id),  # Use discord_id if available
+                            response=response,
+                            responded_at=datetime.utcnow()
+                        )
                         session_db.add(rsvp)
-                    
-                    # Update RSVP response
-                    rsvp.response = response
-                    rsvp.updated_at = datetime.utcnow()
+                    else:
+                        # Update existing RSVP response
+                        rsvp.response = response
+                        rsvp.responded_at = datetime.utcnow()
+
                     session_db.commit()
-                    
-                    logger.info(f"Updated RSVP for player {player_id} match {match_id}: {response}")
+
+                    logger.info(f"Updated ECS FC RSVP for player {player_id} match {match_id}: {response}")
                 else:
                     success = False
-                    message = "Match or player not found"
-                    logger.error(f"Match {match_id} or player {player_id} not found")
+                    message = "ECS FC Match or player not found"
+                    logger.error(f"ECS FC Match {match_id} or player {player_id} not found")
                     
             except Exception as e:
                 success = False
