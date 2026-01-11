@@ -23,7 +23,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import Match, Player, User, Team
-from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability, is_ecs_fc_team
+from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability
 from app.etag_utils import make_etag_response, CACHE_DURATIONS
 from app.app_api_helpers import (
     build_match_response,
@@ -118,6 +118,25 @@ def get_ecs_fc_team_ids(session, player: Player) -> list:
         if team.league and 'ECS FC' in team.league.name:
             ecs_fc_ids.append(team.id)
     return ecs_fc_ids
+
+
+def check_is_ecs_fc_team(session, team_id: int) -> bool:
+    """
+    Check if a team is an ECS FC team using the provided session.
+
+    This function works within managed_session context unlike is_ecs_fc_team().
+    """
+    if not team_id:
+        return False
+
+    team = session.query(Team).options(
+        joinedload(Team.league)
+    ).get(team_id)
+
+    if not team or not team.league:
+        return False
+
+    return 'ECS FC' in team.league.name
 
 
 def query_ecs_fc_matches(session, team_ids: list, upcoming: bool = False,
@@ -230,16 +249,20 @@ def get_all_matches():
         # Initialize combined results
         all_matches_data = []
 
-        # Check if team_id is an ECS FC team
+        # Check if team_id is an ECS FC team (use session-aware function)
         ecs_fc_team_ids = []
         pub_league_team_ids = []
+        team_is_ecs_fc = False
 
         if team_id:
-            # Check if specific team is ECS FC
-            if is_ecs_fc_team(team_id):
+            # Check if specific team is ECS FC using the current session
+            team_is_ecs_fc = check_is_ecs_fc_team(session_db, team_id)
+            if team_is_ecs_fc:
                 ecs_fc_team_ids = [team_id]
+                logger.info(f"Team {team_id} is ECS FC team")
             else:
                 pub_league_team_ids = [team_id]
+                logger.info(f"Team {team_id} is Pub League team")
         elif player and player.teams:
             # Separate player's teams into ECS FC and Pub League
             for team in player.teams:
@@ -251,7 +274,7 @@ def get_all_matches():
         # Query Pub League matches (only if we have pub league teams or no specific filter)
         if pub_league_team_ids or (not team_id and not ecs_fc_team_ids):
             query = build_matches_query(
-                team_id=team_id if team_id and not is_ecs_fc_team(team_id) else None,
+                team_id=team_id if team_id and not team_is_ecs_fc else None,
                 player=player,
                 upcoming=upcoming,
                 completed=completed,

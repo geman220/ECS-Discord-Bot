@@ -235,9 +235,7 @@ def handle_join_match_rsvp(data):
     """
     try:
         # Authenticate the user (lazy import to avoid circular dependency)
-        from app.socket_handlers import authenticate_socket_connection
-        # Lazy import to avoid circular dependency
-        from app.socket_handlers import authenticate_socket_connection
+        from app.sockets.auth import authenticate_socket_connection
         auth_result = authenticate_socket_connection(data.get('auth'))
         
         if not auth_result['authenticated']:
@@ -359,7 +357,7 @@ def handle_leave_match_rsvp(data):
         # Get user info for tracking
         from flask_login import current_user
         # Lazy import to avoid circular dependency
-        from app.socket_handlers import authenticate_socket_connection
+        from app.sockets.auth import authenticate_socket_connection
         auth_result = authenticate_socket_connection(data.get('auth'))
         
         if auth_result['authenticated']:
@@ -400,7 +398,7 @@ def handle_get_match_rsvps_live(data):
     try:
         # Authenticate
         # Lazy import to avoid circular dependency
-        from app.socket_handlers import authenticate_socket_connection
+        from app.sockets.auth import authenticate_socket_connection
         auth_result = authenticate_socket_connection(data.get('auth'))
         from flask_login import current_user
         
@@ -449,7 +447,7 @@ def handle_update_rsvp_live(data):
     try:
         # Authenticate
         # Lazy import to avoid circular dependency
-        from app.socket_handlers import authenticate_socket_connection
+        from app.sockets.auth import authenticate_socket_connection
         auth_result = authenticate_socket_connection(data.get('auth'))
         from flask_login import current_user
         

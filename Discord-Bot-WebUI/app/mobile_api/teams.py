@@ -24,7 +24,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import Team, League, Season, Match, Player, player_teams
-from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability, is_ecs_fc_team
+from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability
 from app.etag_utils import make_etag_response, CACHE_DURATIONS
 from app.app_api_helpers import (
     build_match_response,
