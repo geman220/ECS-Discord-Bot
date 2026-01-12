@@ -42,6 +42,9 @@
     <!-- jQuery UI CSS (for autocomplete) -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" />
 
+    <!-- Template Styles (includes jQuery UI autocomplete overrides) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/template-styles.css') }}" />
+
     <!-- Flowbite JS (for components like modals, dropdowns) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js" defer></script>
 
@@ -208,14 +211,14 @@
                         <!-- User Menu -->
                         <button type="button" class="flex items-center gap-2 p-1 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700" id="user-menu-button" data-dropdown-toggle="user-dropdown">
                             <img class="w-8 h-8 rounded-full" src="{{ safe_current_user.player.profile_picture_url if safe_current_user.player else url_for('static', filename='img/default_player.png') }}" alt="User photo" />
-                            <span class="hidden md:block text-sm font-medium text-gray-900 dark:text-white">{{ safe_current_user.username }}</span>
+                            <span class="hidden md:block text-sm font-medium text-gray-900 dark:text-white">{{ safe_current_user.player.name if safe_current_user.player else safe_current_user.username }}</span>
                             <i class="ti ti-chevron-down w-4 h-4"></i>
                         </button>
 
                         <!-- User Dropdown -->
                         <div class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600" id="user-dropdown">
                             <div class="px-4 py-3">
-                                <span class="block text-sm text-gray-900 dark:text-white">{{ safe_current_user.username }}</span>
+                                <span class="block text-sm text-gray-900 dark:text-white">{{ safe_current_user.player.name if safe_current_user.player else safe_current_user.username }}</span>
                                 <span class="block text-sm text-gray-500 truncate dark:text-gray-400">{{ safe_current_user.email or '' }}</span>
                             </div>
                             <ul class="py-2" aria-labelledby="user-menu-button">
