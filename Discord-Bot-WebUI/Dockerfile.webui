@@ -6,14 +6,19 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies including Node.js for Vite build
+# Also install fonts for Pillow/Pilmoji image generation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     python3-dev \
     libffi-dev \
     curl \
+    fonts-dejavu-core \
+    fonts-liberation \
+    fontconfig \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && fc-cache -f -v
 
 # Copy package.json first for better caching
 COPY package.json package-lock.json* ./

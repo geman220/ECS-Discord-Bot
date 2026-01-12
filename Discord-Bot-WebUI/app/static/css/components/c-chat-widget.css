@@ -32,11 +32,11 @@
   --cw-border-radius: 16px;
   --cw-animation-duration: 0.25s;
   --cw-z-index: var(--z-chat-widget, 1035);
-  /* Colors - uses design system tokens with fallbacks */
-  --cw-bg: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
-  --cw-bg-hover: var(--color-translucent-light);
-  --cw-text: var(--color-text-primary, var(--color-secondary-200, var(--color-secondary-200, var(--color-secondary-200))));
-  --cw-text-secondary: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
+  /* Colors - uses design system tokens with solid fallbacks */
+  --cw-bg: var(--color-bg-elevated, var(--color-secondary-900, #1e1e2e));
+  --cw-bg-hover: var(--color-translucent-light, rgba(255, 255, 255, 0.1));
+  --cw-text: var(--color-text-primary, var(--color-secondary-200, #e2e8f0));
+  --cw-text-secondary: var(--color-text-secondary, var(--color-secondary-400, #94a3b8));
   --cw-accent: var(--color-primary, #7c3aed);
   --cw-accent-hover: var(--color-primary-hover, #6d28d9);
   --cw-border: var(--color-border, rgba(255, 255, 255, 0.1));
@@ -54,12 +54,19 @@
 /* Light mode overrides */
 
 [data-style="light"] .c-chat-widget {
-  --cw-bg: var(--color-bg-elevated, var(--color-white)fff);
-  --cw-bg-hover: var(--color-translucent);
-  --cw-text: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
-  --cw-text-secondary: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
+  --cw-bg: var(--color-bg-elevated, var(--color-white, #ffffff));
+  --cw-bg-hover: var(--color-translucent, rgba(0, 0, 0, 0.05));
+  --cw-text: var(--color-text-primary, var(--color-secondary-900, #1e293b));
+  --cw-text-secondary: var(--color-text-secondary, var(--color-secondary-600, #475569));
   --cw-border: var(--color-border, rgba(0, 0, 0, 0.1));
   --cw-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Light mode panel background override */
+[data-style="light"] .c-chat-widget__panel,
+[data-style="light"] .c-chat-widget__header {
+  background: #ffffff;
+  background: var(--cw-bg, #ffffff);
 }
 
 /* --------------------------------------------------------------------------
@@ -177,7 +184,9 @@
   min-height: var(--cw-panel-min-height);
   max-height: var(--cw-panel-max-height);
   height: auto;
-  background: var(--cw-bg);
+  /* Solid fallback background to prevent transparency issues */
+  background: #1e1e2e;
+  background: var(--cw-bg, #1e1e2e);
   border-radius: var(--cw-border-radius);
   box-shadow: var(--cw-shadow);
   border: 1px solid var(--cw-border);
@@ -217,7 +226,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  background: var(--cw-bg);
+  background: #1e1e2e;
+  background: var(--cw-bg, #1e1e2e);
   border-bottom: 1px solid var(--cw-border);
   flex-shrink: 0;
 }

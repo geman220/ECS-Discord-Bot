@@ -285,8 +285,55 @@ export function safeJsonParse(jsonString, fallback = null) {
 }
 
 // Global error handler for uncaught errors
+// Only enabled for authenticated pages to avoid showing errors on public pages
+// where many authenticated-only features will intentionally fail
 if (typeof window !== 'undefined') {
+    // Check if this is an authenticated page by looking for authenticated-only elements
+    // The sidebar is only rendered for authenticated users
+    const isAuthenticatedPage = () => {
+        return document.getElementById('sidebar') !== null ||
+               document.querySelector('[data-authenticated="true"]') !== null;
+    };
+
+    // Determine if an error should be shown to the user
+    const shouldShowError = (error) => {
+        if (!error) return false;
+
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        // Don't show errors for common non-critical failures
+        const ignoredPatterns = [
+            // Auth-related (expected on public pages)
+            '401', '403', 'unauthorized', 'forbidden', 'authentication',
+            // Network hiccups (usually transient)
+            'Failed to fetch', 'NetworkError', 'Load failed',
+            // Socket.IO reconnection (handled internally)
+            'socket', 'websocket', 'polling',
+            // Service worker cache misses
+            'cache', 'sw.js',
+            // ResizeObserver (browser quirk, non-critical)
+            'ResizeObserver',
+            // Script loading (usually due to ad blockers or network)
+            'script error', 'Script error'
+        ];
+
+        const lowerMessage = errorMessage.toLowerCase();
+        return !ignoredPatterns.some(pattern => lowerMessage.includes(pattern.toLowerCase()));
+    };
+
     window.addEventListener('error', (event) => {
+        // Only handle errors on authenticated pages
+        if (!isAuthenticatedPage()) {
+            console.debug('[ErrorHandler] Skipping error notification on public page:', event.message);
+            return;
+        }
+
+        // Only show critical errors
+        if (!shouldShowError(event.error || event.message)) {
+            console.debug('[ErrorHandler] Ignoring non-critical error:', event.message);
+            return;
+        }
+
         handleError(event.error || event.message, {
             component: 'global',
             action: 'uncaught error',
@@ -299,6 +346,18 @@ if (typeof window !== 'undefined') {
     });
 
     window.addEventListener('unhandledrejection', (event) => {
+        // Only handle errors on authenticated pages
+        if (!isAuthenticatedPage()) {
+            console.debug('[ErrorHandler] Skipping rejection notification on public page');
+            return;
+        }
+
+        // Only show critical errors
+        if (!shouldShowError(event.reason)) {
+            console.debug('[ErrorHandler] Ignoring non-critical rejection:', event.reason);
+            return;
+        }
+
         handleError(event.reason, {
             component: 'global',
             action: 'unhandled promise rejection'

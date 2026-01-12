@@ -12,13 +12,18 @@ import csv
 import io
 import logging
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from flask import Blueprint, request, jsonify, g
 from flask_login import login_required, current_user
+
+# Pacific timezone for Discord announcements
+PACIFIC_TZ = ZoneInfo('America/Los_Angeles')
 
 from app.decorators import role_required
 from app.services.calendar import create_league_event_service, create_visibility_service
 from app.services.discord_service import get_discord_service
 from app.dto.calendar_dto import league_event_to_fullcalendar
+from app.utils.schedule_image_generator import generate_schedule_image
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +31,23 @@ league_events_bp = Blueprint('calendar_league_events', __name__)
 
 # Admin roles that can manage league events
 ADMIN_ROLES = ['Global Admin', 'Pub League Admin']
+
+
+def format_datetime_for_discord(dt: datetime) -> str:
+    """
+    Format a datetime for Discord announcements with Pacific timezone.
+
+    The Discord bot expects timezone-aware ISO format datetimes.
+    If the datetime is naive (no timezone), we assume it's already in Pacific time.
+    """
+    if dt is None:
+        return None
+
+    # If naive datetime, assume it's Pacific time and add the timezone
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=PACIFIC_TZ)
+
+    return dt.isoformat()
 
 
 @league_events_bp.route('/league-events', methods=['GET'])
@@ -212,11 +234,11 @@ def create_league_event():
                     discord_service.post_league_event_announcement(
                         event_id=event.id,
                         title=event.title,
-                        start_datetime=event.start_datetime.isoformat(),
+                        start_datetime=format_datetime_for_discord(event.start_datetime),
                         description=event.description,
                         event_type=event.event_type,
                         location=event.location,
-                        end_datetime=event.end_datetime.isoformat() if event.end_datetime else None,
+                        end_datetime=format_datetime_for_discord(event.end_datetime),
                         is_all_day=event.is_all_day
                     )
                 )
@@ -318,11 +340,11 @@ def update_league_event(event_id):
                         message_id=int(event.discord_message_id),
                         channel_id=int(event.discord_channel_id),
                         title=event.title,
-                        start_datetime=event.start_datetime.isoformat(),
+                        start_datetime=format_datetime_for_discord(event.start_datetime),
                         description=event.description,
                         event_type=event.event_type,
                         location=event.location,
-                        end_datetime=event.end_datetime.isoformat() if event.end_datetime else None,
+                        end_datetime=format_datetime_for_discord(event.end_datetime),
                         is_all_day=event.is_all_day
                     )
                 )
@@ -519,6 +541,9 @@ def import_league_events():
     Query parameters:
     - year: Default year for dates without year (default: current year)
     - notify_discord: Whether to announce events in Discord (default: false)
+    - discord_mode: How to announce to Discord when notify_discord=true:
+        - 'individual': Post separate embed for each event (spammy for many events)
+        - 'summary': Post a single summary embed listing all events (recommended for bulk)
     - preview: If true, only validate and preview without creating (default: false)
 
     Returns:
@@ -539,6 +564,7 @@ def import_league_events():
         # Get parameters
         default_year = int(request.form.get('year', datetime.now().year))
         notify_discord = request.form.get('notify_discord', 'false').lower() == 'true'
+        discord_mode = request.form.get('discord_mode', 'summary').lower()  # 'summary' or 'individual'
         preview_only = request.form.get('preview', 'false').lower() == 'true'
         default_event_type = request.form.get('event_type', 'other').lower()
         default_title = request.form.get('title', '')
@@ -658,53 +684,109 @@ def import_league_events():
         league_event_service = create_league_event_service(g.db_session)
         created_events = []
 
-        for event_data in events_to_create:
-            row_num = event_data.pop('row_num')
+        # Create a single event loop for all Discord announcements
+        # Using asyncio.run() multiple times in a loop causes "Event loop is closed" errors
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-            result = league_event_service.create_event(
-                title=event_data['title'],
-                start_datetime=event_data['start_datetime'],
-                created_by=current_user.id,
-                end_datetime=event_data['end_datetime'],
-                event_type=event_data['event_type'],
-                location=event_data['location'],
-                description=event_data['description'],
-                notify_discord=event_data['notify_discord']
-            )
+        try:
+            for event_data in events_to_create:
+                row_num = event_data.pop('row_num')
 
-            if result.success:
-                event = result.data
-                created_events.append({
-                    'id': event.id,
-                    'title': event.title,
-                    'date': event.start_datetime.strftime('%Y-%m-%d'),
-                    'location': event.location
-                })
+                result = league_event_service.create_event(
+                    title=event_data['title'],
+                    start_datetime=event_data['start_datetime'],
+                    created_by=current_user.id,
+                    end_datetime=event_data['end_datetime'],
+                    event_type=event_data['event_type'],
+                    location=event_data['location'],
+                    description=event_data['description'],
+                    notify_discord=event_data['notify_discord']
+                )
 
-                # Post to Discord if requested
-                if event.notify_discord:
-                    try:
-                        discord_service = get_discord_service()
-                        discord_result = asyncio.run(
-                            discord_service.post_league_event_announcement(
-                                event_id=event.id,
-                                title=event.title,
-                                start_datetime=event.start_datetime.isoformat(),
-                                description=event.description,
-                                event_type=event.event_type,
-                                location=event.location,
-                                end_datetime=event.end_datetime.isoformat() if event.end_datetime else None,
-                                is_all_day=False
+                if result.success:
+                    event = result.data
+                    created_events.append({
+                        'id': event.id,
+                        'title': event.title,
+                        'date': event.start_datetime.strftime('%Y-%m-%d'),
+                        'time': event.start_datetime.strftime('%I:%M %p'),
+                        'location': event.location,
+                        'event_type': event.event_type,
+                        'event_obj': event  # Keep reference for summary post
+                    })
+
+                    # Post to Discord if requested (individual mode only)
+                    if event.notify_discord and discord_mode == 'individual':
+                        try:
+                            discord_service = get_discord_service()
+                            discord_result = loop.run_until_complete(
+                                discord_service.post_league_event_announcement(
+                                    event_id=event.id,
+                                    title=event.title,
+                                    start_datetime=format_datetime_for_discord(event.start_datetime),
+                                    description=event.description,
+                                    event_type=event.event_type,
+                                    location=event.location,
+                                    end_datetime=format_datetime_for_discord(event.end_datetime),
+                                    is_all_day=False
+                                )
                             )
+                            if discord_result:
+                                event.discord_message_id = str(discord_result.get('message_id'))
+                                event.discord_channel_id = str(discord_result.get('channel_id'))
+                                g.db_session.commit()
+                        except Exception as discord_error:
+                            logger.error(f"Error posting Discord announcement: {discord_error}")
+                else:
+                    errors.append(f"Row {row_num}: {result.message}")
+
+            # Post summary to Discord if in summary mode
+            if notify_discord and discord_mode == 'summary' and created_events:
+                try:
+                    discord_service = get_discord_service()
+
+                    # Prepare events for image generator
+                    image_events = []
+                    for evt in created_events:
+                        event_obj = evt.get('event_obj')
+                        if event_obj:
+                            image_events.append({
+                                'title': evt['title'],
+                                'date': event_obj.start_datetime,
+                                'time': evt['time'],
+                                'location': evt['location'] or '',
+                                'event_type': evt['event_type'],
+                            })
+
+                    # Generate the schedule image
+                    logger.info(f"Generating schedule image for {len(image_events)} events")
+                    image_bytes = generate_schedule_image(
+                        events=image_events,
+                        title="Event Schedule",
+                        footer_url="portal.ecsfc.com/calendar"
+                    )
+
+                    # Post schedule image announcement
+                    discord_result = loop.run_until_complete(
+                        discord_service.post_schedule_image_announcement(
+                            image_bytes=image_bytes,
+                            title=f"📋 {len(created_events)} New Events Added",
+                            description="Check out the upcoming schedule!",
+                            footer_text="Pub League Events • View full calendar at portal.ecsfc.com/calendar"
                         )
-                        if discord_result:
-                            event.discord_message_id = str(discord_result.get('message_id'))
-                            event.discord_channel_id = str(discord_result.get('channel_id'))
-                            g.db_session.commit()
-                    except Exception as discord_error:
-                        logger.error(f"Error posting Discord announcement: {discord_error}")
-            else:
-                errors.append(f"Row {row_num}: {result.message}")
+                    )
+                    if discord_result:
+                        logger.info(f"Posted schedule image announcement for {len(created_events)} events")
+                except Exception as discord_error:
+                    logger.error(f"Error posting Discord schedule image: {discord_error}", exc_info=True)
+
+        finally:
+            loop.close()
+
+        # Clean up event_obj before returning JSON
+        for evt in created_events:
+            evt.pop('event_obj', None)
 
         logger.info(f"Imported {len(created_events)} league events via CSV")
 
@@ -712,7 +794,8 @@ def import_league_events():
             'success': True,
             'created_count': len(created_events),
             'created_events': created_events,
-            'errors': errors
+            'errors': errors,
+            'discord_mode': discord_mode if notify_discord else 'none'
         })
 
     except Exception as e:

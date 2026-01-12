@@ -570,7 +570,19 @@ async function deleteEvent() {
     const eventId = document.getElementById('eventId').value;
     if (!eventId) return;
 
-    if (!confirm('Are you sure you want to delete this event?')) {
+    // Use SweetAlert2 for confirmation instead of native browser confirm
+    const result = await window.Swal.fire({
+        title: 'Delete Event?',
+        text: 'Are you sure you want to delete this event? This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, delete it',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) {
         return;
     }
 

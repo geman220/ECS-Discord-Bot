@@ -44,7 +44,34 @@ class DiscordService:
     
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session with proper timeout."""
+        import asyncio
+
+        # Check if we need to create a new session
+        need_new_session = False
+
         if self._session is None or self._session.closed:
+            need_new_session = True
+        else:
+            # Check if the session's loop matches the current running loop
+            # This handles cases where a new event loop was created (e.g., CSV import)
+            try:
+                current_loop = asyncio.get_running_loop()
+                # aiohttp sessions are bound to their creating loop
+                # If the connector's loop is different, we need a new session
+                if hasattr(self._session, '_connector') and self._session._connector:
+                    connector_loop = getattr(self._session._connector, '_loop', None)
+                    if connector_loop is not None and connector_loop != current_loop:
+                        # Session is bound to a different (likely closed) loop
+                        try:
+                            await self._session.close()
+                        except Exception:
+                            pass  # Ignore errors closing old session
+                        need_new_session = True
+            except RuntimeError:
+                # No running loop - shouldn't happen in async context
+                pass
+
+        if need_new_session:
             # Create session with proper timeout configuration
             timeout = aiohttp.ClientTimeout(total=30, connect=10, sock_read=20)
             connector = aiohttp.TCPConnector(limit=100, limit_per_host=30)
@@ -419,6 +446,65 @@ class DiscordService:
         except Exception as e:
             logger.error(f"Error deleting league event announcement (message {message_id}): {e}")
             return False
+
+    async def post_schedule_image_announcement(
+        self,
+        image_bytes: bytes,
+        title: str,
+        description: Optional[str] = None,
+        footer_text: Optional[str] = None,
+        channel_id: Optional[int] = None,
+        channel_name: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Post a schedule image announcement to Discord.
+
+        Args:
+            image_bytes: PNG image data as bytes
+            title: Embed title
+            description: Optional embed description
+            footer_text: Optional footer text
+            channel_id: Optional specific channel ID
+            channel_name: Optional channel name (resolved by bot)
+
+        Returns:
+            Dict with message_id, channel_id, channel_name if successful
+        """
+        if self._should_skip_call("post_schedule_image_announcement"):
+            return None
+
+        try:
+            session = await self._get_session()
+            url = f"{self.bot_api_url}/api/schedule-image/announce"
+
+            # Create multipart form data
+            data = aiohttp.FormData()
+            data.add_field('image', image_bytes, filename='schedule.png', content_type='image/png')
+            data.add_field('title', title)
+            if description:
+                data.add_field('description', description)
+            if footer_text:
+                data.add_field('footer_text', footer_text)
+            if channel_id:
+                data.add_field('channel_id', str(channel_id))
+            if channel_name:
+                data.add_field('channel_name', channel_name)
+
+            logger.info(f"Posting schedule image announcement: {title}")
+
+            async with session.post(url, data=data) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    logger.info(f"Posted schedule image: message_id={result.get('message_id')}, channel={result.get('channel_name')}")
+                    return result
+                else:
+                    error_text = await response.text()
+                    logger.error(f"Failed to post schedule image (status {response.status}): {error_text}")
+                    return None
+
+        except Exception as e:
+            logger.error(f"Error posting schedule image announcement: {e}")
+            return None
 
     async def post_event_reminder(
         self,

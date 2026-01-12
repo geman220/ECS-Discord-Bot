@@ -9,9 +9,23 @@ import { CONFIG, getCSRFToken } from './config.js';
 import { getNavbar, getPresenceSocket, setPresenceSocket } from './state.js';
 
 /**
+ * Check if this is an authenticated page
+ */
+function isAuthenticatedPage() {
+  return document.getElementById('sidebar') !== null ||
+         document.querySelector('[data-authenticated="true"]') !== null;
+}
+
+/**
  * Initialize presence tracking
  */
 export function initPresence() {
+  // Skip presence tracking on public/unauthenticated pages
+  if (!isAuthenticatedPage()) {
+    console.debug('[Navbar] Skipping presence on public page');
+    return;
+  }
+
   // Initialize WebSocket connection for presence if socket.io is available
   if (typeof window.io !== 'undefined') {
     initPresenceSocket();

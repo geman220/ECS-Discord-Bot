@@ -1,0 +1,742 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}ECS Pub League Calendar{% endblock %}
+
+{% block page_title %}ECS Pub League Calendar{% endblock %}
+
+{% block custom_css %}
+{{ super() }}
+<style>
+    /* Public Calendar Styles */
+    .month-schedule { display: flex; flex-direction: column; }
+    .month-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem; margin-bottom: 0.5rem; }
+    .month-weekday { text-align: center; font-size: 0.75rem; color: #6b7280; text-transform: uppercase; font-weight: 600; padding: 0.5rem; }
+    .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem; }
+    .month-day { min-height: 100px; padding: 0.5rem; border-radius: 0.5rem; background: #f9fafb; border: 1px solid #e5e7eb; }
+    .dark .month-day { background: #1f2937; border-color: #374151; }
+    .month-day.prev-month, .month-day.next-month { opacity: 0.4; }
+    .month-day.today { background: rgba(26, 71, 42, 0.1); border-color: #1a472a; }
+    .dark .month-day.today { background: rgba(26, 71, 42, 0.3); }
+    .month-day.has-events { border-color: #1a472a; }
+    .month-day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+    .day-number { font-weight: 600; font-size: 0.875rem; }
+    .event-count-badge { background: #1a472a; color: white; font-size: 0.625rem; padding: 0.125rem 0.375rem; border-radius: 9999px; }
+    .month-day-content { font-size: 0.75rem; }
+    .month-event { padding: 0.375rem 0.5rem; margin-bottom: 0.25rem; border-radius: 0.25rem; cursor: pointer; transition: all 0.2s; border-left-width: 3px; }
+    .month-event:hover { transform: translateX(2px); opacity: 0.9; }
+    .month-event-time { font-size: 0.625rem; color: #374151; font-weight: 500; }
+    .dark .month-event-time { color: #d1d5db; }
+    .month-event-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #111827; }
+    .dark .month-event-title { color: #f9fafb; }
+    .month-more-events { font-size: 0.75rem; color: #1a472a; cursor: pointer; padding: 0.25rem; text-align: center; }
+    .month-more-events:hover { text-decoration: underline; }
+
+    .list-schedule { display: flex; flex-direction: column; gap: 1.5rem; }
+    .date-group { border-left: 3px solid #1a472a; padding-left: 1rem; }
+    .date-group.today { border-color: #c9a227; }
+    .date-header { font-weight: 600; color: #1a472a; margin-bottom: 0.75rem; display: flex; align-items: center; }
+    .dark .date-header { color: #22c55e; }
+
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; text-align: center; }
+    .empty-state-icon { font-size: 3rem; color: #9ca3af; margin-bottom: 1rem; }
+    .empty-state-text { font-size: 1.125rem; color: #6b7280; margin-bottom: 0.5rem; }
+    .empty-state-subtext { font-size: 0.875rem; color: #9ca3af; }
+
+    /* Hero banner gradient */
+    .hero-gradient {
+        background: linear-gradient(135deg, rgba(26, 71, 42, 0.95) 0%, rgba(26, 71, 42, 0.85) 50%, rgba(34, 197, 94, 0.8) 100%);
+    }
+
+    /* Event type colors - higher contrast for visibility */
+    .event-party { background: rgba(156, 39, 176, 0.25); border-left-color: #9c27b0; }
+    .event-plop { background: rgba(76, 175, 80, 0.25); border-left-color: #4caf50; }
+    .event-meeting { background: rgba(33, 150, 243, 0.25); border-left-color: #2196f3; }
+    .event-social { background: rgba(233, 30, 99, 0.25); border-left-color: #e91e63; }
+    .event-tournament { background: rgba(255, 193, 7, 0.3); border-left-color: #ffc107; }
+    .event-fundraiser { background: rgba(255, 87, 34, 0.25); border-left-color: #ff5722; }
+    .event-other { background: rgba(96, 125, 139, 0.25); border-left-color: #607d8b; }
+
+    /* Dark mode event colors */
+    .dark .event-party { background: rgba(156, 39, 176, 0.35); }
+    .dark .event-plop { background: rgba(76, 175, 80, 0.35); }
+    .dark .event-meeting { background: rgba(33, 150, 243, 0.35); }
+    .dark .event-social { background: rgba(233, 30, 99, 0.35); }
+    .dark .event-tournament { background: rgba(255, 193, 7, 0.4); }
+    .dark .event-fundraiser { background: rgba(255, 87, 34, 0.35); }
+    .dark .event-other { background: rgba(96, 125, 139, 0.35); }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="space-y-6">
+    <!-- Hero Banner -->
+    <div class="hero-gradient rounded-xl p-6 md:p-8 text-white shadow-lg">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <i class="ti ti-calendar-event text-3xl"></i>
+                    <h1 class="text-2xl md:text-3xl font-bold">ECS Pub League Calendar</h1>
+                </div>
+                <p class="text-green-100 text-sm md:text-base max-w-xl">
+                    Stay up to date with all upcoming Pub League events including PLOP nights, parties, tournaments, and social gatherings.
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-2 sm:gap-3">
+                {% if not is_authenticated %}
+                <!-- Discord Server Link -->
+                <a href="https://discord.gg/weareecs" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-[#5865F2] rounded-lg hover:bg-[#4752c4] focus:ring-4 focus:ring-blue-300 transition-colors shadow-md">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+                    Discord
+                </a>
+                <!-- Register -->
+                <a href="{{ url_for('auth.discord_register') }}" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 transition-colors shadow-md">
+                    <i class="ti ti-user-plus mr-2"></i>
+                    Register
+                </a>
+                <!-- Waitlist -->
+                <a href="{{ url_for('auth.waitlist_register') }}" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-ecs-green bg-white rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-green-300 transition-colors shadow-md">
+                    <i class="ti ti-list-check mr-2"></i>
+                    Waitlist
+                </a>
+                <!-- Login -->
+                <a href="{{ url_for('auth.discord_login') }}" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 transition-colors shadow-md border border-gray-300">
+                    <i class="ti ti-login mr-2"></i>
+                    Login
+                </a>
+                {% else %}
+                <a href="{{ url_for('main.index') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-ecs-green bg-white rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-green-300 transition-colors shadow-md">
+                    <i class="ti ti-home mr-2"></i>
+                    Go to Dashboard
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Main Calendar -->
+        <div class="lg:col-span-3">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-calendar text-ecs-green dark:text-green-400"></i>
+                        Upcoming Events
+                    </h5>
+                    <div class="inline-flex rounded-lg shadow-sm" role="group">
+                        <button type="button" data-view="month" id="viewMonthBtn" class="px-3 py-2 text-sm font-medium text-white bg-ecs-green border border-ecs-green rounded-l-lg hover:bg-green-800 focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-green-600 dark:border-green-600 dark:hover:bg-green-700">
+                            <i class="ti ti-calendar-month mr-1"></i> Month
+                        </button>
+                        <button type="button" data-view="list" id="viewListBtn" class="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-100 hover:text-ecs-green focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">
+                            <i class="ti ti-list mr-1"></i> List
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-4">
+                    <!-- Navigation -->
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="calendar-prevBtn" title="Previous" class="p-2 text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600">
+                                <i class="ti ti-chevron-left"></i>
+                            </button>
+                            <button type="button" id="todayBtn" title="Go to today" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
+                                Today
+                            </button>
+                        </div>
+                        <h5 id="currentDateDisplay" class="text-lg font-semibold text-gray-900 dark:text-white"></h5>
+                        <button type="button" id="calendar-nextBtn" title="Next" class="p-2 text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600">
+                            <i class="ti ti-chevron-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Calendar Content -->
+                    <div id="calendarContent">
+                        <div class="flex flex-col items-center justify-center py-12">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-ecs-green mb-4"></div>
+                            <h6 class="text-ecs-green dark:text-green-400 font-medium mb-1">Loading events...</h6>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm">Please wait while we fetch the calendar</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Event Legend -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-ecs-green/10 dark:bg-green-900/30">
+                        <i class="ti ti-palette text-ecs-green dark:text-green-400"></i>
+                    </div>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Event Types</h5>
+                </div>
+                <div class="p-4 space-y-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full" style="background-color: #4caf50;"></span>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">PLOP Night</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full" style="background-color: #9c27b0;"></span>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Party</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full" style="background-color: #ffc107;"></span>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Tournament</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full" style="background-color: #e91e63;"></span>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Social</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full" style="background-color: #2196f3;"></span>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Meeting</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full" style="background-color: #ff5722;"></span>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Fundraiser</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About ECS Pub League -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                        <i class="ti ti-info-circle text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">About Pub League</h5>
+                </div>
+                <div class="p-4">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        ECS Pub League is a recreational soccer league based in Seattle. We host regular PLOP (Pub League Open Play) nights, tournaments, and social events.
+                    </p>
+                    <div class="space-y-2">
+                        <a href="https://discord.gg/ecsfc" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm text-[#5865F2] hover:underline">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+                            Join our Discord
+                        </a>
+                        <a href="https://weareecs.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm text-ecs-green hover:underline dark:text-green-400">
+                            <i class="ti ti-world"></i>
+                            Visit weareecs.com
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Events Quick View -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
+                        <i class="ti ti-clock text-yellow-600 dark:text-yellow-400"></i>
+                    </div>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Coming Up</h5>
+                </div>
+                <div id="upcomingEventsList" class="p-4">
+                    <div class="text-center text-gray-500 dark:text-gray-400 text-sm py-4">
+                        <i class="ti ti-loader animate-spin"></i> Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Detail Modal -->
+<div id="eventDetailModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-lg max-h-full">
+        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 rounded-t">
+                <h3 id="eventDetailTitle" class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Event Details
+                </h3>
+                <button type="button" id="closeEventDetailModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <i class="ti ti-x text-xl"></i>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <div id="eventDetailContent" class="p-6">
+                <!-- Content populated by JS -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+(function() {
+    'use strict';
+
+    // State
+    let events = [];
+    let currentDate = new Date();
+    let currentView = 'month';
+
+    // Event type colors
+    const eventTypeColors = {
+        'party': '#9c27b0',
+        'meeting': '#2196f3',
+        'social': '#e91e63',
+        'plop': '#4caf50',
+        'tournament': '#ffc107',
+        'fundraiser': '#ff5722',
+        'other': '#607d8b'
+    };
+
+    // Convert hex color to rgba
+    function hexToRgba(hex, alpha) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    // Format date for display
+    function formatDate(date, format = 'long') {
+        const options = format === 'long'
+            ? { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+            : { month: 'short', day: 'numeric' };
+        return date.toLocaleDateString('en-US', options);
+    }
+
+    // Format time
+    function formatTime(dateStr) {
+        const date = new Date(dateStr);
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+
+    // Load events from API
+    async function loadEvents() {
+        try {
+            const response = await fetch('/calendar/public_events');
+            const data = await response.json();
+
+            if (data.events) {
+                events = data.events;
+                renderCalendar();
+                renderUpcomingEvents();
+            }
+        } catch (error) {
+            console.error('Error loading events:', error);
+            document.getElementById('calendarContent').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="ti ti-calendar-off"></i></div>
+                    <div class="empty-state-text">Unable to load events</div>
+                    <div class="empty-state-subtext">Please try refreshing the page</div>
+                </div>
+            `;
+        }
+    }
+
+    // Render the calendar based on current view
+    function renderCalendar() {
+        updateDateDisplay();
+
+        if (currentView === 'month') {
+            renderMonthView();
+        } else {
+            renderListView();
+        }
+    }
+
+    // Update the date display header
+    function updateDateDisplay() {
+        const display = document.getElementById('currentDateDisplay');
+        if (currentView === 'month') {
+            display.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        } else {
+            display.textContent = 'Upcoming Events';
+        }
+    }
+
+    // Render month view
+    function renderMonthView() {
+        const container = document.getElementById('calendarContent');
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startDate = new Date(firstDay);
+        startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let html = `
+            <div class="month-schedule">
+                <div class="month-weekdays">
+                    <div class="month-weekday">Sun</div>
+                    <div class="month-weekday">Mon</div>
+                    <div class="month-weekday">Tue</div>
+                    <div class="month-weekday">Wed</div>
+                    <div class="month-weekday">Thu</div>
+                    <div class="month-weekday">Fri</div>
+                    <div class="month-weekday">Sat</div>
+                </div>
+                <div class="month-grid">
+        `;
+
+        const currentDateLoop = new Date(startDate);
+
+        for (let i = 0; i < 42; i++) {
+            const dateStr = currentDateLoop.toISOString().split('T')[0];
+            const isCurrentMonth = currentDateLoop.getMonth() === month;
+            const isToday = currentDateLoop.getTime() === today.getTime();
+
+            // Filter events for this day
+            const dayEvents = events.filter(event => {
+                if (!event.start) return false;
+                const eventDate = new Date(event.start).toISOString().split('T')[0];
+                return eventDate === dateStr;
+            });
+
+            const classes = ['month-day'];
+            if (!isCurrentMonth) classes.push('prev-month');
+            if (isToday) classes.push('today');
+            if (dayEvents.length > 0) classes.push('has-events');
+
+            html += `<div class="${classes.join(' ')}" data-date="${dateStr}">`;
+            html += `<div class="month-day-header">`;
+            html += `<span class="day-number">${currentDateLoop.getDate()}</span>`;
+            if (dayEvents.length > 0) {
+                html += `<span class="event-count-badge">${dayEvents.length}</span>`;
+            }
+            html += `</div>`;
+            html += `<div class="month-day-content">`;
+
+            // Show up to 2 events, then "more" link
+            const visibleEvents = dayEvents.slice(0, 2);
+            visibleEvents.forEach(event => {
+                const eventType = event.eventType || 'other';
+                html += `
+                    <div class="month-event event-${eventType}"
+                         data-event-id="${event.id}"
+                         onclick="showEventDetail('${event.id}')">
+                        <div class="month-event-time">${event.allDay ? 'All Day' : formatTime(event.start)}</div>
+                        <div class="month-event-title">${escapeHtml(event.title)}</div>
+                    </div>
+                `;
+            });
+
+            if (dayEvents.length > 2) {
+                html += `<div class="month-more-events" onclick="showDayEvents('${dateStr}')">+${dayEvents.length - 2} more</div>`;
+            }
+
+            html += `</div></div>`;
+            currentDateLoop.setDate(currentDateLoop.getDate() + 1);
+        }
+
+        html += `</div></div>`;
+        container.innerHTML = html;
+    }
+
+    // Render list view
+    function renderListView() {
+        const container = document.getElementById('calendarContent');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Filter future events
+        const futureEvents = events
+            .filter(event => {
+                if (!event.start) return false;
+                const eventDate = new Date(event.start);
+                eventDate.setHours(0, 0, 0, 0);
+                return eventDate >= today;
+            })
+            .sort((a, b) => new Date(a.start) - new Date(b.start));
+
+        if (futureEvents.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="ti ti-calendar-off"></i></div>
+                    <div class="empty-state-text">No upcoming events</div>
+                    <div class="empty-state-subtext">Check back later for new events!</div>
+                </div>
+            `;
+            return;
+        }
+
+        // Group by date
+        const groupedEvents = {};
+        futureEvents.forEach(event => {
+            const dateKey = new Date(event.start).toISOString().split('T')[0];
+            if (!groupedEvents[dateKey]) {
+                groupedEvents[dateKey] = [];
+            }
+            groupedEvents[dateKey].push(event);
+        });
+
+        let html = '<div class="list-schedule">';
+
+        Object.entries(groupedEvents).slice(0, 10).forEach(([dateKey, dateEvents]) => {
+            const eventDate = new Date(dateKey + 'T00:00:00');
+            const isToday = eventDate.toDateString() === today.toDateString();
+
+            html += `<div class="date-group ${isToday ? 'today' : ''}">`;
+            html += `<div class="date-header">`;
+            html += `<i class="ti ti-calendar-event mr-2"></i>`;
+            html += isToday ? 'Today' : formatDate(eventDate);
+            html += `</div>`;
+            html += `<div class="space-y-3">`;
+
+            dateEvents.forEach(event => {
+                const eventType = event.eventType || 'other';
+                const color = eventTypeColors[eventType] || eventTypeColors.other;
+
+                html += `
+                    <div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer event-${eventType}"
+                         style="border-left: 4px solid ${color};"
+                         onclick="showEventDetail('${event.id}')">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <h6 class="font-semibold text-gray-900 dark:text-white">${escapeHtml(event.title)}</h6>
+                                <div class="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                    <span class="flex items-center gap-1">
+                                        <i class="ti ti-clock"></i>
+                                        ${event.allDay ? 'All Day' : formatTime(event.start)}
+                                    </span>
+                                    ${event.location ? `
+                                        <span class="flex items-center gap-1">
+                                            <i class="ti ti-map-pin"></i>
+                                            ${escapeHtml(event.location)}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                                  style="background: ${hexToRgba(color, 0.25)}; color: ${color};">
+                                ${eventType.charAt(0).toUpperCase() + eventType.slice(1)}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div></div>`;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    // Render upcoming events sidebar
+    function renderUpcomingEvents() {
+        const container = document.getElementById('upcomingEventsList');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const futureEvents = events
+            .filter(event => {
+                if (!event.start) return false;
+                return new Date(event.start) >= today;
+            })
+            .sort((a, b) => new Date(a.start) - new Date(b.start))
+            .slice(0, 5);
+
+        if (futureEvents.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-sm text-center">No upcoming events</p>';
+            return;
+        }
+
+        let html = '<div class="space-y-3">';
+
+        futureEvents.forEach(event => {
+            const eventType = event.eventType || 'other';
+            const color = eventTypeColors[eventType] || eventTypeColors.other;
+            const eventDate = new Date(event.start);
+
+            html += `
+                <div class="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                     onclick="showEventDetail('${event.id}')">
+                    <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0" style="background: ${color};"></div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${escapeHtml(event.title)}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            ${formatDate(eventDate, 'short')} ${event.allDay ? '' : '@ ' + formatTime(event.start)}
+                        </p>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    // Show event detail modal
+    window.showEventDetail = function(eventId) {
+        const event = events.find(e => e.id === eventId);
+        if (!event) return;
+
+        const eventType = event.eventType || 'other';
+        const color = eventTypeColors[eventType] || eventTypeColors.other;
+        const eventDate = new Date(event.start);
+
+        document.getElementById('eventDetailTitle').textContent = event.title;
+
+        let content = `
+            <div class="space-y-4">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                          style="background: ${hexToRgba(color, 0.25)}; color: ${color};">
+                        ${eventType.charAt(0).toUpperCase() + eventType.slice(1)}
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                        <i class="ti ti-calendar"></i>
+                        <span>${formatDate(eventDate)}</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                        <i class="ti ti-clock"></i>
+                        <span>${event.allDay ? 'All Day' : formatTime(event.start)}</span>
+                    </div>
+                </div>
+
+                ${event.location ? `
+                    <div class="flex items-start gap-2 text-gray-600 dark:text-gray-400">
+                        <i class="ti ti-map-pin mt-0.5"></i>
+                        <span>${escapeHtml(event.location)}</span>
+                    </div>
+                ` : ''}
+
+                ${event.description ? `
+                    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <p class="text-gray-700 dark:text-gray-300">${escapeHtml(event.description)}</p>
+                    </div>
+                ` : ''}
+
+                <div class="pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Want to attend? Join the Pub League!</p>
+                    <a href="{{ url_for('auth.discord_login') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 transition-colors">
+                        <i class="ti ti-login mr-2"></i>
+                        Login / Register
+                    </a>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('eventDetailContent').innerHTML = content;
+
+        // Show modal
+        const modal = document.getElementById('eventDetailModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    };
+
+    // Show all events for a day
+    window.showDayEvents = function(dateStr) {
+        const dayEvents = events.filter(event => {
+            if (!event.start) return false;
+            return new Date(event.start).toISOString().split('T')[0] === dateStr;
+        });
+
+        if (dayEvents.length === 0) return;
+
+        const date = new Date(dateStr + 'T00:00:00');
+        document.getElementById('eventDetailTitle').textContent = formatDate(date);
+
+        let content = '<div class="space-y-3">';
+
+        dayEvents.forEach(event => {
+            const eventType = event.eventType || 'other';
+            const color = eventTypeColors[eventType] || eventTypeColors.other;
+
+            content += `
+                <div class="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:shadow-md transition-shadow"
+                     style="border-left: 4px solid ${color};"
+                     onclick="showEventDetail('${event.id}')">
+                    <div class="font-medium text-gray-900 dark:text-white">${escapeHtml(event.title)}</div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        ${event.allDay ? 'All Day' : formatTime(event.start)}
+                        ${event.location ? ' - ' + escapeHtml(event.location) : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        content += '</div>';
+        document.getElementById('eventDetailContent').innerHTML = content;
+
+        const modal = document.getElementById('eventDetailModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    };
+
+    // Close modal
+    function closeModal() {
+        const modal = document.getElementById('eventDetailModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    // Escape HTML
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Navigate calendar
+    function navigateCalendar(direction) {
+        if (currentView === 'month') {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+        }
+        renderCalendar();
+    }
+
+    // Go to today
+    function goToToday() {
+        currentDate = new Date();
+        renderCalendar();
+    }
+
+    // Switch view
+    function switchView(view) {
+        currentView = view;
+
+        // Update button states
+        document.getElementById('viewMonthBtn').classList.remove('text-white', 'bg-ecs-green', 'border-ecs-green');
+        document.getElementById('viewMonthBtn').classList.add('text-gray-900', 'bg-white', 'border-gray-200', 'dark:bg-gray-700', 'dark:border-gray-600', 'dark:text-white');
+        document.getElementById('viewListBtn').classList.remove('text-white', 'bg-ecs-green', 'border-ecs-green');
+        document.getElementById('viewListBtn').classList.add('text-gray-900', 'bg-white', 'border-gray-200', 'dark:bg-gray-700', 'dark:border-gray-600', 'dark:text-white');
+
+        const activeBtn = view === 'month' ? 'viewMonthBtn' : 'viewListBtn';
+        document.getElementById(activeBtn).classList.remove('text-gray-900', 'bg-white', 'border-gray-200', 'dark:bg-gray-700', 'dark:border-gray-600', 'dark:text-white');
+        document.getElementById(activeBtn).classList.add('text-white', 'bg-ecs-green', 'border-ecs-green');
+
+        renderCalendar();
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load events
+        loadEvents();
+
+        // Event listeners
+        document.getElementById('calendar-prevBtn').addEventListener('click', () => navigateCalendar(-1));
+        document.getElementById('calendar-nextBtn').addEventListener('click', () => navigateCalendar(1));
+        document.getElementById('todayBtn').addEventListener('click', goToToday);
+        document.getElementById('viewMonthBtn').addEventListener('click', () => switchView('month'));
+        document.getElementById('viewListBtn').addEventListener('click', () => switchView('list'));
+        document.getElementById('closeEventDetailModal').addEventListener('click', closeModal);
+
+        // Close modal on backdrop click
+        document.getElementById('eventDetailModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Close modal on escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
+    });
+})();
+</script>
+{% endblock %}

@@ -147,6 +147,9 @@ export const EventDelegation = {
      * @param {Event} e - Click event
      */
     handleClick(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const actionElement = e.target.closest('[data-action]');
         if (!actionElement) return;
 
@@ -182,6 +185,9 @@ export const EventDelegation = {
      * @param {Event} e - Change event
      */
     handleChange(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const target = e.target.closest('[data-on-change]');
         if (!target) return;
 
@@ -204,6 +210,9 @@ export const EventDelegation = {
      * @param {Event} e - Input event
      */
     handleInput(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const target = e.target.closest('[data-on-input]');
         if (!target) return;
 
@@ -226,6 +235,9 @@ export const EventDelegation = {
      * @param {Event} e - Submit event
      */
     handleSubmit(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const form = e.target.closest('[data-on-submit]');
         if (!form) return;
 
@@ -248,6 +260,9 @@ export const EventDelegation = {
      * @param {Event} e - Keydown event
      */
     handleKeydown(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const target = e.target.closest('[data-on-keydown]');
         if (!target) return;
 

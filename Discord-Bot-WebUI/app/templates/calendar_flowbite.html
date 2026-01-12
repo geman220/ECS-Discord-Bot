@@ -940,10 +940,32 @@
 
                 <div class="flex items-center">
                     <input type="checkbox" id="importNotifyDiscord"
-                           class="w-4 h-4 text-ecs-green border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                           class="w-4 h-4 text-ecs-green border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600"
+                           onchange="document.getElementById('discordModeContainer').classList.toggle('hidden', !this.checked)">
                     <label for="importNotifyDiscord" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
                         Post announcements to Discord
                     </label>
+                </div>
+
+                <!-- Discord Mode Options (shown when Discord checkbox is checked) -->
+                <div id="discordModeContainer" class="hidden ml-6 mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Announcement Style</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" name="discordMode" value="summary" checked
+                                   class="w-4 h-4 text-ecs-green border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                                <strong>Summary</strong> - Single announcement listing all events (recommended)
+                            </span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="discordMode" value="individual"
+                                   class="w-4 h-4 text-ecs-green border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                                <strong>Individual</strong> - Separate announcement for each event
+                            </span>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Preview Area -->
@@ -1917,7 +1939,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (window.showToast) window.showToast('Cannot delete: event ID not found', 'error');
                     return;
                 }
-                if (!confirm('Are you sure you want to delete this event?')) return;
+
+                // Use SweetAlert2 for confirmation instead of native browser confirm
+                const result = await Swal.fire({
+                    title: 'Delete Event?',
+                    text: 'Are you sure you want to delete this event? This action cannot be undone.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, delete it',
+                    cancelButtonText: 'Cancel'
+                });
+
+                if (!result.isConfirmed) return;
 
                 try {
                     const response = await fetch(`/api/calendar/league-events/${eventId}`, {
@@ -2708,6 +2743,10 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('year', document.getElementById('importYear').value);
             formData.append('event_type', document.getElementById('importEventType').value);
             formData.append('notify_discord', document.getElementById('importNotifyDiscord').checked);
+
+            // Get discord mode (summary or individual)
+            const discordModeRadio = document.querySelector('input[name="discordMode"]:checked');
+            formData.append('discord_mode', discordModeRadio ? discordModeRadio.value : 'summary');
 
             try {
                 const response = await fetch('/api/calendar/league-events/import', {

@@ -5,10 +5,11 @@ Handles direct messaging, thread messaging, and communication features.
 Extracted from bot_rest_api.py to create a modular router.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Body
+from fastapi import APIRouter, HTTPException, Depends, Body, UploadFile, File, Form
 from discord.ext import commands
 import discord
 import logging
+import io
 from typing import Optional
 from datetime import datetime
 
@@ -364,6 +365,82 @@ async def get_channel_by_name(
         raise
     except Exception as e:
         logger.error(f"Error looking up channel by name: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/schedule-image/announce")
+async def post_schedule_image_announcement(
+    image: UploadFile = File(...),
+    title: str = Form(...),
+    description: Optional[str] = Form(None),
+    footer_text: Optional[str] = Form(None),
+    channel_id: Optional[int] = Form(None),
+    channel_name: Optional[str] = Form(None),
+    bot: commands.Bot = Depends(get_bot)
+):
+    """
+    Post a schedule image announcement to Discord.
+
+    This endpoint accepts an uploaded image file (PNG) and posts it
+    as an embed with the image attached. Used for bulk event announcements
+    with a generated schedule poster.
+
+    Args:
+        image: The PNG image file to attach
+        title: Embed title
+        description: Optional embed description
+        footer_text: Optional footer text
+        channel_id: Optional specific channel ID
+        channel_name: Optional channel name (resolved by bot)
+    """
+    try:
+        # Resolve the channel
+        channel = await resolve_channel(bot, channel_id, channel_name)
+
+        # Read the image file
+        image_data = await image.read()
+
+        # Create the embed
+        embed = discord.Embed(
+            title=title,
+            description=description or "",
+            color=LEAGUE_EVENT_COLORS.get('other', 0x607d8b)
+        )
+
+        # Set footer if provided
+        if footer_text:
+            embed.set_footer(text=footer_text)
+        else:
+            embed.set_footer(text="Pub League Events • View full calendar at portal.ecsfc.com/calendar")
+
+        # Set the image (will be attached as a file)
+        embed.set_image(url="attachment://schedule.png")
+
+        # Create the file attachment
+        file = discord.File(io.BytesIO(image_data), filename="schedule.png")
+
+        # Send the message with embed and file
+        message = await channel.send(embed=embed, file=file)
+
+        logger.info(f"Posted schedule image announcement to channel {channel.name} ({channel.id})")
+
+        return {
+            "status": "success",
+            "message_id": message.id,
+            "channel_id": channel.id,
+            "channel_name": channel.name
+        }
+
+    except HTTPException:
+        raise
+    except discord.Forbidden as e:
+        logger.error(f"Permission denied posting schedule image: {e}")
+        raise HTTPException(status_code=403, detail="Bot lacks permission to post in that channel")
+    except discord.HTTPException as e:
+        logger.error(f"Discord API error posting schedule image: {e}")
+        raise HTTPException(status_code=e.status, detail=f"Discord API error: {e.text}")
+    except Exception as e:
+        logger.error(f"Unexpected error posting schedule image: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

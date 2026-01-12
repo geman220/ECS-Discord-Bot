@@ -611,34 +611,119 @@ def availability_status():
         return jsonify({'error': 'An internal error occurred.'}), 500
 
 
+@calendar_bp.route('/calendar/public_events', endpoint='public_events', methods=['GET'])
+def public_events():
+    """
+    Retrieve public league events for unauthenticated users.
+
+    This endpoint returns only league events (not matches) that are marked as active.
+    Used for the public calendar view.
+
+    Returns:
+        JSON response containing the list of public events.
+    """
+    session_db = g.db_session
+    try:
+        events = []
+
+        # Only fetch league events for public view
+        league_events = session_db.query(LeagueEvent).filter(
+            LeagueEvent.is_active == True
+        ).all()
+
+        # Color mapping for event types
+        event_type_colors = {
+            'party': '#9c27b0',       # Purple
+            'meeting': '#2196f3',     # Blue
+            'social': '#e91e63',      # Pink
+            'plop': '#4caf50',        # Green
+            'tournament': '#ffc107',  # Yellow/Gold
+            'fundraiser': '#ff5722',  # Deep Orange
+            'other': '#607d8b',       # Blue-grey
+        }
+
+        for league_event in league_events:
+            event_color = event_type_colors.get(league_event.event_type, '#607d8b')
+            events.append({
+                'id': f'event-{league_event.id}',
+                'title': league_event.title,
+                'start': league_event.start_datetime.isoformat() if league_event.start_datetime else None,
+                'end': league_event.end_datetime.isoformat() if league_event.end_datetime else None,
+                'allDay': league_event.is_all_day,
+                'color': event_color,
+                'type': 'league_event',
+                'eventType': league_event.event_type,
+                'description': league_event.description,
+                'location': league_event.location,
+                'extendedProps': {
+                    'type': 'league_event',
+                    'eventType': league_event.event_type,
+                    'description': league_event.description,
+                    'location': league_event.location,
+                }
+            })
+
+        return jsonify({
+            'events': events,
+            'stats': {
+                'totalEvents': len(events)
+            }
+        })
+
+    except Exception as e:
+        logger.exception("An error occurred while fetching public events.")
+        return jsonify({'error': 'An internal error occurred.'}), 500
+
+
 @calendar_bp.route('/calendar', endpoint='calendar_view', methods=['GET'])
-@login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref', 'Pub League Coach'])
 def calendar_view():
     """
     Render the calendar view page.
+
+    This route is accessible to both authenticated and unauthenticated users:
+    - Unauthenticated users see a public read-only calendar with league events only
+    - Authenticated users with proper roles see the full calendar with all features
     """
+    session_db = g.db_session
+
+    # Check if user is authenticated
+    if not current_user.is_authenticated:
+        # Public view - show read-only calendar with league events
+        return render_template('calendar_public_flowbite.html',
+                             title='ECS Pub League Calendar',
+                             is_public=True,
+                             is_authenticated=False)
+
     # Check permissions for template based on roles
     from app.role_impersonation import is_impersonation_active, get_effective_roles
-    
+
     if is_impersonation_active():
         user_roles = get_effective_roles()
     else:
         from app.utils.user_helpers import safe_current_user
         user_roles = [role.name for role in safe_current_user.roles] if hasattr(safe_current_user, 'roles') else []
-    
-    # Check if user is a referee (either through actual player record or role impersonation)
-    session_db = g.db_session
+
+    # Check if user has required roles for full calendar access
+    required_roles = ['Pub League Admin', 'Global Admin', 'Pub League Ref', 'Pub League Coach']
+    has_calendar_role = any(role in required_roles for role in user_roles)
+
+    if not has_calendar_role:
+        # User is authenticated but doesn't have calendar roles - show public view
+        return render_template('calendar_public_flowbite.html',
+                             title='ECS Pub League Calendar',
+                             is_public=True,
+                             is_authenticated=True)
+
+    # Full calendar view for authorized users
     is_referee = False
-    if current_user.is_authenticated:
-        if is_impersonation_active():
-            # When impersonating, check if the impersonated role is 'Pub League Ref'
-            is_referee = 'Pub League Ref' in user_roles
-        else:
-            # When not impersonating, check the actual player record
-            player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
-            is_referee = player is not None
-    
+    if is_impersonation_active():
+        # When impersonating, check if the impersonated role is 'Pub League Ref'
+        is_referee = 'Pub League Ref' in user_roles
+    else:
+        # When not impersonating, check the actual player record
+        player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
+        is_referee = player is not None
+
     # Pub League Admin and Global Admin have full calendar access
     # Pub League Coaches and Refs have limited access
     is_admin = any(role in ['Pub League Admin', 'Global Admin'] for role in user_roles)

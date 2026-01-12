@@ -468,15 +468,28 @@ const SocketManager = {
 // INITIALIZATION
 // ============================================================================
 
+// Check if this is an authenticated page (sidebar only rendered for logged-in users)
+function isAuthenticatedPage() {
+  return document.getElementById('sidebar') !== null ||
+         document.querySelector('[data-authenticated="true"]') !== null;
+}
+
 // Auto-initialize socket when DOM is ready
 function initSocketManager() {
   // Only initialize if Socket.IO is available
-  if (typeof window.io !== 'undefined') {
-    getSocket();
-    log('Socket manager initialized');
-  } else {
+  if (typeof window.io === 'undefined') {
     log('Socket.IO not available, skipping initialization');
+    return;
   }
+
+  // Don't initialize on public/unauthenticated pages
+  if (!isAuthenticatedPage()) {
+    log('Public page detected, skipping socket initialization');
+    return;
+  }
+
+  getSocket();
+  log('Socket manager initialized');
 }
 
 // Register with window.InitSystem (primary)
