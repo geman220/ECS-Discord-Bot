@@ -29,6 +29,7 @@ from app.database.db_models import (
     ActiveMatchReporter, LiveMatch, MatchEvent, PlayerShift
 )
 from app.models import Match, Team, Player, User, PlayerEventType
+from app.teams_helpers import update_player_stats
 
 logger = logging.getLogger(__name__)
 
@@ -1316,7 +1317,13 @@ def create_player_events_from_match_events(session, match_id):
                     event_type=event_type_map[event.event_type]
                 )
                 session.add(player_event)
-                
+
+                # Update aggregated stats for league-separated tracking
+                try:
+                    update_player_stats(session, event.player_id, event.event_type, match, increment=True)
+                except Exception as stats_error:
+                    logger.error(f"Failed to update player stats for event {event.id}: {stats_error}")
+
                 # If this is a goal, also look for an assist
                 if event.event_type == 'GOAL' and event.additional_data and 'assist_player_id' in event.additional_data:
                     assist_player_id = event.additional_data['assist_player_id']
@@ -1327,6 +1334,12 @@ def create_player_events_from_match_events(session, match_id):
                         event_type=PlayerEventType.ASSIST
                     )
                     session.add(assist_event)
+
+                    # Update assist stats
+                    try:
+                        update_player_stats(session, assist_player_id, 'ASSIST', match, increment=True)
+                    except Exception as stats_error:
+                        logger.error(f"Failed to update assist stats for player {assist_player_id}: {stats_error}")
         
         except Exception as e:
             logger.error(f"Error creating player event from match event {event.id}: {str(e)}")

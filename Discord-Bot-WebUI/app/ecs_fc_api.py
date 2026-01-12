@@ -145,6 +145,10 @@ def get_match(match_id: int):
         match_data = match.to_dict()
         match_data['rsvp_summary'] = match.get_rsvp_summary()
 
+        # Add team_name for Discord embed updates
+        if match.team:
+            match_data['team_name'] = match.team.name
+
         return create_api_response(True, "Match found", {
             'match': match_data
         })

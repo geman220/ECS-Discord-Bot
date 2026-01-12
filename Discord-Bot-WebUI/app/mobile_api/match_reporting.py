@@ -19,6 +19,7 @@ from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import User, Player, Team, Match, player_teams
 from app.models.stats import PlayerEvent, PlayerEventType
+from app.teams_helpers import update_player_stats
 
 logger = logging.getLogger(__name__)
 
@@ -325,6 +326,16 @@ def add_match_event(match_id: int):
             event.player_id = player_id
 
         session.add(event)
+
+        # Update player season/career stats (except for own goals which have no player)
+        if event_type != 'own_goal' and player_id:
+            try:
+                update_player_stats(session, player_id, event_type, match, increment=True)
+                logger.info(f"Updated stats for player {player_id}: +1 {event_type}")
+            except Exception as e:
+                logger.error(f"Failed to update player stats: {e}")
+                # Continue - event is still valid even if stats update fails
+
         session.commit()
 
         # Get player name for response
@@ -396,6 +407,10 @@ def update_match_event(match_id: int, event_id: int):
         if not can_report_match(session, user, player, match):
             return jsonify({"msg": "You are not authorized to update events for this match"}), 403
 
+        # Track old player for stats update
+        old_player_id = event.player_id
+        event_type = event.event_type.value
+
         # Update fields
         if 'player_id' in data:
             new_player_id = data['player_id']
@@ -412,6 +427,22 @@ def update_match_event(match_id: int, event_id: int):
 
         if 'minute' in data:
             event.minute = str(data['minute']) if data['minute'] else None
+
+        # Update player stats if player changed (except for own goals)
+        if event_type != 'own_goal' and 'player_id' in data:
+            new_player_id = data.get('player_id')
+            if old_player_id != new_player_id:
+                try:
+                    # Decrement old player's stats
+                    if old_player_id:
+                        update_player_stats(session, old_player_id, event_type, match, increment=False)
+                        logger.info(f"Updated stats for player {old_player_id}: -1 {event_type}")
+                    # Increment new player's stats
+                    if new_player_id:
+                        update_player_stats(session, new_player_id, event_type, match, increment=True)
+                        logger.info(f"Updated stats for player {new_player_id}: +1 {event_type}")
+                except Exception as e:
+                    logger.error(f"Failed to update player stats on event update: {e}")
 
         session.commit()
 
@@ -476,6 +507,16 @@ def delete_match_event(match_id: int, event_id: int):
             return jsonify({"msg": "You are not authorized to delete events for this match"}), 403
 
         event_type = event.event_type.value
+        event_player_id = event.player_id
+
+        # Decrement player stats before deleting (except for own goals)
+        if event_type != 'own_goal' and event_player_id:
+            try:
+                update_player_stats(session, event_player_id, event_type, match, increment=False)
+                logger.info(f"Updated stats for player {event_player_id}: -1 {event_type}")
+            except Exception as e:
+                logger.error(f"Failed to update player stats on event delete: {e}")
+
         session.delete(event)
         session.commit()
 
@@ -579,6 +620,15 @@ def report_match(match_id: int):
                 event.player_id = event_data.get('player_id')
 
             session.add(event)
+
+            # Update player season/career stats (except for own goals)
+            if event_type != 'own_goal' and event.player_id:
+                try:
+                    update_player_stats(session, event.player_id, event_type, match, increment=True)
+                    logger.info(f"Updated stats for player {event.player_id}: +1 {event_type}")
+                except Exception as e:
+                    logger.error(f"Failed to update player stats in report_match: {e}")
+
             created_events.append({
                 "event_type": event_type,
                 "player_id": event.player_id,

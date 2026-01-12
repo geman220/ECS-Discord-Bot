@@ -267,26 +267,39 @@ def process_events(session, match, data, event_type, add_key, remove_key):
 def update_player_stats(session, player_id, event_type, match, increment=True):
     """
     Update the player's season and career statistics based on an event.
+
+    Stats are now separated by league to ensure proper attribution:
+    - A player on both Premier and Classic has separate stat records per league
+    - Golden Boot is calculated per-league, not combined across leagues
+    - Career stats continue to aggregate across all leagues
     """
     logger.info(f"Updating stats for player_id={player_id}, event_type={event_type}, increment={increment}")
 
-    # Use the season from the match's league instead of a global current season.
-    season = match.home_team.league.season
+    # Get league and season from the match's team
+    league = match.home_team.league
+    if not league:
+        logger.error("No league found from the match's home team. Cannot update player stats.")
+        return
+
+    season = league.season
     if not season:
         logger.error("No season found from the match's league. Cannot update player stats.")
         return
+
     season_id = season.id
+    league_id = league.id
     adjustment = 1 if increment else -1
 
-    # Retrieve the season stats record for this season.
+    # Retrieve the league-specific season stats record
     season_stats = session.query(PlayerSeasonStats).filter_by(
-        player_id=player_id, season_id=season_id
+        player_id=player_id, season_id=season_id, league_id=league_id
     ).first()
     if not season_stats:
-        logger.info(f"Creating new season stats record for player_id={player_id}, season_id={season_id}")
+        logger.info(f"Creating new season stats record for player_id={player_id}, season_id={season_id}, league_id={league_id}")
         season_stats = PlayerSeasonStats(
             player_id=player_id,
             season_id=season_id,
+            league_id=league_id,
             goals=0,
             assists=0,
             yellow_cards=0,

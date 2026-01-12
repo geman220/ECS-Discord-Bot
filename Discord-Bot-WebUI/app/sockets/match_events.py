@@ -16,6 +16,7 @@ from sqlalchemy import and_
 from app.core import socketio
 from app.core.session_manager import managed_session
 from app.sockets.auth import authenticate_socket_connection
+from app.teams_helpers import update_player_stats
 
 logger = logging.getLogger(__name__)
 
@@ -279,6 +280,15 @@ def handle_report_match_event(data):
                 event.player_id = player_id
 
             session.add(event)
+
+            # Update aggregated stats for league-separated tracking
+            if event_type != 'own_goal' and player_id:
+                try:
+                    update_player_stats(session, player_id, event_type.upper(), match, increment=True)
+                    logger.info(f"Updated stats for player {player_id}: +1 {event_type}")
+                except Exception as stats_error:
+                    logger.error(f"Failed to update player stats: {stats_error}")
+
             session.commit()
 
             # Broadcast event to all coaches in the room
@@ -343,6 +353,17 @@ def handle_delete_match_event(data):
             if not user_teams:
                 emit('match_event_error', {'message': 'You are not authorized to delete this event'})
                 return
+
+            # Decrement stats before deleting (for league-separated tracking)
+            event_type = event.event_type.value if hasattr(event.event_type, 'value') else str(event.event_type)
+            event_player_id = event.player_id
+            match = event.match
+            if event_type != 'own_goal' and event_player_id and match:
+                try:
+                    update_player_stats(session, event_player_id, event_type.upper(), match, increment=False)
+                    logger.info(f"Decremented stats for player {event_player_id}: -1 {event_type}")
+                except Exception as stats_error:
+                    logger.error(f"Failed to decrement player stats: {stats_error}")
 
             # Delete the event
             session.delete(event)

@@ -2,15 +2,21 @@
 
 """
 Statistics calculation utilities with proper season vs career handling.
+
+Stats are now separated by league to ensure proper attribution:
+- A player on both Premier and Classic has separate stat records
+- Golden Boot is calculated per-league, not combined
+- Career stats aggregate across all leagues
 """
 
 import logging
 from datetime import datetime
+from flask import g
 from sqlalchemy import func, desc, and_, or_
 
 from app.core import db
 from app.models import (
-    Player, Team, Match, League, Season, 
+    Player, Team, Match, League, Season,
     PlayerSeasonStats, PlayerCareerStats, PlayerEvent
 )
 
@@ -27,15 +33,16 @@ def get_current_season():
     ).first()
 
 
-def get_season_goal_leaders(season_id=None, limit=10):
+def get_season_goal_leaders(season_id=None, league_id=None, limit=10):
     """
-    Get goal leaders for a specific season or current season.
+    Get goal leaders for a specific season and optionally a specific league.
     Falls back to calculating from PlayerEvent data if PlayerSeasonStats is empty.
-    
+
     Args:
         season_id: Specific season ID, or None for current season
+        league_id: Specific league ID for league-specific leaderboard (e.g., Premier only)
         limit: Number of top scorers to return
-        
+
     Returns:
         List of (player_id, player_name, goals) tuples
     """
@@ -47,7 +54,17 @@ def get_season_goal_leaders(season_id=None, limit=10):
         else:
             logger.warning("No current season found and no season_id provided")
             return []
-    
+
+    # Build filter conditions
+    filter_conditions = [
+        Player.id == PlayerSeasonStats.player_id,
+        PlayerSeasonStats.season_id == season_id
+    ]
+
+    # Add league filter if specified
+    if league_id is not None:
+        filter_conditions.append(PlayerSeasonStats.league_id == league_id)
+
     # First try PlayerSeasonStats
     stats_query = g.db_session.query(
         Player.id,
@@ -55,10 +72,7 @@ def get_season_goal_leaders(season_id=None, limit=10):
         func.coalesce(func.sum(PlayerSeasonStats.goals), 0).label('season_goals')
     ).outerjoin(
         PlayerSeasonStats,
-        and_(
-            Player.id == PlayerSeasonStats.player_id,
-            PlayerSeasonStats.season_id == season_id
-        )
+        and_(*filter_conditions)
     ).filter(
         Player.is_current_player == True
     ).group_by(
@@ -66,22 +80,25 @@ def get_season_goal_leaders(season_id=None, limit=10):
     ).order_by(
         desc('season_goals')
     ).limit(limit)
-    
+
     results = stats_query.all()
-    
+
     # Check if we have any non-zero goals from PlayerSeasonStats
     has_stats_data = any(result.season_goals > 0 for result in results)
-    
+
     if not has_stats_data:
         # Fall back to calculating from PlayerEvent data
         logger.info(f"No PlayerSeasonStats data found for season {season_id}, calculating from PlayerEvent data")
-        
-        # Get teams for this season
-        teams_in_season = Team.query.filter(Team.league.has(League.season_id == season_id)).all()
+
+        # Get teams for this season (and optionally league)
+        team_query = Team.query.filter(Team.league.has(League.season_id == season_id))
+        if league_id is not None:
+            team_query = team_query.filter(Team.league_id == league_id)
+        teams_in_season = team_query.all()
         team_ids = [team.id for team in teams_in_season]
-        
+
         if team_ids:
-            # Calculate goals from PlayerEvent records for matches involving teams in this season
+            # Calculate goals from PlayerEvent records for matches involving teams in this season/league
             events_query = g.db_session.query(
                 Player.id,
                 Player.name,
@@ -104,9 +121,9 @@ def get_season_goal_leaders(season_id=None, limit=10):
             ).order_by(
                 desc('season_goals')
             ).limit(limit)
-            
+
             return events_query.all()
-    
+
     return results
 
 
@@ -136,15 +153,16 @@ def get_career_goal_leaders(limit=10):
     return query.all()
 
 
-def get_season_assist_leaders(season_id=None, limit=10):
+def get_season_assist_leaders(season_id=None, league_id=None, limit=10):
     """
-    Get assist leaders for a specific season or current season.
+    Get assist leaders for a specific season and optionally a specific league.
     Falls back to calculating from PlayerEvent data if PlayerSeasonStats is empty.
-    
+
     Args:
         season_id: Specific season ID, or None for current season
+        league_id: Specific league ID for league-specific leaderboard
         limit: Number of top assist providers to return
-        
+
     Returns:
         List of (player_id, player_name, assists) tuples
     """
@@ -156,7 +174,17 @@ def get_season_assist_leaders(season_id=None, limit=10):
         else:
             logger.warning("No current season found and no season_id provided")
             return []
-    
+
+    # Build filter conditions
+    filter_conditions = [
+        Player.id == PlayerSeasonStats.player_id,
+        PlayerSeasonStats.season_id == season_id
+    ]
+
+    # Add league filter if specified
+    if league_id is not None:
+        filter_conditions.append(PlayerSeasonStats.league_id == league_id)
+
     # First try PlayerSeasonStats
     stats_query = g.db_session.query(
         Player.id,
@@ -164,10 +192,7 @@ def get_season_assist_leaders(season_id=None, limit=10):
         func.coalesce(func.sum(PlayerSeasonStats.assists), 0).label('season_assists')
     ).outerjoin(
         PlayerSeasonStats,
-        and_(
-            Player.id == PlayerSeasonStats.player_id,
-            PlayerSeasonStats.season_id == season_id
-        )
+        and_(*filter_conditions)
     ).filter(
         Player.is_current_player == True
     ).group_by(
@@ -175,22 +200,25 @@ def get_season_assist_leaders(season_id=None, limit=10):
     ).order_by(
         desc('season_assists')
     ).limit(limit)
-    
+
     results = stats_query.all()
-    
+
     # Check if we have any non-zero assists from PlayerSeasonStats
     has_stats_data = any(result.season_assists > 0 for result in results)
-    
+
     if not has_stats_data:
         # Fall back to calculating from PlayerEvent data
         logger.info(f"No PlayerSeasonStats data found for season {season_id}, calculating from PlayerEvent data")
-        
-        # Get teams for this season
-        teams_in_season = Team.query.filter(Team.league.has(League.season_id == season_id)).all()
+
+        # Get teams for this season (and optionally league)
+        team_query = Team.query.filter(Team.league.has(League.season_id == season_id))
+        if league_id is not None:
+            team_query = team_query.filter(Team.league_id == league_id)
+        teams_in_season = team_query.all()
         team_ids = [team.id for team in teams_in_season]
-        
+
         if team_ids:
-            # Calculate assists from PlayerEvent records for matches involving teams in this season
+            # Calculate assists from PlayerEvent records for matches involving teams in this season/league
             events_query = g.db_session.query(
                 Player.id,
                 Player.name,
@@ -213,20 +241,21 @@ def get_season_assist_leaders(season_id=None, limit=10):
             ).order_by(
                 desc('season_assists')
             ).limit(limit)
-            
+
             return events_query.all()
-    
+
     return results
 
 
-def get_player_season_stats(player_id, season_id=None):
+def get_player_season_stats(player_id, season_id=None, league_id=None):
     """
     Get comprehensive season stats for a specific player.
-    
+
     Args:
         player_id: Player ID
         season_id: Season ID, or None for current season
-        
+        league_id: League ID for league-specific stats, or None for combined
+
     Returns:
         Dictionary with season stats or None
     """
@@ -237,33 +266,102 @@ def get_player_season_stats(player_id, season_id=None):
             season_id = current_season.id
         else:
             return None
-    
-    stats = PlayerSeasonStats.query.filter(
-        and_(
-            PlayerSeasonStats.player_id == player_id,
-            PlayerSeasonStats.season_id == season_id
-        )
-    ).first()
-    
+
+    # Build query filters
+    filters = [
+        PlayerSeasonStats.player_id == player_id,
+        PlayerSeasonStats.season_id == season_id
+    ]
+
+    if league_id is not None:
+        filters.append(PlayerSeasonStats.league_id == league_id)
+
+    stats = PlayerSeasonStats.query.filter(and_(*filters)).first()
+
     if stats:
         return {
             'player_id': stats.player_id,
             'season_id': stats.season_id,
+            'league_id': stats.league_id,
             'goals': stats.goals or 0,
             'assists': stats.assists or 0,
             'yellow_cards': stats.yellow_cards or 0,
             'red_cards': stats.red_cards or 0,
-            'matches_played': stats.matches_played or 0
         }
-    
+
     return {
         'player_id': player_id,
         'season_id': season_id,
+        'league_id': league_id,
         'goals': 0,
         'assists': 0,
         'yellow_cards': 0,
         'red_cards': 0,
-        'matches_played': 0
+    }
+
+
+def get_player_stats_by_league(player_id, season_id=None):
+    """
+    Get a player's season stats broken down by league.
+
+    This is useful for players who are on multiple teams in different leagues
+    (e.g., plays in Premier, coaches in Classic).
+
+    Args:
+        player_id: Player ID
+        season_id: Season ID, or None for current season
+
+    Returns:
+        Dictionary with stats per league and combined totals
+    """
+    from sqlalchemy.orm import joinedload
+
+    # Default to current season if none specified
+    if season_id is None:
+        current_season = get_current_season()
+        if current_season:
+            season_id = current_season.id
+        else:
+            return {'leagues': [], 'combined': None}
+
+    # Get all league-specific stats for this player/season
+    stats_records = PlayerSeasonStats.query.options(
+        joinedload(PlayerSeasonStats.league)
+    ).filter(
+        PlayerSeasonStats.player_id == player_id,
+        PlayerSeasonStats.season_id == season_id
+    ).all()
+
+    leagues = []
+    combined = {
+        'goals': 0,
+        'assists': 0,
+        'yellow_cards': 0,
+        'red_cards': 0,
+    }
+
+    for stats in stats_records:
+        league_data = {
+            'league_id': stats.league_id,
+            'league_name': stats.league.name if stats.league else 'Unknown',
+            'goals': stats.goals or 0,
+            'assists': stats.assists or 0,
+            'yellow_cards': stats.yellow_cards or 0,
+            'red_cards': stats.red_cards or 0,
+        }
+        leagues.append(league_data)
+
+        # Aggregate for combined totals
+        combined['goals'] += league_data['goals']
+        combined['assists'] += league_data['assists']
+        combined['yellow_cards'] += league_data['yellow_cards']
+        combined['red_cards'] += league_data['red_cards']
+
+    return {
+        'player_id': player_id,
+        'season_id': season_id,
+        'leagues': leagues,
+        'combined': combined
     }
 
 

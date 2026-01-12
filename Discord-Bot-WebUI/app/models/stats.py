@@ -28,12 +28,20 @@ logger = logging.getLogger(__name__)
 
 
 class PlayerSeasonStats(db.Model):
-    """Model for storing a player's season statistics."""
+    """
+    Model for storing a player's season statistics.
+
+    Stats are separated by league to ensure proper attribution:
+    - A player on both Premier and Classic has separate stat records
+    - Golden Boot is calculated per-league, not combined
+    - Career stats aggregate across all leagues
+    """
     __tablename__ = 'player_season_stats'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=False)
+    league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=True)  # For league-specific stats
     goals = db.Column(db.Integer, default=0, nullable=False)
     assists = db.Column(db.Integer, default=0, nullable=False)
     yellow_cards = db.Column(db.Integer, default=0, nullable=False)
@@ -41,6 +49,7 @@ class PlayerSeasonStats(db.Model):
 
     player = db.relationship('Player', back_populates='season_stats')
     season = db.relationship('Season', back_populates='player_stats')
+    league = db.relationship('League', backref='player_season_stats')
     teams = db.relationship(
         'Team',
         secondary=player_teams,
@@ -49,11 +58,41 @@ class PlayerSeasonStats(db.Model):
         viewonly=True
     )
 
+    # Unique constraint: one stat record per player/season/league combo
+    __table_args__ = (
+        db.UniqueConstraint('player_id', 'season_id', 'league_id', name='uq_player_season_league_stats'),
+    )
+
+    @classmethod
+    def get_or_create(cls, session, player_id, season_id, league_id=None):
+        """Get existing stats record or create new one for player/season/league."""
+        stats = session.query(cls).filter_by(
+            player_id=player_id,
+            season_id=season_id,
+            league_id=league_id
+        ).first()
+
+        if not stats:
+            stats = cls(
+                player_id=player_id,
+                season_id=season_id,
+                league_id=league_id,
+                goals=0,
+                assists=0,
+                yellow_cards=0,
+                red_cards=0
+            )
+            session.add(stats)
+
+        return stats
+
     def to_dict(self, session=None):
         return {
             'id': self.id,
             'player_id': self.player_id,
             'season_id': self.season_id,
+            'league_id': self.league_id,
+            'league_name': self.league.name if self.league else None,
             'goals': self.goals,
             'assists': self.assists,
             'yellow_cards': self.yellow_cards,

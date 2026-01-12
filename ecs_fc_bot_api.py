@@ -328,15 +328,33 @@ async def get_stored_rsvp_message(match_id: int) -> Optional[Dict[str, Any]]:
         return None
 
 async def get_ecs_fc_match_details(match_id: int) -> Optional[Dict[str, Any]]:
-    """Get ECS FC match details for embed creation."""
+    """Get ECS FC match details for embed creation.
+
+    Transforms the API response to match RSVPMessageRequest fields:
+    - Maps 'id' to 'match_id'
+    - team_name is now included in the API response
+    """
     try:
         api_url = f"http://webui:5000/api/ecs-fc/matches/{match_id}"
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.get(api_url) as response:
                 if response.status == 200:
                     data = await response.json()
-                    return data.get('data', {}).get('match')
+                    match_data = data.get('data', {}).get('match')
+
+                    if not match_data:
+                        return None
+
+                    # Transform fields to match RSVPMessageRequest
+                    # Map 'id' to 'match_id'
+                    match_data['match_id'] = match_data.pop('id', match_id)
+
+                    # Ensure team_name exists (API now includes it)
+                    if 'team_name' not in match_data:
+                        match_data['team_name'] = 'Unknown Team'
+
+                    return match_data
                 else:
                     logger.warning(f"Failed to get match details for match {match_id}: {response.status}")
                     return None
