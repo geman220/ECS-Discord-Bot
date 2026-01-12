@@ -652,7 +652,9 @@
 .c-chat-widget__chat {
   display: none;
   flex-direction: column;
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0; /* Allow flex children to shrink */
+  overflow: hidden; /* Contain children */
 }
 
 .c-chat-widget[data-view="chat"] .c-chat-widget__chat {
@@ -661,6 +663,15 @@
 
 .c-chat-widget[data-view="chat"] .c-chat-widget__list-view {
   display: none;
+}
+
+/* List view - fill available space */
+.c-chat-widget__list-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Chat Header */
