@@ -193,6 +193,8 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* CRITICAL: Ensure panel is interactive and blocks clicks to elements behind */
+  pointer-events: auto;
   /* Animation */
   opacity: 0;
   visibility: hidden;
@@ -761,6 +763,10 @@
   flex-direction: column;
   gap: 8px;
   overscroll-behavior: contain;
+  /* Ensure messages area is interactive */
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
 }
 
 .c-chat-widget__message {
@@ -907,13 +913,17 @@
 /* Typing Indicator */
 
 .c-chat-widget__typing {
-  display: flex;
+  display: none; /* Hidden by default - shown via JS when user is typing */
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
   font-size: 0.8125rem;
   color: var(--cw-text-secondary);
   font-style: italic;
+}
+
+.c-chat-widget__typing.is-visible {
+  display: flex;
 }
 
 .c-chat-widget__typing-dots {
@@ -986,6 +996,15 @@
 .c-chat-widget__composer-input:focus {
   background: transparent;
   border-color: var(--cw-accent);
+  outline: none;
+  box-shadow: none;
+}
+
+/* Remove default focus ring - use custom styling instead */
+.c-chat-widget__composer-input:focus-visible,
+.c-chat-widget__search-input:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .c-chat-widget__send-btn {
@@ -1030,8 +1049,10 @@
   max-height: 200px;
   overflow-y: auto;
   box-shadow: var(--cw-shadow);
-  z-index: 10;
+  z-index: 100; /* Higher z-index to ensure it's above other elements */
   display: none;
+  /* Ensure search results are interactive */
+  pointer-events: auto;
 }
 
 .c-chat-widget__search-results.is-visible {
@@ -1350,4 +1371,142 @@ body.modal-open .c-chat-widget {
   .c-chat-widget {
     display: none;
   }
+}
+
+/* --------------------------------------------------------------------------
+   Connection Status Indicator
+   -------------------------------------------------------------------------- */
+
+.c-chat-widget__connection-status {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.c-chat-widget__connection-status--offline,
+.c-chat-widget__connection-status--reconnecting {
+  display: flex;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.c-chat-widget__connection-status--reconnecting {
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+}
+
+/* --------------------------------------------------------------------------
+   Load More Button
+   -------------------------------------------------------------------------- */
+
+.c-chat-widget__load-more {
+  display: flex;
+  justify-content: center;
+  padding: 12px 16px;
+}
+
+.c-chat-widget__load-more-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 0.8125rem;
+  color: var(--cw-text-secondary);
+  background: var(--cw-bg-secondary);
+  border: 1px solid var(--cw-border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.c-chat-widget__load-more-btn:hover:not(:disabled) {
+  color: var(--cw-text);
+  background: var(--cw-hover);
+  border-color: var(--cw-accent);
+}
+
+.c-chat-widget__load-more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Spinner animation */
+.c-chat-widget__spinner {
+  animation: cw-spin 1s linear infinite;
+}
+
+@keyframes cw-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* --------------------------------------------------------------------------
+   Message States (Pending, Failed)
+   -------------------------------------------------------------------------- */
+
+.c-chat-widget__message--pending .c-chat-widget__message-bubble {
+  opacity: 0.7;
+}
+
+.c-chat-widget__message--failed {
+  cursor: pointer;
+}
+
+.c-chat-widget__message--failed .c-chat-widget__message-bubble {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px dashed #ef4444;
+}
+
+.c-chat-widget__message-status {
+  margin-left: 4px;
+  font-size: 0.75rem;
+}
+
+.c-chat-widget__message-status--pending {
+  color: var(--cw-text-secondary);
+  animation: cw-pulse 1.5s ease-in-out infinite;
+}
+
+.c-chat-widget__message-status--failed {
+  color: #ef4444;
+}
+
+.c-chat-widget__message-status--read {
+  color: var(--cw-accent);
+}
+
+@keyframes cw-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* --------------------------------------------------------------------------
+   Read Receipts in Conversation List
+   -------------------------------------------------------------------------- */
+
+.c-chat-widget__conv-preview {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.c-chat-widget__conv-you {
+  color: var(--cw-text-secondary);
+  font-weight: 500;
+}
+
+.c-chat-widget__read-receipt {
+  font-size: 0.75rem;
+  color: var(--cw-text-secondary);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.c-chat-widget__read-receipt--read {
+  color: var(--cw-accent);
 }

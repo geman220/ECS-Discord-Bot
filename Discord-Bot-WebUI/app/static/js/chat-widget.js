@@ -62,6 +62,7 @@ import {
 } from './chat-widget/api.js';
 
 import {
+  escapeHtml,
   renderRoleBadges,
   convertEmojiShortcodes,
   renderConversations,
@@ -107,6 +108,8 @@ import {
   handleKeydown,
   handleClickOutside,
   handleDeleteMenuClick,
+  handleLoadMoreClick,
+  handleRetryMessageClick,
   autoResizeTextarea
 } from './chat-widget/event-handlers.js';
 
@@ -136,7 +139,16 @@ function bindEvents() {
     elements.onlineList.addEventListener('click', handleConversationClick);
   }
   if (elements.searchResults) {
-    elements.searchResults.addEventListener('click', handleConversationClick);
+    // Use mousedown for search results - fires before blur hides the dropdown
+    elements.searchResults.addEventListener('mousedown', (e) => {
+      e.preventDefault(); // Prevent blur from firing
+      e.stopPropagation(); // Prevent click from reaching handleClickOutside
+      handleConversationClick(e);
+    });
+    // Also prevent click event from propagating (some browsers fire both)
+    elements.searchResults.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
   }
 
   // Back button
@@ -246,6 +258,12 @@ if (window.InitSystem && window.InitSystem.register) {
 
 // Event Delegation - delete-menu handler
 window.EventDelegation.register('delete-menu', handleDeleteMenuClick, { preventDefault: true });
+
+// Event Delegation - load more messages handler
+window.EventDelegation.register('load-more-messages', handleLoadMoreClick, { preventDefault: true });
+
+// Event Delegation - retry failed message handler
+window.EventDelegation.register('retry-message', handleRetryMessageClick, { preventDefault: true });
 
 // Public API
 const ChatWidget = {

@@ -8,10 +8,11 @@
 export const CONFIG = {
   api: {
     conversations: '/api/messages',
-    messages: (userId) => `/api/messages/${userId}`,
+    messages: (userId, offset = 0, limit = 50) => `/api/messages/${userId}?offset=${offset}&limit=${limit}`,
     send: (userId) => `/api/messages/${userId}`,
     unreadCount: '/api/messages/unread-count',
     searchUsers: '/api/messages/users/search',
+    searchMessages: '/api/messages/search',
     markRead: (msgId) => `/api/messages/${msgId}/read`,
     deleteMessage: (msgId) => `/api/messages/message/${msgId}`,
     hideMessage: (msgId) => `/api/messages/message/${msgId}/hide`
@@ -25,7 +26,12 @@ export const CONFIG = {
     typingDebounce: 2000,
     searchDebounce: 300,
     maxMessageLength: 2000,
+    messagesPerPage: 50,
     defaultAvatar: '/static/img/default_player.png'
+  },
+  sounds: {
+    enabled: true,
+    newMessage: '/static/sounds/message-notification.wav'
   }
 };
 

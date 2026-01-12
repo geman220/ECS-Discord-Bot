@@ -6,18 +6,80 @@
  */
 
 import { CONFIG } from './config.js';
-import { getState, getElements, addMessage, updateMessage } from './state.js';
-import { loadConversations, loadUnreadCount } from './api.js';
-import { renderConversations, renderMessages, renderOnlineUsers, updateBadge } from './render.js';
+import { getState, getElements, addMessage, updateMessage, setConnectionStatus, flushOfflineQueue } from './state.js';
+import { loadConversations, loadUnreadCount, sendMessage } from './api.js';
+import { renderConversations, renderMessages, renderOnlineUsers, updateBadge, renderConnectionStatus } from './render.js';
 import { scrollToBottom } from './view-manager.js';
+
+// Audio element for notification sound
+let notificationSound = null;
 
 // Socket reference
 let socket = null;
 
 /**
+ * Initialize notification sound
+ */
+function initNotificationSound() {
+  if (notificationSound) return;
+
+  try {
+    notificationSound = new Audio(CONFIG.sounds.newMessage);
+    notificationSound.volume = 0.5;
+    // Preload
+    notificationSound.load();
+  } catch (e) {
+    console.warn('[ChatWidget] Could not initialize notification sound:', e);
+  }
+}
+
+/**
+ * Play notification sound
+ */
+export function playNotificationSound() {
+  const state = getState();
+
+  if (!CONFIG.sounds.enabled || !state.settings.soundEnabled) return;
+
+  if (!notificationSound) {
+    initNotificationSound();
+  }
+
+  if (notificationSound) {
+    notificationSound.currentTime = 0;
+    notificationSound.play().catch(() => {
+      // Ignore - often blocked by browser until user interaction
+    });
+  }
+}
+
+/**
+ * Process offline queue after reconnection
+ */
+async function processOfflineQueue() {
+  const queue = flushOfflineQueue();
+
+  if (queue.length === 0) return;
+
+  console.log('[ChatWidget] Processing', queue.length, 'queued messages');
+  window.showToast(`Sending ${queue.length} queued message(s)...`, 'info');
+
+  for (const item of queue) {
+    try {
+      await sendMessage(item.userId, item.content, item.renderCallback, item.scrollCallback);
+    } catch (error) {
+      console.error('[ChatWidget] Failed to send queued message:', error);
+    }
+  }
+}
+
+/**
  * Initialize WebSocket connection
  */
 export function initWebSocket() {
+  // Initialize notification sound
+  initNotificationSound();
+
   // Use SocketManager if available (preferred method)
   if (typeof window.SocketManager !== 'undefined') {
     console.log('[ChatWidget] Using SocketManager');
@@ -29,20 +91,34 @@ export function initWebSocket() {
     window.SocketManager.onConnect('ChatWidget', function(connectedSocket) {
       socket = connectedSocket;
       console.log('[ChatWidget] Socket connected via SocketManager');
+
+      // Update connection status
+      setConnectionStatus(true, false);
+      renderConnectionStatus();
+
       // Join messaging room when connected
       const state = getState();
       if (state.isOpen) {
         joinMessagingRoom();
       }
+
+      // Process any queued messages
+      processOfflineQueue();
     });
 
     // Register disconnect callback
     window.SocketManager.onDisconnect('ChatWidget', function(reason) {
       console.log('[ChatWidget] Socket disconnected:', reason);
+      setConnectionStatus(false, true);
+      renderConnectionStatus();
     });
 
     // Attach event listeners via SocketManager
     attachSocketListeners();
+
+    // Set initial connection status
+    setConnectionStatus(window.SocketManager.isConnected(), false);
+    renderConnectionStatus();
     return;
   }
 
@@ -180,8 +256,16 @@ function handleNewMessage(message) {
   // Refresh conversation list
   loadConversations(renderConversations);
 
-  // Show notification if widget is closed
-  if (!state.isOpen) {
+  // Show notification if widget is closed or not focused on this conversation
+  const shouldNotify = !state.isOpen ||
+                       !state.activeConversation ||
+                       state.activeConversation.id !== message.sender_id;
+
+  if (shouldNotify) {
+    // Play sound notification
+    playNotificationSound();
+
+    // Show browser notification
     showNotification(message.sender_name, message.content);
   }
 }
@@ -376,7 +460,8 @@ export function showTypingIndicator() {
   const elements = getElements();
 
   if (elements.typingIndicator) {
-    elements.typingIndicator.style.display = 'flex';
+    elements.typingIndicator.classList.add('is-visible');
+    elements.typingIndicator.classList.remove('d-none');
     scrollToBottom();
   }
 }
@@ -388,7 +473,7 @@ export function hideTypingIndicator() {
   const elements = getElements();
 
   if (elements.typingIndicator) {
-    elements.typingIndicator.style.display = 'none';
+    elements.typingIndicator.classList.remove('is-visible');
   }
 }
 
@@ -412,6 +497,7 @@ export default {
   initWebSocket,
   joinMessagingRoom,
   emitTypingStart,
+  playNotificationSound,
   showTypingIndicator,
   hideTypingIndicator
 };

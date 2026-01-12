@@ -11,7 +11,7 @@ let _initialized = false;
 // Widget state
 const state = {
   isOpen: false,
-  currentView: 'list', // 'list' | 'chat'
+  currentView: 'list', // 'list' | 'chat' | 'search'
   activeConversation: null,
   conversations: [],
   messages: [],
@@ -21,9 +21,26 @@ const state = {
   typingTimeout: null,
   searchQuery: '',
   searchResults: [],
+  // Timestamp when conversation was last opened (for click-outside protection)
+  lastConversationOpenTime: 0,
+  // Pagination
+  messageOffset: 0,
+  hasMoreMessages: true,
+  isLoadingMore: false,
+  // Connection status
+  isConnected: false,
+  isReconnecting: false,
+  // Offline queue
+  offlineQueue: [],
+  // Message search
+  messageSearchQuery: '',
+  messageSearchResults: [],
+  isSearchingMessages: false,
+  // Settings
   settings: {
     typingIndicators: true,
     readReceipts: true,
+    soundEnabled: true,
     maxMessageLength: 2000
   }
 };
@@ -177,6 +194,56 @@ export function resetConversationState() {
   state.currentView = 'list';
   state.activeConversation = null;
   state.messages = [];
+  state.messageOffset = 0;
+  state.hasMoreMessages = true;
+  state.isLoadingMore = false;
+}
+
+/**
+ * Prepend messages (for loading older messages)
+ * @param {Array} newMessages - Messages to prepend
+ */
+export function prependMessages(newMessages) {
+  state.messages = [...newMessages, ...state.messages];
+}
+
+/**
+ * Set connection status
+ * @param {boolean} connected - Connection status
+ * @param {boolean} reconnecting - Whether reconnecting
+ */
+export function setConnectionStatus(connected, reconnecting = false) {
+  state.isConnected = connected;
+  state.isReconnecting = reconnecting;
+}
+
+/**
+ * Add message to offline queue
+ * @param {Object} message - Message to queue
+ */
+export function addToOfflineQueue(message) {
+  state.offlineQueue.push({
+    ...message,
+    queuedAt: Date.now()
+  });
+}
+
+/**
+ * Get and clear offline queue
+ * @returns {Array} Queued messages
+ */
+export function flushOfflineQueue() {
+  const queue = [...state.offlineQueue];
+  state.offlineQueue = [];
+  return queue;
+}
+
+/**
+ * Remove message from offline queue
+ * @param {string} tempId - Temporary message ID
+ */
+export function removeFromOfflineQueue(tempId) {
+  state.offlineQueue = state.offlineQueue.filter(m => m.tempId !== tempId);
 }
 
 export default {
@@ -193,5 +260,10 @@ export default {
   updateMessage,
   removeMessage,
   clearSearchState,
-  resetConversationState
+  resetConversationState,
+  prependMessages,
+  setConnectionStatus,
+  addToOfflineQueue,
+  flushOfflineQueue,
+  removeFromOfflineQueue
 };

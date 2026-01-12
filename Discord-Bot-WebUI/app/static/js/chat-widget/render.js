@@ -9,6 +9,18 @@ import { CONFIG, EMOJI_MAP } from './config.js';
 import { getState, getElements } from './state.js';
 
 /**
+ * Escape HTML special characters to prevent XSS
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string
+ */
+export function escapeHtml(str) {
+  if (str == null) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/**
  * Generate role badge HTML for a user
  * @param {Object} user - User object with role flags
  * @returns {string} HTML string with badge icons
@@ -108,7 +120,9 @@ export function renderConversations() {
             <span class="c-chat-widget__conv-time">${conv.last_message.time_ago}</span>
           </div>
           <div class="c-chat-widget__conv-preview">
-            ${conv.last_message.sent_by_me ? 'You: ' : ''}${escapeHtml(conv.last_message.content)}
+            ${conv.last_message.sent_by_me ? `<span class="c-chat-widget__conv-you">You:</span> ` : ''}${escapeHtml(conv.last_message.content)}
+            ${conv.last_message.sent_by_me && conv.last_message.is_read ? '<i class="ti ti-checks c-chat-widget__read-receipt c-chat-widget__read-receipt--read" title="Read"></i>' : ''}
+            ${conv.last_message.sent_by_me && !conv.last_message.is_read ? '<i class="ti ti-check c-chat-widget__read-receipt" title="Sent"></i>' : ''}
           </div>
         </div>
         ${isUnread ? `<div class="c-chat-widget__conv-badge">${conv.unread_count}</div>` : ''}
@@ -121,12 +135,19 @@ export function renderConversations() {
 
 /**
  * Render messages in active conversation
+ * @param {boolean} isPrepending - Whether we're prepending older messages
  */
-export function renderMessages() {
+export function renderMessages(isPrepending = false) {
   const elements = getElements();
   const state = getState();
 
   if (!elements.messagesContainer) return;
+
+  // Remember scroll position if prepending
+  let scrollHeight = 0;
+  if (isPrepending) {
+    scrollHeight = elements.messagesContainer.scrollHeight;
+  }
 
   if (state.messages.length === 0) {
     elements.messagesContainer.innerHTML = `
@@ -140,9 +161,20 @@ export function renderMessages() {
 
   const currentUserId = getCurrentUserId();
 
-  const html = state.messages.map(msg => {
+  // Build load more button if there are more messages
+  const loadMoreBtn = state.hasMoreMessages ? `
+    <div class="c-chat-widget__load-more">
+      <button class="c-chat-widget__load-more-btn" data-action="load-more-messages" ${state.isLoadingMore ? 'disabled' : ''}>
+        ${state.isLoadingMore ? '<i class="ti ti-loader-2 c-chat-widget__spinner"></i> Loading...' : '<i class="ti ti-history"></i> Load earlier messages'}
+      </button>
+    </div>
+  ` : '';
+
+  const messagesHtml = state.messages.map(msg => {
     const isSent = msg.sender_id === currentUserId;
     const isDeleted = msg.is_deleted;
+    const isPending = msg.is_pending;
+    const isFailed = msg.is_failed;
 
     // Deleted message placeholder
     if (isDeleted) {
@@ -163,27 +195,55 @@ export function renderMessages() {
     // Convert emoji shortcodes
     const contentWithEmojis = convertEmojiShortcodes(escapeHtml(msg.content));
 
+    // Message status classes
+    const statusClasses = [
+      isPending ? 'c-chat-widget__message--pending' : '',
+      isFailed ? 'c-chat-widget__message--failed' : ''
+    ].filter(Boolean).join(' ');
+
+    // Status indicator for pending/failed
+    let statusIndicator = '';
+    if (isPending) {
+      statusIndicator = '<i class="ti ti-clock c-chat-widget__message-status c-chat-widget__message-status--pending" title="Sending..."></i>';
+    } else if (isFailed) {
+      statusIndicator = '<i class="ti ti-alert-circle c-chat-widget__message-status c-chat-widget__message-status--failed" title="Failed to send - tap to retry"></i>';
+    } else if (isSent && msg.is_read) {
+      statusIndicator = '<i class="ti ti-checks c-chat-widget__message-status c-chat-widget__message-status--read" title="Read"></i>';
+    } else if (isSent) {
+      statusIndicator = '<i class="ti ti-check c-chat-widget__message-status" title="Sent"></i>';
+    }
+
     return `
-      <div class="c-chat-widget__message c-chat-widget__message--${isSent ? 'sent' : 'received'}"
+      <div class="c-chat-widget__message c-chat-widget__message--${isSent ? 'sent' : 'received'} ${statusClasses}"
            data-message-id="${msg.id}"
-           data-sender-id="${msg.sender_id}">
+           data-sender-id="${msg.sender_id}"
+           ${isFailed ? 'data-action="retry-message"' : ''}>
+        ${!isPending && !isFailed ? `
         <div class="c-chat-widget__message-actions">
           <button class="c-chat-widget__message-action-btn" data-action="delete-menu" title="Delete message">
             <i class="ti ti-trash"></i>
           </button>
         </div>
+        ` : ''}
         <div class="c-chat-widget__message-bubble">
           ${contentWithEmojis}
         </div>
         <span class="c-chat-widget__message-time">
           ${formatMessageTime(msg.created_at)}
-          ${isSent && msg.is_read ? '<i class="ti ti-checks chat-read-indicator"></i>' : ''}
+          ${statusIndicator}
         </span>
       </div>
     `;
   }).join('');
 
-  elements.messagesContainer.innerHTML = html;
+  // Combine load more button with messages
+  elements.messagesContainer.innerHTML = loadMoreBtn + messagesHtml;
+
+  // Restore scroll position after prepending
+  if (isPrepending && scrollHeight > 0) {
+    const newScrollHeight = elements.messagesContainer.scrollHeight;
+    elements.messagesContainer.scrollTop = newScrollHeight - scrollHeight;
+  }
 }
 
 /**
@@ -383,7 +443,54 @@ export function showMessagesLoading() {
   }
 }
 
+/**
+ * Render connection status indicator
+ */
+export function renderConnectionStatus() {
+  const state = getState();
+  const elements = getElements();
+
+  // Find or create status indicator
+  let statusEl = document.querySelector('.c-chat-widget__connection-status');
+
+  if (!statusEl && elements.panel) {
+    // Create status element in panel header
+    statusEl = document.createElement('div');
+    statusEl.className = 'c-chat-widget__connection-status';
+    const header = elements.panel.querySelector('.c-chat-widget__header');
+    if (header) {
+      header.appendChild(statusEl);
+    }
+  }
+
+  if (!statusEl) return;
+
+  if (state.isConnected) {
+    statusEl.innerHTML = '';
+    statusEl.className = 'c-chat-widget__connection-status';
+  } else if (state.isReconnecting) {
+    statusEl.innerHTML = '<i class="ti ti-loader-2 c-chat-widget__spinner"></i> Reconnecting...';
+    statusEl.className = 'c-chat-widget__connection-status c-chat-widget__connection-status--reconnecting';
+  } else {
+    statusEl.innerHTML = '<i class="ti ti-wifi-off"></i> Offline';
+    statusEl.className = 'c-chat-widget__connection-status c-chat-widget__connection-status--offline';
+  }
+}
+
+/**
+ * Render message search results
+ */
+export function renderMessageSearchResults() {
+  const state = getState();
+  const elements = getElements();
+
+  // Would need a dedicated element for message search results
+  // For now, just log
+  console.log('[ChatWidget] Message search results:', state.messageSearchResults.length);
+}
+
 export default {
+  escapeHtml,
   renderRoleBadges,
   convertEmojiShortcodes,
   renderConversations,
@@ -394,5 +501,7 @@ export default {
   updateSendButton,
   formatMessageTime,
   getCurrentUserId,
-  showMessagesLoading
+  showMessagesLoading,
+  renderConnectionStatus,
+  renderMessageSearchResults
 };

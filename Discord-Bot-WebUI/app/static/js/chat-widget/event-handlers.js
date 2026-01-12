@@ -7,7 +7,7 @@
 
 import { CONFIG } from './config.js';
 import { getState, getElements } from './state.js';
-import { sendMessage, searchUsers, deleteMessage } from './api.js';
+import { sendMessage, searchUsers, deleteMessage, loadMoreMessages, retryMessage } from './api.js';
 import { renderMessages, renderSearchResults, updateSendButton, getCurrentUserId } from './render.js';
 import { toggleWidget, closeWidget, openConversation, closeConversation, scrollToBottom, clearSearch } from './view-manager.js';
 import { emitTypingStart } from './socket-handler.js';
@@ -172,8 +172,18 @@ export function handleClickOutside(e) {
 
   if (!elements.widget || !state.isOpen) return;
 
-  // Don't close if clicking inside widget
+  // Don't close if clicking inside widget or its descendants
   if (elements.widget.contains(e.target)) return;
+
+  // Don't close if target is no longer in DOM (e.g., search result that was cleared)
+  // This happens when clicking search results - the element is removed before click fires
+  if (!document.contains(e.target)) return;
+
+  // Don't close if we just opened a conversation (within last 500ms)
+  // This prevents race conditions with search result clicks
+  if (state.lastConversationOpenTime && (Date.now() - state.lastConversationOpenTime) < 500) {
+    return;
+  }
 
   // Don't close on mobile (full screen)
   if (window.innerWidth <= 575) return;
@@ -253,6 +263,39 @@ export function autoResizeTextarea(textarea) {
   textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
 }
 
+/**
+ * Handle load more messages click
+ * @param {Element} element - Clicked element
+ * @param {Event} e - Click event
+ */
+export function handleLoadMoreClick(element, e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const state = getState();
+  if (!state.activeConversation || state.isLoadingMore) return;
+
+  loadMoreMessages(state.activeConversation.id, renderMessages);
+}
+
+/**
+ * Handle retry failed message click
+ * @param {Element} element - Clicked element
+ * @param {Event} e - Click event
+ */
+export function handleRetryMessageClick(element, e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const messageEl = element.closest('.c-chat-widget__message');
+  if (!messageEl) return;
+
+  const messageId = messageEl.dataset.messageId;
+  if (!messageId) return;
+
+  retryMessage(messageId, renderMessages, scrollToBottom);
+}
+
 export default {
   handleTriggerClick,
   handleConversationClick,
@@ -266,5 +309,7 @@ export default {
   handleKeydown,
   handleClickOutside,
   handleDeleteMenuClick,
+  handleLoadMoreClick,
+  handleRetryMessageClick,
   autoResizeTextarea
 };

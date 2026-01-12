@@ -8,7 +8,7 @@
 import { CONFIG } from './config.js';
 import { getState, getElements, setState, setActiveConversation, clearSearchState, resetConversationState } from './state.js';
 import { loadConversations, loadUnreadCount, loadMessages } from './api.js';
-import { renderConversations, renderMessages, updateBadge, renderRoleBadges, showMessagesLoading } from './render.js';
+import { renderConversations, renderMessages, updateBadge, renderRoleBadges, showMessagesLoading, escapeHtml } from './render.js';
 import { joinMessagingRoom } from './socket-handler.js';
 
 /**
@@ -103,6 +103,9 @@ export function toggleWidget() {
 export function openConversation(userId, userName, avatarUrl, isOnline, roleInfo) {
   const elements = getElements();
   const state = getState();
+
+  // Track when conversation was opened to prevent immediate close from click events
+  state.lastConversationOpenTime = Date.now();
 
   state.currentView = 'chat';
   setActiveConversation({

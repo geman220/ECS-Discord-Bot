@@ -175,9 +175,10 @@ function setupEventListeners() {
         }
     });
 
-    // Modal reset on hide (Bootstrap event - document level)
-    document.addEventListener('hidden.bs.modal', (e) => {
-        if (e.target.id === 'newConversationModal') {
+    // Modal reset on hide (Flowbite event system via MutationObserver)
+    // Flowbite adds/removes 'hidden' class when toggling modals
+    if (modal) {
+        const resetModalContent = () => {
             if (userSearchInput) userSearchInput.value = '';
             if (userResultsList) {
                 userResultsList.innerHTML = `
@@ -187,8 +188,22 @@ function setupEventListeners() {
                     </div>
                 `;
             }
-        }
-    });
+        };
+
+        // Use MutationObserver to detect when modal is hidden
+        const modalObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    // Flowbite hides modals by adding 'hidden' class
+                    if (modal.classList.contains('hidden')) {
+                        resetModalContent();
+                    }
+                }
+            });
+        });
+
+        modalObserver.observe(modal, { attributes: true, attributeFilter: ['class'] });
+    }
 }
 
 /**
