@@ -83,8 +83,7 @@ class AICommentaryClient:
             limit_per_host=10,
             ttl_dns_cache=300,
             use_dns_cache=True,
-            keepalive_timeout=30,
-            enable_cleanup_closed=True
+            keepalive_timeout=30
         )
         
         self._session = ClientSession(

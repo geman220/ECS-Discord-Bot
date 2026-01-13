@@ -28,8 +28,8 @@ def generate_etag(data: Any) -> str:
     else:
         data_str = str(data)
     
-    # Generate MD5 hash (sufficient for ETags)
-    return hashlib.md5(data_str.encode()).hexdigest()
+    # Generate SHA256 hash (truncated to 32 chars for ETag use)
+    return hashlib.sha256(data_str.encode()).hexdigest()[:32]
 
 
 def check_etag_match(etag: str) -> bool:

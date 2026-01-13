@@ -20,6 +20,7 @@ from flask import current_app
 from PIL import Image
 
 from app.core import db
+from app.utils.path_validator import safe_join_path, PathTraversalError
 from app.models.wallet_asset import WalletAsset, WalletTemplate, WalletCertificate
 
 logger = logging.getLogger(__name__)
@@ -194,12 +195,18 @@ class AssetService:
         folder_names = {1: 'ecs_membership', 2: 'pub_league'}
         pass_type_subdir = folder_names.get(pass_type_id, f"pass_type_{pass_type_id}")
 
-        # Create directory if it doesn't exist
-        asset_dir = os.path.join(self.asset_path, pass_type_subdir)
+        # Create directory if it doesn't exist (with path traversal protection)
+        try:
+            asset_dir = safe_join_path(self.asset_path, pass_type_subdir)
+        except PathTraversalError:
+            raise ValueError("Invalid directory path")
         os.makedirs(asset_dir, exist_ok=True)
-        
-        # Save file
-        file_path = os.path.join(asset_dir, unique_filename)
+
+        # Save file (with path traversal protection)
+        try:
+            file_path = safe_join_path(asset_dir, unique_filename)
+        except PathTraversalError:
+            raise ValueError("Invalid file path")
         file.save(file_path)
         
         # Check if asset already exists for this pass type
@@ -274,7 +281,7 @@ class AssetService:
 
         # Resize to exact dimensions if needed
         if image.size != (target_width, target_height):
-            image = image.resize((target_width, target_height), Image.LANCZOS)
+            image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
 
         # Convert to RGBA for PNG support
         if image.mode != 'RGBA':
@@ -293,12 +300,18 @@ class AssetService:
         folder_names = {1: 'ecs_membership', 2: 'pub_league'}
         pass_type_subdir = folder_names.get(pass_type_id, f"pass_type_{pass_type_id}")
 
-        # Create directory if it doesn't exist
-        asset_dir = os.path.join(self.asset_path, pass_type_subdir)
+        # Create directory if it doesn't exist (with path traversal protection)
+        try:
+            asset_dir = safe_join_path(self.asset_path, pass_type_subdir)
+        except PathTraversalError:
+            raise ValueError("Invalid directory path")
         os.makedirs(asset_dir, exist_ok=True)
 
-        # Save file
-        file_path = os.path.join(asset_dir, filename)
+        # Save file (with path traversal protection)
+        try:
+            file_path = safe_join_path(asset_dir, filename)
+        except PathTraversalError:
+            raise ValueError("Invalid file path")
         with open(file_path, 'wb') as f:
             f.write(buffer.getvalue())
 
@@ -493,13 +506,19 @@ class AssetService:
         # Generate unique filename
         unique_filename = f"{uuid.uuid4().hex}.{ext}"
         platform_subdir = platform
-        
-        # Create directory if it doesn't exist
-        cert_dir = os.path.join(self.cert_path, platform_subdir)
+
+        # Create directory if it doesn't exist (with path traversal protection)
+        try:
+            cert_dir = safe_join_path(self.cert_path, platform_subdir)
+        except PathTraversalError:
+            raise ValueError("Invalid directory path")
         os.makedirs(cert_dir, exist_ok=True)
-        
-        # Save file
-        file_path = os.path.join(cert_dir, unique_filename)
+
+        # Save file (with path traversal protection)
+        try:
+            file_path = safe_join_path(cert_dir, unique_filename)
+        except PathTraversalError:
+            raise ValueError("Invalid file path")
         file.save(file_path)
 
         # Verify file size after saving (in case content_length was None)
@@ -547,11 +566,13 @@ class AssetService:
                 standard_filename = 'apns_key.p8'
 
             if standard_filename:
-                standard_path = os.path.join(self.cert_path, standard_filename)
                 try:
+                    standard_path = safe_join_path(self.cert_path, standard_filename)
                     with open(file_path, 'rb') as src, open(standard_path, 'wb') as dest:
                         dest.write(src.read())
-                    logger.info(f"Copied {file_path} to {standard_path}")
+                    logger.info(f"Copied certificate to standard location: {standard_filename}")
+                except PathTraversalError:
+                    logger.error("Path traversal detected in certificate standard path")
                 except Exception as e:
                     logger.error(f"Error copying certificate to standard location: {e}")
         

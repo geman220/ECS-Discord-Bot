@@ -575,8 +575,8 @@ def nuclear_reset():
 
             containers_to_restart = [
                 'celery-worker', 'celery-live-reporting-worker',
-                'celery-discord-worker', 'celery-player-sync-worker',
-                'celery-beat'
+                'celery-discord-worker', 'celery-beat'
+                # Note: celery-player-sync-worker removed - consolidated into celery-worker
             ]
 
             for container in client.containers.list():

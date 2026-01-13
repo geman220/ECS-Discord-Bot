@@ -22,6 +22,7 @@ from app.alert_helpers import show_error, show_warning, show_success, show_info
 from app.models import User, Role, Player
 from app.utils.db_utils import transactional
 from app.utils.user_helpers import safe_current_user
+from app.utils.log_sanitizer import get_safe_session_keys
 from app.auth_helpers import update_last_login
 from app.players_helpers import save_cropped_profile_picture
 from app.duplicate_prevention import (
@@ -201,9 +202,9 @@ def waitlist_discord_login():
     session['waitlist_intent'] = True
     session['discord_registration_mode'] = False  # This is login, not registration
 
-    # Debug session storage
-    logger.info(f"Setting oauth_state={state_value[:8]}... in session for waitlist login")
-    logger.info(f"Current session contains: {dict(session)}")
+    # Debug session storage (sanitized - no sensitive values)
+    logger.debug(f"OAuth state set in session for waitlist login")
+    logger.debug(f"Session keys: {get_safe_session_keys(session)}")
 
     # Force session save
     session.modified = True
@@ -222,7 +223,7 @@ def waitlist_discord_login():
         f"%26state%3D{state_value}"
     )
 
-    logger.info(f"Redirecting to Combined Login+Auth URL for waitlist: {discord_login_url}")
+    logger.debug(f"Redirecting to Discord OAuth for waitlist login")
     return redirect(discord_login_url)
 
 
@@ -261,9 +262,9 @@ def waitlist_discord_register():
     session['waitlist_registration'] = True
     session['discord_registration_mode'] = True
 
-    # Debug session storage
-    logger.info(f"Setting oauth_state={state_value[:8]}... in session for waitlist registration")
-    logger.info(f"Current session contains: {dict(session)}")
+    # Debug session storage (sanitized - no sensitive values)
+    logger.debug(f"OAuth state set in session for waitlist registration")
+    logger.debug(f"Session keys: {get_safe_session_keys(session)}")
 
     # Force session save
     session.modified = True
@@ -282,7 +283,7 @@ def waitlist_discord_register():
         f"%26state%3D{state_value}"
     )
 
-    logger.info(f"Redirecting to Combined Login+Auth URL for waitlist registration: {discord_login_url}")
+    logger.debug(f"Redirecting to Discord OAuth for waitlist registration")
     return redirect(discord_login_url)
 
 

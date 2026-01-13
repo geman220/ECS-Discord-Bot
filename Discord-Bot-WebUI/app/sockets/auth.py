@@ -267,10 +267,11 @@ def handle_connect(auth):
 
 
 @socketio.on('disconnect', namespace='/')
-def handle_disconnect():
+def handle_disconnect(reason=None):
     """Handle client disconnection - clean up any tracked resources."""
     sid = request.sid
-    logger.info(f"🔌 Client disconnected from Socket.IO (sid: {sid})")
+    reason_str = f" (reason: {reason})" if reason else ""
+    logger.info(f"🔌 Client disconnected from Socket.IO (sid: {sid}){reason_str}")
 
     # Update user presence (mark as disconnected)
     try:

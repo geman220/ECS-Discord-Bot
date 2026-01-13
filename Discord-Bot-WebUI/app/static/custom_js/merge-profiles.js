@@ -3,6 +3,7 @@
  * Handles the UI and interaction for merging duplicate player profiles
  */
 import { InitSystem } from '../js/init-system.js';
+import { escapeHtml } from '../js/utils/sanitize.js';
 
 let _initialized = false;
 
@@ -52,10 +53,12 @@ function updateMergePreview() {
         const field = radio.name.replace('field_', '');
         const value = radio.value;
 
+        // Escape field name to prevent XSS
+        const safeFieldName = escapeHtml(field.replace('_', ' '));
         if (value === 'new') {
-            updates.push(`<small class="d-block text-primary">Update ${field.replace('_', ' ')}</small>`);
+            updates.push(`<small class="d-block text-primary">Update ${safeFieldName}</small>`);
         } else if (value === 'combine') {
-            updates.push(`<small class="d-block text-warning">Combine ${field.replace('_', ' ')}</small>`);
+            updates.push(`<small class="d-block text-warning">Combine ${safeFieldName}</small>`);
         }
     });
 

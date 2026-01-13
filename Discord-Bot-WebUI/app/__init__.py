@@ -6,9 +6,8 @@ Flask Application Factory
 This module provides the create_app function to initialize and configure the Flask
 application. The initialization has been modularized into the app/init/ package.
 
-To rollback to the monolithic version:
-1. Rename this file to __init__new.py
-2. Rename __init__legacy.py to __init__.py
+To rollback to the monolithic version (if needed):
+The legacy __init__legacy.py was removed but can be recovered from git history.
 
 Build Mode:
 Set SKIP_REDIS=true, SKIP_CELERY=true, SKIP_SOCKETIO=true to create a minimal app

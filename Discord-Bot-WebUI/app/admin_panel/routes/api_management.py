@@ -10,6 +10,7 @@ import re
 from app.models import db, User, AdminAuditLog
 from app.models.admin_config import AdminConfig
 from app.decorators import role_required
+from app.utils.url_validator import validate_url_for_ssrf, SSRFValidationError
 from .. import admin_panel_bp
 
 logger = logging.getLogger(__name__)
@@ -810,7 +811,17 @@ def test_api_endpoint():
         
         if not endpoint_url:
             return jsonify({'success': False, 'message': 'Endpoint URL is required'}), 400
-        
+
+        # SSRF Protection: Validate URL before making request
+        try:
+            validate_url_for_ssrf(endpoint_url)
+        except SSRFValidationError as e:
+            logger.warning(f"SSRF validation failed for URL {endpoint_url}: {e}")
+            return jsonify({
+                'success': False,
+                'message': f'URL validation failed: {str(e)}'
+            }), 400
+
         # Record start time
         start_time = time.time()
         

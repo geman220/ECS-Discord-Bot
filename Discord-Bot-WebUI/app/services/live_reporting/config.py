@@ -9,8 +9,8 @@ environment variables, and type safety.
 
 import os
 from typing import Optional
-from pydantic import Field, validator
-from pydantic_settings import BaseSettings
+from pydantic import Field, field_validator, ConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from dataclasses import dataclass
 
 
@@ -66,22 +66,24 @@ class LiveReportingConfig(BaseSettings):
     enable_discord_posting: bool = Field(default=True, env="ENABLE_DISCORD_POSTING")
     enable_caching: bool = Field(default=True, env="ENABLE_CACHING")
     
-    @validator('log_level')
-    def validate_log_level(cls, v):
+    @field_validator('log_level')
+    @classmethod
+    def validate_log_level(cls, v: str) -> str:
         valid_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
         if v.upper() not in valid_levels:
             raise ValueError(f'log_level must be one of {valid_levels}')
         return v.upper()
-    
-    @validator('database_url')
-    def validate_database_url(cls, v):
+
+    @field_validator('database_url')
+    @classmethod
+    def validate_database_url(cls, v: str) -> str:
         if not v.startswith(('postgresql://', 'postgresql+asyncpg://')):
             raise ValueError('database_url must be a PostgreSQL URL')
-        
+
         # Convert sync postgresql:// to async postgresql+asyncpg:// for V2 compatibility
         if v.startswith('postgresql://') and not v.startswith('postgresql+asyncpg://'):
             v = v.replace('postgresql://', 'postgresql+asyncpg://', 1)
-            
+
         return v
     
     def model_post_init(self, __context) -> None:
@@ -93,10 +95,11 @@ class LiveReportingConfig(BaseSettings):
         if not self.openai_api_key:
             self.openai_api_key = os.getenv('GPT_API') or os.getenv('OPENAI_API_KEY')
     
-    class Config:
-        env_file = '.env'
-        env_file_encoding = 'utf-8'
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_file='.env',
+        env_file_encoding='utf-8',
+        case_sensitive=False
+    )
 
 
 @dataclass(frozen=True)

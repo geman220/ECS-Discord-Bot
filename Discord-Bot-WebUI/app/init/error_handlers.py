@@ -4,17 +4,56 @@
 Error Handlers
 
 HTTP error handlers and exception handling.
+Provides secure error responses that don't leak sensitive information.
 """
 
 import logging
 
-from flask import request, redirect, url_for, render_template, session as flask_session
+from flask import request, redirect, url_for, render_template, session as flask_session, jsonify
 from werkzeug.routing import BuildError
 from werkzeug.routing.exceptions import WebsocketMismatch
+from werkzeug.exceptions import HTTPException
 
 from app.alert_helpers import show_error
 
 logger = logging.getLogger(__name__)
+
+# Safe error messages for production (don't leak internal details)
+SAFE_ERROR_MESSAGES = {
+    400: 'Bad Request',
+    401: 'Unauthorized',
+    403: 'Forbidden',
+    404: 'Not Found',
+    405: 'Method Not Allowed',
+    408: 'Request Timeout',
+    409: 'Conflict',
+    413: 'Request Too Large',
+    415: 'Unsupported Media Type',
+    422: 'Unprocessable Entity',
+    429: 'Too Many Requests',
+    500: 'Internal Server Error',
+    502: 'Bad Gateway',
+    503: 'Service Unavailable',
+    504: 'Gateway Timeout',
+}
+
+
+def _is_api_request():
+    """Check if the current request expects a JSON response."""
+    return (
+        request.path.startswith('/api/') or
+        request.path.startswith('/admin-panel/api/') or
+        request.path.startswith('/mobile-api/') or
+        request.path.startswith('/external-api/') or
+        request.headers.get('Accept', '').startswith('application/json') or
+        request.content_type == 'application/json' or
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    )
+
+
+def _get_safe_error_message(status_code, default='An error occurred'):
+    """Get a safe error message that doesn't expose internal details."""
+    return SAFE_ERROR_MESSAGES.get(status_code, default)
 
 
 def install_error_handlers(app):
@@ -33,8 +72,25 @@ def install_error_handlers(app):
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):
-        """Handle unexpected exceptions."""
+        """Handle unexpected exceptions with secure error messages."""
+        # Log the full error internally (not exposed to user)
         app.logger.error(f"Unhandled Exception: {error}", exc_info=True)
+
+        # Determine status code
+        if isinstance(error, HTTPException):
+            status_code = error.code
+        else:
+            status_code = 500
+
+        # Return JSON for API requests
+        if _is_api_request():
+            return jsonify({
+                'success': False,
+                'error': _get_safe_error_message(status_code),
+                'status_code': status_code
+            }), status_code
+
+        # Return HTML for browser requests
         return render_template("500_flowbite.html"), 500
 
     @app.errorhandler(401)
@@ -49,6 +105,15 @@ def install_error_handlers(app):
     def not_found(error):
         """Handle 404 not found errors."""
         logger.warning(f"404 error: {request.path}")
+
+        # Return JSON for API requests
+        if _is_api_request():
+            return jsonify({
+                'success': False,
+                'error': 'Not Found',
+                'status_code': 404
+            }), 404
+
         return render_template("404_flowbite.html"), 404
 
     @app.errorhandler(BuildError)

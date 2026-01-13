@@ -340,13 +340,18 @@ def handle_live_connect():
 
 
 @socketio.on('disconnect', namespace='/live')
-def handle_live_disconnect():
+def handle_live_disconnect(reason=None):
     """
     Handle client disconnection from the live reporting namespace.
 
     Updates the last_active timestamp for the user in active reporters
     and cleans up presence tracking for real-time messaging.
+
+    Args:
+        reason: Disconnect reason provided by Flask-SocketIO 5.5+ (optional)
     """
+    if reason:
+        logger.debug(f"Live namespace disconnect reason: {reason}")
     try:
         # Clean up user presence in Redis (for real-time messaging)
         # This uses the sid to look up user_id internally

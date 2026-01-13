@@ -107,38 +107,9 @@ services:
         reservations:
           memory: 256M
       
-  celery-player-sync-worker:
-    build:
-      context: ./Discord-Bot-WebUI
-      dockerfile: Dockerfile.webui
-    command: python celery_player_sync_worker.py
-    env_file:
-      - .env
-    environment:
-      - PYTHONPATH=/app
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_WORKER=1
-    volumes:
-      - ./Discord-Bot-WebUI:/app
-      - celery_sync_data:/tmp/celery_sync
-    healthcheck:
-      test: ["CMD", "python", "healthcheck.py"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    depends_on:
-      redis:
-        condition: service_healthy
-      pgbouncer:
-        condition: service_healthy
-    networks:
-      - web
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    deploy:
-      resources:
-        limits:
-          memory: 300M
+  # celery-player-sync-worker REMOVED - consolidated into celery-worker
+  # Player sync tasks now handled by main celery-worker (saves ~300-400MB RAM)
+  # The player_sync queue is consumed by celery-worker via '-Q celery,player_sync'
 
   celery-live-reporting-worker:
     build:
@@ -173,7 +144,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 300M
+          memory: 400M  # Increased from 300M - was at 83%
       
   celery-discord-worker:
     build:
@@ -241,9 +212,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 400M
+          memory: 512M  # Increased from 400M - was at 95%!
         reservations:
-          memory: 200M
+          memory: 256M
 
   realtime-live-reporting:
     build:
@@ -295,7 +266,8 @@ services:
       - ./Discord-Bot-WebUI/app/wallet_pass/certs/google-service-account.json:/app/credentials/google-service-account.json:ro
       - pass_converter_data:/app/data
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
+      # Google pass-converter doesn't have a root endpoint, check if Node process is running and port is open
+      test: ["CMD-SHELL", "node -e \"const net = require('net'); const s = net.createConnection(3000, 'localhost', () => { s.end(); process.exit(0); }); s.on('error', () => process.exit(1));\""]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -457,15 +429,21 @@ services:
 
   flower:
     image: mher/flower
-    command: celery --broker=redis://redis:6379/0 flower --port=5555
+    restart: unless-stopped
+    command: celery --broker=redis://redis:6379/0 flower --port=5555 --persistent=True --db=/data/flower.db
     environment:
       - FLOWER_UNAUTHENTICATED_API=true
       - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - flower_data:/data  # Persist task history across restarts
     depends_on:
       redis:
         condition: service_healthy
-      pgbouncer:
-        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5555/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.flower.rule=Host(`flower.ecsfc.com`)"
@@ -477,6 +455,12 @@ services:
       - "traefik.http.routers.flower-secure.tls.certresolver=myresolver"
     networks:
       - web
+    deploy:
+      resources:
+        limits:
+          memory: 128M  # Flower is lightweight
+        reservations:
+          memory: 64M
 
   discord-bot:
     build:
@@ -525,7 +509,7 @@ volumes:
   celery_data:
   celery_live_data:
   celery_beat_data:
-  celery_sync_data:
   celery_enterprise_data:
   realtime_logs:
   pass_converter_data:
+  flower_data:  # Persist Flower task history

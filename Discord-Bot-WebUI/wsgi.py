@@ -57,7 +57,9 @@ application = flask_app
 
 # For development server only
 if __name__ == "__main__":
+    # Debug mode controlled by environment variable (defaults to False for security)
+    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     if 'flask db' not in ' '.join(sys.argv):
-        socketio.run(flask_app, debug=True)
+        socketio.run(flask_app, debug=debug_mode)
     else:
-        flask_app.run(debug=True)
+        flask_app.run(debug=debug_mode)

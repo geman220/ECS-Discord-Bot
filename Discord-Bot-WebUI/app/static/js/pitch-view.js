@@ -1,4 +1,5 @@
 import { EventDelegation } from './event-delegation/core.js';
+import { escapeHtml } from './utils/sanitize.js';
 
 /**
  * Soccer Pitch View System
@@ -333,14 +334,18 @@ class PitchViewSystem {
         element.addEventListener('dragstart', (e) => this.handlePositionedPlayerDragStart(e, player.id));
         element.addEventListener('dragend', (e) => this.handlePositionedPlayerDragEnd(e));
 
+        // Escape player name to prevent XSS
+        const safeName = escapeHtml(player.name);
+        const safeInitials = escapeHtml(this.getPlayerInitials(player.name));
+
         // Player image or initials
         if (player.profile_picture_url && player.profile_picture_url !== '/static/img/default_player.png') {
             element.innerHTML = `
-                <img src="${player.profile_picture_url}" alt="${player.name}"
+                <img src="${escapeHtml(player.profile_picture_url)}" alt="${safeName}"
                      class="player-profile-img"
-                     data-fallback-initials="${this.getPlayerInitials(player.name)}">
-                <div class="player-initials hidden">${this.getPlayerInitials(player.name)}</div>
-                <button class="remove-btn" data-action="remove-player-from-pitch" data-player-id="${player.id}" data-position="${position}" data-team-id="${teamId}" title="Remove ${player.name}" aria-label="Remove ${player.name}">×</button>
+                     data-fallback-initials="${safeInitials}">
+                <div class="player-initials hidden">${safeInitials}</div>
+                <button class="remove-btn" data-action="remove-player-from-pitch" data-player-id="${player.id}" data-position="${position}" data-team-id="${teamId}" title="Remove ${safeName}" aria-label="Remove ${safeName}">×</button>
             `;
             // Set up image error handling
             const img = element.querySelector('img');
@@ -352,8 +357,8 @@ class PitchViewSystem {
             }
         } else {
             element.innerHTML = `
-                <div class="player-initials">${this.getPlayerInitials(player.name)}</div>
-                <button class="remove-btn" data-action="remove-player-from-pitch" data-player-id="${player.id}" data-position="${position}" data-team-id="${teamId}" title="Remove ${player.name}" aria-label="Remove ${player.name}">×</button>
+                <div class="player-initials">${safeInitials}</div>
+                <button class="remove-btn" data-action="remove-player-from-pitch" data-player-id="${player.id}" data-position="${position}" data-team-id="${teamId}" title="Remove ${safeName}" aria-label="Remove ${safeName}">×</button>
             `;
         }
 
@@ -695,17 +700,22 @@ class PitchViewSystem {
         const goals = player.career_goals || 0;
         const assists = player.career_assists || 0;
 
+        // Escape player data to prevent XSS
+        const safeName = escapeHtml(player.name);
+        const safePosition = escapeHtml(position);
+        const safeProfileUrl = escapeHtml(profileUrl);
+
         playerCard.innerHTML = `
             <div class="pitch-player-card__avatar">
-                <img src="${profileUrl}"
-                     alt="${player.name}" class="js-player-image"
+                <img src="${safeProfileUrl}"
+                     alt="${safeName}" class="js-player-image"
                      data-fallback="/static/img/default_player.png"
                      onerror="this.src='/static/img/default_player.png'">
             </div>
             <div class="pitch-player-card__content">
                 <div class="pitch-player-card__header">
-                    <span class="pitch-player-card__name">${player.name}</span>
-                    <span class="pitch-player-card__position">${position}</span>
+                    <span class="pitch-player-card__name">${safeName}</span>
+                    <span class="pitch-player-card__position">${safePosition}</span>
                 </div>
                 <div class="pitch-player-card__stats">
                     <span class="pitch-player-card__stat pitch-player-card__stat--goals" title="Goals">

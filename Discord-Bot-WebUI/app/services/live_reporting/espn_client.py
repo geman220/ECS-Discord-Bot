@@ -18,7 +18,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 import aiohttp
-import aioredis
+from redis.asyncio import Redis as AsyncRedis
 from aiohttp import ClientTimeout, ClientSession
 from tenacity import (
     retry, stop_after_attempt, wait_exponential,
@@ -70,7 +70,7 @@ class ESPNClient:
         self.metrics = metrics
         self.base_url = config.espn_api_base
         self._session: Optional[ClientSession] = None
-        self._redis: Optional[aioredis.Redis] = None
+        self._redis: Optional[AsyncRedis] = None
         self._circuit_breaker = CircuitBreaker(
             failure_threshold=5,
             recovery_timeout=60,
@@ -101,8 +101,7 @@ class ESPNClient:
             limit_per_host=30,  # Per-host connection limit
             ttl_dns_cache=300,  # DNS cache TTL
             use_dns_cache=True,
-            keepalive_timeout=30,
-            enable_cleanup_closed=True
+            keepalive_timeout=30
         )
         
         self._session = ClientSession(
@@ -116,19 +115,13 @@ class ESPNClient:
         )
     
     async def _setup_redis(self):
-        """Setup Redis for caching (compatible with aioredis 1.3.x)."""
+        """Setup Redis for caching using redis.asyncio (redis-py 4.2+)."""
         try:
-            # Parse Redis URL for aioredis 1.3.x compatibility
-            import urllib.parse
-            parsed = urllib.parse.urlparse(self.config.redis_url)
-            host = parsed.hostname or 'localhost'
-            port = parsed.port or 6379
-            db = int(parsed.path.lstrip('/')) if parsed.path and parsed.path != '/' else 0
-            
-            self._redis = await aioredis.create_redis_pool(
-                f"redis://{host}:{port}",
-                db=db,
-                encoding='utf-8'
+            self._redis = AsyncRedis.from_url(
+                self.config.redis_url,
+                encoding='utf-8',
+                decode_responses=True,
+                protocol=3  # RESP3 for better performance
             )
             # Test connection
             await self._redis.ping()
@@ -141,9 +134,7 @@ class ESPNClient:
         if self._session:
             await self._session.close()
         if self._redis:
-            # aioredis 1.3.x uses wait_closed() after close()
-            self._redis.close()
-            await self._redis.wait_closed()
+            await self._redis.aclose()
     
     @retry(
         stop=stop_after_attempt(3),

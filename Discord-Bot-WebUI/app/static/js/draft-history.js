@@ -1,4 +1,5 @@
 import { ModalManager } from './modal-manager.js';
+import { escapeHtml } from './utils/sanitize.js';
 
 /**
  * Draft History Admin Interface
@@ -414,14 +415,16 @@ class DraftHistoryManager {
             alertClass = 'alert-danger';
             iconClass = 'ti-x';
         }
-        
+
+        // Escape message to prevent XSS
+        const safeMessage = escapeHtml(message);
         const alertHtml = `
             <div class="alert ${alertClass} alert-dismissible fade show" role="alert" id="draft-alert-${Date.now()}">
-                <i class="ti ${iconClass} me-2"></i>${message}
+                <i class="ti ${iconClass} me-2"></i>${safeMessage}
                 <button type="button" class="btn-close" aria-label="Close" onclick="this.closest('.alert').remove()"></button>
             </div>
         `;
-        
+
         const container = document.querySelector('.container-xxl');
         if (container) {
             container.insertAdjacentHTML('afterbegin', alertHtml);

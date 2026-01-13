@@ -17,6 +17,8 @@ from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import current_app, jsonify, g, request
+
+from app.utils.log_sanitizer import mask_phone, mask_code
 from sqlalchemy import or_, and_, func
 
 
@@ -295,9 +297,9 @@ def send_sms(phone_number, message, user_id=None, status_callback=None):
         if user_id is not None:
             track_sms_send(user_id)
             
-        # Log successful send with more details
-        logger.info(f"SMS sent successfully to {phone_number} with ID {msg.sid}")
-        logger.info(f"SMS details: Length={len(prefixed_message)}, First 50 chars: '{prefixed_message[:50]}...'")
+        # Log successful send (phone number masked for privacy)
+        logger.info(f"SMS sent successfully to {mask_phone(phone_number)} with ID {msg.sid}")
+        logger.debug(f"SMS details: Length={len(prefixed_message)} chars")
         
         return True, msg.sid
     except Exception as e:
@@ -364,7 +366,7 @@ def send_confirmation_sms(user):
         
         # Generate a new confirmation code
         confirmation_code = generate_confirmation_code()
-        logger.info(f"Generated confirmation code {confirmation_code} for user {user.id}")
+        logger.info(f"Generated confirmation code for user {user.id}")
         
         # Save code and timestamp to user
         user.sms_confirmation_code = confirmation_code
@@ -383,10 +385,10 @@ def send_confirmation_sms(user):
             ).fetchone()
             
             db_code = result[0] if result else None
-            logger.info(f"Verification check - code in database: {db_code}")
-            
+            logger.debug(f"Verification check - code saved to database")
+
             if db_code != confirmation_code:
-                logger.warning(f"Code mismatch - expected {confirmation_code}, found {db_code} in DB.")
+                logger.warning(f"Code mismatch for user {user.id} - database save verification failed")
                 
                 # Try to force save with direct SQL
                 session.execute(
@@ -406,7 +408,7 @@ def send_confirmation_sms(user):
             "Message & data rates may apply. Reply STOP to unsubscribe."
         )
         
-        logger.info(f"Sending verification SMS to {player.phone} for user {user.id}")
+        logger.info(f"Sending verification SMS to {mask_phone(player.phone)} for user {user.id}")
         success, msg_info = send_sms(player.phone, message, user_id=user.id)
         
         if success:
@@ -444,7 +446,7 @@ def verify_sms_confirmation(user, code):
         # Refresh the user from the database to ensure we have the latest data
         session.refresh(user)
         
-        logger.info(f"Verifying SMS code '{code}' against stored code '{user.sms_confirmation_code}' for user {user.id}")
+        logger.info(f"Verifying SMS code for user {user.id}")
         
         # Direct database query as a backup check (in case of ORM caching issues)
         from sqlalchemy import text
@@ -454,21 +456,21 @@ def verify_sms_confirmation(user, code):
         ).fetchone()
         
         db_code = result[0] if result else None
-        logger.info(f"Direct DB query for confirmation code: {db_code}")
+        logger.debug(f"Retrieved stored confirmation code from database for user {user.id}")
         
         # For testing: Allow any 6-digit code if it matches the pattern
         if code and len(code) == 6 and code.isdigit():
             # Special case: if the code looks valid but no code is stored,
             # we'll accept it for a better user experience
             if not user.sms_confirmation_code:
-                logger.warning(f"No stored code, but accepting valid-looking code {code} for user {user.id}")
+                logger.warning(f"No stored code, but accepting valid-looking code for user {user.id}")
                 
                 # Store that code temporarily and use it
                 user.sms_confirmation_code = code
                 session.add(user)
                 try:
                     session.commit()
-                    logger.info(f"Temporarily saved code {code} for user {user.id}")
+                    logger.info(f"Temporarily saved code for user {user.id}")
                 except Exception as e:
                     session.rollback()
                     logger.error(f"Failed to save temporary code: {e}")
@@ -479,7 +481,7 @@ def verify_sms_confirmation(user, code):
             return False
             
         if user.sms_confirmation_code != code:
-            logger.warning(f"Code mismatch for user {user.id}: expected {user.sms_confirmation_code}, got {code}")
+            logger.warning(f"SMS code mismatch for user {user.id}")
             return False
         
         # Code matches
@@ -491,7 +493,7 @@ def verify_sms_confirmation(user, code):
         
         player = session.query(Player).filter_by(user_id=user.id).first()
         if player and player.phone:
-            logger.info(f"Sending welcome message to {player.phone} for user {user.id}")
+            logger.info(f"Sending welcome message to {mask_phone(player.phone)} for user {user.id}")
             success, _ = send_welcome_message(player.phone)
             if not success:
                 logger.error(f"Failed to send welcome message to user {user.id}")

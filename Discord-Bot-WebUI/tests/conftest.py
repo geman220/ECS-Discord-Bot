@@ -244,10 +244,12 @@ def match(db, season, team):
     return match
 
 
-# Mock fixtures
-@pytest.fixture(autouse=True)
-def mock_redis(monkeypatch):
-    """Mock Redis client - applied automatically to all tests."""
+# =============================================================================
+# MOCK FIXTURES - Smarter mocking based on test type
+# =============================================================================
+
+def _create_redis_mock():
+    """Create a Redis mock object with common methods."""
     mock = Mock()
     mock.get.return_value = None
     mock.set.return_value = True
@@ -258,23 +260,86 @@ def mock_redis(monkeypatch):
     mock.pipeline.return_value = mock
     mock.execute.return_value = []
     mock.ping.return_value = True
-    
+    mock.hget.return_value = None
+    mock.hset.return_value = True
+    mock.hgetall.return_value = {}
+    mock.keys.return_value = []
+    mock.scan_iter.return_value = iter([])
+    return mock
+
+
+def _apply_redis_mock(monkeypatch):
+    """Apply Redis mocking to avoid connection attempts."""
+    mock = _create_redis_mock()
+
     # Mock the RedisManager class completely
     mock_redis_manager = Mock()
     mock_redis_manager.client = mock
     mock_redis_manager._client = mock
-    
+
     # Replace RedisManager class with our mock
     monkeypatch.setattr('app.utils.redis_manager.RedisManager', lambda: mock_redis_manager)
-    
+
     # Mock Redis connection completely to avoid connection attempts
     def mock_redis_init(*args, **kwargs):
         return mock
-    
+
     monkeypatch.setattr('redis.Redis', mock_redis_init)
     monkeypatch.setattr('redis.from_url', lambda url: mock)
-    
+
     return mock
+
+
+@pytest.fixture(autouse=True)
+def auto_mock_external_services(request, monkeypatch):
+    """
+    Automatically mock external services based on test markers.
+
+    - Unit tests (@pytest.mark.unit): All external services mocked
+    - Integration tests: Only Redis mocked (to prevent connection errors)
+    - E2E tests: Minimal mocking
+
+    This prevents brittle tests that break due to external service issues
+    while still allowing integration tests to test real behavior.
+    """
+    markers = [m.name for m in request.node.iter_markers()]
+
+    # Always mock Redis to prevent connection errors in test environment
+    # Redis is infrastructure, not business logic we're testing
+    _apply_redis_mock(monkeypatch)
+
+    # For unit tests, mock additional external services
+    if 'unit' in markers:
+        # Mock Celery tasks
+        mock_celery = Mock()
+        mock_celery.delay = Mock(return_value=Mock(id='test-task-id'))
+        mock_celery.apply_async = Mock(return_value=Mock(id='test-task-id'))
+
+        # Mock Discord client
+        mock_discord = Mock()
+        mock_discord.send_message = Mock(return_value=True)
+        mock_discord.assign_role = Mock(return_value=True)
+        try:
+            monkeypatch.setattr('app.discord_utils.discord_client', mock_discord)
+        except AttributeError:
+            pass  # Module may not exist in test context
+
+        # Mock Twilio client
+        mock_twilio = Mock()
+        mock_twilio.messages.create = Mock(return_value=Mock(sid='TEST_SID'))
+        try:
+            monkeypatch.setattr('app.sms_helpers.twilio_client', mock_twilio)
+        except AttributeError:
+            pass
+
+
+@pytest.fixture
+def mock_redis(monkeypatch):
+    """
+    Explicit Redis mock for tests that need direct access to the mock.
+    Use this when you need to verify Redis interactions.
+    """
+    return _apply_redis_mock(monkeypatch)
 
 
 @pytest.fixture

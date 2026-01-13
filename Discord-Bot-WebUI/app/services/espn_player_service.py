@@ -8,10 +8,11 @@ Provides scalable, maintainable player information for Discord embeds.
 
 import asyncio
 import logging
+import os
 import time
 from typing import Dict, Optional, Any
 import aiohttp
-from app.services.redis_connection_service import get_redis_service
+from redis.asyncio import Redis as AsyncRedis
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +21,26 @@ class ESPNPlayerService:
     """Service for fetching and caching ESPN player data."""
 
     def __init__(self):
-        self.redis_service = get_redis_service()
+        self._redis: Optional[AsyncRedis] = None
         self.cache_ttl = 86400  # 24 hours
         self.base_url = "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1"
+        self._redis_url = os.getenv('REDIS_URL', 'redis://redis:6379/0')
+
+    async def _get_redis(self) -> Optional[AsyncRedis]:
+        """Get or create async Redis client."""
+        if self._redis is None:
+            try:
+                self._redis = AsyncRedis.from_url(
+                    self._redis_url,
+                    encoding='utf-8',
+                    decode_responses=True,
+                    protocol=3  # RESP3 for better performance
+                )
+                await self._redis.ping()
+            except Exception as e:
+                logger.warning(f"Failed to connect to Redis: {e}")
+                self._redis = None
+        return self._redis
 
     async def get_player_image(self, player_name: str, team_name: str = "Seattle Sounders FC") -> Optional[str]:
         """
@@ -233,13 +251,12 @@ class ESPNPlayerService:
     async def _get_from_cache(self, key: str) -> Optional[Dict[str, Any]]:
         """Get data from Redis cache."""
         try:
-            if self.redis_service and hasattr(self.redis_service, 'client'):
-                redis_client = getattr(self.redis_service, 'client', None)
-                if redis_client:
-                    cached = await redis_client.get(key)
-                    if cached:
-                        import json
-                        return json.loads(cached)
+            redis_client = await self._get_redis()
+            if redis_client:
+                cached = await redis_client.get(key)
+                if cached:
+                    import json
+                    return json.loads(cached)
         except Exception as e:
             logger.warning(f"Cache get error for {key}: {e}")
         return None
@@ -247,13 +264,12 @@ class ESPNPlayerService:
     async def _cache_data(self, key: str, data: Dict[str, Any], ttl: int):
         """Cache data in Redis."""
         try:
-            if self.redis_service and hasattr(self.redis_service, 'client'):
-                redis_client = getattr(self.redis_service, 'client', None)
-                if redis_client:
-                    import json
-                    await redis_client.setex(
-                        key, ttl, json.dumps(data, default=str)
-                    )
+            redis_client = await self._get_redis()
+            if redis_client:
+                import json
+                await redis_client.setex(
+                    key, ttl, json.dumps(data, default=str)
+                )
         except Exception as e:
             logger.warning(f"Cache set error for {key}: {e}")
 

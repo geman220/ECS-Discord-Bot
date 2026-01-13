@@ -56,7 +56,7 @@ class TaskMonitor:
         }
         
         # Set expiration to avoid leaking memory
-        self.redis.hmset(key, task_info)
+        self.redis.hset(key, mapping=task_info)
         self.redis.expire(key, 86400)  # 24 hours
         logger.debug(f"Registered task start: {task_id} ({task_name})")
     

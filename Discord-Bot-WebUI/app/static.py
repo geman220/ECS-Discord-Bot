@@ -10,10 +10,10 @@ cache-control headers when serving static files.
 
 import logging
 import mimetypes
+import os
 from pathlib import Path
 
 from flask import current_app, request, send_from_directory
-from werkzeug.utils import safe_join
 from app.database.cache import cache_static_file
 
 logger = logging.getLogger(__name__)
@@ -48,8 +48,17 @@ def configure_static_serving(app):
         """
         try:
             # Securely join the requested filename to the static folder path.
-            file_path = safe_join(static_folder, filename)
-            if not file_path or not Path(file_path).exists():
+            # Werkzeug 3.0 removed safe_join, use manual path traversal prevention
+            file_path = Path(os.path.normpath(os.path.join(static_folder, filename)))
+
+            # Ensure the resolved path is within the static folder (prevent path traversal)
+            try:
+                file_path.resolve().relative_to(static_folder.resolve())
+            except ValueError:
+                logger.warning(f"Path traversal attempt blocked: {filename}")
+                return app.send_static_file('404.html'), 404
+
+            if not file_path.exists():
                 return app.send_static_file('404.html'), 404
 
             # ETag handling: if the client's ETag matches and not in debug mode, return 304.

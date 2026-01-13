@@ -20,6 +20,8 @@
  * ============================================================================
  */
 
+import { escapeHtml } from './utils/sanitize.js';
+
 // Pass Studio JavaScript
 const PassStudio = {
     passTypeCode: '',
@@ -103,9 +105,12 @@ const PassStudio = {
             if (card && asset && asset.url) {
                 const preview = card.querySelector('.asset-preview');
                 if (preview) {
+                    // Escape URLs to prevent XSS
+                    const safeUrl = escapeHtml(asset.url);
+                    const safeType = escapeHtml(assetType);
                     // Replace placeholder with actual image
                     preview.innerHTML = `
-                        <img src="${asset.url}" alt="${assetType}" id="asset-preview-${assetType}">
+                        <img src="${safeUrl}" alt="${safeType}" id="asset-preview-${safeType}">
                         <span class="badge bg-success position-absolute top-0 end-0 m-1"><i class="ti ti-check"></i></span>
                     `;
                 }
@@ -126,7 +131,7 @@ const PassStudio = {
             if (this.assets.logo && this.assets.logo.url) {
                 previewLogo.classList.remove('hidden');
                 previewLogo.classList.add('flex');
-                previewLogo.innerHTML = `<img src="${this.assets.logo.url}" alt="Logo">`;
+                previewLogo.innerHTML = `<img src="${escapeHtml(this.assets.logo.url)}" alt="Logo">`;
             } else {
                 // No logo - hide the logo area entirely for cleaner look
                 previewLogo.classList.add('hidden');
@@ -164,10 +169,10 @@ const PassStudio = {
         if (googleLogo) {
             const googleLogoUrl = document.getElementById('google_logo_url')?.value;
             if (googleLogoUrl) {
-                googleLogo.innerHTML = `<img src="${googleLogoUrl}" alt="Logo">`;
+                googleLogo.innerHTML = `<img src="${escapeHtml(googleLogoUrl)}" alt="Logo">`;
             } else if (this.assets.logo && this.assets.logo.url) {
                 // Fall back to Apple logo
-                googleLogo.innerHTML = `<img src="${this.assets.logo.url}" alt="Logo">`;
+                googleLogo.innerHTML = `<img src="${escapeHtml(this.assets.logo.url)}" alt="Logo">`;
             }
         }
     },
@@ -351,9 +356,9 @@ const PassStudio = {
 
         if (logoPreview) {
             if (logoUrl) {
-                logoPreview.innerHTML = `<img src="${logoUrl}" alt="Logo">`;
+                logoPreview.innerHTML = `<img src="${escapeHtml(logoUrl)}" alt="Logo">`;
             } else if (this.assets.logo && this.assets.logo.url) {
-                logoPreview.innerHTML = `<img src="${this.assets.logo.url}" alt="Logo">`;
+                logoPreview.innerHTML = `<img src="${escapeHtml(this.assets.logo.url)}" alt="Logo">`;
             } else {
                 logoPreview.innerHTML = `
                     <div class="google-logo-placeholder">
@@ -464,8 +469,8 @@ const PassStudio = {
             headerFieldsContainer.classList.add('flex');
             headerFieldsContainer.innerHTML = fieldsByLocation.header.map(field => `
                 <div class="pass-header-field">
-                    <div class="pass-field-label pass-field-label--dynamic" data-label-color="${labelColor}">${field.label || ''}</div>
-                    <div class="pass-field-value">${resolveValue(field)}</div>
+                    <div class="pass-field-label pass-field-label--dynamic" data-label-color="${escapeHtml(labelColor)}">${escapeHtml(field.label || '')}</div>
+                    <div class="pass-field-value">${escapeHtml(resolveValue(field))}</div>
                 </div>
             `).join('');
             // Note: Dynamic label colors from configuration, kept as inline styles
@@ -488,15 +493,15 @@ const PassStudio = {
             if (passStyle === 'storeCard' && fieldsByLocation.primary.length > 0) {
                 const field = fieldsByLocation.primary[0];
                 primaryOverlay.innerHTML = `
-                    <div class="pass-field-label pass-field-label--dynamic" data-label-color="${labelColor}">${field.label || ''}</div>
-                    <div class="pass-field-value">${resolveValue(field)}</div>
+                    <div class="pass-field-label pass-field-label--dynamic" data-label-color="${escapeHtml(labelColor)}">${escapeHtml(field.label || '')}</div>
+                    <div class="pass-field-value">${escapeHtml(resolveValue(field))}</div>
                 `;
                 // Note: Dynamic label colors from configuration, kept as inline styles
                 const labelEl = primaryOverlay.querySelector('.pass-field-label--dynamic');
                 if (labelEl) labelEl.style.color = labelEl.dataset.labelColor;
             } else if (passStyle === 'storeCard') {
                 primaryOverlay.innerHTML = `
-                    <div class="pass-field-label pass-field-label--dynamic pass-field-value--muted" data-label-color="${labelColor}">MEMBER</div>
+                    <div class="pass-field-label pass-field-label--dynamic pass-field-value--muted" data-label-color="${escapeHtml(labelColor)}">MEMBER</div>
                     <div class="pass-field-value pass-field-value--muted">No primary field</div>
                 `;
                 // Note: Dynamic label colors from configuration, kept as inline styles
@@ -510,8 +515,8 @@ const PassStudio = {
             if (passStyle === 'generic' && fieldsByLocation.primary.length > 0) {
                 primarySection.innerHTML = fieldsByLocation.primary.map(field => `
                     <div class="pass-field primary-field">
-                        <div class="pass-field-label pass-field-label--dynamic" data-label-color="${labelColor}">${field.label || ''}</div>
-                        <div class="pass-field-value">${resolveValue(field)}</div>
+                        <div class="pass-field-label pass-field-label--dynamic" data-label-color="${escapeHtml(labelColor)}">${escapeHtml(field.label || '')}</div>
+                        <div class="pass-field-value">${escapeHtml(resolveValue(field))}</div>
                     </div>
                 `).join('');
                 // Note: Dynamic label colors from configuration, kept as inline styles
@@ -521,7 +526,7 @@ const PassStudio = {
             } else if (passStyle === 'generic') {
                 primarySection.innerHTML = `
                     <div class="pass-field primary-field">
-                        <div class="pass-field-label pass-field-label--dynamic pass-field-value--muted" data-label-color="${labelColor}">MEMBER</div>
+                        <div class="pass-field-label pass-field-label--dynamic pass-field-value--muted" data-label-color="${escapeHtml(labelColor)}">MEMBER</div>
                         <div class="pass-field-value pass-field-value--muted">No primary field</div>
                     </div>
                 `;
@@ -555,8 +560,8 @@ const PassStudio = {
             }
             secondaryContainer.innerHTML = allSecondary.map(field => `
                 <div class="pass-field">
-                    <div class="pass-field-label pass-field-label--dynamic" data-label-color="${labelColor}">${field.label || ''}</div>
-                    <div class="pass-field-value">${resolveValue(field)}</div>
+                    <div class="pass-field-label pass-field-label--dynamic" data-label-color="${escapeHtml(labelColor)}">${escapeHtml(field.label || '')}</div>
+                    <div class="pass-field-value">${escapeHtml(resolveValue(field))}</div>
                 </div>
             `).join('');
             // Note: Dynamic label colors from configuration, kept as inline styles
@@ -583,6 +588,7 @@ const PassStudio = {
                 if (header) header.after(primaryValue);
             }
             primaryValue.classList.remove('text-muted');
+            // Using textContent here is safe (no HTML injection possible)
             primaryValue.textContent = resolveValue(field);
         } else if (primaryValue) {
             primaryValue.classList.add('text-muted');
@@ -602,8 +608,8 @@ const PassStudio = {
             }
             infoRows.innerHTML = allSecondary.map(field => `
                 <div class="google-info-row">
-                    <span class="google-info-label pass-field-label--dynamic" data-label-color="${labelColor}">${field.label || ''}</span>
-                    <span class="google-info-value">${resolveValue(field)}</span>
+                    <span class="google-info-label pass-field-label--dynamic" data-label-color="${escapeHtml(labelColor)}">${escapeHtml(field.label || '')}</span>
+                    <span class="google-info-value">${escapeHtml(resolveValue(field))}</span>
                 </div>
             `).join('');
             // Note: Dynamic label colors from configuration, kept as inline styles

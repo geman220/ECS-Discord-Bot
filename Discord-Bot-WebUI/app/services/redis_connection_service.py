@@ -15,6 +15,7 @@ import logging
 import time
 import threading
 import redis
+from redis.cache import CacheConfig
 from typing import Dict, Any, Optional, Union
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -91,6 +92,7 @@ class RedisConnectionService:
                     host=self.host,
                     port=self.port,
                     db=self.db,
+                    protocol=3,  # RESP3 for better performance & features
                     decode_responses=True,
                     socket_timeout=self.socket_timeout,
                     socket_connect_timeout=self.socket_connect_timeout,
@@ -178,8 +180,18 @@ class RedisConnectionService:
             
             if not self._pool:
                 self._initialize_pool()
-            
-            connection = redis.Redis(connection_pool=self._pool)
+
+            # Client-side caching for faster reads (up to 45x improvement)
+            # Note: TTL is managed by server-side invalidation in RESP3, not client-side
+            cache_config = CacheConfig(
+                max_size=1000,        # Cache up to 1000 keys locally
+                eviction_policy='lru' # Least Recently Used eviction
+            )
+            connection = redis.Redis(
+                connection_pool=self._pool,
+                protocol=3,           # RESP3 required for client-side caching
+                cache_config=cache_config
+            )
             
             # Test connection with ping
             connection.ping()

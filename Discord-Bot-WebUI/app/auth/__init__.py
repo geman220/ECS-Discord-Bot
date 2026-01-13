@@ -13,8 +13,7 @@ This package contains routes for authentication:
 
 Refactored from monolithic auth.py for better maintainability.
 
-To rollback: Rename auth_legacy.py back to auth.py
-and update the import in app/__init__.py
+The legacy auth_legacy.py was removed but can be recovered from git history if needed.
 """
 
 from flask import Blueprint

@@ -16,6 +16,8 @@ from datetime import datetime, timedelta
 from typing import Optional
 from werkzeug.utils import secure_filename
 
+from app.utils.path_validator import safe_join_path, PathTraversalError
+
 from flask import (
     Blueprint, render_template, redirect, url_for, request, jsonify, g,
     current_app
@@ -1333,8 +1335,14 @@ def upload_team_kit(team_id):
         filename = f'team_{team_id}_kit.png'
         upload_folder = os.path.join(current_app.root_path, 'static', 'img', 'uploads', 'kits')
         os.makedirs(upload_folder, exist_ok=True)
-        file_path = os.path.join(upload_folder, filename)
-        
+
+        # Use safe path joining with validation
+        try:
+            file_path = safe_join_path(upload_folder, filename)
+        except PathTraversalError:
+            show_error('Invalid file path.')
+            return redirect(url_for('teams.team_details', team_id=team_id))
+
         # Clean up old kit file if it exists
         if os.path.exists(file_path):
             try:
@@ -1404,8 +1412,14 @@ def upload_team_background(team_id):
         filename = f'team_{team_id}_background.jpg'
         upload_folder = os.path.join(current_app.root_path, 'static', 'img', 'uploads', 'backgrounds')
         os.makedirs(upload_folder, exist_ok=True)
-        file_path = os.path.join(upload_folder, filename)
-        
+
+        # Use safe path joining with validation
+        try:
+            file_path = safe_join_path(upload_folder, filename)
+        except PathTraversalError:
+            show_error('Invalid file path.')
+            return redirect(url_for('teams.team_details', team_id=team_id))
+
         # Clean up old background file if it exists
         if os.path.exists(file_path):
             try:

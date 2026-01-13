@@ -20,6 +20,7 @@ from app.auth import auth
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.models import User, Role, Player
 from app.utils.db_utils import transactional
+from app.utils.log_sanitizer import get_safe_session_keys
 from app.auth_helpers import (
     get_discord_user_data,
     exchange_discord_code,
@@ -58,9 +59,9 @@ def discord_login():
     session['oauth_state'] = state_value
     session['discord_registration_mode'] = False
 
-    # Debug session storage
-    logger.info(f"Setting oauth_state={state_value[:8]}... in session {session.sid if hasattr(session, 'sid') else 'unknown'}")
-    logger.info(f"Current session contains: {dict(session)}")
+    # Debug session storage (sanitized - no sensitive values)
+    logger.debug(f"OAuth state set in session")
+    logger.debug(f"Session keys: {get_safe_session_keys(session)}")
 
     # Force session save
     session.modified = True
@@ -79,7 +80,7 @@ def discord_login():
         f"%26state%3D{state_value}"
     )
 
-    logger.info(f"Redirecting to Combined Login+Auth URL: {discord_login_url}")
+    logger.debug(f"Redirecting to Discord OAuth login")
     return redirect(discord_login_url)
 
 
@@ -106,9 +107,9 @@ def discord_register():
     session['oauth_state'] = state_value
     session['discord_registration_mode'] = True
 
-    # Debug session storage
-    logger.info(f"Setting oauth_state={state_value[:8]}... in session {session.sid if hasattr(session, 'sid') else 'unknown'}")
-    logger.info(f"Current session contains: {dict(session)}")
+    # Debug session storage (sanitized - no sensitive values)
+    logger.debug(f"OAuth state set in session")
+    logger.debug(f"Session keys: {get_safe_session_keys(session)}")
 
     # Force session save
     session.modified = True
@@ -127,7 +128,7 @@ def discord_register():
         f"%26state%3D{state_value}"
     )
 
-    logger.info(f"Redirecting to Combined Login+Auth URL (registration): {discord_login_url}")
+    logger.debug(f"Redirecting to Discord OAuth registration")
     return redirect(discord_login_url)
 
 
@@ -145,9 +146,9 @@ def discord_callback():
     code = request.args.get('code')
     state = request.args.get('state')
 
-    # Log incoming request data for debugging
-    logger.info(f"Discord callback received: code={code[:8] if code else None}..., state={state[:8] if state else None}...")
-    logger.info(f"Current session data: {dict(session)}")
+    # Log incoming request (sanitized - no sensitive values)
+    logger.debug(f"Discord callback received")
+    logger.debug(f"Session keys: {get_safe_session_keys(session)}")
 
     # Enhanced session handling - make it extra permanent and strong
     session.permanent = True

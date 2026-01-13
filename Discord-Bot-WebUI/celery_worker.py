@@ -1,11 +1,11 @@
 # celery_worker.py
 
 """
-Celery Worker
+Celery Worker (Main + Player Sync)
 
-This script starts the main Celery worker using an Eventlet pool with the 'celery'
-queue. It configures high concurrency and prefetch settings, and also applies
-resource limits such as maximum tasks per child and time limits.
+This script starts the main Celery worker using a prefork pool. It handles both
+the 'celery' queue (general tasks) and 'player_sync' queue (WooCommerce sync).
+Combining these saves memory since player sync runs infrequently.
 """
 
 import sys
@@ -39,11 +39,12 @@ if __name__ == '__main__':
 
         # Start the Celery worker with the specified options.
         # Changed from eventlet to prefork due to worker going silent after startup
+        # Handles both 'celery' and 'player_sync' queues to save memory
         celery.worker_main([
             'worker',
             '--loglevel=INFO',
             '--hostname=main-celery-worker@%h',  # Explicit hostname
-            '-Q', 'celery',
+            '-Q', 'celery,player_sync',  # Combined: main queue + player sync
             '--pool=prefork',  # Changed from eventlet - eventlet was deadlocking
             '--concurrency=2',  # Reduced for prefork
             '--prefetch-multiplier=1',

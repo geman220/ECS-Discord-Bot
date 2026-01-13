@@ -16,6 +16,7 @@ import io
 from pathlib import Path
 
 from app.core import db
+from app.utils.path_validator import validate_path_within_directory, PathTraversalError
 from app.models import Player, PlayerImageCache
 
 logger = logging.getLogger(__name__)
@@ -272,14 +273,21 @@ class ImageCacheService:
             image_data = None
             
             if original_url and original_url.startswith('/static/'):
-                # Handle local files
-                original_path = Path("app") / original_url.lstrip('/')
-                if original_path.exists():
-                    with open(original_path, 'rb') as f:
-                        image_data = f.read()
-                    logger.debug(f"Loaded local image: {original_path}")
-                else:
-                    logger.warning(f"Local image not found: {original_path}")
+                # Handle local files with path traversal protection
+                try:
+                    # Construct path and validate it's within app/static
+                    original_path = Path("app") / original_url.lstrip('/')
+                    validated_path = validate_path_within_directory(str(original_path), "app/static")
+                    original_path = Path(validated_path)
+
+                    if original_path.exists():
+                        with open(original_path, 'rb') as f:
+                            image_data = f.read()
+                        logger.debug(f"Loaded local image: {original_path}")
+                    else:
+                        logger.warning(f"Local image not found: {original_path}")
+                except PathTraversalError:
+                    logger.warning(f"Path traversal attempt detected in image URL: {original_url}")
                     # Update cache status in new session
                     with managed_session() as fail_session:
                         fail_entry = fail_session.query(PlayerImageCache).get(cache_entry_id)
@@ -454,12 +462,17 @@ class ImageCacheService:
             ).all()
             
             for entry in expired_entries:
-                # Remove files
+                # Remove files with path traversal protection
                 for url in [entry.thumbnail_url, entry.cached_url, entry.webp_url]:
                     if url and url.startswith('/static/'):
-                        file_path = Path("app") / url.lstrip('/')
-                        if file_path.exists():
-                            file_path.unlink()
+                        try:
+                            file_path = Path("app") / url.lstrip('/')
+                            # Validate path is within static directory
+                            validate_path_within_directory(str(file_path), "app/static")
+                            if file_path.exists():
+                                file_path.unlink()
+                        except PathTraversalError:
+                            logger.warning(f"Path traversal attempt in cache cleanup: {url}")
                 
                 # Remove database entry
                 session.delete(entry)
