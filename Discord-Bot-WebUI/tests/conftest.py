@@ -257,12 +257,13 @@ def opponent_team(db, league):
 # =============================================================================
 
 @pytest.fixture
-def player(db, team):
+def player(db, user, team):
     """
-    Create test player.
+    Create test player linked to user.
 
     Player model fields:
     - name: String, required
+    - user_id: ForeignKey to users.id, required
     - discord_id: String, unique
     - jersey_number, jersey_size, etc.
 
@@ -270,6 +271,7 @@ def player(db, team):
     """
     player = Player(
         name='Test Player',
+        user_id=user.id,
         discord_id='test_discord_123',
         jersey_number=10,
         jersey_size='M'

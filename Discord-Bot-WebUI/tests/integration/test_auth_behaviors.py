@@ -270,8 +270,8 @@ class TestTwoFactorBehaviors:
         """
         user = UserFactory(
             username='2fauser',
-            two_factor_enabled=True,
-            two_factor_secret='TESTSECRET123'
+            is_2fa_enabled=True,
+            totp_secret='TESTSECRET123'
         )
 
         # First step: password
@@ -292,8 +292,8 @@ class TestTwoFactorBehaviors:
         """
         user = UserFactory(
             username='2fauser2',
-            two_factor_enabled=True,
-            two_factor_secret='TESTSECRET123'
+            is_2fa_enabled=True,
+            totp_secret='TESTSECRET123'
         )
 
         # Login with password first

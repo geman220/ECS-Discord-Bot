@@ -11,110 +11,104 @@ from app.core import db
 
 class TestDataBuilder:
     """Builder pattern for creating complex test scenarios."""
-    
+
     @staticmethod
     def create_match_with_teams(home_team_size=11, away_team_size=11, **match_kwargs):
         """Create a match with fully populated teams."""
-        from tests.factories import MatchFactory, PlayerFactory
-        
+        from tests.factories import MatchFactory, PlayerFactory, UserFactory
+
         match = MatchFactory(**match_kwargs)
-        
+
         # Create players for home team
         for i in range(home_team_size):
-            PlayerFactory(team=match.home_team)
-        
+            user = UserFactory()
+            PlayerFactory(user=user, team=match.home_team)
+
         # Create players for away team
         for i in range(away_team_size):
-            PlayerFactory(team=match.away_team)
-        
+            user = UserFactory()
+            PlayerFactory(user=user, team=match.away_team)
+
         db.session.commit()
         return match
-    
+
     @staticmethod
     def create_user_with_upcoming_matches(num_matches=3):
-        """Create a user with multiple upcoming matches."""
-        from tests.factories import UserFactory, PlayerFactory, MatchFactory
-        
+        """Create a user with player and multiple upcoming matches."""
+        from tests.factories import UserFactory, PlayerFactory, MatchFactory, TeamFactory
+
         user = UserFactory()
-        player = PlayerFactory(user=user)
-        
+        team = TeamFactory()
+        player = PlayerFactory(user=user, team=team)
+
         matches = []
         for i in range(num_matches):
-            match = MatchFactory(
-                home_team=player.team,
-                scheduled_date=datetime.utcnow() + timedelta(days=i+1)
-            )
+            # MatchFactory now auto-creates schedule
+            match = MatchFactory(home_team=team)
             matches.append(match)
-        
+
         db.session.commit()
-        return user, matches
-    
+        return user, player, matches
+
     @staticmethod
-    def create_team_with_full_roster(captain=None, season=None):
+    def create_team_with_full_roster(season=None):
         """Create a team with a full roster of players."""
-        from tests.factories import TeamFactory, PlayerFactory, UserFactory
-        
-        if not captain:
-            captain = UserFactory()
+        from tests.factories import TeamFactory, PlayerFactory, UserFactory, SeasonFactory, LeagueFactory
+
         if not season:
-            from tests.factories import SeasonFactory
             season = SeasonFactory()
-        
-        team = TeamFactory(captain=captain, season=season)
-        
+
+        league = LeagueFactory(season=season)
+        team = TeamFactory(league=league)
+
         # Create 15 players
         players = []
         for i in range(15):
             user = UserFactory()
             player = PlayerFactory(user=user, team=team, jersey_number=i+1)
             players.append(player)
-        
-        team.players = players
+
         db.session.commit()
-        return team
-    
+        return team, players
+
     @staticmethod
-    def create_team_with_players(captain=None, season=None, player_count=11):
+    def create_team_with_players(season=None, player_count=11):
         """Create a team with specified number of players."""
-        from tests.factories import TeamFactory, PlayerFactory, UserFactory
-        
-        if not captain:
-            captain = UserFactory()
+        from tests.factories import TeamFactory, PlayerFactory, UserFactory, SeasonFactory, LeagueFactory
+
         if not season:
-            from tests.factories import SeasonFactory
             season = SeasonFactory()
-        
-        team = TeamFactory(captain=captain, season=season)
-        
+
+        league = LeagueFactory(season=season)
+        team = TeamFactory(league=league)
+
         players = []
         for i in range(player_count):
             user = UserFactory()
             player = PlayerFactory(user=user, team=team, jersey_number=i+1)
             players.append(player)
-        
-        team.players = players
+
         db.session.commit()
-        return team
-    
+        return team, players
+
     @staticmethod
     def create_team_with_match_history(num_matches=10):
         """Create a team with completed match history."""
         from tests.factories import TeamFactory, MatchFactory
-        
+
         team = TeamFactory()
-        
+
         # Create matches with results
+        matches = []
         for i in range(num_matches):
-            match = MatchFactory(
-                home_team=team,
-                scheduled_date=datetime.utcnow().date() - timedelta(days=i*7),
-                status='completed',
-                home_score=2 if i % 2 == 0 else 1,
-                away_score=1 if i % 2 == 0 else 2
-            )
-        
+            match = MatchFactory(home_team=team)
+            # Set scores on the match (Match model may have these fields)
+            match.home_team_score = 2 if i % 2 == 0 else 1
+            match.away_team_score = 1 if i % 2 == 0 else 2
+            matches.append(match)
+
         db.session.commit()
-        return team
+        return team, matches
 
 
 class SMSTestHelper:

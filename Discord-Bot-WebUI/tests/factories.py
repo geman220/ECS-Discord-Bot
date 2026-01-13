@@ -137,8 +137,10 @@ class PlayerFactory(BaseFactory):
 
     Player model fields:
     - name: String(100), required
+    - user_id: ForeignKey to users.id, required
     - discord_id: String(100), unique
     - is_phone_verified, is_coach, is_ref, etc.
+    - encrypted_phone: Text (encrypted phone number)
 
     Note: Player-Team relationship is many-to-many via player_teams table.
     """
@@ -155,9 +157,17 @@ class PlayerFactory(BaseFactory):
 
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
-        """Create player and optionally add to team."""
+        """Create player with user and optionally add to team."""
         team = kwargs.pop('team', None)
+        user = kwargs.pop('user', None)
+
+        # If no user provided, create one
+        if not user:
+            user = UserFactory()
+
         instance = model_class(*args, **kwargs)
+        instance.user_id = user.id
+
         session = cls._meta.sqlalchemy_session
         if session:
             session.add(instance)
@@ -227,6 +237,7 @@ class MatchFactory(BaseFactory):
     - schedule_id: ForeignKey to schedule.id, required
 
     Note: A Match requires a Schedule to exist first.
+    If home_team/away_team provided without schedule, one will be auto-created.
     """
     class Meta:
         model = Match
@@ -241,17 +252,37 @@ class MatchFactory(BaseFactory):
         home_team = kwargs.pop('home_team', None)
         away_team = kwargs.pop('away_team', None)
         schedule = kwargs.pop('schedule', None)
-
-        instance = model_class(*args, **kwargs)
-
-        if home_team:
-            instance.home_team_id = home_team.id
-        if away_team:
-            instance.away_team_id = away_team.id
-        if schedule:
-            instance.schedule_id = schedule.id
+        season = kwargs.pop('season', None)
 
         session = cls._meta.sqlalchemy_session
+
+        # Auto-create teams if not provided
+        if not home_team:
+            home_team = TeamFactory()
+        if not away_team:
+            away_team = TeamFactory(league=home_team.league)
+
+        # Auto-create schedule if not provided
+        if not schedule:
+            schedule = ScheduleFactory(
+                team=home_team,
+                opponent_team=away_team,
+                season=season
+            )
+
+        instance = model_class(*args, **kwargs)
+        instance.home_team_id = home_team.id
+        instance.away_team_id = away_team.id
+        instance.schedule_id = schedule.id
+
+        # Copy date/time/location from schedule if not explicitly set
+        if 'date' not in kwargs:
+            instance.date = schedule.date
+        if 'time' not in kwargs:
+            instance.time = schedule.time
+        if 'location' not in kwargs:
+            instance.location = schedule.location
+
         if session:
             session.add(instance)
             session.flush()
