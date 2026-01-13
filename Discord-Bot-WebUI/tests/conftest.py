@@ -1,10 +1,12 @@
 """
 Pytest configuration and shared fixtures for all tests.
+
+These fixtures create model instances that match the actual database schema.
 """
 import os
 import sys
 import pytest
-from datetime import datetime
+from datetime import datetime, date, time, timedelta
 from unittest.mock import Mock, patch
 
 # Add project root to path
@@ -12,19 +14,20 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from app import create_app
 from app.core import db as _db
-from app.models import User, Role, League, Season, Team, Player, Match
+from app.models import User, Role, League, Season, Team, Player, Match, Schedule, Availability
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 # Import test helpers
 from tests.helpers import SMSTestHelper, AuthTestHelper
+from tests.factories import set_factory_session
 
 
 @pytest.fixture(scope='session')
 def app():
     """Create application for testing."""
     app = create_app('web_config.TestingConfig')
-    
+
     # Override config for testing
     app.config.update({
         'TESTING': True,
@@ -42,13 +45,13 @@ def app():
         'SESSION_USE_SIGNER': False,
         'SESSION_PERMANENT': False,
     })
-    
+
     # Create application context
     ctx = app.app_context()
     ctx.push()
-    
+
     yield app
-    
+
     ctx.pop()
 
 
@@ -65,16 +68,19 @@ def db(_database):
     """Create clean database for each test."""
     connection = _database.engine.connect()
     transaction = connection.begin()
-    
+
     # Configure session
     session_factory = sessionmaker(bind=connection)
     _database.session = scoped_session(session_factory)
-    
+
+    # Set factory session for this test
+    set_factory_session(_database.session)
+
     # Begin nested transaction
     _database.session.begin_nested()
-    
+
     yield _database
-    
+
     # Rollback transaction
     _database.session.rollback()
     transaction.rollback()
@@ -112,7 +118,10 @@ def admin_client(client, admin_user):
     return client
 
 
-# User fixtures
+# =============================================================================
+# ROLE FIXTURES
+# =============================================================================
+
 @pytest.fixture
 def user_role(db):
     """Create user role."""
@@ -130,6 +139,10 @@ def admin_role(db):
     db.session.commit()
     return role
 
+
+# =============================================================================
+# USER FIXTURES
+# =============================================================================
 
 @pytest.fixture
 def user(db, user_role):
@@ -163,15 +176,24 @@ def admin_user(db, admin_role):
     return admin
 
 
-# League/Season fixtures
+# =============================================================================
+# SEASON & LEAGUE FIXTURES
+# =============================================================================
+
 @pytest.fixture
 def season(db):
-    """Create test season."""
+    """
+    Create test season.
+
+    Season model fields:
+    - name: String, required
+    - league_type: String, required
+    - is_current: Boolean
+    """
     season = Season(
         name='Test Season 2024',
-        start_date=datetime(2024, 1, 1),
-        end_date=datetime(2024, 12, 31),
-        is_active=True
+        league_type='CLASSIC',
+        is_current=True
     )
     db.session.add(season)
     db.session.commit()
@@ -180,7 +202,13 @@ def season(db):
 
 @pytest.fixture
 def league(db, season):
-    """Create test league."""
+    """
+    Create test league.
+
+    League model fields:
+    - name: String, required
+    - season_id: ForeignKey, required
+    """
     league = League(
         name='Test League',
         season_id=season.id
@@ -190,15 +218,22 @@ def league(db, season):
     return league
 
 
-
+# =============================================================================
+# TEAM FIXTURES
+# =============================================================================
 
 @pytest.fixture
 def team(db, league):
-    """Create test team."""
+    """
+    Create test team.
+
+    Team model fields:
+    - name: String, required
+    - league_id: ForeignKey, required
+    """
     team = Team(
         name='Test Team',
-        league_id=league.id,
-        captain_id=None  # Will be set when needed
+        league_id=league.id
     )
     db.session.add(team)
     db.session.commit()
@@ -206,38 +241,98 @@ def team(db, league):
 
 
 @pytest.fixture
-def player(db, user, team):
-    """Create test player."""
+def opponent_team(db, league):
+    """Create opponent team for matches."""
+    team = Team(
+        name='Opponent Team',
+        league_id=league.id
+    )
+    db.session.add(team)
+    db.session.commit()
+    return team
+
+
+# =============================================================================
+# PLAYER FIXTURES
+# =============================================================================
+
+@pytest.fixture
+def player(db, team):
+    """
+    Create test player.
+
+    Player model fields:
+    - name: String, required
+    - discord_id: String, unique
+    - jersey_number, jersey_size, etc.
+
+    Note: Player-Team is many-to-many via player_teams table.
+    """
     player = Player(
-        user_id=user.id,
-        team_id=team.id,
+        name='Test Player',
+        discord_id='test_discord_123',
         jersey_number=10,
-        jersey_size='M',
-        positions='Forward,Midfielder'
+        jersey_size='M'
     )
     db.session.add(player)
+    db.session.flush()
+    # Add to team via relationship
+    player.teams.append(team)
     db.session.commit()
     return player
 
 
+# =============================================================================
+# SCHEDULE & MATCH FIXTURES
+# =============================================================================
+
 @pytest.fixture
-def match(db, season, team):
-    """Create test match."""
-    # Create opponent team
-    opponent = Team(
-        name='Opponent Team',
-        league_id=team.league_id
+def schedule(db, season, team, opponent_team):
+    """
+    Create test schedule.
+
+    Schedule model fields:
+    - week: String, required
+    - date: Date, required
+    - time: Time, required
+    - opponent: ForeignKey to team.id, required
+    - location: String, required
+    - team_id: ForeignKey, required
+    - season_id: ForeignKey
+    """
+    schedule = Schedule(
+        week='Week 1',
+        date=date.today() + timedelta(days=7),
+        time=time(19, 0),  # 7 PM
+        opponent=opponent_team.id,
+        location='Main Field',
+        team_id=team.id,
+        season_id=season.id
     )
-    db.session.add(opponent)
+    db.session.add(schedule)
     db.session.commit()
-    
+    return schedule
+
+
+@pytest.fixture
+def match(db, schedule, team, opponent_team):
+    """
+    Create test match.
+
+    Match model fields:
+    - date: Date, required
+    - time: Time, required
+    - location: String, required
+    - home_team_id, away_team_id: ForeignKey, required
+    - schedule_id: ForeignKey, required
+    """
     match = Match(
-        season_id=season.id,
+        date=schedule.date,
+        time=schedule.time,
+        location=schedule.location,
         home_team_id=team.id,
-        away_team_id=opponent.id,
-        scheduled_date=datetime(2024, 6, 1),
-        scheduled_time='19:00',
-        field_name='Main Field'
+        away_team_id=opponent_team.id,
+        schedule_id=schedule.id
     )
     db.session.add(match)
     db.session.commit()
@@ -245,11 +340,38 @@ def match(db, season, team):
 
 
 # =============================================================================
-# MOCK FIXTURES - Smarter mocking based on test type
+# AVAILABILITY/RSVP FIXTURES
 # =============================================================================
 
-def _create_redis_mock():
-    """Create a Redis mock object with common methods."""
+@pytest.fixture
+def availability(db, match, player):
+    """
+    Create test availability (RSVP).
+
+    Availability model fields:
+    - match_id: ForeignKey, required
+    - player_id: ForeignKey
+    - discord_id: String, required
+    - response: String ('yes', 'no', 'maybe')
+    """
+    avail = Availability(
+        match_id=match.id,
+        player_id=player.id,
+        discord_id=player.discord_id,
+        response='yes'
+    )
+    db.session.add(avail)
+    db.session.commit()
+    return avail
+
+
+# =============================================================================
+# MOCK FIXTURES
+# =============================================================================
+
+@pytest.fixture(autouse=True)
+def mock_redis(monkeypatch):
+    """Mock Redis client - applied automatically to all tests."""
     mock = Mock()
     mock.get.return_value = None
     mock.set.return_value = True
@@ -265,12 +387,6 @@ def _create_redis_mock():
     mock.hgetall.return_value = {}
     mock.keys.return_value = []
     mock.scan_iter.return_value = iter([])
-    return mock
-
-
-def _apply_redis_mock(monkeypatch):
-    """Apply Redis mocking to avoid connection attempts."""
-    mock = _create_redis_mock()
 
     # Mock the RedisManager class completely
     mock_redis_manager = Mock()
@@ -288,58 +404,6 @@ def _apply_redis_mock(monkeypatch):
     monkeypatch.setattr('redis.from_url', lambda url: mock)
 
     return mock
-
-
-@pytest.fixture(autouse=True)
-def auto_mock_external_services(request, monkeypatch):
-    """
-    Automatically mock external services based on test markers.
-
-    - Unit tests (@pytest.mark.unit): All external services mocked
-    - Integration tests: Only Redis mocked (to prevent connection errors)
-    - E2E tests: Minimal mocking
-
-    This prevents brittle tests that break due to external service issues
-    while still allowing integration tests to test real behavior.
-    """
-    markers = [m.name for m in request.node.iter_markers()]
-
-    # Always mock Redis to prevent connection errors in test environment
-    # Redis is infrastructure, not business logic we're testing
-    _apply_redis_mock(monkeypatch)
-
-    # For unit tests, mock additional external services
-    if 'unit' in markers:
-        # Mock Celery tasks
-        mock_celery = Mock()
-        mock_celery.delay = Mock(return_value=Mock(id='test-task-id'))
-        mock_celery.apply_async = Mock(return_value=Mock(id='test-task-id'))
-
-        # Mock Discord client
-        mock_discord = Mock()
-        mock_discord.send_message = Mock(return_value=True)
-        mock_discord.assign_role = Mock(return_value=True)
-        try:
-            monkeypatch.setattr('app.discord_utils.discord_client', mock_discord)
-        except AttributeError:
-            pass  # Module may not exist in test context
-
-        # Mock Twilio client
-        mock_twilio = Mock()
-        mock_twilio.messages.create = Mock(return_value=Mock(sid='TEST_SID'))
-        try:
-            monkeypatch.setattr('app.sms_helpers.twilio_client', mock_twilio)
-        except AttributeError:
-            pass
-
-
-@pytest.fixture
-def mock_redis(monkeypatch):
-    """
-    Explicit Redis mock for tests that need direct access to the mock.
-    Use this when you need to verify Redis interactions.
-    """
-    return _apply_redis_mock(monkeypatch)
 
 
 @pytest.fixture
@@ -374,7 +438,10 @@ def mock_smtp(monkeypatch):
         yield mock_mail
 
 
-# Helper fixtures
+# =============================================================================
+# HELPER FIXTURES
+# =============================================================================
+
 @pytest.fixture
 def auth_headers(user):
     """Create JWT auth headers."""
@@ -389,9 +456,9 @@ def api_key_headers():
     return {'X-API-Key': 'test-api-key-123'}
 
 
-# ============================================================================
+# =============================================================================
 # PLAYWRIGHT FIXTURES - Mobile Browser Automation
-# ============================================================================
+# =============================================================================
 
 from playwright.sync_api import sync_playwright
 import threading

@@ -23,40 +23,23 @@ def assert_user_authenticated(client):
     """
     Assert that a user session is currently authenticated.
 
-    Tests behavior: User can access a protected resource.
-    Does NOT check session internals or specific user IDs.
+    Tests behavior: User has valid session.
+    Checks session directly to avoid making additional requests.
     """
-    # Try to access a protected endpoint
-    response = client.get('/players/')
-    # Should not be redirected to login (302) or get unauthorized (401)
-    assert response.status_code not in (401, 403), \
-        f"User should be authenticated but got status {response.status_code}"
-    # If we got a redirect, it shouldn't be to login
-    if response.status_code in (301, 302, 303, 307, 308):
-        location = response.headers.get('Location', '').lower()
-        assert 'login' not in location and 'auth' not in location, \
-            f"User should be authenticated but was redirected to {location}"
+    with client.session_transaction() as session:
+        user_id = session.get('user_id') or session.get('_user_id')
+        assert user_id is not None, "User should be authenticated (user_id in session)"
 
 
 def assert_user_not_authenticated(client):
     """
     Assert that no user session is currently authenticated.
 
-    Tests behavior: User cannot access protected resources.
+    Tests behavior: User does not have valid session.
     """
-    response = client.get('/players/')
-    # Should be redirected to login or get unauthorized
-    is_redirect_to_auth = response.status_code in (301, 302, 303, 307, 308)
-    is_unauthorized = response.status_code in (401, 403)
-
-    if is_redirect_to_auth:
-        location = response.headers.get('Location', '').lower()
-        has_auth_redirect = 'login' in location or 'auth' in location
-        assert has_auth_redirect, \
-            f"Unauthenticated user should redirect to login, not {location}"
-    else:
-        assert is_unauthorized, \
-            f"Unauthenticated user should get 401/403 or redirect, got {response.status_code}"
+    with client.session_transaction() as session:
+        user_id = session.get('user_id') or session.get('_user_id')
+        assert user_id is None, f"User should not be authenticated but found user_id={user_id}"
 
 
 def assert_login_succeeded(response, client):
@@ -64,9 +47,8 @@ def assert_login_succeeded(response, client):
     Assert that a login attempt succeeded.
 
     Tests behavior: After login, user is authenticated.
-    Does NOT check specific redirect URLs or session values.
     """
-    # Login typically redirects on success
+    # Login typically redirects on success (302) or returns 200
     assert response.status_code in (200, 301, 302, 303, 307, 308), \
         f"Login should succeed with redirect or 200, got {response.status_code}"
 
@@ -79,7 +61,6 @@ def assert_login_failed(response, client):
     Assert that a login attempt failed.
 
     Tests behavior: After failed login, user is NOT authenticated.
-    Does NOT check specific error messages or response text.
     """
     # User should not be authenticated
     assert_user_not_authenticated(client)
@@ -189,36 +170,55 @@ def assert_api_validation_error(response):
 # DATABASE STATE ASSERTIONS
 # =============================================================================
 
-def assert_rsvp_recorded(user_id: int, match_id: int, expected_available: bool):
+def assert_rsvp_recorded(player_id: int = None, match_id: int = None, discord_id: str = None, expected_response: str = None):
     """
     Assert that an RSVP was recorded in the database with expected value.
 
-    Tests behavior: RSVP exists and has correct availability.
+    Args:
+        player_id: Player ID (optional)
+        match_id: Match ID (required)
+        discord_id: Discord ID (optional, alternative to player_id)
+        expected_response: Expected response value ('yes', 'no', 'maybe')
+
+    Tests behavior: RSVP exists and has correct response.
+
+    Note: Availability model uses 'response' field (string: 'yes'/'no'/'maybe'),
+    not a boolean 'available' field.
     """
     from app.models import Availability
 
-    avail = Availability.query.filter_by(
-        user_id=user_id,
-        match_id=match_id
-    ).first()
+    query = Availability.query.filter_by(match_id=match_id)
+
+    if player_id:
+        query = query.filter_by(player_id=player_id)
+    if discord_id:
+        query = query.filter_by(discord_id=discord_id)
+
+    avail = query.first()
 
     assert avail is not None, \
-        f"RSVP should exist for user {user_id}, match {match_id}"
-    assert avail.available == expected_available, \
-        f"RSVP should be {expected_available}, got {avail.available}"
+        f"RSVP should exist for match {match_id} (player_id={player_id}, discord_id={discord_id})"
+
+    if expected_response:
+        assert avail.response == expected_response, \
+            f"RSVP should be '{expected_response}', got '{avail.response}'"
 
 
-def assert_rsvp_not_recorded(user_id: int, match_id: int):
-    """Assert that no RSVP exists for the given user and match."""
+def assert_rsvp_not_recorded(player_id: int = None, match_id: int = None, discord_id: str = None):
+    """Assert that no RSVP exists for the given player and match."""
     from app.models import Availability
 
-    avail = Availability.query.filter_by(
-        user_id=user_id,
-        match_id=match_id
-    ).first()
+    query = Availability.query.filter_by(match_id=match_id)
+
+    if player_id:
+        query = query.filter_by(player_id=player_id)
+    if discord_id:
+        query = query.filter_by(discord_id=discord_id)
+
+    avail = query.first()
 
     assert avail is None, \
-        f"RSVP should not exist for user {user_id}, match {match_id}"
+        f"RSVP should not exist for match {match_id} (player_id={player_id}, discord_id={discord_id})"
 
 
 def assert_user_exists(username: str = None, email: str = None, discord_id: str = None):
@@ -282,30 +282,42 @@ def assert_user_not_approved(user):
     assert not is_approved, f"User {user.username} should not be approved"
 
 
-def assert_player_on_team(user_id: int, team_id: int):
-    """Assert that a player is assigned to a team."""
-    from app.models import Player
+def assert_player_on_team(player_id: int, team_id: int):
+    """
+    Assert that a player is assigned to a team.
 
-    player = Player.query.filter_by(
-        user_id=user_id,
-        team_id=team_id
-    ).first()
+    Note: Player-Team is a many-to-many relationship via player_teams table.
+    """
+    from app.models import Player, Team
 
-    assert player is not None, \
-        f"Player should be on team {team_id}"
+    player = Player.query.get(player_id)
+    assert player is not None, f"Player {player_id} should exist"
+
+    team = Team.query.get(team_id)
+    assert team is not None, f"Team {team_id} should exist"
+
+    assert team in player.teams, \
+        f"Player {player_id} should be on team {team_id}"
 
 
-def assert_player_not_on_team(user_id: int, team_id: int):
-    """Assert that a player is NOT assigned to a team."""
-    from app.models import Player
+def assert_player_not_on_team(player_id: int, team_id: int):
+    """
+    Assert that a player is NOT assigned to a team.
 
-    player = Player.query.filter_by(
-        user_id=user_id,
-        team_id=team_id
-    ).first()
+    Note: Player-Team is a many-to-many relationship via player_teams table.
+    """
+    from app.models import Player, Team
 
-    assert player is None, \
-        f"Player should not be on team {team_id}"
+    player = Player.query.get(player_id)
+    if player is None:
+        return  # Player doesn't exist, so not on team
+
+    team = Team.query.get(team_id)
+    if team is None:
+        return  # Team doesn't exist, so player not on it
+
+    assert team not in player.teams, \
+        f"Player {player_id} should not be on team {team_id}"
 
 
 # =============================================================================

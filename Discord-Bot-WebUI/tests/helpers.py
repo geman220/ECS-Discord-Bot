@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
-from app.models import User, Match, Availability, Player
+from app.models import User, Match, Availability, Player, Schedule
 from app.core import db
 
 
@@ -175,16 +175,30 @@ class AuthTestHelper:
 
 class MatchTestHelper:
     """Helper for match-related testing."""
-    
+
     @staticmethod
-    def create_rsvp(user, match, available=True, notes=None):
-        """Create an RSVP for a user."""
+    def create_rsvp(player, match, response='yes', discord_id=None):
+        """
+        Create an RSVP (Availability) for a player.
+
+        Args:
+            player: Player model instance
+            match: Match model instance
+            response: 'yes', 'no', or 'maybe'
+            discord_id: Discord ID (optional, uses player's discord_id if not provided)
+
+        Note: The Availability model uses:
+        - player_id (not user_id)
+        - response (string: 'yes'/'no'/'maybe', not boolean 'available')
+        - discord_id (required)
+        - responded_at (not response_date)
+        """
         availability = Availability(
-            user_id=user.id,
+            player_id=player.id,
             match_id=match.id,
-            available=available,
-            response_date=datetime.utcnow(),
-            notes=notes
+            discord_id=discord_id or player.discord_id or f'discord_{player.id}',
+            response=response,
+            responded_at=datetime.utcnow()
         )
         db.session.add(availability)
         db.session.commit()
