@@ -8,6 +8,7 @@ Routes for email/password authentication, auth check, and logout.
 
 import logging
 from datetime import datetime, timedelta
+from urllib.parse import urlparse, urljoin
 
 from flask import (
     render_template, redirect, url_for, request,
@@ -26,6 +27,15 @@ from app.auth.helpers import sync_discord_for_user
 from app.tasks.tasks_discord import assign_roles_to_player_task
 
 logger = logging.getLogger(__name__)
+
+
+def is_safe_url(target):
+    """Check if URL is safe for redirect (same host only)."""
+    if not target:
+        return False
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 
 @auth.route('/login', methods=['GET', 'POST'])
@@ -133,7 +143,7 @@ def login():
                 if waitlist_intent:
                     logger.debug("Waitlist intent detected, redirecting to waitlist register")
                     return redirect(url_for('auth.waitlist_register'))
-                elif next_page and next_page.startswith('/') and not next_page.startswith('//') and not next_page.startswith('/login'):
+                elif next_page and is_safe_url(next_page) and not next_page.startswith('/login'):
                     logger.debug(f"Redirecting to next_page: {next_page}")
                     return redirect(next_page)
 

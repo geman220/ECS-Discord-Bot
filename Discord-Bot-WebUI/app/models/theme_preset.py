@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 
 def slugify(text):
     """Convert text to URL-safe slug."""
+    # Limit input length to prevent DoS via regex processing
+    if len(text) > 200:
+        text = text[:200]
     text = text.lower().strip()
     text = re.sub(r'[^\w\s-]', '', text)
     text = re.sub(r'[\s_-]+', '-', text)

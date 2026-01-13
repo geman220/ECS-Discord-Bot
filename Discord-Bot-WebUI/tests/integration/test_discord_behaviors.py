@@ -43,8 +43,8 @@ class TestDiscordRoleBehaviors:
         with patch('app.discord_utils.assign_role_to_member') as mock_assign:
             mock_assign.return_value = True
 
-            # Create player on team
-            player = PlayerFactory(user=user, team=team, discord_id='123456789')
+            # Create player on team (factory generates unique discord_id)
+            player = PlayerFactory(user=user, team=team)
 
             # The role assignment would typically be triggered by a task or hook
             # Here we test that IF assign_role is called, it works
@@ -65,7 +65,7 @@ class TestDiscordRoleBehaviors:
         team.discord_player_role_id = '111222333'
         db.session.commit()
 
-        player = PlayerFactory(user=user, team=team, discord_id='123456789')
+        player = PlayerFactory(user=user, team=team)  # Factory generates unique discord_id
 
         with patch('app.discord_utils.remove_role_from_member') as mock_remove:
             mock_remove.return_value = True
@@ -110,7 +110,7 @@ class TestDiscordAPIErrorBehaviors:
         team.discord_player_role_id = '111222333'
         db.session.commit()
 
-        player = PlayerFactory(user=user, team=team, discord_id='123456789')
+        player = PlayerFactory(user=user, team=team)  # Factory generates unique discord_id
 
         with patch('app.discord_utils.assign_role_to_member') as mock_assign:
             mock_assign.side_effect = Exception("Discord API Error")
@@ -244,24 +244,28 @@ class TestDiscordOAuthBehaviors:
         WHEN the OAuth callback is processed
         THEN a new user should be created
         """
-        with patch('app.auth.discord.discord') as mock_oauth:
-            mock_oauth.authorized = True
+        # Set up session state as if user initiated OAuth flow
+        with client.session_transaction() as sess:
+            sess['oauth_state'] = 'test_state_discord_1'
 
-            with patch('requests.get') as mock_get:
-                mock_response = Mock()
-                mock_response.json.return_value = {
-                    'id': '999888777',
-                    'username': 'NewDiscordUser',
-                    'discriminator': '1234',
-                    'email': 'newdiscord@example.com'
-                }
-                mock_get.return_value = mock_response
+        with patch('app.auth.discord.exchange_discord_code') as mock_exchange, \
+             patch('app.auth.discord.get_discord_user_data') as mock_get_user:
 
-                response = client.get('/auth/discord/callback', follow_redirects=True)
+            mock_exchange.return_value = {'access_token': 'test_token'}
+            mock_get_user.return_value = {
+                'id': '999888777',
+                'username': 'NewDiscordUser',
+                'discriminator': '1234',
+                'email': 'newdiscord@example.com'
+            }
 
-                # Behavior: User created with Discord ID
-                # Note: This depends on your OAuth implementation
-                # The test verifies the expected outcome
+            response = client.get(
+                '/auth/discord_callback?code=test_code&state=test_state_discord_1',
+                follow_redirects=True
+            )
+
+            # Behavior: OAuth callback completes
+            assert response.status_code in (200, 302)
 
     def test_existing_user_linked_on_discord_login(self, client, db):
         """
@@ -271,23 +275,28 @@ class TestDiscordOAuthBehaviors:
         """
         existing_user = UserFactory(email='link_test@example.com')
 
-        with patch('app.auth.discord.discord') as mock_oauth:
-            mock_oauth.authorized = True
+        # Set up session state as if user initiated OAuth flow
+        with client.session_transaction() as sess:
+            sess['oauth_state'] = 'test_state_discord_2'
 
-            with patch('requests.get') as mock_get:
-                mock_response = Mock()
-                mock_response.json.return_value = {
-                    'id': '111000111',
-                    'username': 'LinkedUser',
-                    'discriminator': '5678',
-                    'email': 'link_test@example.com'  # Same email
-                }
-                mock_get.return_value = mock_response
+        with patch('app.auth.discord.exchange_discord_code') as mock_exchange, \
+             patch('app.auth.discord.get_discord_user_data') as mock_get_user:
 
-                response = client.get('/auth/discord/callback', follow_redirects=True)
+            mock_exchange.return_value = {'access_token': 'test_token'}
+            mock_get_user.return_value = {
+                'id': '111000111',
+                'username': 'LinkedUser',
+                'discriminator': '5678',
+                'email': 'link_test@example.com'  # Same email
+            }
 
-                # Behavior: Existing user now has Discord ID
-                # Note: Refresh from DB would be needed to verify
+            response = client.get(
+                '/auth/discord_callback?code=test_code&state=test_state_discord_2',
+                follow_redirects=True
+            )
+
+            # Behavior: OAuth callback completes
+            assert response.status_code in (200, 302)
 
 
 @pytest.mark.integration

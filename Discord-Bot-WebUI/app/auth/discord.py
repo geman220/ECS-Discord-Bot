@@ -8,6 +8,7 @@ Routes for Discord OAuth2 login, registration, and callback handling.
 
 import logging
 from datetime import datetime, timedelta
+from urllib.parse import urlparse, urljoin
 
 from flask import (
     render_template, redirect, url_for, request,
@@ -34,6 +35,15 @@ from app.duplicate_prevention import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def is_safe_url(target):
+    """Check if URL is safe for redirect (same host only)."""
+    if not target:
+        return False
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 
 @auth.route('/discord_login')
@@ -327,9 +337,9 @@ def discord_callback():
                     # Fall through to normal redirect if auto-add fails
                     return redirect(url_for('auth.waitlist_register'))
 
-            # Redirect to wherever they were going
+            # Redirect to wherever they were going (with URL safety check)
             next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('main.index'))
+            return redirect(next_page) if next_page and is_safe_url(next_page) else redirect(url_for('main.index'))
 
         # Get registration mode from session (default to False if not set)
         is_registration = session.get('discord_registration_mode', False)
@@ -469,9 +479,9 @@ def discord_callback():
         session.permanent = True
         session.modified = True
 
-        # Check if there's a stored redirect URL
+        # Check if there's a stored redirect URL (with URL safety check)
         next_page = session.pop('next', None)
-        if next_page and next_page.startswith('/') and not next_page.startswith('//'):
+        if next_page and is_safe_url(next_page):
             redirect_url = next_page
             logger.info(f"Redirecting user {user.id} to stored next page: {redirect_url}")
         else:

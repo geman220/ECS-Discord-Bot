@@ -280,15 +280,15 @@ def send_sms(phone_number, message, user_id=None, status_callback=None):
         callback_url = status_callback or current_app.config.get('TWILIO_STATUS_CALLBACK')
         if callback_url:
             message_params['status_callback'] = callback_url
-            logger.info(f"Using status callback URL: {callback_url}")
-            
+            logger.debug("Using status callback URL (configured)")
+
         # Add optional messaging service SID if available
         messaging_service_sid = os.environ.get('TWILIO_MESSAGING_SERVICE_SID') or current_app.config.get('TWILIO_MESSAGING_SERVICE_SID')
         if messaging_service_sid:
             # If using a messaging service, we don't specify the from_ parameter
             message_params.pop('from_', None)
             message_params['messaging_service_sid'] = messaging_service_sid
-            logger.info(f"Using messaging service SID: {messaging_service_sid}")
+            logger.debug("Using messaging service SID (configured)")
         
         # Send message with enhanced parameters
         msg = client.messages.create(**message_params)

@@ -151,16 +151,18 @@ class AuthTestHelper:
     def create_authenticated_session(client, user):
         """Create an authenticated session for a user."""
         with client.session_transaction() as sess:
-            sess['user_id'] = user.id
+            # Flask-Login uses _user_id as the session key
+            sess['_user_id'] = user.id
             sess['_fresh'] = True
         return client
-    
+
     @staticmethod
     @contextmanager
     def authenticated_request(client, user):
         """Context manager for authenticated requests."""
         with client.session_transaction() as sess:
-            sess['user_id'] = user.id
+            # Flask-Login uses _user_id as the session key
+            sess['_user_id'] = user.id
             sess['_fresh'] = True
         yield client
         with client.session_transaction() as sess:

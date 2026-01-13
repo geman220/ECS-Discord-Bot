@@ -90,6 +90,7 @@ Pygments>=2.18.0
 PyJWT>=2.10.1
 python-dateutil>=2.9.0
 python-dotenv>=1.0.1
+python-multipart>=0.0.18
 python-engineio>=4.9.1
 python-socketio>=5.16.0
 pytz>=2024.1

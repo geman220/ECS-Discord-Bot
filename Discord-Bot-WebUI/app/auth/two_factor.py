@@ -8,6 +8,7 @@ Routes for 2FA verification during login.
 
 import logging
 from datetime import datetime, timedelta
+from urllib.parse import urlparse, urljoin
 
 from flask import (
     render_template, redirect, url_for, request,
@@ -23,6 +24,15 @@ from app.utils.db_utils import transactional
 from app.auth.helpers import sync_discord_for_user
 
 logger = logging.getLogger(__name__)
+
+
+def is_safe_url(target):
+    """Check if URL is safe for redirect (same host only)."""
+    if not target:
+        return False
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 
 @auth.route('/verify_2fa_login', methods=['GET', 'POST'])
@@ -110,9 +120,9 @@ def verify_2fa_login():
                     session.permanent = True
                     session.modified = True
 
-                    # Check if there's a stored redirect URL
+                    # Check if there's a stored redirect URL (with URL safety check)
                     next_page = session.pop('next', None)
-                    if next_page and next_page.startswith('/') and not next_page.startswith('//'):
+                    if next_page and is_safe_url(next_page):
                         redirect_url = next_page
                         logger.info(f"Redirecting user {user.id} to stored next page: {redirect_url}")
                     else:

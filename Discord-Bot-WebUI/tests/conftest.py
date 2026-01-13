@@ -7,26 +7,60 @@ import os
 import sys
 import pytest
 from datetime import datetime, date, time, timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app import create_app
-from app.core import db as _db
-from app.models import User, Role, League, Season, Team, Player, Match, Schedule, Availability
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
+# =============================================================================
+# MOCK REDIS CLIENT (module-level so available to all fixtures)
+# =============================================================================
 
-# Import test helpers
-from tests.helpers import SMSTestHelper, AuthTestHelper
-from tests.factories import set_factory_session
+_mock_redis_client = MagicMock()
+_mock_redis_client.get.return_value = None
+_mock_redis_client.set.return_value = True
+_mock_redis_client.delete.return_value = 1
+_mock_redis_client.exists.return_value = 0
+_mock_redis_client.expire.return_value = True
+_mock_redis_client.incr.return_value = 1
+_mock_redis_client.ping.return_value = True
+_mock_redis_client.hget.return_value = None
+_mock_redis_client.hset.return_value = True
+_mock_redis_client.hgetall.return_value = {}
+_mock_redis_client.keys.return_value = []
+_mock_redis_client.scan_iter.return_value = iter([])
+_mock_redis_client.pipeline.return_value = _mock_redis_client
+_mock_redis_client.execute.return_value = []
+
+_mock_redis_manager = MagicMock()
+_mock_redis_manager.client = _mock_redis_client
+_mock_redis_manager.raw_client = _mock_redis_client
+_mock_redis_manager._client = _mock_redis_client
+_mock_redis_manager._decoded_client = _mock_redis_client
+_mock_redis_manager.get_connection_stats.return_value = {'status': 'mocked'}
+_mock_redis_manager.cleanup.return_value = None
 
 
 @pytest.fixture(scope='session')
 def app():
-    """Create application for testing."""
-    app = create_app('web_config.TestingConfig')
+    """Create application for testing with Redis mocked."""
+    # Create a wrapper that returns our mock
+    mock_redis_wrapper = MagicMock()
+    mock_redis_wrapper.client = _mock_redis_client
+    mock_redis_wrapper.raw_client = _mock_redis_client
+    mock_redis_wrapper.get_connection_stats.return_value = {'status': 'mocked'}
+
+    # Patch Redis BEFORE importing app modules to avoid connection attempts
+    # Must patch at all locations where Redis is imported/used
+    with patch('app.utils.redis_manager.get_redis_manager', return_value=_mock_redis_manager), \
+         patch('app.utils.redis_manager._get_global_redis_manager', return_value=_mock_redis_manager), \
+         patch('app.utils.redis_manager.get_redis_connection', return_value=_mock_redis_client), \
+         patch('app.utils.redis_manager.UnifiedRedisManager', return_value=_mock_redis_manager), \
+         patch('app.services.redis_connection_service.get_redis_service', return_value=mock_redis_wrapper), \
+         patch('app.utils.queue_monitor.get_redis_service', return_value=mock_redis_wrapper):
+
+        from app import create_app
+        app = create_app('web_config.TestingConfig')
 
     # Override config for testing
     app.config.update({
@@ -58,6 +92,7 @@ def app():
 @pytest.fixture(scope='session')
 def _database(app):
     """Create database for tests."""
+    from app.core import db as _db
     _db.create_all()
     yield _db
     _db.drop_all()
@@ -66,6 +101,11 @@ def _database(app):
 @pytest.fixture
 def db(_database, app):
     """Create clean database for each test by deleting data after."""
+    from tests.factories import set_factory_session
+
+    # Ensure clean session state at START of test (handles previous test failures)
+    _database.session.rollback()
+
     # Set factory session
     set_factory_session(_database.session)
 
@@ -109,7 +149,8 @@ def runner(app):
 def authenticated_client(client, user):
     """Create authenticated test client."""
     with client.session_transaction() as session:
-        session['user_id'] = user.id
+        # Flask-Login uses _user_id as the session key
+        session['_user_id'] = user.id
         session['_fresh'] = True
     return client
 
@@ -118,7 +159,8 @@ def authenticated_client(client, user):
 def admin_client(client, admin_user):
     """Create admin authenticated test client."""
     with client.session_transaction() as session:
-        session['user_id'] = admin_user.id
+        # Flask-Login uses _user_id as the session key
+        session['_user_id'] = admin_user.id
         session['_fresh'] = True
     return client
 
@@ -130,6 +172,7 @@ def admin_client(client, admin_user):
 @pytest.fixture
 def user_role(db):
     """Create or get user role."""
+    from app.models import Role
     role = Role.query.filter_by(name='User').first()
     if not role:
         role = Role(name='User', description='Regular user')
@@ -141,6 +184,7 @@ def user_role(db):
 @pytest.fixture
 def admin_role(db):
     """Create or get admin role."""
+    from app.models import Role
     role = Role.query.filter_by(name='Admin').first()
     if not role:
         role = Role(name='Admin', description='Administrator')
@@ -156,6 +200,7 @@ def admin_role(db):
 @pytest.fixture
 def user(db, user_role):
     """Create test user."""
+    from app.models import User
     user = User(
         username='testuser',
         email='test@example.com',
@@ -172,6 +217,7 @@ def user(db, user_role):
 @pytest.fixture
 def admin_user(db, admin_role):
     """Create admin user."""
+    from app.models import User
     admin = User(
         username='admin',
         email='admin@example.com',
@@ -199,6 +245,7 @@ def season(db):
     - league_type: String, required
     - is_current: Boolean
     """
+    from app.models import Season
     season = Season(
         name='Test Season 2024',
         league_type='CLASSIC',
@@ -218,6 +265,7 @@ def league(db, season):
     - name: String, required
     - season_id: ForeignKey, required
     """
+    from app.models import League
     league = League(
         name='Test League',
         season_id=season.id
@@ -240,6 +288,7 @@ def team(db, league):
     - name: String, required
     - league_id: ForeignKey, required
     """
+    from app.models import Team
     team = Team(
         name='Test Team',
         league_id=league.id
@@ -252,6 +301,7 @@ def team(db, league):
 @pytest.fixture
 def opponent_team(db, league):
     """Create opponent team for matches."""
+    from app.models import Team
     team = Team(
         name='Opponent Team',
         league_id=league.id
@@ -278,10 +328,12 @@ def player(db, user, team):
 
     Note: Player-Team is many-to-many via player_teams table.
     """
+    import uuid
+    from app.models import Player
     player = Player(
         name='Test Player',
         user_id=user.id,
-        discord_id='test_discord_123',
+        discord_id=f'test_discord_{uuid.uuid4().hex[:12]}',  # Unique per test
         jersey_number=10,
         jersey_size='M'
     )
@@ -311,6 +363,7 @@ def schedule(db, season, team, opponent_team):
     - team_id: ForeignKey, required
     - season_id: ForeignKey
     """
+    from app.models import Schedule
     schedule = Schedule(
         week='Week 1',
         date=date.today() + timedelta(days=7),
@@ -337,6 +390,7 @@ def match(db, schedule, team, opponent_team):
     - home_team_id, away_team_id: ForeignKey, required
     - schedule_id: ForeignKey, required
     """
+    from app.models import Match
     match = Match(
         date=schedule.date,
         time=schedule.time,
@@ -365,6 +419,7 @@ def availability(db, match, player):
     - discord_id: String, required
     - response: String ('yes', 'no', 'maybe')
     """
+    from app.models import Availability
     avail = Availability(
         match_id=match.id,
         player_id=player.id,
@@ -381,40 +436,13 @@ def availability(db, match, player):
 # =============================================================================
 
 @pytest.fixture(autouse=True)
-def mock_redis(monkeypatch):
-    """Mock Redis client - applied automatically to all tests."""
-    mock = Mock()
-    mock.get.return_value = None
-    mock.set.return_value = True
-    mock.delete.return_value = 1
-    mock.exists.return_value = 0
-    mock.expire.return_value = True
-    mock.incr.return_value = 1
-    mock.pipeline.return_value = mock
-    mock.execute.return_value = []
-    mock.ping.return_value = True
-    mock.hget.return_value = None
-    mock.hset.return_value = True
-    mock.hgetall.return_value = {}
-    mock.keys.return_value = []
-    mock.scan_iter.return_value = iter([])
+def mock_redis():
+    """Return the module-level mocked Redis client for tests that need it.
 
-    # Mock the RedisManager class completely
-    mock_redis_manager = Mock()
-    mock_redis_manager.client = mock
-    mock_redis_manager._client = mock
-
-    # Replace RedisManager class with our mock
-    monkeypatch.setattr('app.utils.redis_manager.RedisManager', lambda: mock_redis_manager)
-
-    # Mock Redis connection completely to avoid connection attempts
-    def mock_redis_init(*args, **kwargs):
-        return mock
-
-    monkeypatch.setattr('redis.Redis', mock_redis_init)
-    monkeypatch.setattr('redis.from_url', lambda url: mock)
-
-    return mock
+    Note: Redis is already mocked at module level before app import.
+    This fixture just provides access to the mock for assertions.
+    """
+    return _mock_redis_client
 
 
 @pytest.fixture
@@ -427,26 +455,28 @@ def mock_celery(monkeypatch):
 
 @pytest.fixture
 def mock_twilio(monkeypatch):
-    """Mock Twilio client."""
+    """Mock SMS sending functionality."""
     mock = Mock()
-    mock.messages.create.return_value = Mock(sid='TEST_MESSAGE_SID')
-    monkeypatch.setattr('app.sms_helpers.twilio_client', mock)
+    mock.return_value = (True, 'TEST_MESSAGE_SID')
+    monkeypatch.setattr('app.sms_helpers.send_sms', mock)
     return mock
 
 
 @pytest.fixture
 def mock_discord(monkeypatch):
-    """Mock Discord operations."""
+    """Mock Discord operations - provides mock for Discord API calls."""
     mock = Mock()
-    monkeypatch.setattr('app.discord_utils.discord_client', mock)
+    # This is a general-purpose mock that tests can configure as needed
     return mock
 
 
 @pytest.fixture
 def mock_smtp(monkeypatch):
-    """Mock SMTP for email testing."""
-    with patch('app.email.mail') as mock_mail:
-        yield mock_mail
+    """Mock email sending functionality."""
+    mock = Mock()
+    mock.return_value = {'id': 'TEST_EMAIL_ID'}
+    monkeypatch.setattr('app.email.send_email', mock)
+    return mock
 
 
 # =============================================================================
