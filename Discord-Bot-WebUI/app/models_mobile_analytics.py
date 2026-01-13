@@ -9,11 +9,14 @@ from Flutter mobile application.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, Boolean, DECIMAL, DateTime, ForeignKey, CheckConstraint
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, Integer, String, Text, Boolean, DECIMAL, DateTime, ForeignKey, CheckConstraint, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from app import db
+
+# Use JSON type which is compatible with both PostgreSQL and SQLite
+# PostgreSQL will use native JSON, SQLite will use TEXT with JSON serialization
+JSONType = JSON
 
 class MobileErrorAnalytics(db.Model):
     """
@@ -33,7 +36,7 @@ class MobileErrorAnalytics(db.Model):
     severity = Column(String(20), nullable=False, index=True)
     should_report = Column(Boolean, default=True)
     operation = Column(String(255))
-    context = Column(JSONB)
+    context = Column(JSONType)
     timestamp = Column(DateTime(timezone=True), nullable=False, index=True)
     trace_id = Column(String(255), index=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), index=True)
@@ -41,7 +44,7 @@ class MobileErrorAnalytics(db.Model):
     app_version = Column(String(50))
     was_recovered = Column(Boolean, default=False)
     recovery_result = Column(Text)
-    recovery_actions = Column(JSONB)
+    recovery_actions = Column(JSONType)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, index=True)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -99,8 +102,8 @@ class MobileErrorPatterns(db.Model):
     first_seen = Column(DateTime(timezone=True), nullable=False)
     last_seen = Column(DateTime(timezone=True), nullable=False, index=True)
     recovery_rate = Column(DECIMAL(3, 2), default=0.0)
-    common_context_keys = Column(JSONB)
-    error_metadata = Column('metadata', JSONB)  # Column name in DB is 'metadata'
+    common_context_keys = Column(JSONType)
+    error_metadata = Column('metadata', JSONType)  # Column name in DB is 'metadata'
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -147,10 +150,10 @@ class MobileLogs(db.Model):
     trace_id = Column(String(255), index=True)
     session_id = Column(String(255))
     user_id = Column(Integer, ForeignKey('users.id', ondelete='SET NULL'), index=True)
-    context = Column(JSONB)
+    context = Column(JSONType)
     error_info = Column(Text)
     stack_trace = Column(Text)
-    error_metadata = Column('metadata', JSONB)  # Column name in DB is 'metadata'
+    error_metadata = Column('metadata', JSONType)  # Column name in DB is 'metadata'
     platform = Column(String(50))
     app_version = Column(String(50))
     flutter_version = Column(String(50))
