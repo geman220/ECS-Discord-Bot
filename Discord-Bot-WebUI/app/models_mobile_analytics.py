@@ -9,14 +9,30 @@ from Flutter mobile application.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, Boolean, DECIMAL, DateTime, ForeignKey, CheckConstraint, JSON
+from sqlalchemy import Column, Integer, String, Text, Boolean, DECIMAL, DateTime, ForeignKey, CheckConstraint, JSON, TypeDecorator
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from app import db
 
-# Use JSON type which is compatible with both PostgreSQL and SQLite
-# PostgreSQL will use native JSON, SQLite will use TEXT with JSON serialization
-JSONType = JSON
+
+class FlexibleJSON(TypeDecorator):
+    """
+    JSON column type that works with both PostgreSQL and SQLite.
+    Uses JSONB for PostgreSQL (production), JSON for SQLite (tests).
+    """
+    impl = JSON
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            from sqlalchemy.dialects.postgresql import JSONB
+            return dialect.type_descriptor(JSONB())
+        else:
+            return dialect.type_descriptor(JSON())
+
+
+# Use FlexibleJSON for cross-database compatibility
+JSONType = FlexibleJSON
 
 class MobileErrorAnalytics(db.Model):
     """
