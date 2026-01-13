@@ -223,7 +223,7 @@ class TestPerformanceInfrastructure:
         start_time = time.time()
         
         from app.models import User
-        result = User.query.filter(User.approved == True).limit(50).all()
+        result = User.query.filter(User.is_approved == True).limit(50).all()
         
         query_time = time.time() - start_time
         

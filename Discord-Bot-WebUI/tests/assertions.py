@@ -226,20 +226,33 @@ def assert_user_exists(username: str = None, email: str = None, discord_id: str 
     Assert that a user exists with the given identifier.
 
     At least one identifier must be provided.
+    Note: discord_id is on Player model, not User model. If discord_id is provided,
+    we find the Player first, then return the associated User.
     """
-    from app.models import User
+    from app.models import User, Player
+
+    if discord_id:
+        # discord_id is on Player model, not User
+        player = Player.query.filter_by(discord_id=discord_id).first()
+        assert player is not None, f"Player should exist with discord_id={discord_id}"
+        assert player.user is not None, f"Player with discord_id={discord_id} should have associated user"
+        return player.user
 
     query = User.query
     if username:
         query = query.filter_by(username=username)
     if email:
-        query = query.filter_by(email=email)
-    if discord_id:
-        query = query.filter_by(discord_id=discord_id)
+        # email is a hybrid property - filter by email_hash or use special handling
+        # For simplicity, we'll get all users and filter in Python
+        users = query.all()
+        for user in users:
+            if user.email == email:
+                return user
+        assert False, f"User should exist with email={email}"
 
     user = query.first()
     assert user is not None, \
-        f"User should exist with username={username}, email={email}, discord_id={discord_id}"
+        f"User should exist with username={username}, email={email}"
     return user
 
 
