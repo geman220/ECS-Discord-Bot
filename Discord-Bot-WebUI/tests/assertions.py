@@ -25,10 +25,13 @@ def assert_user_authenticated(client):
 
     Tests behavior: User has valid session.
     Checks session directly to avoid making additional requests.
+
+    Note: Flask-Login uses '_user_id' as the session key.
     """
     with client.session_transaction() as session:
-        user_id = session.get('user_id') or session.get('_user_id')
-        assert user_id is not None, "User should be authenticated (user_id in session)"
+        # Flask-Login uses _user_id, but some apps might use user_id
+        user_id = session.get('_user_id') or session.get('user_id')
+        assert user_id is not None, "User should be authenticated (_user_id in session)"
 
 
 def assert_user_not_authenticated(client):
@@ -36,9 +39,12 @@ def assert_user_not_authenticated(client):
     Assert that no user session is currently authenticated.
 
     Tests behavior: User does not have valid session.
+
+    Note: Flask-Login uses '_user_id' as the session key.
     """
     with client.session_transaction() as session:
-        user_id = session.get('user_id') or session.get('_user_id')
+        # Flask-Login uses _user_id, but some apps might use user_id
+        user_id = session.get('_user_id') or session.get('user_id')
         assert user_id is None, f"User should not be authenticated but found user_id={user_id}"
 
 

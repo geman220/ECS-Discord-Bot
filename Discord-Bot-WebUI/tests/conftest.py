@@ -64,28 +64,33 @@ def _database(app):
 
 
 @pytest.fixture
-def db(_database):
-    """Create clean database for each test."""
-    connection = _database.engine.connect()
-    transaction = connection.begin()
-
-    # Configure session
-    session_factory = sessionmaker(bind=connection)
-    _database.session = scoped_session(session_factory)
-
-    # Set factory session for this test
+def db(_database, app):
+    """Create clean database for each test by deleting data after."""
+    # Set factory session
     set_factory_session(_database.session)
-
-    # Begin nested transaction
-    _database.session.begin_nested()
 
     yield _database
 
-    # Rollback transaction
-    _database.session.rollback()
-    transaction.rollback()
-    connection.close()
-    _database.session.remove()
+    # Clean up after test - delete all data from tables
+    # Order matters due to foreign keys
+    with app.app_context():
+        _database.session.rollback()  # Clear any pending transaction
+
+        # Delete in order to avoid FK constraint issues
+        tables_to_clean = [
+            'availability', 'player_teams', 'matches', 'schedules',
+            'players', 'teams', 'leagues', 'seasons',
+            'user_roles', 'users', 'roles'
+        ]
+
+        for table in tables_to_clean:
+            try:
+                _database.session.execute(_database.text(f'DELETE FROM {table}'))
+            except Exception:
+                pass  # Table might not exist or other issue
+
+        _database.session.commit()
+        _database.session.remove()
 
 
 @pytest.fixture
@@ -124,19 +129,23 @@ def admin_client(client, admin_user):
 
 @pytest.fixture
 def user_role(db):
-    """Create user role."""
-    role = Role(name='User', description='Regular user')
-    db.session.add(role)
-    db.session.commit()
+    """Create or get user role."""
+    role = Role.query.filter_by(name='User').first()
+    if not role:
+        role = Role(name='User', description='Regular user')
+        db.session.add(role)
+        db.session.commit()
     return role
 
 
 @pytest.fixture
 def admin_role(db):
-    """Create admin role."""
-    role = Role(name='Admin', description='Administrator')
-    db.session.add(role)
-    db.session.commit()
+    """Create or get admin role."""
+    role = Role.query.filter_by(name='Admin').first()
+    if not role:
+        role = Role(name='Admin', description='Administrator')
+        db.session.add(role)
+        db.session.commit()
     return role
 
 
