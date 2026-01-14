@@ -133,6 +133,31 @@ def db(_database, app):
         _database.session.remove()
 
 
+@pytest.fixture(autouse=True)
+def mock_celery_tasks(monkeypatch):
+    """Mock Celery tasks to prevent Redis/broker connection errors."""
+    from unittest.mock import MagicMock
+
+    # Create mock tasks that don't require Celery broker
+    mock_task = MagicMock()
+    mock_task.delay = MagicMock(return_value=MagicMock(id='mock-task-id'))
+    mock_task.apply_async = MagicMock(return_value=MagicMock(id='mock-task-id'))
+
+    # Mock RSVP-related Celery tasks
+    try:
+        import app.match_pages as match_pages
+        monkeypatch.setattr(match_pages, 'notify_discord_of_rsvp_change_task', mock_task, raising=False)
+        monkeypatch.setattr(match_pages, 'update_discord_rsvp_task', mock_task, raising=False)
+    except (ImportError, AttributeError):
+        pass
+
+    try:
+        import app.tasks.tasks_rsvp as tasks_rsvp
+        monkeypatch.setattr(tasks_rsvp, 'notify_discord_of_rsvp_change_task', mock_task, raising=False)
+    except (ImportError, AttributeError):
+        pass
+
+
 @pytest.fixture
 def client(app, db):
     """Create Flask test client."""
@@ -171,13 +196,26 @@ def admin_client(client, admin_user):
 
 @pytest.fixture
 def user_role(db):
-    """Create or get user role."""
-    from app.models import Role
+    """Create or get user role with basic permissions."""
+    from app.models import Role, Permission
+
     role = Role.query.filter_by(name='User').first()
     if not role:
         role = Role(name='User', description='Regular user')
         db.session.add(role)
-        db.session.commit()
+        db.session.flush()
+
+    # Add view_rsvps permission if not already present
+    view_rsvps = Permission.query.filter_by(name='view_rsvps').first()
+    if not view_rsvps:
+        view_rsvps = Permission(name='view_rsvps', description='Can view and manage RSVPs')
+        db.session.add(view_rsvps)
+        db.session.flush()
+
+    if view_rsvps not in role.permissions:
+        role.permissions.append(view_rsvps)
+
+    db.session.commit()
     return role
 
 

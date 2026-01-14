@@ -51,10 +51,7 @@ class TestSMSSendingBehaviors:
         with patch('app.sms_helpers.send_sms', side_effect=sms_helper.mock_send_sms):
             # Trigger reminder
             from app.sms_helpers import send_sms
-            send_sms(
-                phone_number='+15551234567',
-                message='RSVP reminder for upcoming match'
-            )
+            send_sms('+15551234567', 'RSVP reminder for upcoming match')
 
             # Behavior: SMS was sent
             assert len(sms_helper.sent_messages) > 0

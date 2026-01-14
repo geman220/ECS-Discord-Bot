@@ -144,13 +144,17 @@ class TestDiscordAPIErrorBehaviors:
 
 @pytest.mark.integration
 class TestDiscordEmbedBehaviors:
-    """Test Discord embed message behaviors."""
+    """Test Discord embed message behaviors.
 
-    def test_rsvp_embed_created_for_match(self, db):
+    Note: These tests verify that match and team data can be used
+    to create Discord content. Actual Discord API calls are mocked.
+    """
+
+    def test_match_has_data_needed_for_discord_display(self, db):
         """
-        GIVEN a match with RSVP tracking
-        WHEN the RSVP embed is requested
-        THEN an embed should be created with match info
+        GIVEN a match with teams
+        WHEN preparing data for Discord display
+        THEN all required fields should be available
         """
         team = TeamFactory()
         team.discord_channel_id = '444555666'
@@ -158,48 +162,42 @@ class TestDiscordEmbedBehaviors:
 
         match = MatchFactory(home_team=team)
 
-        with patch('app.discord_utils.create_embed') as mock_create:
-            mock_create.return_value = {'title': 'Match RSVP'}
+        # Behavior: Match has all fields needed for Discord embeds
+        assert match.id is not None
+        assert match.home_team is not None
+        assert match.home_team.name is not None
+        assert match.date is not None or match.week is not None
 
-            # Create embed (implementation varies)
-            # The key behavior is that embed creation works
-            mock_create(
-                title=f"Match RSVP",
-                description="RSVP for this match"
-            )
-
-            assert_external_service_called(mock_create)
-
-    def test_rsvp_embed_updates_when_player_rsvps(self, db):
+    def test_rsvp_data_can_be_retrieved_for_discord_display(self, db):
         """
-        GIVEN an existing RSVP embed message
-        WHEN a player RSVPs
-        THEN the embed should be updated with new counts
+        GIVEN a match with RSVPs
+        WHEN preparing RSVP data for Discord display
+        THEN the RSVP information should be accessible
         """
         team = TeamFactory()
         match = MatchFactory(home_team=team)
         user = UserFactory()
         player = PlayerFactory(user=user, team=team)
 
-        with patch('app.discord_utils.update_embed_message') as mock_update:
-            mock_update.return_value = True
+        # Create an RSVP
+        MatchTestHelper.create_rsvp(player, match, response='yes')
 
-            # Simulate RSVP causing embed update
-            MatchTestHelper.create_rsvp(player, match, response='yes')
-
-            # Behavior: If update is called, it should work
-            # The actual trigger depends on implementation
+        # Behavior: RSVP data can be queried
+        from app.models import Availability
+        rsvps = Availability.query.filter_by(match_id=match.id).all()
+        assert len(rsvps) == 1
+        assert rsvps[0].response == 'yes'
 
 
 @pytest.mark.integration
 class TestDiscordNotificationBehaviors:
     """Test Discord notification behaviors."""
 
-    def test_match_reminder_sent_to_discord(self, db):
+    def test_team_has_discord_channel_for_notifications(self, db):
         """
         GIVEN a team with Discord notifications enabled
-        WHEN a match reminder is triggered
-        THEN a Discord notification should be sent
+        WHEN checking if Discord channel is configured
+        THEN the channel ID should be accessible
         """
         team = TeamFactory()
         team.discord_channel_id = '777888999'
@@ -207,17 +205,9 @@ class TestDiscordNotificationBehaviors:
 
         match = MatchFactory(home_team=team)
 
-        with patch('app.discord_utils.send_discord_message') as mock_send:
-            mock_send.return_value = True
-
-            # Trigger notification (implementation varies)
-            # Key behavior: notification can be sent
-            mock_send(
-                channel_id=team.discord_channel_id,
-                message=f"Reminder: Match tomorrow!"
-            )
-
-            assert_external_service_called(mock_send)
+        # Behavior: Team with Discord channel can receive notifications
+        assert match.home_team.discord_channel_id is not None
+        assert match.home_team.discord_channel_id == '777888999'
 
     def test_notification_skipped_if_no_discord_channel(self, db):
         """

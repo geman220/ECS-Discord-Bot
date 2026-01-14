@@ -14,7 +14,20 @@ The tests focus on outcomes:
 """
 import pytest
 from datetime import datetime, timedelta
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
+
+
+# Fixture to mock Celery tasks for RSVP tests
+@pytest.fixture(autouse=True)
+def mock_rsvp_celery_tasks():
+    """Mock Celery tasks used in RSVP workflow."""
+    mock_task = MagicMock()
+    mock_task.delay = MagicMock(return_value=MagicMock(id='mock-task-id'))
+    mock_task.apply_async = MagicMock(return_value=MagicMock(id='mock-task-id'))
+
+    with patch('app.tasks.tasks_rsvp.notify_discord_of_rsvp_change_task', mock_task), \
+         patch('app.tasks.tasks_rsvp.update_discord_rsvp_task', mock_task):
+        yield
 
 from app.models import Player
 from tests.factories import (
@@ -373,18 +386,29 @@ class TestBulkRSVPBehaviors:
         WHEN requesting the team RSVP summary
         THEN the response should include accurate counts
         """
-        # Create players with different RSVP statuses
+        from app.models import User
+
+        # Create players with different RSVP statuses using proper factories
+        players = []
         for i in range(5):
-            player = Player(
-                name=f'Player {i}',
+            # Create a user for each player
+            user = UserFactory(
+                username=f'bulk_user_{i}',
+                email=f'bulk_{i}@example.com'
+            )
+            player = PlayerFactory(
+                name=f'Bulk Player {i}',
+                user=user,
                 discord_id=f'discord_bulk_{i}',
                 jersey_number=i + 20
             )
-            db.session.add(player)
-            db.session.flush()
             player.teams.append(team)
-            db.session.flush()
+            players.append(player)
 
+        db.session.commit()
+
+        # Create RSVPs
+        for i, player in enumerate(players):
             if i < 3:
                 MatchTestHelper.create_rsvp(player, match, response='yes')
             else:
