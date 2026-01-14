@@ -27,6 +27,7 @@ from app.models import (
     Player, Team, Match, Availability, User, MatchLineup,
     player_teams
 )
+from app.models_ecs import EcsFcMatch, EcsFcAvailability
 
 logger = logging.getLogger(__name__)
 
@@ -572,4 +573,312 @@ def get_team_roster_with_rsvp(match_id, team_id):
             'roster': roster,
             'team_id': team_id,
             'match_id': match_id
+        }), 200
+
+
+# ============================================================================
+# ECS FC Match Mode Endpoints
+# ============================================================================
+
+def build_ecs_fc_roster_response(players, ecs_match, session_db):
+    """
+    Build roster response with ECS FC RSVP status.
+
+    Args:
+        players: List of Player objects
+        ecs_match: EcsFcMatch object
+        session_db: Database session
+
+    Returns:
+        List of player dictionaries with stats and RSVP status
+    """
+    roster = []
+
+    # Get RSVP data from EcsFcAvailability
+    rsvp_map = {}
+    if ecs_match:
+        player_ids = [p.id for p in players]
+        availabilities = session_db.query(EcsFcAvailability).filter(
+            EcsFcAvailability.ecs_fc_match_id == ecs_match.id,
+            EcsFcAvailability.player_id.in_(player_ids)
+        ).all()
+        rsvp_map = {a.player_id: a.response for a in availabilities}
+
+    for player in players:
+        rsvp_status = rsvp_map.get(player.id, 'unavailable')
+        rsvp_color = get_rsvp_color(rsvp_status)
+
+        # Get player stats
+        from app.models import PlayerCareerStats, PlayerAttendanceStats
+
+        career_stats = session_db.query(PlayerCareerStats).filter_by(player_id=player.id).first()
+        attendance_stats = session_db.query(PlayerAttendanceStats).filter_by(player_id=player.id).first()
+
+        roster.append({
+            'player_id': player.id,
+            'name': player.name,
+            'profile_picture_url': player.profile_picture_url or '/static/img/default_player.png',
+            'favorite_position': player.favorite_position,
+            'other_positions': player.other_positions,
+            'rsvp_status': rsvp_status,
+            'rsvp_color': rsvp_color,
+            'stats': {
+                'goals': career_stats.goals if career_stats else 0,
+                'assists': career_stats.assists if career_stats else 0,
+                'attendance_rate': attendance_stats.attendance_rate if attendance_stats else None
+            }
+        })
+
+    return roster
+
+
+@mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/teams/<int:team_id>/lineup', methods=['GET'])
+@jwt_required()
+def get_ecs_fc_match_lineup(match_id, team_id):
+    """
+    Get team's lineup for an ECS FC match with RSVP status.
+
+    ECS FC matches have one team (the ECS FC team) vs an external opponent.
+    """
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session_db:
+        ecs_match = session_db.query(EcsFcMatch).filter_by(id=match_id).first()
+        if not ecs_match:
+            return jsonify({'msg': 'ECS FC match not found'}), 404
+
+        team = session_db.query(Team).options(
+            joinedload(Team.players)
+        ).filter_by(id=team_id).first()
+        if not team:
+            return jsonify({'msg': 'Team not found'}), 404
+
+        # Verify team is the ECS FC team for this match
+        if team_id != ecs_match.team_id:
+            return jsonify({'msg': 'Team is not part of this ECS FC match'}), 400
+
+        # Get or check existing lineup (using ecs_fc_match_id convention)
+        # For ECS FC, we store match_id as negative to distinguish from regular matches
+        # Or we can use a separate identifier
+        lineup = session_db.query(MatchLineup).filter_by(
+            match_id=-match_id,  # Negative ID convention for ECS FC
+            team_id=team_id
+        ).first()
+
+        # Build response
+        pitch_data = {
+            'id': lineup.id if lineup else None,
+            'positions': lineup.positions if lineup else [],
+            'notes': lineup.notes if lineup else None,
+            'version': lineup.version if lineup else 1
+        }
+
+        roster = build_ecs_fc_roster_response(team.players, ecs_match, session_db)
+
+        # Get active coaches from socket tracking
+        active_coaches = []
+        try:
+            from app.sockets.match_lineup import get_active_coaches_for_room, _get_room_key
+            room_key = _get_room_key(-match_id, team_id)
+            active_coaches = get_active_coaches_for_room(room_key)
+        except ImportError:
+            pass
+
+        return jsonify({
+            'mode': 'match',
+            'match_type': 'ecs_fc',
+            'pitch': pitch_data,
+            'roster': roster,
+            'team': {
+                'id': team.id,
+                'name': team.name
+            },
+            'match': {
+                'id': match_id,
+                'date': ecs_match.match_date.isoformat() if ecs_match.match_date else None,
+                'time': ecs_match.match_time.strftime('%H:%M:%S') if ecs_match.match_time else None,
+                'opponent': ecs_match.opponent_name,
+                'location': ecs_match.location
+            },
+            'active_coaches': active_coaches
+        }), 200
+
+
+@mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/teams/<int:team_id>/lineup', methods=['PUT'])
+@jwt_required()
+def update_ecs_fc_match_lineup(match_id, team_id):
+    """
+    Update team's lineup for an ECS FC match (full replacement).
+    """
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session_db:
+        if not check_coach_permission(current_user_id, team_id, session_db):
+            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
+
+        ecs_match = session_db.query(EcsFcMatch).filter_by(id=match_id).first()
+        if not ecs_match:
+            return jsonify({'msg': 'ECS FC match not found'}), 404
+
+        if team_id != ecs_match.team_id:
+            return jsonify({'msg': 'Team is not part of this ECS FC match'}), 400
+
+        data = request.json or {}
+        positions = data.get('positions', [])
+        notes = data.get('notes')
+        version = data.get('version')
+
+        # Use negative match_id for ECS FC
+        lineup = session_db.query(MatchLineup).filter_by(
+            match_id=-match_id,
+            team_id=team_id
+        ).first()
+
+        # Optimistic locking check
+        if lineup and version is not None and lineup.version != version:
+            return jsonify({
+                'msg': 'Lineup was modified by another coach. Please refresh and try again.',
+                'current_version': lineup.version,
+                'your_version': version
+            }), 409
+
+        if not lineup:
+            lineup = MatchLineup(
+                match_id=-match_id,  # Negative for ECS FC
+                team_id=team_id,
+                positions=positions,
+                notes=notes,
+                created_by=current_user_id
+            )
+            session_db.add(lineup)
+        else:
+            lineup.positions = positions
+            if notes is not None:
+                lineup.notes = notes
+            lineup.last_updated_by = current_user_id
+            lineup.increment_version()
+
+        session_db.commit()
+
+        # Emit Socket.IO event
+        try:
+            from app.sockets.match_lineup import emit_lineup_updated
+            emit_lineup_updated(-match_id, team_id, positions, current_user_id)
+        except ImportError:
+            pass
+
+        return jsonify({
+            'msg': 'Lineup updated',
+            'id': lineup.id,
+            'version': lineup.version,
+            'positions': lineup.positions,
+            'updated_at': lineup.updated_at.isoformat() if lineup.updated_at else None
+        }), 200
+
+
+@mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/teams/<int:team_id>/lineup/position', methods=['PATCH'])
+@jwt_required()
+def update_ecs_fc_lineup_position(match_id, team_id):
+    """
+    Update single player position for ECS FC match lineup.
+    """
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session_db:
+        if not check_coach_permission(current_user_id, team_id, session_db):
+            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
+
+        ecs_match = session_db.query(EcsFcMatch).filter_by(id=match_id).first()
+        if not ecs_match:
+            return jsonify({'msg': 'ECS FC match not found'}), 404
+
+        if team_id != ecs_match.team_id:
+            return jsonify({'msg': 'Team is not part of this ECS FC match'}), 400
+
+        data = request.json or {}
+        player_id = data.get('player_id')
+        position = data.get('position')
+        order = data.get('order')
+
+        if not player_id or not position:
+            return jsonify({'msg': 'Missing player_id or position'}), 400
+
+        # Get or create lineup (negative match_id for ECS FC)
+        lineup = session_db.query(MatchLineup).filter_by(
+            match_id=-match_id,
+            team_id=team_id
+        ).first()
+
+        if not lineup:
+            lineup = MatchLineup(
+                match_id=-match_id,
+                team_id=team_id,
+                positions=[],
+                created_by=current_user_id
+            )
+            session_db.add(lineup)
+            session_db.flush()
+
+        lineup.add_player(player_id, position, order)
+        lineup.last_updated_by = current_user_id
+        lineup.increment_version()
+
+        session_db.commit()
+
+        # Emit Socket.IO event
+        try:
+            from app.sockets.match_lineup import emit_position_updated
+            emit_position_updated(-match_id, team_id, player_id, position, order, current_user_id)
+        except ImportError:
+            pass
+
+        return jsonify({
+            'msg': 'Position updated',
+            'player_id': player_id,
+            'position': position,
+            'order': order,
+            'version': lineup.version
+        }), 200
+
+
+@mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/teams/<int:team_id>/lineup/position/<int:player_id>', methods=['DELETE'])
+@jwt_required()
+def remove_from_ecs_fc_lineup(match_id, team_id, player_id):
+    """
+    Remove player from ECS FC match lineup.
+    """
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session_db:
+        if not check_coach_permission(current_user_id, team_id, session_db):
+            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
+
+        lineup = session_db.query(MatchLineup).filter_by(
+            match_id=-match_id,
+            team_id=team_id
+        ).first()
+
+        if not lineup:
+            return jsonify({'msg': 'Lineup not found'}), 404
+
+        removed = lineup.remove_player(player_id)
+        if not removed:
+            return jsonify({'msg': 'Player not in lineup'}), 404
+
+        lineup.last_updated_by = current_user_id
+        lineup.increment_version()
+
+        session_db.commit()
+
+        # Emit Socket.IO event
+        try:
+            from app.sockets.match_lineup import emit_player_removed
+            emit_player_removed(-match_id, team_id, player_id, current_user_id)
+        except ImportError:
+            pass
+
+        return jsonify({
+            'msg': 'Player removed from lineup',
+            'player_id': player_id,
+            'version': lineup.version
         }), 200
