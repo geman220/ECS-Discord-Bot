@@ -224,3 +224,67 @@ def pass_status_api():
         'apple_available': True,
         'google_available': google_config.get('configured', False)
     })
+
+
+# =============================================================================
+# PUBLIC ASSET ROUTES (for Google Wallet to fetch images)
+# =============================================================================
+
+@public_wallet_bp.route('/assets/<pass_type_code>/<asset_type>.png')
+def serve_public_asset(pass_type_code, asset_type):
+    """
+    Serve wallet pass assets publicly for Google Wallet to access.
+
+    This endpoint is needed because Google's servers fetch images from URLs
+    we provide in the pass definition. The images must be publicly accessible.
+
+    URL: /membership/wallet/assets/ecs_membership/strip.png
+
+    Args:
+        pass_type_code: Pass type code (e.g., 'ecs_membership', 'pub_league')
+        asset_type: Asset type (e.g., 'strip', 'logo', 'icon')
+    """
+    import os
+    from flask import send_file
+    from app.models.wallet import WalletPassType
+    from app.models.wallet_asset import WalletAsset
+
+    try:
+        # Find pass type by code
+        pass_type = WalletPassType.query.filter_by(code=pass_type_code).first()
+        if not pass_type:
+            logger.warning(f"Pass type not found: {pass_type_code}")
+            return jsonify({'error': 'Pass type not found'}), 404
+
+        # Find asset for this pass type
+        asset = WalletAsset.query.filter_by(
+            pass_type_id=pass_type.id,
+            asset_type=asset_type
+        ).first()
+
+        if not asset:
+            logger.warning(f"Asset not found: {pass_type_code}/{asset_type}")
+            return jsonify({'error': 'Asset not found'}), 404
+
+        # Find the file
+        paths_to_try = [
+            asset.file_path,
+            os.path.join('app', asset.file_path) if not asset.file_path.startswith('app/') else asset.file_path,
+        ]
+
+        for try_path in paths_to_try:
+            if os.path.exists(try_path):
+                response = make_response(send_file(
+                    os.path.abspath(try_path),
+                    mimetype=asset.content_type or 'image/png'
+                ))
+                # Allow caching for performance
+                response.headers['Cache-Control'] = 'public, max-age=86400'
+                return response
+
+        logger.error(f"Asset file not found on disk: {asset.file_path}")
+        return jsonify({'error': 'Asset file not found'}), 404
+
+    except Exception as e:
+        logger.error(f"Error serving public asset: {e}")
+        return jsonify({'error': 'Server error'}), 500

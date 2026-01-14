@@ -19,7 +19,16 @@
     "synchronize": true
   },
 
+  "passType": "generic",
+
   "hints": {
+    "generic.header": ["name", "member_name", "member"],
+    "generic.subheader": ["year", "membership_year", "team", "team_name"],
+    "generic.textModulesData": [
+      {"header": "Year", "body": ["year", "membership_year"]},
+      {"header": "Valid Until", "body": ["valid_until", "valid_through", "expiry"]},
+      {"header": "Status", "body": ["status"]}
+    ],
     "event.name": ["event", "show", "concert", "game", "member", "name"],
     "event.confirmationCode": ["confirmation", "booking", "reference", "order", "member_id", "membership"],
     "event.startDateTime": ["valid_from", "start_date", "issue_date", "date"],

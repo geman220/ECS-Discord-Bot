@@ -143,8 +143,8 @@ def ensure_google_wallet_class_exists(
 
     session = config.get_authorized_session()
 
-    # Check if class exists
-    check_url = f"{WALLET_API_BASE}/eventTicketClass/{class_id}"
+    # Check if class exists (using genericClass for membership cards)
+    check_url = f"{WALLET_API_BASE}/genericClass/{class_id}"
     response = session.get(check_url)
 
     if response.status_code == 200 and not force_update:
@@ -156,12 +156,12 @@ def ensure_google_wallet_class_exists(
 
     if response.status_code == 200:
         # Update existing class
-        update_url = f"{WALLET_API_BASE}/eventTicketClass/{class_id}"
+        update_url = f"{WALLET_API_BASE}/genericClass/{class_id}"
         response = session.put(update_url, json=class_definition)
         action = "updated"
     else:
         # Create new class
-        create_url = f"{WALLET_API_BASE}/eventTicketClass"
+        create_url = f"{WALLET_API_BASE}/genericClass"
         response = session.post(create_url, json=class_definition)
         action = "created"
 
@@ -180,9 +180,48 @@ def ensure_google_wallet_class_exists(
         )
 
 
+def _get_hero_image_url(pass_type) -> Optional[str]:
+    """
+    Get hero image URL, auto-generating from strip.png if not configured.
+
+    Args:
+        pass_type: WalletPassType model instance
+
+    Returns:
+        URL to hero image, or None if not available
+    """
+    # If explicitly configured, use that
+    if pass_type.google_hero_image_url:
+        return pass_type.google_hero_image_url
+
+    # Try to use the strip image from wallet assets as hero
+    # The strip image is used for Apple passes and can serve as hero for Google
+    base_url = os.getenv('WEBUI_BASE_URL', 'https://portal.ecsfc.com')
+
+    # Check if strip asset exists for this pass type
+    try:
+        from app.models.wallet_asset import WalletAsset
+        strip_asset = WalletAsset.query.filter_by(
+            pass_type_id=pass_type.id,
+            asset_type='strip'
+        ).first()
+
+        if strip_asset:
+            # Serve the strip as hero image through our public asset route
+            return f"{base_url}/membership/wallet/assets/{pass_type.code}/strip.png"
+    except Exception as e:
+        logger.debug(f"Could not check for strip asset: {e}")
+
+    return None
+
+
 def _build_class_definition(issuer_id: str, pass_type) -> dict:
     """
-    Build the Google Wallet eventTicketClass definition from pass type.
+    Build the Google Wallet genericClass definition from pass type.
+
+    Uses genericClass instead of eventTicketClass because membership cards
+    need flexible field layouts with custom text modules, headers, and
+    subheaders that genericClass provides.
 
     Args:
         issuer_id: Google Wallet Issuer ID
@@ -202,16 +241,32 @@ def _build_class_definition(issuer_id: str, pass_type) -> dict:
     class_id = _get_class_id(issuer_id, pass_type.apple_pass_type_id)
 
     # Get colors directly from pass_type model
-    background_color = pass_type.background_color or '#000000'
+    # Default to ECS blue instead of black
+    background_color = pass_type.background_color or '#213e96'
 
-    # Build the class definition
+    # Build the genericClass definition
     class_def = {
         "id": class_id,
         "issuerName": pass_type.logo_text or "ECS FC",
-        "eventName": {
+        # Card title shown at top of pass
+        "cardTitle": {
             "defaultValue": {
                 "language": "en",
                 "value": pass_type.name or "Membership"
+            }
+        },
+        # Subheader provides context (e.g., "Member")
+        "subheader": {
+            "defaultValue": {
+                "language": "en",
+                "value": "Member"
+            }
+        },
+        # Header will be set per-object (member name)
+        "header": {
+            "defaultValue": {
+                "language": "en",
+                "value": ""
             }
         },
         "reviewStatus": "UNDER_REVIEW",  # Required for new classes
@@ -230,15 +285,17 @@ def _build_class_definition(issuer_id: str, pass_type) -> dict:
         }
         logger.debug(f"Using logo URL for class: {pass_type.google_logo_url}")
 
-    # Add hero/wide image if configured
-    if pass_type.google_hero_image_url:
+    # Add hero/wide image - try configured URL first, then auto-generate from strip
+    hero_url = _get_hero_image_url(pass_type)
+    if hero_url:
         class_def["heroImage"] = {
             "sourceUri": {
-                "uri": pass_type.google_hero_image_url
+                "uri": hero_url
             }
         }
+        logger.debug(f"Using hero image URL for class: {hero_url}")
 
-    logger.debug(f"Built class definition for {class_id}: {json.dumps(class_def, indent=2)}")
+    logger.debug(f"Built genericClass definition for {class_id}: {json.dumps(class_def, indent=2)}")
     return class_def
 
 
