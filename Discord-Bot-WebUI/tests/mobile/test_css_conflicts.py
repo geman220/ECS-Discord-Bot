@@ -6,6 +6,10 @@ Tests to validate CSS quality and detect conflicts programmatically.
 
 import pytest
 from pathlib import Path
+
+# Skip all tests in this module if cssutils is not installed
+pytest.importorskip("cssutils", reason="cssutils not installed")
+
 from .css_analyzer import CSSAnalyzer
 
 

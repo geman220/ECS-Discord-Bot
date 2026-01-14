@@ -632,13 +632,15 @@ def build_ecs_fc_roster_response(players, ecs_match, session_db):
     return roster
 
 
+@mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/lineup', methods=['GET'])
 @mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/teams/<int:team_id>/lineup', methods=['GET'])
 @jwt_required()
-def get_ecs_fc_match_lineup(match_id, team_id):
+def get_ecs_fc_match_lineup(match_id, team_id=None):
     """
     Get team's lineup for an ECS FC match with RSVP status.
 
     ECS FC matches have one team (the ECS FC team) vs an external opponent.
+    The team_id parameter is optional - if not provided, uses the match's team.
     """
     current_user_id = int(get_jwt_identity())
 
@@ -647,15 +649,14 @@ def get_ecs_fc_match_lineup(match_id, team_id):
         if not ecs_match:
             return jsonify({'msg': 'ECS FC match not found'}), 404
 
+        # For ECS FC, always use the match's team_id (ignore any passed team_id)
+        team_id = ecs_match.team_id
+
         team = session_db.query(Team).options(
             joinedload(Team.players)
         ).filter_by(id=team_id).first()
         if not team:
             return jsonify({'msg': 'Team not found'}), 404
-
-        # Verify team is the ECS FC team for this match
-        if team_id != ecs_match.team_id:
-            return jsonify({'msg': 'Team is not part of this ECS FC match'}), 400
 
         # Get or check existing lineup (using ecs_fc_match_id convention)
         # For ECS FC, we store match_id as negative to distinguish from regular matches
@@ -704,24 +705,26 @@ def get_ecs_fc_match_lineup(match_id, team_id):
         }), 200
 
 
+@mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/lineup', methods=['PUT'])
 @mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/teams/<int:team_id>/lineup', methods=['PUT'])
 @jwt_required()
-def update_ecs_fc_match_lineup(match_id, team_id):
+def update_ecs_fc_match_lineup(match_id, team_id=None):
     """
     Update team's lineup for an ECS FC match (full replacement).
+    The team_id parameter is optional - if not provided, uses the match's team.
     """
     current_user_id = int(get_jwt_identity())
 
     with managed_session() as session_db:
-        if not check_coach_permission(current_user_id, team_id, session_db):
-            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
-
         ecs_match = session_db.query(EcsFcMatch).filter_by(id=match_id).first()
         if not ecs_match:
             return jsonify({'msg': 'ECS FC match not found'}), 404
 
-        if team_id != ecs_match.team_id:
-            return jsonify({'msg': 'Team is not part of this ECS FC match'}), 400
+        # For ECS FC, always use the match's team_id (ignore any passed team_id)
+        team_id = ecs_match.team_id
+
+        if not check_coach_permission(current_user_id, team_id, session_db):
+            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
 
         data = request.json or {}
         positions = data.get('positions', [])
@@ -776,24 +779,26 @@ def update_ecs_fc_match_lineup(match_id, team_id):
         }), 200
 
 
+@mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/lineup/position', methods=['PATCH'])
 @mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/teams/<int:team_id>/lineup/position', methods=['PATCH'])
 @jwt_required()
-def update_ecs_fc_lineup_position(match_id, team_id):
+def update_ecs_fc_lineup_position(match_id, team_id=None):
     """
     Update single player position for ECS FC match lineup.
+    The team_id parameter is optional - if not provided, uses the match's team.
     """
     current_user_id = int(get_jwt_identity())
 
     with managed_session() as session_db:
-        if not check_coach_permission(current_user_id, team_id, session_db):
-            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
-
         ecs_match = session_db.query(EcsFcMatch).filter_by(id=match_id).first()
         if not ecs_match:
             return jsonify({'msg': 'ECS FC match not found'}), 404
 
-        if team_id != ecs_match.team_id:
-            return jsonify({'msg': 'Team is not part of this ECS FC match'}), 400
+        # For ECS FC, always use the match's team_id (ignore any passed team_id)
+        team_id = ecs_match.team_id
+
+        if not check_coach_permission(current_user_id, team_id, session_db):
+            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
 
         data = request.json or {}
         player_id = data.get('player_id')
@@ -841,15 +846,24 @@ def update_ecs_fc_lineup_position(match_id, team_id):
         }), 200
 
 
+@mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/lineup/position/<int:player_id>', methods=['DELETE'])
 @mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/teams/<int:team_id>/lineup/position/<int:player_id>', methods=['DELETE'])
 @jwt_required()
-def remove_from_ecs_fc_lineup(match_id, team_id, player_id):
+def remove_from_ecs_fc_lineup(match_id, player_id, team_id=None):
     """
     Remove player from ECS FC match lineup.
+    The team_id parameter is optional - if not provided, uses the match's team.
     """
     current_user_id = int(get_jwt_identity())
 
     with managed_session() as session_db:
+        ecs_match = session_db.query(EcsFcMatch).filter_by(id=match_id).first()
+        if not ecs_match:
+            return jsonify({'msg': 'ECS FC match not found'}), 404
+
+        # For ECS FC, always use the match's team_id (ignore any passed team_id)
+        team_id = ecs_match.team_id
+
         if not check_coach_permission(current_user_id, team_id, session_db):
             return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
 

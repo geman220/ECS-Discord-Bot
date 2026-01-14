@@ -44,8 +44,10 @@ _lineup_cleanup_counter = 0
 _LINEUP_CLEANUP_INTERVAL = 100
 
 
-def _get_room_key(match_id, team_id):
+def _get_room_key(match_id, team_id, is_ecs_fc=False):
     """Generate consistent room key for lineup rooms."""
+    if is_ecs_fc:
+        return f"lineup_ecs_fc_{match_id}_team_{team_id}"
     return f"lineup_match_{match_id}_team_{team_id}"
 
 
@@ -157,9 +159,12 @@ def _check_lineup_permission(user_id, team_id, session_db):
 # Emit functions (called from API endpoints for cross-client sync)
 # ============================================================================
 
-def emit_lineup_updated(match_id, team_id, positions, updated_by_user_id):
+def emit_lineup_updated(match_id, team_id, positions, updated_by_user_id, is_ecs_fc=False):
     """Emit lineup update to all clients in the lineup room."""
-    room_key = _get_room_key(match_id, team_id)
+    # Convert negative match_id back to positive for ECS FC
+    actual_match_id = abs(match_id) if match_id < 0 else match_id
+    is_ecs_fc = is_ecs_fc or match_id < 0
+    room_key = _get_room_key(actual_match_id, team_id, is_ecs_fc)
 
     try:
         with managed_session() as session:
@@ -185,9 +190,11 @@ def emit_lineup_updated(match_id, team_id, positions, updated_by_user_id):
     logger.debug(f"Emitted lineup_updated to room {room_key}")
 
 
-def emit_position_updated(match_id, team_id, player_id, position, order, updated_by_user_id):
+def emit_position_updated(match_id, team_id, player_id, position, order, updated_by_user_id, is_ecs_fc=False):
     """Emit single position update to all clients in the lineup room."""
-    room_key = _get_room_key(match_id, team_id)
+    actual_match_id = abs(match_id) if match_id < 0 else match_id
+    is_ecs_fc = is_ecs_fc or match_id < 0
+    room_key = _get_room_key(actual_match_id, team_id, is_ecs_fc)
 
     try:
         with managed_session() as session:
@@ -218,9 +225,11 @@ def emit_position_updated(match_id, team_id, player_id, position, order, updated
     logger.debug(f"Emitted lineup_position_updated to room {room_key}: {player_name} -> {position}")
 
 
-def emit_player_removed(match_id, team_id, player_id, updated_by_user_id):
+def emit_player_removed(match_id, team_id, player_id, updated_by_user_id, is_ecs_fc=False):
     """Emit player removal to all clients in the lineup room."""
-    room_key = _get_room_key(match_id, team_id)
+    actual_match_id = abs(match_id) if match_id < 0 else match_id
+    is_ecs_fc = is_ecs_fc or match_id < 0
+    room_key = _get_room_key(actual_match_id, team_id, is_ecs_fc)
 
     try:
         with managed_session() as session:
@@ -249,13 +258,15 @@ def emit_player_removed(match_id, team_id, player_id, updated_by_user_id):
     logger.debug(f"Emitted lineup_player_removed to room {room_key}: {player_name}")
 
 
-def emit_rsvp_to_lineup_room(match_id, team_id, player_id, new_status, color):
+def emit_rsvp_to_lineup_room(match_id, team_id, player_id, new_status, color, is_ecs_fc=False):
     """
     Emit RSVP change to lineup room (called from rsvp.py when RSVP changes).
 
     This allows lineup view to update RSVP indicators in real-time.
     """
-    room_key = _get_room_key(match_id, team_id)
+    actual_match_id = abs(match_id) if match_id < 0 else match_id
+    is_ecs_fc = is_ecs_fc or match_id < 0
+    room_key = _get_room_key(actual_match_id, team_id, is_ecs_fc)
 
     try:
         with managed_session() as session:
@@ -293,6 +304,7 @@ def handle_join_lineup_room(data):
     {
         'match_id': 123,
         'team_id': 45,
+        'is_ecs_fc': false,  // Optional, defaults to false
         'auth': {'token': 'jwt_token'} (for mobile apps)
     }
     """
@@ -315,6 +327,7 @@ def handle_join_lineup_room(data):
 
         match_id = data.get('match_id')
         team_id = data.get('team_id')
+        is_ecs_fc = data.get('is_ecs_fc', False)
 
         if not match_id or not team_id:
             emit('lineup_error', {'message': 'Match ID and Team ID required'})
@@ -327,24 +340,34 @@ def handle_join_lineup_room(data):
             emit('lineup_error', {'message': 'Invalid match or team ID format'})
             return
 
-        room_key = _get_room_key(match_id, team_id)
+        room_key = _get_room_key(match_id, team_id, is_ecs_fc)
         join_room(room_key)
 
         with managed_session() as session:
-            # Verify match and team exist
-            match = session.query(Match).filter_by(id=match_id).first()
-            if not match:
-                emit('lineup_error', {'message': 'Match not found'})
-                return
+            # Verify match and team exist based on match type
+            if is_ecs_fc:
+                from app.models_ecs import EcsFcMatch
+                ecs_match = session.query(EcsFcMatch).filter_by(id=match_id).first()
+                if not ecs_match:
+                    emit('lineup_error', {'message': 'ECS FC match not found'})
+                    return
+                # For ECS FC, team must be the match's team
+                if team_id != ecs_match.team_id:
+                    emit('lineup_error', {'message': 'Team is not part of this ECS FC match'})
+                    return
+            else:
+                match = session.query(Match).filter_by(id=match_id).first()
+                if not match:
+                    emit('lineup_error', {'message': 'Match not found'})
+                    return
+                # Verify team is in this match (pub league only)
+                if team_id not in [match.home_team_id, match.away_team_id]:
+                    emit('lineup_error', {'message': 'Team is not part of this match'})
+                    return
 
             team = session.query(Team).filter_by(id=team_id).first()
             if not team:
                 emit('lineup_error', {'message': 'Team not found'})
-                return
-
-            # Verify team is in this match
-            if team_id not in [match.home_team_id, match.away_team_id]:
-                emit('lineup_error', {'message': 'Team is not part of this match'})
                 return
 
             # Check if user is coach or admin
@@ -381,8 +404,10 @@ def handle_join_lineup_room(data):
                 _cleanup_stale_coaches()
 
             # Get current lineup data
+            # For ECS FC, we store with negative match_id in database
+            db_match_id = -match_id if is_ecs_fc else match_id
             lineup = session.query(MatchLineup).filter_by(
-                match_id=match_id,
+                match_id=db_match_id,
                 team_id=team_id
             ).first()
 
@@ -428,11 +453,18 @@ def handle_leave_lineup_room(data):
     try:
         match_id = data.get('match_id')
         team_id = data.get('team_id')
+        is_ecs_fc = data.get('is_ecs_fc', False)
 
         if not match_id or not team_id:
             return
 
-        room_key = _get_room_key(match_id, team_id)
+        try:
+            match_id = int(match_id)
+            team_id = int(team_id)
+        except ValueError:
+            return
+
+        room_key = _get_room_key(match_id, team_id, is_ecs_fc)
         leave_room(room_key)
 
         # Get user info
@@ -479,6 +511,7 @@ def handle_update_lineup_position(data):
         'player_id': 10,
         'position': 'lw',
         'order': 0,
+        'is_ecs_fc': false,
         'auth': {'token': 'jwt_token'} (for mobile apps)
     }
     """
@@ -501,6 +534,7 @@ def handle_update_lineup_position(data):
         player_id = data.get('player_id')
         position = data.get('position')
         order = data.get('order')
+        is_ecs_fc = data.get('is_ecs_fc', False)
 
         if not all([match_id, team_id, player_id, position]):
             emit('lineup_error', {'message': 'Missing required fields'})
@@ -522,15 +556,18 @@ def handle_update_lineup_position(data):
                 emit('lineup_error', {'message': 'You are not authorized to edit this lineup'})
                 return
 
+            # For ECS FC, we store with negative match_id in database
+            db_match_id = -match_id if is_ecs_fc else match_id
+
             # Get or create lineup
             lineup = session.query(MatchLineup).filter_by(
-                match_id=match_id,
+                match_id=db_match_id,
                 team_id=team_id
             ).first()
 
             if not lineup:
                 lineup = MatchLineup(
-                    match_id=match_id,
+                    match_id=db_match_id,
                     team_id=team_id,
                     positions=[],
                     created_by=user_id
@@ -555,7 +592,7 @@ def handle_update_lineup_position(data):
             })
 
             # Broadcast to room
-            emit_position_updated(match_id, team_id, player_id, position, order, user_id)
+            emit_position_updated(db_match_id, team_id, player_id, position, order, user_id, is_ecs_fc)
 
             logger.info(f"Position updated via socket: player {player_id} -> {position}")
 
@@ -574,6 +611,7 @@ def handle_remove_lineup_position(data):
         'match_id': 123,
         'team_id': 45,
         'player_id': 10,
+        'is_ecs_fc': false,
         'auth': {'token': 'jwt_token'} (for mobile apps)
     }
     """
@@ -594,6 +632,7 @@ def handle_remove_lineup_position(data):
         match_id = data.get('match_id')
         team_id = data.get('team_id')
         player_id = data.get('player_id')
+        is_ecs_fc = data.get('is_ecs_fc', False)
 
         if not all([match_id, team_id, player_id]):
             emit('lineup_error', {'message': 'Missing required fields'})
@@ -613,8 +652,11 @@ def handle_remove_lineup_position(data):
                 emit('lineup_error', {'message': 'You are not authorized to edit this lineup'})
                 return
 
+            # For ECS FC, we store with negative match_id in database
+            db_match_id = -match_id if is_ecs_fc else match_id
+
             lineup = session.query(MatchLineup).filter_by(
-                match_id=match_id,
+                match_id=db_match_id,
                 team_id=team_id
             ).first()
 
@@ -640,7 +682,7 @@ def handle_remove_lineup_position(data):
             })
 
             # Broadcast to room
-            emit_player_removed(match_id, team_id, player_id, user_id)
+            emit_player_removed(db_match_id, team_id, player_id, user_id, is_ecs_fc)
 
             logger.info(f"Player {player_id} removed from lineup via socket")
 
@@ -659,6 +701,7 @@ def handle_save_lineup_notes(data):
         'match_id': 123,
         'team_id': 45,
         'notes': 'Rotation plan...',
+        'is_ecs_fc': false,
         'auth': {'token': 'jwt_token'}
     }
     """
@@ -679,6 +722,7 @@ def handle_save_lineup_notes(data):
         match_id = data.get('match_id')
         team_id = data.get('team_id')
         notes = data.get('notes', '')
+        is_ecs_fc = data.get('is_ecs_fc', False)
 
         if not match_id or not team_id:
             emit('lineup_error', {'message': 'Missing match_id or team_id'})
@@ -696,14 +740,17 @@ def handle_save_lineup_notes(data):
                 emit('lineup_error', {'message': 'You are not authorized to edit this lineup'})
                 return
 
+            # For ECS FC, we store with negative match_id in database
+            db_match_id = -match_id if is_ecs_fc else match_id
+
             lineup = session.query(MatchLineup).filter_by(
-                match_id=match_id,
+                match_id=db_match_id,
                 team_id=team_id
             ).first()
 
             if not lineup:
                 lineup = MatchLineup(
-                    match_id=match_id,
+                    match_id=db_match_id,
                     team_id=team_id,
                     positions=[],
                     notes=notes,
@@ -723,7 +770,7 @@ def handle_save_lineup_notes(data):
             })
 
             # Broadcast notes update to room
-            room_key = _get_room_key(match_id, team_id)
+            room_key = _get_room_key(match_id, team_id, is_ecs_fc)
             socketio.emit('lineup_notes_updated', {
                 'match_id': match_id,
                 'team_id': team_id,
@@ -731,6 +778,14 @@ def handle_save_lineup_notes(data):
                 'updated_by': user_id,
                 'timestamp': datetime.utcnow().isoformat()
             }, room=room_key, namespace='/')
+            # Also emit to /live namespace for mobile clients
+            socketio.emit('lineup_notes_updated', {
+                'match_id': match_id,
+                'team_id': team_id,
+                'notes': notes,
+                'updated_by': user_id,
+                'timestamp': datetime.utcnow().isoformat()
+            }, room=room_key, namespace='/live')
 
             logger.info(f"Lineup notes saved for match {match_id} team {team_id}")
 
